@@ -3,9 +3,12 @@ using System.Reflection;
 
 namespace GeoCop.Api.Controllers
 {
+    /// <summary>
+    /// Constroller for Version information.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
-    internal class VersionController : ControllerBase
+    public class VersionController : ControllerBase
     {
         /// <summary>
         /// Gets the application version.
