@@ -7,6 +7,8 @@ Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "GeoCop.Frontend", "src\GeoC
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeoCop.Api", "src\GeoCop.Api\GeoCop.Api.csproj", "{29505995-981F-45FE-9410-684E086DC556}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GeoCop.Api.Test", "tests\GeoCop.Api.Test\GeoCop.Api.Test.csproj", "{CD485179-7CB7-4131-8B17-43634CA6857C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,6 +25,10 @@ Global
 		{29505995-981F-45FE-9410-684E086DC556}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{29505995-981F-45FE-9410-684E086DC556}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{29505995-981F-45FE-9410-684E086DC556}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD485179-7CB7-4131-8B17-43634CA6857C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD485179-7CB7-4131-8B17-43634CA6857C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD485179-7CB7-4131-8B17-43634CA6857C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD485179-7CB7-4131-8B17-43634CA6857C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
