@@ -24,4 +24,3 @@ Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
 Das Debugging  sollte nun sowol für das GeoCop.Frontend in JavaScript als auch für GeoCop.Api in C# funtkionieren.
 
 PgAdmin kann für eine Analyse der Datenbank verwendet werden und ist unter [localhost:3001](http://localhost:3001/) verfügbar.
-
