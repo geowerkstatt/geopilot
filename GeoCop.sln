@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "GeoCop.Frontend", "src\GeoCop.Frontend\GeoCop.Frontend.esproj", "{3970CA03-F5E1-47CE-A054-D4B358F8CDB0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeoCop.Api", "src\GeoCop.Api\GeoCop.Api.csproj", "{29505995-981F-45FE-9410-684E086DC556}"
+	ProjectSection(ProjectDependencies) = postProject
+		{41D679A6-C4B1-4B18-B9AB-BEC6C647A180} = {41D679A6-C4B1-4B18-B9AB-BEC6C647A180}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeoCop.Api.Test", "tests\GeoCop.Api.Test\GeoCop.Api.Test.csproj", "{CD485179-7CB7-4131-8B17-43634CA6857C}"
 EndProject
