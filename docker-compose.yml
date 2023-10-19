@@ -1,0 +1,40 @@
+version: '3.4'
+
+services:
+  db:
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: HAPPYWALK
+      POSTGRES_PASSWORD: SOMBERSPORK
+      POSTGRES_DB: geocop
+    healthcheck:
+      test: "pg_isready -U HAPPYWALK -d geocop -h db"
+      interval: 3s
+      timeout: 1s
+      retries: 20
+      start_period: 25s
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - 3001:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: pgadmin@example.com
+      PGADMIN_DEFAULT_PASSWORD: BOUNCEAUTO
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    volumes:
+      - ./config/pgadmin4-servers.json:/pgadmin4/servers.json
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        /bin/echo '*:*:bdms:SPAWNPLOW:YELLOWSPATULA' > /tmp/.pgpass
+        chmod 0600 /tmp/.pgpass
+        /entrypoint.sh
+    depends_on:
+      db:
+        condition: service_healthy
