@@ -25,7 +25,7 @@ export default class App extends Component {
 
         return (
             <div>
-                <h1 id="tabelLabel">GeoCop</h1>
+                <h1 id="tabelLabel">geocop</h1>
                 <p>This component demonstrates fetching data from the server.</p>
                 {contents}
             </div>

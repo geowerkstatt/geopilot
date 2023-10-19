@@ -12,7 +12,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeoCop.Api", "src\GeoCop.Ap
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GeoCop.Api.Test", "tests\GeoCop.Api.Test\GeoCop.Api.Test.csproj", "{CD485179-7CB7-4131-8B17-43634CA6857C}"
 EndProject
-Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{41D679A6-C4B1-4B18-B9AB-BEC6C647A180}"
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "src\GeoCop.Docker\docker-compose.dcproj", "{41D679A6-C4B1-4B18-B9AB-BEC6C647A180}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

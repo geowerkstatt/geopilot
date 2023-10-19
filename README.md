@@ -1,6 +1,6 @@
-# GeoCop
+# geocop
 
-GeoCop ist ein benutzerfreundliches Tool für das Liefern und Validieren von Geodaten. Es ermöglicht das Hochladen von Geodaten in verschiedenen Formaten und überprüft sie auf Einhaltung geltender Standards. Anwender können ihre hochgeladenen und validierten Daten deklarieren um diese für die Weiterverarbeitung bereit zu stellen. Mit GeoCop wird der Prozess der Geodatenverarbeitung für eine reibungslose und zuverlässige Datenübermittlung optimiert.
+geocop ist ein benutzerfreundliches Tool für das Liefern und Validieren von Geodaten. Es ermöglicht das Hochladen von Geodaten in verschiedenen Formaten und überprüft sie auf Einhaltung geltender Standards. Anwender können ihre hochgeladenen und validierten Daten deklarieren um diese für die Weiterverarbeitung bereit zu stellen. Mit geocop wird der Prozess der Geodatenverarbeitung für eine reibungslose und zuverlässige Datenübermittlung optimiert.
 
 ## Einrichten der Entwicklungsumgebung
 
@@ -24,4 +24,3 @@ Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
 Das Debugging  sollte nun sowol für das GeoCop.Frontend in JavaScript als auch für GeoCop.Api in C# funtkionieren.
 
 PgAdmin kann für eine Analyse der Datenbank verwendet werden und ist unter [localhost:3001](http://localhost:3001/) verfügbar.
-

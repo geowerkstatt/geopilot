@@ -2,15 +2,15 @@
 
   <PropertyGroup>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <Product>GeoCop</Product>
+    <Product>geocop</Product>
     <Authors>GeoWerkstatt GmbH</Authors>
     <Company>GeoWerkstatt GmbH</Company>
     <Copyright>© GeoWerkstatt GmbH</Copyright>
-    <PackageOutputPath>$(MSBuildThisFileDirectory)/artifacts</PackageOutputPath>
     <PackageProjectUrl>https://github.com/GeoWerkstatt/geocop</PackageProjectUrl>
     <RepositoryUrl>https://github.com/GeoWerkstatt/geocop.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <AnalysisLevel>latest-Recommended</AnalysisLevel>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
