@@ -4,8 +4,8 @@ import { MdCancel, MdFileUpload } from "react-icons/md";
 import { Button, Spinner } from "react-bootstrap";
 import styled from "styled-components";
 
-const getColor = (props) => {
-  if (props.isDragActive) {
+const getColor = (isDragActive) => {
+  if (isDragActive) {
     return "#2196f3";
   } else {
     return "#d1d6d991";
@@ -22,7 +22,7 @@ const Container = styled.div`
   font-size: 20px;
   border-width: 2px;
   border-radius: 5px;
-  border-color: ${(props) => getColor(props)};
+  border-color: ${(props) => getColor(props.$isDragActive)};
   border-style: dashed;
   background-color: #d1d6d991;
   color: #9f9f9f;
@@ -132,7 +132,7 @@ export const FileDropzone = ({
 
   return (
     <div className="dropzone-wrapper">
-      <Container className={dropZoneTextClass} {...getRootProps()} isDragActive={isDragActive}>
+      <Container className={dropZoneTextClass} {...getRootProps()} $isDragActive={isDragActive ?? false}>
         <input {...getInputProps()} />
         <div className={dropZoneTextClass}>
           {fileAvailable && (
