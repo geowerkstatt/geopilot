@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import { Modal, Button } from "react-bootstrap";
+import rehypeExternalLinks from "rehype-external-links";
 
 export const ModalContent = (props) => {
   const { content, type } = props;
@@ -7,7 +8,11 @@ export const ModalContent = (props) => {
   return (
     <Modal {...props} size="lg" aria-labelledby="contained-modal-title-vcenter" centered>
       <Modal.Body>
-        {type === "markdown" && <ReactMarkdown linkTarget="_blank">{content || ""}</ReactMarkdown>}
+        {type === "markdown" && (
+          <ReactMarkdown rehypePlugins={[() => rehypeExternalLinks({ target: "_blank" })]}>
+            {content || ""}
+          </ReactMarkdown>
+        )}
         {type === "raw" && content}
       </Modal.Body>
       <Modal.Footer>
