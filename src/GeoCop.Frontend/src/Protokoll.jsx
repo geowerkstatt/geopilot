@@ -5,8 +5,7 @@ import { Card, Container } from "react-bootstrap";
 import { GoFile, GoFileCode } from "react-icons/go";
 import { BsLink45Deg } from "react-icons/bs";
 
-export const Protokoll = (props) => {
-  const { log, statusData, fileName, validationRunning } = props;
+export const Protokoll = ({ log, statusData, fileName, validationRunning }) => {
   const copyToClipboardTooltipDefaultText = "XTF-Log-Datei Link in die Zwischenablage kopieren";
   const [copyToClipboardTooltipText, setCopyToClipboardTooltipText] = useState(copyToClipboardTooltipDefaultText);
   const [indicateWaiting, setIndicateWaiting] = useState(false);

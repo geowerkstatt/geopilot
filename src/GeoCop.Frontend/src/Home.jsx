@@ -5,14 +5,13 @@ import { FileDropzone } from "./FileDropzone";
 import { Title } from "./Title";
 import { Protokoll } from "./Protokoll";
 
-export const Home = (props) => {
-  const {
-    clientSettings,
-    nutzungsbestimmungenAvailable,
-    showNutzungsbestimmungen,
-    quickStartContent,
-    setShowBannerContent,
-  } = props;
+export const Home = ({
+  clientSettings,
+  nutzungsbestimmungenAvailable,
+  showNutzungsbestimmungen,
+  quickStartContent,
+  setShowBannerContent,
+}) => {
   const [fileToCheck, setFileToCheck] = useState(null);
   const fileToCheckRef = useRef(fileToCheck);
   const [validationRunning, setValidationRunning] = useState(false);

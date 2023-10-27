@@ -3,18 +3,16 @@ import About from "./About";
 import swissMadeSwissHosted from "./assets/sms-sh.png";
 import { Button } from "react-bootstrap";
 
-export const Footer = (props) => {
-  const {
-    openModalContent,
-    infoHilfeContent,
-    nutzungsbestimmungenContent,
-    datenschutzContent,
-    impressumContent,
-    clientSettings,
-    licenseInfoCustom,
-    licenseInfo,
-  } = props;
-
+export const Footer = ({
+  openModalContent,
+  infoHilfeContent,
+  nutzungsbestimmungenContent,
+  datenschutzContent,
+  impressumContent,
+  clientSettings,
+  licenseInfoCustom,
+  licenseInfo,
+}) => {
   return (
     <footer className="footer-style">
       <div>

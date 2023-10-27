@@ -3,7 +3,7 @@ import { Modal, Button } from "react-bootstrap";
 import rehypeExternalLinks from "rehype-external-links";
 
 export const ModalContent = (props) => {
-  const { content, type } = props;
+  const { content, type, onHide } = props;
 
   return (
     <Modal {...props} size="lg" aria-labelledby="contained-modal-title-vcenter" centered>
@@ -16,7 +16,7 @@ export const ModalContent = (props) => {
         {type === "raw" && content}
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="outline-dark" onClick={props.onHide}>
+        <Button variant="outline-dark" onClick={onHide}>
           Schliessen
         </Button>
       </Modal.Footer>
