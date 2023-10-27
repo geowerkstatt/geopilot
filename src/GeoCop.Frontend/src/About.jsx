@@ -1,9 +1,9 @@
-export const About = ({ clientSettings, licenseInfo }) => (
+export const About = ({ clientSettings, licenseInfo, appVersion }) => (
   <div>
     <h1>About</h1>
     <h2>Versionsinformationen</h2>
     <p>
-      <b>{clientSettings.applicationName}</b>: {clientSettings?.applicationVersion}
+      <b>{clientSettings?.application?.name}</b>: {appVersion}
     </p>
     <h2>Entwicklung und Bugtracking</h2>
     <p>

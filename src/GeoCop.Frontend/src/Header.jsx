@@ -2,11 +2,11 @@ import "./app.css";
 
 export const Header = ({ clientSettings }) => (
   <header>
-    <a href={clientSettings?.vendorLink} target="_blank" rel="noreferrer">
+    <a href={clientSettings?.vendor?.url} target="_blank" rel="noreferrer">
       <img
         className="vendor-logo"
-        src="/logo.svg"
-        alt="Vendor Logo"
+        src={`/${clientSettings?.vendor?.logo}`}
+        alt={`Logo of ${clientSettings?.vendor?.name}`}
         onError={(e) => {
           e.target.style.display = "none";
         }}
