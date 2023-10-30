@@ -2,7 +2,7 @@ import { useState } from "react";
 import InfoCarousel from "./InfoCarousel";
 import "./app.css";
 
-export const Title = ({ clientSettings, customAppLogoPresent, setCustomAppLogoPresent, quickStartContent }) => {
+export const Title = ({ clientSettings, quickStartContent }) => {
   const [customAppLogoPresent, setCustomAppLogoPresent] = useState(false);
 
   return (
