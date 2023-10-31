@@ -35,7 +35,7 @@ export const App = () => {
   }, []);
 
   useEffect(() => {
-    fetch("api/Version")
+    fetch("api/v1/version")
       .then((res) => res.headers.get("content-type")?.includes("text/plain") && res.text())
       .then((version) => setBackendVersion(version));
   }, []);
