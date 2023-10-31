@@ -31,11 +31,7 @@ export const App = () => {
   useEffect(() => {
     fetch("client-settings.json")
       .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then((loadedSettings) =>
-        setClientSettings((currentSettings) => {
-          return { ...currentSettings, ...loadedSettings };
-        }),
-      );
+      .then(setClientSettings);
   }, []);
 
   useEffect(() => {
