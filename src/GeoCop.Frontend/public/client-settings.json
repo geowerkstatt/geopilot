@@ -1,0 +1,11 @@
+{
+  "application": {
+    "name": "geocop",
+    "logo":  "/app.svg"
+  },
+  "vendor": {
+    "name": "GeoWerkstatt GmbH",
+    "logo": "/logo.svg",
+    "url": "https://www.geowerkstatt.ch"
+  }
+}

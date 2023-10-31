@@ -17,7 +17,6 @@ export const Home = ({
   const [validationRunning, setValidationRunning] = useState(false);
   const [statusInterval, setStatusInterval] = useState(null);
   const [statusData, setStatusData] = useState(null);
-  const [customAppLogoPresent, setCustomAppLogoPresent] = useState(false);
   const [checkedNutzungsbestimmungen, setCheckedNutzungsbestimmungen] = useState(false);
   const [isFirstValidation, setIsFirstValidation] = useState(true);
   const [log, setLog] = useState([]);
@@ -122,12 +121,7 @@ export const Home = ({
   return (
     <main>
       <Container className="main-container">
-        <Title
-          clientSettings={clientSettings}
-          customAppLogoPresent={customAppLogoPresent}
-          setCustomAppLogoPresent={setCustomAppLogoPresent}
-          quickStartContent={quickStartContent}
-        ></Title>
+        <Title clientSettings={clientSettings} quickStartContent={quickStartContent} />
         <FileDropzone
           setUploadLogsEnabled={setUploadLogsEnabled}
           setFileToCheck={setFileToCheck}

@@ -12,71 +12,74 @@ export const Footer = ({
   clientSettings,
   licenseInfoCustom,
   licenseInfo,
-}) => {
-  return (
-    <footer className="footer-style">
-      <div>
-        {infoHilfeContent && (
-          <Button
-            variant="link"
-            className="footer-button no-outline-on-focus"
-            onClick={() => openModalContent(infoHilfeContent, "markdown")}
-          >
-            INFO & HILFE
-          </Button>
-        )}
-        {nutzungsbestimmungenContent && (
-          <Button
-            variant="link"
-            className="footer-button no-outline-on-focus"
-            onClick={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
-          >
-            NUTZUNGSBESTIMMUNGEN
-          </Button>
-        )}
-        {datenschutzContent && (
-          <Button
-            variant="link"
-            className="footer-button no-outline-on-focus"
-            onClick={() => openModalContent(datenschutzContent, "markdown")}
-          >
-            DATENSCHUTZ
-          </Button>
-        )}
-        {impressumContent && (
-          <Button
-            variant="link"
-            className="footer-button no-outline-on-focus"
-            onClick={() => openModalContent(impressumContent, "markdown")}
-          >
-            IMPRESSUM
-          </Button>
-        )}
+  appVersion,
+}) => (
+  <footer className="footer-style">
+    <div>
+      {infoHilfeContent && (
         <Button
           variant="link"
           className="footer-button no-outline-on-focus"
-          onClick={() =>
-            openModalContent(
-              <About clientSettings={clientSettings} licenseInfo={{ ...licenseInfoCustom, ...licenseInfo }} />,
-              "raw",
-            )
-          }
+          onClick={() => openModalContent(infoHilfeContent, "markdown")}
         >
-          ABOUT
+          INFO & HILFE
         </Button>
-      </div>
-      <div className="footer-icons">
-        <a
-          href="https://www.swissmadesoftware.org/en/home/swiss-hosting.html"
-          title="Link zu Swiss Hosting"
-          target="_blank"
-          rel="noreferrer"
+      )}
+      {nutzungsbestimmungenContent && (
+        <Button
+          variant="link"
+          className="footer-button no-outline-on-focus"
+          onClick={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
         >
-          <img className="footer-icon" src={swissMadeSwissHosted} alt="Swiss Hosting Logo" />
-        </a>
-      </div>
-    </footer>
-  );
-};
+          NUTZUNGSBESTIMMUNGEN
+        </Button>
+      )}
+      {datenschutzContent && (
+        <Button
+          variant="link"
+          className="footer-button no-outline-on-focus"
+          onClick={() => openModalContent(datenschutzContent, "markdown")}
+        >
+          DATENSCHUTZ
+        </Button>
+      )}
+      {impressumContent && (
+        <Button
+          variant="link"
+          className="footer-button no-outline-on-focus"
+          onClick={() => openModalContent(impressumContent, "markdown")}
+        >
+          IMPRESSUM
+        </Button>
+      )}
+      <Button
+        variant="link"
+        className="footer-button no-outline-on-focus"
+        onClick={() =>
+          openModalContent(
+            <About
+              clientSettings={clientSettings}
+              appVersion={appVersion}
+              licenseInfo={{ ...licenseInfoCustom, ...licenseInfo }}
+            />,
+            "raw",
+          )
+        }
+      >
+        ABOUT
+      </Button>
+    </div>
+    <div className="footer-icons">
+      <a
+        href="https://www.swissmadesoftware.org/en/home/swiss-hosting.html"
+        title="Link zu Swiss Hosting"
+        target="_blank"
+        rel="noreferrer"
+      >
+        <img className="footer-icon" src={swissMadeSwissHosted} alt="Swiss Hosting Logo" />
+      </a>
+    </div>
+  </footer>
+);
 
 export default Footer;

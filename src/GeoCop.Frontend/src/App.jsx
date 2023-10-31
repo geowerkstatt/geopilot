@@ -12,6 +12,7 @@ export const App = () => {
   const [showModalContent, setShowModalContent] = useState(false);
   const [showBannerContent, setShowBannerContent] = useState(false);
   const [clientSettings, setClientSettings] = useState({});
+  const [backendVersion, setBackendVersion] = useState("");
   const [datenschutzContent, setDatenschutzContent] = useState(null);
   const [impressumContent, setImpressumContent] = useState(null);
   const [infoHilfeContent, setInfoHilfeContent] = useState(null);
@@ -23,14 +24,20 @@ export const App = () => {
 
   // Update HTML title property
   useEffect(() => {
-    document.title = clientSettings?.applicationName + " " + clientSettings?.applicationVersion;
-  }, [clientSettings]);
+    document.title = clientSettings?.application?.name + " " + backendVersion;
+  }, [clientSettings, backendVersion]);
 
   // Fetch client settings
   useEffect(() => {
+    fetch("client-settings.json")
+      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then(setClientSettings);
+  }, []);
+
+  useEffect(() => {
     fetch("api/Version")
       .then((res) => res.headers.get("content-type")?.includes("text/plain") && res.text())
-      .then((version) => setClientSettings({ applicationName: "geocop", applicationVersion: version }));
+      .then((version) => setBackendVersion(version));
   }, []);
 
   // Fetch optional custom content
@@ -88,6 +95,7 @@ export const App = () => {
         datenschutzContent={datenschutzContent}
         impressumContent={impressumContent}
         clientSettings={clientSettings}
+        appVersion={backendVersion}
         licenseInfoCustom={licenseInfoCustom}
         licenseInfo={licenseInfo}
       />
