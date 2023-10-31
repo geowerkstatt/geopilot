@@ -2,7 +2,7 @@ import "./app.css";
 
 export const Header = ({ clientSettings }) => (
   <header>
-    {clientSettings?.application?.logo && (
+    {clientSettings?.vendor?.logo && (
       <a href={clientSettings?.vendor?.url} target="_blank" rel="noreferrer">
         <img
           className="vendor-logo"
