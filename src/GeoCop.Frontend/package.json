@@ -12,8 +12,16 @@
     "predev": "node aspnetcore-https.js"
   },
   "dependencies": {
+    "bootstrap": "^5.3.2",
+    "dayjs": "^1.11.10",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-bootstrap": "^2.9.0",
+    "react-dom": "^18.2.0",
+    "react-dropzone": "^14.2.3",
+    "react-icons": "^4.11.0",
+    "react-markdown": "^9.0.0",
+    "rehype-external-links": "^3.0.0",
+    "styled-components": "^6.1.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",

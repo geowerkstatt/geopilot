@@ -1,46 +1,108 @@
-import { Component } from "react";
+import "./app.css";
+import { useState, useEffect } from "react";
+import BannerContent from "./BannerContent";
+import Home from "./Home";
+import ModalContent from "./ModalContent";
+import Footer from "./Footer";
+import Header from "./Header";
 
-export default class App extends Component {
-  static displayName = App.name;
+export const App = () => {
+  const [modalContent, setModalContent] = useState(false);
+  const [modalContentType, setModalContentType] = useState(null);
+  const [showModalContent, setShowModalContent] = useState(false);
+  const [showBannerContent, setShowBannerContent] = useState(false);
+  const [clientSettings, setClientSettings] = useState({});
+  const [datenschutzContent, setDatenschutzContent] = useState(null);
+  const [impressumContent, setImpressumContent] = useState(null);
+  const [infoHilfeContent, setInfoHilfeContent] = useState(null);
+  const [bannerContent, setBannerContent] = useState(null);
+  const [nutzungsbestimmungenContent, setNutzungsbestimmungenContent] = useState(null);
+  const [quickStartContent, setQuickStartContent] = useState(null);
+  const [licenseInfo, setLicenseInfo] = useState(null);
+  const [licenseInfoCustom, setLicenseInfoCustom] = useState(null);
 
-  constructor(props) {
-    super(props);
-    this.state = { version: "Unknown", loading: true };
-  }
+  // Update HTML title property
+  useEffect(() => {
+    document.title = clientSettings?.applicationName + " " + clientSettings?.applicationVersion;
+  }, [clientSettings]);
 
-  componentDidMount() {
-    this.fetchVersion();
-  }
+  // Fetch client settings
+  useEffect(() => {
+    fetch("api/Version")
+      .then((res) => res.headers.get("content-type")?.includes("text/plain") && res.text())
+      .then((version) => setClientSettings({ applicationName: "geocop", applicationVersion: version }));
+  }, []);
 
-  static renderVersionInfo(version) {
-    return <p>Current Version {version}</p>;
-  }
+  // Fetch optional custom content
+  useEffect(() => {
+    fetch("impressum.md")
+      .then((res) => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
+      .then((text) => setImpressumContent(text));
 
-  render() {
-    let contents = this.state.loading ? (
-      <p>
-        <em>
-          Loading... Please refresh once the ASP.NET backend has started. See{" "}
-          <a href="https://aka.ms/jspsintegrationreact">https://aka.ms/jspsintegrationreact</a> for more details.
-        </em>
-      </p>
-    ) : (
-      App.renderVersionInfo(this.state.version)
-    );
+    fetch("datenschutz.md")
+      .then((res) => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
+      .then((text) => setDatenschutzContent(text));
 
-    return (
-      <div>
-        <h1 id="tabelLabel">geocop</h1>
-        <p>This component demonstrates fetching data from the server.</p>
-        {contents}
-      </div>
-    );
-  }
+    fetch("info-hilfe.md")
+      .then((res) => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
+      .then((text) => setInfoHilfeContent(text));
 
-  async fetchVersion() {
-    const response = await fetch("api/Version");
-    const data = await response.text();
-    if (data.length == 0) return;
-    this.setState({ version: data, loading: false });
-  }
-}
+    fetch("nutzungsbestimmungen.md")
+      .then((res) => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
+      .then((text) => setNutzungsbestimmungenContent(text));
+
+    fetch("banner.md")
+      .then((res) => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
+      .then((text) => setBannerContent(text));
+
+    fetch("quickstart.txt")
+      .then((res) => res.headers.get("content-type")?.includes("text/plain") && res.text())
+      .then((text) => setQuickStartContent(text));
+
+    fetch("license.json")
+      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then((json) => setLicenseInfo(json));
+
+    fetch("license.custom.json")
+      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then((json) => setLicenseInfoCustom(json));
+  }, []);
+
+  const openModalContent = (content, type) =>
+    setModalContent(content) & setModalContentType(type) & setShowModalContent(true);
+
+  return (
+    <div className="app">
+      <Header clientSettings={clientSettings}></Header>
+      <Home
+        clientSettings={clientSettings}
+        nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
+        showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
+        quickStartContent={quickStartContent}
+        setShowBannerContent={setShowBannerContent}
+      />
+      <Footer
+        openModalContent={openModalContent}
+        infoHilfeContent={infoHilfeContent}
+        nutzungsbestimmungenContent={nutzungsbestimmungenContent}
+        datenschutzContent={datenschutzContent}
+        impressumContent={impressumContent}
+        clientSettings={clientSettings}
+        licenseInfoCustom={licenseInfoCustom}
+        licenseInfo={licenseInfo}
+      />
+      <ModalContent
+        className="modal"
+        show={showModalContent}
+        content={modalContent}
+        type={modalContentType}
+        onHide={() => setShowModalContent(false)}
+      />
+      {bannerContent && showBannerContent && (
+        <BannerContent className="banner" content={bannerContent} onHide={() => setShowBannerContent(false)} />
+      )}
+    </div>
+  );
+};
+
+export default App;
