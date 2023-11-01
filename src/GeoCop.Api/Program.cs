@@ -1,27 +1,46 @@
 ﻿using Asp.Versioning;
+using Microsoft.OpenApi.Models;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-builder.Services.AddApiVersioning(config =>
-{
-    config.AssumeDefaultVersionWhenUnspecified = true;
-    config.DefaultApiVersion = new ApiVersion(1, 0);
-    config.ReportApiVersions = true;
-    config.ApiVersionReader = new HeaderApiVersionReader("api-version");
-});
+builder.Services
+    .AddApiVersioning(config =>
+    {
+        config.AssumeDefaultVersionWhenUnspecified = false;
+        config.ReportApiVersions = true;
+        config.ApiVersionReader = new UrlSegmentApiVersionReader();
+    })
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'VVV";
+        options.SubstituteApiVersionInUrl = true;
+    });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "1.0",
+        Title = $"GeoCop API Documentation",
+    });
+
+    // Include existing documentation in Swagger UI.
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
+
+    options.EnableAnnotations();
+    options.SupportNonNullableReferenceTypes();
+});
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "GeoCop API v1.0");
+});
 
 app.UseHttpsRedirection();
 
