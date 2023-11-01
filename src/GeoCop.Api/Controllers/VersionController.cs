@@ -6,7 +6,7 @@ namespace GeoCop.Api.Controllers
     /// <summary>
     /// Constroller for Version information.
     /// </summary>
-    [Route("api/[controller]")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     public class VersionController : ControllerBase
     {
