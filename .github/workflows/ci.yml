@@ -22,7 +22,7 @@ jobs:
         run: dotnet restore GeoCop.sln
 
       - name: Build dotnet
-        run: dotnet build GeoCop.sln --no-restore
+        run: dotnet build GeoCop.sln --no-restore /warnaserror
 
       - name: Test
         run: dotnet test GeoCop.sln
