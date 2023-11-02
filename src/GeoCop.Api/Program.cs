@@ -1,4 +1,6 @@
 ﻿using Asp.Versioning;
+using GeoCop.Api;
+using GeoCop.Api.Validation;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 
@@ -33,6 +35,11 @@ builder.Services.AddSwaggerGen(options =>
     options.EnableAnnotations();
     options.SupportNonNullableReferenceTypes();
 });
+
+builder.Services.AddSingleton<IValidatorService, ValidatorService>();
+builder.Services.AddHostedService(services => (ValidatorService)services.GetRequiredService<IValidatorService>());
+builder.Services.AddTransient<IValidator, InterlisValidator>();
+builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>(x => new PhysicalFileProvider(x.GetRequiredService<IConfiguration>(), "GEOCOP_UPLOADS_DIR"));
 
 var app = builder.Build();
 
