@@ -1,7 +1,6 @@
 <Project>
 
   <PropertyGroup>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Product>geocop</Product>
     <Authors>GeoWerkstatt GmbH</Authors>
     <Company>GeoWerkstatt GmbH</Company>
@@ -9,7 +8,7 @@
     <PackageProjectUrl>https://github.com/GeoWerkstatt/geocop</PackageProjectUrl>
     <RepositoryUrl>https://github.com/GeoWerkstatt/geocop.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <AnalysisLevel>latest-Recommended</AnalysisLevel>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

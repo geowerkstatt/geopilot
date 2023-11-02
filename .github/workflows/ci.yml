@@ -22,10 +22,10 @@ jobs:
         run: dotnet restore GeoCop.sln
 
       - name: Build dotnet
-        run: dotnet build GeoCop.sln --no-restore
+        run: dotnet build GeoCop.sln -c Release --no-restore /warnaserror
 
       - name: Test
-        run: dotnet test GeoCop.sln
+        run: dotnet test GeoCop.sln -c Release --no-build --verbosity normal
 
       - name: Run frontend ci
         working-directory: ./src/GeoCop.Frontend
