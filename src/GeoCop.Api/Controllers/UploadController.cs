@@ -17,6 +17,7 @@ namespace GeoCop.Api.Controllers
     {
         private readonly ILogger<UploadController> logger;
         private readonly IConfiguration configuration;
+        private readonly IHttpContextAccessor httpContextAccessor;
         private readonly IValidator validator;
         private readonly IFileProvider fileProvider;
         private readonly IValidatorService validatorService;
@@ -24,10 +25,11 @@ namespace GeoCop.Api.Controllers
         /// <summary>
         /// Initializes a new instance of the <see cref="UploadController"/> class.
         /// </summary>
-        public UploadController(ILogger<UploadController> logger, IConfiguration configuration, IValidator validator, IFileProvider fileProvider, IValidatorService validatorService)
+        public UploadController(ILogger<UploadController> logger, IConfiguration configuration, IHttpContextAccessor httpContextAccessor, IValidator validator, IFileProvider fileProvider, IValidatorService validatorService)
         {
             this.logger = logger;
             this.configuration = configuration;
+            this.httpContextAccessor = httpContextAccessor;
             this.validator = validator;
             this.fileProvider = fileProvider;
             this.validatorService = validatorService;
@@ -82,9 +84,10 @@ namespace GeoCop.Api.Controllers
         public async Task<IActionResult> UploadAsync(ApiVersion version, IFormFile file)
         {
             if (file == null) return Problem($"Form data <{nameof(file)}> cannot be empty.", statusCode: StatusCodes.Status400BadRequest);
+            var httpRequest = httpContextAccessor.HttpContext!.Request;
 
             logger.LogInformation("Start uploading <{TransferFile}> to <{HomeDirectory}>", file.FileName, fileProvider.HomeDirectory);
-            logger.LogInformation("Transfer file size: {ContentLength}", Request.ContentLength);
+            logger.LogInformation("Transfer file size: {ContentLength}", httpRequest.ContentLength);
             logger.LogInformation("Start time: {Timestamp}", DateTime.Now);
 
             try
