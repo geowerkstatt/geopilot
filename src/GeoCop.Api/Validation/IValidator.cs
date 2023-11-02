@@ -11,20 +11,20 @@
         Guid Id { get; }
 
         /// <summary>
-        /// Gets the transfer file name.
+        /// Gets the name of the file to validate.
         /// </summary>
-        string? TransferFile { get; }
+        string? File { get; }
 
         /// <summary>
-        /// Asynchronously validates the <paramref name="transferFile"/> specified.
-        /// The transfer file must already be located in the <see cref="IFileProvider.HomeDirectory"/>
+        /// Asynchronously validates the <paramref name="file"/> specified.
+        /// The file must already be located in the <see cref="IFileProvider.HomeDirectory"/>
         /// when executing this function.
         /// </summary>
-        /// <param name="transferFile">The name of the transfer file to validate.</param>
+        /// <param name="file">The name of the file to validate.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the asynchronous operation.</param>
-        /// <exception cref="ArgumentNullException">If <paramref name="transferFile"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">If <paramref name="transferFile"/> is <c>string.Empty</c>.</exception>
-        /// <exception cref="InvalidOperationException">If <paramref name="transferFile"/> is not found.</exception>
-        Task ExecuteAsync(string transferFile, CancellationToken cancellationToken);
+        /// <exception cref="ArgumentNullException">If <paramref name="file"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">If <paramref name="file"/> is <c>string.Empty</c>.</exception>
+        /// <exception cref="InvalidOperationException">If <paramref name="file"/> is not found.</exception>
+        Task ExecuteAsync(string file, CancellationToken cancellationToken);
     }
 }

@@ -38,10 +38,10 @@ namespace GeoCop.Api.Controllers
         }
 
         /// <summary>
-        /// Schedules a new job for the given transfer <paramref name="file"/>.
+        /// Schedules a new job for the given <paramref name="file"/>.
         /// </summary>
         /// <param name="version">The API version.</param>
-        /// <param name="file">The transfer or ZIP file to validate.</param>
+        /// <param name="file">The file to validate.</param>
         /// <remarks>
         /// ## Usage
         /// 
@@ -78,7 +78,7 @@ namespace GeoCop.Api.Controllers
         [HttpPost]
         [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(UploadResponse), new[] { "application/json" })]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ProblemDetails), new[] { "application/json" })]
-        [SwaggerResponse(StatusCodes.Status413PayloadTooLarge, "The transfer file is too large. Max allowed request body size is 200 MB.")]
+        [SwaggerResponse(StatusCodes.Status413PayloadTooLarge, "The file is too large. Max allowed request body size is 200 MB.")]
         [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1629:DocumentationTextMustEndWithAPeriod", Justification = "Not applicable for code examples.")]
         [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1028:CodeMustNotContainTrailingWhitespace", Justification = "Not applicable for code examples.")]
         public async Task<IActionResult> UploadAsync(ApiVersion version, IFormFile file)
@@ -86,8 +86,8 @@ namespace GeoCop.Api.Controllers
             if (file == null) return Problem($"Form data <{nameof(file)}> cannot be empty.", statusCode: StatusCodes.Status400BadRequest);
             var httpRequest = httpContextAccessor.HttpContext!.Request;
 
-            logger.LogInformation("Start uploading <{TransferFile}> to <{HomeDirectory}>", file.FileName, fileProvider.HomeDirectory);
-            logger.LogInformation("Transfer file size: {ContentLength}", httpRequest.ContentLength);
+            logger.LogInformation("Start uploading <{File}> to <{HomeDirectory}>", file.FileName, fileProvider.HomeDirectory);
+            logger.LogInformation("Size of file to validate: {ContentLength}", httpRequest.ContentLength);
             logger.LogInformation("Start time: {Timestamp}", DateTime.Now);
 
             try
@@ -96,20 +96,20 @@ namespace GeoCop.Api.Controllers
                 var acceptedExtensionsForUpload = new[] { ".xtf", ".itf", ".xml", ".gpkg", ".zip" };
 
                 // Sanitize file name and save the file to the predefined home directory.
-                var transferFile = Path.ChangeExtension(
+                var fileName = Path.ChangeExtension(
                     Path.GetRandomFileName(),
                     file.FileName.GetSanitizedFileExtension(acceptedExtensionsForUpload));
 
-                using (var stream = fileProvider.CreateFile(transferFile))
+                using (var stream = fileProvider.CreateFile(fileName))
                 {
                     await file.CopyToAsync(stream).ConfigureAwait(false);
                 }
 
-                logger.LogInformation("Successfully received file: {TransferFile}", file.FileName);
+                logger.LogInformation("Successfully received file: {File}", file.FileName);
 
                 // Add validation job to queue.
                 await validatorService.EnqueueJobAsync(
-                    validator.Id, cancellationToken => validator.ExecuteAsync(transferFile, cancellationToken));
+                    validator.Id, cancellationToken => validator.ExecuteAsync(fileName, cancellationToken));
 
                 logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validator.Id);
 

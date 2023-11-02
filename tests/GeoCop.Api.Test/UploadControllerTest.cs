@@ -102,7 +102,7 @@ namespace GeoCop.Api.Controllers
 
             Assert.IsInstanceOfType(response, typeof(ObjectResult));
             Assert.AreEqual(StatusCodes.Status400BadRequest, response!.StatusCode);
-            Assert.AreEqual("Transfer file extension <.cmd> is an unknown file extension.", ((ProblemDetails)response.Value!).Detail);
+            Assert.AreEqual("File extension <.cmd> is an unknown file extension.", ((ProblemDetails)response.Value!).Detail);
         }
 
         private IConfiguration CreateConfiguration(bool enableGpkgValidation = false) =>

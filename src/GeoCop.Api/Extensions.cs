@@ -30,31 +30,8 @@ namespace GeoCop.Api
                     invalidFileExtension,
                     string.Format(
                         CultureInfo.InvariantCulture,
-                        "Transfer file extension <{0}> is an unknown file extension.",
+                        "File extension <{0}> is an unknown file extension.",
                         invalidFileExtension));
-            }
-        }
-
-        /// <summary>
-        /// Gets the log file for the specified <paramref name="logType"/>.
-        /// </summary>
-        /// <param name="fileProvider">The <see cref="IFileProvider"/> which provides read/write access to a predefined folder.</param>
-        /// <param name="logType">The log type to download.</param>
-        /// <returns>The log file for the specified <paramref name="logType"/>.</returns>
-        /// <exception cref="ArgumentNullException">If <paramref name="fileProvider"/> is <c>null</c>.</exception>
-        /// <exception cref="FileNotFoundException">If the log file could not be found.</exception>
-        public static string GetLogFile(this IFileProvider fileProvider, LogType logType)
-        {
-            if (fileProvider == null) throw new ArgumentNullException(nameof(fileProvider));
-
-            try
-            {
-                return fileProvider.GetFiles().Where(x => x.EndsWith($"_log.{logType}", StringComparison.OrdinalIgnoreCase)).Single();
-            }
-            catch (InvalidOperationException)
-            {
-                throw new FileNotFoundException(
-                    string.Format(CultureInfo.InvariantCulture, "Log file of type <{0}> not found in <{1}>", logType, fileProvider.HomeDirectory));
             }
         }
 

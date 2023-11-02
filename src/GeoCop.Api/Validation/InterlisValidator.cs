@@ -3,7 +3,7 @@
 namespace GeoCop.Api.Validation
 {
     /// <summary>
-    /// Validates an INTERLIS <see cref="TransferFile"/> at the given <see cref="IFileProvider.HomeDirectory"/>.
+    /// Validates an INTERLIS transfer <see cref="File"/> at the given <see cref="IFileProvider.HomeDirectory"/>.
     /// </summary>
     public class InterlisValidator : IValidator
     {
@@ -15,7 +15,7 @@ namespace GeoCop.Api.Validation
         public Guid Id { get; } = Guid.NewGuid();
 
         /// <inheritdoc/>
-        public string? TransferFile { get; private set; }
+        public string? File { get; private set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InterlisValidator"/> class.
@@ -30,16 +30,16 @@ namespace GeoCop.Api.Validation
         }
 
         /// <inheritdoc/>
-        public async Task ExecuteAsync(string transferFile, CancellationToken cancellationToken)
+        public async Task ExecuteAsync(string file, CancellationToken cancellationToken)
         {
-            if (transferFile == null) throw new ArgumentNullException(nameof(transferFile));
-            if (string.IsNullOrWhiteSpace(transferFile)) throw new ArgumentException("Transfer file name cannot be empty.", nameof(transferFile));
-            if (!fileProvider.Exists(transferFile)) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Transfer file with the specified name <{0}> not found in <{1}>.", transferFile, fileProvider.HomeDirectory));
+            if (file == null) throw new ArgumentNullException(nameof(file));
+            if (string.IsNullOrWhiteSpace(file)) throw new ArgumentException("Transfer file name cannot be empty.", nameof(file));
+            if (!fileProvider.Exists(file)) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Transfer file with the specified name <{0}> not found in <{1}>.", file, fileProvider.HomeDirectory));
 
-            TransferFile = transferFile;
+            File = file;
 
             // TODO: validate file
-            logger.LogInformation("Validating transfer file <{TransferFile}>...", TransferFile);
+            logger.LogInformation("Validating transfer file <{File}>...", File);
             await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
         }
     }
