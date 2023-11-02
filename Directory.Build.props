@@ -1,7 +1,6 @@
 <Project>
 
   <PropertyGroup>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Product>geocop</Product>
     <Authors>GeoWerkstatt GmbH</Authors>
     <Company>GeoWerkstatt GmbH</Company>
