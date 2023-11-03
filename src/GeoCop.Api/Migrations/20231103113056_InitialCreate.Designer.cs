@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GeoCop.Api.Migrations
 {
     [DbContext(typeof(DeliveryContext))]
-    [Migration("20231102165213_InitialCreate")]
+    [Migration("20231103113056_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -27,10 +27,38 @@ namespace GeoCop.Api.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("GeoCop.Api.Models.Delivery", b =>
+            modelBuilder.Entity("GeoCop.Api.Models.Asset", b =>
                 {
                     b.Property<string>("FileHash")
                         .HasColumnType("text");
+
+                    b.Property<string>("AssetType")
+                        .IsRequired()
+                        .HasColumnType("varchar(24)");
+
+                    b.Property<Guid>("DeliveryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("OriginalFilename")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SanitizedFilename")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("FileHash");
+
+                    b.HasIndex("DeliveryId");
+
+                    b.ToTable("Assets");
+                });
+
+            modelBuilder.Entity("GeoCop.Api.Models.Delivery", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp with time zone");
@@ -39,14 +67,10 @@ namespace GeoCop.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Filename")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("OperatId")
                         .HasColumnType("text");
 
-                    b.HasKey("FileHash");
+                    b.HasKey("Id");
 
                     b.HasIndex("DeclaringUserIdentifier");
 
@@ -79,15 +103,14 @@ namespace GeoCop.Api.Migrations
 
             modelBuilder.Entity("GeoCop.Api.Models.Organisation", b =>
                 {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
                     b.Property<string>("Name")
+                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("OperatId")
-                        .HasColumnType("text");
-
-                    b.HasKey("Name");
-
-                    b.HasIndex("OperatId");
+                    b.HasKey("Id");
 
                     b.ToTable("Organisations");
                 });
@@ -102,19 +125,45 @@ namespace GeoCop.Api.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("OperatOrganisation", b =>
+                {
+                    b.Property<string>("OperateId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OrganisationsId")
+                        .HasColumnType("text");
+
+                    b.HasKey("OperateId", "OrganisationsId");
+
+                    b.HasIndex("OrganisationsId");
+
+                    b.ToTable("OperatOrganisation");
+                });
+
             modelBuilder.Entity("OrganisationUser", b =>
                 {
-                    b.Property<string>("OrganisationsName")
+                    b.Property<string>("OrganisationsId")
                         .HasColumnType("text");
 
                     b.Property<string>("UsersIdentifier")
                         .HasColumnType("text");
 
-                    b.HasKey("OrganisationsName", "UsersIdentifier");
+                    b.HasKey("OrganisationsId", "UsersIdentifier");
 
                     b.HasIndex("UsersIdentifier");
 
                     b.ToTable("OrganisationUser");
+                });
+
+            modelBuilder.Entity("GeoCop.Api.Models.Asset", b =>
+                {
+                    b.HasOne("GeoCop.Api.Models.Delivery", "Delivery")
+                        .WithMany("Assets")
+                        .HasForeignKey("DeliveryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Delivery");
                 });
 
             modelBuilder.Entity("GeoCop.Api.Models.Delivery", b =>
@@ -134,18 +183,26 @@ namespace GeoCop.Api.Migrations
                     b.Navigation("Operat");
                 });
 
-            modelBuilder.Entity("GeoCop.Api.Models.Organisation", b =>
+            modelBuilder.Entity("OperatOrganisation", b =>
                 {
                     b.HasOne("GeoCop.Api.Models.Operat", null)
-                        .WithMany("Organisations")
-                        .HasForeignKey("OperatId");
+                        .WithMany()
+                        .HasForeignKey("OperateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GeoCop.Api.Models.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("OrganisationUser", b =>
                 {
                     b.HasOne("GeoCop.Api.Models.Organisation", null)
                         .WithMany()
-                        .HasForeignKey("OrganisationsName")
+                        .HasForeignKey("OrganisationsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -156,11 +213,14 @@ namespace GeoCop.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("GeoCop.Api.Models.Delivery", b =>
+                {
+                    b.Navigation("Assets");
+                });
+
             modelBuilder.Entity("GeoCop.Api.Models.Operat", b =>
                 {
                     b.Navigation("Deliveries");
-
-                    b.Navigation("Organisations");
                 });
 
             modelBuilder.Entity("GeoCop.Api.Models.User", b =>

@@ -30,6 +30,18 @@ namespace GeoCop.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Organisations",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Organisations", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -41,35 +53,41 @@ namespace GeoCop.Api.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Organisations",
+                name: "OperatOrganisation",
                 columns: table => new
                 {
-                    Name = table.Column<string>(type: "text", nullable: false),
-                    OperatId = table.Column<string>(type: "text", nullable: true)
+                    OperateId = table.Column<string>(type: "text", nullable: false),
+                    OrganisationsId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Organisations", x => x.Name);
+                    table.PrimaryKey("PK_OperatOrganisation", x => new { x.OperateId, x.OrganisationsId });
                     table.ForeignKey(
-                        name: "FK_Organisations_Operate_OperatId",
-                        column: x => x.OperatId,
+                        name: "FK_OperatOrganisation_Operate_OperateId",
+                        column: x => x.OperateId,
                         principalTable: "Operate",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OperatOrganisation_Organisations_OrganisationsId",
+                        column: x => x.OrganisationsId,
+                        principalTable: "Organisations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
                 name: "Deliveries",
                 columns: table => new
                 {
-                    FileHash = table.Column<string>(type: "text", nullable: false),
-                    Filename = table.Column<string>(type: "text", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DeclaringUserIdentifier = table.Column<string>(type: "text", nullable: false),
                     OperatId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Deliveries", x => x.FileHash);
+                    table.PrimaryKey("PK_Deliveries", x => x.Id);
                     table.ForeignKey(
                         name: "FK_Deliveries_Operate_OperatId",
                         column: x => x.OperatId,
@@ -87,17 +105,17 @@ namespace GeoCop.Api.Migrations
                 name: "OrganisationUser",
                 columns: table => new
                 {
-                    OrganisationsName = table.Column<string>(type: "text", nullable: false),
+                    OrganisationsId = table.Column<string>(type: "text", nullable: false),
                     UsersIdentifier = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_OrganisationUser", x => new { x.OrganisationsName, x.UsersIdentifier });
+                    table.PrimaryKey("PK_OrganisationUser", x => new { x.OrganisationsId, x.UsersIdentifier });
                     table.ForeignKey(
-                        name: "FK_OrganisationUser_Organisations_OrganisationsName",
-                        column: x => x.OrganisationsName,
+                        name: "FK_OrganisationUser_Organisations_OrganisationsId",
+                        column: x => x.OrganisationsId,
                         principalTable: "Organisations",
-                        principalColumn: "Name",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_OrganisationUser_Users_UsersIdentifier",
@@ -106,6 +124,32 @@ namespace GeoCop.Api.Migrations
                         principalColumn: "Identifier",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "Assets",
+                columns: table => new
+                {
+                    FileHash = table.Column<string>(type: "text", nullable: false),
+                    OriginalFilename = table.Column<string>(type: "text", nullable: false),
+                    SanitizedFilename = table.Column<string>(type: "text", nullable: false),
+                    AssetType = table.Column<string>(type: "varchar(24)", nullable: false),
+                    DeliveryId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Assets", x => x.FileHash);
+                    table.ForeignKey(
+                        name: "FK_Assets_Deliveries_DeliveryId",
+                        column: x => x.DeliveryId,
+                        principalTable: "Deliveries",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Assets_DeliveryId",
+                table: "Assets",
+                column: "DeliveryId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Deliveries_DeclaringUserIdentifier",
@@ -118,9 +162,9 @@ namespace GeoCop.Api.Migrations
                 column: "OperatId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Organisations_OperatId",
-                table: "Organisations",
-                column: "OperatId");
+                name: "IX_OperatOrganisation_OrganisationsId",
+                table: "OperatOrganisation",
+                column: "OrganisationsId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrganisationUser_UsersIdentifier",
@@ -132,19 +176,25 @@ namespace GeoCop.Api.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Deliveries");
+                name: "Assets");
+
+            migrationBuilder.DropTable(
+                name: "OperatOrganisation");
 
             migrationBuilder.DropTable(
                 name: "OrganisationUser");
 
             migrationBuilder.DropTable(
+                name: "Deliveries");
+
+            migrationBuilder.DropTable(
                 name: "Organisations");
 
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "Operate");
 
             migrationBuilder.DropTable(
-                name: "Operate");
+                name: "Users");
         }
     }
 }

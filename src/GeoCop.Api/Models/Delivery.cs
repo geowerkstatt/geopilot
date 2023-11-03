@@ -4,10 +4,7 @@ namespace GeoCop.Api.Models
 {
     internal class Delivery
     {
-        [Key]
-        public string FileHash { get; set; } = string.Empty;
-
-        public string Filename { get; set; } = string.Empty;
+        public Guid Id { get; set; } = Guid.NewGuid();
 
         public DateTime Date { get; set; } = DateTime.Now;
 
@@ -15,5 +12,6 @@ namespace GeoCop.Api.Models
 
         public Operat Operat { get; set; } = new Operat();
 
+        public List<Asset> Assets { get; set; } = new List<Asset>();
     }
 }

@@ -15,6 +15,5 @@ namespace GeoCop.Api.Models
         public List<Organisation> Organisations { get; set; } = new List<Organisation>();
 
         public List<Delivery> Deliveries { get; set; } = new List<Delivery>();
-
     }
 }

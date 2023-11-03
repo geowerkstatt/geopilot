@@ -21,5 +21,6 @@ namespace GeoCop.Api
 
         public DbSet<Operat> Operate { get; set; }
 
+        public DbSet<Asset> Assets { get; set; }
     }
 }
