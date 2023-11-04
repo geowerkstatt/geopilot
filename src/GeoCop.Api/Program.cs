@@ -36,6 +36,9 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+
+    if (!context.Operate.Any())
+        context.SeedTestData();
 }
 
 app.UseHttpsRedirection();

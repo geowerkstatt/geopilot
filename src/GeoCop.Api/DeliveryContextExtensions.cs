@@ -1,0 +1,134 @@
+﻿using Bogus;
+using Bogus.DataSets;
+using GeoCop.Api.Models;
+using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Geometries;
+using System.Globalization;
+using System.Security.Cryptography;
+
+namespace GeoCop.Api
+{
+    internal static class DeliveryContextExtensions
+    {
+        public static void SeedTestData(this DeliveryContext context)
+        {
+            var transaction = context.Database.BeginTransaction();
+
+            // Set Bogus Data System Clock
+            Date.SystemClock = () => DateTime.Parse("01.11.2023 00:00:00", new CultureInfo("de_CH", false));
+
+            context.SeedUsers();
+            context.SeedOrganisations();
+            context.SeedOperate();
+            context.SeedDeliveries();
+            context.SeedAssets();
+
+            transaction.Commit();
+        }
+
+        public static void SeedUsers(this DeliveryContext context)
+        {
+            var userFaker = new Faker<User>()
+                .StrictMode(true)
+                .RuleFor(u => u.Identifier, f => f.Person.Email)
+                .RuleFor(u => u.Organisations, _ => new List<Organisation>())
+                .RuleFor(u => u.Deliveries, _ => new List<Delivery>());
+
+            User SeedUsers(int seed) => userFaker.UseSeed(seed).Generate();
+            context.Users.AddRange(Enumerable.Range(0, 10).Select(SeedUsers));
+            context.SaveChanges();
+        }
+
+        public static void SeedOrganisations(this DeliveryContext context)
+        {
+            var organisationFaker = new Faker<Organisation>()
+                .StrictMode(true)
+                .RuleFor(o => o.Id, f => f.Company.CompanyName().ToLowerInvariant().Replace(" ", "_"))
+                .RuleFor(o => o.Name, f => f.Company.CompanyName())
+                .RuleFor(o => o.Users, f => f.PickRandom(context.Users.ToList(), f.Random.Number(1, 4)).ToList())
+                .RuleFor(o => o.Operate, _ => new List<Operat>());
+
+            Organisation SeedOrganisations(int seed) => organisationFaker.UseSeed(seed).Generate();
+            context.Organisations.AddRange(Enumerable.Range(0, 3).Select(SeedOrganisations));
+            context.SaveChanges();
+        }
+
+        public static Geometry GetExtent(this Address address)
+        {
+            var longitude = address.Longitude();
+            var latitude = address.Latitude();
+
+            return GeometryFactory.Default.CreatePolygon(new Coordinate[]
+            {
+                new Coordinate(longitude - 0.1, latitude - 0.1),
+                new Coordinate(longitude + 0.1, latitude - 0.1),
+                new Coordinate(longitude + 0.1, latitude + 0.1),
+                new Coordinate(longitude - 0.1, latitude + 0.1),
+                new Coordinate(longitude - 0.1, latitude - 0.1),
+            });
+        }
+
+        public static void SeedOperate(this DeliveryContext context)
+        {
+            var operateFaker = new Faker<Operat>()
+                .StrictMode(true)
+                .RuleFor(o => o.Id, f => f.Commerce.ProductName().ToLowerInvariant().Replace(" ", "_"))
+                .RuleFor(o => o.Name, f => f.Commerce.ProductName())
+                .RuleFor(o => o.FileTypes, f => new string[] { f.System.CommonFileExt(), f.System.CommonFileExt() }.Distinct().ToArray())
+                .RuleFor(o => o.SpatialExtent, f => f.Address.GetExtent())
+                .RuleFor(o => o.Organisations, f => f.PickRandom(context.Organisations.ToList(), 1).ToList())
+                .RuleFor(o => o.Deliveries, _ => new List<Delivery>());
+
+            Operat SeedOperat(int seed) => operateFaker.UseSeed(seed).Generate();
+            context.Operate.AddRange(Enumerable.Range(0, 10).Select(SeedOperat));
+            context.SaveChanges();
+        }
+
+        public static void SeedDeliveries(this DeliveryContext context)
+        {
+            var deliveryFaker = new Faker<Delivery>()
+                .StrictMode(true)
+                .RuleFor(d => d.Id, f => f.Random.Guid())
+                .RuleFor(d => d.Date, f => f.Date.Past().ToUniversalTime())
+                .RuleFor(d => d.Operat, f => f.PickRandom(
+                    context.Operate
+                    .Include(o => o.Organisations)
+                    .ThenInclude(o => o.Users)
+                    .Where(o => o.Organisations.SelectMany(o => o.Users).Any())
+                    .ToList()))
+                .RuleFor(d => d.DeclaringUser, (f, d) => f.PickRandom(
+                    d.Operat.Organisations
+                    .SelectMany(o => o.Users)
+                    .ToList()))
+                .RuleFor(d => d.Assets, _ => new List<Asset>());
+
+            Delivery SeedDelivery(int seed) => deliveryFaker.UseSeed(seed).Generate();
+            context.Deliveries.AddRange(Enumerable.Range(0, 20).Select(SeedDelivery));
+            context.SaveChanges();
+        }
+
+        public static void SeedAssets(this DeliveryContext context)
+        {
+            var assetFaker = new Faker<Asset>()
+                .StrictMode(true)
+                .RuleFor(a => a.FileHash, f => BitConverter.ToString(SHA256.HashData(f.Random.Bytes(10))).Replace("-", "").ToLowerInvariant())
+                .RuleFor(a => a.OriginalFilename, f => f.System.FileName())
+                .RuleFor(a => a.SanitizedFilename, (f, a) => Path.ChangeExtension(Path.GetRandomFileName(), Path.GetExtension(a.OriginalFilename)))
+                .RuleFor(a => a.AssetType, f => f.PickRandomWithout(AssetType.PrimaryData))
+                .RuleFor(a => a.Delivery, f => f.PickRandom(context.Deliveries.ToList()));
+
+            Asset SeedAsset(int seed) => assetFaker.UseSeed(seed).Generate();
+            var assets = Enumerable.Range(0, 20).Select(SeedAsset);
+
+            foreach (var assetGroup in assets.GroupBy(a => a.Delivery).ToList())
+            {
+                var firstAsset = assetGroup.Key.Assets.FirstOrDefault();
+                if (firstAsset is not null)
+                    firstAsset.AssetType = AssetType.PrimaryData;
+            }
+
+            context.Assets.AddRange(assets);
+            context.SaveChanges();
+        }
+    }
+}
