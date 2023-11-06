@@ -4,8 +4,8 @@
     "logo":  "/app.svg"
   },
   "vendor": {
-    "name": "GeoWerkstatt GmbH",
+    "name": "geocop",
     "logo": "/logo.svg",
-    "url": "https://www.geowerkstatt.ch"
+    "url": "https://github.com/GeoWerkstatt/geocop"
   }
 }
