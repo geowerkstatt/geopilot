@@ -34,7 +34,7 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Version = "1.0",
-        Title = $"GeoCop API Documentation",
+        Title = $"geocop API Documentation",
     });
 
     // Include existing documentation in Swagger UI.
@@ -54,7 +54,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "GeoCop API v1.0");
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "geocop API v1.0");
 });
 
 app.UseHttpsRedirection();
