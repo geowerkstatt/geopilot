@@ -17,8 +17,7 @@
 
         /// <summary>
         /// Asynchronously validates the <paramref name="file"/> specified.
-        /// The file must already be located in the <see cref="IFileProvider.HomeDirectory"/>
-        /// when executing this function.
+        /// The file must be accessible by the <see cref="IFileProvider"/> when executing this function.
         /// </summary>
         /// <param name="file">The name of the file to validate.</param>
         /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the asynchronous operation.</param>

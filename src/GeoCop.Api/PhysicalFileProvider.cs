@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-
-namespace GeoCop.Api
+﻿namespace GeoCop.Api
 {
     /// <summary>
     /// Provides read/write access to files in a predefined folder.
@@ -11,12 +9,7 @@ namespace GeoCop.Api
         private readonly string rootDirectoryEnvironmentKey;
 
         private bool initialized;
-
-        /// <inheritdoc/>
-        public DirectoryInfo? HomeDirectory { get; private set; }
-
-        /// <inheritdoc/>
-        public string? HomeDirectoryPathFormat { get; private set; }
+        private DirectoryInfo? homeDirectory;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PhysicalFileProvider"/> at the given root directory path.
@@ -31,39 +24,41 @@ namespace GeoCop.Api
             this.rootDirectoryEnvironmentKey = rootDirectoryEnvironmentKey ?? throw new ArgumentNullException(nameof(rootDirectoryEnvironmentKey));
         }
 
-        /// <inheritdoc/>
-        public FileStream CreateFile(string file)
+        private Stream CreateFile(string file)
         {
             if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
-            return File.Create(Path.Combine(HomeDirectory!.FullName, file));
+            return File.Create(Path.Combine(homeDirectory!.FullName, file));
         }
 
         /// <inheritdoc/>
-        public StreamReader OpenText(string file)
+        public FileHandle CreateFileWithRandomName(string extension)
         {
             if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
-            return File.OpenText(Path.Combine(HomeDirectory!.FullName, file));
+            var fileName = Path.ChangeExtension(Path.GetRandomFileName(), extension);
+            var stream = CreateFile(fileName);
+
+            return new FileHandle(fileName, stream);
+        }
+
+        /// <inheritdoc/>
+        public Stream Open(string file)
+        {
+            if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
+            return File.OpenRead(Path.Combine(homeDirectory!.FullName, file));
         }
 
         /// <inheritdoc/>
         public bool Exists(string file)
         {
             if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
-            return File.Exists(Path.Combine(HomeDirectory!.FullName, file));
-        }
-
-        /// <inheritdoc/>
-        public virtual Task DeleteFileAsync(string file)
-        {
-            if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
-            return Task.Run(() => File.Delete(Path.Combine(HomeDirectory!.FullName, file)));
+            return File.Exists(Path.Combine(homeDirectory!.FullName, file));
         }
 
         /// <inheritdoc/>
         public virtual IEnumerable<string> GetFiles()
         {
             if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
-            return HomeDirectory!.GetFiles().Select(x => x.Name);
+            return homeDirectory!.GetFiles().Select(x => x.Name);
         }
 
         /// <inheritdoc/>
@@ -74,8 +69,7 @@ namespace GeoCop.Api
             var rootDirectory = configuration.GetValue<string>(rootDirectoryEnvironmentKey)
                 ?? throw new InvalidOperationException($"Missing root directory, the value can be configured as \"{rootDirectoryEnvironmentKey}\"");
 
-            HomeDirectory = new DirectoryInfo(rootDirectory).CreateSubdirectory(id.ToString());
-            HomeDirectoryPathFormat = string.Format(CultureInfo.InvariantCulture, "${0}/{1}/", rootDirectoryEnvironmentKey, id);
+            homeDirectory = new DirectoryInfo(rootDirectory).CreateSubdirectory(id.ToString());
 
             initialized = true;
         }

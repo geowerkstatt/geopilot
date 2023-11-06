@@ -45,7 +45,6 @@ namespace GeoCop.Api.Controllers
 
             fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
             fileProviderMock.Setup(x => x.GetFiles()).Returns(new[] { "SILENTFIRE_LOG.xtf" });
-            fileProviderMock.SetupGet(x => x.HomeDirectory).Returns(new DirectoryInfo(TestContext.DeploymentDirectory));
 
             validatorServiceMock
                 .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(jobId))))

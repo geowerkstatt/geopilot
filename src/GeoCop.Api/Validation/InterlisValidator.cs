@@ -3,7 +3,7 @@
 namespace GeoCop.Api.Validation
 {
     /// <summary>
-    /// Validates an INTERLIS transfer <see cref="File"/> at the given <see cref="IFileProvider.HomeDirectory"/>.
+    /// Validates an INTERLIS transfer <see cref="File"/> at the given home directory.
     /// </summary>
     public class InterlisValidator : IValidator
     {
@@ -34,7 +34,7 @@ namespace GeoCop.Api.Validation
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
             if (string.IsNullOrWhiteSpace(file)) throw new ArgumentException("Transfer file name cannot be empty.", nameof(file));
-            if (!fileProvider.Exists(file)) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Transfer file with the specified name <{0}> not found in <{1}>.", file, fileProvider.HomeDirectory));
+            if (!fileProvider.Exists(file)) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Transfer file with the specified name <{0}> not found for validator id <{1}>.", file, Id));
 
             File = file;
 
