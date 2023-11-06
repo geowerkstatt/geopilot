@@ -1,12 +1,15 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GeoCop.Api.Models
 {
+    /// <summary>
+    /// A asset describes a file delivered or created by the validation and delivery process.
+    /// </summary>
     internal class Asset
     {
-        [Key]
-        public string FileHash { get; set; } = string.Empty;
+        public int Id { get; set; }
+
+        public byte[] FileHash { get; set; } = Array.Empty<byte>();
 
         public string OriginalFilename { get; set; } = string.Empty;
 

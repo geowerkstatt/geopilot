@@ -2,9 +2,13 @@
 
 namespace GeoCop.Api.Models
 {
-    internal class Operat
+    /// <summary>
+    /// A contract between the system owner and an organisation for data delivery.
+    /// The mandate describes where and in what format data should be delivered.
+    /// </summary>
+    internal class DeliveryMandate
     {
-        public string Id { get; set; } = string.Empty;
+        public int Id { get; set; }
 
         public string Name { get; set; } = string.Empty;
 

@@ -2,15 +2,18 @@
 
 namespace GeoCop.Api.Models
 {
+    /// <summary>
+    /// A fullfillment of a <see cref="DeliveryMandate"/>. Contains all relevant meta infromation and assets provided or created by the validation and delivery process.
+    /// </summary>
     internal class Delivery
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
+        public int Id { get; set; }
 
         public DateTime Date { get; set; } = DateTime.Now;
 
         public User DeclaringUser { get; set; } = new User();
 
-        public Operat Operat { get; set; } = new Operat();
+        public DeliveryMandate DeliveryMandate { get; set; } = new DeliveryMandate();
 
         public List<Asset> Assets { get; set; } = new List<Asset>();
     }

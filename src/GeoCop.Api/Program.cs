@@ -17,7 +17,7 @@ builder.Services.AddApiVersioning(config =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<DeliveryContext>(options =>
+builder.Services.AddDbContext<Context>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("DeliveryContext"), o =>
     {
@@ -29,7 +29,7 @@ var app = builder.Build();
 
 // Migrate db changes on startup
 using var scope = app.Services.CreateScope();
-using var context = scope.ServiceProvider.GetRequiredService<DeliveryContext>();
+using var context = scope.ServiceProvider.GetRequiredService<Context>();
 context.Database.Migrate();
 
 if (app.Environment.IsDevelopment())
@@ -37,7 +37,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 
-    if (!context.Operate.Any())
+    if (!context.DeliveryMandates.Any())
         context.SeedTestData();
 }
 

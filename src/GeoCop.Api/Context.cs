@@ -6,9 +6,9 @@ namespace GeoCop.Api
     /// <summary>
     /// Database context to manage the delivery database.
     /// </summary>
-    internal class DeliveryContext : DbContext
+    internal class Context : DbContext
     {
-        public DeliveryContext(DbContextOptions<DeliveryContext> options)
+        public Context(DbContextOptions<Context> options)
             : base(options)
         {
         }
@@ -19,7 +19,7 @@ namespace GeoCop.Api
 
         public DbSet<Delivery> Deliveries { get; set; }
 
-        public DbSet<Operat> Operate { get; set; }
+        public DbSet<DeliveryMandate> DeliveryMandates { get; set; }
 
         public DbSet<Asset> Assets { get; set; }
     }
