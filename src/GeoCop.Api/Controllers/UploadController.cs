@@ -92,7 +92,6 @@ namespace GeoCop.Api.Controllers
 
             try
             {
-                // TODO: get from validators
                 var acceptedExtensionsForUpload = new[] { ".xtf", ".itf", ".xml", ".gpkg", ".zip" };
 
                 // Sanitize file name and save the file to the predefined home directory.
