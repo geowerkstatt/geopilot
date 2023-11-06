@@ -24,12 +24,12 @@ namespace GeoCop.Api.Validation
         /// <inheritdoc/>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await queue.Reader.ReadAllAsync(stoppingToken).ParallelForEachAsync(async item =>
+            await Parallel.ForEachAsync(queue.Reader.ReadAllAsync(stoppingToken), stoppingToken, async (item, cancellationToken) =>
             {
                 try
                 {
                     UpdateJobStatus(item.Id, Status.Processing, "Die Datei wird validiert...");
-                    await item.Task(stoppingToken);
+                    await item.Task(cancellationToken);
                     UpdateJobStatus(item.Id, Status.Completed, "Die Daten sind modellkonform.");
                 }
                 catch (Exception ex)
@@ -38,7 +38,7 @@ namespace GeoCop.Api.Validation
                     UpdateJobStatus(item.Id, Status.Failed, $"Unbekannter Fehler. Fehler-Id: <{traceId}>");
                     logger.LogError(ex, "Unhandled exception TraceId: <{TraceId}> Message: <{ErrorMessage}>", traceId, ex.Message);
                 }
-            }, stoppingToken);
+            });
         }
 
         /// <inheritdoc/>
