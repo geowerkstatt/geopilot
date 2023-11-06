@@ -14,7 +14,6 @@ builder.Services
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     });
-builder.Services.AddHttpContextAccessor();
 
 builder.Services
     .AddApiVersioning(config =>

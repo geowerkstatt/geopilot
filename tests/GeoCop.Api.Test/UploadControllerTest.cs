@@ -14,7 +14,6 @@ namespace GeoCop.Api.Controllers
         private readonly string jobId = "28e1adff-765e-4c0b-b667-90458b33e1ca";
 
         private Mock<ILogger<UploadController>> loggerMock;
-        private Mock<IHttpContextAccessor> httpContextAccessorMock;
         private Mock<IValidator> validatorMock;
         private Mock<PhysicalFileProvider> fileProviderMock;
         private Mock<ApiVersion> apiVersionMock;
@@ -28,7 +27,6 @@ namespace GeoCop.Api.Controllers
         public void Initialize()
         {
             loggerMock = new Mock<ILogger<UploadController>>();
-            httpContextAccessorMock = new Mock<IHttpContextAccessor>(MockBehavior.Strict);
             validatorMock = new Mock<IValidator>(MockBehavior.Strict);
             fileProviderMock = new Mock<PhysicalFileProvider>(MockBehavior.Strict, CreateConfiguration(), "GEOCOP_UPLOADS_DIR");
             validatorServiceMock = new Mock<IValidatorService>(MockBehavior.Strict);
@@ -39,8 +37,6 @@ namespace GeoCop.Api.Controllers
 
             controller = new UploadController(
                 loggerMock.Object,
-                CreateConfiguration(),
-                httpContextAccessorMock.Object,
                 validatorMock.Object,
                 fileProviderMock.Object,
                 validatorServiceMock.Object);
@@ -50,7 +46,6 @@ namespace GeoCop.Api.Controllers
         public void Cleanup()
         {
             loggerMock.VerifyAll();
-            httpContextAccessorMock.VerifyAll();
             validatorMock.VerifyAll();
             fileProviderMock.VerifyAll();
             formFileMock.VerifyAll();
@@ -61,9 +56,7 @@ namespace GeoCop.Api.Controllers
         [TestMethod]
         public async Task UploadAsync()
         {
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.ContentLength = 1234;
-            httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+            formFileMock.SetupGet(x => x.Length).Returns(1234);
             formFileMock.SetupGet(x => x.FileName).Returns("BIZARRESCAN.xtf");
             formFileMock.Setup(x => x.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(0));
             validatorServiceMock.Setup(x => x.EnqueueJobAsync(
@@ -90,26 +83,10 @@ namespace GeoCop.Api.Controllers
             Assert.AreEqual("Form data <file> cannot be empty.", ((ProblemDetails)response.Value!).Detail);
         }
 
-        [TestMethod]
-        public async Task UploadAsyncForInvalid()
-        {
-            var httpContext = new DefaultHttpContext();
-            httpContext.Request.ContentLength = 1234;
-            httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
-            formFileMock.SetupGet(x => x.FileName).Returns("SPATULASET.cmd");
-
-            var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as ObjectResult;
-
-            Assert.IsInstanceOfType(response, typeof(ObjectResult));
-            Assert.AreEqual(StatusCodes.Status400BadRequest, response!.StatusCode);
-            Assert.AreEqual("File extension <.cmd> is an unknown file extension.", ((ProblemDetails)response.Value!).Detail);
-        }
-
-        private IConfiguration CreateConfiguration(bool enableGpkgValidation = false) =>
+        private IConfiguration CreateConfiguration() =>
             new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             {
                 { "GEOCOP_UPLOADS_DIR", TestContext.DeploymentDirectory },
-                { "ENABLE_GPKG_VALIDATION", enableGpkgValidation.ToString() },
             }).Build();
     }
 }

@@ -1,6 +1,4 @@
-﻿using GeoCop.Api.Exceptions;
-using System.Globalization;
-using System.Threading.Tasks.Dataflow;
+﻿using System.Threading.Tasks.Dataflow;
 
 namespace GeoCop.Api
 {
@@ -9,32 +7,6 @@ namespace GeoCop.Api
     /// </summary>
     public static class Extensions
     {
-        /// <summary>
-        /// Gets the sanitized file extension for the specified <paramref name="unsafeFileName"/>.
-        /// </summary>
-        /// <param name="unsafeFileName">The unsafe file name.</param>
-        /// <param name="acceptedFileExtensions">The accepted file extensions.</param>
-        /// <returns>The sanitized file extension for the specified <paramref name="unsafeFileName"/>.</returns>
-        /// <exception cref="UnknownExtensionException">If file extension of <paramref name="unsafeFileName"/> is unknown.</exception>
-        public static string GetSanitizedFileExtension(this string unsafeFileName, IEnumerable<string> acceptedFileExtensions)
-        {
-            try
-            {
-                return acceptedFileExtensions
-                    .Single(extension => Path.GetExtension(unsafeFileName).Equals(extension, StringComparison.OrdinalIgnoreCase));
-            }
-            catch (InvalidOperationException)
-            {
-                var invalidFileExtension = Path.GetExtension(unsafeFileName);
-                throw new UnknownExtensionException(
-                    invalidFileExtension,
-                    string.Format(
-                        CultureInfo.InvariantCulture,
-                        "File extension <{0}> is an unknown file extension.",
-                        invalidFileExtension));
-            }
-        }
-
         /// <summary>
         /// Asynchronously invokes the specified <paramref name="action"/> on the given items in <paramref name="source"/>.
         /// </summary>
