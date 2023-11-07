@@ -43,12 +43,29 @@ ENV TZ=Europe/Zurich
 ENV ASPNETCORE_ENVIRONMENT=Production
 WORKDIR ${HOME}
 
+# Install missing packages
+RUN \
+  DEBIAN_FRONTEND=noninteractive && \
+  mkdir -p /usr/share/man/man1 /usr/share/man/man2 && \
+  apt-get update && \
+  apt-get install -y sudo vim htop libcap2-bin && \
+  rm -rf /var/lib/apt/lists/*
+
+# Add non-root user
+RUN \
+ useradd --uid 941 --user-group --home $HOME --shell /bin/bash abc && \
+ usermod --groups users abc
+
 EXPOSE 80
 
 # Set default locale
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-COPY --from=build /app/publish $HOME
+# Allow dotnet to bind to well known ports
+RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/share/dotnet/dotnet
 
-ENTRYPOINT ["dotnet", "GeoCop.Api.dll"]
+COPY --from=build /app/publish $HOME
+COPY docker-entrypoint.sh /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
