@@ -3,7 +3,7 @@
 namespace GeoCop.Api.Validation
 {
     /// <summary>
-    /// Validates an INTERLIS transfer <see cref="File"/> at the given home directory.
+    /// Validates an INTERLIS transfer <see cref="File"/> provided through an <see cref="IFileProvider"/>.
     /// </summary>
     public class InterlisValidator : IValidator
     {
