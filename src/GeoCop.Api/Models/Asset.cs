@@ -7,8 +7,6 @@ namespace GeoCop.Api.Models
     /// </summary>
     public class Asset
     {
-        private byte[] fileHash = Array.Empty<byte>();
-
         /// <summary>
         /// The unique identifier for the asset.
         /// </summary>
@@ -18,7 +16,7 @@ namespace GeoCop.Api.Models
         /// The SH256 hash of the file contents.
         /// </summary>
 #pragma warning disable CA1819 // Properties should not return arrays
-        public byte[] FileHash { get => (byte[])fileHash.Clone(); set => fileHash = (byte[])value.Clone(); }
+        public byte[] FileHash { get; set; } = Array.Empty<byte>();
 #pragma warning restore CA1819 // Properties should not return arrays
 
         /// <summary>

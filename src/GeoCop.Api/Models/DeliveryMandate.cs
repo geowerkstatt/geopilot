@@ -8,8 +8,6 @@ namespace GeoCop.Api.Models
     /// </summary>
     public class DeliveryMandate
     {
-        private string[] fileTypes = new[] { ".*" };
-
         /// <summary>
         /// The unique identifier for the mandate.
         /// </summary>
@@ -24,7 +22,7 @@ namespace GeoCop.Api.Models
         /// List of file types that are allowed to be delivered. Include the period "." and support wildcards "*".
         /// </summary>
 #pragma warning disable CA1819 // Properties should not return arrays
-        public string[] FileTypes { get => (string[])fileTypes.Clone(); set => fileTypes = (string[])value.Clone(); }
+        public string[] FileTypes { get; set; } = Array.Empty<string>();
 #pragma warning restore CA1819 // Properties should not return arrays
 
         /// <summary>
