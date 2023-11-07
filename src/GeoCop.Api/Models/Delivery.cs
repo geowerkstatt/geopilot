@@ -3,7 +3,7 @@
 namespace GeoCop.Api.Models
 {
     /// <summary>
-    /// A fullfillment of a <see cref="DeliveryMandate"/>. Contains all relevant meta infromation and assets provided or created by the validation and delivery process.
+    /// A fullfillment of a <see cref="DeliveryMandate"/>. Contains all relevant meta information and assets provided or created by the validation and delivery process.
     /// </summary>
     public class Delivery
     {
