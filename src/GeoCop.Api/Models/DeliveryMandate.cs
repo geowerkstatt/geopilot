@@ -8,6 +8,8 @@ namespace GeoCop.Api.Models
     /// </summary>
     public class DeliveryMandate
     {
+        private string[] fileTypes = new[] { ".*" };
+
         /// <summary>
         /// The unique identifier for the mandate.
         /// </summary>
@@ -21,7 +23,9 @@ namespace GeoCop.Api.Models
         /// <summary>
         /// List of file types that are allowed to be delivered. Include the period "." and support wildcards "*".
         /// </summary>
-        public string[] FileTypes { get; set; } = new[] { ".*" };
+#pragma warning disable CA1819 // Properties should not return arrays
+        public string[] FileTypes { get => (string[])fileTypes.Clone(); set => fileTypes = (string[])value.Clone(); }
+#pragma warning restore CA1819 // Properties should not return arrays
 
         /// <summary>
         /// The spatial extent of the mandate. The extent is a polygon in WGS84.
