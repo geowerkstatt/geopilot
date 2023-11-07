@@ -1,6 +1,7 @@
 ﻿using Asp.Versioning;
 using GeoCop.Api;
 using GeoCop.Api.Validation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text.Json;
@@ -48,7 +49,21 @@ builder.Services.AddHostedService(services => (ValidatorService)services.GetRequ
 builder.Services.AddTransient<IValidator, InterlisValidator>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>(x => new PhysicalFileProvider(x.GetRequiredService<IConfiguration>(), "GEOCOP_UPLOADS_DIR"));
 
+builder.Services.AddDbContext<Context>(options =>
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DeliveryContext"), o =>
+    {
+        o.UseNetTopologySuite();
+        o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+    });
+});
+
 var app = builder.Build();
+
+// Migrate db changes on startup
+using var scope = app.Services.CreateScope();
+using var context = scope.ServiceProvider.GetRequiredService<Context>();
+context.Database.Migrate();
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>
@@ -60,6 +75,9 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseDefaultFiles();
     app.UseStaticFiles();
+
+    if (!context.DeliveryMandates.Any())
+        context.SeedTestData();
 }
 
 app.UseHttpsRedirection();
