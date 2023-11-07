@@ -1,7 +1,7 @@
 ﻿namespace GeoCop.Api.Models
 {
     /// <summary>
-    /// A person allowed log in to the system and view or declare deliveries.
+    /// A person that is allowed to view or declare deliveries.
     /// </summary>
     public class User
     {

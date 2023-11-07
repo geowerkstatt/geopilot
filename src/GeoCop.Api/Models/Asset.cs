@@ -3,7 +3,7 @@
 namespace GeoCop.Api.Models
 {
     /// <summary>
-    /// A asset describes a file delivered or created by the validation and delivery process.
+    /// An asset describes a file delivered or created by the validation and delivery process.
     /// </summary>
     public class Asset
     {
