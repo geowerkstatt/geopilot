@@ -71,13 +71,15 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "geocop API v1.0");
 });
 
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    if (!context.DeliveryMandates.Any())
+        context.SeedTestData();
+}
+else
 {
     app.UseDefaultFiles();
     app.UseStaticFiles();
-
-    if (!context.DeliveryMandates.Any())
-        context.SeedTestData();
 }
 
 app.UseHttpsRedirection();
