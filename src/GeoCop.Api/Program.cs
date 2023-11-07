@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using GeoCop.Api;
+using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
