@@ -51,7 +51,7 @@ builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>(x => new Phys
 
 builder.Services.AddDbContext<Context>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DeliveryContext"), o =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Context"), o =>
     {
         o.UseNetTopologySuite();
         o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
