@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using GeoCop.Api;
 using GeoCop.Api.Validation;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +15,8 @@ builder.Services
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     });
+
+builder.Services.AddStacData(builder => { });
 
 builder.Services
     .AddApiVersioning(config =>
