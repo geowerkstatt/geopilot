@@ -22,6 +22,8 @@ Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
 | GeoCop.Api.Test | None |
 | GeoCop.Frontend | Start |
 
+Mit dem Starten der Applikation wird ein STAC Browser unter [localhost:8080](https://localhost:8080/) gestartet.
+
 ### Debugging 🪲
 
 Das Debugging sollte nun sowol für das GeoCop.Frontend in JavaScript als auch für GeoCop.Api in C# funtkionieren.
