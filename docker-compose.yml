@@ -38,3 +38,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  interlis-check-service:
+    image: ghcr.io/geowerkstatt/interlis-check-service:v3
+    restart: unless-stopped
+    ports:
+      - 3080:80

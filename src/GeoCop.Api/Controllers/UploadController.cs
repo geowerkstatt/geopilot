@@ -80,15 +80,19 @@ namespace GeoCop.Api.Controllers
             if (file == null) return Problem($"Form data <{nameof(file)}> cannot be empty.", statusCode: StatusCodes.Status400BadRequest);
 
             var extension = Path.GetExtension(file.FileName);
+            string fileName;
 
-            using var fileHandle = fileProvider.CreateFileWithRandomName(extension);
-            logger.LogInformation("Start uploading <{FormFile}> as <{File}>, file size: {FileSize}", file.FileName, fileHandle.FileName, file.Length);
+            using (var fileHandle = fileProvider.CreateFileWithRandomName(extension))
+            {
+                fileName = fileHandle.FileName;
+                logger.LogInformation("Start uploading <{FormFile}> as <{File}>, file size: {FileSize}", file.FileName, fileName, file.Length);
 
-            await file.CopyToAsync(fileHandle.Stream).ConfigureAwait(false);
-            logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
+                await file.CopyToAsync(fileHandle.Stream).ConfigureAwait(false);
+                logger.LogInformation("Successfully received file: {File}", fileName);
+            }
 
             // Add validation job to queue.
-            await validatorService.EnqueueJobAsync(validator.Id, cancellationToken => validator.ExecuteAsync(fileHandle.FileName, cancellationToken));
+            await validatorService.EnqueueJobAsync(validator.Id, cancellationToken => validator.ExecuteAsync(fileName, cancellationToken));
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validator.Id);
 
             var location = new Uri(

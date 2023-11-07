@@ -6,6 +6,13 @@
     public interface IFileProvider
     {
         /// <summary>
+        /// Creates or overwrites the specified <paramref name="file"/>.
+        /// </summary>
+        /// <param name="file">The name of the file to create.</param>
+        /// <returns>A <see cref="FileStream"/> that provides read/write access to the file specified.</returns>
+        Stream CreateFile(string file);
+
+        /// <summary>
         /// Creates a file with a random name and the given <paramref name="extension"/>.
         /// </summary>
         /// <param name="extension">The file extension for the provided file.</param>
