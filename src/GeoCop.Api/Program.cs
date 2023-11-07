@@ -1,21 +1,53 @@
 ﻿using Asp.Versioning;
 using GeoCop.Api;
+using GeoCop.Api.Validation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+    });
 
-builder.Services.AddApiVersioning(config =>
+builder.Services
+    .AddApiVersioning(config =>
+    {
+        config.AssumeDefaultVersionWhenUnspecified = false;
+        config.ReportApiVersions = true;
+        config.ApiVersionReader = new UrlSegmentApiVersionReader();
+    })
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'VVV";
+        options.SubstituteApiVersionInUrl = true;
+    });
+
+builder.Services.AddSwaggerGen(options =>
 {
-    config.AssumeDefaultVersionWhenUnspecified = true;
-    config.DefaultApiVersion = new ApiVersion(1, 0);
-    config.ReportApiVersions = true;
-    config.ApiVersionReader = new HeaderApiVersionReader("api-version");
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "1.0",
+        Title = $"geocop API Documentation",
+    });
+
+    // Include existing documentation in Swagger UI.
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
+
+    options.EnableAnnotations();
+    options.SupportNonNullableReferenceTypes();
 });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<IValidatorService, ValidatorService>();
+builder.Services.AddHostedService(services => (ValidatorService)services.GetRequiredService<IValidatorService>());
+builder.Services.AddTransient<IValidator, InterlisValidator>();
+builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>(x => new PhysicalFileProvider(x.GetRequiredService<IConfiguration>(), "GEOCOP_UPLOADS_DIR"));
 
 builder.Services.AddDbContext<Context>(options =>
 {
@@ -33,11 +65,17 @@ using var scope = app.Services.CreateScope();
 using var context = scope.ServiceProvider.GetRequiredService<Context>();
 context.Database.Migrate();
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "geocop API v1.0");
+});
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+  
     if (!context.DeliveryMandates.Any())
         context.SeedTestData();
 }
