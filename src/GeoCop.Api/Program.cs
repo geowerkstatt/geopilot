@@ -75,7 +75,7 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseDefaultFiles();
     app.UseStaticFiles();
-  
+
     if (!context.DeliveryMandates.Any())
         context.SeedTestData();
 }
