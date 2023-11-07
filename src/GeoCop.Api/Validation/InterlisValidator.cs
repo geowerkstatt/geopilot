@@ -30,7 +30,7 @@ namespace GeoCop.Api.Validation
         }
 
         /// <inheritdoc/>
-        public async Task ExecuteAsync(string file, CancellationToken cancellationToken)
+        public async Task<ValidationJobStatus> ExecuteAsync(string file, CancellationToken cancellationToken)
         {
             if (file == null) throw new ArgumentNullException(nameof(file));
             if (string.IsNullOrWhiteSpace(file)) throw new ArgumentException("Transfer file name cannot be empty.", nameof(file));
@@ -41,6 +41,7 @@ namespace GeoCop.Api.Validation
             // TODO: validate file
             logger.LogInformation("Validating transfer file <{File}>...", File);
             await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+            return new ValidationJobStatus(Status.Completed, "Validation completed successfully.");
         }
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using static GeoCop.Api.Validation.IValidatorService;
 
 namespace GeoCop.Api.Controllers
 {
@@ -61,7 +62,7 @@ namespace GeoCop.Api.Controllers
             formFileMock.Setup(x => x.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(0));
             validatorServiceMock.Setup(x => x.EnqueueJobAsync(
                 It.Is<Guid>(x => x.Equals(new Guid(jobId))),
-                It.IsAny<Func<CancellationToken, Task>>())).Returns(Task.FromResult(0));
+                It.IsAny<ValidationAction>())).Returns(Task.FromResult(0));
 
             var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedResult;
 

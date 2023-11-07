@@ -25,5 +25,10 @@ namespace GeoCop.Api
         /// </summary>
         [Required]
         public string? StatusMessage { get; set; }
+
+        /// <summary>
+        /// The available log files to download.
+        /// </summary>
+        public IDictionary<string, string>? LogFiles { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Threading.Channels;
+using static GeoCop.Api.Validation.IValidatorService;
 
 namespace GeoCop.Api.Validation
 {
@@ -9,8 +10,8 @@ namespace GeoCop.Api.Validation
     public class ValidatorService : BackgroundService, IValidatorService
     {
         private readonly ILogger<ValidatorService> logger;
-        private readonly Channel<(Guid Id, Func<CancellationToken, Task> Task)> queue;
-        private readonly ConcurrentDictionary<Guid, (Status Status, string StatusMessage)> jobs = new ();
+        private readonly Channel<(Guid Id, ValidationAction Task)> queue;
+        private readonly ConcurrentDictionary<Guid, ValidationJobStatus> jobs = new ();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidatorService"/> class.
@@ -18,7 +19,7 @@ namespace GeoCop.Api.Validation
         public ValidatorService(ILogger<ValidatorService> logger)
         {
             this.logger = logger;
-            queue = Channel.CreateUnbounded<(Guid, Func<CancellationToken, Task>)>();
+            queue = Channel.CreateUnbounded<(Guid, ValidationAction)>();
         }
 
         /// <inheritdoc/>
@@ -29,8 +30,11 @@ namespace GeoCop.Api.Validation
                 try
                 {
                     UpdateJobStatus(item.Id, Status.Processing, "Die Datei wird validiert...");
-                    await item.Task(cancellationToken);
-                    UpdateJobStatus(item.Id, Status.Completed, "Die Daten sind modellkonform.");
+                    jobs[item.Id] = await item.Task(cancellationToken);
+                }
+                catch (ValidationFailedException ex)
+                {
+                    UpdateJobStatus(item.Id, Status.Failed, ex.Message);
                 }
                 catch (Exception ex)
                 {
@@ -42,15 +46,17 @@ namespace GeoCop.Api.Validation
         }
 
         /// <inheritdoc/>
-        public async Task EnqueueJobAsync(Guid jobId, Func<CancellationToken, Task> action)
+        public async Task EnqueueJobAsync(Guid jobId, ValidationAction action)
         {
             UpdateJobStatus(jobId, Status.Enqueued, "Die Validierung wird vorbereitet...");
             await queue.Writer.WriteAsync((jobId, action));
         }
 
         /// <inheritdoc/>
-        public (Status Status, string StatusMessage) GetJobStatusOrDefault(Guid jobId) =>
-            jobs.TryGetValue(jobId, out var status) ? status : default;
+        public ValidationJobStatus? GetJobStatusOrDefault(Guid jobId)
+        {
+            return jobs.TryGetValue(jobId, out var status) ? status : default;
+        }
 
         /// <summary>
         /// Adds or updates the status for the given <paramref name="jobId"/>.
@@ -58,11 +64,9 @@ namespace GeoCop.Api.Validation
         /// <param name="jobId">The job identifier to be added or whose value should be updated.</param>
         /// <param name="status">The status.</param>
         /// <param name="statusMessage">The status message.</param>
-        /// <param name="logMessage">Optional info log message.</param>
-        private void UpdateJobStatus(Guid jobId, Status status, string statusMessage, string? logMessage = null)
+        private void UpdateJobStatus(Guid jobId, Status status, string statusMessage)
         {
-            jobs[jobId] = (status, statusMessage);
-            if (!string.IsNullOrEmpty(logMessage)) logger.LogInformation(logMessage);
+            jobs[jobId] = new ValidationJobStatus(status, statusMessage);
         }
     }
 }

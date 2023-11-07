@@ -24,6 +24,6 @@
         /// <exception cref="ArgumentNullException">If <paramref name="file"/> is <c>null</c>.</exception>
         /// <exception cref="ArgumentException">If <paramref name="file"/> is <c>string.Empty</c>.</exception>
         /// <exception cref="InvalidOperationException">If <paramref name="file"/> is not found.</exception>
-        Task ExecuteAsync(string file, CancellationToken cancellationToken);
+        Task<ValidationJobStatus> ExecuteAsync(string file, CancellationToken cancellationToken);
     }
 }

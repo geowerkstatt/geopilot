@@ -1,4 +1,5 @@
-﻿using GeoCop.Api.Validation;
+﻿using Asp.Versioning;
+using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ namespace GeoCop.Api.Controllers
         private Mock<ILogger<StatusController>> loggerMock;
         private Mock<IValidatorService> validatorServiceMock;
         private Mock<IFileProvider> fileProviderMock;
+        private Mock<ApiVersion> apiVersionMock;
         private StatusController controller;
 
         public TestContext TestContext { get; set; }
@@ -22,6 +24,7 @@ namespace GeoCop.Api.Controllers
             loggerMock = new Mock<ILogger<StatusController>>();
             validatorServiceMock = new Mock<IValidatorService>(MockBehavior.Strict);
             fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
+            apiVersionMock = new Mock<ApiVersion>(MockBehavior.Strict, 1, 2, null!);
 
             controller = new StatusController(
                 loggerMock.Object,
@@ -48,9 +51,9 @@ namespace GeoCop.Api.Controllers
 
             validatorServiceMock
                 .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns((Status.Processing, "WAFFLESPATULA GREENNIGHT"));
+                .Returns(new ValidationJobStatus(Status.Processing, "WAFFLESPATULA GREENNIGHT"));
 
-            var response = controller.GetStatus(jobId) as OkObjectResult;
+            var response = controller.GetStatus(apiVersionMock.Object, jobId) as OkObjectResult;
 
             Assert.IsInstanceOfType(response, typeof(OkObjectResult));
             Assert.IsInstanceOfType(response!.Value, typeof(StatusResponse));
@@ -68,9 +71,9 @@ namespace GeoCop.Api.Controllers
             fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
             validatorServiceMock
                 .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(Guid.Empty))))
-                .Returns((default, default!));
+                .Returns((ValidationJobStatus?)null);
 
-            var response = controller.GetStatus(default) as ObjectResult;
+            var response = controller.GetStatus(apiVersionMock.Object, default) as ObjectResult;
 
             Assert.IsInstanceOfType(response, typeof(ObjectResult));
             Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
