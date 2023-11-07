@@ -61,11 +61,11 @@ namespace GeoCop.Api
 
             return GeometryFactory.Default.CreatePolygon(new Coordinate[]
             {
-                new Coordinate(longitude - 0.1, latitude - 0.1),
-                new Coordinate(longitude + 0.1, latitude - 0.1),
-                new Coordinate(longitude + 0.1, latitude + 0.1),
-                new Coordinate(longitude - 0.1, latitude + 0.1),
-                new Coordinate(longitude - 0.1, latitude - 0.1),
+                new (longitude - 0.1, latitude - 0.1),
+                new (longitude + 0.1, latitude - 0.1),
+                new (longitude + 0.1, latitude + 0.1),
+                new (longitude - 0.1, latitude + 0.1),
+                new (longitude - 0.1, latitude - 0.1),
             });
         }
 
