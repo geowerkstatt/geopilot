@@ -8,8 +8,9 @@
         private readonly IConfiguration configuration;
         private readonly string rootDirectoryEnvironmentKey;
 
-        private bool initialized;
         private DirectoryInfo? homeDirectory;
+
+        private DirectoryInfo HomeDirectory => homeDirectory ?? throw new InvalidOperationException("The file provider needs to be initialized first.");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PhysicalFileProvider"/> at the given root directory path.
@@ -26,14 +27,12 @@
 
         private Stream CreateFile(string file)
         {
-            if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
-            return File.Create(Path.Combine(homeDirectory!.FullName, file));
+            return File.Create(Path.Combine(HomeDirectory.FullName, file));
         }
 
         /// <inheritdoc/>
         public FileHandle CreateFileWithRandomName(string extension)
         {
-            if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
             var fileName = Path.ChangeExtension(Path.GetRandomFileName(), extension);
             var stream = CreateFile(fileName);
 
@@ -43,22 +42,19 @@
         /// <inheritdoc/>
         public Stream Open(string file)
         {
-            if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
-            return File.OpenRead(Path.Combine(homeDirectory!.FullName, file));
+            return File.OpenRead(Path.Combine(HomeDirectory.FullName, file));
         }
 
         /// <inheritdoc/>
         public bool Exists(string file)
         {
-            if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
-            return File.Exists(Path.Combine(homeDirectory!.FullName, file));
+            return File.Exists(Path.Combine(HomeDirectory.FullName, file));
         }
 
         /// <inheritdoc/>
         public virtual IEnumerable<string> GetFiles()
         {
-            if (!initialized) throw new InvalidOperationException("The file provider needs to be initialized first.");
-            return homeDirectory!.GetFiles().Select(x => x.Name);
+            return HomeDirectory.GetFiles().Select(x => x.Name);
         }
 
         /// <inheritdoc/>
@@ -70,8 +66,6 @@
                 ?? throw new InvalidOperationException($"Missing root directory, the value can be configured as \"{rootDirectoryEnvironmentKey}\"");
 
             homeDirectory = new DirectoryInfo(rootDirectory).CreateSubdirectory(id.ToString());
-
-            initialized = true;
         }
     }
 }
