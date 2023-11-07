@@ -10,6 +10,17 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("CorsSettings",
+            policy =>
+            {
+                policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+            });
+});
+
 builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
@@ -76,6 +87,8 @@ app.UseSwaggerUI(options =>
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseCors("CorsSettings");
+
     if (!context.DeliveryMandates.Any())
         context.SeedTestData();
 }
