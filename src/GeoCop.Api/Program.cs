@@ -22,6 +22,7 @@ builder.Services.AddDbContext<Context>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DeliveryContext"), o =>
     {
         o.UseNetTopologySuite();
+        o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     });
 });
 
