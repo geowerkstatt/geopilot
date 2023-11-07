@@ -10,19 +10,26 @@ Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
 
 ✔️ Git  
 ✔️ Docker  
-✔️ Visual Studio 2022 (Erweiterungen ASP.NET & web dev, Node.js development, Container dev tools)  
+✔️ Visual Studio 2022 (Erweiterungen ASP.NET & web dev, Node.js development, Container dev tools)
 
 ### Starten der Applikation 🚀
 
-Über *Start* > *Configure Startup Projects* > *Common Properties* > *Startup Projects* müssen *Multiple starup projects* definiert werden.
-| Project         | Action                  |
+Über _Start_ > _Configure Startup Projects_ > _Common Properties_ > _Startup Projects_ müssen _Multiple starup projects_ definiert werden.
+| Project | Action |
 |-----------------|-------------------------|
-| docker-compose  | Start without debugging |
-| GeoCop.Api      | Start                   |
-| GeoCop.Api.Test | None                    |
-| GeoCop.Frontend | Start                   |
+| docker-compose | Start without debugging |
+| GeoCop.Api | Start |
+| GeoCop.Api.Test | None |
+| GeoCop.Frontend | Start |
+
+Mit dem Starten der Applikation wird ein STAC Browser unter [localhost:8080](https://localhost:8080/) gestartet.
 
 ### Debugging 🪲
-Das Debugging  sollte nun sowol für das GeoCop.Frontend in JavaScript als auch für GeoCop.Api in C# funtkionieren.
+
+Das Debugging sollte nun sowol für das GeoCop.Frontend in JavaScript als auch für GeoCop.Api in C# funtkionieren.
 
 PgAdmin kann für eine Analyse der Datenbank verwendet werden und ist unter [localhost:3001](http://localhost:3001/) verfügbar.
+
+## Neue Version erstellen
+
+Ein neuer GitHub _Pre-release_ wird bei jeder Änderung auf [main](https://github.com/GeoWerkstatt/geocop) [automatisch](./.github/workflows/pre-release.yml) erstellt. In diesem Kontext wird auch ein neues Docker Image mit dem Tag _:edge_ erstellt und in die [GitHub Container Registry (ghcr.io)](https://github.com/geowerkstatt/geocop/pkgs/container/geocop) gepusht. Der definitve Release erfolgt, indem die Checkbox _Set as the latest release_ eines beliebigen Pre-releases gesetzt wird. In der Folge wird das entsprechende Docker Image in der ghcr.io Registry mit den Tags (bspw.: _:v1.2.3_ und _:latest_) [ergänzt](./.github/workflows/release.yml).

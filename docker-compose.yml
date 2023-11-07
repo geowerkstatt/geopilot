@@ -1,8 +1,18 @@
-version: '3.4'
+version: "3.4"
 
 services:
+  stac-browser:
+    image: ghcr.io/geowerkstatt/stac-browser:latest
+    ports:
+      - 8080:8080
+    environment:
+      SB_catalogUrl: "https://localhost:7188"
+      SB_locale: "de-CH"
+      SB_fallbackLocale: "de-CH"
+      SB_supportedLocales: "de-CH"
+
   db:
-    image: postgres
+    image: postgis/postgis
     restart: always
     ports:
       - 5432:5432
@@ -24,8 +34,8 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: pgadmin@example.com
       PGADMIN_DEFAULT_PASSWORD: BOUNCEAUTO
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
     volumes:
       - ./config/pgadmin4-servers.json:/pgadmin4/servers.json
     entrypoint:
