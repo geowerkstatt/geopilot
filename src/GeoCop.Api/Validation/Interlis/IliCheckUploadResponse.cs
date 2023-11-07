@@ -1,4 +1,4 @@
-﻿namespace GeoCop.Api.Validation
+﻿namespace GeoCop.Api.Validation.Interlis
 {
     /// <summary>
     /// Result of a successful upload to interlis-check-service at /api/v1/upload.

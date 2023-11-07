@@ -4,7 +4,7 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace GeoCop.Api.Validation
+namespace GeoCop.Api.Validation.Interlis
 {
     /// <summary>
     /// Validates an INTERLIS transfer <see cref="File"/> provided through an <see cref="IFileProvider"/>.
