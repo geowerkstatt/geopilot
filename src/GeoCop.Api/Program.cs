@@ -1,6 +1,8 @@
 ﻿using Asp.Versioning;
 using GeoCop.Api;
 using GeoCop.Api.Validation;
+using GeoCop.Api.Validation.Interlis;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text.Json;
@@ -47,6 +49,11 @@ builder.Services.AddSingleton<IValidatorService, ValidatorService>();
 builder.Services.AddHostedService(services => (ValidatorService)services.GetRequiredService<IValidatorService>());
 builder.Services.AddTransient<IValidator, InterlisValidator>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>(x => new PhysicalFileProvider(x.GetRequiredService<IConfiguration>(), "GEOCOP_UPLOADS_DIR"));
+
+var contentTypeProvider = new FileExtensionContentTypeProvider();
+contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
+contentTypeProvider.Mappings.TryAdd(".xtf", "text/xml; charset=utf-8");
+builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 var app = builder.Build();
 
