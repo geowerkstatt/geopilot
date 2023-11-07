@@ -11,6 +11,7 @@
     <RepositoryType>git</RepositoryType>
     <AnalysisLevel>latest-Recommended</AnalysisLevel>
     <IsPackable>false</IsPackable>
+    <VersionPrefix>1.0</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj'">
