@@ -13,7 +13,7 @@ namespace GeoCop.Api.Controllers
     /// </summary>
     [ApiController]
     [Route("api/v{version:apiVersion}/[controller]")]
-    internal class DeliveryController : ControllerBase
+    public class DeliveryController : ControllerBase
     {
         private readonly ILogger<DeliveryController> logger;
         private readonly Context context;
@@ -22,7 +22,7 @@ namespace GeoCop.Api.Controllers
         /// <summary>
         /// Initializes a new instance of the <see cref="DeliveryController"/> class.
         /// </summary>
-        internal DeliveryController(ILogger<DeliveryController> logger, Context context, IValidatorService validatorService)
+        public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidatorService validatorService)
         {
             this.logger = logger;
             this.context = context;
