@@ -1,4 +1,4 @@
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using GeoCop.Api;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;

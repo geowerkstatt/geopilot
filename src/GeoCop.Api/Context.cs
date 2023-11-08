@@ -1,4 +1,4 @@
-using GeoCop.Api.Models;
+﻿using GeoCop.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace GeoCop.Api
