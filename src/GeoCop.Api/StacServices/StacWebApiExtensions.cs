@@ -1,4 +1,4 @@
-using Stac.Api.Interfaces;
+﻿using Stac.Api.Interfaces;
 using Stac.Api.Models.Extensions.Sort.Context;
 using Stac.Api.Services.Debugging;
 using Stac.Api.Services.Default;
