@@ -1,4 +1,4 @@
-﻿using Stac.Api.Interfaces;
+using Stac.Api.Interfaces;
 using Stac.Api.Models.Extensions.Sort.Context;
 using Stac.Api.Services.Debugging;
 using Stac.Api.Services.Default;
@@ -52,16 +52,16 @@ namespace GeoCop.Api.StacServices
             services.AddSingleton<IDataServicesProvider, StacDataServicesProvider>();
 
             // Add the stac root catalog provider
-            services.AddSingleton<IRootCatalogProvider, StacRootCatalogProvider>();
+            services.AddScoped<IRootCatalogProvider, StacRootCatalogProvider>();
 
             // Add the stac collections provider
-            services.AddSingleton<ICollectionsProvider, StacCollectionsProvider>();
+            services.AddScoped<ICollectionsProvider, StacCollectionsProvider>();
 
             // Add the stac items provider
-            services.AddSingleton<IItemsProvider, StacItemsProvider>();
+            services.AddScoped<IItemsProvider, StacItemsProvider>();
 
             // Add the stac items broker
-            services.AddSingleton<IItemsBroker, StacItemsBroker>();
+            services.AddScoped<IItemsBroker, StacItemsBroker>();
 
             // Let's Configure
             var builder = new StacWebApiBuilder(services);

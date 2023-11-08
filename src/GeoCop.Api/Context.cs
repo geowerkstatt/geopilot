@@ -1,4 +1,4 @@
-﻿using GeoCop.Api.Models;
+using GeoCop.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace GeoCop.Api
@@ -6,7 +6,7 @@ namespace GeoCop.Api
     /// <summary>
     /// Database context to manage the delivery database.
     /// </summary>
-    internal class Context : DbContext
+    public class Context : DbContext
     {
         public Context(DbContextOptions<Context> options)
             : base(options)

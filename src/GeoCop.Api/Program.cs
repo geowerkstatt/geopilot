@@ -28,8 +28,6 @@ builder.Services
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     });
 
-builder.Services.AddStacData(builder => { });
-
 builder.Services
     .AddApiVersioning(config =>
     {
@@ -71,6 +69,8 @@ builder.Services.AddDbContext<Context>(options =>
         o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     });
 });
+
+builder.Services.AddStacData(builder => { });
 
 var app = builder.Build();
 
