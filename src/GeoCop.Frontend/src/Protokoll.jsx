@@ -9,6 +9,38 @@ function getExtension(filename) {
   return index === -1 ? "" : filename.substring(index + 1);
 }
 
+const ValidatorResult = ({ jobId, protokollFileName, validatorName, result }) => {
+  const statusClass = result && result.status === "completed" ? "valid" : "errors";
+  const statusText = result && result.status === "completed" ? "Keine Fehler!" : "Fehler!";
+
+  return (
+    <>
+      <hr/>
+      <h4>{validatorName}</h4>
+      <p>{result.statusMessage}</p>
+      <Card.Title className={statusClass}>
+        {statusText}
+        <span>
+          {result.logFiles &&
+            Object.entries(result.logFiles).map(([logFileType, logFile]) => (
+              <span key={logFileType} className="icon-tooltip">
+                <a
+                  download={protokollFileName + "." + getExtension(logFile)}
+                  className={statusClass + " download-icon"}
+                  href={`/api/v1/download/${jobId}/${logFile}`}
+                >
+                  <GoFile />
+                  <span className="download-description">{logFileType}</span>
+                </a>
+                <span className="icon-tooltip-text">{logFileType}-Datei herunterladen</span>
+              </span>
+            ))}
+        </span>
+      </Card.Title>
+    </>
+  );
+};
+
 export const Protokoll = ({ log, statusData, fileName, validationRunning }) => {
   const [indicateWaiting, setIndicateWaiting] = useState(false);
   const protokollTimestamp = DayJS(new Date()).format("YYYYMMDDHHmm");
@@ -31,9 +63,6 @@ export const Protokoll = ({ log, statusData, fileName, validationRunning }) => {
     }, 500);
   });
 
-  const statusClass = statusData && statusData.status === "completed" ? "valid" : "errors";
-  const statusText = statusData && statusData.status === "completed" ? "Keine Fehler!" : "Fehler!";
-
   return (
     <Container>
       {log.length > 0 && (
@@ -48,26 +77,15 @@ export const Protokoll = ({ log, statusData, fileName, validationRunning }) => {
               ))}
               <div ref={logEndRef} />
             </div>
-            {statusData && (
-              <Card.Title className={statusClass}>
-                {statusText}
-                <span>
-                  {statusData.logFiles &&
-                    Object.entries(statusData.logFiles).map(([logFileType, logFile]) => (
-                      <span key={logFileType} className="icon-tooltip">
-                        <a
-                          download={protokollFileName + "." + getExtension(logFile)}
-                          className={statusClass + " download-icon"}
-                          href={`/api/v1/download/${statusData.jobId}/${logFile}`}
-                        >
-                          <GoFile />
-                          <span className="download-description">{logFileType}</span>
-                        </a>
-                        <span className="icon-tooltip-text">{logFileType}-Datei herunterladen</span>
-                      </span>
-                    ))}
-                </span>
-              </Card.Title>
+            {statusData &&
+              Object.entries(statusData.validatorResults).map(([validatorName, result]) => (
+                <ValidatorResult
+                  key={validatorName}
+                  jobId={statusData.jobId}
+                  protokollFileName={protokollFileName}
+                  validatorName={validatorName}
+                  result={result} />
+              )
             )}
           </Card.Body>
         </Card>

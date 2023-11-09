@@ -10,7 +10,7 @@ namespace GeoCop.Api.Controllers
     public sealed class StatusControllerTest
     {
         private Mock<ILogger<StatusController>> loggerMock;
-        private Mock<IValidatorService> validatorServiceMock;
+        private Mock<IValidationService> validationServiceMock;
         private StatusController controller;
 
         public TestContext TestContext { get; set; }
@@ -19,18 +19,18 @@ namespace GeoCop.Api.Controllers
         public void Initialize()
         {
             loggerMock = new Mock<ILogger<StatusController>>();
-            validatorServiceMock = new Mock<IValidatorService>(MockBehavior.Strict);
+            validationServiceMock = new Mock<IValidationService>(MockBehavior.Strict);
 
             controller = new StatusController(
                 loggerMock.Object,
-                validatorServiceMock.Object);
+                validationServiceMock.Object);
         }
 
         [TestCleanup]
         public void Cleanup()
         {
             loggerMock.VerifyAll();
-            validatorServiceMock.VerifyAll();
+            validationServiceMock.VerifyAll();
 
             controller.Dispose();
         }
@@ -40,9 +40,9 @@ namespace GeoCop.Api.Controllers
         {
             var jobId = new Guid("fadc5142-9043-4fdc-aebf-36c21e13f621");
 
-            validatorServiceMock
-                .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns(new ValidationJobStatus(jobId, Status.Processing, "WAFFLESPATULA GREENNIGHT"));
+            validationServiceMock
+                .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(jobId))))
+                .Returns(new ValidationJobStatus(jobId) { Status = Status.Processing });
 
             var response = controller.GetStatus(jobId) as OkObjectResult;
 
@@ -58,8 +58,8 @@ namespace GeoCop.Api.Controllers
         {
             var jobId = new Guid("00000000-0000-0000-0000-000000000000");
 
-            validatorServiceMock
-                .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(Guid.Empty))))
+            validationServiceMock
+                .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(Guid.Empty))))
                 .Returns((ValidationJobStatus?)null);
 
             var response = controller.GetStatus(default) as ObjectResult;

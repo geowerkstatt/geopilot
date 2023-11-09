@@ -15,21 +15,15 @@ namespace GeoCop.Api.Controllers
     public class UploadController : ControllerBase
     {
         private readonly ILogger<UploadController> logger;
-        private readonly IValidator validator;
-        private readonly IFileProvider fileProvider;
-        private readonly IValidatorService validatorService;
+        private readonly IValidationService validationService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UploadController"/> class.
         /// </summary>
-        public UploadController(ILogger<UploadController> logger, IValidator validator, IFileProvider fileProvider, IValidatorService validatorService)
+        public UploadController(ILogger<UploadController> logger, IValidationService validationService)
         {
             this.logger = logger;
-            this.validator = validator;
-            this.fileProvider = fileProvider;
-            this.validatorService = validatorService;
-
-            this.fileProvider.Initialize(validator.Id);
+            this.validationService = validationService;
         }
 
         /// <summary>
@@ -79,26 +73,20 @@ namespace GeoCop.Api.Controllers
         {
             if (file == null) return Problem($"Form data <{nameof(file)}> cannot be empty.", statusCode: StatusCodes.Status400BadRequest);
 
-            var extension = Path.GetExtension(file.FileName);
-            string fileName;
-
-            using (var fileHandle = fileProvider.CreateFileWithRandomName(extension))
+            var (validationJob, fileHandle) = validationService.CreateValidationJob(file.FileName);
+            using (fileHandle)
             {
-                fileName = fileHandle.FileName;
-                logger.LogInformation("Start uploading <{FormFile}> as <{File}>, file size: {FileSize}", file.FileName, fileName, file.Length);
+                logger.LogInformation("Start uploading <{FormFile}> as <{File}>, file size: {FileSize}", file.FileName, fileHandle.FileName, file.Length);
 
                 await file.CopyToAsync(fileHandle.Stream).ConfigureAwait(false);
-                logger.LogInformation("Successfully received file: {File}", fileName);
+                logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
             }
 
-            // Add validation job to queue.
-            await validatorService.EnqueueJobAsync(validator.Id, cancellationToken => validator.ExecuteAsync(fileName, cancellationToken));
-            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validator.Id);
-
-            var status = validatorService.GetJobStatusOrDefault(validator.Id);
+            var status = await validationService.StartValidationJobAsync(validationJob);
+            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
 
             var location = new Uri(
-                string.Format(CultureInfo.InvariantCulture, "/api/v{0}/status/{1}", version.MajorVersion, validator.Id),
+                string.Format(CultureInfo.InvariantCulture, "/api/v{0}/status/{1}", version.MajorVersion, validationJob.Id),
                 UriKind.Relative);
 
             return Created(location, status);

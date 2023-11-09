@@ -2,10 +2,8 @@
 using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using static GeoCop.Api.Validation.IValidatorService;
 
 namespace GeoCop.Api.Controllers
 {
@@ -15,57 +13,48 @@ namespace GeoCop.Api.Controllers
         private readonly Guid jobId = new ("28e1adff-765e-4c0b-b667-90458b33e1ca");
 
         private Mock<ILogger<UploadController>> loggerMock;
-        private Mock<IValidator> validatorMock;
-        private Mock<PhysicalFileProvider> fileProviderMock;
         private Mock<ApiVersion> apiVersionMock;
         private Mock<IFormFile> formFileMock;
-        private Mock<IValidatorService> validatorServiceMock;
+        private Mock<IValidationService> validationServiceMock;
         private UploadController controller;
-
-        public TestContext TestContext { get; set; }
 
         [TestInitialize]
         public void Initialize()
         {
             loggerMock = new Mock<ILogger<UploadController>>();
-            validatorMock = new Mock<IValidator>(MockBehavior.Strict);
-            fileProviderMock = new Mock<PhysicalFileProvider>(MockBehavior.Strict, CreateConfiguration(), "GEOCOP_UPLOADS_DIR");
-            validatorServiceMock = new Mock<IValidatorService>(MockBehavior.Strict);
+            validationServiceMock = new Mock<IValidationService>(MockBehavior.Strict);
             formFileMock = new Mock<IFormFile>(MockBehavior.Strict);
             apiVersionMock = new Mock<ApiVersion>(MockBehavior.Strict, 9, 88, null!);
 
-            validatorMock.SetupGet(x => x.Id).Returns(jobId);
-
             controller = new UploadController(
                 loggerMock.Object,
-                validatorMock.Object,
-                fileProviderMock.Object,
-                validatorServiceMock.Object);
+                validationServiceMock.Object);
         }
 
         [TestCleanup]
         public void Cleanup()
         {
             loggerMock.VerifyAll();
-            validatorMock.VerifyAll();
-            fileProviderMock.VerifyAll();
             formFileMock.VerifyAll();
-            validatorServiceMock.VerifyAll();
+            validationServiceMock.VerifyAll();
             apiVersionMock.VerifyAll();
         }
 
         [TestMethod]
         public async Task UploadAsync()
         {
+            const string originalFileName = "BIZARRESCAN.xtf";
             formFileMock.SetupGet(x => x.Length).Returns(1234);
-            formFileMock.SetupGet(x => x.FileName).Returns("BIZARRESCAN.xtf");
+            formFileMock.SetupGet(x => x.FileName).Returns(originalFileName);
             formFileMock.Setup(x => x.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(0));
-            validatorServiceMock.Setup(x => x.EnqueueJobAsync(
-                It.Is<Guid>(x => x.Equals(jobId)),
-                It.IsAny<ValidationAction>())).Returns(Task.FromResult(0));
-            validatorServiceMock
-                .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns(new ValidationJobStatus(jobId, Status.Enqueued, "Die Validierung wird vorbereitet..."));
+
+            var validationJob = new ValidationJob(jobId, originalFileName, "TEMP.xtf");
+            using var fileHandle = new FileHandle(validationJob.TempFileName, Stream.Null);
+
+            validationServiceMock.Setup(x => x.CreateValidationJob(It.Is<string>(x => x == originalFileName))).Returns((validationJob, fileHandle));
+            validationServiceMock
+                .Setup(x => x.StartValidationJobAsync(It.Is<ValidationJob>(x => x == validationJob)))
+                .Returns(Task.FromResult(new ValidationJobStatus(jobId)));
 
             var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedResult;
 
@@ -85,11 +74,5 @@ namespace GeoCop.Api.Controllers
             Assert.AreEqual(StatusCodes.Status400BadRequest, response!.StatusCode);
             Assert.AreEqual("Form data <file> cannot be empty.", ((ProblemDetails)response.Value!).Detail);
         }
-
-        private IConfiguration CreateConfiguration() =>
-            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                { "GEOCOP_UPLOADS_DIR", TestContext.DeploymentDirectory },
-            }).Build();
     }
 }

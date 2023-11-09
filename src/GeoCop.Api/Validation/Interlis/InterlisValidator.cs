@@ -24,10 +24,7 @@ namespace GeoCop.Api.Validation.Interlis
         private readonly IFileProvider fileProvider;
 
         /// <inheritdoc/>
-        public Guid Id { get; } = Guid.NewGuid();
-
-        /// <inheritdoc/>
-        public string? File { get; private set; }
+        public string Name => "ilicheck";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="InterlisValidator"/> class.
@@ -37,18 +34,16 @@ namespace GeoCop.Api.Validation.Interlis
             this.logger = logger;
             this.configuration = configuration;
             this.fileProvider = fileProvider;
-
-            this.fileProvider.Initialize(Id);
         }
 
         /// <inheritdoc/>
-        public async Task<ValidationJobStatus> ExecuteAsync(string file, CancellationToken cancellationToken)
+        public async Task<ValidatorResult> ExecuteAsync(ValidationJob validationJob, CancellationToken cancellationToken)
         {
-            if (file == null) throw new ArgumentNullException(nameof(file));
-            if (string.IsNullOrWhiteSpace(file)) throw new ArgumentException("Transfer file name cannot be empty.", nameof(file));
-            if (!fileProvider.Exists(file)) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Transfer file with the specified name <{0}> not found for validator id <{1}>.", file, Id));
+            if (validationJob == null) throw new ArgumentNullException(nameof(validationJob));
+            if (string.IsNullOrWhiteSpace(validationJob.TempFileName)) throw new ArgumentException("Transfer file name cannot be empty.", nameof(validationJob));
 
-            File = file;
+            fileProvider.Initialize(validationJob.Id);
+            if (!fileProvider.Exists(validationJob.TempFileName)) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Transfer file with the specified name <{0}> not found for validation id <{1}>.", validationJob.TempFileName, validationJob.Id));
 
             var checkServiceUrl = configuration.GetValue<string>("Validation:InterlisCheckServiceUrl")
                 ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
@@ -61,12 +56,15 @@ namespace GeoCop.Api.Validation.Interlis
                 },
             };
 
-            logger.LogInformation("Validating transfer file <{File}>...", File);
-            var uploadResponse = await UploadTransferFileAsync(httpClient, file, cancellationToken).ConfigureAwait(false);
+            logger.LogInformation("Validating transfer file <{File}>...", validationJob.TempFileName);
+            var uploadResponse = await UploadTransferFileAsync(httpClient, validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
             var statusResponse = await PollStatusAsync(httpClient, uploadResponse.StatusUrl!, cancellationToken).ConfigureAwait(false);
-            var logFiles = await DownloadLogFilesAsync(httpClient, statusResponse, file, cancellationToken).ConfigureAwait(false);
+            var logFiles = await DownloadLogFilesAsync(httpClient, statusResponse, validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
 
-            return new ValidationJobStatus(Id, statusResponse.Status, statusResponse.StatusMessage, logFiles);
+            return new ValidatorResult(statusResponse.Status, statusResponse.StatusMessage)
+            {
+                LogFiles = logFiles,
+            };
         }
 
         private async Task<IliCheckUploadResponse> UploadTransferFileAsync(HttpClient httpClient, string transferFile, CancellationToken cancellationToken)

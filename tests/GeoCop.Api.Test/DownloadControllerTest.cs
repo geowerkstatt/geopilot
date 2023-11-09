@@ -11,24 +11,22 @@ namespace GeoCop.Api.Controllers
     public sealed class DownloadControllerTest
     {
         private Mock<ILogger<DownloadController>> loggerMock;
-        private Mock<IValidatorService> validatorServiceMock;
+        private Mock<IValidationService> validationServiceMock;
         private Mock<IFileProvider> fileProviderMock;
         private Mock<IContentTypeProvider> contentTypeProviderMock;
         private DownloadController controller;
-
-        public TestContext TestContext { get; set; }
 
         [TestInitialize]
         public void Initialize()
         {
             loggerMock = new Mock<ILogger<DownloadController>>();
-            validatorServiceMock = new Mock<IValidatorService>(MockBehavior.Strict);
+            validationServiceMock = new Mock<IValidationService>(MockBehavior.Strict);
             fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
             contentTypeProviderMock = new Mock<IContentTypeProvider>(MockBehavior.Strict);
 
             controller = new DownloadController(
                 loggerMock.Object,
-                validatorServiceMock.Object,
+                validationServiceMock.Object,
                 fileProviderMock.Object,
                 contentTypeProviderMock.Object);
         }
@@ -37,7 +35,7 @@ namespace GeoCop.Api.Controllers
         public void Cleanup()
         {
             loggerMock.VerifyAll();
-            validatorServiceMock.VerifyAll();
+            validationServiceMock.VerifyAll();
             fileProviderMock.VerifyAll();
             contentTypeProviderMock.VerifyAll();
         }
@@ -48,9 +46,9 @@ namespace GeoCop.Api.Controllers
             var jobId = new Guid("fadc5142-9043-4fdc-aebf-36c21e13f621");
             var fileName = "logfile.log";
 
-            validatorServiceMock
-                .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns(new ValidationJobStatus(jobId, Status.Processing, "WAFFLESPATULA GREENNIGHT"));
+            validationServiceMock
+                .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(jobId))))
+                .Returns(new ValidationJobStatus(jobId) { Status = Status.Completed });
 
             fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
             fileProviderMock.Setup(x => x.Exists(It.Is<string>(x => x == fileName))).Returns(true);
@@ -71,8 +69,8 @@ namespace GeoCop.Api.Controllers
             var jobId = new Guid("00000000-0000-0000-0000-000000000000");
 
             fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
-            validatorServiceMock
-                .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(Guid.Empty))))
+            validationServiceMock
+                .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(Guid.Empty))))
                 .Returns((ValidationJobStatus?)null);
 
             var response = controller.Download(default, "logfile.log") as ObjectResult;
@@ -88,9 +86,9 @@ namespace GeoCop.Api.Controllers
             var jobId = new Guid("fadc5142-9043-4fdc-aebf-36c21e13f621");
             var fileName = "missing-logfile.log";
 
-            validatorServiceMock
-                .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns(new ValidationJobStatus(jobId, Status.Processing, "WAFFLESPATULA GREENNIGHT"));
+            validationServiceMock
+                .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(jobId))))
+                .Returns(new ValidationJobStatus(jobId) { Status = Status.Completed });
 
             fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
             fileProviderMock.Setup(x => x.Exists(It.Is<string>(x => x == fileName))).Returns(false);

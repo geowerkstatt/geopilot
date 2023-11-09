@@ -98,7 +98,6 @@ export const Home = ({
 
         const interval = setIntervalImmediately(async () => {
           const statusData = await getStatusData(data);
-          updateLog(statusData.statusMessage);
           if (
             statusData.status === "completed" ||
             statusData.status === "completedWithErrors" ||

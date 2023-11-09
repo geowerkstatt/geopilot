@@ -51,8 +51,9 @@ contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
 contentTypeProvider.Mappings.TryAdd(".xtf", "text/xml; charset=utf-8");
 builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
-builder.Services.AddSingleton<IValidatorService, ValidatorService>();
-builder.Services.AddHostedService(services => (ValidatorService)services.GetRequiredService<IValidatorService>());
+builder.Services.AddSingleton<IValidationRunner, ValidationRunner>();
+builder.Services.AddHostedService(services => (ValidationRunner)services.GetRequiredService<IValidationRunner>());
+builder.Services.AddTransient<IValidationService, ValidationService>();
 builder.Services.AddTransient<IValidator, InterlisValidator>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>(x => new PhysicalFileProvider(x.GetRequiredService<IConfiguration>(), "GEOCOP_UPLOADS_DIR"));
 

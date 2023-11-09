@@ -12,15 +12,15 @@ namespace GeoCop.Api.Controllers
     public class StatusController : Controller
     {
         private readonly ILogger<StatusController> logger;
-        private readonly IValidatorService validatorService;
+        private readonly IValidationService validationService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StatusController"/> class.
         /// </summary>
-        public StatusController(ILogger<StatusController> logger, IValidatorService validatorService)
+        public StatusController(ILogger<StatusController> logger, IValidationService validationService)
         {
             this.logger = logger;
-            this.validatorService = validatorService;
+            this.validationService = validationService;
         }
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace GeoCop.Api.Controllers
         {
             logger.LogTrace("Status for job <{JobId}> requested.", jobId);
 
-            var jobStatus = validatorService.GetJobStatusOrDefault(jobId);
+            var jobStatus = validationService.GetJobStatus(jobId);
             if (jobStatus == null)
             {
                 return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);

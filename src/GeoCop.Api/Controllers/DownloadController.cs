@@ -13,17 +13,17 @@ namespace GeoCop.Api.Controllers
     public class DownloadController : ControllerBase
     {
         private readonly ILogger<DownloadController> logger;
-        private readonly IValidatorService validatorService;
+        private readonly IValidationService validationService;
         private readonly IFileProvider fileProvider;
         private readonly IContentTypeProvider contentTypeProvider;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DownloadController"/> class.
         /// </summary>
-        public DownloadController(ILogger<DownloadController> logger, IValidatorService validatorService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider)
+        public DownloadController(ILogger<DownloadController> logger, IValidationService validationService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider)
         {
             this.logger = logger;
-            this.validatorService = validatorService;
+            this.validationService = validationService;
             this.fileProvider = fileProvider;
             this.contentTypeProvider = contentTypeProvider;
         }
@@ -44,8 +44,8 @@ namespace GeoCop.Api.Controllers
 
             fileProvider.Initialize(jobId);
 
-            var job = validatorService.GetJobStatusOrDefault(jobId);
-            if (job == null)
+            var jobStatus = validationService.GetJobStatus(jobId);
+            if (jobStatus == null)
             {
                 return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
             }
