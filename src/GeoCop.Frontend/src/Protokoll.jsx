@@ -15,7 +15,7 @@ const ValidatorResult = ({ jobId, protokollFileName, validatorName, result }) =>
 
   return (
     <>
-      <hr/>
+      <hr />
       <h4>{validatorName}</h4>
       <p>{result.statusMessage}</p>
       <Card.Title className={statusClass}>
@@ -84,9 +84,9 @@ export const Protokoll = ({ log, statusData, fileName, validationRunning }) => {
                   jobId={statusData.jobId}
                   protokollFileName={protokollFileName}
                   validatorName={validatorName}
-                  result={result} />
-              )
-            )}
+                  result={result}
+                />
+              ))}
           </Card.Body>
         </Card>
       )}
