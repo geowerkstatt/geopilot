@@ -59,6 +59,11 @@ namespace GeoCop.Api.Validation.Interlis
             logger.LogInformation("Validating transfer file <{File}>...", validationJob.TempFileName);
             var uploadResponse = await UploadTransferFileAsync(httpClient, validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
             var statusResponse = await PollStatusAsync(httpClient, uploadResponse.StatusUrl!, cancellationToken).ConfigureAwait(false);
+            if (statusResponse == null)
+            {
+                return new ValidatorResult(Status.Failed, "Validation was cancelled.");
+            }
+
             var logFiles = await DownloadLogFilesAsync(httpClient, statusResponse, validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
 
             return new ValidatorResult(statusResponse.Status, statusResponse.StatusMessage)
@@ -70,10 +75,7 @@ namespace GeoCop.Api.Validation.Interlis
         private async Task<IliCheckUploadResponse> UploadTransferFileAsync(HttpClient httpClient, string transferFile, CancellationToken cancellationToken)
         {
             using var streamContent = new StreamContent(fileProvider.Open(transferFile));
-            using var formData = new MultipartFormDataContent
-            {
-                { streamContent, "file", transferFile },
-            };
+            using var formData = new MultipartFormDataContent { { streamContent, "file", transferFile } };
             using var response = await httpClient.PostAsync(UploadUrl, formData, cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
@@ -83,22 +85,15 @@ namespace GeoCop.Api.Validation.Interlis
                 throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
             }
 
-            response.EnsureSuccessStatusCode();
-
-            var uploadResponse = await response.Content.ReadFromJsonAsync<IliCheckUploadResponse>(jsonOptions, cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
-            return uploadResponse;
+            return await ReadSuccessResponseJsonAsync<IliCheckUploadResponse>(response, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task<IliCheckStatusResponse> PollStatusAsync(HttpClient httpClient, string statusUrl, CancellationToken cancellationToken)
+        private async Task<IliCheckStatusResponse?> PollStatusAsync(HttpClient httpClient, string statusUrl, CancellationToken cancellationToken)
         {
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 using var response = await httpClient.GetAsync(statusUrl, cancellationToken).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-
-                var statusResponse = await response.Content.ReadFromJsonAsync<IliCheckStatusResponse>(jsonOptions, cancellationToken).ConfigureAwait(false)
-                    ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
+                var statusResponse = await ReadSuccessResponseJsonAsync<IliCheckStatusResponse>(response, cancellationToken).ConfigureAwait(false);
 
                 if (statusResponse.Status == Status.Completed
                     || statusResponse.Status == Status.CompletedWithErrors
@@ -109,6 +104,8 @@ namespace GeoCop.Api.Validation.Interlis
 
                 await Task.Delay(pollInterval, cancellationToken).ConfigureAwait(false);
             }
+
+            return null;
         }
 
         private async Task<IDictionary<string, string>> DownloadLogFilesAsync(HttpClient httpClient, IliCheckStatusResponse statusResponse, string transferFile, CancellationToken cancellationToken)
@@ -141,6 +138,13 @@ namespace GeoCop.Api.Validation.Interlis
             using var logDownloadStream = await httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false);
             using var logFileStream = fileProvider.CreateFile(destination);
             await logDownloadStream.CopyToAsync(logFileStream, cancellationToken).ConfigureAwait(false);
+        }
+
+        private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
+        {
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<T>(jsonOptions, cancellationToken).ConfigureAwait(false);
+            return result ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
         }
     }
 }
