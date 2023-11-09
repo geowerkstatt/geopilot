@@ -13,8 +13,8 @@ namespace GeoCop.Api.Validation.Interlis
         private static readonly TimeSpan pollInterval = TimeSpan.FromSeconds(2);
 
         private readonly ILogger<InterlisValidator> logger;
-        private readonly IConfiguration configuration;
         private readonly IFileProvider fileProvider;
+        private readonly HttpClient httpClient;
 
         /// <inheritdoc/>
         public string Name => "ilicheck";
@@ -22,11 +22,11 @@ namespace GeoCop.Api.Validation.Interlis
         /// <summary>
         /// Initializes a new instance of the <see cref="InterlisValidator"/> class.
         /// </summary>
-        public InterlisValidator(ILogger<InterlisValidator> logger, IConfiguration configuration, IFileProvider fileProvider)
+        public InterlisValidator(ILogger<InterlisValidator> logger, IFileProvider fileProvider, HttpClient httpClient)
         {
             this.logger = logger;
-            this.configuration = configuration;
             this.fileProvider = fileProvider;
+            this.httpClient = httpClient;
         }
 
         /// <inheritdoc/>
@@ -38,26 +38,15 @@ namespace GeoCop.Api.Validation.Interlis
             fileProvider.Initialize(validationJob.Id);
             if (!fileProvider.Exists(validationJob.TempFileName)) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Transfer file with the specified name <{0}> not found for validation id <{1}>.", validationJob.TempFileName, validationJob.Id));
 
-            var checkServiceUrl = configuration.GetValue<string>("Validation:InterlisCheckServiceUrl")
-                ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
-            using var httpClient = new HttpClient
-            {
-                BaseAddress = new Uri(checkServiceUrl),
-                DefaultRequestHeaders =
-                {
-                    { "Accept", "application/json" },
-                },
-            };
-
             logger.LogInformation("Validating transfer file <{File}>...", validationJob.TempFileName);
-            var uploadResponse = await UploadTransferFileAsync(httpClient, validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
-            var statusResponse = await PollStatusAsync(httpClient, uploadResponse.StatusUrl!, cancellationToken).ConfigureAwait(false);
+            var uploadResponse = await UploadTransferFileAsync(validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
+            var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken).ConfigureAwait(false);
             if (statusResponse == null)
             {
                 return new ValidatorResult(Status.Failed, "Validation was cancelled.");
             }
 
-            var logFiles = await DownloadLogFilesAsync(httpClient, statusResponse, validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
+            var logFiles = await DownloadLogFilesAsync(statusResponse, validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
 
             return new ValidatorResult(statusResponse.Status, statusResponse.StatusMessage)
             {
@@ -65,7 +54,7 @@ namespace GeoCop.Api.Validation.Interlis
             };
         }
 
-        private async Task<IliCheckUploadResponse> UploadTransferFileAsync(HttpClient httpClient, string transferFile, CancellationToken cancellationToken)
+        private async Task<IliCheckUploadResponse> UploadTransferFileAsync(string transferFile, CancellationToken cancellationToken)
         {
             using var streamContent = new StreamContent(fileProvider.Open(transferFile));
             using var formData = new MultipartFormDataContent { { streamContent, "file", transferFile } };
@@ -81,7 +70,7 @@ namespace GeoCop.Api.Validation.Interlis
             return await ReadSuccessResponseJsonAsync<IliCheckUploadResponse>(response, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task<IliCheckStatusResponse?> PollStatusAsync(HttpClient httpClient, string statusUrl, CancellationToken cancellationToken)
+        private async Task<IliCheckStatusResponse?> PollStatusAsync(string statusUrl, CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -101,7 +90,7 @@ namespace GeoCop.Api.Validation.Interlis
             return null;
         }
 
-        private async Task<IDictionary<string, string>> DownloadLogFilesAsync(HttpClient httpClient, IliCheckStatusResponse statusResponse, string transferFile, CancellationToken cancellationToken)
+        private async Task<IDictionary<string, string>> DownloadLogFilesAsync(IliCheckStatusResponse statusResponse, string transferFile, CancellationToken cancellationToken)
         {
             var logFiles = new Dictionary<string, string>();
             var tasks = new List<Task>();
@@ -111,14 +100,14 @@ namespace GeoCop.Api.Validation.Interlis
             {
                 var logFile = $"{transferFileWithoutExtension}_log.log";
                 logFiles["Log"] = logFile;
-                tasks.Add(DownloadLogAsFileAsync(httpClient, statusResponse.LogUrl.ToString(), logFile, cancellationToken));
+                tasks.Add(DownloadLogAsFileAsync(statusResponse.LogUrl.ToString(), logFile, cancellationToken));
             }
 
             if (statusResponse.XtfLogUrl != null)
             {
                 var xtfLogFile = $"{transferFileWithoutExtension}_log.xtf";
                 logFiles["Xtf-Log"] = xtfLogFile;
-                tasks.Add(DownloadLogAsFileAsync(httpClient, statusResponse.XtfLogUrl.ToString(), xtfLogFile, cancellationToken));
+                tasks.Add(DownloadLogAsFileAsync(statusResponse.XtfLogUrl.ToString(), xtfLogFile, cancellationToken));
             }
 
             await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -126,7 +115,7 @@ namespace GeoCop.Api.Validation.Interlis
             return logFiles;
         }
 
-        private async Task DownloadLogAsFileAsync(HttpClient httpClient, string url, string destination, CancellationToken cancellationToken)
+        private async Task DownloadLogAsFileAsync(string url, string destination, CancellationToken cancellationToken)
         {
             using var logDownloadStream = await httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false);
             using var logFileStream = fileProvider.CreateFile(destination);
