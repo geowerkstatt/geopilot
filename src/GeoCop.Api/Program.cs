@@ -16,6 +16,7 @@ builder.Services
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        JsonSerializerOptions = options.JsonSerializerOptions;
     });
 
 builder.Services
@@ -97,3 +98,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+internal partial class Program
+{
+    public static JsonSerializerOptions? JsonSerializerOptions { get; private set; }
+}

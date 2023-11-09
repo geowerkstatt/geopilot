@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 using System.Net;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace GeoCop.Api.Validation.Interlis
 {
@@ -13,11 +11,6 @@ namespace GeoCop.Api.Validation.Interlis
     {
         private const string UploadUrl = "/api/v1/upload";
         private static readonly TimeSpan pollInterval = TimeSpan.FromSeconds(2);
-        private static readonly JsonSerializerOptions jsonOptions = new ()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-        };
 
         private readonly ILogger<InterlisValidator> logger;
         private readonly IConfiguration configuration;
@@ -81,7 +74,7 @@ namespace GeoCop.Api.Validation.Interlis
             logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(jsonOptions, cancellationToken).ConfigureAwait(false);
+                var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(Program.JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
                 throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
             }
 
@@ -143,7 +136,7 @@ namespace GeoCop.Api.Validation.Interlis
         private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             response.EnsureSuccessStatusCode();
-            var result = await response.Content.ReadFromJsonAsync<T>(jsonOptions, cancellationToken).ConfigureAwait(false);
+            var result = await response.Content.ReadFromJsonAsync<T>(Program.JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
             return result ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
         }
     }
