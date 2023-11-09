@@ -66,7 +66,7 @@ namespace GeoCop.Api.Validation
         /// <param name="statusMessage">The status message.</param>
         private void UpdateJobStatus(Guid jobId, Status status, string statusMessage)
         {
-            jobs[jobId] = new ValidationJobStatus(status, statusMessage);
+            jobs[jobId] = new ValidationJobStatus(jobId, status, statusMessage);
         }
     }
 }

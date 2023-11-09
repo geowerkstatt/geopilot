@@ -1,5 +1,4 @@
-﻿using Asp.Versioning;
-using GeoCop.Api.Validation;
+﻿using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -12,8 +11,6 @@ namespace GeoCop.Api.Controllers
     {
         private Mock<ILogger<StatusController>> loggerMock;
         private Mock<IValidatorService> validatorServiceMock;
-        private Mock<IFileProvider> fileProviderMock;
-        private Mock<ApiVersion> apiVersionMock;
         private StatusController controller;
 
         public TestContext TestContext { get; set; }
@@ -23,13 +20,10 @@ namespace GeoCop.Api.Controllers
         {
             loggerMock = new Mock<ILogger<StatusController>>();
             validatorServiceMock = new Mock<IValidatorService>(MockBehavior.Strict);
-            fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
-            apiVersionMock = new Mock<ApiVersion>(MockBehavior.Strict, 1, 2, null!);
 
             controller = new StatusController(
                 loggerMock.Object,
-                validatorServiceMock.Object,
-                fileProviderMock.Object);
+                validatorServiceMock.Object);
         }
 
         [TestCleanup]
@@ -46,21 +40,17 @@ namespace GeoCop.Api.Controllers
         {
             var jobId = new Guid("fadc5142-9043-4fdc-aebf-36c21e13f621");
 
-            fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
-            fileProviderMock.Setup(x => x.GetFiles()).Returns(new[] { "SILENTFIRE_LOG.xtf" });
-
             validatorServiceMock
                 .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns(new ValidationJobStatus(Status.Processing, "WAFFLESPATULA GREENNIGHT"));
+                .Returns(new ValidationJobStatus(jobId, Status.Processing, "WAFFLESPATULA GREENNIGHT"));
 
-            var response = controller.GetStatus(apiVersionMock.Object, jobId) as OkObjectResult;
+            var response = controller.GetStatus(jobId) as OkObjectResult;
 
             Assert.IsInstanceOfType(response, typeof(OkObjectResult));
-            Assert.IsInstanceOfType(response!.Value, typeof(StatusResponse));
+            Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobStatus));
             Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
-            Assert.AreEqual(jobId, ((StatusResponse)response.Value!).JobId);
-            Assert.AreEqual(Status.Processing, ((StatusResponse)response.Value).Status);
-            Assert.AreEqual("WAFFLESPATULA GREENNIGHT", ((StatusResponse)response.Value).StatusMessage);
+            Assert.AreEqual(jobId, ((ValidationJobStatus)response.Value!).JobId);
+            Assert.AreEqual(Status.Processing, ((ValidationJobStatus)response.Value).Status);
         }
 
         [TestMethod]
@@ -68,12 +58,11 @@ namespace GeoCop.Api.Controllers
         {
             var jobId = new Guid("00000000-0000-0000-0000-000000000000");
 
-            fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
             validatorServiceMock
                 .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(Guid.Empty))))
                 .Returns((ValidationJobStatus?)null);
 
-            var response = controller.GetStatus(apiVersionMock.Object, default) as ObjectResult;
+            var response = controller.GetStatus(default) as ObjectResult;
 
             Assert.IsInstanceOfType(response, typeof(ObjectResult));
             Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);

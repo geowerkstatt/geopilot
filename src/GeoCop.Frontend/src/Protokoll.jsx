@@ -58,7 +58,7 @@ export const Protokoll = ({ log, statusData, fileName, validationRunning }) => {
                         <a
                           download={protokollFileName + "." + getExtension(logFile)}
                           className={statusClass + " download-icon"}
-                          href={logFile}
+                          href={`/api/v1/download/${statusData.jobId}/${logFile}`}
                         >
                           <GoFile />
                           <span className="download-description">{logFileType}</span>

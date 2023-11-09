@@ -71,7 +71,7 @@ namespace GeoCop.Api.Controllers
         /// </remarks>
         /// <returns>Information for a newly created validation job.</returns>
         [HttpPost]
-        [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(UploadResponse), new[] { "application/json" })]
+        [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(ValidationJobStatus), new[] { "application/json" })]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ProblemDetails), new[] { "application/json" })]
         [SwaggerResponse(StatusCodes.Status413PayloadTooLarge, "The file is too large. Max allowed request body size is 200 MB.")]
         [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1629:DocumentationTextMustEndWithAPeriod", Justification = "Not applicable for code examples.")]
@@ -95,11 +95,13 @@ namespace GeoCop.Api.Controllers
             await validatorService.EnqueueJobAsync(validator.Id, cancellationToken => validator.ExecuteAsync(fileName, cancellationToken));
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validator.Id);
 
+            var status = validatorService.GetJobStatusOrDefault(validator.Id);
+
             var location = new Uri(
                 string.Format(CultureInfo.InvariantCulture, "/api/v{0}/status/{1}", version.MajorVersion, validator.Id),
                 UriKind.Relative);
 
-            return Created(location, new UploadResponse { JobId = validator.Id, StatusUrl = location });
+            return Created(location, status);
         }
     }
 }

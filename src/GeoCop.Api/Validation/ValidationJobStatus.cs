@@ -6,6 +6,11 @@
     public class ValidationJobStatus
     {
         /// <summary>
+        /// The job identification.
+        /// </summary>
+        public Guid JobId { get; }
+
+        /// <summary>
         /// Status of the validation job.
         /// </summary>
         public Status Status { get; }
@@ -23,8 +28,9 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationJobStatus"/> class.
         /// </summary>
-        public ValidationJobStatus(Status status, string? statusMessage, IDictionary<string, string>? logFiles = null)
+        public ValidationJobStatus(Guid jobId, Status status, string? statusMessage, IDictionary<string, string>? logFiles = null)
         {
+            JobId = jobId;
             Status = status;
             StatusMessage = statusMessage;
             LogFiles = logFiles ?? new Dictionary<string, string>();

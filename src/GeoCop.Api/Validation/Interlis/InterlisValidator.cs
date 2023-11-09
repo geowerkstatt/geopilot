@@ -66,7 +66,7 @@ namespace GeoCop.Api.Validation.Interlis
             var statusResponse = await PollStatusAsync(httpClient, uploadResponse.StatusUrl!, cancellationToken).ConfigureAwait(false);
             var logFiles = await DownloadLogFilesAsync(httpClient, statusResponse, file, cancellationToken).ConfigureAwait(false);
 
-            return new ValidationJobStatus(statusResponse.Status, statusResponse.StatusMessage, logFiles);
+            return new ValidationJobStatus(Id, statusResponse.Status, statusResponse.StatusMessage, logFiles);
         }
 
         private async Task<IliCheckUploadResponse> UploadTransferFileAsync(HttpClient httpClient, string transferFile, CancellationToken cancellationToken)

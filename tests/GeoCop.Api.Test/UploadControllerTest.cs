@@ -12,7 +12,7 @@ namespace GeoCop.Api.Controllers
     [TestClass]
     public sealed class UploadControllerTest
     {
-        private readonly string jobId = "28e1adff-765e-4c0b-b667-90458b33e1ca";
+        private readonly Guid jobId = new ("28e1adff-765e-4c0b-b667-90458b33e1ca");
 
         private Mock<ILogger<UploadController>> loggerMock;
         private Mock<IValidator> validatorMock;
@@ -34,7 +34,7 @@ namespace GeoCop.Api.Controllers
             formFileMock = new Mock<IFormFile>(MockBehavior.Strict);
             apiVersionMock = new Mock<ApiVersion>(MockBehavior.Strict, 9, 88, null!);
 
-            validatorMock.SetupGet(x => x.Id).Returns(new Guid(jobId));
+            validatorMock.SetupGet(x => x.Id).Returns(jobId);
 
             controller = new UploadController(
                 loggerMock.Object,
@@ -61,17 +61,19 @@ namespace GeoCop.Api.Controllers
             formFileMock.SetupGet(x => x.FileName).Returns("BIZARRESCAN.xtf");
             formFileMock.Setup(x => x.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(0));
             validatorServiceMock.Setup(x => x.EnqueueJobAsync(
-                It.Is<Guid>(x => x.Equals(new Guid(jobId))),
+                It.Is<Guid>(x => x.Equals(jobId)),
                 It.IsAny<ValidationAction>())).Returns(Task.FromResult(0));
+            validatorServiceMock
+                .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(jobId))))
+                .Returns(new ValidationJobStatus(jobId, Status.Enqueued, "Die Validierung wird vorbereitet..."));
 
             var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedResult;
 
             Assert.IsInstanceOfType(response, typeof(CreatedResult));
-            Assert.IsInstanceOfType(response!.Value, typeof(UploadResponse));
+            Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobStatus));
             Assert.AreEqual(StatusCodes.Status201Created, response.StatusCode);
             Assert.AreEqual($"/api/v9/status/{jobId}", response.Location);
-            Assert.AreEqual(jobId, ((UploadResponse)response.Value!).JobId.ToString());
-            Assert.AreEqual($"/api/v9/status/{jobId}", ((UploadResponse)response.Value!).StatusUrl!.ToString());
+            Assert.AreEqual(jobId, ((ValidationJobStatus)response.Value!).JobId);
         }
 
         [TestMethod]

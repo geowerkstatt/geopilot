@@ -50,7 +50,7 @@ namespace GeoCop.Api.Controllers
 
             validatorServiceMock
                 .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns(new ValidationJobStatus(Status.Processing, "WAFFLESPATULA GREENNIGHT"));
+                .Returns(new ValidationJobStatus(jobId, Status.Processing, "WAFFLESPATULA GREENNIGHT"));
 
             fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
             fileProviderMock.Setup(x => x.Exists(It.Is<string>(x => x == fileName))).Returns(true);
@@ -90,7 +90,7 @@ namespace GeoCop.Api.Controllers
 
             validatorServiceMock
                 .Setup(x => x.GetJobStatusOrDefault(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns(new ValidationJobStatus(Status.Processing, "WAFFLESPATULA GREENNIGHT"));
+                .Returns(new ValidationJobStatus(jobId, Status.Processing, "WAFFLESPATULA GREENNIGHT"));
 
             fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
             fileProviderMock.Setup(x => x.Exists(It.Is<string>(x => x == fileName))).Returns(false);
