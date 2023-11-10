@@ -44,10 +44,10 @@ namespace GeoCop.Api.StacServices
         public Task<IEnumerable<StacCollection>> GetCollectionsAsync(IStacApiContext stacApiContext, CancellationToken cancellationToken = default)
         {
             using var db = contextFactory.CreateDbContext();
-            var collections = db.DeliveryMandatesWithIncludes.Select(stacConverter.ToStacCollection);
-            stacApiContext.Properties.SetProperty(DefaultConventions.MatchedCountPropertiesKey, collections.Count());
+            var collections = db.DeliveryMandatesWithIncludes.Select(stacConverter.ToStacCollection).ToList();
+            stacApiContext.Properties.SetProperty(DefaultConventions.MatchedCountPropertiesKey, collections.Count);
 
-            return Task.FromResult(collections);
+            return Task.FromResult<IEnumerable<StacCollection>>(collections);
         }
     }
 }

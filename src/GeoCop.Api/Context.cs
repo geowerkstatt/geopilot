@@ -41,7 +41,8 @@ namespace GeoCop.Api
             {
                 return Deliveries
                     .Include(d => d.DeliveryMandate)
-                    .Include(d => d.Assets);
+                    .Include(d => d.Assets)
+                    .AsNoTracking();
             }
         }
 
@@ -59,7 +60,8 @@ namespace GeoCop.Api
             {
                 return DeliveryMandates
                     .Include(d => d.Deliveries)
-                    .ThenInclude(d => d.Assets);
+                    .ThenInclude(d => d.Assets)
+                    .AsNoTracking();
             }
         }
 
