@@ -3,6 +3,7 @@ using GeoCop.Api;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text.Json;
@@ -61,14 +62,16 @@ builder.Services.AddHostedService(services => (ValidatorService)services.GetRequ
 builder.Services.AddTransient<IValidator, InterlisValidator>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>(x => new PhysicalFileProvider(x.GetRequiredService<IConfiguration>(), "GEOCOP_UPLOADS_DIR"));
 
-builder.Services.AddDbContext<Context>(options =>
+var configureContextOptions = (DbContextOptionsBuilder options) =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("Context"), o =>
     {
         o.UseNetTopologySuite();
         o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     });
-});
+};
+builder.Services.AddDbContextFactory<Context>(configureContextOptions);
+builder.Services.AddDbContext<Context>(configureContextOptions);
 
 builder.Services.AddStacData(builder => { });
 
