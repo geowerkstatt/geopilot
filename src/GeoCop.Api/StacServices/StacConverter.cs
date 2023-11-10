@@ -27,7 +27,7 @@ namespace GeoCop.Api.StacServices
         /// </summary>
         public static readonly string ItemnIdPrefix = "item_";
 
-        private static readonly string DeliveryNamePrefix = "Datenabgabe_";
+        private const string DeliveryNamePrefix = "Datenabgabe_";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StacConverter"/> class.

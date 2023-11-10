@@ -176,7 +176,7 @@ namespace GeoCop.Api.StacServices
 
             UriBuilder uriBuilder = new UriBuilder(uriByAction);
             NameValueCollection nameValueCollection = HttpUtility.ParseQueryString(uriBuilder.Query);
-            foreach (KeyValuePair<string, object> item in (queryValues ?? new Dictionary<string, object>())!)
+            foreach (KeyValuePair<string, object> item in (queryValues ?? new Dictionary<string, object>()) !)
             {
                 nameValueCollection[item.Key] = item.Value.ToString();
             }
