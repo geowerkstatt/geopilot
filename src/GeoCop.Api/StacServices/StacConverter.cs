@@ -27,6 +27,8 @@ namespace GeoCop.Api.StacServices
         /// </summary>
         public static readonly string ItemnIdPrefix = "item_";
 
+        private static readonly string DeliveryNamePrefix = "Datenabgabe_";
+
         /// <summary>
         /// Initializes a new instance of the <see cref="StacConverter"/> class.
         /// </summary>
@@ -52,11 +54,15 @@ namespace GeoCop.Api.StacServices
             if (items.Values.Count == 0)
             {
                 var extent = new StacExtent(ToStacSpatialExtent(GeometryFactory.Default.CreatePolygon()), new StacTemporalExtent(DateTime.Now.ToUniversalTime(), DateTime.Now.ToUniversalTime()));
-                return new StacCollection(collectionId, string.Empty, extent, null, null);
+                return new StacCollection(collectionId, string.Empty, extent, null, null)
+                {
+                    Title = mandate.Name,
+                };
             }
             else
             {
                 var collection = StacCollection.Create(collectionId, string.Empty, items);
+                collection.Title = mandate.Name;
                 return collection;
             }
         }
@@ -73,6 +79,7 @@ namespace GeoCop.Api.StacServices
             var item = new StacItem(stacId, ToGeoJsonPolygon(delivery.DeliveryMandate.SpatialExtent))
             {
                 Collection = CollectionIdPrefix + delivery.DeliveryMandate.Id,
+                Title = DeliveryNamePrefix + delivery.Date.ToShortDateString(),
                 Description = string.Empty,
                 DateTime = new TimePeriodChain(),
             };
