@@ -3,7 +3,6 @@ using GeoCop.Api;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text.Json;
@@ -13,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("CorsSettings",
+    options.AddPolicy("All",
             policy =>
             {
                 policy.AllowAnyOrigin()
@@ -90,7 +89,7 @@ app.UseSwaggerUI(options =>
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors("CorsSettings");
+    app.UseCors("All");
 
     if (!context.DeliveryMandates.Any())
         context.SeedTestData();
