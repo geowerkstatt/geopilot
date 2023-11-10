@@ -1,4 +1,4 @@
-﻿using GeoCop.Api.Models;
+using GeoCop.Api.Models;
 using Itenso.TimePeriod;
 using NetTopologySuite.Geometries;
 using Stac;
@@ -25,7 +25,7 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// The prefix for the item id.
         /// </summary>
-        public static readonly string ItemnIdPrefix = "item_";
+        public static readonly string ItemIdPrefix = "item_";
 
         private const string DeliveryNamePrefix = "Datenabgabe_";
 
@@ -74,7 +74,7 @@ namespace GeoCop.Api.StacServices
         /// <returns></returns>
         public StacItem ToStacItem(Delivery delivery)
         {
-            var stacId = ItemnIdPrefix + delivery.Id;
+            var stacId = ItemIdPrefix + delivery.Id;
 
             var item = new StacItem(stacId, ToGeoJsonPolygon(delivery.DeliveryMandate.SpatialExtent))
             {
