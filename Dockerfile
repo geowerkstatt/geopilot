@@ -20,9 +20,11 @@ RUN apt-get update && \
 # Restore dependencies and tools
 COPY src/GeoCop.Api/GeoCop.Api.csproj GeoCop.Api/
 COPY src/GeoCop.Frontend/nuget.config GeoCop.Frontend/
+COPY src/GeoCop.Frontend/package* GeoCop.Frontend/
 COPY src/GeoCop.Frontend/GeoCop.Frontend.esproj GeoCop.Frontend/
 
 RUN dotnet restore "GeoCop.Api/GeoCop.Api.csproj"
+RUN npm install -C GeoCop.Frontend
 
 # Set environment variables
 ENV PUBLISH_DIR=/app/publish
