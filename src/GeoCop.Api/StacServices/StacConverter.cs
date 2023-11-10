@@ -79,7 +79,7 @@ namespace GeoCop.Api.StacServices
             var item = new StacItem(stacId, ToGeoJsonPolygon(delivery.DeliveryMandate.SpatialExtent))
             {
                 Collection = CollectionIdPrefix + delivery.DeliveryMandate.Id,
-                Title = DeliveryNamePrefix + delivery.Date.ToShortDateString(),
+                Title = DeliveryNamePrefix + delivery.Date.ToString("s"),
                 Description = string.Empty,
                 DateTime = new TimePeriodChain(),
             };
