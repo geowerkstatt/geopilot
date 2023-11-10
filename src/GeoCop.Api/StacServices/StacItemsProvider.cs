@@ -9,16 +9,19 @@ namespace GeoCop.Api.StacServices
     /// </summary>
     public class StacItemsProvider : IItemsProvider
     {
+        private readonly ILogger<StacItemsProvider> logger;
         private readonly IDbContextFactory<Context> contextFactory;
         private readonly StacConverter stacConverter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StacItemsProvider"/> class.
         /// </summary>
+        /// <param name="logger"></param>
         /// <param name="contextFactory"></param>
         /// <param name="stacConverter"></param>
-        public StacItemsProvider(IDbContextFactory<Context> contextFactory, StacConverter stacConverter)
+        public StacItemsProvider(ILogger<StacItemsProvider> logger, IDbContextFactory<Context> contextFactory, StacConverter stacConverter)
         {
+            this.logger = logger;
             this.contextFactory = contextFactory;
             this.stacConverter = stacConverter;
         }
@@ -56,8 +59,9 @@ namespace GeoCop.Api.StacServices
                 var item = stacConverter.ToStacItem(delivery);
                 return Task.FromResult(item);
             }
-            catch (IOException)
+            catch (Exception ex)
             {
+                logger.LogError(ex, $"Error while getting item with id {featureId}. Item might not exist.");
                 return Task.FromResult<StacItem>(null);
             }
         }

@@ -10,16 +10,19 @@ namespace GeoCop.Api.StacServices
     /// </summary>
     public class StacCollectionsProvider : ICollectionsProvider
     {
+        private readonly ILogger<StacCollectionsProvider> logger;
         private readonly IDbContextFactory<Context> contextFactory;
         private readonly StacConverter stacConverter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StacCollectionsProvider"/> class.
         /// </summary>
+        /// <param name="logger"></param>
         /// <param name="contextFactory"></param>
         /// <param name="stacConverter"></param>
-        public StacCollectionsProvider(IDbContextFactory<Context> contextFactory, StacConverter stacConverter)
+        public StacCollectionsProvider(ILogger<StacCollectionsProvider> logger, IDbContextFactory<Context> contextFactory, StacConverter stacConverter)
         {
+            this.logger = logger;
             this.contextFactory = contextFactory;
             this.stacConverter = stacConverter;
         }
@@ -36,6 +39,7 @@ namespace GeoCop.Api.StacServices
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, $"Error while getting collection with id {collectionId}. Collection might not exist.");
                 return Task.FromResult<StacCollection>(null);
             }
         }
