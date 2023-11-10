@@ -1,4 +1,4 @@
-using Stac.Api.Interfaces;
+﻿using Stac.Api.Interfaces;
 using Stac.Api.Models.Extensions.Sort.Context;
 using Stac.Api.Services.Debugging;
 using Stac.Api.Services.Default;
@@ -40,7 +40,8 @@ namespace GeoCop.Api.StacServices
             services.AddSingleton<IStacApiContextFilter, DebugContextFilter>();
 
             // Register the default collections provider
-            services.AddSingleton<IStacLinker, CollectionBasedStacLinker>();
+            // TODO: Replace StacLinker with CollectionBasedStacLinker once https://github.com/Terradue/DotNetStac.Api/issues/1 is resolved
+            services.AddSingleton<IStacLinker, StacLinker>();
 
             // Add the default controllers
             services.AddDefaultControllers();
