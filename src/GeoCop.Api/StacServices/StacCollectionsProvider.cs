@@ -33,14 +33,16 @@ namespace GeoCop.Api.StacServices
             try
             {
                 using var db = contextFactory.CreateDbContext();
-                var deliveryMandate = db.DeliveryMandatesWithIncludes.First(dm => (StacConverter.CollectionIdPrefix + dm.Id) == collectionId);
+                var deliveryMandate = db.DeliveryMandatesWithIncludes.FirstOrDefault(dm => (StacConverter.CollectionIdPrefix + dm.Id) == collectionId)
+                    ?? throw new InvalidOperationException($"Collection with id {collectionId} does not exist.");
                 var collection = stacConverter.ToStacCollection(deliveryMandate);
                 return Task.FromResult(collection);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Error while getting collection with id {collectionId}. Collection might not exist.");
-                return Task.FromResult<StacCollection>(null);
+                var message = $"Error while getting collection with id {collectionId}";
+                logger.LogError(ex, message);
+                throw new InvalidOperationException(message, ex);
             }
         }
 

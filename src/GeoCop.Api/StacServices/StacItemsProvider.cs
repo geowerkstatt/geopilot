@@ -55,14 +55,16 @@ namespace GeoCop.Api.StacServices
             {
                 using var db = contextFactory.CreateDbContext();
                 var delivery = db.DeliveriesWithIncludes
-                    .First(d => (StacConverter.ItemnIdPrefix + d.Id) == featureId && (StacConverter.CollectionIdPrefix + d.DeliveryMandate.Id == stacApiContext.Collections.First()));
+                    .FirstOrDefault(d => (StacConverter.ItemnIdPrefix + d.Id) == featureId && (StacConverter.CollectionIdPrefix + d.DeliveryMandate.Id == stacApiContext.Collections.First()))
+                    ?? throw new InvalidOperationException($"Item with id {featureId} does not exist.");
                 var item = stacConverter.ToStacItem(delivery);
                 return Task.FromResult(item);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, $"Error while getting item with id {featureId}. Item might not exist.");
-                return Task.FromResult<StacItem>(null);
+                var message = $"Error while getting item with id {featureId}.";
+                logger.LogError(ex, message);
+                throw new InvalidOperationException(message, ex);
             }
         }
 
