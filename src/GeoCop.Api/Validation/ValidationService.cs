@@ -39,6 +39,12 @@
         }
 
         /// <inheritdoc/>
+        public ValidationJob? GetJob(Guid jobId)
+        {
+            return validationRunner.GetJob(jobId);
+        }
+
+        /// <inheritdoc/>
         public ValidationJobStatus? GetJobStatus(Guid jobId)
         {
             return validationRunner.GetJobStatus(jobId);

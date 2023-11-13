@@ -59,6 +59,12 @@ namespace GeoCop.Api.Validation
         }
 
         /// <inheritdoc/>
+        public ValidationJob? GetJob(Guid jobId)
+        {
+            return jobs.TryGetValue(jobId, out var entry) ? entry.Job : null;
+        }
+
+        /// <inheritdoc/>
         public ValidationJobStatus? GetJobStatus(Guid jobId)
         {
             return jobs.TryGetValue(jobId, out var entry) ? entry.JobStatus : null;

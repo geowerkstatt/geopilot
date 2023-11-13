@@ -20,10 +20,17 @@
         Task<ValidationJobStatus> StartValidationJobAsync(ValidationJob validationJob);
 
         /// <summary>
+        /// Gets the validation job.
+        /// </summary>
+        /// <param name="jobId">The id of the validation job.</param>
+        /// <returns>Validation job with the specified <paramref name="jobId"/>.</returns>
+        ValidationJob? GetJob(Guid jobId);
+
+        /// <summary>
         /// Gets the validation job status.
         /// </summary>
         /// <param name="jobId">The id of the validation job.</param>
-        /// <returns>Current job status information.</returns>
+        /// <returns>Status information for the validation job with the specified <paramref name="jobId"/>.</returns>
         ValidationJobStatus? GetJobStatus(Guid jobId);
     }
 }

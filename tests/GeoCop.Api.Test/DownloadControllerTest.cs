@@ -47,8 +47,8 @@ namespace GeoCop.Api.Controllers
             var fileName = "logfile.log";
 
             validationServiceMock
-                .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns(new ValidationJobStatus(jobId) { Status = Status.Completed });
+                .Setup(x => x.GetJob(It.Is<Guid>(x => x.Equals(jobId))))
+                .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf"));
 
             fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
             fileProviderMock.Setup(x => x.Exists(It.Is<string>(x => x == fileName))).Returns(true);
@@ -61,6 +61,7 @@ namespace GeoCop.Api.Controllers
 
             Assert.IsInstanceOfType(response, typeof(FileStreamResult));
             Assert.AreEqual("text/plain", response!.ContentType);
+            Assert.AreEqual("original_log.log", response.FileDownloadName);
         }
 
         [TestMethod]
@@ -70,8 +71,8 @@ namespace GeoCop.Api.Controllers
 
             fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
             validationServiceMock
-                .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(Guid.Empty))))
-                .Returns((ValidationJobStatus?)null);
+                .Setup(x => x.GetJob(It.Is<Guid>(x => x.Equals(Guid.Empty))))
+                .Returns((ValidationJob?)null);
 
             var response = controller.Download(default, "logfile.log") as ObjectResult;
 
@@ -87,8 +88,8 @@ namespace GeoCop.Api.Controllers
             var fileName = "missing-logfile.log";
 
             validationServiceMock
-                .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns(new ValidationJobStatus(jobId) { Status = Status.Completed });
+                .Setup(x => x.GetJob(It.Is<Guid>(x => x.Equals(jobId))))
+                .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf"));
 
             fileProviderMock.Setup(x => x.Initialize(It.Is<Guid>(x => x.Equals(jobId))));
             fileProviderMock.Setup(x => x.Exists(It.Is<string>(x => x == fileName))).Returns(false);

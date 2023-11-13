@@ -44,8 +44,8 @@ namespace GeoCop.Api.Controllers
 
             fileProvider.Initialize(jobId);
 
-            var jobStatus = validationService.GetJobStatus(jobId);
-            if (jobStatus == null)
+            var validationJob = validationService.GetJob(jobId);
+            if (validationJob == null)
             {
                 logger.LogTrace("No job information available for job id <{JobId}>", jobId);
                 return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
@@ -59,7 +59,8 @@ namespace GeoCop.Api.Controllers
 
             var logFile = fileProvider.Open(file);
             var contentType = contentTypeProvider.TryGetContentType(file, out var type) ? type : "application/octet-stream";
-            return File(logFile, contentType);
+            var logFileName = Path.GetFileNameWithoutExtension(validationJob.OriginalFileName) + "_log" + Path.GetExtension(file);
+            return File(logFile, contentType, logFileName);
         }
     }
 }
