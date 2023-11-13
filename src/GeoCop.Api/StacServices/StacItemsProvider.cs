@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Stac;
 using Stac.Api.Interfaces;
+using System.Linq;
 
 namespace GeoCop.Api.StacServices
 {
@@ -34,10 +35,7 @@ namespace GeoCop.Api.StacServices
             {
                 try
                 {
-                    if (db.DeliveryMandatesWithIncludes.First(dm => (StacConverter.CollectionIdPrefix + dm.Id) == collection).Deliveries.Any())
-                    {
-                        return true;
-                    }
+                    return db.DeliveryMandatesWithIncludes.FirstOrDefault(dm => (StacConverter.CollectionIdPrefix + dm.Id) == collection)?.Deliveries?.Any() ?? false;
                 }
                 catch (IOException)
                 {
