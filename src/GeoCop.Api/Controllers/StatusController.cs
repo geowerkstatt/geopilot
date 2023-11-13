@@ -39,6 +39,7 @@ namespace GeoCop.Api.Controllers
             var jobStatus = validationService.GetJobStatus(jobId);
             if (jobStatus == null)
             {
+                logger.LogTrace("No job information available for job id <{JobId}>", jobId);
                 return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
             }
 
