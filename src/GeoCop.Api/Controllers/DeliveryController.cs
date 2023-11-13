@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using Asp.Versioning;
 using GeoCop.Api.Contracts;
 using GeoCop.Api.Models;
 using GeoCop.Api.Validation;
@@ -32,11 +31,10 @@ namespace GeoCop.Api.Controllers
         /// <summary>
         /// Create a delivery from a validation with the status <see cref="Status.Completed"/>.
         /// </summary>
-        /// <param name="apiVersion">The api version.</param>
         /// <param name="declaration"><see cref="DeliveryRequest"/> containing all information for the declaration process.</param>
         /// <returns>Created <see cref="Delivery"/>.</returns>
         [HttpPost]
-        public IActionResult Create(ApiVersion apiVersion, DeliveryRequest declaration)
+        public IActionResult Create(DeliveryRequest declaration)
         {
             logger.LogTrace("Declaration for job <{JobId}> requested.", declaration.JobId);
 
@@ -52,12 +50,12 @@ namespace GeoCop.Api.Controllers
                 return Problem($"Job <{declaration.JobId}> is not completed.", statusCode: StatusCodes.Status400BadRequest);
             }
 
-            var dummyUser = context.Users.First();
-
             var mandate = context.DeliveryMandates
                 .Include(m => m.Organisations)
                 .ThenInclude(o => o.Users)
                 .FirstOrDefault(m => m.Id == declaration.DeliveryMandateId);
+
+            var dummyUser = mandate?.Organisations.SelectMany(u => u.Users).FirstOrDefault();
 
             if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.AuthIdentifier.Equals(dummyUser.AuthIdentifier, StringComparison.OrdinalIgnoreCase)))
             {
@@ -76,7 +74,7 @@ namespace GeoCop.Api.Controllers
             context.SaveChanges();
 
             var location = new Uri(
-                string.Format(CultureInfo.InvariantCulture, "/api/v{0}/delivery/{1}", apiVersion.MajorVersion, entityEntry.Entity.Id),
+                string.Format(CultureInfo.InvariantCulture, "/api/v1/delivery/{0}", entityEntry.Entity.Id),
                 UriKind.Relative);
 
             return Created(location, entityEntry.Entity);
