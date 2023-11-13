@@ -7,7 +7,7 @@ using System.Text.Json;
 namespace GeoCop.Api.Validation.Interlis
 {
     /// <summary>
-    /// Validates an INTERLIS transfer <see cref="File"/> provided through an <see cref="IFileProvider"/>.
+    /// Validates an INTERLIS transfer file provided through an <see cref="IFileProvider"/>.
     /// </summary>
     public class InterlisValidator : IValidator
     {
