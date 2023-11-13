@@ -50,7 +50,10 @@ namespace GeoCop.Api.StacServices
         public StacCollection ToStacCollection(DeliveryMandate mandate)
         {
             var collectionId = CollectionIdPrefix + mandate.Id;
-            var items = mandate.Deliveries.Select(d => ToStacItem(d)).ToDictionary(i => i.Links.First(l => l.RelationshipType.ToLowerInvariant() == "self").Uri);
+            var items = mandate.Deliveries
+                .Select(ToStacItem)
+                .ToDictionary(i => i.Links.First(l => l.RelationshipType.ToLowerInvariant() == "self").Uri);
+
             if (items.Values.Count == 0)
             {
                 var extent = new StacExtent(ToStacSpatialExtent(mandate.SpatialExtent), new StacTemporalExtent(DateTime.Now.ToUniversalTime(), DateTime.Now.ToUniversalTime()));
