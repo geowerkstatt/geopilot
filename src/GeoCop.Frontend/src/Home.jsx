@@ -89,7 +89,7 @@ export const Home = ({
       if (fileToCheckRef.current) {
         const data = await response.json();
         const getStatusData = async (data) => {
-          const status = await fetch(data.statusUrl, {
+          const status = await fetch(`/api/v1/status/${data.jobId}`, {
             method: "GET",
           });
           const statusData = await status.json();
@@ -98,7 +98,6 @@ export const Home = ({
 
         const interval = setIntervalImmediately(async () => {
           const statusData = await getStatusData(data);
-          updateLog(statusData.statusMessage);
           if (
             statusData.status === "completed" ||
             statusData.status === "completedWithErrors" ||

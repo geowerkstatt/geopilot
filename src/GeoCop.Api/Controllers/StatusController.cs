@@ -1,5 +1,4 @@
-﻿using Asp.Versioning;
-using GeoCop.Api.Validation;
+﻿using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -13,17 +12,15 @@ namespace GeoCop.Api.Controllers
     public class StatusController : Controller
     {
         private readonly ILogger<StatusController> logger;
-        private readonly IValidatorService validatorService;
-        private readonly IFileProvider fileProvider;
+        private readonly IValidationService validationService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StatusController"/> class.
         /// </summary>
-        public StatusController(ILogger<StatusController> logger, IValidatorService validatorService, IFileProvider fileProvider)
+        public StatusController(ILogger<StatusController> logger, IValidationService validationService)
         {
             this.logger = logger;
-            this.validatorService = validatorService;
-            this.fileProvider = fileProvider;
+            this.validationService = validationService;
         }
 
         /// <summary>
@@ -32,27 +29,21 @@ namespace GeoCop.Api.Controllers
         /// <param name="jobId" example="2e71ae96-e6ad-4b67-b817-f09412d09a2c">The job identifier.</param>
         /// <returns>The status information for the specified <paramref name="jobId"/>.</returns>
         [HttpGet("{jobId}")]
-        [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(StatusResponse), new[] { "application/json" })]
+        [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(ValidationJobStatus), new[] { "application/json" })]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
         [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), new[] { "application/json" })]
         public IActionResult GetStatus(Guid jobId)
         {
             logger.LogTrace("Status for job <{JobId}> requested.", jobId);
 
-            fileProvider.Initialize(jobId);
-
-            var job = validatorService.GetJobStatusOrDefault(jobId);
-            if (job == default)
+            var jobStatus = validationService.GetJobStatus(jobId);
+            if (jobStatus == null)
             {
+                logger.LogTrace("No job information available for job id <{JobId}>", jobId);
                 return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
             }
 
-            return Ok(new StatusResponse
-            {
-                JobId = jobId,
-                Status = job.Status,
-                StatusMessage = job.StatusMessage,
-            });
+            return Ok(jobStatus);
         }
     }
 }

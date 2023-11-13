@@ -267,10 +267,19 @@ input {
 .download-icon {
   font-size: 30px;
   margin-left: 10px;
+  margin-top: 5px;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.download-icon :hover {
+.download-icon:hover {
   color: #555;
+}
+
+.download-description {
+  font-size: 14px;
 }
 
 /************ Check status ************/
@@ -302,7 +311,7 @@ input {
   position: absolute;
   z-index: 1;
   bottom: 100%;
-  margin-left: -145px;
+  margin-left: calc(50% - 125px);
   opacity: 0;
   transition: opacity 0.3s;
 }
