@@ -39,6 +39,9 @@ namespace GeoCop.Api.Validation
                 // CompletedWithErrors has a higher priority than completed.
                 Status.CompletedWithErrors => next == Status.Completed ? Status.CompletedWithErrors : next,
 
+                // Failed is only set when all validations finished.
+                Status.Failed => next == Status.Enqueued || next == Status.Processing ? next : current,
+
                 // Keep current status (Enqueued, Processing or Failed)
                 _ => current,
             };
