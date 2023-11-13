@@ -1,4 +1,4 @@
-using GeoCop.Api.Models;
+﻿using GeoCop.Api.Models;
 using Itenso.TimePeriod;
 using NetTopologySuite.Geometries;
 using Stac;
