@@ -12,7 +12,7 @@ namespace GeoCop.Api.Validation
         /// <summary>
         /// Overall status of the validation job.
         /// </summary>
-        public Status Status { get; set; } = Status.Enqueued;
+        public Status Status { get; set; } = Status.Processing;
 
         /// <summary>
         /// Available validator results.
@@ -40,10 +40,12 @@ namespace GeoCop.Api.Validation
                 Status.CompletedWithErrors => next == Status.Completed ? Status.CompletedWithErrors : next,
 
                 // Failed is only set when all validations finished.
-                Status.Failed => next == Status.Enqueued || next == Status.Processing ? next : current,
+                Status.Failed => next == Status.Processing ? next : Status.Failed,
 
-                // Keep current status (Enqueued, Processing or Failed)
-                _ => current,
+                // Processing has the highest priority. If at least one validator is still running, the job is processing.
+                Status.Processing => Status.Processing,
+
+                _ => throw new InvalidOperationException($"Unknown status <{current}>."),
             };
         }
     }

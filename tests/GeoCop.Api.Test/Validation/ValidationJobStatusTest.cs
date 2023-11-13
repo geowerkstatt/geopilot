@@ -29,11 +29,6 @@
             Status.Failed,
             Status.Completed,
             Status.Processing)]
-        [DataRow(
-            Status.Enqueued,
-            Status.Enqueued,
-            Status.CompletedWithErrors,
-            Status.Completed)]
         public void UpdateJobStatusFromResults(Status expected, Status status1, Status status2, Status status3)
         {
             var status = new ValidationJobStatus(Guid.NewGuid());
