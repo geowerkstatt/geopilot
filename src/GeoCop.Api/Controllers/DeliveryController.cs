@@ -55,7 +55,7 @@ namespace GeoCop.Api.Controllers
                 .ThenInclude(o => o.Users)
                 .FirstOrDefault(m => m.Id == declaration.DeliveryMandateId);
 
-            var dummyUser = mandate?.Organisations.SelectMany(u => u.Users).FirstOrDefault();
+            var dummyUser = mandate?.Organisations.SelectMany(u => u.Users).First() ?? new User();
 
             if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.AuthIdentifier.Equals(dummyUser.AuthIdentifier, StringComparison.OrdinalIgnoreCase)))
             {
