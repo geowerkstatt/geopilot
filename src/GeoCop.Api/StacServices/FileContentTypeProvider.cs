@@ -7,14 +7,13 @@ namespace GeoCop.Api.StacServices
     /// <summary>
     /// Provides access to file content types.
     /// </summary>
-    public class FileContentTypeProvider
+    public class FileContentTypeProvider : FileExtensionContentTypeProvider
     {
-        private readonly FileExtensionContentTypeProvider provider = new FileExtensionContentTypeProvider();
-
         /// <summary>
         /// Initializes a new instance of the <see cref="FileContentTypeProvider"/> class.
         /// </summary>
         public FileContentTypeProvider()
+            : base()
         {
             AddOrUpdateMapping(".xtf", "application/interlis+xml");
         }
@@ -38,7 +37,7 @@ namespace GeoCop.Api.StacServices
         {
             const string DefaultContentType = "application/octet-stream";
 
-            if (!provider.TryGetContentType(fileExtension, out var contentType))
+            if (!TryGetContentType(fileExtension, out var contentType))
             {
                 contentType = DefaultContentType;
             }
@@ -48,13 +47,13 @@ namespace GeoCop.Api.StacServices
 
         private void AddOrUpdateMapping(string fileExtension, string contentType)
         {
-            if (!provider.Mappings.TryGetValue(fileExtension, out var _))
+            if (!Mappings.TryGetValue(fileExtension, out var _))
             {
-                provider.Mappings.Add(fileExtension, contentType);
+                Mappings.Add(fileExtension, contentType);
             }
             else
             {
-                provider.Mappings[fileExtension] = contentType;
+                Mappings[fileExtension] = contentType;
             }
         }
     }
