@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Globalization;
 using System.Net;
+using System.Text.Json;
 
 namespace GeoCop.Api.Validation.Interlis
 {
@@ -15,6 +17,7 @@ namespace GeoCop.Api.Validation.Interlis
         private readonly ILogger<InterlisValidator> logger;
         private readonly IFileProvider fileProvider;
         private readonly HttpClient httpClient;
+        private readonly JsonSerializerOptions jsonSerializerOptions;
 
         /// <inheritdoc/>
         public string Name => "ilicheck";
@@ -22,11 +25,12 @@ namespace GeoCop.Api.Validation.Interlis
         /// <summary>
         /// Initializes a new instance of the <see cref="InterlisValidator"/> class.
         /// </summary>
-        public InterlisValidator(ILogger<InterlisValidator> logger, IFileProvider fileProvider, HttpClient httpClient)
+        public InterlisValidator(ILogger<InterlisValidator> logger, IFileProvider fileProvider, HttpClient httpClient, IOptions<JsonOptions> jsonOptions)
         {
             this.logger = logger;
             this.fileProvider = fileProvider;
             this.httpClient = httpClient;
+            jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
         }
 
         /// <inheritdoc/>
@@ -63,7 +67,7 @@ namespace GeoCop.Api.Validation.Interlis
             logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(Program.JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+                var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
                 throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
             }
 
@@ -125,7 +129,7 @@ namespace GeoCop.Api.Validation.Interlis
         private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             response.EnsureSuccessStatusCode();
-            var result = await response.Content.ReadFromJsonAsync<T>(Program.JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+            var result = await response.Content.ReadFromJsonAsync<T>(jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
             return result ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
         }
     }
