@@ -48,12 +48,14 @@ export const FileDropzone = ({
   const [dropZoneText, setDropZoneText] = useState(dropZoneDefaultText);
   const [dropZoneTextClass, setDropZoneTextClass] = useState("dropzone dropzone-text-disabled");
 
+  const acceptedFileTypesText = acceptedFileTypes?.join(", ") ?? "";
+
   useEffect(
     () =>
       setDropZoneDefaultText(
-        `Datei (${acceptedFileTypes}) hier ablegen oder klicken um vom lokalen Dateisystem auszuwählen.`,
+        `Datei (${acceptedFileTypesText}) hier ablegen oder klicken um vom lokalen Dateisystem auszuwählen.`,
       ),
-    [acceptedFileTypes],
+    [acceptedFileTypesText],
   );
   useEffect(() => setDropZoneText(dropZoneDefaultText), [dropZoneDefaultText]);
 
@@ -91,7 +93,7 @@ export const FileDropzone = ({
       switch (errorCode) {
         case "file-invalid-type":
           setDropZoneText(
-            `Der Dateityp wird nicht unterstützt. Bitte wähle eine Datei (max. 200MB) mit einer der folgenden Dateiendungen: ${acceptedFileTypes}`,
+            `Der Dateityp wird nicht unterstützt. Bitte wähle eine Datei (max. 200MB) mit einer der folgenden Dateiendungen: ${acceptedFileTypesText}`,
           );
           break;
         case "too-many-files":
@@ -104,13 +106,13 @@ export const FileDropzone = ({
           break;
         default:
           setDropZoneText(
-            `Bitte wähle eine Datei (max. 200MB) mit einer der folgenden Dateiendungen: ${acceptedFileTypes}`,
+            `Bitte wähle eine Datei (max. 200MB) mit einer der folgenden Dateiendungen: ${acceptedFileTypesText}`,
           );
       }
       resetFileToCheck();
       setFileAvailable(false);
     },
-    [resetFileToCheck, acceptedFileTypes],
+    [resetFileToCheck, acceptedFileTypesText],
   );
 
   const removeFile = (e) => {
@@ -127,7 +129,9 @@ export const FileDropzone = ({
     onDropRejected,
     maxFiles: 1,
     maxSize: 209715200,
-    accept: acceptedFileTypes,
+    accept: {
+      "application/x-geocop-files": acceptedFileTypes ?? [],
+    },
   });
 
   return (
