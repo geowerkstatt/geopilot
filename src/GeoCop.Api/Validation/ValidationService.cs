@@ -1,4 +1,4 @@
-﻿namespace GeoCop.Api.Validation
+namespace GeoCop.Api.Validation
 {
     /// <summary>
     /// Provides methods to start validation jobs and access status information for a specific job.
@@ -62,6 +62,13 @@
                 .Union(validatorFileExtensions)
                 .OrderBy(ext => ext)
                 .ToList();
+        }
+
+        /// <inheritdoc/>
+        public async Task<bool> IsFileExtensionSupportedAsync(string fileExtension)
+        {
+            var extensions = await GetSupportedFileExtensionsAsync();
+            return IsExtensionSupported(extensions, fileExtension);
         }
 
         private HashSet<string> GetFileExtensionsForDeliveryMandates()

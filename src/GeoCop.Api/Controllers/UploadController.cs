@@ -88,6 +88,13 @@ namespace GeoCop.Api.Controllers
         {
             if (file == null) return Problem($"Form data <{nameof(file)}> cannot be empty.", statusCode: StatusCodes.Status400BadRequest);
 
+            var fileExtension = Path.GetExtension(file.FileName);
+            if (!await validationService.IsFileExtensionSupportedAsync(fileExtension))
+            {
+                logger.LogTrace("File extension <{FileExtension}> is not supported.", fileExtension);
+                return Problem($"File extension <{fileExtension}> is not supported.", statusCode: StatusCodes.Status400BadRequest);
+            }
+
             var (validationJob, fileHandle) = validationService.CreateValidationJob(file.FileName);
             using (fileHandle)
             {

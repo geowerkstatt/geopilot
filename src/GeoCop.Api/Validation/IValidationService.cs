@@ -38,5 +38,12 @@
         /// </summary>
         /// <returns>Supported file extensions.</returns>
         Task<ICollection<string>> GetSupportedFileExtensionsAsync();
+
+        /// <summary>
+        /// Checks if the specified <paramref name="fileExtension"/> is supported for upload.
+        /// </summary>
+        /// <param name="fileExtension">Extension of the uploaded file.</param>
+        /// <returns>True, if the <paramref name="fileExtension"/> is supported.</returns>
+        Task<bool> IsFileExtensionSupportedAsync(string fileExtension);
     }
 }
