@@ -8,15 +8,17 @@
         private readonly IFileProvider fileProvider;
         private readonly IValidationRunner validationRunner;
         private readonly IEnumerable<IValidator> validators;
+        private readonly Context context;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationService"/> class.
         /// </summary>
-        public ValidationService(IFileProvider fileProvider, IValidationRunner validationRunner, IEnumerable<IValidator> validators)
+        public ValidationService(IFileProvider fileProvider, IValidationRunner validationRunner, IEnumerable<IValidator> validators, Context context)
         {
             this.fileProvider = fileProvider;
             this.validationRunner = validationRunner;
             this.validators = validators;
+            this.context = context;
         }
 
         /// <inheritdoc/>
@@ -48,6 +50,45 @@
         public ValidationJobStatus? GetJobStatus(Guid jobId)
         {
             return validationRunner.GetJobStatus(jobId);
+        }
+
+        /// <inheritdoc/>
+        public async Task<ICollection<string>> GetSupportedFileExtensionsAsync()
+        {
+            var mandateFileExtensions = GetFileExtensionsForDeliveryMandates();
+            var validatorFileExtensions = await GetFileExtensionsForValidatorsAsync();
+
+            return mandateFileExtensions
+                .Union(validatorFileExtensions)
+                .OrderBy(ext => ext)
+                .ToList();
+        }
+
+        private HashSet<string> GetFileExtensionsForDeliveryMandates()
+        {
+            return context.DeliveryMandates
+                .Select(mandate => mandate.FileTypes)
+                .AsEnumerable()
+                .SelectMany(ext => ext)
+                .Select(ext => ext.ToLowerInvariant())
+                .ToHashSet();
+        }
+
+        private async Task<HashSet<string>> GetFileExtensionsForValidatorsAsync()
+        {
+            var tasks = validators.Select(validator => validator.GetSupportedFileExtensionsAsync());
+
+            var validatorFileExtensions = await Task.WhenAll(tasks);
+
+            return validatorFileExtensions
+                .SelectMany(ext => ext)
+                .Select(ext => ext.ToLowerInvariant())
+                .ToHashSet();
+        }
+
+        private static bool IsExtensionSupported(ICollection<string> supportedExtensions, string fileExtension)
+        {
+            return supportedExtensions.Any(ext => ext == ".*" || string.Equals(ext, fileExtension, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

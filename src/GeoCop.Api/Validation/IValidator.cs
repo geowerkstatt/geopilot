@@ -11,6 +11,11 @@
         string Name { get; }
 
         /// <summary>
+        /// Gets the supported file extensions.
+        /// </summary>
+        Task<ICollection<string>> GetSupportedFileExtensionsAsync();
+
+        /// <summary>
         /// Asynchronously validates the <paramref name="validationJob"/> specified.
         /// Its file must be accessible by an <see cref="IFileProvider"/> when executing this function.
         /// </summary>

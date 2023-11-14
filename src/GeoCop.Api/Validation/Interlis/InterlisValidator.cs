@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Globalization;
 using System.Net;
@@ -31,6 +31,12 @@ namespace GeoCop.Api.Validation.Interlis
             this.fileProvider = fileProvider;
             this.httpClient = httpClient;
             jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
+        }
+
+        /// <inheritdoc/>
+        public async Task<ICollection<string>> GetSupportedFileExtensionsAsync()
+        {
+            return Array.Empty<string>();
         }
 
         /// <inheritdoc/>

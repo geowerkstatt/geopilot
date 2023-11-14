@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using GeoCop.Api.Contracts;
 using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -24,6 +25,20 @@ namespace GeoCop.Api.Controllers
         {
             this.logger = logger;
             this.validationService = validationService;
+        }
+
+        /// <summary>
+        /// Returns the validation settings.
+        /// </summary>
+        /// <returns>Configuration settings for validations.</returns>
+        [HttpGet]
+        [SwaggerResponse(StatusCodes.Status200OK, "The specified settings for uploading files.", typeof(ValidationSettingsResponse), new[] { "application/json" })]
+        public async Task<IActionResult> GetValidationSettings()
+        {
+            return Ok(new ValidationSettingsResponse
+            {
+                AllowedFileExtensions = await validationService.GetSupportedFileExtensionsAsync(),
+            });
         }
 
         /// <summary>

@@ -32,5 +32,11 @@
         /// <param name="jobId">The id of the validation job.</param>
         /// <returns>Status information for the validation job with the specified <paramref name="jobId"/>.</returns>
         ValidationJobStatus? GetJobStatus(Guid jobId);
+
+        /// <summary>
+        /// Gets all file extensions that are supported for upload.
+        /// </summary>
+        /// <returns>Supported file extensions.</returns>
+        Task<ICollection<string>> GetSupportedFileExtensionsAsync();
     }
 }
