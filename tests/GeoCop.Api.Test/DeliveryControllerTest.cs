@@ -13,7 +13,7 @@ namespace GeoCop.Api.Test
     [TestClass]
     public class DeliveryControllerTest
     {
-        private Mock<IValidatorService> validatorServiceMock;
+        private Mock<IValidationService> validationServiceMock;
         private Mock<ILogger<DeliveryController>> loggerMock;
         private DeliveryController deliveryController;
         private Context context;
@@ -22,28 +22,27 @@ namespace GeoCop.Api.Test
         public void Setup()
         {
             loggerMock = new Mock<ILogger<DeliveryController>>();
-            validatorServiceMock = new Mock<IValidatorService>();
+            validationServiceMock = new Mock<IValidationService>();
             context = Initialize.DbFixture.GetTestContext();
-            deliveryController = new DeliveryController(loggerMock.Object, context, validatorServiceMock.Object);
+            deliveryController = new DeliveryController(loggerMock.Object, context, validationServiceMock.Object);
         }
 
         public void Cleanup()
         {
-            validatorServiceMock.VerifyAll();
+            validationServiceMock.VerifyAll();
             context.Dispose();
         }
 
         [TestMethod]
-        [DataRow(Status.Enqueued, StatusCodes.Status400BadRequest)]
         [DataRow(Status.Processing, StatusCodes.Status400BadRequest)]
         [DataRow(Status.CompletedWithErrors, StatusCodes.Status400BadRequest)]
         [DataRow(Status.Failed, StatusCodes.Status400BadRequest)]
         public void CreateFailsJobNotCompleted(Status status, int resultCode)
         {
             var guid = Guid.NewGuid();
-            validatorServiceMock
-                .Setup(s => s.GetJobStatusOrDefault(guid))
-                .Returns((status, "Test"));
+            validationServiceMock
+                .Setup(s => s.GetJobStatus(guid))
+                .Returns(new ValidationJobStatus(guid) { Status = status });
 
             var deliveriesCount = context.Deliveries.Count();
             var mandateId = context.DeliveryMandates.First().Id;
@@ -61,9 +60,9 @@ namespace GeoCop.Api.Test
         public void CreateFailsJobNotFound()
         {
             var guid = Guid.NewGuid();
-            validatorServiceMock
-                .Setup(s => s.GetJobStatusOrDefault(guid))
-                .Returns(default((Status, string)));
+            validationServiceMock
+                .Setup(s => s.GetJobStatus(guid))
+                .Returns(default(ValidationJobStatus?));
 
             var deliveriesCount = context.Deliveries.Count();
             var mandateId = context.DeliveryMandates.First().Id;
@@ -97,9 +96,9 @@ namespace GeoCop.Api.Test
         public void Create()
         {
             var guid = Guid.NewGuid();
-            validatorServiceMock
-                .Setup(s => s.GetJobStatusOrDefault(guid))
-                .Returns((Status.Completed, "Test"));
+            validationServiceMock
+                .Setup(s => s.GetJobStatus(guid))
+                .Returns(new ValidationJobStatus(guid) { Status = Status.Completed });
             var startTime = DateTime.Now;
 
             var dummyUserWithMandates = context.Users

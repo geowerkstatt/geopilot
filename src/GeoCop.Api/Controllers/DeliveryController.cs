@@ -16,12 +16,12 @@ namespace GeoCop.Api.Controllers
     {
         private readonly ILogger<DeliveryController> logger;
         private readonly Context context;
-        private readonly IValidatorService validatorService;
+        private readonly IValidationService validatorService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DeliveryController"/> class.
         /// </summary>
-        public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidatorService validatorService)
+        public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService)
         {
             this.logger = logger;
             this.context = context;
@@ -38,7 +38,7 @@ namespace GeoCop.Api.Controllers
         {
             logger.LogTrace("Declaration for job <{JobId}> requested.", declaration.JobId);
 
-            var job = validatorService.GetJobStatusOrDefault(declaration.JobId);
+            var job = validatorService.GetJobStatus(declaration.JobId);
             if (job == default)
             {
                 logger.LogTrace("No job information available for job id <{JobId}>.", declaration.JobId);
