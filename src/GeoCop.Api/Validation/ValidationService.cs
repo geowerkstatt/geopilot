@@ -1,4 +1,4 @@
-namespace GeoCop.Api.Validation
+﻿namespace GeoCop.Api.Validation
 {
     /// <summary>
     /// Provides methods to start validation jobs and access status information for a specific job.
@@ -36,7 +36,18 @@ namespace GeoCop.Api.Validation
         /// <inheritdoc/>
         public async Task<ValidationJobStatus> StartValidationJobAsync(ValidationJob validationJob)
         {
-            await validationRunner.EnqueueJobAsync(validationJob, validators);
+            var fileExtension = Path.GetExtension(validationJob.TempFileName);
+            var supportedValidators = new List<IValidator>();
+            foreach (var validator in validators)
+            {
+                var supportedExtensions = await validator.GetSupportedFileExtensionsAsync();
+                if (IsExtensionSupported(supportedExtensions, fileExtension))
+                {
+                    supportedValidators.Add(validator);
+                }
+            }
+
+            await validationRunner.EnqueueJobAsync(validationJob, supportedValidators);
             return GetJobStatus(validationJob.Id) ?? throw new InvalidOperationException("The validation job was not enqueued.");
         }
 
