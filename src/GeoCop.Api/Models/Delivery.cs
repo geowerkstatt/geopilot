@@ -15,7 +15,7 @@ namespace GeoCop.Api.Models
         /// <summary>
         /// The date the delivery was declared.
         /// </summary>
-        public DateTime Date { get; set; } = DateTime.Now.ToUniversalTime();
+        public DateTime Date { get; set; } = DateTime.UtcNow;
 
         /// <summary>
         /// The user that declared the delivery.
