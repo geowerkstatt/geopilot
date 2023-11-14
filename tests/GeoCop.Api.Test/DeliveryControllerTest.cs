@@ -52,7 +52,7 @@ namespace GeoCop.Api.Test
             context.ChangeTracker.Clear();
 
             Assert.IsNotNull(result);
-            Assert.AreEqual(result.StatusCode, resultCode);
+            Assert.AreEqual(resultCode, result.StatusCode);
             Assert.AreEqual(deliveriesCount, context.Deliveries.Count());
         }
 
@@ -72,7 +72,7 @@ namespace GeoCop.Api.Test
             context.ChangeTracker.Clear();
 
             Assert.IsNotNull(result);
-            Assert.AreEqual(result.StatusCode, StatusCodes.Status404NotFound);
+            Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
             Assert.AreEqual(deliveriesCount, context.Deliveries.Count());
         }
 
@@ -89,7 +89,7 @@ namespace GeoCop.Api.Test
             context.ChangeTracker.Clear();
 
             Assert.IsNotNull(result);
-            Assert.AreEqual(result.StatusCode, StatusCodes.Status404NotFound);
+            Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
         }
 
         [TestMethod]
