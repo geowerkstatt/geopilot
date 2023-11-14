@@ -25,7 +25,8 @@
             this.rootDirectoryEnvironmentKey = rootDirectoryEnvironmentKey ?? throw new ArgumentNullException(nameof(rootDirectoryEnvironmentKey));
         }
 
-        private Stream CreateFile(string file)
+        /// <inheritdoc/>
+        public Stream CreateFile(string file)
         {
             return File.Create(Path.Combine(HomeDirectory.FullName, file));
         }
