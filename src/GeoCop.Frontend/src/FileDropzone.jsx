@@ -48,15 +48,13 @@ export const FileDropzone = ({
   const [dropZoneText, setDropZoneText] = useState(dropZoneDefaultText);
   const [dropZoneTextClass, setDropZoneTextClass] = useState("dropzone dropzone-text-disabled");
 
+  const acceptsAllFileTypes = acceptedFileTypes?.includes(".*") ?? false;
   const acceptedFileTypesText = acceptedFileTypes?.join(", ") ?? "";
 
-  useEffect(
-    () =>
-      setDropZoneDefaultText(
-        `Datei (${acceptedFileTypesText}) hier ablegen oder klicken um vom lokalen Dateisystem auszuwählen.`,
-      ),
-    [acceptedFileTypesText],
-  );
+  useEffect(() => {
+    const fileDescription = acceptsAllFileTypes ? "Datei" : `Datei (${acceptedFileTypesText})`;
+    setDropZoneDefaultText(`${fileDescription} hier ablegen oder klicken um vom lokalen Dateisystem auszuwählen.`);
+  }, [acceptsAllFileTypes, acceptedFileTypesText]);
   useEffect(() => setDropZoneText(dropZoneDefaultText), [dropZoneDefaultText]);
 
   const onDropAccepted = useCallback(
@@ -89,12 +87,13 @@ export const FileDropzone = ({
     (fileRejections) => {
       setDropZoneTextClass("dropzone dropzone-text-error");
       const errorCode = fileRejections[0].errors[0].code;
+      const genericError =
+        "Bitte wähle eine Datei (max. 200MB)" +
+        (acceptsAllFileTypes ? "" : ` mit einer der folgenden Dateiendungen: ${acceptedFileTypesText}`);
 
       switch (errorCode) {
         case "file-invalid-type":
-          setDropZoneText(
-            `Der Dateityp wird nicht unterstützt. Bitte wähle eine Datei (max. 200MB) mit einer der folgenden Dateiendungen: ${acceptedFileTypesText}`,
-          );
+          setDropZoneText(`Der Dateityp wird nicht unterstützt. ${genericError}`);
           break;
         case "too-many-files":
           setDropZoneText("Es kann nur eine Datei aufs Mal geprüft werden.");
@@ -105,14 +104,13 @@ export const FileDropzone = ({
           );
           break;
         default:
-          setDropZoneText(
-            `Bitte wähle eine Datei (max. 200MB) mit einer der folgenden Dateiendungen: ${acceptedFileTypesText}`,
-          );
+          setDropZoneText(genericError);
+          break;
       }
       resetFileToCheck();
       setFileAvailable(false);
     },
-    [resetFileToCheck, acceptedFileTypesText],
+    [resetFileToCheck, acceptsAllFileTypes, acceptedFileTypesText],
   );
 
   const removeFile = (e) => {
@@ -124,14 +122,17 @@ export const FileDropzone = ({
     setDropZoneTextClass("dropzone dropzone-text-disabled");
   };
 
+  const accept = acceptsAllFileTypes
+    ? undefined
+    : {
+        "application/x-geocop-files": acceptedFileTypes ?? [],
+      };
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDropAccepted,
     onDropRejected,
     maxFiles: 1,
     maxSize: 209715200,
-    accept: {
-      "application/x-geocop-files": acceptedFileTypes ?? [],
-    },
+    accept,
   });
 
   return (
