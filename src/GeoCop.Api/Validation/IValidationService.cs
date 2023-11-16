@@ -35,6 +35,7 @@
 
         /// <summary>
         /// Gets all file extensions that are supported for upload.
+        /// All entries start with a "." like ".txt", ".xml" and the collection can include ".*" (all files allowed).
         /// </summary>
         /// <returns>Supported file extensions.</returns>
         Task<ICollection<string>> GetSupportedFileExtensionsAsync();
@@ -42,7 +43,7 @@
         /// <summary>
         /// Checks if the specified <paramref name="fileExtension"/> is supported for upload.
         /// </summary>
-        /// <param name="fileExtension">Extension of the uploaded file.</param>
+        /// <param name="fileExtension">Extension of the uploaded file starting with ".".</param>
         /// <returns>True, if the <paramref name="fileExtension"/> is supported.</returns>
         Task<bool> IsFileExtensionSupportedAsync(string fileExtension);
     }
