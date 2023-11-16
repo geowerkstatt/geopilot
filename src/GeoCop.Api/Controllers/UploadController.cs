@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using GeoCop.Api.Validation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Diagnostics.CodeAnalysis;
@@ -10,6 +11,7 @@ namespace GeoCop.Api.Controllers
     /// <summary>
     /// Controller for uploading files.
     /// </summary>
+    [AllowAnonymous]
     [ApiController]
     [Route("api/v{version:apiVersion}/[controller]")]
     public class UploadController : ControllerBase
