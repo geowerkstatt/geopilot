@@ -12,12 +12,14 @@ namespace GeoCop.Api.Validation.Interlis
     public class InterlisValidator : IValidator
     {
         private const string UploadUrl = "/api/v1/upload";
+        private const string SettingsUrl = "/api/v1/settings";
         private static readonly TimeSpan pollInterval = TimeSpan.FromSeconds(2);
 
         private readonly ILogger<InterlisValidator> logger;
         private readonly IFileProvider fileProvider;
         private readonly HttpClient httpClient;
         private readonly JsonSerializerOptions jsonSerializerOptions;
+        private ICollection<string>? supportedFileExtensions;
 
         /// <inheritdoc/>
         public string Name => "ilicheck";
@@ -31,6 +33,17 @@ namespace GeoCop.Api.Validation.Interlis
             this.fileProvider = fileProvider;
             this.httpClient = httpClient;
             jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
+        }
+
+        /// <inheritdoc/>
+        public async Task<ICollection<string>> GetSupportedFileExtensionsAsync()
+        {
+            if (supportedFileExtensions != null) return supportedFileExtensions;
+
+            var response = await httpClient.GetAsync(SettingsUrl).ConfigureAwait(false);
+            var configResult = await ReadSuccessResponseJsonAsync<IliCheckSettingsResponse>(response, CancellationToken.None).ConfigureAwait(false);
+            supportedFileExtensions = configResult.AcceptedFileTypes?.Split(", ");
+            return supportedFileExtensions ?? Array.Empty<string>();
         }
 
         /// <inheritdoc/>

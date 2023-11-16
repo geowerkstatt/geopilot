@@ -22,6 +22,13 @@ export const Home = ({
   const [log, setLog] = useState([]);
   const [uploadLogsInterval, setUploadLogsInterval] = useState(0);
   const [uploadLogsEnabled, setUploadLogsEnabled] = useState(false);
+  const [uploadSettings, setUploadSettings] = useState({});
+
+  useEffect(() => {
+    fetch("/api/v1/upload")
+      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then((settings) => setUploadSettings(settings));
+  }, []);
 
   // Enable Upload logging
   useEffect(() => {
@@ -131,7 +138,7 @@ export const Home = ({
           validationRunning={validationRunning}
           setCheckedNutzungsbestimmungen={setCheckedNutzungsbestimmungen}
           showNutzungsbestimmungen={showNutzungsbestimmungen}
-          acceptedFileTypes={clientSettings?.acceptedFileTypes}
+          acceptedFileTypes={uploadSettings?.allowedFileExtensions}
           fileToCheckRef={fileToCheckRef}
         />
       </Container>

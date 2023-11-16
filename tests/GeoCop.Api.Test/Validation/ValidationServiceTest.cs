@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using Microsoft.EntityFrameworkCore;
+using Moq;
 
 namespace GeoCop.Api.Validation
 {
@@ -8,6 +9,7 @@ namespace GeoCop.Api.Validation
         private Mock<IFileProvider> fileProviderMock;
         private Mock<IValidationRunner> validationRunnerMock;
         private Mock<IValidator> validatorMock;
+        private Mock<Context> contextMock;
         private ValidationService validationService;
 
         [TestInitialize]
@@ -16,11 +18,13 @@ namespace GeoCop.Api.Validation
             fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
             validationRunnerMock = new Mock<IValidationRunner>(MockBehavior.Strict);
             validatorMock = new Mock<IValidator>(MockBehavior.Strict);
+            contextMock = new Mock<Context>(new DbContextOptions<Context>());
 
             validationService = new ValidationService(
                 fileProviderMock.Object,
                 validationRunnerMock.Object,
-                new[] { validatorMock.Object });
+                new[] { validatorMock.Object },
+                contextMock.Object);
         }
 
         [TestCleanup]

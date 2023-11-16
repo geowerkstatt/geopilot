@@ -51,9 +51,10 @@ namespace GeoCop.Api.Controllers
             var validationJob = new ValidationJob(jobId, originalFileName, "TEMP.xtf");
             using var fileHandle = new FileHandle(validationJob.TempFileName, Stream.Null);
 
-            validationServiceMock.Setup(x => x.CreateValidationJob(It.Is<string>(x => x == originalFileName))).Returns((validationJob, fileHandle));
+            validationServiceMock.Setup(x => x.IsFileExtensionSupportedAsync(".xtf")).Returns(Task.FromResult(true));
+            validationServiceMock.Setup(x => x.CreateValidationJob(originalFileName)).Returns((validationJob, fileHandle));
             validationServiceMock
-                .Setup(x => x.StartValidationJobAsync(It.Is<ValidationJob>(x => x == validationJob)))
+                .Setup(x => x.StartValidationJobAsync(validationJob))
                 .Returns(Task.FromResult(new ValidationJobStatus(jobId)));
 
             var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedResult;
@@ -73,6 +74,20 @@ namespace GeoCop.Api.Controllers
             Assert.IsInstanceOfType(response, typeof(ObjectResult));
             Assert.AreEqual(StatusCodes.Status400BadRequest, response!.StatusCode);
             Assert.AreEqual("Form data <file> cannot be empty.", ((ProblemDetails)response.Value!).Detail);
+        }
+
+        [TestMethod]
+        public async Task UploadInvalidFileExtension()
+        {
+            formFileMock.SetupGet(x => x.FileName).Returns("upload.exe");
+
+            validationServiceMock.Setup(x => x.IsFileExtensionSupportedAsync(".exe")).Returns(Task.FromResult(false));
+
+            var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as ObjectResult;
+
+            Assert.IsInstanceOfType(response, typeof(ObjectResult));
+            Assert.AreEqual(StatusCodes.Status400BadRequest, response!.StatusCode);
+            Assert.AreEqual("File extension <.exe> is not supported.", ((ProblemDetails)response.Value!).Detail);
         }
     }
 }
