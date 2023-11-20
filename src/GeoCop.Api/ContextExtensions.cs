@@ -75,7 +75,7 @@ namespace GeoCop.Api
                 .StrictMode(true)
                 .RuleFor(o => o.Id, f => 0)
                 .RuleFor(o => o.Name, f => f.Commerce.ProductName())
-                .RuleFor(o => o.FileTypes, f => new string[] { f.System.CommonFileExt(), f.System.CommonFileExt() }.Distinct().ToArray())
+                .RuleFor(o => o.FileTypes, f => new string[] { "." + f.System.CommonFileExt(), "." + f.System.CommonFileExt() }.Distinct().ToArray())
                 .RuleFor(o => o.SpatialExtent, f => f.Address.GetExtent())
                 .RuleFor(o => o.Organisations, f => f.PickRandom(context.Organisations.ToList(), 1).ToList())
                 .RuleFor(o => o.Deliveries, _ => new List<Delivery>());

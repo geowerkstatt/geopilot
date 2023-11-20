@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using GeoCop.Api.Contracts;
 using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
@@ -15,21 +16,29 @@ namespace GeoCop.Api.Controllers
     public class UploadController : ControllerBase
     {
         private readonly ILogger<UploadController> logger;
-        private readonly IValidator validator;
-        private readonly IFileProvider fileProvider;
-        private readonly IValidatorService validatorService;
+        private readonly IValidationService validationService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UploadController"/> class.
         /// </summary>
-        public UploadController(ILogger<UploadController> logger, IValidator validator, IFileProvider fileProvider, IValidatorService validatorService)
+        public UploadController(ILogger<UploadController> logger, IValidationService validationService)
         {
             this.logger = logger;
-            this.validator = validator;
-            this.fileProvider = fileProvider;
-            this.validatorService = validatorService;
+            this.validationService = validationService;
+        }
 
-            this.fileProvider.Initialize(validator.Id);
+        /// <summary>
+        /// Returns the validation settings.
+        /// </summary>
+        /// <returns>Configuration settings for validations.</returns>
+        [HttpGet]
+        [SwaggerResponse(StatusCodes.Status200OK, "The specified settings for uploading files.", typeof(ValidationSettingsResponse), new[] { "application/json" })]
+        public async Task<IActionResult> GetValidationSettings()
+        {
+            return Ok(new ValidationSettingsResponse
+            {
+                AllowedFileExtensions = await validationService.GetSupportedFileExtensionsAsync(),
+            });
         }
 
         /// <summary>
@@ -71,7 +80,7 @@ namespace GeoCop.Api.Controllers
         /// </remarks>
         /// <returns>Information for a newly created validation job.</returns>
         [HttpPost]
-        [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(UploadResponse), new[] { "application/json" })]
+        [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(ValidationJobStatus), new[] { "application/json" })]
         [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ProblemDetails), new[] { "application/json" })]
         [SwaggerResponse(StatusCodes.Status413PayloadTooLarge, "The file is too large. Max allowed request body size is 200 MB.")]
         [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1629:DocumentationTextMustEndWithAPeriod", Justification = "Not applicable for code examples.")]
@@ -79,23 +88,30 @@ namespace GeoCop.Api.Controllers
         {
             if (file == null) return Problem($"Form data <{nameof(file)}> cannot be empty.", statusCode: StatusCodes.Status400BadRequest);
 
-            var extension = Path.GetExtension(file.FileName);
+            var fileExtension = Path.GetExtension(file.FileName);
+            if (!await validationService.IsFileExtensionSupportedAsync(fileExtension))
+            {
+                logger.LogTrace("File extension <{FileExtension}> is not supported.", fileExtension);
+                return Problem($"File extension <{fileExtension}> is not supported.", statusCode: StatusCodes.Status400BadRequest);
+            }
 
-            using var fileHandle = fileProvider.CreateFileWithRandomName(extension);
-            logger.LogInformation("Start uploading <{FormFile}> as <{File}>, file size: {FileSize}", file.FileName, fileHandle.FileName, file.Length);
+            var (validationJob, fileHandle) = validationService.CreateValidationJob(file.FileName);
+            using (fileHandle)
+            {
+                logger.LogInformation("Start uploading <{FormFile}> as <{File}>, file size: {FileSize}", file.FileName, fileHandle.FileName, file.Length);
 
-            await file.CopyToAsync(fileHandle.Stream).ConfigureAwait(false);
-            logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
+                await file.CopyToAsync(fileHandle.Stream).ConfigureAwait(false);
+                logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
+            }
 
-            // Add validation job to queue.
-            await validatorService.EnqueueJobAsync(validator.Id, cancellationToken => validator.ExecuteAsync(fileHandle.FileName, cancellationToken));
-            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validator.Id);
+            var status = await validationService.StartValidationJobAsync(validationJob);
+            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
 
             var location = new Uri(
-                string.Format(CultureInfo.InvariantCulture, "/api/v{0}/status/{1}", version.MajorVersion, validator.Id),
+                string.Format(CultureInfo.InvariantCulture, "/api/v{0}/status/{1}", version.MajorVersion, validationJob.Id),
                 UriKind.Relative);
 
-            return Created(location, new UploadResponse { JobId = validator.Id, StatusUrl = location });
+            return Created(location, status);
         }
     }
 }

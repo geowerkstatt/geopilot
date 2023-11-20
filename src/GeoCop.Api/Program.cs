@@ -2,8 +2,11 @@
 using GeoCop.Api;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
+using GeoCop.Api.Validation.Interlis;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -57,10 +60,28 @@ builder.Services.AddSwaggerGen(options =>
     options.SupportNonNullableReferenceTypes();
 });
 
-builder.Services.AddSingleton<IValidatorService, ValidatorService>();
-builder.Services.AddHostedService(services => (ValidatorService)services.GetRequiredService<IValidatorService>());
-builder.Services.AddTransient<IValidator, InterlisValidator>();
+var contentTypeProvider = new FileExtensionContentTypeProvider();
+contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
+contentTypeProvider.Mappings.TryAdd(".xtf", "text/xml; charset=utf-8");
+builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
+
+builder.Services.AddSingleton<IValidationRunner, ValidationRunner>();
+builder.Services.AddHostedService(services => (ValidationRunner)services.GetRequiredService<IValidationRunner>());
+builder.Services.AddTransient<IValidationService, ValidationService>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>(x => new PhysicalFileProvider(x.GetRequiredService<IConfiguration>(), "GEOCOP_UPLOADS_DIR"));
+
+builder.Services
+    .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")
+    .ConfigureHttpClient((services, httpClient) =>
+    {
+        var configuration = services.GetRequiredService<IConfiguration>();
+        var checkServiceUrl = configuration.GetValue<string>("Validation:InterlisCheckServiceUrl")
+            ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
+
+        httpClient.BaseAddress = new Uri(checkServiceUrl);
+        httpClient.DefaultRequestHeaders.Accept.Clear();
+        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    });
 
 var configureContextOptions = (DbContextOptionsBuilder options) =>
 {

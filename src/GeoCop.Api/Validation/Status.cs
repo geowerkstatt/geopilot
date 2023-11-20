@@ -6,11 +6,6 @@
     public enum Status
     {
         /// <summary>
-        /// The job is scheduled to be executed.
-        /// </summary>
-        Enqueued,
-
-        /// <summary>
         /// The job is processing.
         /// </summary>
         Processing,

@@ -7,9 +7,10 @@ namespace GeoCop.Api
     /// Database context to manage the delivery database.
     /// </summary>
     public class Context : DbContext
+    public class Context : DbContext
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Context"/> class.
+        /// Database context to manage the database.
         /// </summary>
         /// <param name="options"></param>
         public Context(DbContextOptions<Context> options)
@@ -18,17 +19,23 @@ namespace GeoCop.Api
         }
 
         /// <summary>
+        /// Set of all <see cref="User"/>.
+        /// </summary>
+        /// <summary>
         /// The entity set for <see cref="Users"/> objects.
         /// </summary>
         public DbSet<User> Users { get; set; }
 
+        /// <summary>
+        /// Set of all <see cref="Organisation"/>.
+        /// </summary>
         /// <summary>
         /// The entity set for <see cref="Organisations"/> objects.
         /// </summary>
         public DbSet<Organisation> Organisations { get; set; }
 
         /// <summary>
-        /// The entity set for <see cref="Delivery"/> objects.
+        /// Set of all <see cref="DeliveryMandate"/>.
         /// </summary>
         public DbSet<Delivery> Deliveries { get; set; }
 
@@ -47,7 +54,7 @@ namespace GeoCop.Api
         }
 
         /// <summary>
-        /// The entity set for <see cref="DeliveryMandate"/> objects.
+        /// Set of all <see cref="DeliveryMandate"/>.
         /// </summary>
         public DbSet<DeliveryMandate> DeliveryMandates { get; set; }
 
@@ -66,7 +73,7 @@ namespace GeoCop.Api
         }
 
         /// <summary>
-        /// The entity set for <see cref="Asset"/> objects.
+        /// Set of all <see cref="Asset"/>.
         /// </summary>
         public DbSet<Asset> Assets { get; set; }
     }

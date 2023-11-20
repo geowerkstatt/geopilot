@@ -8,7 +8,7 @@
     <PackageProjectUrl>https://github.com/GeoWerkstatt/geocop</PackageProjectUrl>
     <RepositoryUrl>https://github.com/GeoWerkstatt/geocop.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <AnalysisLevel>7.0-recommended</AnalysisLevel>
     <IsPackable>false</IsPackable>
     <VersionPrefix>1.0</VersionPrefix>
   </PropertyGroup>

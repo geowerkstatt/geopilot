@@ -22,6 +22,13 @@ export const Home = ({
   const [log, setLog] = useState([]);
   const [uploadLogsInterval, setUploadLogsInterval] = useState(0);
   const [uploadLogsEnabled, setUploadLogsEnabled] = useState(false);
+  const [uploadSettings, setUploadSettings] = useState({});
+
+  useEffect(() => {
+    fetch("/api/v1/upload")
+      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then((settings) => setUploadSettings(settings));
+  }, []);
 
   // Enable Upload logging
   useEffect(() => {
@@ -89,7 +96,7 @@ export const Home = ({
       if (fileToCheckRef.current) {
         const data = await response.json();
         const getStatusData = async (data) => {
-          const status = await fetch(data.statusUrl, {
+          const status = await fetch(`/api/v1/status/${data.jobId}`, {
             method: "GET",
           });
           const statusData = await status.json();
@@ -98,7 +105,6 @@ export const Home = ({
 
         const interval = setIntervalImmediately(async () => {
           const statusData = await getStatusData(data);
-          updateLog(statusData.statusMessage);
           if (
             statusData.status === "completed" ||
             statusData.status === "completedWithErrors" ||
@@ -132,7 +138,7 @@ export const Home = ({
           validationRunning={validationRunning}
           setCheckedNutzungsbestimmungen={setCheckedNutzungsbestimmungen}
           showNutzungsbestimmungen={showNutzungsbestimmungen}
-          acceptedFileTypes={clientSettings?.acceptedFileTypes}
+          acceptedFileTypes={uploadSettings?.allowedFileExtensions}
           fileToCheckRef={fileToCheckRef}
         />
       </Container>
