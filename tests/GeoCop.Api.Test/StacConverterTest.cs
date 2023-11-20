@@ -103,14 +103,14 @@ namespace GeoCop.Api.StacServices
         public void ConvertToStacCollectionWithoutItems()
         {
             var collection = converter.ToStacCollection(mandate);
-            Assert.IsNotNull(collection);
+            Assert.IsNotNull(collection, "StacCollection should not be null.");
             Assert.AreEqual(converter.GetCollectionId(mandate), collection.Id);
             Assert.AreEqual("Test Mandate", collection.Title);
             Assert.AreEqual(string.Empty, collection.Description);
             Assert.AreEqual(0, collection.Links.Count);
             var expectedExtent = converter.ToStacSpatialExtent(mandate.SpatialExtent).BoundingBoxes[0];
             var actualExtent = collection.Extent.Spatial.BoundingBoxes[0];
-            Assert.IsTrue(Enumerable.Range(0, expectedExtent.GetLength(0))
+            Assert.AreEqual(true, Enumerable.Range(0, expectedExtent.GetLength(0))
                 .All(i => expectedExtent[i] == actualExtent[i]));
         }
 
@@ -131,7 +131,7 @@ namespace GeoCop.Api.StacServices
             contentTypeProviderMock.Setup(x => x.TryGetContentType(It.IsAny<string>(), out contentType)).Returns(true);
             mandate.Deliveries.Add(testDelivery);
             var collection = converter.ToStacCollection(mandate);
-            Assert.IsNotNull(collection);
+            Assert.IsNotNull(collection, "StacCollection should not be null.");
             Assert.AreEqual(converter.GetCollectionId(mandate), collection.Id);
             Assert.AreEqual("Test Mandate", collection.Title);
             Assert.AreEqual(string.Empty, collection.Description);
@@ -139,7 +139,7 @@ namespace GeoCop.Api.StacServices
             Assert.AreEqual("item", collection.Links.First().RelationshipType);
             var expectedExtent = converter.ToStacSpatialExtent(testDelivery.DeliveryMandate.SpatialExtent).BoundingBoxes[0];
             var actualExtent = collection.Extent.Spatial.BoundingBoxes[0];
-            Assert.IsTrue(Enumerable.Range(0, expectedExtent.GetLength(0))
+            Assert.AreEqual(true, Enumerable.Range(0, expectedExtent.GetLength(0))
                 .All(i => expectedExtent[i] == actualExtent[i]));
         }
 
@@ -159,12 +159,12 @@ namespace GeoCop.Api.StacServices
             var contentType = "application/interlis+xml";
             contentTypeProviderMock.Setup(x => x.TryGetContentType(It.IsAny<string>(), out contentType)).Returns(true);
             var item = converter.ToStacItem(testDelivery);
-            Assert.IsNotNull(item);
+            Assert.IsNotNull(item, "StacItem should not be null.");
             Assert.AreEqual(converter.GetItemId(testDelivery), item.Id);
             Assert.AreEqual(converter.GetCollectionId(testDelivery.DeliveryMandate), item.Collection);
             Assert.AreEqual("Datenabgabe_2023-11-06T10:45:18", item.Title);
             Assert.AreEqual(string.Empty, item.Description);
-            Assert.IsTrue(item.Links.Any());
+            Assert.AreEqual(true, item.Links.Any());
 
             Assert.AreEqual(2, item.Assets.Count);
             var stacAsset = item.Assets[testDelivery.Assets[0].OriginalFilename];
