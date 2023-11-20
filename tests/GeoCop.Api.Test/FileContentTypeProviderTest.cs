@@ -6,15 +6,11 @@ namespace GeoCop.Api.Test
     public class FileContentTypeProviderTest
     {
         private FileContentTypeProvider fileContentTypeProvider;
+
         [TestInitialize]
         public void Initialize()
         {
             fileContentTypeProvider = new FileContentTypeProvider();
-        }
-
-        [TestCleanup]
-        public void Cleanup()
-        {
         }
 
         [TestMethod]
