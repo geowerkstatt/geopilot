@@ -12,7 +12,8 @@ using Stac.Api.WebApi.Services;
 namespace GeoCop.Api.StacServices
 {
     /// <summary>
-    /// Custom linker for STAC.
+    /// Custom linker for STAC. Based on https://github.com/Terradue/DotNetStac.Api/blob/main/src/Stac.Api.WebApi/Implementations/Default/CollectionBasedStacLinker.cs,
+    /// with some modifications to return correct 'self' links for collections.
     /// </summary>
     public class StacLinker : IStacLinker
     {
