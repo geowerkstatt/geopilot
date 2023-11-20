@@ -9,6 +9,8 @@ namespace GeoCop.Api
     /// </summary>
     public static class IContentTypeProviderExtensions
     {
+        private const string DefaultContentType = "application/octet-stream";
+
         /// <summary>
         /// Returns the <see cref="ContentType"/> for the specified <see cref="Asset"/>.
         /// </summary>
@@ -28,8 +30,6 @@ namespace GeoCop.Api
         /// <returns>The <see cref="ContentType"/>.</returns>
         public static ContentType GetContentType(this IContentTypeProvider contentTypeProvider, string fileName)
         {
-            const string DefaultContentType = "application/octet-stream";
-
             if (!contentTypeProvider.TryGetContentType(fileName, out var contentType))
             {
                 contentType = DefaultContentType;
