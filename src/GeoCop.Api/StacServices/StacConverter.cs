@@ -58,7 +58,8 @@ namespace GeoCop.Api.StacServices
 
             if (items.Values.Count == 0)
             {
-                var extent = new StacExtent(ToStacSpatialExtent(mandate.SpatialExtent), new StacTemporalExtent(DateTime.Now.ToUniversalTime(), DateTime.Now.ToUniversalTime()));
+                var nowTimestamp = DateTime.Now.ToUniversalTime();
+                var extent = new StacExtent(ToStacSpatialExtent(mandate.SpatialExtent), new StacTemporalExtent(nowTimestamp, nowTimestamp));
                 return new StacCollection(collectionId, string.Empty, extent, null, null)
                 {
                     Title = mandate.Name,
