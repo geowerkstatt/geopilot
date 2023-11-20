@@ -62,7 +62,7 @@ builder.Services.AddSwaggerGen(options =>
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
-contentTypeProvider.Mappings.TryAdd(".xtf", "text/xml; charset=utf-8");
+contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");
 builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 builder.Services.AddSingleton<IValidationRunner, ValidationRunner>();
