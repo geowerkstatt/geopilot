@@ -49,9 +49,6 @@ namespace GeoCop.Api.StacServices
             // Add the default extensions
             services.AddDefaultStacApiExtensions();
 
-            // Add FileExtensionContentTypeProvider
-            services.AddTransient<FileContentTypeProvider>();
-
             // Add converters to create Stac Objects
             services.AddTransient<StacConverter>();
 

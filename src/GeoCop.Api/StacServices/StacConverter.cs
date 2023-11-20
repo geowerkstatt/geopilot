@@ -1,5 +1,6 @@
-﻿using GeoCop.Api.Models;
+using GeoCop.Api.Models;
 using Itenso.TimePeriod;
+using Microsoft.AspNetCore.StaticFiles;
 using NetTopologySuite.Geometries;
 using Stac;
 using Stac.Api.Interfaces;
@@ -14,7 +15,7 @@ namespace GeoCop.Api.StacServices
     public class StacConverter
     {
         private IStacLinker StacLinker { get; }
-        private FileContentTypeProvider FileContentTypeProvider { get; }
+        private IContentTypeProvider FileContentTypeProvider { get; }
         private IStacApiContextFactory StacApiContextFactory { get; }
 
         /// <summary>
@@ -35,7 +36,7 @@ namespace GeoCop.Api.StacServices
         /// <param name="stacLinker"></param>
         /// <param name="stacApiContextFactory"></param>
         /// <param name="fileContentTypeProvider"></param>
-        public StacConverter(IStacLinker stacLinker, IStacApiContextFactory stacApiContextFactory, FileContentTypeProvider fileContentTypeProvider)
+        public StacConverter(IStacLinker stacLinker, IStacApiContextFactory stacApiContextFactory, IContentTypeProvider fileContentTypeProvider)
         {
             StacLinker = stacLinker;
             FileContentTypeProvider = fileContentTypeProvider;
