@@ -59,8 +59,8 @@
         public void Initialize(Guid id)
         {
             if (id == Guid.Empty) throw new ArgumentException("The specified id is not valid.", nameof(id));
-            var rootDirectory = configuration.GetValue<string>("Validation:UploadDirectory")
-                ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Validation:UploadDirectory\"");
+            var rootDirectory = configuration.GetValue<string>("Storage:UploadDirectory")
+                ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
 
             homeDirectory = new DirectoryInfo(rootDirectory).CreateSubdirectory(id.ToString());
         }

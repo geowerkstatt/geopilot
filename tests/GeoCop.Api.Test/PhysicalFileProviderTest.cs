@@ -31,7 +31,7 @@ namespace GeoCop.Api
         private IConfiguration CreateConfiguration() =>
             new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             {
-                { "Validation:UploadDirectory", TestContext.DeploymentDirectory },
+                { "Storage:UploadDirectory", TestContext.DeploymentDirectory },
             }).Build();
     }
 }
