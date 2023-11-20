@@ -22,7 +22,7 @@ namespace GeoCop.Api
             return contentTypeProvider.GetContentType(asset.OriginalFilename);
         }
 
-                /// <summary>
+        /// <summary>
         /// Returns the <see cref="ContentType"/> for the specified file extension.
         /// </summary>
         /// <param name="contentTypeProvider">The IContentTypeProvider to extend.</param>
