@@ -1,5 +1,5 @@
 ﻿using GeoCop.Api.Models;
-using GeoCop.Api.StacServices;
+using Microsoft.AspNetCore.StaticFiles;
 using Moq;
 using NetTopologySuite.Geometries;
 using Stac;
@@ -7,14 +7,12 @@ using Stac.Api.Interfaces;
 using Stac.Api.Models;
 using Stac.Api.WebApi.Services;
 
-namespace GeoCop.Api.Test
+namespace GeoCop.Api.StacServices
 {
     [TestClass]
     public class StacConverterTest
     {
-        private StacConverter converter;
-
-        private Delivery testDelivery = new ()
+        private readonly Delivery testDelivery = new ()
         {
             Id = 1,
             Date = new DateTime(2023, 11, 6, 10, 45, 18),
@@ -26,13 +24,13 @@ namespace GeoCop.Api.Test
             {
                 Id = 3,
                 SpatialExtent = new Polygon(new LinearRing(new Coordinate[]
-                    {
+            {
                         new (1, 1),
                         new (3, 1),
                         new (3, 3),
                         new (1, 3),
                         new (1, 1),
-                    })),
+            })),
             },
             Assets = new List<Asset>()
                 {
@@ -50,7 +48,7 @@ namespace GeoCop.Api.Test
                     },
                 },
         };
-        private DeliveryMandate mandate = new ()
+        private readonly DeliveryMandate mandate = new ()
         {
             Id = 1,
             Name = "Test Mandate",
@@ -64,26 +62,28 @@ namespace GeoCop.Api.Test
             })),
         };
 
+        private Mock<IContentTypeProvider> contentTypeProviderMock;
+        private Mock<IStacApiContext> contextMock;
+        private Mock<IStacApiContextFactory> contextFactoryMock;
+        private Mock<IStacLinker> stacLinkerMock;
+        private StacConverter converter;
+
         [TestInitialize]
         public void Initialize()
         {
-            var linkerMoq = new Mock<IStacLinker>();
-            linkerMoq.Setup(linker => linker.Link(It.IsAny<StacItem>(), It.IsAny<IStacApiContext>()))
-                .Callback((StacItem item, IStacApiContext context) =>
-                {
-                    item.Links.Add(new StacApiLink(
-                        new Uri("https://iamalink.com"),
-                        "self",
-                        "Title",
-                        "application/octet-stream"));
-                    });
-            var contextFactory = new Mock<IStacApiContextFactory>().Object;
-            converter = new StacConverter(linkerMoq.Object, contextFactory, new FileContentTypeProvider());
+            stacLinkerMock = new Mock<IStacLinker>(MockBehavior.Strict);
+            contextMock = new Mock<IStacApiContext>(MockBehavior.Strict);
+            contextFactoryMock = new Mock<IStacApiContextFactory>(MockBehavior.Strict);
+            contentTypeProviderMock = new Mock<IContentTypeProvider>(MockBehavior.Strict);
+            converter = new StacConverter(stacLinkerMock.Object, contextFactoryMock.Object, contentTypeProviderMock.Object);
         }
 
         [TestCleanup]
         public void Cleanup()
         {
+            contentTypeProviderMock.VerifyAll();
+            contextFactoryMock.VerifyAll();
+            stacLinkerMock.VerifyAll();
             mandate.Deliveries.Clear();
         }
 
@@ -105,6 +105,18 @@ namespace GeoCop.Api.Test
         [TestMethod]
         public void ConvertToStacCollectionWithItems()
         {
+            stacLinkerMock.Setup(linker => linker.Link(It.IsAny<StacItem>(), It.IsAny<IStacApiContext>()))
+                .Callback((StacItem item, IStacApiContext context) =>
+                {
+                    item.Links.Add(new StacApiLink(
+                        new Uri("https://iamalink.com"),
+                        "self",
+                        "Title",
+                        "application/octet-stream"));
+                });
+            contextFactoryMock.Setup(factory => factory.Create()).Returns(contextMock.Object);
+            var contentType = "text/plain";
+            contentTypeProviderMock.Setup(x => x.TryGetContentType(It.IsAny<string>(), out contentType)).Returns(true);
             mandate.Deliveries.Add(testDelivery);
             var collection = converter.ToStacCollection(mandate);
             Assert.IsNotNull(collection);
@@ -122,6 +134,18 @@ namespace GeoCop.Api.Test
         [TestMethod]
         public void ConvertToStacItem()
         {
+            stacLinkerMock.Setup(linker => linker.Link(It.IsAny<StacItem>(), It.IsAny<IStacApiContext>()))
+                .Callback((StacItem item, IStacApiContext context) =>
+                {
+                    item.Links.Add(new StacApiLink(
+                        new Uri("https://iamalink.com"),
+                        "self",
+                        "Title",
+                        "application/octet-stream"));
+                });
+            contextFactoryMock.Setup(factory => factory.Create()).Returns(contextMock.Object);
+            var contentType = "application/interlis+xml";
+            contentTypeProviderMock.Setup(x => x.TryGetContentType(It.IsAny<string>(), out contentType)).Returns(true);
             var item = converter.ToStacItem(testDelivery);
             Assert.IsNotNull(item);
             Assert.AreEqual(StacConverter.ItemIdPrefix + testDelivery.Id, item.Id);
