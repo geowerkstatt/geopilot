@@ -1,23 +1,22 @@
-﻿namespace GeoCop.Api.Models
+﻿namespace GeoCop.Api.Models;
+
+/// <summary>
+/// Meta information on how an asset was created and how it has to be interpreted.
+/// </summary>
+public enum AssetType
 {
     /// <summary>
-    /// Meta information on how an asset was created and how it has to be interpreted.
+    /// Primary data delivered by the user.
     /// </summary>
-    public enum AssetType
-    {
-        /// <summary>
-        /// Primary data delivered by the user.
-        /// </summary>
-        PrimaryData,
+    PrimaryData,
 
-        /// <summary>
-        /// Reports created by the validation process.
-        /// </summary>
-        ValidationReport,
+    /// <summary>
+    /// Reports created by the validation process.
+    /// </summary>
+    ValidationReport,
 
-        /// <summary>
-        /// Metadata created by the declaration or validation process.
-        /// </summary>
-        Metadata,
-    }
+    /// <summary>
+    /// Metadata created by the declaration or validation process.
+    /// </summary>
+    Metadata,
 }

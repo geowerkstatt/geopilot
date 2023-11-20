@@ -1,68 +1,67 @@
-﻿namespace GeoCop.Api
+﻿namespace GeoCop.Api;
+
+/// <summary>
+/// Provides read/write access to files in a predefined folder.
+/// </summary>
+public class PhysicalFileProvider : IFileProvider
 {
+    private readonly IConfiguration configuration;
+
+    private DirectoryInfo? homeDirectory;
+
+    private DirectoryInfo HomeDirectory => homeDirectory ?? throw new InvalidOperationException("The file provider needs to be initialized first.");
+
     /// <summary>
-    /// Provides read/write access to files in a predefined folder.
+    /// Initializes a new instance of the <see cref="PhysicalFileProvider"/> at the given root directory path.
     /// </summary>
-    public class PhysicalFileProvider : IFileProvider
+    /// <param name="configuration">The configuration.</param>
+    /// <exception cref="ArgumentNullException">If <see cref="configuration"/> is <c>null</c>.</exception>
+    public PhysicalFileProvider(IConfiguration configuration)
     {
-        private readonly IConfiguration configuration;
+        this.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+    }
 
-        private DirectoryInfo? homeDirectory;
+    /// <inheritdoc/>
+    public Stream CreateFile(string file)
+    {
+        return File.Create(Path.Combine(HomeDirectory.FullName, file));
+    }
 
-        private DirectoryInfo HomeDirectory => homeDirectory ?? throw new InvalidOperationException("The file provider needs to be initialized first.");
+    /// <inheritdoc/>
+    public FileHandle CreateFileWithRandomName(string extension)
+    {
+        var fileName = Path.ChangeExtension(Path.GetRandomFileName(), extension);
+        var stream = CreateFile(fileName);
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PhysicalFileProvider"/> at the given root directory path.
-        /// </summary>
-        /// <param name="configuration">The configuration.</param>
-        /// <exception cref="ArgumentNullException">If <see cref="configuration"/> is <c>null</c>.</exception>
-        public PhysicalFileProvider(IConfiguration configuration)
-        {
-            this.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        }
+        return new FileHandle(fileName, stream);
+    }
 
-        /// <inheritdoc/>
-        public Stream CreateFile(string file)
-        {
-            return File.Create(Path.Combine(HomeDirectory.FullName, file));
-        }
+    /// <inheritdoc/>
+    public Stream Open(string file)
+    {
+        return File.OpenRead(Path.Combine(HomeDirectory.FullName, file));
+    }
 
-        /// <inheritdoc/>
-        public FileHandle CreateFileWithRandomName(string extension)
-        {
-            var fileName = Path.ChangeExtension(Path.GetRandomFileName(), extension);
-            var stream = CreateFile(fileName);
+    /// <inheritdoc/>
+    public bool Exists(string file)
+    {
+        return File.Exists(Path.Combine(HomeDirectory.FullName, file));
+    }
 
-            return new FileHandle(fileName, stream);
-        }
+    /// <inheritdoc/>
+    public virtual IEnumerable<string> GetFiles()
+    {
+        return HomeDirectory.GetFiles().Select(x => x.Name);
+    }
 
-        /// <inheritdoc/>
-        public Stream Open(string file)
-        {
-            return File.OpenRead(Path.Combine(HomeDirectory.FullName, file));
-        }
+    /// <inheritdoc/>
+    /// <exception cref="ArgumentException">If <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
+    public void Initialize(Guid id)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("The specified id is not valid.", nameof(id));
+        var rootDirectory = configuration.GetValue<string>("Storage:UploadDirectory")
+            ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
 
-        /// <inheritdoc/>
-        public bool Exists(string file)
-        {
-            return File.Exists(Path.Combine(HomeDirectory.FullName, file));
-        }
-
-        /// <inheritdoc/>
-        public virtual IEnumerable<string> GetFiles()
-        {
-            return HomeDirectory.GetFiles().Select(x => x.Name);
-        }
-
-        /// <inheritdoc/>
-        /// <exception cref="ArgumentException">If <paramref name="id"/> is <see cref="Guid.Empty"/>.</exception>
-        public void Initialize(Guid id)
-        {
-            if (id == Guid.Empty) throw new ArgumentException("The specified id is not valid.", nameof(id));
-            var rootDirectory = configuration.GetValue<string>("Storage:UploadDirectory")
-                ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
-
-            homeDirectory = new DirectoryInfo(rootDirectory).CreateSubdirectory(id.ToString());
-        }
+        homeDirectory = new DirectoryInfo(rootDirectory).CreateSubdirectory(id.ToString());
     }
 }

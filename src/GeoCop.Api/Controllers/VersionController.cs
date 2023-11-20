@@ -2,26 +2,25 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Reflection;
 
-namespace GeoCop.Api.Controllers
+namespace GeoCop.Api.Controllers;
+
+/// <summary>
+/// Constroller for Version information.
+/// </summary>
+[AllowAnonymous]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiController]
+public class VersionController : ControllerBase
 {
     /// <summary>
-    /// Constroller for Version information.
+    /// Gets the application version.
     /// </summary>
-    [AllowAnonymous]
-    [Route("api/v{version:apiVersion}/[controller]")]
-    [ApiController]
-    public class VersionController : ControllerBase
+    /// <returns>Version string.</returns>
+    [HttpGet]
+    public string Get()
     {
-        /// <summary>
-        /// Gets the application version.
-        /// </summary>
-        /// <returns>Version string.</returns>
-        [HttpGet]
-        public string Get()
-        {
-            var assembly = typeof(Program).Assembly;
-            return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ??
-                assembly.GetName()?.Version?.ToString() ?? string.Empty;
-        }
+        var assembly = typeof(Program).Assembly;
+        return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ??
+            assembly.GetName()?.Version?.ToString() ?? string.Empty;
     }
 }
