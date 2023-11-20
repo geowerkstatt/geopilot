@@ -127,7 +127,7 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Create self link for feature collection.
         /// </summary>
-        /// <param name="collections">The <see cref="StacFeatureCollection"/> for which to create the link.</param>
+        /// <param name="collection">The <see cref="StacFeatureCollection"/> for which to create the link.</param>
         /// <param name="stacApiContext">The <see cref="IStacApiContext"/> to build the link with.</param>
         /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
         protected StacApiLink GetSelfLink(StacFeatureCollection collection, IStacApiContext stacApiContext)
