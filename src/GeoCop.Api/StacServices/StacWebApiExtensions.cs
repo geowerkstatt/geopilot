@@ -3,7 +3,6 @@ using Stac.Api.Models.Extensions.Sort.Context;
 using Stac.Api.Services.Debugging;
 using Stac.Api.Services.Default;
 using Stac.Api.WebApi.Extensions;
-using Stac.Api.WebApi.Patterns.CollectionBased;
 using Stac.Api.WebApi.Services;
 using Stac.Api.WebApi.Services.Context;
 
@@ -17,9 +16,6 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Adds services required for STAC.
         /// </summary>
-        /// <param name="services"></param>
-        /// <param name="configure"></param>
-        /// <returns></returns>
         public static IServiceCollection AddStacData(this IServiceCollection services, Action<IStacWebApiBuilder> configure)
         {
             services.AddStacWebApi();

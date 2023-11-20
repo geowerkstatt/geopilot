@@ -23,9 +23,6 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Initializes a new instance of the <see cref="StacConverter"/> class.
         /// </summary>
-        /// <param name="stacLinker"></param>
-        /// <param name="stacApiContextFactory"></param>
-        /// <param name="fileContentTypeProvider"></param>
         public StacConverter(IStacLinker stacLinker, IStacApiContextFactory stacApiContextFactory, IContentTypeProvider fileContentTypeProvider)
         {
             StacLinker = stacLinker;
@@ -50,8 +47,8 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Converts a <see cref="DeliveryMandate"/> to a <see cref="StacCollection"/>.
         /// </summary>
-        /// <param name="mandate"></param>
-        /// <returns></returns>
+        /// <param name="mandate">The <see cref="DeliveryMandate"/> to convert.</param>
+        /// <returns>A STAC collection.</returns>
         public StacCollection ToStacCollection(DeliveryMandate mandate)
         {
             var collectionId = GetCollectionId(mandate);
@@ -78,8 +75,8 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Converts a <see cref="Delivery"/> to a <see cref="StacItem"/>.
         /// </summary>
-        /// <param name="delivery"></param>
-        /// <returns></returns>
+        /// <param name="delivery">The <see cref="Delivery"/> to convert.</param>
+        /// <returns>The STAC item.</returns>
         public StacItem ToStacItem(Delivery delivery)
         {
             var stacId = GetItemId(delivery);
@@ -105,9 +102,9 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Converts a <see cref="Asset"/> to a <see cref="StacAsset"/>.
         /// </summary>
-        /// <param name="asset"></param>
-        /// <param name="parent"></param>
-        /// <returns></returns>
+        /// <param name="asset">The <see cref="Asset"/> to convert.</param>
+        /// <param name="parent">The parent <see cref="IStacObject"/> to which the asset belongs.</param>
+        /// <returns>The STAC asset.</returns>
         public StacAsset ToStacAsset(Asset asset, IStacObject parent)
         {
             // TODO: Set correct Url with https://github.com/GeoWerkstatt/geocop/issues/56
@@ -117,8 +114,8 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Converts a <see cref="Geometry"/> to a <see cref="GeoJSON.Net.Geometry.Polygon"/>.
         /// </summary>
-        /// <param name="geometry"></param>
-        /// <returns></returns>
+        /// <param name="geometry">The <see cref="Geometry"/>.</param>
+        /// <returns>The <see cref="GeoJSON.Net.Geometry.Polygon"/>.</returns>
         public GeoJSON.Net.Geometry.Polygon ToGeoJsonPolygon(Geometry geometry)
         {
             var coordinates = geometry.Coordinates;
@@ -144,8 +141,8 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Converts a <see cref="Geometry"/> to a <see cref="StacSpatialExtent"/>.
         /// </summary>
-        /// <param name="geometry"></param>
-        /// <returns></returns>
+        /// <param name="geometry">The <see cref="Geometry"/>.</param>
+        /// <returns>The <see cref="StacSpatialExtent"/>.</returns>
         public StacSpatialExtent ToStacSpatialExtent(Geometry geometry)
         {
             var coordinates = geometry.Coordinates;

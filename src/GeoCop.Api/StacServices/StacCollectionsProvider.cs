@@ -17,9 +17,6 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Initializes a new instance of the <see cref="StacCollectionsProvider"/> class.
         /// </summary>
-        /// <param name="logger"></param>
-        /// <param name="contextFactory"></param>
-        /// <param name="stacConverter"></param>
         public StacCollectionsProvider(ILogger<StacCollectionsProvider> logger, IDbContextFactory<Context> contextFactory, StacConverter stacConverter)
         {
             this.logger = logger;

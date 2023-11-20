@@ -68,9 +68,9 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Create self link for collections.
         /// </summary>
-        /// <param name="stacCollections"></param>
-        /// <param name="stacApiContext"></param>
-        /// <returns></returns>
+        /// <param name="stacCollections">The <see cref="StacCollections"/> for which to create the link.</param>
+        /// <param name="stacApiContext">The <see cref="IStacApiContext"/> to build the link with.</param>
+        /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
         protected StacApiLink GetSelfLink(StacCollections stacCollections, IStacApiContext stacApiContext)
         {
             return new StacApiLink(GetUriByAction(stacApiContext, "GetCollections", "Collections", new { }, null), "self", "Collections", "application/json");
@@ -79,9 +79,9 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Create self link for items.
         /// </summary>
-        /// <param name="stacItem"></param>
-        /// <param name="stacApiContext"></param>
-        /// <returns></returns>
+        /// <param name="stacItem">The <see cref="Stac.StacItem"/> for which to create the link.</param>
+        /// <param name="stacApiContext">The <see cref="IStacApiContext"/> to build the link with.</param>
+        /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
         protected StacApiLink GetSelfLink(Stac.StacItem stacItem, IStacApiContext stacApiContext)
         {
             return new StacApiLink(
@@ -103,9 +103,9 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Create self link for collection.
         /// </summary>
-        /// <param name="collection"></param>
-        /// <param name="stacApiContext"></param>
-        /// <returns></returns>
+        /// <param name="collection">The <see cref="StacCollection"/> for which to create the link.</param>
+        /// <param name="stacApiContext">The <see cref="IStacApiContext"/> to build the link with.</param>
+        /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
         protected StacApiLink GetSelfLink(StacCollection collection, IStacApiContext stacApiContext)
         {
             var link = new StacApiLink(GetUriByAction(
@@ -127,9 +127,9 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Create self link for feature collection.
         /// </summary>
-        /// <param name="collection"></param>
-        /// <param name="stacApiContext"></param>
-        /// <returns></returns>
+        /// <param name="collections">The <see cref="StacFeatureCollection"/> for which to create the link.</param>
+        /// <param name="stacApiContext">The <see cref="IStacApiContext"/> to build the link with.</param>
+        /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
         protected StacApiLink GetSelfLink(StacFeatureCollection collection, IStacApiContext stacApiContext)
         {
             var uri = stacApiContext.LinkGenerator.GetUriByRouteValues(stacApiContext.HttpContext, null, stacApiContext.HttpContext.Request.Query.ToDictionary((KeyValuePair<string, StringValues> x) => x.Key, (KeyValuePair<string, StringValues> x) => x.Value.ToString()));
@@ -213,9 +213,9 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Get self link for a STAC object.
         /// </summary>
-        /// <param name="stacObject"></param>
-        /// <param name="stacApiContext"></param>
-        /// <returns></returns>
+        /// <param name="stacObject">The <see cref="IStacObject"/> for which to create the link.</param>
+        /// <param name="stacApiContext">The <see cref="IStacApiContext"/> to build the link with.</param>
+        /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
         /// <exception cref="InvalidOperationException">Exception if self link cannot be retrieved.</exception>
         public StacApiLink GetSelfLink(IStacObject stacObject, IStacApiContext stacApiContext)
         {

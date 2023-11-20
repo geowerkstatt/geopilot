@@ -12,7 +12,6 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// Initializes a new instance of the <see cref="StacDataServicesProvider"/> class.
         /// </summary>
-        /// <param name="serviceProvider"></param>
         public StacDataServicesProvider(IServiceProvider serviceProvider)
         {
             this.serviceProvider = serviceProvider;
