@@ -1,9 +1,10 @@
 import "./app.css";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Container } from "react-bootstrap";
+import { Container, Stack } from "react-bootstrap";
 import { FileDropzone } from "./FileDropzone";
 import { Title } from "./Title";
 import { Protokoll } from "./Protokoll";
+import { Delivery } from "./Delivery";
 
 export const Home = ({
   clientSettings,
@@ -126,28 +127,31 @@ export const Home = ({
 
   return (
     <main>
-      <Container className="main-container">
-        <Title clientSettings={clientSettings} quickStartContent={quickStartContent} />
-        <FileDropzone
-          setUploadLogsEnabled={setUploadLogsEnabled}
-          setFileToCheck={setFileToCheck}
-          fileToCheck={fileToCheck}
-          nutzungsbestimmungenAvailable={nutzungsbestimmungenAvailable}
-          checkedNutzungsbestimmungen={checkedNutzungsbestimmungen}
-          checkFile={checkFile}
+      <Stack gap={3}>
+        <Container className="main-container">
+          <Title clientSettings={clientSettings} quickStartContent={quickStartContent} />
+          <FileDropzone
+            setUploadLogsEnabled={setUploadLogsEnabled}
+            setFileToCheck={setFileToCheck}
+            fileToCheck={fileToCheck}
+            nutzungsbestimmungenAvailable={nutzungsbestimmungenAvailable}
+            checkedNutzungsbestimmungen={checkedNutzungsbestimmungen}
+            checkFile={checkFile}
+            validationRunning={validationRunning}
+            setCheckedNutzungsbestimmungen={setCheckedNutzungsbestimmungen}
+            showNutzungsbestimmungen={showNutzungsbestimmungen}
+            acceptedFileTypes={uploadSettings?.allowedFileExtensions}
+            fileToCheckRef={fileToCheckRef}
+          />
+        </Container>
+        <Protokoll
+          log={log}
+          statusData={statusData}
+          fileName={fileToCheck ? fileToCheck.name : ""}
           validationRunning={validationRunning}
-          setCheckedNutzungsbestimmungen={setCheckedNutzungsbestimmungen}
-          showNutzungsbestimmungen={showNutzungsbestimmungen}
-          acceptedFileTypes={uploadSettings?.allowedFileExtensions}
-          fileToCheckRef={fileToCheckRef}
         />
-      </Container>
-      <Protokoll
-        log={log}
-        statusData={statusData}
-        fileName={fileToCheck ? fileToCheck.name : ""}
-        validationRunning={validationRunning}
-      />
+        <Delivery statusData={statusData} validationRunning={validationRunning} />
+      </Stack>
     </main>
   );
 };

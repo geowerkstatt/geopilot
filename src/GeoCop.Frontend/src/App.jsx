@@ -1,10 +1,12 @@
-import "./app.css";
-import { useState, useEffect } from "react";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { MsalProvider } from "@azure/msal-react";
+import { useEffect, useMemo, useState } from "react";
 import BannerContent from "./BannerContent";
-import Home from "./Home";
-import ModalContent from "./ModalContent";
 import Footer from "./Footer";
 import Header from "./Header";
+import Home from "./Home";
+import ModalContent from "./ModalContent";
+import "./app.css";
 
 export const App = () => {
   const [modalContent, setModalContent] = useState(false);
@@ -78,38 +80,44 @@ export const App = () => {
   const openModalContent = (content, type) =>
     setModalContent(content) & setModalContentType(type) & setShowModalContent(true);
 
+  const msalInstance = useMemo(() => {
+    return new PublicClientApplication(clientSettings?.oauth ?? {});
+  }, [clientSettings]);
+
   return (
-    <div className="app">
-      <Header clientSettings={clientSettings}></Header>
-      <Home
-        clientSettings={clientSettings}
-        nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
-        showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
-        quickStartContent={quickStartContent}
-        setShowBannerContent={setShowBannerContent}
-      />
-      <Footer
-        openModalContent={openModalContent}
-        infoHilfeContent={infoHilfeContent}
-        nutzungsbestimmungenContent={nutzungsbestimmungenContent}
-        datenschutzContent={datenschutzContent}
-        impressumContent={impressumContent}
-        clientSettings={clientSettings}
-        appVersion={backendVersion}
-        licenseInfoCustom={licenseInfoCustom}
-        licenseInfo={licenseInfo}
-      />
-      <ModalContent
-        className="modal"
-        show={showModalContent}
-        content={modalContent}
-        type={modalContentType}
-        onHide={() => setShowModalContent(false)}
-      />
-      {bannerContent && showBannerContent && (
-        <BannerContent className="banner" content={bannerContent} onHide={() => setShowBannerContent(false)} />
-      )}
-    </div>
+    <MsalProvider instance={msalInstance}>
+      <div className="app">
+        <Header clientSettings={clientSettings}></Header>
+        <Home
+          clientSettings={clientSettings}
+          nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
+          showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
+          quickStartContent={quickStartContent}
+          setShowBannerContent={setShowBannerContent}
+        />
+        <Footer
+          openModalContent={openModalContent}
+          infoHilfeContent={infoHilfeContent}
+          nutzungsbestimmungenContent={nutzungsbestimmungenContent}
+          datenschutzContent={datenschutzContent}
+          impressumContent={impressumContent}
+          clientSettings={clientSettings}
+          appVersion={backendVersion}
+          licenseInfoCustom={licenseInfoCustom}
+          licenseInfo={licenseInfo}
+        />
+        <ModalContent
+          className="modal"
+          show={showModalContent}
+          content={modalContent}
+          type={modalContentType}
+          onHide={() => setShowModalContent(false)}
+        />
+        {bannerContent && showBannerContent && (
+          <BannerContent className="banner" content={bannerContent} onHide={() => setShowBannerContent(false)} />
+        )}
+      </div>
+    </MsalProvider>
   );
 };
 

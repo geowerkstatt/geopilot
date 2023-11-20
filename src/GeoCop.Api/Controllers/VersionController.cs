@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Reflection;
 
 namespace GeoCop.Api.Controllers
@@ -6,6 +7,7 @@ namespace GeoCop.Api.Controllers
     /// <summary>
     /// Constroller for Version information.
     /// </summary>
+    [AllowAnonymous]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
     public class VersionController : ControllerBase

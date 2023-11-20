@@ -1,4 +1,5 @@
 ﻿using GeoCop.Api.Validation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -7,6 +8,7 @@ namespace GeoCop.Api.Controllers
     /// <summary>
     /// Controller to get the status information of validation jobs.
     /// </summary>
+    [AllowAnonymous]
     [ApiController]
     [Route("api/v{version:apiVersion}/[controller]")]
     public class StatusController : Controller

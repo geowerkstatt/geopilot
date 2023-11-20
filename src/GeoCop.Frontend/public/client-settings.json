@@ -1,4 +1,18 @@
 {
+  "oauth": {
+    "auth": {
+      "clientId": "ac09549e-6cf8-40fe-91a9-25515ec71954",
+      "authority": "https://login.microsoftonline.com/16e916d3-12c9-4353-ad04-5a4319422e03/",
+      "redirectUri": "/",
+      "postLogoutRedirectUri": "/",
+      "navigateToLoginRequestUrl": false
+    },
+    "cache": {
+      "cacheLocation": "sessionStorage",
+      "storeAuthStateInCookie": false
+    }
+  },
+  "authScopes": ["user.read"],
   "application": {
     "name": "geocop",
     "logo":  "/app.svg"
