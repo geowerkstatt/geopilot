@@ -1,4 +1,5 @@
 ﻿using GeoCop.Api.Validation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Swashbuckle.AspNetCore.Annotations;
@@ -8,6 +9,7 @@ namespace GeoCop.Api.Controllers
     /// <summary>
     /// Controller to download log files of validation jobs.
     /// </summary>
+    [AllowAnonymous]
     [ApiController]
     [Route("api/v{version:apiVersion}/[controller]")]
     public class DownloadController : ControllerBase
