@@ -63,7 +63,6 @@ namespace GeoCop.Api.StacServices
             // Add the stac items broker
             services.AddSingleton<IItemsBroker, StacItemsBroker>();
 
-            // Let's Configure
             var builder = new StacWebApiBuilder(services);
             configure(builder);
             return services;
