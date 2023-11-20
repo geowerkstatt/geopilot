@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using GeoCop.Api;
+using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using GeoCop.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -15,13 +16,21 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    // DotNetStac.Api uses the "All" policy for access in the STAC browser.
+    options.AddPolicy("All",
+            policy =>
+            {
+                policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+            });
+});
+
 builder.Services
     .AddControllers(options =>
     {
-        var policy = new AuthorizationPolicyBuilder()
-            .RequireAuthenticatedUser()
-            .Build();
-        options.Filters.Add(new AuthorizeFilter(policy));
     })
     .AddJsonOptions(options =>
     {
@@ -66,7 +75,7 @@ builder.Services.AddSwaggerGen(options =>
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
-contentTypeProvider.Mappings.TryAdd(".xtf", "text/xml; charset=utf-8");
+contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");
 builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 builder.Services.AddSingleton<IValidationRunner, ValidationRunner>();
@@ -87,14 +96,18 @@ builder.Services
         httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     });
 
-builder.Services.AddDbContext<Context>(options =>
+var configureContextOptions = (DbContextOptionsBuilder options) =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("Context"), o =>
     {
         o.UseNetTopologySuite();
         o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     });
-});
+};
+builder.Services.AddDbContextFactory<Context>(configureContextOptions);
+builder.Services.AddDbContext<Context>(configureContextOptions);
+
+builder.Services.AddStacData(builder => { });
 
 var app = builder.Build();
 
@@ -111,6 +124,8 @@ app.UseSwaggerUI(options =>
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseCors("All");
+
     if (!context.DeliveryMandates.Any())
         context.SeedTestData();
 }

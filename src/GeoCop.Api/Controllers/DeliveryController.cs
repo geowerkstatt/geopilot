@@ -2,6 +2,7 @@
 using GeoCop.Api.Contracts;
 using GeoCop.Api.Models;
 using GeoCop.Api.Validation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,7 @@ namespace GeoCop.Api.Controllers
     /// Controller for declaring deliveries.
     /// </summary>
     [ApiController]
+    [Authorize]
     [Route("api/v{version:apiVersion}/[controller]")]
     public class DeliveryController : ControllerBase
     {
