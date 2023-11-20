@@ -6,7 +6,6 @@
     public class PhysicalFileProvider : IFileProvider
     {
         private readonly IConfiguration configuration;
-        private readonly string rootDirectoryEnvironmentKey;
 
         private DirectoryInfo? homeDirectory;
 
@@ -16,13 +15,10 @@
         /// Initializes a new instance of the <see cref="PhysicalFileProvider"/> at the given root directory path.
         /// </summary>
         /// <param name="configuration">The configuration.</param>
-        /// <param name="rootDirectoryEnvironmentKey">The name of the environment variable containing the root directory path.</param>
         /// <exception cref="ArgumentNullException">If <see cref="configuration"/> is <c>null</c>.</exception>
-        /// <exception cref="ArgumentNullException">If <see cref="rootDirectoryEnvironmentKey"/> is <c>null</c>.</exception>
-        public PhysicalFileProvider(IConfiguration configuration, string rootDirectoryEnvironmentKey)
+        public PhysicalFileProvider(IConfiguration configuration)
         {
             this.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            this.rootDirectoryEnvironmentKey = rootDirectoryEnvironmentKey ?? throw new ArgumentNullException(nameof(rootDirectoryEnvironmentKey));
         }
 
         /// <inheritdoc/>
@@ -63,8 +59,8 @@
         public void Initialize(Guid id)
         {
             if (id == Guid.Empty) throw new ArgumentException("The specified id is not valid.", nameof(id));
-            var rootDirectory = configuration.GetValue<string>(rootDirectoryEnvironmentKey)
-                ?? throw new InvalidOperationException($"Missing root directory, the value can be configured as \"{rootDirectoryEnvironmentKey}\"");
+            var rootDirectory = configuration.GetValue<string>("Storage:UploadDirectory")
+                ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
 
             homeDirectory = new DirectoryInfo(rootDirectory).CreateSubdirectory(id.ToString());
         }
