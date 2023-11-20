@@ -13,7 +13,7 @@ namespace GeoCop.Api
         public void CreateFileWithRandomName()
         {
             var configuration = CreateConfiguration();
-            var fileProvider = new PhysicalFileProvider(configuration, "GEOCOP_UPLOADS_DIR");
+            var fileProvider = new PhysicalFileProvider(configuration);
 
             fileProvider.Initialize(new Guid(JobId));
 
@@ -31,7 +31,7 @@ namespace GeoCop.Api
         private IConfiguration CreateConfiguration() =>
             new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             {
-                { "GEOCOP_UPLOADS_DIR", TestContext.DeploymentDirectory },
+                { "Validation:UploadDirectory", TestContext.DeploymentDirectory },
             }).Build();
     }
 }

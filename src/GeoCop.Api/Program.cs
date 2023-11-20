@@ -72,7 +72,7 @@ builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 builder.Services.AddSingleton<IValidationRunner, ValidationRunner>();
 builder.Services.AddHostedService(services => (ValidationRunner)services.GetRequiredService<IValidationRunner>());
 builder.Services.AddTransient<IValidationService, ValidationService>();
-builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>(x => new PhysicalFileProvider(x.GetRequiredService<IConfiguration>(), "GEOCOP_UPLOADS_DIR"));
+builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
 
 builder.Services
     .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")
