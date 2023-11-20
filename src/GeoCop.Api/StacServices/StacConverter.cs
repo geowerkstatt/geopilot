@@ -119,13 +119,8 @@ namespace GeoCop.Api.StacServices
         /// <returns>The <see cref="GeoJSON.Net.Geometry.Polygon"/>.</returns>
         public GeoJSON.Net.Geometry.Polygon ToGeoJsonPolygon(Geometry geometry)
         {
-            var coordinates = geometry.Coordinates;
-            var xMin = coordinates.Min((Coordinate c) => c.X);
-            var yMin = coordinates.Min((Coordinate c) => c.Y);
-            var xMax = coordinates.Max((Coordinate c) => c.X);
-            var yMax = coordinates.Max((Coordinate c) => c.Y);
-
-            var polygon = new GeoJSON.Net.Geometry.Polygon(new List<GeoJSON.Net.Geometry.LineString>()
+            var (xMin, yMin, xMax, yMax) = GetCoordinatesBounds(geometry);
+            return new GeoJSON.Net.Geometry.Polygon(new List<GeoJSON.Net.Geometry.LineString>()
             {
                 new (new List<GeoJSON.Net.Geometry.Position>()
                 {
@@ -136,15 +131,20 @@ namespace GeoCop.Api.StacServices
                     new (xMin, yMin),
                 }),
             });
-            return polygon;
         }
 
         /// <summary>
-        /// Converts a <see cref="Geometry"/> to a <see cref="StacSpatialExtent"/>.
+        /// Converts a <see cref="Geometry"/> to a <see cref="StacSpatialExtent"/> (bounding box of a StacObject).
         /// </summary>
         /// <param name="geometry">The <see cref="Geometry"/>.</param>
         /// <returns>The <see cref="StacSpatialExtent"/>.</returns>
         public StacSpatialExtent ToStacSpatialExtent(Geometry geometry)
+        {
+            var (xMin, yMin, xMax, yMax) = GetCoordinatesBounds(geometry);
+            return new StacSpatialExtent(xMin, yMin, xMax, yMax);
+        }
+
+        private (double xMin, double yMin, double xMax, double yMax) GetCoordinatesBounds(Geometry geometry)
         {
             var coordinates = geometry.Coordinates;
             var xMin = coordinates.Min((Coordinate c) => c.X);
@@ -152,7 +152,7 @@ namespace GeoCop.Api.StacServices
             var xMax = coordinates.Max((Coordinate c) => c.X);
             var yMax = coordinates.Max((Coordinate c) => c.Y);
 
-            return new StacSpatialExtent(xMin, yMin, xMax, yMax);
+            return (xMin, yMin, xMax, yMax);
         }
     }
 }
