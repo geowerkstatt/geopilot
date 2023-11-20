@@ -1,6 +1,6 @@
 ﻿using GeoCop.Api.Contracts;
-using GeoCop.Api.Controllers;
 using GeoCop.Api.Models;
+using GeoCop.Api.Test;
 using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace GeoCop.Api.Test
+namespace GeoCop.Api.Controllers
 {
     [TestClass]
     public class DeliveryControllerTest
