@@ -9,7 +9,7 @@
             var result = new VersionController().Get();
             Assert.IsNotNull(result);
             Assert.IsTrue(result.Length > 0);
-            Assert.IsTrue(result.StartsWith("1.0", StringComparison.Ordinal));
+            StringAssert.StartsWith(result, "1.0", StringComparison.Ordinal);
         }
     }
 }
