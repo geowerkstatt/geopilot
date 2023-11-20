@@ -22,7 +22,7 @@ namespace GeoCop.Api
             return contentTypeProvider.GetContentType(asset.OriginalFilename);
         }
 
-        /// <summary>
+                /// <summary>
         /// Returns the <see cref="ContentType"/> for the specified file extension.
         /// </summary>
         /// <param name="contentTypeProvider">The IContentTypeProvider to extend.</param>
@@ -30,12 +30,23 @@ namespace GeoCop.Api
         /// <returns>The <see cref="ContentType"/>.</returns>
         public static ContentType GetContentType(this IContentTypeProvider contentTypeProvider, string fileName)
         {
+            return new ContentType(contentTypeProvider.GetContentTypeAsString(fileName));
+        }
+
+        /// <summary>
+        /// Returns the <see cref="ContentType"/> for the specified file extension.
+        /// </summary>
+        /// <param name="contentTypeProvider">The IContentTypeProvider to extend.</param>
+        /// <param name="fileName">The file from which the content type should be read.</param>
+        /// <returns>The content type as string.</returns>
+        public static string GetContentTypeAsString(this IContentTypeProvider contentTypeProvider, string fileName)
+        {
             if (!contentTypeProvider.TryGetContentType(fileName, out var contentType))
             {
                 contentType = DefaultContentType;
             }
 
-            return new ContentType(contentType);
+            return contentType;
         }
     }
 }

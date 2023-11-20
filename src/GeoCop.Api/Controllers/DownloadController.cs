@@ -58,7 +58,7 @@ namespace GeoCop.Api.Controllers
             }
 
             var logFile = fileProvider.Open(file);
-            var contentType = contentTypeProvider.TryGetContentType(file, out var type) ? type : "application/octet-stream";
+            var contentType = contentTypeProvider.GetContentTypeAsString(file);
             var logFileName = Path.GetFileNameWithoutExtension(validationJob.OriginalFileName) + "_log" + Path.GetExtension(file);
             return File(logFile, contentType, logFileName);
         }
