@@ -1,28 +1,27 @@
-﻿namespace GeoCop.Api.Validation
+﻿namespace GeoCop.Api.Validation;
+
+/// <summary>
+/// The validator job statuses.
+/// </summary>
+public enum Status
 {
     /// <summary>
-    /// The validator job statuses.
+    /// The job is processing.
     /// </summary>
-    public enum Status
-    {
-        /// <summary>
-        /// The job is processing.
-        /// </summary>
-        Processing,
+    Processing,
 
-        /// <summary>
-        /// The job completed without errors.
-        /// </summary>
-        Completed,
+    /// <summary>
+    /// The job completed without errors.
+    /// </summary>
+    Completed,
 
-        /// <summary>
-        /// The job completed with errors.
-        /// </summary>
-        CompletedWithErrors,
+    /// <summary>
+    /// The job completed with errors.
+    /// </summary>
+    CompletedWithErrors,
 
-        /// <summary>
-        /// The job failed.
-        /// </summary>
-        Failed,
-    }
+    /// <summary>
+    /// The job failed.
+    /// </summary>
+    Failed,
 }

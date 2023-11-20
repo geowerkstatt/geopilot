@@ -1,28 +1,27 @@
-﻿namespace GeoCop.Api.Models
+﻿namespace GeoCop.Api.Models;
+
+/// <summary>
+/// A person that is allowed to view or declare deliveries.
+/// </summary>
+public class User
 {
     /// <summary>
-    /// A person that is allowed to view or declare deliveries.
+    /// The unique identifier for the user.
     /// </summary>
-    public class User
-    {
-        /// <summary>
-        /// The unique identifier for the user.
-        /// </summary>
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        /// <summary>
-        /// The unique identifier for the user in the authentication system.
-        /// </summary>
-        public string AuthIdentifier { get; set; } = string.Empty;
+    /// <summary>
+    /// The unique identifier for the user in the authentication system.
+    /// </summary>
+    public string AuthIdentifier { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Organisations the user is a member of.
-        /// </summary>
-        public List<Organisation> Organisations { get; set; } = new List<Organisation>();
+    /// <summary>
+    /// Organisations the user is a member of.
+    /// </summary>
+    public List<Organisation> Organisations { get; set; } = new List<Organisation>();
 
-        /// <summary>
-        /// Deliveries the user has declared.
-        /// </summary>
-        public List<Delivery> Deliveries { get; set; } = new List<Delivery>();
-    }
+    /// <summary>
+    /// Deliveries the user has declared.
+    /// </summary>
+    public List<Delivery> Deliveries { get; set; } = new List<Delivery>();
 }

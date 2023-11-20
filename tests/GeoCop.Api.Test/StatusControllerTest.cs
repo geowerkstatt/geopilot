@@ -4,69 +4,68 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace GeoCop.Api.Controllers
+namespace GeoCop.Api.Controllers;
+
+[TestClass]
+public sealed class StatusControllerTest
 {
-    [TestClass]
-    public sealed class StatusControllerTest
+    private Mock<ILogger<StatusController>> loggerMock;
+    private Mock<IValidationService> validationServiceMock;
+    private StatusController controller;
+
+    public TestContext TestContext { get; set; }
+
+    [TestInitialize]
+    public void Initialize()
     {
-        private Mock<ILogger<StatusController>> loggerMock;
-        private Mock<IValidationService> validationServiceMock;
-        private StatusController controller;
+        loggerMock = new Mock<ILogger<StatusController>>();
+        validationServiceMock = new Mock<IValidationService>(MockBehavior.Strict);
 
-        public TestContext TestContext { get; set; }
+        controller = new StatusController(
+            loggerMock.Object,
+            validationServiceMock.Object);
+    }
 
-        [TestInitialize]
-        public void Initialize()
-        {
-            loggerMock = new Mock<ILogger<StatusController>>();
-            validationServiceMock = new Mock<IValidationService>(MockBehavior.Strict);
+    [TestCleanup]
+    public void Cleanup()
+    {
+        loggerMock.VerifyAll();
+        validationServiceMock.VerifyAll();
 
-            controller = new StatusController(
-                loggerMock.Object,
-                validationServiceMock.Object);
-        }
+        controller.Dispose();
+    }
 
-        [TestCleanup]
-        public void Cleanup()
-        {
-            loggerMock.VerifyAll();
-            validationServiceMock.VerifyAll();
+    [TestMethod]
+    public void GetStatus()
+    {
+        var jobId = new Guid("fadc5142-9043-4fdc-aebf-36c21e13f621");
 
-            controller.Dispose();
-        }
+        validationServiceMock
+            .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(jobId))))
+            .Returns(new ValidationJobStatus(jobId) { Status = Status.Processing });
 
-        [TestMethod]
-        public void GetStatus()
-        {
-            var jobId = new Guid("fadc5142-9043-4fdc-aebf-36c21e13f621");
+        var response = controller.GetStatus(jobId) as OkObjectResult;
 
-            validationServiceMock
-                .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(jobId))))
-                .Returns(new ValidationJobStatus(jobId) { Status = Status.Processing });
+        Assert.IsInstanceOfType(response, typeof(OkObjectResult));
+        Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobStatus));
+        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
+        Assert.AreEqual(jobId, ((ValidationJobStatus)response.Value!).JobId);
+        Assert.AreEqual(Status.Processing, ((ValidationJobStatus)response.Value).Status);
+    }
 
-            var response = controller.GetStatus(jobId) as OkObjectResult;
+    [TestMethod]
+    public void GetStatusForInvalid()
+    {
+        var jobId = new Guid("00000000-0000-0000-0000-000000000000");
 
-            Assert.IsInstanceOfType(response, typeof(OkObjectResult));
-            Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobStatus));
-            Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
-            Assert.AreEqual(jobId, ((ValidationJobStatus)response.Value!).JobId);
-            Assert.AreEqual(Status.Processing, ((ValidationJobStatus)response.Value).Status);
-        }
+        validationServiceMock
+            .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(Guid.Empty))))
+            .Returns((ValidationJobStatus?)null);
 
-        [TestMethod]
-        public void GetStatusForInvalid()
-        {
-            var jobId = new Guid("00000000-0000-0000-0000-000000000000");
+        var response = controller.GetStatus(default) as ObjectResult;
 
-            validationServiceMock
-                .Setup(x => x.GetJobStatus(It.Is<Guid>(x => x.Equals(Guid.Empty))))
-                .Returns((ValidationJobStatus?)null);
-
-            var response = controller.GetStatus(default) as ObjectResult;
-
-            Assert.IsInstanceOfType(response, typeof(ObjectResult));
-            Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
-            Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
-        }
+        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
+        Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
     }
 }
