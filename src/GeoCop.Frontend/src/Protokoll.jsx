@@ -2,7 +2,7 @@ import "./app.css";
 import { ValidatorResult } from "./ValidatorResult";
 import { useState, useRef, useEffect } from "react";
 import DayJS from "dayjs";
-import { Card, Container } from "react-bootstrap";
+import { Card, Collapse, Container } from "react-bootstrap";
 
 export const Protokoll = ({ log, statusData, fileName, validationRunning }) => {
   const [indicateWaiting, setIndicateWaiting] = useState(false);
@@ -27,32 +27,34 @@ export const Protokoll = ({ log, statusData, fileName, validationRunning }) => {
   });
 
   return (
-    <Container>
-      {log.length > 0 && (
-        <Card className="protokoll-card">
-          <Card.Body>
-            <div className="protokoll">
-              {log.map((logEntry, index) => (
-                <div key={index}>
-                  {logEntry}
-                  {indicateWaiting && index === log.length - 1 && "."}
-                </div>
-              ))}
-              <div ref={logEndRef} />
-            </div>
-            {statusData &&
-              Object.entries(statusData.validatorResults).map(([validatorName, result]) => (
-                <ValidatorResult
-                  key={validatorName}
-                  jobId={statusData.jobId}
-                  protokollFileName={protokollFileName}
-                  validatorName={validatorName}
-                  result={result}
-                />
-              ))}
-          </Card.Body>
-        </Card>
-      )}
-    </Container>
+    <Collapse in={log.length > 0}>
+      <Container>
+        {log.length > 0 && (
+          <Card className="protokoll-card">
+            <Card.Body>
+              <div className="protokoll">
+                {log.map((logEntry, index) => (
+                  <div key={index}>
+                    {logEntry}
+                    {indicateWaiting && index === log.length - 1 && "."}
+                  </div>
+                ))}
+                <div ref={logEndRef} />
+              </div>
+              {statusData &&
+                Object.entries(statusData.validatorResults).map(([validatorName, result]) => (
+                  <ValidatorResult
+                    key={validatorName}
+                    jobId={statusData.jobId}
+                    protokollFileName={protokollFileName}
+                    validatorName={validatorName}
+                    result={result}
+                  />
+                ))}
+            </Card.Body>
+          </Card>
+        )}
+      </Container>
+    </Collapse>
   );
 };
