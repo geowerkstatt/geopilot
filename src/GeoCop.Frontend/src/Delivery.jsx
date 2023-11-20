@@ -42,7 +42,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
             {deliveryState === DeliveryState.Running && (
               <Button variant="primary">
                 <Spinner as="span" animation="border" size="sm" aria-hidden="true" />
-                <span> Abgabe läuft...</span>
+                <span>Abgabe läuft…</span>
               </Button>
             )}
             {deliveryState === DeliveryState.Completed && (
