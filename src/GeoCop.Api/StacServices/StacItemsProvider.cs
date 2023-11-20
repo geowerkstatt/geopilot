@@ -77,7 +77,8 @@ namespace GeoCop.Api.StacServices
             var collectionIds = stacApiContext.Collections?.ToList();
             using var db = contextFactory.CreateDbContext();
             var deliveryMandates = db.DeliveryMandatesWithIncludes;
-            if (!(collectionIds == null || !collectionIds.Any()))
+
+            if (collectionIds?.Any() == true)
             {
                 deliveryMandates = deliveryMandates.FindAll(dm => collectionIds.Contains(stacConverter.GetCollectionId(dm)));
             }
