@@ -7,12 +7,11 @@ namespace GeoCop.Api
     /// Database context to manage the delivery database.
     /// </summary>
     public class Context : DbContext
-    public class Context : DbContext
     {
         /// <summary>
         /// Database context to manage the database.
         /// </summary>
-        /// <param name="options"></param>
+        /// <param name="options">Configuration options for the Context.</param>
         public Context(DbContextOptions<Context> options)
             : base(options)
         {
@@ -21,16 +20,10 @@ namespace GeoCop.Api
         /// <summary>
         /// Set of all <see cref="User"/>.
         /// </summary>
-        /// <summary>
-        /// The entity set for <see cref="Users"/> objects.
-        /// </summary>
         public DbSet<User> Users { get; set; }
 
         /// <summary>
         /// Set of all <see cref="Organisation"/>.
-        /// </summary>
-        /// <summary>
-        /// The entity set for <see cref="Organisations"/> objects.
         /// </summary>
         public DbSet<Organisation> Organisations { get; set; }
 
