@@ -1,4 +1,4 @@
-using GeoCop.Api.Models;
+﻿using GeoCop.Api.Models;
 using Itenso.TimePeriod;
 using Microsoft.AspNetCore.StaticFiles;
 using NetTopologySuite.Geometries;
@@ -21,12 +21,12 @@ namespace GeoCop.Api.StacServices
         /// <summary>
         /// The prefix for the collection id.
         /// </summary>
-        public static readonly string CollectionIdPrefix = "coll_";
+        public const string CollectionIdPrefix = "coll_";
 
         /// <summary>
         /// The prefix for the item id.
         /// </summary>
-        public static readonly string ItemIdPrefix = "item_";
+        public const string ItemIdPrefix = "item_";
 
         private const string DeliveryNamePrefix = "Datenabgabe_";
 
