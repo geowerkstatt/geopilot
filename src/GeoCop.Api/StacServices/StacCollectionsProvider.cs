@@ -33,7 +33,7 @@ namespace GeoCop.Api.StacServices
             try
             {
                 using var db = contextFactory.CreateDbContext();
-                var deliveryMandate = db.DeliveryMandatesWithIncludes.FirstOrDefault(dm => (StacConverter.CollectionIdPrefix + dm.Id) == collectionId)
+                var deliveryMandate = db.DeliveryMandatesWithIncludes.FirstOrDefault(dm => stacConverter.GetCollectionId(dm) == collectionId)
                     ?? throw new InvalidOperationException($"Collection with id {collectionId} does not exist.");
                 var collection = stacConverter.ToStacCollection(deliveryMandate);
                 return Task.FromResult(collection);
@@ -50,8 +50,8 @@ namespace GeoCop.Api.StacServices
         public Task<IEnumerable<StacCollection>> GetCollectionsAsync(IStacApiContext stacApiContext, CancellationToken cancellationToken = default)
         {
             using var db = contextFactory.CreateDbContext();
-            var collections = db.DeliveryMandatesWithIncludes.Select(stacConverter.ToStacCollection).ToList();
-            stacApiContext.Properties.SetProperty(DefaultConventions.MatchedCountPropertiesKey, collections.Count);
+            var collections = db.DeliveryMandatesWithIncludes.Select(stacConverter.ToStacCollection);
+            stacApiContext.Properties.SetProperty(DefaultConventions.MatchedCountPropertiesKey, collections.Count());
 
             return Task.FromResult<IEnumerable<StacCollection>>(collections);
         }

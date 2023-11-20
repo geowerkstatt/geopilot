@@ -18,16 +18,6 @@ namespace GeoCop.Api.StacServices
         private IContentTypeProvider FileContentTypeProvider { get; }
         private IStacApiContextFactory StacApiContextFactory { get; }
 
-        /// <summary>
-        /// The prefix for the collection id.
-        /// </summary>
-        public const string CollectionIdPrefix = "coll_";
-
-        /// <summary>
-        /// The prefix for the item id.
-        /// </summary>
-        public const string ItemIdPrefix = "item_";
-
         private const string DeliveryNamePrefix = "Datenabgabe_";
 
         /// <summary>
@@ -44,13 +34,27 @@ namespace GeoCop.Api.StacServices
         }
 
         /// <summary>
+        /// Returns the collection id for the specified <see cref="DeliveryMandate"/>.
+        /// </summary>
+        /// <param name="mandate">The <see cref="DeliveryMandate"/>.</param>
+        /// <returns>Collection id.</returns>
+        public string GetCollectionId(DeliveryMandate mandate) => "coll_" + mandate.Id;
+
+        /// <summary>
+        /// Returns the item id for the specified <see cref="Delivery"/>.
+        /// </summary>
+        /// <param name="delivery">The <see cref="Delivery"/>.</param>
+        /// <returns>Item id.</returns>
+        public string GetItemId(Delivery delivery) => "item_" + delivery.Id;
+
+        /// <summary>
         /// Converts a <see cref="DeliveryMandate"/> to a <see cref="StacCollection"/>.
         /// </summary>
         /// <param name="mandate"></param>
         /// <returns></returns>
         public StacCollection ToStacCollection(DeliveryMandate mandate)
         {
-            var collectionId = CollectionIdPrefix + mandate.Id;
+            var collectionId = GetCollectionId(mandate);
             var items = mandate.Deliveries
                 .Select(ToStacItem)
                 .ToDictionary(i => i.Links.First(l => l.RelationshipType.ToLowerInvariant() == "self").Uri);
@@ -78,11 +82,11 @@ namespace GeoCop.Api.StacServices
         /// <returns></returns>
         public StacItem ToStacItem(Delivery delivery)
         {
-            var stacId = ItemIdPrefix + delivery.Id;
+            var stacId = GetItemId(delivery);
 
             var item = new StacItem(stacId, ToGeoJsonPolygon(delivery.DeliveryMandate.SpatialExtent))
             {
-                Collection = CollectionIdPrefix + delivery.DeliveryMandate.Id,
+                Collection = GetCollectionId(delivery.DeliveryMandate),
                 Title = DeliveryNamePrefix + delivery.Date.ToString("s"),
                 Description = string.Empty,
                 DateTime = new TimePeriodChain(),

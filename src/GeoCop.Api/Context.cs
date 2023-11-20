@@ -35,14 +35,15 @@ namespace GeoCop.Api
         /// <summary>
         /// Gets the <see cref="Delivery"/> entity with all includes.
         /// </summary>
-        public IQueryable<Delivery> DeliveriesWithIncludes
+        public List<Delivery> DeliveriesWithIncludes
         {
             get
             {
                 return Deliveries
                     .Include(d => d.DeliveryMandate)
                     .Include(d => d.Assets)
-                    .AsNoTracking();
+                    .AsNoTracking()
+                    .ToList();
             }
         }
 
@@ -54,14 +55,15 @@ namespace GeoCop.Api
         /// <summary>
         /// Gets the <see cref="DeliveryMandate"/> entity with all includes.
         /// </summary>
-        public IQueryable<DeliveryMandate> DeliveryMandatesWithIncludes
+        public List<DeliveryMandate> DeliveryMandatesWithIncludes
         {
             get
             {
                 return DeliveryMandates
                     .Include(d => d.Deliveries)
                     .ThenInclude(d => d.Assets)
-                    .AsNoTracking();
+                    .AsNoTracking()
+                    .ToList();
             }
         }
 

@@ -35,7 +35,7 @@ namespace GeoCop.Api.StacServices
             {
                 try
                 {
-                    return db.DeliveryMandatesWithIncludes.FirstOrDefault(dm => (StacConverter.CollectionIdPrefix + dm.Id) == collection)?.Deliveries?.Any() ?? false;
+                    return db.DeliveryMandatesWithIncludes.FirstOrDefault(dm => stacConverter.GetCollectionId(dm) == collection)?.Deliveries?.Any() ?? false;
                 }
                 catch (IOException)
                 {
@@ -53,7 +53,7 @@ namespace GeoCop.Api.StacServices
             {
                 using var db = contextFactory.CreateDbContext();
                 var delivery = db.DeliveriesWithIncludes
-                    .FirstOrDefault(d => (StacConverter.ItemIdPrefix + d.Id) == featureId && (StacConverter.CollectionIdPrefix + d.DeliveryMandate.Id == stacApiContext.Collections.First()))
+                    .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && (stacConverter.GetCollectionId(d.DeliveryMandate) == stacApiContext.Collections.First()))
                     ?? throw new InvalidOperationException($"Item with id {featureId} does not exist.");
                 var item = stacConverter.ToStacItem(delivery);
                 return Task.FromResult(item);
@@ -82,7 +82,7 @@ namespace GeoCop.Api.StacServices
             var deliveryMandates = db.DeliveryMandatesWithIncludes;
             if (!(collectionIds == null || !collectionIds.Any()))
             {
-                deliveryMandates = deliveryMandates.Where(dm => collectionIds.Contains(StacConverter.CollectionIdPrefix + dm.Id));
+                deliveryMandates = deliveryMandates.FindAll(dm => collectionIds.Contains(stacConverter.GetCollectionId(dm)));
             }
 
             deliveryMandates.ToList().ForEach(dm => items.Concat(dm.Deliveries.Select(d => stacConverter.ToStacItem(d))));

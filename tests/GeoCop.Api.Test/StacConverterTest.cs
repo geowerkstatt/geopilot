@@ -88,11 +88,23 @@ namespace GeoCop.Api.StacServices
         }
 
         [TestMethod]
+        public void GetCollectionId()
+        {
+            Assert.AreEqual("coll_1", converter.GetCollectionId(mandate));
+        }
+
+        [TestMethod]
+        public void GetItemId()
+        {
+            Assert.AreEqual("item_1", converter.GetItemId(testDelivery));
+        }
+
+        [TestMethod]
         public void ConvertToStacCollectionWithoutItems()
         {
             var collection = converter.ToStacCollection(mandate);
             Assert.IsNotNull(collection);
-            Assert.AreEqual(StacConverter.CollectionIdPrefix + mandate.Id, collection.Id);
+            Assert.AreEqual(converter.GetCollectionId(mandate), collection.Id);
             Assert.AreEqual("Test Mandate", collection.Title);
             Assert.AreEqual(string.Empty, collection.Description);
             Assert.AreEqual(0, collection.Links.Count);
@@ -120,7 +132,7 @@ namespace GeoCop.Api.StacServices
             mandate.Deliveries.Add(testDelivery);
             var collection = converter.ToStacCollection(mandate);
             Assert.IsNotNull(collection);
-            Assert.AreEqual(StacConverter.CollectionIdPrefix + mandate.Id, collection.Id);
+            Assert.AreEqual(converter.GetCollectionId(mandate), collection.Id);
             Assert.AreEqual("Test Mandate", collection.Title);
             Assert.AreEqual(string.Empty, collection.Description);
             Assert.AreEqual(1, collection.Links.Count);
@@ -148,8 +160,8 @@ namespace GeoCop.Api.StacServices
             contentTypeProviderMock.Setup(x => x.TryGetContentType(It.IsAny<string>(), out contentType)).Returns(true);
             var item = converter.ToStacItem(testDelivery);
             Assert.IsNotNull(item);
-            Assert.AreEqual(StacConverter.ItemIdPrefix + testDelivery.Id, item.Id);
-            Assert.AreEqual(StacConverter.CollectionIdPrefix + testDelivery.DeliveryMandate.Id, item.Collection);
+            Assert.AreEqual(converter.GetItemId(testDelivery), item.Id);
+            Assert.AreEqual(converter.GetCollectionId(testDelivery.DeliveryMandate), item.Collection);
             Assert.AreEqual("Datenabgabe_2023-11-06T10:45:18", item.Title);
             Assert.AreEqual(string.Empty, item.Description);
             Assert.IsTrue(item.Links.Any());
