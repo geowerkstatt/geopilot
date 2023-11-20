@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# Change owner for our uploads folder
+echo -n "Fix permissions for mounted volumes ..." && \
+  chown -R abc:abc $GEOCOP_UPLOADS_DIR && \
+  echo "done!"
+
+
 echo "
 --------------------------------------------------------------------------
 http proxy:                       ${PROXY:-no proxy set}
