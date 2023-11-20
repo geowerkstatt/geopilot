@@ -43,6 +43,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS final
 ENV HOME=/app
 ENV TZ=Europe/Zurich
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV GEOCOP_UPLOADS_DIR=/uploads
 WORKDIR ${HOME}
 
 # Install missing packages
@@ -56,9 +57,11 @@ RUN \
 # Add non-root user
 RUN \
  useradd --uid 941 --user-group --home $HOME --shell /bin/bash abc && \
- usermod --groups users abc
+ usermod --groups users abc && \
+ mkdir -p $GEOCOP_UPLOADS_DIR
 
 EXPOSE 80
+VOLUME $GEOCOP_UPLOADS_DIR
 
 # Set default locale
 ENV LANG=C.UTF-8
