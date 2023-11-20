@@ -131,6 +131,9 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
+    // Disallow CORS for all origins in production
+    app.UseCors();
+
     app.UseDefaultFiles();
     app.UseStaticFiles();
 }
