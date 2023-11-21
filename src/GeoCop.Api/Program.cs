@@ -106,6 +106,10 @@ builder.Services.AddDbContext<Context>(configureContextOptions);
 
 builder.Services.AddStacData(builder => { });
 
+builder.Services
+    .AddHealthChecks()
+    .AddCheck<DbHealthCheck>("Db");
+
 var app = builder.Build();
 
 // Migrate db changes on startup
@@ -140,5 +144,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health");
 
 app.Run();
