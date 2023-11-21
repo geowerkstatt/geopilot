@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using GeoCop.Api;
+using GeoCop.Api.Conventions;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using GeoCop.Api.Validation.Interlis;
@@ -27,7 +28,11 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services
-    .AddControllers()
+    .AddControllers(options =>
+    {
+        options.Conventions.Add(new StacRoutingConvention());
+        options.Conventions.Add(new GeocopJsonConvention());
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
