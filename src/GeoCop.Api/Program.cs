@@ -4,8 +4,6 @@ using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using GeoCop.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -29,9 +27,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services
-    .AddControllers(options =>
-    {
-    })
+    .AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
@@ -104,6 +100,7 @@ var configureContextOptions = (DbContextOptionsBuilder options) =>
         o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     });
 };
+
 builder.Services.AddDbContextFactory<Context>(configureContextOptions);
 builder.Services.AddDbContext<Context>(configureContextOptions);
 
