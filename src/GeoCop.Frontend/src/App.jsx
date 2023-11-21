@@ -1,10 +1,12 @@
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { useEffect, useMemo, useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import BannerContent from "./BannerContent";
 import Footer from "./Footer";
 import Header from "./Header";
 import Home from "./Home";
+import Admin from "./Admin";
 import ModalContent from "./ModalContent";
 import "./app.css";
 
@@ -88,13 +90,28 @@ export const App = () => {
     <MsalProvider instance={msalInstance}>
       <div className="app">
         <Header clientSettings={clientSettings}></Header>
+        <Router>
+          <Routes>
+            <Route
+              exact
+              path="/"
+              element={
         <Home
           clientSettings={clientSettings}
-          nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
-          showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
+                  nutzungsbestimmungenAvailable={
+                    nutzungsbestimmungenContent ? true : false
+                  }
+                  showNutzungsbestimmungen={() =>
+                    openModalContent(nutzungsbestimmungenContent, "markdown")
+                  }
           quickStartContent={quickStartContent}
           setShowBannerContent={setShowBannerContent}
         />
+              }
+            />
+            <Route path="/admin" element={<Admin />} />
+          </Routes>
+        </Router>
         <Footer
           openModalContent={openModalContent}
           infoHilfeContent={infoHilfeContent}
