@@ -13,6 +13,7 @@ namespace GeoCop.Api.Conventions;
 public class GeocopJsonConvention : IActionFilter, IActionModelConvention
 {
     private const string BaseNamespace = nameof(GeoCop);
+    private FormatterCollection<IOutputFormatter>? outputFormatters;
 
     /// <inheritdoc/>
     public void Apply(ActionModel action)
@@ -42,13 +43,23 @@ public class GeocopJsonConvention : IActionFilter, IActionModelConvention
     /// <inheritdoc/>
     public void OnActionExecuted(ActionExecutedContext context)
     {
-        var jsonOptions = context.HttpContext.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
-        var serializerOptions = jsonOptions.Value.JsonSerializerOptions;
-        var formatter = new SystemTextJsonOutputFormatter(serializerOptions);
         if (context.Result is ObjectResult objectResult)
         {
-            objectResult.Formatters.RemoveType<NewtonsoftJsonOutputFormatter>();
-            objectResult.Formatters.Add(formatter);
+            if (outputFormatters == null)
+            {
+                var jsonOptions = context.HttpContext.RequestServices.GetRequiredService<IOptions<JsonOptions>>();
+                var serializerOptions = jsonOptions.Value.JsonSerializerOptions;
+                var formatter = new SystemTextJsonOutputFormatter(serializerOptions);
+
+                var mvcOptions = context.HttpContext.RequestServices.GetRequiredService<IOptions<MvcOptions>>();
+                var mvcOutputFormattersCopy = new List<IOutputFormatter>(mvcOptions.Value.OutputFormatters);
+
+                outputFormatters = new FormatterCollection<IOutputFormatter>(mvcOutputFormattersCopy);
+                outputFormatters.RemoveType<NewtonsoftJsonOutputFormatter>();
+                outputFormatters.Add(formatter);
+            }
+
+            objectResult.Formatters = outputFormatters;
         }
     }
 }
