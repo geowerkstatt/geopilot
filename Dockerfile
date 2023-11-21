@@ -73,4 +73,6 @@ RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/share/dotnet/dotnet
 COPY --from=build /app/publish $HOME
 COPY docker-entrypoint.sh /entrypoint.sh
 
+HEALTHCHECK CMD curl --fail http://localhost/health || exit 1
+
 ENTRYPOINT ["/entrypoint.sh"]
