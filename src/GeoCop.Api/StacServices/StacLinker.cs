@@ -20,7 +20,7 @@ public class StacLinker : IStacLinker
     /// <inheritdoc/>
     public void Link(LandingPage landingPage, IStacApiContext stacApiContext)
     {
-        var uri = stacApiContext.LinkGenerator.GetUriByAction(stacApiContext.HttpContext, "GetLandingPage", "Core", null, "https");
+        var uri = stacApiContext.LinkGenerator.GetUriByAction(stacApiContext.HttpContext, "GetLandingPage", "Core");
         if (uri == null) throw new InvalidOperationException("Could not generate URL for action GetLandingPage on controller Core.");
         landingPage.Links.Add(StacLink.CreateSelfLink(new Uri(uri), "application/json"));
         landingPage.Links.Add(StacLink.CreateRootLink(new Uri(uri), "application/json"));
@@ -132,11 +132,7 @@ public class StacLinker : IStacLinker
     /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
     protected StacApiLink GetSelfLink(StacFeatureCollection collection, IStacApiContext stacApiContext)
     {
-        var uri = stacApiContext.LinkGenerator.GetUriByRouteValues(
-            stacApiContext.HttpContext,
-            null,
-            stacApiContext.HttpContext.Request.Query.ToDictionary((KeyValuePair<string, StringValues> x) => x.Key, (KeyValuePair<string, StringValues> x) => x.Value.ToString()),
-            "https");
+        var uri = stacApiContext.LinkGenerator.GetUriByRouteValues(stacApiContext.HttpContext, null, stacApiContext.HttpContext.Request.Query.ToDictionary((KeyValuePair<string, StringValues> x) => x.Key, (KeyValuePair<string, StringValues> x) => x.Value.ToString()));
         if (uri == null) throw new InvalidOperationException("Could not generate URL for action GetFeatureCollection on controller Features.");
         return new StacApiLink(new Uri(uri), "self", null, "application/geo+json");
     }
@@ -166,7 +162,7 @@ public class StacLinker : IStacLinker
 
     private Uri GetUriByAction(IStacApiContext stacApiContext, string actionName, string controllerName, object? value, IDictionary<string, object>? queryValues)
     {
-        string? uriByAction = stacApiContext.LinkGenerator.GetUriByAction(stacApiContext.HttpContext, actionName, controllerName, value, "https");
+        string? uriByAction = stacApiContext.LinkGenerator.GetUriByAction(stacApiContext.HttpContext, actionName, controllerName, value);
         if (uriByAction == null)
         {
             DefaultInterpolatedStringHandler defaultInterpolatedStringHandler = new DefaultInterpolatedStringHandler(61, 3);
@@ -201,7 +197,7 @@ public class StacLinker : IStacLinker
 
     private static StacApiLink CreateStacApiLink(IStacApiContext stacApiContext, ILinkValues linkValue)
     {
-        var uriByAction = stacApiContext.LinkGenerator.GetUriByAction(stacApiContext.HttpContext, linkValue.ActionName, linkValue.ControllerName, null, "https");
+        var uriByAction = stacApiContext.LinkGenerator.GetUriByAction(stacApiContext.HttpContext, linkValue.ActionName, linkValue.ControllerName);
         if (uriByAction == null) throw new InvalidOperationException($"Could not generate URL for action {linkValue.ActionName} on controller {linkValue.ControllerName}.");
         UriBuilder uriBuilder = new UriBuilder(uriByAction);
         NameValueCollection nameValueCollection = HttpUtility.ParseQueryString(uriBuilder.Query);
