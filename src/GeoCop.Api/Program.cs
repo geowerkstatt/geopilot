@@ -5,8 +5,6 @@ using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using GeoCop.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -107,10 +105,15 @@ var configureContextOptions = (DbContextOptionsBuilder options) =>
         o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     });
 };
+
 builder.Services.AddDbContextFactory<Context>(configureContextOptions);
 builder.Services.AddDbContext<Context>(configureContextOptions);
 
 builder.Services.AddStacData(builder => { });
+
+builder.Services
+    .AddHealthChecks()
+    .AddCheck<DbHealthCheck>("Db");
 
 var app = builder.Build();
 
@@ -146,5 +149,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health");
 
 app.Run();

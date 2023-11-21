@@ -30,6 +30,20 @@ Das Debugging sollte nun sowol für das GeoCop.Frontend in JavaScript als auch f
 
 PgAdmin kann für eine Analyse der Datenbank verwendet werden und ist unter [localhost:3001](http://localhost:3001/) verfügbar.
 
+## Health Check API
+
+Für das Monitoring im produktiven Betrieb steht unter `https://<host>:<port>/health` eine Health Check API zur Verfügung. Anhand der Antwort *Healthy* (HTTP Status Code 200), resp. *Unhealthy* (HTTP Status Code 503) kann der Status der Applikation bspw. mit cURL abgefragt werden.
+
+```bash
+curl -f https://<host>:<port>/health || exit 1;
+```
+
+Der Health Check ist auch im Docker Container integriert und kann ebenfalls über eine Shell abgefragt werden.
+
+```bash
+docker inspect --format='{{json .State.Health.Status}}' container_name
+```
+
 ## Neue Version erstellen
 
 Ein neuer GitHub _Pre-release_ wird bei jeder Änderung auf [main](https://github.com/GeoWerkstatt/geocop) [automatisch](./.github/workflows/pre-release.yml) erstellt. In diesem Kontext wird auch ein neues Docker Image mit dem Tag _:edge_ erstellt und in die [GitHub Container Registry (ghcr.io)](https://github.com/geowerkstatt/geocop/pkgs/container/geocop) gepusht. Der definitve Release erfolgt, indem die Checkbox _Set as the latest release_ eines beliebigen Pre-releases gesetzt wird. In der Folge wird das entsprechende Docker Image in der ghcr.io Registry mit den Tags (bspw.: _:v1.2.3_ und _:latest_) [ergänzt](./.github/workflows/release.yml).
