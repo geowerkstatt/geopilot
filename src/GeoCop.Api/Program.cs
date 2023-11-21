@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using GeoCop.Api;
+using GeoCop.Api.Conventions;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using GeoCop.Api.Validation.Interlis;
@@ -31,6 +32,7 @@ builder.Services.AddCors(options =>
 builder.Services
     .AddControllers(options =>
     {
+        options.Conventions.Add(new StacRoutingConvention());
     })
     .AddJsonOptions(options =>
     {
