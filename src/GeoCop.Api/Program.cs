@@ -33,6 +33,7 @@ builder.Services
     .AddControllers(options =>
     {
         options.Conventions.Add(new StacRoutingConvention());
+        options.Conventions.Add(new GeocopJsonConvention());
     })
     .AddJsonOptions(options =>
     {
