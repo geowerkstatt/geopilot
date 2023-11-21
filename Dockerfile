@@ -60,7 +60,21 @@ RUN \
  usermod --groups users abc && \
  mkdir -p $Storage__UploadDirectory
 
-EXPOSE 80
+# Install temp CA and SSL cert so that the SSL port can be exposed.
+# The cert is self-signed and only valid for localhost. Because a valid and dynamic
+# SSL cert is used for hosting, the cert is only used to expose the SSL port.
+ENV Kestrel:Certificates:Default:Path=/etc/ssl/private/cert.pfx
+ENV Kestrel:Certificates:Default:Password=changeit
+ENV Kestrel:Certificates:Default:AllowInvalid=true
+ENV Kestrel:EndPointDefaults:Protocols=Http1AndHttp2
+
+RUN apt-get update && apt-get install curl -y && \
+	curl -L https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-linux-amd64 > /usr/local/bin/mkcert && \
+	chmod +x /usr/local/bin/mkcert
+RUN mkcert -install
+RUN mkcert -p12-file /etc/ssl/private/cert.pfx -pkcs12 'localhost 127.0.0.1 ::1'
+
+EXPOSE 443
 VOLUME $Storage__UploadDirectory
 
 # Set default locale
