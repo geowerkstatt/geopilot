@@ -2,7 +2,7 @@ import "./app.css";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Container, Stack } from "react-bootstrap";
 import { FileDropzone } from "./FileDropzone";
-import { Title } from "../../Title";
+import { Title } from "./Title";
 import { Protokoll } from "./Protokoll";
 import { Delivery } from "./Delivery";
 
