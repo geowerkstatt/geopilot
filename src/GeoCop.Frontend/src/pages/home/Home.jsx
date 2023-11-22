@@ -1,4 +1,4 @@
-import "./app.css";
+import "../../app.css";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Container, Stack } from "react-bootstrap";
 import { FileDropzone } from "./FileDropzone";

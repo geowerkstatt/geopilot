@@ -1,4 +1,4 @@
-import "./app.css";
+import "../../app.css";
 import { Carousel } from "react-bootstrap";
 
 export const InfoCarousel = ({ content }) => (
