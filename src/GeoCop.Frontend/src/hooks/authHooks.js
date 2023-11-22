@@ -1,7 +1,7 @@
 import { useMsal } from "@azure/msal-react";
 import { useCallback } from "react";
 
-export function useAuthenticatedFetch(clientSettings) {
+export default function useAuthenticatedFetch(clientSettings) {
   const { instance } = useMsal();
 
   return useCallback(

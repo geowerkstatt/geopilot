@@ -150,7 +150,10 @@ export const App = () => {
                 />
               }
             />
-            <Route path="/admin" element={<Admin />} />
+            <Route
+              path="/admin"
+              element={<Admin clientSettings={clientSettings} />}
+            />
           </Routes>
         </Router>
         <Footer

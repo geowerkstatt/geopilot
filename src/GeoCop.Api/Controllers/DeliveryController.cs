@@ -5,6 +5,7 @@ using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace GeoCop.Api.Controllers;
 
@@ -80,5 +81,17 @@ public class DeliveryController : ControllerBase
             UriKind.Relative);
 
         return Created(location, entityEntry.Entity);
+    }
+
+    /// <summary>
+    /// Gets all deliveries.
+    /// </summary>
+    /// <returns>A list of <see cref="Delivery"/>.</returns>
+    [HttpGet]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list with available deliveries has been returned.", typeof(List<DeliveryDto>), new[] { "application/json" })]
+    public List<DeliveryDto> Get()
+    {
+        var deliveries = context.DeliveriesWithIncludes.Select(d => new DeliveryDto(d.Id, d.Date, d.DeclaringUser.AuthIdentifier, d.DeliveryMandate.Name)).ToList();
+        return deliveries;
     }
 }

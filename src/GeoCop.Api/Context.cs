@@ -42,6 +42,7 @@ public class Context : DbContext
             return Deliveries
                 .Include(d => d.DeliveryMandate)
                 .Include(d => d.Assets)
+                .Include(d => d.DeclaringUser)
                 .AsNoTracking()
                 .ToList();
         }
