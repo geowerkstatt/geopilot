@@ -1,10 +1,12 @@
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using GeoCop.Api;
 using GeoCop.Api.Conventions;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using GeoCop.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -32,6 +34,11 @@ builder.Services
     {
         options.Conventions.Add(new StacRoutingConvention());
         options.Conventions.Add(new GeocopJsonConvention());
+
+        var policy = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build();
+        options.Filters.Add(new AuthorizeFilter(policy));
     })
     .AddJsonOptions(options =>
     {
@@ -161,6 +168,22 @@ else
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/browser") && context.User.Identity?.IsAuthenticated != true)
+    {
+        context.Response.Redirect("/");
+    }
+    else if (context.Request.Path == "/browser")
+    {
+        context.Response.Redirect("/browser/");
+    }
+    else
+    {
+        await next(context);
+    }
+});
 
 app.MapControllers();
 
