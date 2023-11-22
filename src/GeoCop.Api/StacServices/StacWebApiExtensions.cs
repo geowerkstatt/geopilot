@@ -21,7 +21,7 @@ public static class StacWebApiExtensions
         services.AddStacWebApi();
 
         // Add the Http Stac Api context factory
-        services.AddSingleton<IStacApiContextFactory, HttpStacApiContextFactory>();
+        services.AddSingleton<IStacApiContextFactory, HttpsStacApiContextFactory>();
 
         // Add the default context filters provider
         services.AddSingleton<IStacApiContextFiltersProvider, DefaultStacContextFiltersProvider>();
