@@ -58,12 +58,8 @@ export const Login = ({ clientSettings }) => {
       <AuthenticatedTemplate>
         <LoggedInButtonGroup>
           <DropdownButton title="Administration">
-            <Dropdown.Item href="https://browser.geocop.ch">
-              Datenabgabe
-            </Dropdown.Item>
-            <Dropdown.Item href="https://browser.geocop.ch/admin">
-              Abgabeübersicht
-            </Dropdown.Item>
+            <Dropdown.Item href="/">Datenabgabe</Dropdown.Item>
+            <Dropdown.Item href="/admin">Abgabeübersicht</Dropdown.Item>
             <Dropdown.Item href="https://browser.geocop.ch">
               STAC Browser
             </Dropdown.Item>
