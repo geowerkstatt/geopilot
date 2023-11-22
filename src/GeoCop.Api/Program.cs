@@ -74,6 +74,10 @@ builder.Services.AddSwaggerGen(options =>
     options.SupportNonNullableReferenceTypes();
 });
 
+builder.Services
+    .AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
 contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");
@@ -151,5 +155,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.MapHealthChecks("/health");
+
+app.MapReverseProxy();
 
 app.Run();
