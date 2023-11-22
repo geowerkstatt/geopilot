@@ -72,7 +72,7 @@ RUN apt-get update && apt-get install curl -y && \
 	curl -L https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.4.4-linux-amd64 > /usr/local/bin/mkcert && \
 	chmod +x /usr/local/bin/mkcert
 RUN mkcert -install
-RUN mkcert -p12-file /etc/ssl/private/cert.pfx -pkcs12 'localhost 127.0.0.1 ::1'
+RUN mkcert -p12-file /etc/ssl/private/cert.pfx -pkcs12 localhost 127.0.0.1 ::1
 
 EXPOSE 443
 VOLUME $Storage__UploadDirectory
