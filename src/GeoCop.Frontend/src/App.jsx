@@ -5,8 +5,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import BannerContent from "./BannerContent";
 import Footer from "./Footer";
 import Header from "./Header";
-import Home from "./Home";
-import Admin from "./Admin";
+import Home from "./pages/home/Home";
+import Admin from "./pages/admin/Admin";
 import ModalContent from "./ModalContent";
 import "./app.css";
 

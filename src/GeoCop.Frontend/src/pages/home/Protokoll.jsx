@@ -7,7 +7,8 @@ import { Card, Collapse, Container } from "react-bootstrap";
 export const Protokoll = ({ log, statusData, fileName, validationRunning }) => {
   const [indicateWaiting, setIndicateWaiting] = useState(false);
   const protokollTimestamp = DayJS(new Date()).format("YYYYMMDDHHmm");
-  const protokollFileName = "Ilivalidator_output_" + fileName + "_" + protokollTimestamp;
+  const protokollFileName =
+    "Ilivalidator_output_" + fileName + "_" + protokollTimestamp;
   const logEndRef = useRef(null);
 
   // Autoscroll protokoll log
@@ -42,15 +43,17 @@ export const Protokoll = ({ log, statusData, fileName, validationRunning }) => {
                 <div ref={logEndRef} />
               </div>
               {statusData &&
-                Object.entries(statusData.validatorResults).map(([validatorName, result]) => (
-                  <ValidatorResult
-                    key={validatorName}
-                    jobId={statusData.jobId}
-                    protokollFileName={protokollFileName}
-                    validatorName={validatorName}
-                    result={result}
-                  />
-                ))}
+                Object.entries(statusData.validatorResults).map(
+                  ([validatorName, result]) => (
+                    <ValidatorResult
+                      key={validatorName}
+                      jobId={statusData.jobId}
+                      protokollFileName={protokollFileName}
+                      validatorName={validatorName}
+                      result={result}
+                    />
+                  ),
+                )}
             </Card.Body>
           </Card>
         )}
