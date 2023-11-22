@@ -1,4 +1,4 @@
-﻿using Asp.Versioning;
+using Asp.Versioning;
 using GeoCop.Api;
 using GeoCop.Api.Conventions;
 using GeoCop.Api.StacServices;
@@ -44,6 +44,16 @@ builder.Services
     {
         options.Authority = builder.Configuration["Auth:Authority"];
         options.Audience = builder.Configuration["Auth:ClientId"];
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // Allow token to be in a cookie in addition to the default Authorization header
+                context.Token = context.Request.Cookies["geocop.auth"];
+                return Task.CompletedTask;
+            },
+        };
     });
 
 builder.Services
