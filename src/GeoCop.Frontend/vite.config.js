@@ -38,6 +38,10 @@ export default defineConfig({
         target: "https://localhost:7188/",
         secure: false,
       },
+      "^/browser(/.*)?$": {
+        target: "https://localhost:7188/",
+        secure: false,
+      },
     },
     port: 5173,
     https: {

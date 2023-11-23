@@ -6,7 +6,7 @@ services:
     ports:
       - 8080:8080
     environment:
-      SB_catalogUrl: "https://localhost:7188/api/stac"
+      SB_catalogUrl: "https://localhost:5173/api/stac"
       SB_locale: "de-CH"
       SB_fallbackLocale: "de-CH"
       SB_supportedLocales: "de-CH"
