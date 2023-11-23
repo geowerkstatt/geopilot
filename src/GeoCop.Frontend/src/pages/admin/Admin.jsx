@@ -27,7 +27,7 @@ const columns = [
     { field: "deliveryMandate", headerName: "Operat", flex: 1 },
 ];
 
-export const Admin = ({ clientSettings }) => {
+export const Admin = () => {
     const [deliveries, setDeliveries] = useState([]);
     const [selectedRows, setSelectedRows] = useState([]);
     const [showModal, setShowModal] = useState(false);
