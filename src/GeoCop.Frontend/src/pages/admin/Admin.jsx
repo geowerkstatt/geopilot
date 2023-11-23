@@ -68,6 +68,7 @@ export const Admin = () => {
                 </UnauthenticatedTemplate>
                 <AuthenticatedTemplate>
                     <div className="app-title">Datenabgaben</div>
+          {deliveries.length > 0 && (
                     <DataGrid
                         localeText={deDE.components.MuiDataGrid.defaultProps.localeText}
                         sx={{
@@ -90,6 +91,7 @@ export const Admin = () => {
                         hideFooterRowCount
                         hideFooterSelectedRowCount
                     />
+          )}
                     {selectedRows.length > 0 && (
                         <CenterButtonContainer>
                             <IconButton
