@@ -484,3 +484,7 @@ footer {
   align-items: center;
   height: 100vh;
 }
+
+.MuiTablePagination-toolbar p {
+  margin: auto;
+}
