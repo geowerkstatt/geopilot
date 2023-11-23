@@ -61,7 +61,7 @@ public sealed class ValidationControllerTest
         Assert.IsInstanceOfType(response, typeof(CreatedResult));
         Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobStatus));
         Assert.AreEqual(StatusCodes.Status201Created, response.StatusCode);
-        Assert.AreEqual($"/api/v9/status/{jobId}", response.Location);
+        Assert.AreEqual($"/api/v9/validation/{jobId}", response.Location);
         Assert.AreEqual(jobId, ((ValidationJobStatus)response.Value!).JobId);
     }
 
@@ -87,5 +87,39 @@ public sealed class ValidationControllerTest
         Assert.IsInstanceOfType(response, typeof(ObjectResult));
         Assert.AreEqual(StatusCodes.Status400BadRequest, response!.StatusCode);
         Assert.AreEqual("File extension <.exe> is not supported.", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public void GetStatus()
+    {
+        var jobId = Guid.NewGuid();
+
+        validationServiceMock
+            .Setup(x => x.GetJobStatus(jobId))
+            .Returns(new ValidationJobStatus(jobId) { Status = Status.Processing });
+
+        var response = controller.GetStatus(jobId) as OkObjectResult;
+
+        Assert.IsInstanceOfType(response, typeof(OkObjectResult));
+        Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobStatus));
+        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
+        Assert.AreEqual(jobId, ((ValidationJobStatus)response.Value!).JobId);
+        Assert.AreEqual(Status.Processing, ((ValidationJobStatus)response.Value).Status);
+    }
+
+    [TestMethod]
+    public void GetStatusForInvalid()
+    {
+        var jobId = Guid.Empty;
+
+        validationServiceMock
+            .Setup(x => x.GetJobStatus(Guid.Empty))
+            .Returns((ValidationJobStatus?)null);
+
+        var response = controller.GetStatus(jobId) as ObjectResult;
+
+        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
+        Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
     }
 }

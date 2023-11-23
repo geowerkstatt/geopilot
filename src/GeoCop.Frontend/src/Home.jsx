@@ -97,7 +97,7 @@ export const Home = ({
       if (fileToCheckRef.current) {
         const data = await response.json();
         const getStatusData = async (data) => {
-          const status = await fetch(`/api/v1/status/${data.jobId}`, {
+          const status = await fetch(`/api/v1/validation/${data.jobId}`, {
             method: "GET",
           });
           const statusData = await status.json();

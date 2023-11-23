@@ -110,9 +110,32 @@ public class ValidationController : ControllerBase
         logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
 
         var location = new Uri(
-            string.Format(CultureInfo.InvariantCulture, "/api/v{0}/status/{1}", version.MajorVersion, validationJob.Id),
+            string.Format(CultureInfo.InvariantCulture, "/api/v{0}/validation/{1}", version.MajorVersion, validationJob.Id),
             UriKind.Relative);
 
         return Created(location, status);
+    }
+
+    /// <summary>
+    /// Gets the status information for the specified <paramref name="jobId"/>.
+    /// </summary>
+    /// <param name="jobId" example="2e71ae96-e6ad-4b67-b817-f09412d09a2c">The job identifier.</param>
+    /// <returns>The status information for the specified <paramref name="jobId"/>.</returns>
+    [HttpGet("{jobId}")]
+    [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(ValidationJobStatus), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), new[] { "application/json" })]
+    public IActionResult GetStatus(Guid jobId)
+    {
+        logger.LogTrace("Status for job <{JobId}> requested.", jobId);
+
+        var jobStatus = validationService.GetJobStatus(jobId);
+        if (jobStatus == null)
+        {
+            logger.LogTrace("No job information available for job id <{JobId}>", jobId);
+            return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        return Ok(jobStatus);
     }
 }
