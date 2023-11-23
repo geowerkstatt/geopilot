@@ -67,9 +67,7 @@ export const Header = ({ clientSettings }) => {
               <Nav.Link href="/">DATENABGABE</Nav.Link>
               <AuthenticatedTemplate>
                 <Nav.Link href="/admin">ABGABEÜBERSICHT</Nav.Link>
-                <Nav.Link href="https://browser.geocop.ch">
-                  STAC BROWSER
-                </Nav.Link>
+                <Nav.Link href="/browser">STAC BROWSER</Nav.Link>
               </AuthenticatedTemplate>
             </Nav>
             <Nav>
