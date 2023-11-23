@@ -22,13 +22,8 @@ const AccountNameContainer = styled.span`
 `;
 
 const LoginButton = styled(Button)`
-  font-family: "Dosis", sans-serif;
   width: 100px;
   margin-left: 10px;
-`;
-
-const AdminButton = styled(DropdownButton)`
-  font-family: "Dosis", sans-serif;
 `;
 
 export const Login = ({ clientSettings }) => {
@@ -61,13 +56,13 @@ export const Login = ({ clientSettings }) => {
       </UnauthenticatedTemplate>
       <AuthenticatedTemplate>
         <LoggedInButtonGroup>
-          <AdminButton title="Administration">
+          <DropdownButton title="Administration">
             <Dropdown.Item href="/">Datenabgabe</Dropdown.Item>
             <Dropdown.Item href="/admin">Abgabeübersicht</Dropdown.Item>
             <Dropdown.Item href="https://browser.geocop.ch">
               STAC Browser
             </Dropdown.Item>
-          </AdminButton>
+          </DropdownButton>
           <LoginButton onClick={logout}>Log out</LoginButton>
         </LoggedInButtonGroup>
         <AccountNameContainer>

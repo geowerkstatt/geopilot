@@ -236,6 +236,13 @@ input {
   font-size: 1.2rem;
 }
 
+/* sets the color for react-bootstrap buttons*/
+.btn-primary {
+  background-color: #007cc3 !important;
+  border-color: #007cc3 !important;
+  font-family: "Dosis", sans-serif;
+}
+
 .check-button {
   font-family: "Dosis", sans-serif;
   border: none;
