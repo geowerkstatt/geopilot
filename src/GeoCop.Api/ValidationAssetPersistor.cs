@@ -42,13 +42,13 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
         temporaryFileProvider.Initialize(jobId);
         Directory.CreateDirectory(Path.Combine(assetDicrectory, jobId.ToString()));
         var job = validationService.GetJob(jobId);
-
-        if (job != default)
-            assets.Add(PersistPrimaryValidationJobAsset(job));
-
         var jobStatus = validationService.GetJobStatus(jobId);
-        if (jobStatus != default)
-            assets.AddRange(PersistValidationJobValidatorAssets(jobStatus));
+
+        if (jobStatus is null || job is null)
+            throw new InvalidOperationException($"Validation job with id {jobId} not found.");
+
+        assets.Add(PersistPrimaryValidationJobAsset(job));
+        assets.AddRange(PersistValidationJobValidatorAssets(jobStatus));
 
         return assets;
     }
