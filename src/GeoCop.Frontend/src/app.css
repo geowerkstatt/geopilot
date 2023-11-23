@@ -476,3 +476,11 @@ footer {
     opacity: 1;
   }
 }
+
+/************ Admin ************/
+.admin-no-access {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
