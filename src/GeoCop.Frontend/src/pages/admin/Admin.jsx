@@ -5,9 +5,21 @@ import {
   UnauthenticatedTemplate,
   useMsal,
 } from "@azure/msal-react";
-import { Box } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+import { Button, Modal } from "react-bootstrap";
+import { GoTrash } from "react-icons/go";
+import { DataGrid, deDE } from "@mui/x-data-grid";
+import styled from "styled-components";
 import useAuthenticatedFetch from "../../hooks/authHooks";
+
+const IconButton = styled(Button)`
+  display: flex;
+  align-items: center;
+`;
+
+const CenterButtonContainer = styled("div")`
+  display: flex;
+  justify-content: center;
+`;
 
 const columns = [
   { field: "id", headerName: "ID", width: 60 },
@@ -19,6 +31,8 @@ const columns = [
 export const Admin = ({ clientSettings }) => {
   const authenticatedFetch = useAuthenticatedFetch(clientSettings);
   const [deliveries, setDeliveries] = useState([]);
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [showModal, setShowModal] = useState(false);
 
   const { instance } = useMsal();
   const activeAccount = instance.getActiveAccount();
@@ -35,6 +49,17 @@ export const Admin = ({ clientSettings }) => {
       });
   }
 
+  async function handleDelete() {
+    setShowModal(false);
+    authenticatedFetch("/api/v1/delivery", {
+      method: "DELETE",
+      body: JSON.stringify(selectedRows),
+    }).then((deliveries) => {
+      setDeliveries(deliveries);
+      setSelectedRows([]);
+    });
+  }
+
   return (
     <>
       <main>
@@ -45,20 +70,62 @@ export const Admin = ({ clientSettings }) => {
         </UnauthenticatedTemplate>
         <AuthenticatedTemplate>
           <div className="app-title">Datenabgaben</div>
-          <Box sx={{ width: "100%", padding: "20px 35px" }}>
-            <DataGrid
-              pagination
-              rows={deliveries}
-              columns={columns}
-              initialState={{
-                pagination: {
-                  paginationModel: { page: 0, pageSize: 10 },
-                },
-              }}
-              pageSizeOptions={[5, 10, 25]}
-              checkboxSelection
-            />
-          </Box>
+          <DataGrid
+            localeText={deDE.components.MuiDataGrid.defaultProps.localeText}
+            sx={{
+              margin: "20px 35px",
+              fontFamily: "system-ui, -apple-syste",
+            }}
+            pagination
+            rows={deliveries}
+            columns={columns}
+            initialState={{
+              pagination: {
+                paginationModel: { page: 0, pageSize: 10 },
+              },
+            }}
+            pageSizeOptions={[5, 10, 25]}
+            checkboxSelection
+            onRowSelectionModelChange={(newSelection) => {
+              setSelectedRows(newSelection);
+            }}
+            hideFooterRowCount
+            hideFooterSelectedRowCount
+          />
+          {selectedRows.length > 0 && (
+            <CenterButtonContainer>
+              <IconButton
+                onClick={() => {
+                  setShowModal(true);
+                }}
+              >
+                <GoTrash />
+                <div style={{ marginLeft: 10 }}>
+                  {selectedRows.length} Datenabgabe
+                  {selectedRows.length > 1 ? "n" : ""} löschen
+                </div>
+              </IconButton>
+            </CenterButtonContainer>
+          )}
+          <Modal show={showModal} animation={false}>
+            <Modal.Body>
+              Möchten Sie die Datenabgabe wirklich löschen? Diese Aktion kann
+              nicht rückgängig gemacht werden.
+            </Modal.Body>
+            <Modal.Footer>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowModal(false);
+                }}
+              >
+                Abbrechen
+              </Button>
+              <Button variant="danger" onClick={handleDelete}>
+                Löschen
+              </Button>
+            </Modal.Footer>
+          </Modal>
         </AuthenticatedTemplate>
       </main>
     </>
