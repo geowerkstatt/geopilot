@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using GeoCop.Api.Contracts;
 using GeoCop.Api.Models;
 using GeoCop.Api.Validation;
@@ -93,5 +93,17 @@ public class DeliveryController : ControllerBase
     {
         var deliveries = context.DeliveriesWithIncludes.Select(d => new DeliveryDto(d.Id, d.Date, d.DeclaringUser.AuthIdentifier, d.DeliveryMandate.Name)).ToList();
         return deliveries;
+    }
+
+    /// <summary>
+    /// Performs a soft delete in the database and deletes the files from the storage.
+    /// </summary>
+    /// <returns>An updated list of <see cref="Delivery"/>.</returns>
+    [HttpDelete]
+    public IActionResult Delete(List<int> deliveryIds)
+    {
+        // TODO: Soft delete in DB and remove from storage
+        // https://github.com/GeoWerkstatt/geocop/issues/98
+        return Ok();
     }
 }
