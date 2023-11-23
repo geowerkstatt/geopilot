@@ -2,6 +2,7 @@
 using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -12,6 +13,8 @@ public sealed class ValidationControllerTest
 {
     private Mock<ILogger<ValidationController>> loggerMock;
     private Mock<IValidationService> validationServiceMock;
+    private Mock<IFileProvider> fileProviderMock;
+    private Mock<IContentTypeProvider> contentTypeProviderMock;
     private Mock<ApiVersion> apiVersionMock;
     private Mock<IFormFile> formFileMock;
     private ValidationController controller;
@@ -21,12 +24,16 @@ public sealed class ValidationControllerTest
     {
         loggerMock = new Mock<ILogger<ValidationController>>();
         validationServiceMock = new Mock<IValidationService>(MockBehavior.Strict);
+        fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
+        contentTypeProviderMock = new Mock<IContentTypeProvider>(MockBehavior.Strict);
         apiVersionMock = new Mock<ApiVersion>(MockBehavior.Strict, 9, 88, null!);
         formFileMock = new Mock<IFormFile>(MockBehavior.Strict);
 
         controller = new ValidationController(
             loggerMock.Object,
-            validationServiceMock.Object);
+            validationServiceMock.Object,
+            fileProviderMock.Object,
+            contentTypeProviderMock.Object);
     }
 
     [TestCleanup]
@@ -34,6 +41,8 @@ public sealed class ValidationControllerTest
     {
         loggerMock.VerifyAll();
         validationServiceMock.VerifyAll();
+        fileProviderMock.VerifyAll();
+        contentTypeProviderMock.VerifyAll();
         apiVersionMock.VerifyAll();
         formFileMock.VerifyAll();
     }
@@ -121,5 +130,66 @@ public sealed class ValidationControllerTest
         Assert.IsInstanceOfType(response, typeof(ObjectResult));
         Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
         Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public void Download()
+    {
+        var jobId = Guid.NewGuid();
+        var fileName = "logfile.log";
+
+        validationServiceMock
+            .Setup(x => x.GetJob(jobId))
+            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf"));
+
+        fileProviderMock.Setup(x => x.Initialize(jobId));
+        fileProviderMock.Setup(x => x.Exists(fileName)).Returns(true);
+        fileProviderMock.Setup(x => x.Open(fileName)).Returns(Stream.Null);
+
+        var contentType = "text/plain";
+        contentTypeProviderMock.Setup(x => x.TryGetContentType(fileName, out contentType)).Returns(true);
+
+        var response = controller.Download(jobId, fileName) as FileStreamResult;
+
+        Assert.IsInstanceOfType(response, typeof(FileStreamResult));
+        Assert.AreEqual("text/plain", response!.ContentType);
+        Assert.AreEqual("original_log.log", response.FileDownloadName);
+    }
+
+    [TestMethod]
+    public void DownloadInvalidJob()
+    {
+        var jobId = Guid.Empty;
+
+        fileProviderMock.Setup(x => x.Initialize(jobId));
+        validationServiceMock
+            .Setup(x => x.GetJob(Guid.Empty))
+            .Returns((ValidationJob?)null);
+
+        var response = controller.Download(default, "logfile.log") as ObjectResult;
+
+        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
+        Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public void DownloadMissingLog()
+    {
+        var jobId = Guid.NewGuid();
+        var fileName = "missing-logfile.log";
+
+        validationServiceMock
+            .Setup(x => x.GetJob(jobId))
+            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf"));
+
+        fileProviderMock.Setup(x => x.Initialize(jobId));
+        fileProviderMock.Setup(x => x.Exists(fileName)).Returns(false);
+
+        var response = controller.Download(jobId, fileName) as ObjectResult;
+
+        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
+        Assert.AreEqual($"No log file <{fileName}> found for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
     }
 }

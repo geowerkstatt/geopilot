@@ -3,6 +3,7 @@ using GeoCop.Api.Contracts;
 using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -19,14 +20,18 @@ public class ValidationController : ControllerBase
 {
     private readonly ILogger<ValidationController> logger;
     private readonly IValidationService validationService;
+    private readonly IFileProvider fileProvider;
+    private readonly IContentTypeProvider contentTypeProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationController"/> class.
     /// </summary>
-    public ValidationController(ILogger<ValidationController> logger, IValidationService validationService)
+    public ValidationController(ILogger<ValidationController> logger, IValidationService validationService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider)
     {
         this.logger = logger;
         this.validationService = validationService;
+        this.fileProvider = fileProvider;
+        this.contentTypeProvider = contentTypeProvider;
     }
 
     /// <summary>
@@ -137,5 +142,40 @@ public class ValidationController : ControllerBase
         }
 
         return Ok(jobStatus);
+    }
+
+    /// <summary>
+    /// Download the log file specified by the job id and file name.
+    /// </summary>
+    /// <param name="jobId" example="2e71ae96-e6ad-4b67-b817-f09412d09a2c">The job identifier.</param>
+    /// <param name="file">The file name.</param>
+    /// <returns>The <paramref name="file"/> for the specified <paramref name="jobId"/>.</returns>
+    [HttpGet("{jobId}/files/{file}")]
+    [SwaggerResponse(StatusCodes.Status200OK, "The specified log file was found.")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The job or log file cannot be found.", typeof(ProblemDetails), new[] { "application/json" })]
+    public IActionResult Download(Guid jobId, string file)
+    {
+        logger.LogTrace("Download file <{File}> for job <{JobId}> requested.", file, jobId);
+
+        fileProvider.Initialize(jobId);
+
+        var validationJob = validationService.GetJob(jobId);
+        if (validationJob == null)
+        {
+            logger.LogTrace("No job information available for job id <{JobId}>", jobId);
+            return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        if (!fileProvider.Exists(file))
+        {
+            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", file, jobId);
+            return Problem($"No log file <{file}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        var logFile = fileProvider.Open(file);
+        var contentType = contentTypeProvider.GetContentTypeAsString(file);
+        var logFileName = Path.GetFileNameWithoutExtension(validationJob.OriginalFileName) + "_log" + Path.GetExtension(file);
+        return File(logFile, contentType, logFileName);
     }
 }
