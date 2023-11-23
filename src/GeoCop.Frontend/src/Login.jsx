@@ -1,7 +1,7 @@
 import {
-  AuthenticatedTemplate,
-  UnauthenticatedTemplate,
-  useMsal,
+    AuthenticatedTemplate,
+    UnauthenticatedTemplate,
+    useMsal,
 } from "@azure/msal-react";
 import { Button, Dropdown, DropdownButton } from "react-bootstrap";
 import styled from "styled-components";
@@ -27,50 +27,50 @@ const LoginButton = styled(Button)`
 `;
 
 export const Login = ({ clientSettings }) => {
-  const { instance } = useMsal();
-  const activeAccount = instance.getActiveAccount();
+    const { instance } = useMsal();
+    const activeAccount = instance.getActiveAccount();
 
-  async function login() {
-    try {
-      const result = await instance.loginPopup({
-        scopes: clientSettings?.authScopes,
-      });
-      instance.setActiveAccount(result.account);
-      document.cookie = `geocop.auth=${result.idToken};Path=/;Secure`;
-    } catch (error) {
-      console.warn(error);
+    async function login() {
+        try {
+            const result = await instance.loginPopup({
+                scopes: clientSettings?.authScopes,
+            });
+            instance.setActiveAccount(result.account);
+            document.cookie = `geocop.auth=${result.idToken};Path=/;Secure`;
+        } catch (error) {
+            console.warn(error);
+        }
     }
-  }
 
-  async function logout() {
-    try {
-      await instance.logoutPopup();
-      document.cookie = "geocop.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
-    } catch (error) {
-      console.warn(error);
+    async function logout() {
+        try {
+            await instance.logoutPopup();
+            document.cookie = "geocop.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
+        } catch (error) {
+            console.warn(error);
+        }
     }
-  }
 
-  return (
-    <AccountContainer>
-      <UnauthenticatedTemplate>
-        <LoginButton onClick={login}>Log in</LoginButton>
-      </UnauthenticatedTemplate>
-      <AuthenticatedTemplate>
-        <LoggedInButtonGroup>
-          <DropdownButton title="Administration">
-            <Dropdown.Item href="/">Datenabgabe</Dropdown.Item>
-            <Dropdown.Item href="/admin">Abgabeübersicht</Dropdown.Item>
-            <Dropdown.Item href="https://browser.geocop.ch">
-              STAC Browser
-            </Dropdown.Item>
-          </DropdownButton>
-          <LoginButton onClick={logout}>Log out</LoginButton>
-        </LoggedInButtonGroup>
-        <AccountNameContainer>
-          Angemeldet als {activeAccount?.username}
-        </AccountNameContainer>
-      </AuthenticatedTemplate>
-    </AccountContainer>
-  );
+    return (
+        <AccountContainer>
+            <UnauthenticatedTemplate>
+                <LoginButton onClick={login}>Log in</LoginButton>
+            </UnauthenticatedTemplate>
+            <AuthenticatedTemplate>
+                <LoggedInButtonGroup>
+                    <DropdownButton title="Administration">
+                        <Dropdown.Item href="/">Datenabgabe</Dropdown.Item>
+                        <Dropdown.Item href="/admin">Abgabeübersicht</Dropdown.Item>
+                        <Dropdown.Item href="https://browser.geocop.ch">
+                            STAC Browser
+                        </Dropdown.Item>
+                    </DropdownButton>
+                    <LoginButton onClick={logout}>Log out</LoginButton>
+                </LoggedInButtonGroup>
+                <AccountNameContainer>
+                    Angemeldet als {activeAccount?.username}
+                </AccountNameContainer>
+            </AuthenticatedTemplate>
+        </AccountContainer>
+    );
 };
