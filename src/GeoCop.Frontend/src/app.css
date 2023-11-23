@@ -488,3 +488,56 @@ footer {
 .MuiTablePagination-toolbar p {
   margin: auto;
 }
+
+/************ Navbar ************/
+.full-width {
+  width: 100%;
+}
+
+.nav-link {
+  font-family: "Dosis", sans-serif;
+  font-size: 1.2rem;
+  padding: 1rem 1rem !important;
+  white-space: nowrap;
+  overflow: auto;
+}
+
+.nav-button {
+  color: rgba(0, 0, 0, 0.65);
+  background-color: transparent !important;
+  border: none;
+  text-decoration-line: none;
+  font-family: "Dosis", sans-serif;
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem !important;
+}
+
+.nav-button:hover {
+  color: rgba(0, 0, 0, 0.8);
+}
+
+@media screen and (min-width: 768px) {
+  .logged-in-button {
+    align-items: end;
+  }
+}
+
+.logged-in-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+}
+
+.user-info {
+  font-family: "Dosis", sans-serif;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: auto;
+  margin: auto;
+  padding-top: 0.5rem;
+}
+
+.logged-in-button .nav-button {
+  padding: 0 !important;
+  margin-bottom: -1rem !important;
+}
