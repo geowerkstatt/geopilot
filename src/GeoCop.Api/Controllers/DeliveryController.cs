@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using GeoCop.Api.Contracts;
 using GeoCop.Api.Models;
 using GeoCop.Api.Validation;
