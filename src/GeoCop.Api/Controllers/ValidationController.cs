@@ -10,20 +10,20 @@ using System.Globalization;
 namespace GeoCop.Api.Controllers;
 
 /// <summary>
-/// Controller for uploading files.
+/// Controller for file validation.
 /// </summary>
 [AllowAnonymous]
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
-public class UploadController : ControllerBase
+public class ValidationController : ControllerBase
 {
-    private readonly ILogger<UploadController> logger;
+    private readonly ILogger<ValidationController> logger;
     private readonly IValidationService validationService;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UploadController"/> class.
+    /// Initializes a new instance of the <see cref="ValidationController"/> class.
     /// </summary>
-    public UploadController(ILogger<UploadController> logger, IValidationService validationService)
+    public ValidationController(ILogger<ValidationController> logger, IValidationService validationService)
     {
         this.logger = logger;
         this.validationService = validationService;
@@ -55,7 +55,7 @@ public class UploadController : ControllerBase
     ///
     /// ```bash
     /// curl -i -X POST -H "Content-Type: multipart/form-data" \
-    ///   -F 'file=@example.xtf' https://example.com/api/v1/upload
+    ///   -F 'file=@example.xtf' https://example.com/api/v1/validation
     /// ```
     ///
     /// ### JavaScript
@@ -67,7 +67,7 @@ public class UploadController : ControllerBase
     ///
     /// var form = new FormData();
     /// form.append('file', createReadStream('example.xtf'));
-    /// const response = await fetch('https://example.com/api/v1/upload', {
+    /// const response = await fetch('https://example.com/api/v1/validation', {
     ///   method: 'POST',
     ///   body: form,
     /// });
@@ -77,7 +77,7 @@ public class UploadController : ControllerBase
     ///
     /// ```python
     /// import requests
-    /// response = requests.post('https://example.com/api/v1/upload', files={'file':open('example.xtf')}).json()
+    /// response = requests.post('https://example.com/api/v1/validation', files={'file':open('example.xtf')}).json()
     /// ```
     /// </remarks>
     /// <returns>Information for a newly created validation job.</returns>

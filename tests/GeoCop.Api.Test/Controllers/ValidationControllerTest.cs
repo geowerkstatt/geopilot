@@ -8,25 +8,23 @@ using Moq;
 namespace GeoCop.Api.Controllers;
 
 [TestClass]
-public sealed class UploadControllerTest
+public sealed class ValidationControllerTest
 {
-    private readonly Guid jobId = new ("28e1adff-765e-4c0b-b667-90458b33e1ca");
-
-    private Mock<ILogger<UploadController>> loggerMock;
+    private Mock<ILogger<ValidationController>> loggerMock;
+    private Mock<IValidationService> validationServiceMock;
     private Mock<ApiVersion> apiVersionMock;
     private Mock<IFormFile> formFileMock;
-    private Mock<IValidationService> validationServiceMock;
-    private UploadController controller;
+    private ValidationController controller;
 
     [TestInitialize]
     public void Initialize()
     {
-        loggerMock = new Mock<ILogger<UploadController>>();
+        loggerMock = new Mock<ILogger<ValidationController>>();
         validationServiceMock = new Mock<IValidationService>(MockBehavior.Strict);
-        formFileMock = new Mock<IFormFile>(MockBehavior.Strict);
         apiVersionMock = new Mock<ApiVersion>(MockBehavior.Strict, 9, 88, null!);
+        formFileMock = new Mock<IFormFile>(MockBehavior.Strict);
 
-        controller = new UploadController(
+        controller = new ValidationController(
             loggerMock.Object,
             validationServiceMock.Object);
     }
@@ -35,14 +33,15 @@ public sealed class UploadControllerTest
     public void Cleanup()
     {
         loggerMock.VerifyAll();
-        formFileMock.VerifyAll();
         validationServiceMock.VerifyAll();
         apiVersionMock.VerifyAll();
+        formFileMock.VerifyAll();
     }
 
     [TestMethod]
     public async Task UploadAsync()
     {
+        var jobId = Guid.NewGuid();
         const string originalFileName = "BIZARRESCAN.xtf";
         formFileMock.SetupGet(x => x.Length).Returns(1234);
         formFileMock.SetupGet(x => x.FileName).Returns(originalFileName);

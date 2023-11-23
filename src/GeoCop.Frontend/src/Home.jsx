@@ -23,12 +23,12 @@ export const Home = ({
   const [log, setLog] = useState([]);
   const [uploadLogsInterval, setUploadLogsInterval] = useState(0);
   const [uploadLogsEnabled, setUploadLogsEnabled] = useState(false);
-  const [uploadSettings, setUploadSettings] = useState({});
+  const [validationSettings, setValidationSettings] = useState({});
 
   useEffect(() => {
-    fetch("/api/v1/upload")
+    fetch("/api/v1/validation")
       .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then((settings) => setUploadSettings(settings));
+      .then((settings) => setValidationSettings(settings));
   }, []);
 
   // Enable Upload logging
@@ -88,7 +88,7 @@ export const Home = ({
   const uploadFile = async (file) => {
     const formData = new FormData();
     formData.append("file", file, file.name);
-    const response = await fetch(`api/v1/upload`, {
+    const response = await fetch(`api/v1/validation`, {
       method: "POST",
       body: formData,
     });
@@ -140,7 +140,7 @@ export const Home = ({
             validationRunning={validationRunning}
             setCheckedNutzungsbestimmungen={setCheckedNutzungsbestimmungen}
             showNutzungsbestimmungen={showNutzungsbestimmungen}
-            acceptedFileTypes={uploadSettings?.allowedFileExtensions}
+            acceptedFileTypes={validationSettings?.allowedFileExtensions}
             fileToCheckRef={fileToCheckRef}
           />
         </Container>
