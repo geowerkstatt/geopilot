@@ -22,7 +22,18 @@ Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
 | GeoCop.Api.Test | None |
 | GeoCop.Frontend | Start |
 
-Mit dem Starten der Applikation wird ein STAC Browser unter [localhost:8080](https://localhost:8080/) gestartet.
+### URLs Entwicklungsumgebung 🔗
+
+| URL | Project | Reverse Proxy |
+| --- | --- | --- |
+| https://localhost:5173 | GeoCop.Frontend | `/api` und `/browser` zu https://localhost:7188 |
+| https://localhost:7188 | GeoCop.Api | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
+| http://localhost:8080 | stac-browser (in docker-compose) | - |
+| http://localhost:3001 | PgAdmin (in docker-compose) | - |
+| http://localhost:3080 | interlis-check-service (in docker-compose) | - |
+
+Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
+Der STAC Browser ist auch über https://localhost:5173/browser erreichbar und das Cookie kann somit auch da zur Authentifizierung verwendet werden.
 
 ### Debugging 🪲
 

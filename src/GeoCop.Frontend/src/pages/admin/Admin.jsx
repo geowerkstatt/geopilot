@@ -9,7 +9,6 @@ import { Button, Modal } from "react-bootstrap";
 import { GoTrash } from "react-icons/go";
 import { DataGrid, deDE } from "@mui/x-data-grid";
 import styled from "styled-components";
-import useAuthenticatedFetch from "../../hooks/authHooks";
 
 const IconButton = styled(Button)`
   display: flex;
@@ -29,7 +28,6 @@ const columns = [
 ];
 
 export const Admin = ({ clientSettings }) => {
-  const authenticatedFetch = useAuthenticatedFetch(clientSettings);
   const [deliveries, setDeliveries] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -38,7 +36,7 @@ export const Admin = ({ clientSettings }) => {
   const activeAccount = instance.getActiveAccount();
 
   if (activeAccount && deliveries.length == 0) {
-    authenticatedFetch("/api/v1/delivery")
+    fetch("/api/v1/delivery")
       .then(
         (res) =>
           res.headers.get("content-type")?.includes("application/json") &&
@@ -51,7 +49,7 @@ export const Admin = ({ clientSettings }) => {
 
   async function handleDelete() {
     setShowModal(false);
-    authenticatedFetch("/api/v1/delivery", {
+    fetch("/api/v1/delivery", {
       method: "DELETE",
       body: JSON.stringify(selectedRows),
     }).then((deliveries) => {

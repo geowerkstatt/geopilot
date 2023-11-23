@@ -36,6 +36,7 @@ export const Login = ({ clientSettings }) => {
         scopes: clientSettings?.authScopes,
       });
       instance.setActiveAccount(result.account);
+      document.cookie = `geocop.auth=${result.idToken};Path=/;Secure`;
     } catch (error) {
       console.warn(error);
     }
@@ -44,6 +45,7 @@ export const Login = ({ clientSettings }) => {
   async function logout() {
     try {
       await instance.logoutPopup();
+      document.cookie = "geocop.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
     } catch (error) {
       console.warn(error);
     }

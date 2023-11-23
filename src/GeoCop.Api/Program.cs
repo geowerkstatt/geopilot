@@ -5,6 +5,8 @@ using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using GeoCop.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -32,6 +34,11 @@ builder.Services
     {
         options.Conventions.Add(new StacRoutingConvention());
         options.Conventions.Add(new GeocopJsonConvention());
+
+        var policy = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build();
+        options.Filters.Add(new AuthorizeFilter(policy));
     })
     .AddJsonOptions(options =>
     {
@@ -44,6 +51,16 @@ builder.Services
     {
         options.Authority = builder.Configuration["Auth:Authority"];
         options.Audience = builder.Configuration["Auth:ClientId"];
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // Allow token to be in a cookie in addition to the default Authorization header
+                context.Token = context.Request.Cookies["geocop.auth"];
+                return Task.CompletedTask;
+            },
+        };
     });
 
 builder.Services
@@ -73,6 +90,10 @@ builder.Services.AddSwaggerGen(options =>
     options.EnableAnnotations();
     options.SupportNonNullableReferenceTypes();
 });
+
+builder.Services
+    .AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
@@ -148,8 +169,26 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/browser") && context.User.Identity?.IsAuthenticated != true)
+    {
+        context.Response.Redirect("/");
+    }
+    else if (context.Request.Path == "/browser")
+    {
+        context.Response.Redirect("/browser/");
+    }
+    else
+    {
+        await next(context);
+    }
+});
+
 app.MapControllers();
 
 app.MapHealthChecks("/health");
+
+app.MapReverseProxy();
 
 app.Run();
