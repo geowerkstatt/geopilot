@@ -1,6 +1,5 @@
 ﻿using GeoCop.Api.Models;
 using GeoCop.Api.Validation;
-using NetTopologySuite.Utilities;
 using System.Security.Cryptography;
 
 namespace GeoCop.Api;
@@ -106,7 +105,15 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
     {
         var sourceFileName = Path.Combine(uploadDirecory, id.ToString(), asset.SanitizedFilename);
         var destFileName = Path.Combine(assetDicrectory, id.ToString(), asset.SanitizedFilename);
-        logger.LogInformation("Copying file from {SourceFileName} to {DestFileName}", sourceFileName, destFileName);
-        File.Copy(sourceFileName, destFileName);
+        try
+        {
+            logger.LogInformation("Copying file from {SourceFileName} to {DestFileName}", sourceFileName, destFileName);
+            File.Copy(sourceFileName, destFileName);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to copy <{SourceFileName}> to <{DestinationFileName}>.", sourceFileName, destFileName);
+            throw;
+        }
     }
 }

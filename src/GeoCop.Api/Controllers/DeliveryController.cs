@@ -79,7 +79,15 @@ public class DeliveryController : ControllerBase
             Assets = new List<Asset>(),
         };
 
-        delivery.Assets.AddRange(assetPersistor.PersistJobAssets(declaration.JobId));
+        try
+        {
+            delivery.Assets.AddRange(assetPersistor.PersistJobAssets(declaration.JobId));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while persisting assets for job <{JobId}>.", declaration.JobId);
+            return Problem($"Error while persisting assets for job <{declaration.JobId}>.", statusCode: StatusCodes.Status500InternalServerError);
+        }
 
         var entityEntry = context.Deliveries.Add(delivery);
         context.SaveChanges();
