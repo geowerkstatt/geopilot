@@ -64,7 +64,7 @@ export const Header = ({ clientSettings }) => {
                   <Button className="nav-button" onClick={logout}>
                     ABMELDEN
                   </Button>
-                  <div className="user-info">Angemeldet als {activeAccount?.username}</div>
+                  <div className="user-info">Angemeldet als {activeAccount?.name}</div>
                 </div>
               </AuthenticatedTemplate>
             </Nav>
