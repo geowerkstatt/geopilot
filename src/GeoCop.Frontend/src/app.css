@@ -13,6 +13,7 @@ body {
 
 main {
   min-height: 72vh;
+  width: 100%;
   flex: 1 0 auto;
 }
 

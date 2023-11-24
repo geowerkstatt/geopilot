@@ -67,7 +67,6 @@ export const Admin = () => {
             sx={{
               margin: "20px 35px",
               fontFamily: "system-ui, -apple-syste",
-              overflow: "auto",
             }}
             pagination
             rows={deliveries}
