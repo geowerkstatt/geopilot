@@ -91,8 +91,7 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "A list with available deliveries has been returned.", typeof(List<DeliveryDto>), new[] { "application/json" })]
     public List<DeliveryDto> Get()
     {
-        var deliveries = context.DeliveriesWithIncludes.Select(d => new DeliveryDto(d.Id, d.Date, d.DeclaringUser.AuthIdentifier, d.DeliveryMandate.Name)).ToList();
-        return deliveries;
+        return context.DeliveriesWithIncludes.Select(d => new DeliveryDto(d.Id, d.Date, d.DeclaringUser.AuthIdentifier, d.DeliveryMandate.Name)).ToList();
     }
 
     /// <summary>
