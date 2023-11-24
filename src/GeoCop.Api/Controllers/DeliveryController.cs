@@ -74,7 +74,7 @@ public class DeliveryController : ControllerBase
             Assets = new List<Asset>(),
         };
 
-        delivery.Assets.AddRange(assetPersistor.PersistValidationJobAssets(job.Id));
+        delivery.Assets.AddRange(assetPersistor.PersistJobAssets(declaration.JobId));
 
         var entityEntry = context.Deliveries.Add(delivery);
         context.SaveChanges();

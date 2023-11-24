@@ -36,7 +36,7 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
     }
 
      /// <inheritdoc/>
-    public IEnumerable<Asset> PersistValidationJobAssets(Guid jobId)
+    public IEnumerable<Asset> PersistJobAssets(Guid jobId)
     {
         var assets = new List<Asset>();
         temporaryFileProvider.Initialize(jobId);

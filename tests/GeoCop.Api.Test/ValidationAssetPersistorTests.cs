@@ -54,7 +54,7 @@ public class ValidationAssetPersistorTests
         fileProviderMock.Setup(x => x.Open("TempFileName")).Returns(new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
 
         Assert.IsFalse(Directory.Exists(Path.Combine(assetDirectory, jobId.ToString())));
-        var assets = persistor.PersistValidationJobAssets(jobId);
+        var assets = persistor.PersistJobAssets(jobId);
 
         Assert.IsNotNull(assets);
         var primaryAsset = assets.FirstOrDefault(a => a.AssetType == AssetType.PrimaryData);
@@ -84,7 +84,7 @@ public class ValidationAssetPersistorTests
         validationJobStatus.ValidatorResults.Add("myValidator", validatorResult);
         validationServiceMock.Setup(s => s.GetJobStatus(jobId)).Returns(validationJobStatus);
 
-        var assets = persistor.PersistValidationJobAssets(jobId);
+        var assets = persistor.PersistJobAssets(jobId);
 
         Assert.IsTrue(File.Exists(Path.Combine(assetDirectory, jobId.ToString(), "mylogfile")));
         var logfileAsset = assets.FirstOrDefault(a => a.AssetType == AssetType.ValidationReport);
@@ -106,13 +106,13 @@ public class ValidationAssetPersistorTests
         validationJobStatus.ValidatorResults.Add("myValidator", validatorResult);
         validationServiceMock.Setup(s => s.GetJobStatus(jobId)).Returns(validationJobStatus);
 
-        var assets = persistor.PersistValidationJobAssets(jobId);
+        var assets = persistor.PersistJobAssets(jobId);
     }
 
     [TestMethod]
     [ExpectedException(typeof(InvalidOperationException))]
     public void PersistValidationJobAssetsFailsWithoutJobFiles()
     {
-        var assets = persistor.PersistValidationJobAssets(Guid.NewGuid());
+        var assets = persistor.PersistJobAssets(Guid.NewGuid());
     }
 }
