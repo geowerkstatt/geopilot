@@ -489,6 +489,17 @@ footer {
   margin: auto;
 }
 
+.center-button-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+}
+
 /************ Navbar ************/
 .full-width {
   width: 100%;

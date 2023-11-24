@@ -3,17 +3,6 @@ import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/
 import { Button, Modal } from "react-bootstrap";
 import { GoTrash } from "react-icons/go";
 import { DataGrid, deDE } from "@mui/x-data-grid";
-import styled from "styled-components";
-
-const IconButton = styled(Button)`
-  display: flex;
-  align-items: center;
-`;
-
-const CenterButtonContainer = styled("div")`
-  display: flex;
-  justify-content: center;
-`;
 
 const columns = [
   { field: "id", headerName: "ID", width: 60 },
@@ -43,10 +32,12 @@ export const Admin = () => {
     fetch("/api/v1/delivery", {
       method: "DELETE",
       body: JSON.stringify(selectedRows),
-    }).then((deliveries) => {
-      setDeliveries(deliveries);
-      setSelectedRows([]);
-    });
+    })
+      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then((deliveries) => {
+        setDeliveries(deliveries);
+        setSelectedRows([]);
+      });
   }
 
   return (
@@ -84,8 +75,9 @@ export const Admin = () => {
             />
           )}
           {selectedRows.length > 0 && (
-            <CenterButtonContainer>
-              <IconButton
+            <div className="center-button-container">
+              <Button
+                className="icon-button"
                 onClick={() => {
                   setShowModal(true);
                 }}
@@ -95,8 +87,8 @@ export const Admin = () => {
                   {selectedRows.length} Datenabgabe
                   {selectedRows.length > 1 ? "n" : ""} löschen
                 </div>
-              </IconButton>
-            </CenterButtonContainer>
+              </Button>
+            </div>
           )}
           <Modal show={showModal} animation={false}>
             <Modal.Body>
