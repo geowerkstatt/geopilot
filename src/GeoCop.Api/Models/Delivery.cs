@@ -21,18 +21,15 @@ public class Delivery
     /// <summary>
     /// The user that declared the delivery.
     /// </summary>
-    [JsonIgnore]
     public User DeclaringUser { get; set; } = new User();
 
     /// <summary>
     /// The mandate the delivery fulfills.
     /// </summary>
-    [JsonIgnore]
     public DeliveryMandate DeliveryMandate { get; set; } = new DeliveryMandate();
 
     /// <summary>
     /// Assets delivered or created by the validation and delivery process.
     /// </summary>
-    [JsonIgnore]
     public List<Asset> Assets { get; set; } = new List<Asset>();
 }

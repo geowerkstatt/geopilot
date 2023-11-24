@@ -80,10 +80,14 @@ public class DeliveryController : ControllerBase
         var entityEntry = context.Deliveries.Add(delivery);
         context.SaveChanges();
 
+        var resultDelivery = context.Deliveries
+            .AsNoTracking()
+            .FirstOrDefault(d => d.Id == entityEntry.Entity.Id);
+
         var location = new Uri(
             string.Format(CultureInfo.InvariantCulture, "/api/v1/delivery/{0}", entityEntry.Entity.Id),
             UriKind.Relative);
 
-        return Created(location, delivery);
+        return Created(location, resultDelivery);
     }
 }
