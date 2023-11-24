@@ -32,12 +32,3 @@ public class Delivery
     /// </summary>
     public List<Asset> Assets { get; set; } = new List<Asset>();
 }
-
-/// <summary>
-/// A delivery DTO of a <see cref="Delivery"/>. Contains all relevant meta information.
-/// </summary>
-/// <param name="id">Id of the delivery</param>
-/// <param name="date">Upload date of the delivery</param>
-/// <param name="declaringUser">Uploading user</param>
-/// <param name="deliveryMandate">Mandate of the delivery</param>
-public record DeliveryDto(int id, DateTime date, string declaringUser, string deliveryMandate);

@@ -23,8 +23,8 @@ const columns = [
     flex: 1,
     minWidth: 150,
   },
-  { field: "declaringUser", headerName: "Abgegeben von", flex: 1, minWidth: 200 },
-  { field: "deliveryMandate", headerName: "Operat", flex: 1, minWidth: 200 },
+  { field: "user", headerName: "Abgegeben von", flex: 1, minWidth: 200 },
+  { field: "mandate", headerName: "Operat", flex: 1, minWidth: 200 },
 ];
 
 export const Admin = () => {
@@ -40,7 +40,14 @@ export const Admin = () => {
       .then((res) => res.ok && res.headers.get("content-type")?.includes("application/json") && res.json())
       .then((deliveries) => {
         if (deliveries) {
-          setDeliveries(deliveries);
+          setDeliveries(
+            deliveries.map((d) => ({
+              id: d.id,
+              date: d.date,
+              user: d.declaringUser.authIdentifier,
+              mandate: d.deliveryMandate.name,
+            })),
+          );
         }
       });
   }

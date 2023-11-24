@@ -1,4 +1,5 @@
 ﻿using NetTopologySuite.Geometries;
+using System.Text.Json.Serialization;
 
 namespace GeoCop.Api.Models;
 
@@ -29,6 +30,7 @@ public class DeliveryMandate
     /// The spatial extent of the mandate. The extent is a polygon in WGS84.
     /// Deliverd data must be within the extent.
     /// </summary>
+    [JsonIgnore]
     public Geometry SpatialExtent { get; set; } = GeometryFactory.Default.CreatePolygon();
 
     /// <summary>
