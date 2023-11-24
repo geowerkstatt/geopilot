@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 namespace GeoCop.Api;
 
 /// <summary>
-/// Migrates files deliverd for validation into a persistent storage.
+/// Migrates files delivered for validation into a persistent storage.
 /// </summary>
 public class ValidationAssetPersistor : IValidationAssetPersistor
 {
@@ -32,7 +32,7 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
         uploadDirecory = configuration.GetValue<string>("Storage:UploadDirectory")
             ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
         assetDicrectory = configuration.GetValue<string>("Storage:AssetsDirectory")
-            ?? throw new InvalidOperationException("Missing root directory for persited assets, the value can be configured as \"Storage:AssetsDirectory\"");
+            ?? throw new InvalidOperationException("Missing root directory for persisted assets, the value can be configured as \"Storage:AssetsDirectory\"");
     }
 
      /// <inheritdoc/>

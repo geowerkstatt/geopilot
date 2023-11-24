@@ -11,7 +11,7 @@ namespace GeoCop.Api
         /// Migrates all log files for a validation job into a persistent storage.
         /// </summary>
         /// <param name="jobId">The validation job id.</param>
-        /// <returns>List of Assets representing the validation job assets in persistent storage.</returns>
+        /// <returns>List of <see cref="Asset" /> representing the validation job assets in persistent storage.</returns>
         IEnumerable<Asset> PersistJobAssets(Guid jobId);
     }
 }
