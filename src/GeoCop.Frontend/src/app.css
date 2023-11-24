@@ -555,10 +555,6 @@ footer {
 
 }
 
-.active .nav-link {
-  color: #007cc3 !important;
-}
-
 .nav-link {
   font-family: "Dosis", sans-serif;
   font-size: 1.2rem;

@@ -49,15 +49,15 @@ export const Header = ({ clientSettings }) => {
           <Navbar.Collapse id="navbar-nav">
             <div className="navbar-container">
               <Nav className="full-width mr-auto" navbarScroll>
-                <NavLink to="/">
-                  <Nav.Link>DATENABGABE</Nav.Link>
+                <NavLink className="nav-link" to="/">
+                  DATENABGABE
                 </NavLink>
                 <AuthenticatedTemplate>
-                  <NavLink to="/admin">
-                    <Nav.Link>ABGABEÜBERSICHT</Nav.Link>
+                  <NavLink className="nav-link" to="/admin">
+                    ABGABEÜBERSICHT
                   </NavLink>
-                  <NavLink to="/browser">
-                    <Nav.Link>STAC BROWSER</Nav.Link>
+                  <NavLink className="nav-link" to="/browser">
+                    STAC BROWSER
                   </NavLink>
                 </AuthenticatedTemplate>
               </Nav>
