@@ -18,8 +18,7 @@ export const Home = ({
   const [validationRunning, setValidationRunning] = useState(false);
   const [statusInterval, setStatusInterval] = useState(null);
   const [statusData, setStatusData] = useState(null);
-  const [checkedNutzungsbestimmungen, setCheckedNutzungsbestimmungen] =
-    useState(false);
+  const [checkedNutzungsbestimmungen, setCheckedNutzungsbestimmungen] = useState(false);
   const [isFirstValidation, setIsFirstValidation] = useState(true);
   const [log, setLog] = useState([]);
   const [uploadLogsInterval, setUploadLogsInterval] = useState(0);
@@ -28,11 +27,7 @@ export const Home = ({
 
   useEffect(() => {
     fetch("/api/v1/validation")
-      .then(
-        (res) =>
-          res.headers.get("content-type")?.includes("application/json") &&
-          res.json(),
-      )
+      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
       .then((settings) => setValidationSettings(settings));
   }, []);
 
@@ -74,15 +69,9 @@ export const Home = ({
         setIsFirstValidation(false);
       }, 2000);
     }
-  }, [
-    validationRunning,
-    isFirstValidation,
-    setShowBannerContent,
-    setIsFirstValidation,
-  ]);
+  }, [validationRunning, isFirstValidation, setShowBannerContent, setIsFirstValidation]);
 
-  const logUploadLogMessages = () =>
-    updateLog(`${fileToCheck.name} hochladen...`, { disableUploadLogs: false });
+  const logUploadLogMessages = () => updateLog(`${fileToCheck.name} hochladen...`, { disableUploadLogs: false });
   const setIntervalImmediately = (func, interval) => {
     func();
     return setInterval(func, interval);
@@ -131,9 +120,7 @@ export const Home = ({
       }
     } else {
       console.log("Error while uploading file: " + response.json());
-      updateLog(
-        "Der Upload war nicht erfolgreich. Die Validierung wurde abgebrochen.",
-      );
+      updateLog("Der Upload war nicht erfolgreich. Die Validierung wurde abgebrochen.");
       setValidationRunning(false);
     }
   };
@@ -142,10 +129,7 @@ export const Home = ({
     <main>
       <Stack gap={3}>
         <Container className="main-container">
-          <Title
-            clientSettings={clientSettings}
-            quickStartContent={quickStartContent}
-          />
+          <Title clientSettings={clientSettings} quickStartContent={quickStartContent} />
           <FileDropzone
             setUploadLogsEnabled={setUploadLogsEnabled}
             setFileToCheck={setFileToCheck}
@@ -166,10 +150,7 @@ export const Home = ({
           fileName={fileToCheck ? fileToCheck.name : ""}
           validationRunning={validationRunning}
         />
-        <Delivery
-          statusData={statusData}
-          validationRunning={validationRunning}
-        />
+        <Delivery statusData={statusData} validationRunning={validationRunning} />
       </Stack>
     </main>
   );

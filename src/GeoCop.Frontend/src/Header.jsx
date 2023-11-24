@@ -1,9 +1,5 @@
 import { Button, Navbar, Nav, Container } from "react-bootstrap";
-import {
-  AuthenticatedTemplate,
-  UnauthenticatedTemplate,
-  useMsal,
-} from "@azure/msal-react";
+import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
 
 export const Header = ({ clientSettings }) => {
   const { instance } = useMsal();
@@ -24,8 +20,7 @@ export const Header = ({ clientSettings }) => {
   async function logout() {
     try {
       await instance.logoutPopup();
-      document.cookie =
-        "geocop.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
+      document.cookie = "geocop.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
     } catch (error) {
       console.warn(error);
     }
@@ -33,23 +28,11 @@ export const Header = ({ clientSettings }) => {
 
   return (
     <header>
-      <Navbar
-        expand="md"
-        className="full-width justify-content-between"
-        sticky="top"
-      >
+      <Navbar expand="md" className="full-width justify-content-between" sticky="top">
         <Container fluid>
-          <Navbar.Brand
-            href={clientSettings?.vendor?.url}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <Navbar.Brand href={clientSettings?.vendor?.url} target="_blank" rel="noreferrer">
             {clientSettings?.vendor?.logo && (
-              <a
-                href={clientSettings?.vendor?.url}
-                target="_blank"
-                rel="noreferrer"
-              >
+              <a href={clientSettings?.vendor?.url} target="_blank" rel="noreferrer">
                 <img
                   className="vendor-logo"
                   src={clientSettings?.vendor?.logo}
@@ -81,9 +64,7 @@ export const Header = ({ clientSettings }) => {
                   <Button className="nav-button" onClick={logout}>
                     ABMELDEN
                   </Button>
-                  <div className="user-info">
-                    Angemeldet als {activeAccount?.username}
-                  </div>
+                  <div className="user-info">Angemeldet als {activeAccount?.username}</div>
                 </div>
               </AuthenticatedTemplate>
             </Nav>
