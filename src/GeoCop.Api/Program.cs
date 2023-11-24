@@ -154,7 +154,10 @@ if (app.Environment.IsDevelopment())
     app.UseCors("All");
 
     if (!context.DeliveryMandates.Any())
+    {
         context.SeedTestData();
+        context.AddCurrentGitUser();
+    }
 }
 else
 {

@@ -35,6 +35,7 @@ Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Optio
 | http://localhost:3080 | interlis-check-service (in docker-compose) | - |
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
+Standardmässig wird in ein Benutzer mit einem `AuthIdentifier` resultierend aus `git config user.email` erstellt. Dieser kann in der Datenbank (Tabelle `Users`) angepasst werden.
 Der STAC Browser ist auch über https://localhost:5173/browser erreichbar und das Cookie kann somit auch da zur Authentifizierung verwendet werden.
 
 ### Debugging 🪲

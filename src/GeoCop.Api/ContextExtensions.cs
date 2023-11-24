@@ -3,6 +3,7 @@ using Bogus.DataSets;
 using GeoCop.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
+using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 
@@ -132,6 +133,32 @@ internal static class ContextExtensions
         }
 
         context.Assets.AddRange(assets);
+        context.SaveChanges();
+    }
+
+    public static void AddCurrentGitUser(this Context context)
+    {
+        var processStartInfo = new ProcessStartInfo
+        {
+            FileName = "git",
+            Arguments = "config user.email",
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+
+        using var process = new Process();
+        process.StartInfo = processStartInfo;
+        process.Start();
+
+        string gitUserName = process.StandardOutput.ReadToEnd().Trim();
+        process.WaitForExit();
+
+        context.Users.Add(new User
+        {
+            AuthIdentifier = gitUserName,
+            Organisations = context.Organisations.Take(2).ToList(),
+        });
         context.SaveChanges();
     }
 }
