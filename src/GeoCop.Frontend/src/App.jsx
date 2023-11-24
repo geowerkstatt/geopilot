@@ -90,7 +90,7 @@ export const App = () => {
     <MsalProvider instance={msalInstance}>
       <div className="app">
         <Router>
-          <Header clientSettings={clientSettings}></Header>
+          <Header clientSettings={clientSettings} />
           <Routes>
             <Route
               exact
