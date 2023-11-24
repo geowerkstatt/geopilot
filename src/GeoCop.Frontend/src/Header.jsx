@@ -1,5 +1,6 @@
 import { Button, Navbar, Nav, Container } from "react-bootstrap";
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
+import { NavLink } from "react-router-dom";
 
 export const Header = ({ clientSettings }) => {
   const { instance } = useMsal();
@@ -47,10 +48,16 @@ export const Header = ({ clientSettings }) => {
           <Navbar.Toggle aria-controls="navbar-nav" />
           <Navbar.Collapse id="navbar-nav">
             <Nav className="full-width mr-auto" navbarScroll>
-              <Nav.Link href="/">DATENABGABE</Nav.Link>
+              <NavLink to="/">
+                <Nav.Link>DATENABGABE</Nav.Link>
+              </NavLink>
               <AuthenticatedTemplate>
-                <Nav.Link href="/admin">ABGABEÜBERSICHT</Nav.Link>
-                <Nav.Link href="/browser">STAC BROWSER</Nav.Link>
+                <NavLink to="/admin">
+                  <Nav.Link>ABGABEÜBERSICHT</Nav.Link>
+                </NavLink>
+                <NavLink to="/browser">
+                  <Nav.Link>STAC BROWSER</Nav.Link>
+                </NavLink>
               </AuthenticatedTemplate>
             </Nav>
             <Nav>
