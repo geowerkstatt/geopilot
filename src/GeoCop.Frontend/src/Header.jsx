@@ -47,34 +47,38 @@ export const Header = ({ clientSettings }) => {
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="navbar-nav" />
           <Navbar.Collapse id="navbar-nav">
-            <Nav className="full-width mr-auto" navbarScroll>
-              <NavLink to="/">
-                <Nav.Link>DATENABGABE</Nav.Link>
-              </NavLink>
-              <AuthenticatedTemplate>
-                <NavLink to="/admin">
-                  <Nav.Link>ABGABEÜBERSICHT</Nav.Link>
+            <div className="navbar-container">
+              <Nav className="full-width mr-auto" navbarScroll>
+                <NavLink to="/">
+                  <Nav.Link>DATENABGABE</Nav.Link>
                 </NavLink>
-                <NavLink to="/browser">
-                  <Nav.Link>STAC BROWSER</Nav.Link>
-                </NavLink>
-              </AuthenticatedTemplate>
-            </Nav>
-            <Nav>
-              <UnauthenticatedTemplate>
-                <Button className="nav-button" onClick={login}>
-                  ANMELDEN
-                </Button>
-              </UnauthenticatedTemplate>
-              <AuthenticatedTemplate>
-                <div className="logged-in-button">
+                <AuthenticatedTemplate>
+                  <NavLink to="/admin">
+                    <Nav.Link>ABGABEÜBERSICHT</Nav.Link>
+                  </NavLink>
+                  <NavLink to="/browser">
+                    <Nav.Link>STAC BROWSER</Nav.Link>
+                  </NavLink>
+                </AuthenticatedTemplate>
+              </Nav>
+              <Nav>
+                <UnauthenticatedTemplate>
+                  <Button className="nav-button" onClick={login}>
+                    ANMELDEN
+                  </Button>
+                </UnauthenticatedTemplate>
+                <AuthenticatedTemplate>
                   <Button className="nav-button" onClick={logout}>
                     ABMELDEN
                   </Button>
-                  <div className="user-info">Angemeldet als {activeAccount?.name}</div>
-                </div>
+                </AuthenticatedTemplate>
+              </Nav>
+            </div>
+            <div className="navbar-info-container">
+              <AuthenticatedTemplate>
+                <div className="user-info">Angemeldet als {activeAccount?.name}</div>
               </AuthenticatedTemplate>
-            </Nav>
+            </div>
           </Navbar.Collapse>
         </Container>
       </Navbar>

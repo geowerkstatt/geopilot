@@ -168,6 +168,7 @@ input {
   .vendor-logo {
     max-height: 70px;
     max-width: 200px;
+    margin: 0 !important;
   }
   .app-logo {
     max-height: 200px;
@@ -505,10 +506,63 @@ footer {
   width: 100%;
 }
 
+.container-fluid {
+  padding: 0 !important;
+}
+
+@media screen and (max-width: 767px) {
+  #navbar-nav {
+    display: none;
+  }
+  
+  .show#navbar-nav {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .show .nav-link {
+    padding: 0.5rem 1rem !important;
+  }
+
+  .nav-button {
+    margin-top: 1rem;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  #navbar-nav {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .navbar-container {
+    display:flex;
+    justify-content: space-between;
+    flex-direction: row;
+    width: 100%;
+    padding-top: 18px;
+  }
+  
+  .navbar-info-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    width: 100%;
+    align-items: center;
+  }
+
+}
+
+.active .nav-link {
+  color: #007cc3 !important;
+}
+
 .nav-link {
   font-family: "Dosis", sans-serif;
   font-size: 1.2rem;
-  padding: 1rem 1rem !important;
+  padding: 0 1rem !important;
   white-space: nowrap;
   overflow: auto;
 }
@@ -520,32 +574,18 @@ footer {
   text-decoration-line: none;
   font-family: "Dosis", sans-serif;
   font-size: 1.2rem;
-  padding: 0.5rem 1rem !important;
+  padding: 0 !important;
 }
 
 .nav-button:hover {
   color: rgba(0, 0, 0, 0.8);
 }
 
-@media screen and (min-width: 768px) {
-  .logged-in-button {
-    align-items: end;
-  }
-}
-
-.logged-in-button {
-  display: flex;
-  flex-direction: column;
-  justify-content: end;
-}
-
 .user-info {
   font-family: "Dosis", sans-serif;
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: auto;
-  margin: auto;
-  padding-top: 0.5rem;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.65);
+  cursor: default;
 }
 
 .logged-in-button .nav-button {
