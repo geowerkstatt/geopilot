@@ -38,14 +38,15 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
      /// <inheritdoc/>
     public IEnumerable<Asset> PersistJobAssets(Guid jobId)
     {
-        var assets = new List<Asset>();
-        temporaryFileProvider.Initialize(jobId);
-        Directory.CreateDirectory(Path.Combine(assetDicrectory, jobId.ToString()));
         var job = validationService.GetJob(jobId);
         var jobStatus = validationService.GetJobStatus(jobId);
 
         if (jobStatus is null || job is null)
             throw new InvalidOperationException($"Validation job with id {jobId} not found.");
+
+        var assets = new List<Asset>();
+        temporaryFileProvider.Initialize(jobId);
+        Directory.CreateDirectory(Path.Combine(assetDicrectory, jobId.ToString()));
 
         assets.Add(PersistPrimaryValidationJobAsset(job));
         assets.AddRange(PersistValidationJobValidatorAssets(jobStatus));
