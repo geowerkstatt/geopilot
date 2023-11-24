@@ -42,9 +42,8 @@ public class DeliveryController : ControllerBase
     {
         logger.LogTrace("Declaration for job <{JobId}> requested.", declaration.JobId);
 
-        var job = validatorService.GetJob(declaration.JobId);
         var jobStatus = validatorService.GetJobStatus(declaration.JobId);
-        if (jobStatus == default || job == default)
+        if (jobStatus == default)
         {
             logger.LogTrace("No job information available for job id <{JobId}>.", declaration.JobId);
             return Problem($"No job information available for job id <{declaration.JobId}>", statusCode: StatusCodes.Status404NotFound);
