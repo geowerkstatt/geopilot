@@ -23,8 +23,8 @@ const columns = [
     flex: 1,
     minWidth: 150,
   },
-  { field: "declaringUser", headerName: "Abgegeben von", flex: 1 },
-  { field: "deliveryMandate", headerName: "Operat", flex: 1 },
+  { field: "declaringUser", headerName: "Abgegeben von", flex: 1, minWidth: 200 },
+  { field: "deliveryMandate", headerName: "Operat", flex: 1, minWidth: 200 },
 ];
 
 export const Admin = () => {
