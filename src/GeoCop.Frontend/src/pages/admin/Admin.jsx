@@ -6,7 +6,23 @@ import { DataGrid, deDE } from "@mui/x-data-grid";
 
 const columns = [
   { field: "id", headerName: "ID", width: 60 },
-  { field: "date", headerName: "Abgabedatum", flex: 1 },
+  {
+    field: "date",
+    headerName: "Abgabedatum",
+    valueFormatter: (params) => {
+      const date = new Date(params.value);
+      return (
+        `${date.getHours().toString().padStart(2, "0")}:` +
+        `${date.getMinutes().toString().padStart(2, "0")}:` +
+        `${date.getSeconds().toString().padStart(2, "0")} ` +
+        `${date.getDate().toString().padStart(2, "0")}.` +
+        `${(date.getMonth() + 1).toString().padStart(2, "0")}.` +
+        `${date.getFullYear()}`
+      );
+    },
+    flex: 1,
+    minWidth: 150,
+  },
   { field: "declaringUser", headerName: "Abgegeben von", flex: 1 },
   { field: "deliveryMandate", headerName: "Operat", flex: 1 },
 ];
@@ -51,6 +67,7 @@ export const Admin = () => {
             sx={{
               margin: "20px 35px",
               fontFamily: "system-ui, -apple-syste",
+              overflow: "auto",
             }}
             pagination
             rows={deliveries}
