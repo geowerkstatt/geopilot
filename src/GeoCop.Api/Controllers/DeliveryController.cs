@@ -12,7 +12,7 @@ namespace GeoCop.Api.Controllers;
 /// Controller for declaring deliveries.
 /// </summary>
 [ApiController]
-[AllowAnonymous]
+[Authorize]
 [Route("api/v{version:apiVersion}/[controller]")]
 public class DeliveryController : ControllerBase
 {
