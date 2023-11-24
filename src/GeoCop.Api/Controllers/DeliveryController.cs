@@ -13,22 +13,24 @@ namespace GeoCop.Api.Controllers;
 /// Controller for declaring deliveries.
 /// </summary>
 [ApiController]
-[Authorize]
+[AllowAnonymous]
 [Route("api/v{version:apiVersion}/[controller]")]
 public class DeliveryController : ControllerBase
 {
     private readonly ILogger<DeliveryController> logger;
     private readonly Context context;
     private readonly IValidationService validatorService;
+    private readonly IValidationAssetPersistor assetPersistor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IValidationAssetPersistor assetPersistor)
     {
         this.logger = logger;
         this.context = context;
         this.validatorService = validatorService;
+        this.assetPersistor = assetPersistor;
     }
 
     /// <summary>
@@ -41,13 +43,14 @@ public class DeliveryController : ControllerBase
     {
         logger.LogTrace("Declaration for job <{JobId}> requested.", declaration.JobId);
 
-        var job = validatorService.GetJobStatus(declaration.JobId);
-        if (job == default)
+        var job = validatorService.GetJob(declaration.JobId);
+        var jobStatus = validatorService.GetJobStatus(declaration.JobId);
+        if (jobStatus == default || job == default)
         {
             logger.LogTrace("No job information available for job id <{JobId}>.", declaration.JobId);
             return Problem($"No job information available for job id <{declaration.JobId}>", statusCode: StatusCodes.Status404NotFound);
         }
-        else if (job.Status != Status.Completed)
+        else if (jobStatus.Status != Status.Completed)
         {
             logger.LogTrace("Job <{JobId}> is not completed.", declaration.JobId);
             return Problem($"Job <{declaration.JobId}> is not completed.", statusCode: StatusCodes.Status400BadRequest);
@@ -73,6 +76,8 @@ public class DeliveryController : ControllerBase
             Assets = new List<Asset>(),
         };
 
+        delivery.Assets.AddRange(assetPersistor.PersistValidationJobAssets(job.Id));
+
         var entityEntry = context.Deliveries.Add(delivery);
         context.SaveChanges();
 
@@ -80,7 +85,7 @@ public class DeliveryController : ControllerBase
             string.Format(CultureInfo.InvariantCulture, "/api/v1/delivery/{0}", entityEntry.Entity.Id),
             UriKind.Relative);
 
-        return Created(location, entityEntry.Entity);
+        return Created(location, delivery);
     }
 
     /// <summary>
