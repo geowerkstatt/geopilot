@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using GeoCop.Api;
+using GeoCop.Api.Authorization;
 using GeoCop.Api.Conventions;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
@@ -52,6 +53,7 @@ builder.Services
     {
         options.Authority = builder.Configuration["Auth:Authority"];
         options.Audience = builder.Configuration["Auth:ClientId"];
+        options.MapInboundClaims = false;
 
         options.Events = new JwtBearerEvents
         {
@@ -95,6 +97,24 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services
     .AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy =>
+    {
+        policy.Requirements.Add(new GeocopUserRequirement
+        {
+            RequireAdmin = true,
+        });
+    });
+    options.AddPolicy("User", policy =>
+    {
+        policy.Requirements.Add(new GeocopUserRequirement());
+    });
+
+    options.DefaultPolicy = options.GetPolicy("Admin") ?? throw new InvalidOperationException("Missing Admin authorization policy");
+});
+builder.Services.AddTransient<IAuthorizationHandler, GeocopUserHandler>();
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");

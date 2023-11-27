@@ -4,12 +4,26 @@ using GeoCop.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using System.Globalization;
+using System.Security.Claims;
 using System.Security.Cryptography;
 
 namespace GeoCop.Api;
 
 internal static class ContextExtensions
 {
+    public const string UserIdClaim = "oid";
+
+    public static async Task<User?> GetUserByPrincipalAsync(this Context context, ClaimsPrincipal principal)
+    {
+        var userId = principal.Claims.FirstOrDefault(claim => claim.Type == UserIdClaim)?.Value;
+        if (userId == null)
+        {
+            return null;
+        }
+
+        return await context.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == userId);
+    }
+
     public static void SeedTestData(this Context context)
     {
         var transaction = context.Database.BeginTransaction();
