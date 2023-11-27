@@ -1,4 +1,4 @@
-/************ Base Layout ************/
+﻿/************ Base Layout ************/
 body {
   text-align: center;
   background: #eaeff27a;
@@ -484,6 +484,10 @@ footer {
   justify-content: center;
   align-items: center;
   height: 100vh;
+}
+
+.MuiDataGrid-root {
+  height: auto !important;
 }
 
 .MuiTablePagination-toolbar p {
