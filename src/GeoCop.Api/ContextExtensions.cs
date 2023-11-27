@@ -12,16 +12,33 @@ namespace GeoCop.Api;
 internal static class ContextExtensions
 {
     public const string UserIdClaim = "oid";
+    private const string NameClaim = "name";
+    private const string EmailClaim = "email";
 
     public static async Task<User?> GetUserByPrincipalAsync(this Context context, ClaimsPrincipal principal)
     {
         var userId = principal.Claims.FirstOrDefault(claim => claim.Type == UserIdClaim)?.Value;
-        if (userId == null)
+        var name = principal.Claims.FirstOrDefault(claim => claim.Type == NameClaim)?.Value;
+        var email = principal.Claims.FirstOrDefault(claim => claim.Type == EmailClaim)?.Value;
+        if (userId == null || name == null || email == null)
         {
             return null;
         }
 
-        return await context.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == userId);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == userId);
+        if (user == null)
+        {
+            return null;
+        }
+
+        if (user.Email != email || user.FullName != name)
+        {
+            user.Email = email;
+            user.FullName = name;
+            await context.SaveChangesAsync();
+        }
+
+        return user;
     }
 
     public static void SeedTestData(this Context context)
