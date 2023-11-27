@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using GeoCop.Api.Authorization;
 using GeoCop.Api.Contracts;
 using GeoCop.Api.Models;
 using GeoCop.Api.Validation;
@@ -13,7 +14,7 @@ namespace GeoCop.Api.Controllers;
 /// Controller for declaring deliveries.
 /// </summary>
 [ApiController]
-[Authorize(Policy = "User")]
+[Authorize(Policy = GeocopPolicies.User)]
 [Route("api/v{version:apiVersion}/[controller]")]
 public class DeliveryController : ControllerBase
 {

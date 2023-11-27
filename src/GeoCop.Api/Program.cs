@@ -34,7 +34,7 @@ builder.Services.AddCors(options =>
 builder.Services
     .AddControllers(options =>
     {
-        options.Conventions.Add(new StacRoutingConvention("Admin"));
+        options.Conventions.Add(new StacRoutingConvention(GeocopPolicies.Admin));
         options.Conventions.Add(new GeocopJsonConvention());
 
         var policy = new AuthorizationPolicyBuilder()
@@ -101,19 +101,19 @@ builder.Services
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("Admin", policy =>
+    options.AddPolicy(GeocopPolicies.Admin, policy =>
     {
         policy.Requirements.Add(new GeocopUserRequirement
         {
             RequireAdmin = true,
         });
     });
-    options.AddPolicy("User", policy =>
+    options.AddPolicy(GeocopPolicies.User, policy =>
     {
         policy.Requirements.Add(new GeocopUserRequirement());
     });
 
-    options.DefaultPolicy = options.GetPolicy("Admin") ?? throw new InvalidOperationException("Missing Admin authorization policy");
+    options.DefaultPolicy = options.GetPolicy(GeocopPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");
 });
 builder.Services.AddTransient<IAuthorizationHandler, GeocopUserHandler>();
 
