@@ -11,10 +11,17 @@ namespace GeoCop.Api;
 
 internal static class ContextExtensions
 {
-    public const string UserIdClaim = "oid";
+    internal const string UserIdClaim = "oid";
     private const string NameClaim = "name";
     private const string EmailClaim = "email";
 
+    /// <summary>
+    /// Retreives the user that matches the provided principal from the database.
+    /// Automatically updates the user information in the database if it has changed.
+    /// </summary>
+    /// <param name="context">The database context.</param>
+    /// <param name="principal">The user principal.</param>
+    /// <returns>The matching <see cref="User"/> from the database or <c>null</c>.</returns>
     public static async Task<User?> GetUserByPrincipalAsync(this Context context, ClaimsPrincipal principal)
     {
         var userId = principal.Claims.FirstOrDefault(claim => claim.Type == UserIdClaim)?.Value;
@@ -33,6 +40,7 @@ internal static class ContextExtensions
 
         if (user.Email != email || user.FullName != name)
         {
+            // Update user information in database from provided principal
             user.Email = email;
             user.FullName = name;
             await context.SaveChangesAsync();
