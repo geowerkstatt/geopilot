@@ -1,7 +1,7 @@
 import { PublicClientApplication } from "@azure/msal-browser";
-import { MsalProvider } from "@azure/msal-react";
+import { AuthenticatedTemplate, UnauthenticatedTemplate, MsalProvider } from "@azure/msal-react";
 import { useEffect, useMemo, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import BannerContent from "./BannerContent";
 import Footer from "./Footer";
 import Header from "./Header";
@@ -89,8 +89,8 @@ export const App = () => {
   return (
     <MsalProvider instance={msalInstance}>
       <div className="app">
-        <Header clientSettings={clientSettings}></Header>
         <Router>
+          <Header clientSettings={clientSettings} />
           <Routes>
             <Route
               exact
@@ -105,8 +105,17 @@ export const App = () => {
                 />
               }
             />
-            <Route path="/admin" element={<Admin />} />
           </Routes>
+          <UnauthenticatedTemplate>
+            <Routes>
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </UnauthenticatedTemplate>
+          <AuthenticatedTemplate>
+            <Routes>
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+          </AuthenticatedTemplate>
         </Router>
         <Footer
           openModalContent={openModalContent}

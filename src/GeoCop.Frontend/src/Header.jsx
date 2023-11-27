@@ -1,5 +1,6 @@
-import { Button, Navbar, Nav, Container } from "react-bootstrap";
+﻿import { Button, Navbar, Nav, Container } from "react-bootstrap";
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
+import { NavLink } from "react-router-dom";
 
 export const Header = ({ clientSettings }) => {
   const { instance } = useMsal();
@@ -30,44 +31,52 @@ export const Header = ({ clientSettings }) => {
     <header>
       <Navbar expand="md" className="full-width justify-content-between" sticky="top">
         <Container fluid>
-          <Navbar.Brand href={clientSettings?.vendor?.url} target="_blank" rel="noreferrer">
-            {clientSettings?.vendor?.logo && (
-              <a href={clientSettings?.vendor?.url} target="_blank" rel="noreferrer">
-                <img
-                  className="vendor-logo"
-                  src={clientSettings?.vendor?.logo}
-                  alt={`Logo of ${clientSettings?.vendor?.name}`}
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                  }}
-                />
-              </a>
-            )}
-          </Navbar.Brand>
+          {clientSettings?.vendor?.logo && (
+            <Navbar.Brand href={clientSettings?.vendor?.url} target="_blank" rel="noreferrer">
+              <img
+                className="vendor-logo"
+                src={clientSettings?.vendor?.logo}
+                alt={`Logo of ${clientSettings?.vendor?.name}`}
+                onError={(e) => {
+                  e.target.style.display = "none";
+                }}
+              />
+            </Navbar.Brand>
+          )}
           <Navbar.Toggle aria-controls="navbar-nav" />
           <Navbar.Collapse id="navbar-nav">
-            <Nav className="full-width mr-auto" navbarScroll>
-              <Nav.Link href="/">DATENABGABE</Nav.Link>
-              <AuthenticatedTemplate>
-                <Nav.Link href="/admin">ABGABEÜBERSICHT</Nav.Link>
-                <Nav.Link href="/browser">STAC BROWSER</Nav.Link>
-              </AuthenticatedTemplate>
-            </Nav>
-            <Nav>
-              <UnauthenticatedTemplate>
-                <Button className="nav-button" onClick={login}>
-                  ANMELDEN
-                </Button>
-              </UnauthenticatedTemplate>
-              <AuthenticatedTemplate>
-                <div className="logged-in-button">
+            <div className="navbar-container">
+              <Nav className="full-width mr-auto" navbarScroll>
+                <NavLink className="nav-link" to="/">
+                  DATENABGABE
+                </NavLink>
+                <AuthenticatedTemplate>
+                  <NavLink className="nav-link" to="/admin">
+                    ABGABEÜBERSICHT
+                  </NavLink>
+                  <NavLink className="nav-link" to="/browser">
+                    STAC BROWSER
+                  </NavLink>
+                </AuthenticatedTemplate>
+              </Nav>
+              <Nav>
+                <UnauthenticatedTemplate>
+                  <Button className="nav-button" onClick={login}>
+                    ANMELDEN
+                  </Button>
+                </UnauthenticatedTemplate>
+                <AuthenticatedTemplate>
                   <Button className="nav-button" onClick={logout}>
                     ABMELDEN
                   </Button>
-                  <div className="user-info">Angemeldet als {activeAccount?.username}</div>
-                </div>
+                </AuthenticatedTemplate>
+              </Nav>
+            </div>
+            <div className="navbar-info-container">
+              <AuthenticatedTemplate>
+                <div className="user-info">Angemeldet als {activeAccount?.name}</div>
               </AuthenticatedTemplate>
-            </Nav>
+            </div>
           </Navbar.Collapse>
         </Container>
       </Navbar>

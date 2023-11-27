@@ -93,11 +93,10 @@ public class DeliveryController : ControllerBase
     /// </summary>
     /// <returns>A list of <see cref="Delivery"/>.</returns>
     [HttpGet]
-    [SwaggerResponse(StatusCodes.Status200OK, "A list with available deliveries has been returned.", typeof(List<DeliveryDto>), new[] { "application/json" })]
-    public List<DeliveryDto> Get()
+    [SwaggerResponse(StatusCodes.Status200OK, "A list with available deliveries has been returned.", typeof(List<Delivery>), new[] { "application/json" })]
+    public List<Delivery> Get()
     {
-        var deliveries = context.DeliveriesWithIncludes.Select(d => new DeliveryDto(d.Id, d.Date, d.DeclaringUser.AuthIdentifier, d.DeliveryMandate.Name)).ToList();
-        return deliveries;
+        return context.DeliveriesWithIncludes;
     }
 
     /// <summary>

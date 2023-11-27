@@ -12,6 +12,8 @@ Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
 ✔️ Docker  
 ✔️ Visual Studio 2022 (Erweiterungen ASP.NET & web dev, Node.js development, Container dev tools)
 
+Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Options/Text Editor/Javascript/Linting/General` _Enable ESLint_ auf `true` setzen, resp. im VS Code die _ESLint_-Extension installieren.
+
 ### Starten der Applikation 🚀
 
 Über _Start_ > _Configure Startup Projects_ > _Common Properties_ > _Startup Projects_ müssen _Multiple starup projects_ definiert werden.
