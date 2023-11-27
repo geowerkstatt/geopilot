@@ -1,4 +1,4 @@
-import "./app.css";
+import "../../app.css";
 import { ValidatorResult } from "./ValidatorResult";
 import { useState, useRef, useEffect } from "react";
 import DayJS from "dayjs";

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import InfoCarousel from "./InfoCarousel";
-import "./app.css";
+import "../../app.css";
 import { useEffect } from "react";
 
 export const Title = ({ clientSettings, quickStartContent }) => {

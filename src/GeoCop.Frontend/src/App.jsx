@@ -1,10 +1,12 @@
 import { PublicClientApplication } from "@azure/msal-browser";
-import { MsalProvider } from "@azure/msal-react";
+import { AuthenticatedTemplate, UnauthenticatedTemplate, MsalProvider } from "@azure/msal-react";
 import { useEffect, useMemo, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import BannerContent from "./BannerContent";
 import Footer from "./Footer";
 import Header from "./Header";
-import Home from "./Home";
+import Home from "./pages/home/Home";
+import Admin from "./pages/admin/Admin";
 import ModalContent from "./ModalContent";
 import "./app.css";
 
@@ -87,14 +89,34 @@ export const App = () => {
   return (
     <MsalProvider instance={msalInstance}>
       <div className="app">
-        <Header clientSettings={clientSettings}></Header>
-        <Home
-          clientSettings={clientSettings}
-          nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
-          showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
-          quickStartContent={quickStartContent}
-          setShowBannerContent={setShowBannerContent}
-        />
+        <Router>
+          <Header clientSettings={clientSettings} />
+          <Routes>
+            <Route
+              exact
+              path="/"
+              element={
+                <Home
+                  clientSettings={clientSettings}
+                  nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
+                  showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
+                  quickStartContent={quickStartContent}
+                  setShowBannerContent={setShowBannerContent}
+                />
+              }
+            />
+          </Routes>
+          <UnauthenticatedTemplate>
+            <Routes>
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </UnauthenticatedTemplate>
+          <AuthenticatedTemplate>
+            <Routes>
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+          </AuthenticatedTemplate>
+        </Router>
         <Footer
           openModalContent={openModalContent}
           infoHilfeContent={infoHilfeContent}
