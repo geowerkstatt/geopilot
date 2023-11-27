@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GeoCop.Api.Migrations
 {
     [DbContext(typeof(Context))]
-    [Migration("20231127111054_UserInformation")]
+    [Migration("20231127155720_UserInformation")]
     partial class UserInformation
     {
         /// <inheritdoc />
@@ -92,6 +92,9 @@ namespace GeoCop.Api.Migrations
 
                     b.Property<int>("DeliveryMandateId")
                         .HasColumnType("integer");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
