@@ -54,9 +54,9 @@ export const Header = ({ clientSettings }) => {
                   <NavLink className="nav-link" to="/admin">
                     ABGABEÜBERSICHT
                   </NavLink>
-                  <NavLink className="nav-link" to="/browser">
+                  <a className="nav-link" href="/browser">
                     STAC BROWSER
-                  </NavLink>
+                  </a>
                 </AuthenticatedTemplate>
               </Nav>
               <Nav>
