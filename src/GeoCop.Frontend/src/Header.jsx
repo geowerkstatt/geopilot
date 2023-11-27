@@ -31,9 +31,8 @@ export const Header = ({ clientSettings }) => {
     <header>
       <Navbar expand="md" className="full-width justify-content-between" sticky="top">
         <Container fluid>
+          {clientSettings?.vendor?.logo && (
           <Navbar.Brand href={clientSettings?.vendor?.url} target="_blank" rel="noreferrer">
-            {clientSettings?.vendor?.logo && (
-              <a href={clientSettings?.vendor?.url} target="_blank" rel="noreferrer">
                 <img
                   className="vendor-logo"
                   src={clientSettings?.vendor?.logo}
@@ -42,9 +41,8 @@ export const Header = ({ clientSettings }) => {
                     e.target.style.display = "none";
                   }}
                 />
-              </a>
+            </Navbar.Brand>
             )}
-          </Navbar.Brand>
           <Navbar.Toggle aria-controls="navbar-nav" />
           <Navbar.Collapse id="navbar-nav">
             <div className="navbar-container">
