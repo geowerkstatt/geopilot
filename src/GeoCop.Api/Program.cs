@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using GeoCop.Api;
+using GeoCop.Api.Authorization;
 using GeoCop.Api.Conventions;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
@@ -32,7 +33,7 @@ builder.Services.AddCors(options =>
 builder.Services
     .AddControllers(options =>
     {
-        options.Conventions.Add(new StacRoutingConvention());
+        options.Conventions.Add(new StacRoutingConvention(GeocopPolicies.Admin));
         options.Conventions.Add(new GeocopJsonConvention());
 
         var policy = new AuthorizationPolicyBuilder()
@@ -52,6 +53,7 @@ builder.Services
     {
         options.Authority = builder.Configuration["Auth:Authority"];
         options.Audience = builder.Configuration["Auth:ClientId"];
+        options.MapInboundClaims = false;
 
         options.Events = new JwtBearerEvents
         {
@@ -95,6 +97,26 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services
     .AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(GeocopPolicies.Admin, policy =>
+    {
+        policy.Requirements.Add(new GeocopUserRequirement
+        {
+            RequireAdmin = true,
+        });
+    });
+    options.AddPolicy(GeocopPolicies.User, policy =>
+    {
+        policy.Requirements.Add(new GeocopUserRequirement());
+    });
+
+    var adminPolicy = options.GetPolicy(GeocopPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");
+    options.DefaultPolicy = adminPolicy;
+    options.FallbackPolicy = adminPolicy;
+});
+builder.Services.AddTransient<IAuthorizationHandler, GeocopUserHandler>();
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
@@ -157,6 +179,8 @@ if (app.Environment.IsDevelopment())
 
     if (!context.DeliveryMandates.Any())
         context.SeedTestData();
+
+    app.UseMiddleware<DevelopmentAuthorizationMiddleware>();
 }
 else
 {
@@ -168,8 +192,6 @@ else
 }
 
 app.UseHttpsRedirection();
-
-app.UseAuthorization();
 
 app.Use(async (context, next) =>
 {
@@ -186,6 +208,8 @@ app.Use(async (context, next) =>
         await next(context);
     }
 });
+
+app.UseAuthorization();
 
 app.MapControllers();
 
