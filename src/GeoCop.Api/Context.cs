@@ -40,6 +40,7 @@ public class Context : DbContext
         get
         {
             return Deliveries
+                .Where(d => !d.Deleted)
                 .Include(d => d.DeliveryMandate)
                 .Include(d => d.Assets)
                 .Include(d => d.DeclaringUser)
