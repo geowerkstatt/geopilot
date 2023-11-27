@@ -97,6 +97,7 @@ internal static class ContextExtensions
         var deliveryFaker = new Faker<Delivery>()
             .StrictMode(true)
             .RuleFor(d => d.Id, 0)
+            .RuleFor(d => d.JobId, f => f.Random.Guid())
             .RuleFor(d => d.Date, f => f.Date.Past().ToUniversalTime())
             .RuleFor(d => d.DeliveryMandate, f => f.PickRandom(deliveryContracts))
             .RuleFor(d => d.DeclaringUser, (f, d) => f.PickRandom(
