@@ -1,12 +1,11 @@
 ﻿using GeoCop.Api.Models;
 using GeoCop.Api.Validation;
-using NetTopologySuite.Utilities;
 using System.Security.Cryptography;
 
 namespace GeoCop.Api;
 
 /// <summary>
-/// Migrates files deliverd for validation into a persistent storage.
+/// Migrates files delivered for validation into a persistent storage.
 /// </summary>
 public class ValidationAssetPersistor : IValidationAssetPersistor
 {
@@ -32,20 +31,21 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
         uploadDirecory = configuration.GetValue<string>("Storage:UploadDirectory")
             ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
         assetDicrectory = configuration.GetValue<string>("Storage:AssetsDirectory")
-            ?? throw new InvalidOperationException("Missing root directory for persited assets, the value can be configured as \"Storage:AssetsDirectory\"");
+            ?? throw new InvalidOperationException("Missing root directory for persisted assets, the value can be configured as \"Storage:AssetsDirectory\"");
     }
 
      /// <inheritdoc/>
-    public IEnumerable<Asset> PersistValidationJobAssets(Guid jobId)
+    public IEnumerable<Asset> PersistJobAssets(Guid jobId)
     {
-        var assets = new List<Asset>();
-        temporaryFileProvider.Initialize(jobId);
-        Directory.CreateDirectory(Path.Combine(assetDicrectory, jobId.ToString()));
         var job = validationService.GetJob(jobId);
         var jobStatus = validationService.GetJobStatus(jobId);
 
         if (jobStatus is null || job is null)
             throw new InvalidOperationException($"Validation job with id {jobId} not found.");
+
+        var assets = new List<Asset>();
+        temporaryFileProvider.Initialize(jobId);
+        Directory.CreateDirectory(Path.Combine(assetDicrectory, jobId.ToString()));
 
         assets.Add(PersistPrimaryValidationJobAsset(job));
         assets.AddRange(PersistValidationJobValidatorAssets(jobStatus));
@@ -105,7 +105,15 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
     {
         var sourceFileName = Path.Combine(uploadDirecory, id.ToString(), asset.SanitizedFilename);
         var destFileName = Path.Combine(assetDicrectory, id.ToString(), asset.SanitizedFilename);
-        logger.LogInformation("Copying file from {SourceFileName} to {DestFileName}", sourceFileName, destFileName);
-        File.Copy(sourceFileName, destFileName);
+        try
+        {
+            logger.LogInformation("Copying file from {SourceFileName} to {DestFileName}", sourceFileName, destFileName);
+            File.Copy(sourceFileName, destFileName);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Failed to copy <{SourceFileName}> to <{DestinationFileName}>.", sourceFileName, destFileName);
+            throw;
+        }
     }
 }

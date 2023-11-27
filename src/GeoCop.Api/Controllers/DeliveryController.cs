@@ -13,7 +13,7 @@ namespace GeoCop.Api.Controllers;
 /// Controller for declaring deliveries.
 /// </summary>
 [ApiController]
-[AllowAnonymous]
+[Authorize]
 [Route("api/v{version:apiVersion}/[controller]")]
 public class DeliveryController : ControllerBase
 {
@@ -39,13 +39,16 @@ public class DeliveryController : ControllerBase
     /// <param name="declaration"><see cref="DeliveryRequest"/> containing all information for the declaration process.</param>
     /// <returns>Created <see cref="Delivery"/>.</returns>
     [HttpPost]
+    [SwaggerResponse(StatusCodes.Status201Created, "The delivery was created successfully.")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job or mandate could be found.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
     public IActionResult Create(DeliveryRequest declaration)
     {
         logger.LogTrace("Declaration for job <{JobId}> requested.", declaration.JobId);
 
-        var job = validatorService.GetJob(declaration.JobId);
         var jobStatus = validatorService.GetJobStatus(declaration.JobId);
-        if (jobStatus == default || job == default)
+        if (jobStatus == default)
         {
             logger.LogTrace("No job information available for job id <{JobId}>.", declaration.JobId);
             return Problem($"No job information available for job id <{declaration.JobId}>", statusCode: StatusCodes.Status404NotFound);
@@ -76,16 +79,28 @@ public class DeliveryController : ControllerBase
             Assets = new List<Asset>(),
         };
 
-        delivery.Assets.AddRange(assetPersistor.PersistValidationJobAssets(job.Id));
+        try
+        {
+            delivery.Assets.AddRange(assetPersistor.PersistJobAssets(declaration.JobId));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error while persisting assets for job <{JobId}>.", declaration.JobId);
+            return Problem($"Error while persisting assets for job <{declaration.JobId}>.", statusCode: StatusCodes.Status500InternalServerError);
+        }
 
         var entityEntry = context.Deliveries.Add(delivery);
         context.SaveChanges();
+
+        var resultDelivery = context.Deliveries
+            .AsNoTracking()
+            .FirstOrDefault(d => d.Id == entityEntry.Entity.Id);
 
         var location = new Uri(
             string.Format(CultureInfo.InvariantCulture, "/api/v1/delivery/{0}", entityEntry.Entity.Id),
             UriKind.Relative);
 
-        return Created(location, delivery);
+        return Created(location, resultDelivery);
     }
 
     /// <summary>

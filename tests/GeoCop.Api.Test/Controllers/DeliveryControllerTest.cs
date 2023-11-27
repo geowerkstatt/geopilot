@@ -108,7 +108,7 @@ public class DeliveryControllerTest
             .Setup(s => s.GetJobStatus(guid))
             .Returns(new ValidationJobStatus(guid) { JobId = guid, Status = Status.Completed });
         validationAssetPersistorMock
-            .Setup(p => p.PersistValidationJobAssets(guid))
+            .Setup(p => p.PersistJobAssets(guid))
             .Returns(new List<Asset> { new Asset(), new Asset() });
         var startTime = DateTime.Now;
 
