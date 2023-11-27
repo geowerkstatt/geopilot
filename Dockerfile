@@ -44,6 +44,7 @@ ENV HOME=/app
 ENV TZ=Europe/Zurich
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV Storage__UploadDirectory=/uploads
+ENV Storage__AssetsDirectory=/assets
 WORKDIR ${HOME}
 
 # Install missing packages
@@ -59,9 +60,11 @@ RUN \
  useradd --uid 941 --user-group --home $HOME --shell /bin/bash abc && \
  usermod --groups users abc && \
  mkdir -p $Storage__UploadDirectory
+ mkdir -p $Storage__AssetsDirectory
 
 EXPOSE 80
 VOLUME $Storage__UploadDirectory
+VOLUME $Storage__AssetsDirectory
 
 # Set default locale
 ENV LANG=C.UTF-8

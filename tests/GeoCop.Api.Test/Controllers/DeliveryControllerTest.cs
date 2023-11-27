@@ -14,6 +14,7 @@ namespace GeoCop.Api.Controllers;
 public class DeliveryControllerTest
 {
     private Mock<IValidationService> validationServiceMock;
+    private Mock<IValidationAssetPersistor> validationAssetPersistorMock;
     private Mock<ILogger<DeliveryController>> loggerMock;
     private DeliveryController deliveryController;
     private Context context;
@@ -23,8 +24,9 @@ public class DeliveryControllerTest
     {
         loggerMock = new Mock<ILogger<DeliveryController>>();
         validationServiceMock = new Mock<IValidationService>();
+        validationAssetPersistorMock = new Mock<IValidationAssetPersistor>();
         context = Initialize.DbFixture.GetTestContext();
-        deliveryController = new DeliveryController(loggerMock.Object, context, validationServiceMock.Object);
+        deliveryController = new DeliveryController(loggerMock.Object, context, validationServiceMock.Object, validationAssetPersistorMock.Object);
     }
 
     public void Cleanup()
@@ -40,6 +42,9 @@ public class DeliveryControllerTest
     public void CreateFailsJobNotCompleted(Status status, int resultCode)
     {
         var guid = Guid.NewGuid();
+        validationServiceMock
+            .Setup(s => s.GetJob(guid))
+            .Returns(new ValidationJob(guid, "OriginalName", "TempFileName"));
         validationServiceMock
             .Setup(s => s.GetJobStatus(guid))
             .Returns(new ValidationJobStatus(guid) { Status = status });
@@ -97,8 +102,14 @@ public class DeliveryControllerTest
     {
         var guid = Guid.NewGuid();
         validationServiceMock
+            .Setup(s => s.GetJob(guid))
+            .Returns(new ValidationJob(guid, "OriginalName", "TempFileName"));
+        validationServiceMock
             .Setup(s => s.GetJobStatus(guid))
-            .Returns(new ValidationJobStatus(guid) { Status = Status.Completed });
+            .Returns(new ValidationJobStatus(guid) { JobId = guid, Status = Status.Completed });
+        validationAssetPersistorMock
+            .Setup(p => p.PersistJobAssets(guid))
+            .Returns(new List<Asset> { new Asset(), new Asset() });
         var startTime = DateTime.Now;
 
         var dummyUserWithMandates = context.Users

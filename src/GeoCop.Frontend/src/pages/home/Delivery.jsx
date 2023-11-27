@@ -21,9 +21,25 @@ export const Delivery = ({ statusData, validationRunning }) => {
     }
   }, [statusData?.status, validationRunning]);
 
-  const executeDelivery = () => {
+  const executeDelivery = async () => {
     setDeliveryState(DeliveryState.Running);
-    setTimeout(() => setDeliveryState(DeliveryState.Completed), 600);
+    try {
+      var response = await fetch("api/v1/delivery", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          JobId: statusData.jobId,
+          DeliveryMandateId: 1,
+        }),
+      });
+      if (response.status == 201) {
+        setDeliveryState(DeliveryState.Completed);
+      }
+    } catch (error) {
+      setDeliveryState(DeliveryState.Available);
+    }
   };
 
   return (
