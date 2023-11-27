@@ -13,7 +13,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -181,24 +180,7 @@ if (app.Environment.IsDevelopment())
     if (!context.DeliveryMandates.Any())
         context.SeedTestData();
 
-    app.Use(async (context, next) =>
-    {
-        if (context.User.Identity?.IsAuthenticated == true)
-        {
-            // Automatically authorize as the first user in development
-            var dbContext = context.RequestServices.GetRequiredService<Context>();
-            var firstDbUser = await dbContext.Users
-                .OrderBy(user => user.Id)
-                .FirstAsync();
-            var claims = context.User.Claims
-                .Where(claim => claim.Type != ContextExtensions.UserIdClaim)
-                .Append(new Claim(ContextExtensions.UserIdClaim, firstDbUser.AuthIdentifier));
-
-            context.User = new ClaimsPrincipal(new ClaimsIdentity(claims, context.User.Identity.AuthenticationType));
-        }
-
-        await next(context);
-    });
+    app.UseMiddleware<DevelopmentAuthorizationMiddleware>();
 }
 else
 {
