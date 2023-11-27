@@ -132,6 +132,7 @@ public class DeliveryControllerTest
             .FirstOrDefault(d => d.Id == delivery.Id);
 
         Assert.IsNotNull(dbDelivery);
+        Assert.AreEqual(guid, dbDelivery.JobId);
         Assert.AreEqual(DateTimeKind.Utc, dbDelivery.Date.Kind);
         Assert.IsTrue(dbDelivery.Date > startTime.ToUniversalTime() && dbDelivery.Date < DateTime.UtcNow);
     }
