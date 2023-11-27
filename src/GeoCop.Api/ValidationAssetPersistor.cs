@@ -34,7 +34,7 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
             ?? throw new InvalidOperationException("Missing root directory for persisted assets, the value can be configured as \"Storage:AssetsDirectory\"");
     }
 
-     /// <inheritdoc/>
+    /// <inheritdoc/>
     public IEnumerable<Asset> PersistJobAssets(Guid jobId)
     {
         var job = validationService.GetJob(jobId);
@@ -51,6 +51,21 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
         assets.AddRange(PersistValidationJobValidatorAssets(jobStatus));
 
         return assets;
+    }
+
+    /// <inheritdoc/>
+    public void DeleteJobAssets(Guid jobId)
+    {
+        try
+        {
+            Directory.Delete(Path.Combine(assetDicrectory, jobId.ToString()), true);
+        }
+        catch (Exception e)
+        {
+            var message = $"Failed to delete assets for job <{jobId}>.";
+            logger.LogError(e, message);
+            throw new AggregateException(message, e);
+        }
     }
 
     /// <summary>
