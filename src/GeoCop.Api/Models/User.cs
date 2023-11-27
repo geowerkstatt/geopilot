@@ -16,6 +16,21 @@ public class User
     public string AuthIdentifier { get; set; } = string.Empty;
 
     /// <summary>
+    /// The email address of the user.
+    /// </summary>
+    public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The full name of the user.
+    /// </summary>
+    public string FullName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether the user is an administrator.
+    /// </summary>
+    public bool IsAdmin { get; set; }
+
+    /// <summary>
     /// Organisations the user is a member of.
     /// </summary>
     public List<Organisation> Organisations { get; set; } = new List<Organisation>();
