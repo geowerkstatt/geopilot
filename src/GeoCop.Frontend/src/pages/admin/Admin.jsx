@@ -28,14 +28,14 @@ const columns = [
 ];
 
 export const Admin = () => {
-  const [deliveries, setDeliveries] = useState([]);
+  const [deliveries, setDeliveries] = useState(undefined);
   const [selectedRows, setSelectedRows] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
   const { instance } = useMsal();
   const activeAccount = instance.getActiveAccount();
 
-  if (activeAccount && deliveries.length == 0) {
+  if (activeAccount && deliveries == undefined) {
     fetch("/api/v1/delivery")
       .then((res) => res.ok && res.headers.get("content-type")?.includes("application/json") && res.json())
       .then((deliveries) => {
@@ -68,7 +68,7 @@ export const Admin = () => {
   return (
     <>
       <main>
-        {deliveries.length > 0 && (
+        {deliveries?.length > 0 && (
           <DataGrid
             localeText={deDE.components.MuiDataGrid.defaultProps.localeText}
             sx={{
