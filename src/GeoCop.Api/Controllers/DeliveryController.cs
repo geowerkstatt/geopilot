@@ -41,7 +41,7 @@ public class DeliveryController : ControllerBase
     [HttpPost]
     [SwaggerResponse(StatusCodes.Status201Created, "The delivery was created successfully.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
-    [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job or mandate could be found.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job or mandate could not be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
     public IActionResult Create(DeliveryRequest declaration)
     {
