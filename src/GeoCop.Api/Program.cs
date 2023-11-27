@@ -33,7 +33,7 @@ builder.Services.AddCors(options =>
 builder.Services
     .AddControllers(options =>
     {
-        options.Conventions.Add(new StacRoutingConvention());
+        options.Conventions.Add(new StacRoutingConvention("Admin"));
         options.Conventions.Add(new GeocopJsonConvention());
 
         var policy = new AuthorizationPolicyBuilder()
