@@ -119,11 +119,36 @@ public class DeliveryController : ControllerBase
     /// Performs a soft delete in the database and deletes the files from the storage.
     /// </summary>
     /// <returns>An updated list of <see cref="Delivery"/>.</returns>
+    [Route("{deliveryId}")]
     [HttpDelete]
-    public IActionResult Delete(List<int> deliveryIds)
+    [SwaggerResponse(StatusCodes.Status200OK, "The delivery was successfully deleted.")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(int), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could be found.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    public IActionResult Delete([FromRoute] int deliveryId)
     {
-        // TODO: Soft delete in DB and remove from storage
-        // https://github.com/GeoWerkstatt/geocop/issues/98
-        return Ok();
+        try
+        {
+            var delivery = context.Deliveries.Include(d => d.Assets).FirstOrDefault(d => d.Id == deliveryId);
+            if (delivery == default)
+            {
+                logger.LogTrace($"No delivery with id <{deliveryId}> found.");
+                return Problem($"No delivery with id <{deliveryId}> found.", statusCode: StatusCodes.Status404NotFound);
+            }
+
+            delivery.Deleted = true;
+            delivery.Assets.ForEach(a => a.Deleted = true);
+            assetPersistor.DeleteJobAssets(delivery.JobId);
+
+            context.SaveChanges();
+
+            return Ok();
+        }
+        catch (Exception e)
+        {
+            var message = $"Error while deleting delivery <{deliveryId}>.";
+            logger.LogError(e, message);
+            return Problem(message, statusCode: StatusCodes.Status500InternalServerError);
+        }
     }
 }

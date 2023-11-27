@@ -36,33 +36,45 @@ export const Admin = () => {
   const activeAccount = instance.getActiveAccount();
 
   if (activeAccount && deliveries == undefined) {
-    fetch("/api/v1/delivery")
-      .then((res) => res.ok && res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then((deliveries) => {
-        if (deliveries) {
-          setDeliveries(
-            deliveries.map((d) => ({
-              id: d.id,
-              date: d.date,
-              user: d.declaringUser.authIdentifier,
-              mandate: d.deliveryMandate.name,
-            })),
-          );
-        }
-      });
+    loadDeliveries();
+  }
+
+  async function loadDeliveries() {
+    try {
+      var response = await fetch("/api/v1/delivery");
+      if (response.status == 200) {
+        var deliveries = await response.json();
+        setDeliveries(
+          deliveries.map((d) => ({
+            id: d.id,
+            date: d.date,
+            user: d.declaringUser.authIdentifier,
+            mandate: d.deliveryMandate.name,
+          })),
+        );
+      }
+    } catch (error) {
+      // TODO: Show toast
+    }
   }
 
   async function handleDelete() {
     setShowModal(false);
-    fetch("/api/v1/delivery", {
-      method: "DELETE",
-      body: JSON.stringify(selectedRows),
-    })
-      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then((deliveries) => {
-        setDeliveries(deliveries);
-        setSelectedRows([]);
-      });
+    for (var row of selectedRows) {
+      try {
+        var response = await fetch("api/v1/delivery/" + row, {
+          method: "DELETE",
+        });
+        if (response.status == 500) {
+          // TODO: Show toast
+          console.log("Failed to delete delivery " + row);
+        }
+      } catch (error) {
+        // TODO: Show toast
+        console.log("Complete failure");
+      }
+    }
+    await loadDeliveries();
   }
 
   return (
