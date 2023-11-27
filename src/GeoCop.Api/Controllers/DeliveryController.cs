@@ -74,6 +74,7 @@ public class DeliveryController : ControllerBase
 
         var delivery = new Delivery
         {
+            JobId = declaration.JobId,
             DeliveryMandate = mandate,
             DeclaringUser = dummyUser,
             Assets = new List<Asset>(),

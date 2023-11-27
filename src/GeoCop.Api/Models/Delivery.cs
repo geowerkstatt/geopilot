@@ -14,6 +14,11 @@ public class Delivery
     public int Id { get; set; }
 
     /// <summary>
+    /// The id of the job with which the delivery was uploaded.
+    /// </summary>
+    public Guid JobId { get; set; }
+
+    /// <summary>
     /// The date the delivery was declared.
     /// </summary>
     public DateTime Date { get; set; } = DateTime.UtcNow;
