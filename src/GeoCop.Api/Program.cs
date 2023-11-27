@@ -113,7 +113,9 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new GeocopUserRequirement());
     });
 
-    options.DefaultPolicy = options.GetPolicy(GeocopPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");
+    var adminPolicy = options.GetPolicy(GeocopPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");
+    options.DefaultPolicy = adminPolicy;
+    options.FallbackPolicy = adminPolicy;
 });
 builder.Services.AddTransient<IAuthorizationHandler, GeocopUserHandler>();
 
@@ -209,8 +211,6 @@ else
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
-
 app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/browser") && context.User.Identity?.IsAuthenticated != true)
@@ -226,6 +226,8 @@ app.Use(async (context, next) =>
         await next(context);
     }
 });
+
+app.UseAuthorization();
 
 app.MapControllers();
 
