@@ -4,12 +4,51 @@ using GeoCop.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using System.Globalization;
+using System.Security.Claims;
 using System.Security.Cryptography;
 
 namespace GeoCop.Api;
 
 internal static class ContextExtensions
 {
+    internal const string UserIdClaim = "oid";
+    private const string NameClaim = "name";
+    private const string EmailClaim = "email";
+
+    /// <summary>
+    /// Retreives the user that matches the provided principal from the database.
+    /// Automatically updates the user information in the database if it has changed.
+    /// </summary>
+    /// <param name="context">The database context.</param>
+    /// <param name="principal">The user principal.</param>
+    /// <returns>The matching <see cref="User"/> from the database or <c>null</c>.</returns>
+    public static async Task<User?> GetUserByPrincipalAsync(this Context context, ClaimsPrincipal principal)
+    {
+        var userId = principal.Claims.FirstOrDefault(claim => claim.Type == UserIdClaim)?.Value;
+        var name = principal.Claims.FirstOrDefault(claim => claim.Type == NameClaim)?.Value;
+        var email = principal.Claims.FirstOrDefault(claim => claim.Type == EmailClaim)?.Value;
+        if (userId == null || name == null || email == null)
+        {
+            return null;
+        }
+
+        var user = await context.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == userId);
+        if (user == null)
+        {
+            return null;
+        }
+
+        if (user.Email != email || user.FullName != name)
+        {
+            // Update user information in database from provided principal
+            user.Email = email;
+            user.FullName = name;
+            await context.SaveChangesAsync();
+        }
+
+        return user;
+    }
+
     public static void SeedTestData(this Context context)
     {
         var transaction = context.Database.BeginTransaction();
@@ -31,7 +70,10 @@ internal static class ContextExtensions
         var userFaker = new Faker<User>()
             .StrictMode(true)
             .RuleFor(u => u.Id, _ => 0)
-            .RuleFor(u => u.AuthIdentifier, f => f.Person.Email)
+            .RuleFor(u => u.AuthIdentifier, f => f.Random.Uuid().ToString())
+            .RuleFor(u => u.FullName, f => f.Person.FullName)
+            .RuleFor(u => u.Email, f => f.Person.Email)
+            .RuleFor(u => u.IsAdmin, f => f.IndexFaker == 0)
             .RuleFor(u => u.Organisations, _ => new List<Organisation>())
             .RuleFor(u => u.Deliveries, _ => new List<Delivery>());
 
