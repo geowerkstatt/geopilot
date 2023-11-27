@@ -1,4 +1,4 @@
-/************ Base Layout ************/
+﻿/************ Base Layout ************/
 body {
   text-align: center;
   background: #eaeff27a;
@@ -6,14 +6,13 @@ body {
 
 .app {
   display: flex;
-  flex-wrap: wrap;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 main {
-  min-height: 72vh;
-  flex: 1 0 auto;
+  flex: 1 1 auto;
+  overflow: auto;
 }
 
 main a {
@@ -46,6 +45,7 @@ header {
   padding-left: 35px;
   padding-right: 35px;
   padding-top: 20px;
+  flex: 0 0 auto;
 }
 
 .app-title {
@@ -168,6 +168,7 @@ input {
   .vendor-logo {
     max-height: 70px;
     max-width: 200px;
+    margin: 0 !important;
   }
   .app-logo {
     max-height: 200px;
@@ -234,6 +235,13 @@ input {
 
 .btn {
   font-size: 1.2rem;
+  font-family: "Dosis", sans-serif;
+}
+
+/* sets the color for react-bootstrap buttons*/
+.btn-primary {
+  background-color: #007cc3 !important;
+  border-color: #007cc3 !important;
 }
 
 .check-button {
@@ -333,7 +341,7 @@ input {
 
 /************ Footer ************/
 footer {
-  flex-shrink: 0;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -468,4 +476,119 @@ footer {
   100% {
     opacity: 1;
   }
+}
+
+/************ Admin ************/
+.admin-no-access {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.MuiDataGrid-root {
+  height: auto !important;
+}
+
+.MuiTablePagination-toolbar p {
+  margin: auto;
+}
+
+.center-button-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+}
+
+/************ Navbar ************/
+.full-width {
+  width: 100%;
+}
+
+.container-fluid {
+  padding: 0 !important;
+}
+
+@media screen and (max-width: 767px) {
+  #navbar-nav {
+    display: none;
+  }
+  
+  .show#navbar-nav {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .show .nav-link {
+    padding: 0.5rem 1rem !important;
+  }
+
+  .nav-button {
+    margin-top: 1rem;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  #navbar-nav {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .navbar-container {
+    display:flex;
+    justify-content: space-between;
+    flex-direction: row;
+    width: 100%;
+    padding-top: 18px;
+  }
+  
+  .navbar-info-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    width: 100%;
+    align-items: center;
+  }
+
+}
+
+.nav-link {
+  font-family: "Dosis", sans-serif;
+  font-size: 1.2rem;
+  padding: 0 1rem !important;
+  white-space: nowrap;
+  overflow: auto;
+}
+
+.nav-button {
+  color: rgba(0, 0, 0, 0.65);
+  background-color: transparent !important;
+  border: none;
+  text-decoration-line: none;
+  font-family: "Dosis", sans-serif;
+  font-size: 1.2rem;
+  padding: 0 !important;
+}
+
+.nav-button:hover {
+  color: rgba(0, 0, 0, 0.8);
+}
+
+.user-info {
+  font-family: "Dosis", sans-serif;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.65);
+  cursor: default;
+}
+
+.logged-in-button .nav-button {
+  padding: 0 !important;
+  margin-bottom: -1rem !important;
 }

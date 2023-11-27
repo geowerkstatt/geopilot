@@ -5,6 +5,7 @@ using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace GeoCop.Api.Controllers;
 
@@ -80,5 +81,28 @@ public class DeliveryController : ControllerBase
             UriKind.Relative);
 
         return Created(location, entityEntry.Entity);
+    }
+
+    /// <summary>
+    /// Gets all deliveries.
+    /// </summary>
+    /// <returns>A list of <see cref="Delivery"/>.</returns>
+    [HttpGet]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list with available deliveries has been returned.", typeof(List<Delivery>), new[] { "application/json" })]
+    public List<Delivery> Get()
+    {
+        return context.DeliveriesWithIncludes;
+    }
+
+    /// <summary>
+    /// Performs a soft delete in the database and deletes the files from the storage.
+    /// </summary>
+    /// <returns>An updated list of <see cref="Delivery"/>.</returns>
+    [HttpDelete]
+    public IActionResult Delete(List<int> deliveryIds)
+    {
+        // TODO: Soft delete in DB and remove from storage
+        // https://github.com/GeoWerkstatt/geocop/issues/98
+        return Ok();
     }
 }
