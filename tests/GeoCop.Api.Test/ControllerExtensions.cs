@@ -8,7 +8,7 @@ namespace GeoCop.Api.Test;
 
 internal static class ControllerExtensions
 {
-    public static void SetupTestUser(this ControllerBase controller, User user)
+    public static Mock<HttpContext> SetupTestUser(this ControllerBase controller, User user)
     {
         var httpContextMock = new Mock<HttpContext>();
         controller.ControllerContext.HttpContext = httpContextMock.Object;
@@ -20,5 +20,6 @@ internal static class ControllerExtensions
             new Claim(ContextExtensions.EmailClaim, user.Email),
         }));
         httpContextMock.SetupGet(c => c.User).Returns(principal);
+        return httpContextMock;
     }
 }

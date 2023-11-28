@@ -42,7 +42,7 @@ public class UserControllerTest
         context.Users.Add(dbUser);
         context.SaveChanges();
 
-        userController.SetupTestUser(dbUser);
+        var httpContextMock = userController.SetupTestUser(dbUser);
 
         dbUser.FullName = "This value should be replaced by name claim";
         context.SaveChanges();
@@ -54,6 +54,7 @@ public class UserControllerTest
         Assert.AreEqual(fullName, userResult.FullName);
         Assert.AreEqual(email, userResult.Email);
         Assert.AreEqual(true, userResult.IsAdmin);
+        httpContextMock.VerifyAll();
     }
 
     [TestMethod]
@@ -64,11 +65,12 @@ public class UserControllerTest
             AuthIdentifier = Guid.Empty.ToString(),
         };
 
-        userController.SetupTestUser(user);
+        var httpContextMock = userController.SetupTestUser(user);
 
         var userResult = await userController.GetAsync();
 
         Assert.IsNull(userResult);
+        httpContextMock.VerifyAll();
     }
 
     [TestMethod]
