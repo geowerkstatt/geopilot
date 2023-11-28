@@ -9,23 +9,19 @@ namespace GeoCop.Api.Controllers;
 [TestClass]
 public class UserControllerTest
 {
-    private Mock<HttpContext> httpContextMock;
     private Context context;
     private UserController userController;
 
     [TestInitialize]
     public void Setup()
     {
-        httpContextMock = new Mock<HttpContext>();
         context = Initialize.DbFixture.GetTestContext();
         userController = new UserController(context);
-        userController.ControllerContext.HttpContext = httpContextMock.Object;
     }
 
     [TestCleanup]
     public void Cleanup()
     {
-        httpContextMock.VerifyAll();
         context.Dispose();
     }
 
@@ -39,20 +35,17 @@ public class UserControllerTest
         var dbUser = new User
         {
             AuthIdentifier = authIdentifier,
-            FullName = "old name",
+            FullName = fullName,
             Email = email,
             IsAdmin = true,
         };
         context.Users.Add(dbUser);
         context.SaveChanges();
 
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
-        {
-            new Claim(ContextExtensions.UserIdClaim, authIdentifier),
-            new Claim(ContextExtensions.NameClaim, fullName),
-            new Claim(ContextExtensions.EmailClaim, email),
-        }));
-        httpContextMock.SetupGet(c => c.User).Returns(principal);
+        userController.SetupTestUser(dbUser);
+
+        dbUser.FullName = "This value should be replaced by name claim";
+        context.SaveChanges();
 
         var userResult = await userController.GetAsync();
 
@@ -66,15 +59,12 @@ public class UserControllerTest
     [TestMethod]
     public async Task GetUserAsyncNotFound()
     {
-        var authIdentifier = Guid.Empty.ToString();
-
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        var user = new User
         {
-            new Claim(ContextExtensions.UserIdClaim, authIdentifier),
-            new Claim(ContextExtensions.NameClaim, ""),
-            new Claim(ContextExtensions.EmailClaim, ""),
-        }));
-        httpContextMock.SetupGet(c => c.User).Returns(principal);
+            AuthIdentifier = Guid.Empty.ToString(),
+        };
+
+        userController.SetupTestUser(user);
 
         var userResult = await userController.GetAsync();
 
@@ -97,10 +87,14 @@ public class UserControllerTest
         {
             new Claim(ContextExtensions.UserIdClaim, authIdentifier),
         }));
+
+        var httpContextMock = new Mock<HttpContext>();
         httpContextMock.SetupGet(c => c.User).Returns(principal);
+        userController.ControllerContext.HttpContext = httpContextMock.Object;
 
         var userResult = await userController.GetAsync();
 
         Assert.IsNull(userResult);
+        httpContextMock.VerifyAll();
     }
 }
