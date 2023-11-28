@@ -61,6 +61,7 @@ internal static class ContextExtensions
         context.SeedOperate();
         context.SeedDeliveries();
         context.SeedAssets();
+        context.AuthorizeFirstUser();
 
         transaction.Commit();
     }
@@ -113,11 +114,12 @@ internal static class ContextExtensions
 
     public static void SeedOperate(this Context context)
     {
+        var knownFileFormats = new string[] { ".xtf", ".gpkg", ".*", ".itf", ".xml", ".zip", ".csv" };
         var operateFaker = new Faker<DeliveryMandate>()
             .StrictMode(true)
             .RuleFor(o => o.Id, f => 0)
             .RuleFor(o => o.Name, f => f.Commerce.ProductName())
-            .RuleFor(o => o.FileTypes, f => new string[] { "." + f.System.CommonFileExt(), "." + f.System.CommonFileExt() }.Distinct().ToArray())
+            .RuleFor(o => o.FileTypes, f => f.PickRandom(knownFileFormats, 4).Distinct().ToArray())
             .RuleFor(o => o.SpatialExtent, f => f.Address.GetExtent())
             .RuleFor(o => o.Organisations, f => f.PickRandom(context.Organisations.ToList(), 1).ToList())
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>());
@@ -177,6 +179,19 @@ internal static class ContextExtensions
         }
 
         context.Assets.AddRange(assets);
+        context.SaveChanges();
+    }
+
+    public static void AuthorizeFirstUser(this Context context)
+    {
+        var user = context.Users.OrderBy(u => u.Id).First();
+        var organisation = context.Organisations.OrderBy(o => o.Id).First();
+        var deliveryMandates = context.DeliveryMandates.OrderBy(m => m.Id).Skip(1);
+
+        user.IsAdmin = true;
+        user.Organisations.Add(organisation);
+        organisation.Mandates.AddRange(deliveryMandates);
+
         context.SaveChanges();
     }
 }
