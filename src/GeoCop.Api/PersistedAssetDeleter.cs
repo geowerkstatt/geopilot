@@ -32,7 +32,7 @@ public class PersistedAssetDeleter : IPersistedAssetDeleter
         {
             var message = $"Failed to delete assets for job <{jobId}>.";
             logger.LogError(e, message);
-            throw new AggregateException(message, e);
+            throw new InvalidOperationException(message, e);
         }
     }
 }
