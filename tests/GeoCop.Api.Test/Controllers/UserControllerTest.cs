@@ -56,8 +56,6 @@ public class UserControllerTest
 
         var userResult = await userController.GetAsync();
 
-        context.ChangeTracker.Clear();
-
         Assert.IsNotNull(userResult);
         Assert.AreEqual(authIdentifier, userResult.AuthIdentifier);
         Assert.AreEqual(fullName, userResult.FullName);
@@ -79,8 +77,6 @@ public class UserControllerTest
         httpContextMock.SetupGet(c => c.User).Returns(principal);
 
         var userResult = await userController.GetAsync();
-
-        context.ChangeTracker.Clear();
 
         Assert.IsNull(userResult);
     }
@@ -104,8 +100,6 @@ public class UserControllerTest
         httpContextMock.SetupGet(c => c.User).Returns(principal);
 
         var userResult = await userController.GetAsync();
-
-        context.ChangeTracker.Clear();
 
         Assert.IsNull(userResult);
     }
