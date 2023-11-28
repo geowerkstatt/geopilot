@@ -1,4 +1,6 @@
-﻿namespace GeoCop.Api.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace GeoCop.Api.Models;
 
 /// <summary>
 /// A person that is allowed to view or declare deliveries.
@@ -8,11 +10,13 @@ public class User
     /// <summary>
     /// The unique identifier for the user.
     /// </summary>
+    [JsonIgnore]
     public int Id { get; set; }
 
     /// <summary>
     /// The unique identifier for the user in the authentication system.
     /// </summary>
+    [JsonIgnore]
     public string AuthIdentifier { get; set; } = string.Empty;
 
     /// <summary>
