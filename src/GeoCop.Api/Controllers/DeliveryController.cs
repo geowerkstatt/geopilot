@@ -54,12 +54,12 @@ public class DeliveryController : ControllerBase
         if (jobStatus == default)
         {
             logger.LogTrace("No job information available for job id <{JobId}>.", declaration.JobId);
-            return Problem($"No job information available for job id <{declaration.JobId}>", statusCode: StatusCodes.Status404NotFound);
+            return NotFound($"No job information available for job id <{declaration.JobId}>");
         }
         else if (jobStatus.Status != Status.Completed)
         {
             logger.LogTrace("Job <{JobId}> is not completed.", declaration.JobId);
-            return Problem($"Job <{declaration.JobId}> is not completed.", statusCode: StatusCodes.Status400BadRequest);
+            return BadRequest($"Job <{declaration.JobId}> is not completed.");
         }
 
         var mandate = context.DeliveryMandates
@@ -72,7 +72,7 @@ public class DeliveryController : ControllerBase
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.AuthIdentifier.Equals(dummyUser.AuthIdentifier, StringComparison.OrdinalIgnoreCase)))
         {
             logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate <{MandateId}>.", dummyUser, declaration.DeliveryMandateId);
-            return Problem("Mandate with id <{declaration.DeliveryMandateId}> not found or user is not authorized.", statusCode: StatusCodes.Status404NotFound);
+            return NotFound("Mandate with id <{declaration.DeliveryMandateId}> not found or user is not authorized.");
         }
 
         var delivery = new Delivery
@@ -90,7 +90,7 @@ public class DeliveryController : ControllerBase
         catch (Exception e)
         {
             logger.LogError(e, "Error while persisting assets for job <{JobId}>.", declaration.JobId);
-            return Problem($"Error while persisting assets for job <{declaration.JobId}>.", statusCode: StatusCodes.Status500InternalServerError);
+            return Problem($"Error while persisting assets for job <{declaration.JobId}>.");
         }
 
         var entityEntry = context.Deliveries.Add(delivery);
@@ -136,7 +136,7 @@ public class DeliveryController : ControllerBase
             if (delivery == default)
             {
                 logger.LogTrace($"No delivery with id <{deliveryId}> found.");
-                return Problem($"No delivery with id <{deliveryId}> found.", statusCode: StatusCodes.Status404NotFound);
+                return NotFound($"No delivery with id <{deliveryId}> found.");
             }
 
             delivery.Deleted = true;
@@ -151,7 +151,7 @@ public class DeliveryController : ControllerBase
         {
             var message = $"Error while deleting delivery <{deliveryId}>.";
             logger.LogError(e, message);
-            return Problem(message, statusCode: StatusCodes.Status500InternalServerError);
+            return Problem(message);
         }
     }
 }
