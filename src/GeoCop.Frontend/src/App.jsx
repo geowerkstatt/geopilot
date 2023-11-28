@@ -1,6 +1,5 @@
-import { PublicClientApplication } from "@azure/msal-browser";
-import { AuthenticatedTemplate, UnauthenticatedTemplate, MsalProvider } from "@azure/msal-react";
-import { useEffect, useMemo, useState } from "react";
+import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
+import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import BannerContent from "./BannerContent";
 import Footer from "./Footer";
@@ -9,6 +8,7 @@ import Home from "./pages/home/Home";
 import Admin from "./pages/admin/Admin";
 import ModalContent from "./ModalContent";
 import "./app.css";
+import { AuthProvider } from "./contexts/AuthContext";
 
 export const App = () => {
   const [modalContent, setModalContent] = useState(false);
@@ -82,12 +82,8 @@ export const App = () => {
   const openModalContent = (content, type) =>
     setModalContent(content) & setModalContentType(type) & setShowModalContent(true);
 
-  const msalInstance = useMemo(() => {
-    return new PublicClientApplication(clientSettings?.oauth ?? {});
-  }, [clientSettings]);
-
   return (
-    <MsalProvider instance={msalInstance}>
+    <AuthProvider authScopes={clientSettings?.authScopes} oauth={clientSettings?.oauth}>
       <div className="app">
         <Router>
           <Header clientSettings={clientSettings} />
@@ -139,7 +135,7 @@ export const App = () => {
           <BannerContent className="banner" content={bannerContent} onHide={() => setShowBannerContent(false)} />
         )}
       </div>
-    </MsalProvider>
+    </AuthProvider>
   );
 };
 
