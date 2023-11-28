@@ -1,31 +1,10 @@
 ﻿import { Button, Navbar, Nav, Container } from "react-bootstrap";
-import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
+import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "./contexts/auth";
 
 export const Header = ({ clientSettings }) => {
-  const { instance } = useMsal();
-  const activeAccount = instance.getActiveAccount();
-
-  async function login() {
-    try {
-      const result = await instance.loginPopup({
-        scopes: clientSettings?.authScopes,
-      });
-      instance.setActiveAccount(result.account);
-      document.cookie = `geocop.auth=${result.idToken};Path=/;Secure`;
-    } catch (error) {
-      console.warn(error);
-    }
-  }
-
-  async function logout() {
-    try {
-      await instance.logoutPopup();
-      document.cookie = "geocop.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
-    } catch (error) {
-      console.warn(error);
-    }
-  }
+  const { user, login, logout } = useAuth();
 
   return (
     <header>
@@ -74,7 +53,7 @@ export const Header = ({ clientSettings }) => {
             </div>
             <div className="navbar-info-container">
               <AuthenticatedTemplate>
-                <div className="user-info">Angemeldet als {activeAccount?.name}</div>
+                <div className="user-info">Angemeldet als {user?.name}</div>
               </AuthenticatedTemplate>
             </div>
           </Navbar.Collapse>
