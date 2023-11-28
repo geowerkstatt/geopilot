@@ -48,7 +48,7 @@ export const Admin = () => {
           deliveries.map((d) => ({
             id: d.id,
             date: d.date,
-            user: d.declaringUser.authIdentifier,
+            user: d.declaringUser.fullName,
             mandate: d.deliveryMandate.name,
           })),
         );
