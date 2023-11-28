@@ -1,4 +1,4 @@
-﻿/************ Base Layout ************/
+/************ Base Layout ************/
 body {
   text-align: center;
   background: #eaeff27a;
@@ -591,4 +591,12 @@ footer {
 .logged-in-button .nav-button {
   padding: 0 !important;
   margin-bottom: -1rem !important;
+}
+
+
+/************ Navbar ************/
+
+
+.alert p {
+    margin-bottom: 0;
 }

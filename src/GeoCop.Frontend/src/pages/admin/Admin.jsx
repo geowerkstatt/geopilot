@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMsal } from "@azure/msal-react";
-import { Button, Modal } from "react-bootstrap";
+import { Button, Modal, Alert } from "react-bootstrap";
 import { GoTrash } from "react-icons/go";
 import { DataGrid, deDE } from "@mui/x-data-grid";
+import { Snackbar } from "@mui/material";
 
 const columns = [
   { field: "id", headerName: "ID", width: 60 },
@@ -31,6 +32,9 @@ export const Admin = () => {
   const [deliveries, setDeliveries] = useState(undefined);
   const [selectedRows, setSelectedRows] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [alertMessages, setAlertMessages] = useState([]);
+  const [currentAlert, setCurrentAlert] = useState(undefined);
+  const [showAlert, setShowAlert] = useState(false);
 
   const { instance } = useMsal();
   const activeAccount = instance.getActiveAccount();
@@ -38,6 +42,21 @@ export const Admin = () => {
   if (activeAccount && deliveries == undefined) {
     loadDeliveries();
   }
+
+  useEffect(() => {
+    if (alertMessages.length && (!currentAlert || !showAlert)) {
+      setCurrentAlert(alertMessages[0]);
+      setAlertMessages((prev) => prev.slice(1));
+      setShowAlert(true);
+    }
+  }, [alertMessages, currentAlert, showAlert]);
+
+  const closeAlert = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setShowAlert(false);
+  };
 
   async function loadDeliveries() {
     try {
@@ -54,7 +73,13 @@ export const Admin = () => {
         );
       }
     } catch (error) {
-      // TODO: Show toast
+      setAlertMessages((prev) => [
+        ...prev,
+        {
+          message: "Beim Laden der Datenabgaben ist ein Fehler aufgetreten: " + error,
+          key: new Date().getTime(),
+        },
+      ]);
     }
   }
 
@@ -65,13 +90,28 @@ export const Admin = () => {
         var response = await fetch("api/v1/delivery/" + row, {
           method: "DELETE",
         });
-        if (response.status == 500) {
-          // TODO: Show toast
-          console.log("Failed to delete delivery " + row);
+        if (response.status == 404) {
+          setAlertMessages((prev) => [
+            ...prev,
+            {
+              message: "Die Datenabgabe mit der ID " + row + " existiert nicht.",
+              key: new Date().getTime(),
+            },
+          ]);
+        } else if (response.status == 500) {
+          setAlertMessages((prev) => [
+            ...prev,
+            {
+              message: "Beim Löschen der Datenabgabe mit ID " + row + " ist ein Fehler aufgetreten.",
+              key: new Date().getTime(),
+            },
+          ]);
         }
       } catch (error) {
-        // TODO: Show toast
-        console.log("Complete failure");
+        setAlertMessages((prev) => [
+          ...prev,
+          { message: "Beim Löschen ist ein Fehler aufgetreten: " + error, key: new Date().getTime() },
+        ]);
       }
     }
     await loadDeliveries();
@@ -138,6 +178,16 @@ export const Admin = () => {
             </Button>
           </Modal.Footer>
         </Modal>
+        <Snackbar
+          key={currentAlert ? currentAlert.key : undefined}
+          open={showAlert}
+          onClose={closeAlert}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert variant="danger" onClose={closeAlert} dismissible>
+            <p>{currentAlert ? currentAlert.message : undefined}</p>
+          </Alert>
+        </Snackbar>
       </main>
     </>
   );
