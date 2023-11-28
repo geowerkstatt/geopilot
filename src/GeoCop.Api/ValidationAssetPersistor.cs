@@ -53,21 +53,6 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
         return assets;
     }
 
-    /// <inheritdoc/>
-    public void DeleteJobAssets(Guid jobId)
-    {
-        try
-        {
-            Directory.Delete(Path.Combine(assetDicrectory, jobId.ToString()), true);
-        }
-        catch (Exception e)
-        {
-            var message = $"Failed to delete assets for job <{jobId}>.";
-            logger.LogError(e, message);
-            throw new AggregateException(message, e);
-        }
-    }
-
     /// <summary>
     /// Migrates the primary data file for a validation job into a persistent storage.
     /// </summary>

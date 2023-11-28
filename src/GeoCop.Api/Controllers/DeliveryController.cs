@@ -22,16 +22,18 @@ public class DeliveryController : ControllerBase
     private readonly Context context;
     private readonly IValidationService validatorService;
     private readonly IValidationAssetPersistor assetPersistor;
+    private readonly IPersistedAssetDeleter persistedAssetDeleter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IValidationAssetPersistor assetPersistor)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IValidationAssetPersistor assetPersistor, IPersistedAssetDeleter persistedAssetDeleter)
     {
         this.logger = logger;
         this.context = context;
         this.validatorService = validatorService;
         this.assetPersistor = assetPersistor;
+        this.persistedAssetDeleter = persistedAssetDeleter;
     }
 
     /// <summary>
@@ -139,7 +141,7 @@ public class DeliveryController : ControllerBase
 
             delivery.Deleted = true;
             delivery.Assets.ForEach(a => a.Deleted = true);
-            assetPersistor.DeleteJobAssets(delivery.JobId);
+            persistedAssetDeleter.DeleteJobAssets(delivery.JobId);
 
             context.SaveChanges();
 
