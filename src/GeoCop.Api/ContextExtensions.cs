@@ -12,8 +12,8 @@ namespace GeoCop.Api;
 internal static class ContextExtensions
 {
     internal const string UserIdClaim = "oid";
-    private const string NameClaim = "name";
-    private const string EmailClaim = "email";
+    internal const string NameClaim = "name";
+    internal const string EmailClaim = "email";
 
     /// <summary>
     /// Retreives the user that matches the provided principal from the database.
