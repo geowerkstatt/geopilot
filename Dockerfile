@@ -59,7 +59,7 @@ RUN \
 RUN \
  useradd --uid 941 --user-group --home $HOME --shell /bin/bash abc && \
  usermod --groups users abc && \
- mkdir -p $Storage__UploadDirectory
+ mkdir -p $Storage__UploadDirectory && \
  mkdir -p $Storage__AssetsDirectory
 
 EXPOSE 80
