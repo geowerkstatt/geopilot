@@ -159,11 +159,9 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public void DeleteDeliveryNotFound()
+    public void DeleteFailsDeliveryNotFound()
     {
-        context.Deliveries.Max(d => d.Id);
         var result = deliveryController.Delete(context.Deliveries.Max(d => d.Id) + 1) as ObjectResult;
-
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
     }
