@@ -163,7 +163,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
             )}
             {deliveryState === DeliveryState.Failed && (
               <Alert variant={"danger"}>
-                Bei der Abgabe ist ein unbekannter Fehler aufgetreten, bitte versuchen sie es mit einer neuen
+                Bei der Abgabe ist ein unbekannter Fehler aufgetreten, bitte versuchen Sie es mit einer neuen
                 Validierung.
               </Alert>
             )}
