@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using GeoCop.Api.Authorization;
 using GeoCop.Api.Contracts;
 using GeoCop.Api.FileAccess;
@@ -112,6 +112,7 @@ public class DeliveryController : ControllerBase
     /// <returns>A list of <see cref="Delivery"/>.</returns>
     [HttpGet]
     [SwaggerResponse(StatusCodes.Status200OK, "A list with available deliveries has been returned.", typeof(List<Delivery>), new[] { "application/json" })]
+    [Authorize(Policy = GeocopPolicies.Admin)]
     public List<Delivery> Get()
     {
         return context.DeliveriesWithIncludes;
@@ -127,6 +128,7 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(int), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    [Authorize(Policy = GeocopPolicies.Admin)]
     public IActionResult Delete([FromRoute] int deliveryId)
     {
         try
@@ -164,6 +166,7 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(int), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The asset could be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    [Authorize(Policy = GeocopPolicies.Admin)]
     public async Task<IActionResult> DownloadAsync([FromRoute] int assetId)
     {
         try
