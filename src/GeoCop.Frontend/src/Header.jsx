@@ -2,6 +2,7 @@
 import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "./contexts/auth";
+import { AdminTemplate } from "./AdminTemplate";
 
 export const Header = ({ clientSettings }) => {
   const { user, login, logout } = useAuth();
@@ -29,14 +30,14 @@ export const Header = ({ clientSettings }) => {
                 <NavLink className="nav-link" to="/">
                   DATENABGABE
                 </NavLink>
-                <AuthenticatedTemplate>
+                <AdminTemplate>
                   <NavLink className="nav-link" to="/admin">
                     ABGABEÜBERSICHT
                   </NavLink>
                   <a className="nav-link" href="/browser">
                     STAC BROWSER
                   </a>
-                </AuthenticatedTemplate>
+                </AdminTemplate>
               </Nav>
               <Nav>
                 <UnauthenticatedTemplate>

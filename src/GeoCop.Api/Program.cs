@@ -197,7 +197,8 @@ app.UseHttpsRedirection();
 
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/browser") && context.User.Identity?.IsAuthenticated != true)
+    var authorizationService = context.RequestServices.GetRequiredService<IAuthorizationService>();
+    if (context.Request.Path.StartsWithSegments("/browser") && !(await authorizationService.AuthorizeAsync(context.User, GeocopPolicies.Admin)).Succeeded)
     {
         context.Response.Redirect("/");
     }

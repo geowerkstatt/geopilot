@@ -21,12 +21,12 @@ public class DeliveryControllerTest
     private Context context;
 
     [TestInitialize]
-    public void Setup()
+    public void Initialize()
     {
         loggerMock = new Mock<ILogger<DeliveryController>>();
         validationServiceMock = new Mock<IValidationService>();
         validationAssetPersistorMock = new Mock<IValidationAssetPersistor>();
-        context = Initialize.DbFixture.GetTestContext();
+        context = AssemblyInitialize.DbFixture.GetTestContext();
         deliveryController = new DeliveryController(loggerMock.Object, context, validationServiceMock.Object, validationAssetPersistorMock.Object);
     }
 

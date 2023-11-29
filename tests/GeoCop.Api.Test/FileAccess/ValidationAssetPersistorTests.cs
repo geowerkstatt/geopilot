@@ -20,7 +20,7 @@ public class ValidationAssetPersistorTests
     private string assetDirectory;
 
     [TestInitialize]
-    public void Setup()
+    public void Initialize()
     {
         jobId = Guid.NewGuid();
         uploadDirectory = Initialize.TestDirectoryProvider.GetUploadDirectoryPath(jobId);
