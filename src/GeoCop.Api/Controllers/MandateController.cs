@@ -11,7 +11,7 @@ namespace GeoCop.Api.Controllers;
 /// Controller for listing mandates.
 /// </summary>
 [ApiController]
-[Authorize]
+[Authorize(Policy = GeocopPolicies.User)]
 [Route("api/v{version:apiVersion}/[controller]")]
 public class MandateController : ControllerBase
 {
