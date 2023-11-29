@@ -1,4 +1,4 @@
-﻿namespace GeoCop.Api;
+﻿namespace GeoCop.Api.FileAccess;
 
 /// <summary>
 /// Represents a file of an <see cref="IFileProvider"/> and privides a stream to it.

@@ -1,4 +1,6 @@
-﻿namespace GeoCop.Api.Validation;
+﻿using GeoCop.Api.FileAccess;
+
+namespace GeoCop.Api.Validation;
 
 /// <summary>
 /// Provides methods to start validation jobs and access status information for a specific job.
