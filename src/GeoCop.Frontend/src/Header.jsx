@@ -1,4 +1,4 @@
-import { Button, Navbar, Nav, Container } from "react-bootstrap";
+﻿import { Button, Navbar, Nav, Container } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "./auth";
 import { AdminTemplate } from "./auth/AdminTemplate";
@@ -11,7 +11,7 @@ export const Header = ({ clientSettings }) => {
   return (
     <header>
       <Navbar expand="md" className="full-width justify-content-between" sticky="top">
-        <Container fluid>
+        <Container fluid className="align-items-baseline">
           {clientSettings?.vendor?.logo && (
             <Navbar.Brand href={clientSettings?.vendor?.url} target="_blank" rel="noreferrer">
               <img
