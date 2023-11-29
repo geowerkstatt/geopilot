@@ -1,7 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
-
-namespace GeoCop.Api.Models;
+﻿namespace GeoCop.Api.Models;
 
 /// <summary>
 /// A fullfillment of a <see cref="DeliveryMandate"/>. Contains all relevant meta information and assets provided or created by the validation and delivery process.
@@ -37,6 +34,21 @@ public class Delivery
     /// Assets delivered or created by the validation and delivery process.
     /// </summary>
     public List<Asset> Assets { get; set; } = new List<Asset>();
+
+    /// <summary>
+    /// Indicate whether the delivery contains partial data.
+    /// </summary>
+    public bool Partial { get; set; }
+
+    /// <summary>
+    /// The id of a previous delivery on the same <see cref="DeliveryMandate"/>.
+    /// </summary>
+    public Delivery? PrecursorDelivery { get; set; }
+
+    /// <summary>
+    /// Comment to describe the delivery.
+    /// </summary>
+    public string Comment { get; set; } = string.Empty;
 
     /// <summary>
     /// The deletion status of the delivery.
