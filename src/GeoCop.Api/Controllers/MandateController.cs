@@ -1,4 +1,5 @@
-﻿using GeoCop.Api.Models;
+﻿using GeoCop.Api.Authorization;
+using GeoCop.Api.Models;
 using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -44,11 +45,11 @@ public class MandateController : ControllerBase
         string jobId = "")
     {
         var user = await context.GetUserByPrincipalAsync(User);
+        if (user == null)
+            return Unauthorized();
 
         var mandates = context.DeliveryMandates
-                .Where(m => m.Organisations
-                .SelectMany(o => o.Users)
-                .Contains(user));
+            .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
 
         if (!string.IsNullOrEmpty(jobId) && Guid.TryParse(jobId, out var guid))
         {

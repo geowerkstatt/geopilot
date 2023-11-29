@@ -113,5 +113,15 @@ namespace GeoCop.Api.Test.Controllers
             CollectionAssert.AreEquivalent(Array.Empty<DeliveryMandate>(), mandates);
         }
 
+        [TestMethod]
+        public async Task GetWithoutValidDbUserReturnUnauthorized()
+        {
+            mandateController.SetupTestUser(new User { AuthIdentifier = "NotRegisteredUserId" });
+
+            var result = await mandateController.Get();
+
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+        }
     }
 }
