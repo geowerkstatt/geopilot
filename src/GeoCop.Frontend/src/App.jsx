@@ -8,8 +8,8 @@ import Home from "./pages/home/Home";
 import Admin from "./pages/admin/Admin";
 import ModalContent from "./ModalContent";
 import "./app.css";
-import { AuthProvider } from "./contexts/AuthContext";
-import { AdminTemplate } from "./AdminTemplate";
+import { AuthProvider } from "./auth/AuthContext";
+import { AdminTemplate } from "./auth/AdminTemplate";
 
 export const App = () => {
   const [modalContent, setModalContent] = useState(false);

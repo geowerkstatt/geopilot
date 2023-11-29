@@ -1,8 +1,8 @@
-﻿import { Button, Navbar, Nav, Container } from "react-bootstrap";
+import { Button, Navbar, Nav, Container } from "react-bootstrap";
 import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
 import { NavLink } from "react-router-dom";
-import { useAuth } from "./contexts/auth";
-import { AdminTemplate } from "./AdminTemplate";
+import { useAuth } from "./auth";
+import { AdminTemplate } from "./auth/AdminTemplate";
 
 export const Header = ({ clientSettings }) => {
   const { user, login, logout } = useAuth();

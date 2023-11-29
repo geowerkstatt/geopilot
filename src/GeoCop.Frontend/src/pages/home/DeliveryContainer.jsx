@@ -1,7 +1,7 @@
 import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
 import { Button, Card, Collapse, Container } from "react-bootstrap";
 import { Delivery } from "./Delivery";
-import { useAuth } from "../../contexts/auth";
+import { useAuth } from "@/auth";
 
 export const DeliveryContainer = ({ statusData, validationRunning }) => {
   const { login } = useAuth();
