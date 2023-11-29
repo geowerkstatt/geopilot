@@ -17,7 +17,7 @@ namespace GeoCop.Api.FileAccess
         /// <summary>
         /// Deletes all log files for a validation job from persistent storage.
         /// </summary>
-        /// <param name="jobId"></param>
+        /// <param name="jobId">The given job id.</param>
         void DeleteJobAssets(Guid jobId);
 
         /// <summary>
