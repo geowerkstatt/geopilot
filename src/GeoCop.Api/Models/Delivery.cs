@@ -37,4 +37,9 @@ public class Delivery
     /// Assets delivered or created by the validation and delivery process.
     /// </summary>
     public List<Asset> Assets { get; set; } = new List<Asset>();
+
+    /// <summary>
+    /// The deletion status of the delivery.
+    /// </summary>
+    public bool Deleted { get; set; }
 }

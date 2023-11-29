@@ -130,6 +130,7 @@ builder.Services.AddTransient<IValidationService, ValidationService>();
 builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
 builder.Services.AddTransient<IValidationAssetPersistor, ValidationAssetPersistor>();
+builder.Services.AddTransient<IPersistedAssetDeleter, PersistedAssetDeleter>();
 
 builder.Services
     .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")

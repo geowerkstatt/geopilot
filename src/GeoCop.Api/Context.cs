@@ -40,6 +40,7 @@ public class Context : DbContext
         get
         {
             return Deliveries
+                .Where(d => !d.Deleted)
                 .Include(d => d.DeliveryMandate)
                 .Include(d => d.Assets)
                 .Include(d => d.DeclaringUser)
@@ -61,7 +62,7 @@ public class Context : DbContext
         get
         {
             return DeliveryMandates
-                .Include(d => d.Deliveries)
+                .Include(d => d.Deliveries.Where(delivery => !delivery.Deleted))
                 .ThenInclude(d => d.Assets)
                 .AsNoTracking()
                 .ToList();

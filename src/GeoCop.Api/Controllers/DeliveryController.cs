@@ -23,16 +23,18 @@ public class DeliveryController : ControllerBase
     private readonly Context context;
     private readonly IValidationService validatorService;
     private readonly IValidationAssetPersistor assetPersistor;
+    private readonly IPersistedAssetDeleter persistedAssetDeleter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IValidationAssetPersistor assetPersistor)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IValidationAssetPersistor assetPersistor, IPersistedAssetDeleter persistedAssetDeleter)
     {
         this.logger = logger;
         this.context = context;
         this.validatorService = validatorService;
         this.assetPersistor = assetPersistor;
+        this.persistedAssetDeleter = persistedAssetDeleter;
     }
 
     /// <summary>
@@ -53,12 +55,12 @@ public class DeliveryController : ControllerBase
         if (jobStatus == default)
         {
             logger.LogTrace("No job information available for job id <{JobId}>.", declaration.JobId);
-            return Problem($"No job information available for job id <{declaration.JobId}>", statusCode: StatusCodes.Status404NotFound);
+            return NotFound($"No job information available for job id <{declaration.JobId}>");
         }
         else if (jobStatus.Status != Status.Completed)
         {
             logger.LogTrace("Job <{JobId}> is not completed.", declaration.JobId);
-            return Problem($"Job <{declaration.JobId}> is not completed.", statusCode: StatusCodes.Status400BadRequest);
+            return BadRequest($"Job <{declaration.JobId}> is not completed.");
         }
 
         var mandate = context.DeliveryMandates
@@ -71,7 +73,7 @@ public class DeliveryController : ControllerBase
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.AuthIdentifier.Equals(dummyUser.AuthIdentifier, StringComparison.OrdinalIgnoreCase)))
         {
             logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate <{MandateId}>.", dummyUser, declaration.DeliveryMandateId);
-            return Problem("Mandate with id <{declaration.DeliveryMandateId}> not found or user is not authorized.", statusCode: StatusCodes.Status404NotFound);
+            return NotFound("Mandate with id <{declaration.DeliveryMandateId}> not found or user is not authorized.");
         }
 
         var delivery = new Delivery
@@ -89,7 +91,7 @@ public class DeliveryController : ControllerBase
         catch (Exception e)
         {
             logger.LogError(e, "Error while persisting assets for job <{JobId}>.", declaration.JobId);
-            return Problem($"Error while persisting assets for job <{declaration.JobId}>.", statusCode: StatusCodes.Status500InternalServerError);
+            return Problem($"Error while persisting assets for job <{declaration.JobId}>.");
         }
 
         var entityEntry = context.Deliveries.Add(delivery);
@@ -121,11 +123,36 @@ public class DeliveryController : ControllerBase
     /// Performs a soft delete in the database and deletes the files from the storage.
     /// </summary>
     /// <returns>An updated list of <see cref="Delivery"/>.</returns>
+    [Route("{deliveryId}")]
     [HttpDelete]
-    public IActionResult Delete(List<int> deliveryIds)
+    [SwaggerResponse(StatusCodes.Status200OK, "The delivery was successfully deleted.")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(int), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could be found.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    public IActionResult Delete([FromRoute] int deliveryId)
     {
-        // TODO: Soft delete in DB and remove from storage
-        // https://github.com/GeoWerkstatt/geocop/issues/98
-        return Ok();
+        try
+        {
+            var delivery = context.Deliveries.Include(d => d.Assets).FirstOrDefault(d => d.Id == deliveryId);
+            if (delivery == default)
+            {
+                logger.LogTrace($"No delivery with id <{deliveryId}> found.");
+                return NotFound($"No delivery with id <{deliveryId}> found.");
+            }
+
+            delivery.Deleted = true;
+            delivery.Assets.ForEach(a => a.Deleted = true);
+            persistedAssetDeleter.DeleteJobAssets(delivery.JobId);
+
+            context.SaveChanges();
+
+            return Ok();
+        }
+        catch (Exception e)
+        {
+            var message = $"Error while deleting delivery <{deliveryId}>.";
+            logger.LogError(e, message);
+            return Problem(message);
+        }
     }
 }

@@ -148,7 +148,8 @@ internal static class ContextExtensions
                 d.DeliveryMandate.Organisations
                 .SelectMany(o => o.Users)
                 .ToList()))
-            .RuleFor(d => d.Assets, _ => new List<Asset>());
+            .RuleFor(d => d.Assets, _ => new List<Asset>())
+            .RuleFor(d => d.Deleted, false);
 
         Delivery SeedDelivery(int seed) => deliveryFaker.UseSeed(seed).Generate();
         context.Deliveries.AddRange(Enumerable.Range(0, 20).Select(SeedDelivery));
@@ -164,7 +165,8 @@ internal static class ContextExtensions
             .RuleFor(a => a.OriginalFilename, f => f.System.FileName())
             .RuleFor(a => a.SanitizedFilename, (f, a) => Path.ChangeExtension(Path.GetRandomFileName(), Path.GetExtension(a.OriginalFilename)))
             .RuleFor(a => a.AssetType, f => f.PickRandomWithout(AssetType.PrimaryData))
-            .RuleFor(a => a.Delivery, f => f.PickRandom(context.Deliveries.ToList()));
+            .RuleFor(a => a.Delivery, f => f.PickRandom(context.Deliveries.ToList()))
+            .RuleFor(d => d.Deleted, false);
 
         Asset SeedAsset(int seed) => assetFaker.UseSeed(seed).Generate();
         var assets = Enumerable.Range(0, 60).Select(SeedAsset).ToList();
