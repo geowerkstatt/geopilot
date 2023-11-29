@@ -4,7 +4,7 @@ import { Container, Stack } from "react-bootstrap";
 import { FileDropzone } from "./FileDropzone";
 import { Title } from "./Title";
 import { Protokoll } from "./Protokoll";
-import { Delivery } from "./Delivery";
+import { DeliveryContainer } from "./DeliveryContainer";
 
 export const Home = ({
   clientSettings,
@@ -150,7 +150,7 @@ export const Home = ({
           fileName={fileToCheck ? fileToCheck.name : ""}
           validationRunning={validationRunning}
         />
-        <Delivery statusData={statusData} validationRunning={validationRunning} />
+        <DeliveryContainer statusData={statusData} validationRunning={validationRunning} />
       </Stack>
     </main>
   );

@@ -93,6 +93,9 @@ builder.Services.AddSwaggerGen(options =>
 
     options.EnableAnnotations();
     options.SupportNonNullableReferenceTypes();
+
+    // Workaround for STAC API having multiple actions mapped to the "search" route.
+    options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 });
 
 builder.Services
