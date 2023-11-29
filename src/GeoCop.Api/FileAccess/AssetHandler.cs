@@ -122,7 +122,7 @@ public class AssetHandler : IAssetHandler
                 var asset = new Asset()
                 {
                     AssetType = AssetType.ValidationReport,
-                    OriginalFilename = $"{validator.Key}_{logfile.Key}",
+                    OriginalFilename = $"{validator.Key}_{logfile.Key}{Path.GetExtension(logfile.Value)}",
                     SanitizedFilename = logfile.Value,
                     FileHash = SHA256.HashData(stream),
                 };
