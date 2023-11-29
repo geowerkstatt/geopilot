@@ -1,17 +1,18 @@
-import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
 import { Button, Card, Collapse, Container } from "react-bootstrap";
 import { Delivery } from "./Delivery";
 import { useAuth } from "@/auth";
+import { LoggedInTemplate } from "@/auth/LoggedInTemplate";
+import { LoggedOutTemplate } from "@/auth/LoggedOutTemplate";
 
 export const DeliveryContainer = ({ statusData, validationRunning }) => {
   const { login } = useAuth();
 
   return (
     <>
-      <AuthenticatedTemplate>
+      <LoggedInTemplate>
         <Delivery statusData={statusData} validationRunning={validationRunning} />
-      </AuthenticatedTemplate>
-      <UnauthenticatedTemplate>
+      </LoggedInTemplate>
+      <LoggedOutTemplate>
         <Collapse in={statusData?.status === "completed" && !validationRunning}>
           <Container>
             <Card>
@@ -19,7 +20,7 @@ export const DeliveryContainer = ({ statusData, validationRunning }) => {
             </Card>
           </Container>
         </Collapse>
-      </UnauthenticatedTemplate>
+      </LoggedOutTemplate>
     </>
   );
 };

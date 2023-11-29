@@ -1,8 +1,9 @@
 import { Button, Navbar, Nav, Container } from "react-bootstrap";
-import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "./auth";
 import { AdminTemplate } from "./auth/AdminTemplate";
+import { LoggedInTemplate } from "./auth/LoggedInTemplate";
+import { LoggedOutTemplate } from "./auth/LoggedOutTemplate";
 
 export const Header = ({ clientSettings }) => {
   const { user, login, logout } = useAuth();
@@ -40,22 +41,22 @@ export const Header = ({ clientSettings }) => {
                 </AdminTemplate>
               </Nav>
               <Nav>
-                <UnauthenticatedTemplate>
+                <LoggedOutTemplate>
                   <Button className="nav-button" onClick={login}>
                     ANMELDEN
                   </Button>
-                </UnauthenticatedTemplate>
-                <AuthenticatedTemplate>
+                </LoggedOutTemplate>
+                <LoggedInTemplate>
                   <Button className="nav-button" onClick={logout}>
                     ABMELDEN
                   </Button>
-                </AuthenticatedTemplate>
+                </LoggedInTemplate>
               </Nav>
             </div>
             <div className="navbar-info-container">
-              <AuthenticatedTemplate>
+              <LoggedInTemplate>
                 <div className="user-info">Angemeldet als {user?.name}</div>
-              </AuthenticatedTemplate>
+              </LoggedInTemplate>
             </div>
           </Navbar.Collapse>
         </Container>

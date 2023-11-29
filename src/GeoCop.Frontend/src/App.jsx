@@ -1,4 +1,3 @@
-import { UnauthenticatedTemplate } from "@azure/msal-react";
 import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import BannerContent from "./BannerContent";
@@ -10,6 +9,7 @@ import ModalContent from "./ModalContent";
 import "./app.css";
 import { AuthProvider } from "./auth/AuthContext";
 import { AdminTemplate } from "./auth/AdminTemplate";
+import { LoggedOutTemplate } from "./auth/LoggedOutTemplate";
 
 export const App = () => {
   const [modalContent, setModalContent] = useState(false);
@@ -103,11 +103,11 @@ export const App = () => {
               }
             />
           </Routes>
-          <UnauthenticatedTemplate>
+          <LoggedOutTemplate>
             <Routes>
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
-          </UnauthenticatedTemplate>
+          </LoggedOutTemplate>
           <AdminTemplate>
             <Routes>
               <Route path="/admin" element={<Admin />} />
