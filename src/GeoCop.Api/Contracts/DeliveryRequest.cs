@@ -18,4 +18,20 @@ public class DeliveryRequest
     /// </summary>
     [Required]
     public int DeliveryMandateId { get; set; }
+
+    /// <summary>
+    /// Indicate whether the delivery contains partial data.
+    /// </summary>
+    [Required]
+    public bool PartialDelivery { get; set; }
+
+    /// <summary>
+    /// Optional. The id of a previous delivery on the same DeliveryMandate.
+    /// </summary>
+    public int? PrecursorDeliveryId { get; set; }
+
+    /// <summary>
+    /// Optional. Comment to describe the delivery.
+    /// </summary>
+    public string? Comment { get; set; }
 }
