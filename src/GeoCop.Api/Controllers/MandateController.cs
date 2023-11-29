@@ -51,7 +51,7 @@ public class MandateController : ControllerBase
         var mandates = context.DeliveryMandates
             .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
 
-        if (!string.IsNullOrEmpty(jobId) && Guid.TryParse(jobId, out var guid))
+        if (Guid.TryParse(jobId, out var guid))
         {
             var job = validationService.GetJob(guid);
             if (job is null)
