@@ -39,4 +39,9 @@ public class Asset
     /// Backreference to the delivery the asset belongs to.
     /// </summary>
     public Delivery Delivery { get; set; } = new Delivery();
+
+    /// <summary>
+    /// The deletion status of the asset.
+    /// </summary>
+    public bool Deleted { get; set; }
 }
