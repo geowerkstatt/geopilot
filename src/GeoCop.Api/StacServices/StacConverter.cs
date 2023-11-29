@@ -91,10 +91,9 @@ public class StacConverter
         };
         item.DateTime.Setup(delivery.Date, delivery.Date);
 
-        var assets = delivery.Assets.Select(file => ToStacAsset(file, item)).ToDictionary(asset => asset.Title);
-        item.Assets.AddRange(assets);
-
         var stacApiContext = StacApiContextFactory.Create();
+        var assets = delivery.Assets.Select(file => ToStacAsset(file, item, stacApiContext.BaseUri)).ToDictionary(asset => asset.Title);
+        item.Assets.AddRange(assets);
         StacLinker.Link(item, stacApiContext);
 
         return item;
@@ -105,11 +104,12 @@ public class StacConverter
     /// </summary>
     /// <param name="asset">The <see cref="Asset"/> to convert.</param>
     /// <param name="parent">The parent <see cref="IStacObject"/> to which the asset belongs.</param>
+    /// <param name="baseUri">The baseUri to build the download link.</param>
     /// <returns>The STAC asset.</returns>
-    public StacAsset ToStacAsset(Asset asset, IStacObject parent)
+    public StacAsset ToStacAsset(Asset asset, IStacObject parent, Uri baseUri)
     {
-        // TODO: Set correct Url with https://github.com/GeoWerkstatt/geocop/issues/56
-        return new StacAsset(parent, new Uri("https://github.com/GeoWerkstatt/geocop/issues/56"), new List<string>() { asset.AssetType.ToString() }, asset.OriginalFilename, FileContentTypeProvider.GetContentType(asset));
+        var downloadLink = new Uri(baseUri, "api/v1/delivery/assets/" + asset.Id);
+        return new StacAsset(parent, downloadLink, new List<string>() { asset.AssetType.ToString() }, asset.OriginalFilename, FileContentTypeProvider.GetContentType(asset));
     }
 
     /// <summary>

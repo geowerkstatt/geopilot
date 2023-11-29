@@ -24,17 +24,19 @@ public class DeliveryController : ControllerBase
     private readonly IValidationService validatorService;
     private readonly IValidationAssetPersistor assetPersistor;
     private readonly IPersistedAssetDeleter persistedAssetDeleter;
+    private readonly IPersistedAssetDownload persistedAssetDownload;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IValidationAssetPersistor assetPersistor, IPersistedAssetDeleter persistedAssetDeleter)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IValidationAssetPersistor assetPersistor, IPersistedAssetDeleter persistedAssetDeleter, IPersistedAssetDownload persistedAssetDownload)
     {
         this.logger = logger;
         this.context = context;
         this.validatorService = validatorService;
         this.assetPersistor = assetPersistor;
         this.persistedAssetDeleter = persistedAssetDeleter;
+        this.persistedAssetDownload = persistedAssetDownload;
     }
 
     /// <summary>
@@ -151,6 +153,38 @@ public class DeliveryController : ControllerBase
         catch (Exception e)
         {
             var message = $"Error while deleting delivery <{deliveryId}>.";
+            logger.LogError(e, message);
+            return Problem(message);
+        }
+    }
+
+    /// <summary>
+    /// Downloads an asset from the persistent storage.
+    /// </summary>
+    /// <returns>The asset file.</returns>
+    [HttpGet]
+    [Route("assets/{assetId}")]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list with available deliveries has been returned.", typeof(List<Delivery>), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(int), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The asset could be found.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    public async Task<IActionResult> DownloadAsync([FromRoute] int assetId)
+    {
+        try
+        {
+            var asset = context.Assets.Include(a => a.Delivery).FirstOrDefault(a => a.Id == assetId && !a.Deleted);
+            if (asset == default)
+            {
+                logger.LogTrace($"No delivery with id <{assetId}> found.");
+                return NotFound($"No delivery with id <{assetId}> found.");
+            }
+
+            var (stream, contentType) = await persistedAssetDownload.DownloadAssetAsync(asset.Delivery.JobId, asset.SanitizedFilename);
+            return File(stream, contentType, asset.OriginalFilename);
+        }
+        catch (Exception e)
+        {
+            var message = $"Error while deleting delivery <{assetId}>.";
             logger.LogError(e, message);
             return Problem(message);
         }
