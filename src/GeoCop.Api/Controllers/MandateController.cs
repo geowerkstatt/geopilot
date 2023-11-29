@@ -23,8 +23,8 @@ public class MandateController : ControllerBase
     /// Initializes a new instance of the <see cref="MandateController"/> class.
     /// </summary>
     /// <param name="logger">Logger for the instance.</param>
-    /// <param name="context">Database Context for getting mandates.</param>
-    /// <param name="validationService">The validation service providing upload file infomration for filetype matchin.</param>
+    /// <param name="context">Database context for getting mandates.</param>
+    /// <param name="validationService">The validation service providing upload file information for filetype matching.</param>
     public MandateController(ILogger<MandateController> logger, Context context, IValidationService validationService)
     {
         this.logger = logger;
@@ -33,12 +33,12 @@ public class MandateController : ControllerBase
     }
 
     /// <summary>
-    /// Get a list of mandates for the current user & matchin all filter criteria.
+    /// Get a list of mandates for the current user and matching all filter criteria.
     /// </summary>
-    /// <param name="jobId">If given the mandates are filtered for matching mandate.</param>
-    /// <returns>List of mandates matching filter criteria.</returns>
+    /// <param name="jobId">Optional. Get matching mandates by validation job id.</param>
+    /// <returns>List of mandates matching optional filter criteria.</returns>
     [HttpGet]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns list of mandates associated the user matching filter criteria.", typeof(IEnumerable<DeliveryMandate>), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns list of mandates associated to the current user matching the optional filter criteria.", typeof(IEnumerable<DeliveryMandate>), new[] { "application/json" })]
     public async Task<IActionResult> Get(
         [FromQuery, SwaggerParameter("Filter mandates matching validation job file extension.")]
         string jobId = "")

@@ -15,7 +15,7 @@ namespace GeoCop.Api.Test.Controllers
         private Context context;
         private MandateController mandateController;
         private User user;
-        private DeliveryMandate unrestricedMandate;
+        private DeliveryMandate unrestrictedMandate;
         private DeliveryMandate xtfMandate;
         private DeliveryMandate unassociatedMandate;
 
@@ -27,11 +27,11 @@ namespace GeoCop.Api.Test.Controllers
             context = Initialize.DbFixture.GetTestContext();
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
 
-            unrestricedMandate = new DeliveryMandate() { FileTypes = new string[] { ".*" }, Name = nameof(unrestricedMandate) };
+            unrestrictedMandate = new DeliveryMandate() { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
             xtfMandate = new DeliveryMandate() { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate) };
             unassociatedMandate = new DeliveryMandate { FileTypes = new string[] { "*.itf" }, Name = nameof(unassociatedMandate) };
 
-            context.DeliveryMandates.Add(unrestricedMandate);
+            context.DeliveryMandates.Add(unrestrictedMandate);
             context.DeliveryMandates.Add(xtfMandate);
             context.DeliveryMandates.Add(unassociatedMandate);
 
@@ -39,7 +39,7 @@ namespace GeoCop.Api.Test.Controllers
             context.Users.Add(user);
 
             var tempOrg = new Organisation { Name = "TestOrg" };
-            tempOrg.Mandates.Add(unrestricedMandate);
+            tempOrg.Mandates.Add(unrestrictedMandate);
             tempOrg.Mandates.Add(xtfMandate);
             tempOrg.Users.Add(user);
 
@@ -56,7 +56,7 @@ namespace GeoCop.Api.Test.Controllers
             var mandates = (result?.Value as IEnumerable<DeliveryMandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            CollectionAssert.Contains(mandates, unrestricedMandate);
+            CollectionAssert.Contains(mandates, unrestrictedMandate);
             CollectionAssert.Contains(mandates, xtfMandate);
             CollectionAssert.DoesNotContain(mandates, unassociatedMandate);
         }
@@ -74,7 +74,7 @@ namespace GeoCop.Api.Test.Controllers
             var mandates = (result?.Value as IEnumerable<DeliveryMandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            CollectionAssert.Contains(mandates, unrestricedMandate);
+            CollectionAssert.Contains(mandates, unrestrictedMandate);
             CollectionAssert.Contains(mandates, xtfMandate);
             CollectionAssert.DoesNotContain(mandates, unassociatedMandate);
         }
@@ -92,7 +92,7 @@ namespace GeoCop.Api.Test.Controllers
             var mandates = (result?.Value as IEnumerable<DeliveryMandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            CollectionAssert.Contains(mandates, unrestricedMandate);
+            CollectionAssert.Contains(mandates, unrestrictedMandate);
             CollectionAssert.DoesNotContain(mandates, xtfMandate);
             CollectionAssert.DoesNotContain(mandates, unassociatedMandate);
         }
