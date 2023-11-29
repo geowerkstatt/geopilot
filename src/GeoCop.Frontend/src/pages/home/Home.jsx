@@ -1,11 +1,10 @@
 import "../../app.css";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Button, Card, Collapse, Container, Stack } from "react-bootstrap";
+import { Container, Stack } from "react-bootstrap";
 import { FileDropzone } from "./FileDropzone";
 import { Title } from "./Title";
 import { Protokoll } from "./Protokoll";
-import { Delivery } from "./Delivery";
-import { AuthenticatedTemplate, UnauthenticatedTemplate } from "@azure/msal-react";
+import { DeliveryContainer } from "./DeliveryContainer";
 
 export const Home = ({
   clientSettings,
@@ -151,18 +150,7 @@ export const Home = ({
           fileName={fileToCheck ? fileToCheck.name : ""}
           validationRunning={validationRunning}
         />
-        <AuthenticatedTemplate>
-          <Delivery statusData={statusData} validationRunning={validationRunning} />
-        </AuthenticatedTemplate>
-        <UnauthenticatedTemplate>
-          <Collapse in={statusData?.status === "completed" && !validationRunning}>
-            <Container>
-              <Card>
-                <Button>Zur Abgabe einloggen</Button>
-              </Card>
-            </Container>
-          </Collapse>
-        </UnauthenticatedTemplate>
+        <DeliveryContainer statusData={statusData} validationRunning={validationRunning} />
       </Stack>
     </main>
   );
