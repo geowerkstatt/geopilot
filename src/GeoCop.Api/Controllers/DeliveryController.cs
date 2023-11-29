@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using GeoCop.Api.Authorization;
 using GeoCop.Api.Contracts;
 using GeoCop.Api.FileAccess;
@@ -178,8 +178,8 @@ public class DeliveryController : ControllerBase
                 return NotFound($"No delivery with id <{assetId}> found.");
             }
 
-            var (stream, contentType) = await assetHandler.DownloadAssetAsync(asset.Delivery.JobId, asset.SanitizedFilename);
-            return File(stream, contentType, asset.OriginalFilename);
+            var (content, contentType) = await assetHandler.DownloadAssetAsync(asset.Delivery.JobId, asset.SanitizedFilename);
+            return File(content, contentType, asset.OriginalFilename);
         }
         catch (Exception e)
         {
