@@ -1,4 +1,4 @@
-﻿namespace GeoCop.Api;
+﻿namespace GeoCop.Api.FileAccess;
 
 /// <summary>
 /// Provides access to the upload and asset directories.
@@ -12,7 +12,7 @@ public class DirectoryProvider : IDirectoryProvider
     /// Initializes a new instance of the <see cref="DirectoryProvider"/> class.
     /// </summary>
     /// <param name="configuration"></param>
-    public DirectoryProvider(IConfiguration configuration) 
+    public DirectoryProvider(IConfiguration configuration)
     {
         uploadDirecory = configuration.GetValue<string>("Storage:UploadDirectory")
             ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");

@@ -6,7 +6,7 @@ using Moq;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace GeoCop.Api;
+namespace GeoCop.Api.FileAccess;
 
 [TestClass]
 public class ValidationAssetPersistorTests

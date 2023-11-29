@@ -2,6 +2,7 @@
 using GeoCop.Api;
 using GeoCop.Api.Authorization;
 using GeoCop.Api.Conventions;
+using GeoCop.Api.FileAccess;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using GeoCop.Api.Validation.Interlis;

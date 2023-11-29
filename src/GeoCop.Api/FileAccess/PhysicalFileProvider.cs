@@ -1,4 +1,4 @@
-﻿namespace GeoCop.Api;
+﻿namespace GeoCop.Api.FileAccess;
 
 /// <summary>
 /// Provides read/write access to files in a predefined folder.

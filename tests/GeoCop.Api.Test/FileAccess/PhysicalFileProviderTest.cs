@@ -1,6 +1,6 @@
 ﻿using GeoCop.Api.Test;
 
-namespace GeoCop.Api;
+namespace GeoCop.Api.FileAccess;
 
 [TestClass]
 public sealed class PhysicalFileProviderTest

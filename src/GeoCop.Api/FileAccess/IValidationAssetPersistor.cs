@@ -1,6 +1,6 @@
 ﻿using GeoCop.Api.Models;
 
-namespace GeoCop.Api
+namespace GeoCop.Api.FileAccess
 {
     /// <summary>
     /// Migrates files delivered for validation into a persistent storage.

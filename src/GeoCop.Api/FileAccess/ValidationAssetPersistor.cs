@@ -2,7 +2,7 @@
 using GeoCop.Api.Validation;
 using System.Security.Cryptography;
 
-namespace GeoCop.Api;
+namespace GeoCop.Api.FileAccess;
 
 /// <summary>
 /// Migrates files delivered for validation into a persistent storage.
@@ -31,7 +31,7 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
         this.directoryProvider = directoryProvider;
     }
 
-     /// <inheritdoc/>
+    /// <inheritdoc/>
     public IEnumerable<Asset> PersistJobAssets(Guid jobId)
     {
         var job = validationService.GetJob(jobId);
