@@ -23,7 +23,7 @@ public class ValidationAssetPersistorTests
     public TestContext TestContext { get; set; }
 
     [TestInitialize]
-    public void Setup()
+    public void Initialize()
     {
         jobId = Guid.NewGuid();
         loggerMock = new Mock<ILogger<ValidationAssetPersistor>>();

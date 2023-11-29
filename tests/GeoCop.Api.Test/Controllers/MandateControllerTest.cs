@@ -20,11 +20,11 @@ namespace GeoCop.Api.Test.Controllers
         private DeliveryMandate unassociatedMandate;
 
         [TestInitialize]
-        public void Setup()
+        public void Initialize()
         {
             loggerMock = new Mock<ILogger<MandateController>>();
             validationServiceMock = new Mock<IValidationService>();
-            context = Initialize.DbFixture.GetTestContext();
+            context = AssemblyInitialize.DbFixture.GetTestContext();
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
 
             unrestrictedMandate = new DeliveryMandate() { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
