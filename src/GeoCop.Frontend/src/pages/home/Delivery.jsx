@@ -63,7 +63,6 @@ export const Delivery = ({ statusData, validationRunning }) => {
         throw Error(response.statusText);
       }
     } catch (error) {
-      console.warn("Error creating delivery: ", error);
       setDeliveryState(DeliveryState.Failed);
     }
   };
