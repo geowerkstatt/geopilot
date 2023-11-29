@@ -126,6 +126,7 @@ public class StacConverterTest
                     "Title",
                     "application/octet-stream"));
             });
+        contextMock.SetupGet(context => context.BaseUri).Returns(new Uri("https://localhost:5173/"));
         contextFactoryMock.Setup(factory => factory.Create()).Returns(contextMock.Object);
         var contentType = "text/plain";
         contentTypeProviderMock.Setup(x => x.TryGetContentType(It.IsAny<string>(), out contentType)).Returns(true);
@@ -155,6 +156,7 @@ public class StacConverterTest
                     "Title",
                     "application/octet-stream"));
             });
+        contextMock.SetupGet(context => context.BaseUri).Returns(new Uri("https://localhost:5173/"));
         contextFactoryMock.Setup(factory => factory.Create()).Returns(contextMock.Object);
         var contentType = "application/interlis+xml";
         contentTypeProviderMock.Setup(x => x.TryGetContentType(It.IsAny<string>(), out contentType)).Returns(true);

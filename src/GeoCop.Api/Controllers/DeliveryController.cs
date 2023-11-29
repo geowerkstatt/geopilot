@@ -22,19 +22,17 @@ public class DeliveryController : ControllerBase
     private readonly ILogger<DeliveryController> logger;
     private readonly Context context;
     private readonly IValidationService validatorService;
-    private readonly IValidationAssetPersistor assetPersistor;
-    private readonly IPersistedAssetDeleter persistedAssetDeleter;
+    private readonly IAssetHandler assetHandler;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IValidationAssetPersistor assetPersistor, IPersistedAssetDeleter persistedAssetDeleter)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IAssetHandler assetHandler)
     {
         this.logger = logger;
         this.context = context;
         this.validatorService = validatorService;
-        this.assetPersistor = assetPersistor;
-        this.persistedAssetDeleter = persistedAssetDeleter;
+        this.assetHandler = assetHandler;
     }
 
     /// <summary>
@@ -86,7 +84,7 @@ public class DeliveryController : ControllerBase
 
         try
         {
-            delivery.Assets.AddRange(assetPersistor.PersistJobAssets(declaration.JobId));
+            delivery.Assets.AddRange(assetHandler.PersistJobAssets(declaration.JobId));
         }
         catch (Exception e)
         {
@@ -142,7 +140,7 @@ public class DeliveryController : ControllerBase
 
             delivery.Deleted = true;
             delivery.Assets.ForEach(a => a.Deleted = true);
-            persistedAssetDeleter.DeleteJobAssets(delivery.JobId);
+            assetHandler.DeleteJobAssets(delivery.JobId);
 
             context.SaveChanges();
 
@@ -151,6 +149,38 @@ public class DeliveryController : ControllerBase
         catch (Exception e)
         {
             var message = $"Error while deleting delivery <{deliveryId}>.";
+            logger.LogError(e, message);
+            return Problem(message);
+        }
+    }
+
+    /// <summary>
+    /// Downloads an asset from the persistent storage.
+    /// </summary>
+    /// <returns>The asset file.</returns>
+    [HttpGet]
+    [Route("assets/{assetId}")]
+    [SwaggerResponse(StatusCodes.Status200OK, "A file has been downloaded.", typeof(File), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(int), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The asset could be found.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    public async Task<IActionResult> DownloadAsync([FromRoute] int assetId)
+    {
+        try
+        {
+            var asset = context.Assets.Include(a => a.Delivery).FirstOrDefault(a => a.Id == assetId && !a.Deleted);
+            if (asset == default)
+            {
+                logger.LogTrace($"No delivery with id <{assetId}> found.");
+                return NotFound($"No delivery with id <{assetId}> found.");
+            }
+
+            var (stream, contentType) = await assetHandler.DownloadAssetAsync(asset.Delivery.JobId, asset.SanitizedFilename);
+            return File(stream, contentType, asset.OriginalFilename);
+        }
+        catch (Exception e)
+        {
+            var message = $"Error while deleting delivery <{assetId}>.";
             logger.LogError(e, message);
             return Problem(message);
         }

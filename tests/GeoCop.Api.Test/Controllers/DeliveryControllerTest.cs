@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Text;
 
 namespace GeoCop.Api.Controllers;
 
@@ -15,8 +16,7 @@ namespace GeoCop.Api.Controllers;
 public class DeliveryControllerTest
 {
     private Mock<IValidationService> validationServiceMock;
-    private Mock<IValidationAssetPersistor> validationAssetPersistorMock;
-    private Mock<IPersistedAssetDeleter> persistedAssetDeleterMock;
+    private Mock<IAssetHandler> assetHandlerMock;
     private Mock<ILogger<DeliveryController>> loggerMock;
     private DeliveryController deliveryController;
     private Context context;
@@ -26,10 +26,9 @@ public class DeliveryControllerTest
     {
         loggerMock = new Mock<ILogger<DeliveryController>>();
         validationServiceMock = new Mock<IValidationService>();
-        validationAssetPersistorMock = new Mock<IValidationAssetPersistor>();
-        persistedAssetDeleterMock = new Mock<IPersistedAssetDeleter>();
+        assetHandlerMock = new Mock<IAssetHandler>();
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        deliveryController = new DeliveryController(loggerMock.Object, context, validationServiceMock.Object, validationAssetPersistorMock.Object, persistedAssetDeleterMock.Object);
+        deliveryController = new DeliveryController(loggerMock.Object, context, validationServiceMock.Object, assetHandlerMock.Object);
     }
 
     public void Cleanup()
@@ -110,7 +109,7 @@ public class DeliveryControllerTest
         validationServiceMock
             .Setup(s => s.GetJobStatus(guid))
             .Returns(new ValidationJobStatus(guid) { JobId = guid, Status = Status.Completed });
-        validationAssetPersistorMock
+        assetHandlerMock
             .Setup(p => p.PersistJobAssets(guid))
             .Returns(new List<Asset> { new Asset(), new Asset() });
         var startTime = DateTime.Now;
@@ -161,10 +160,34 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public void DeleteDeliveryNotFound()
+    public void DeleteFailsDeliveryNotFound()
     {
-        context.Deliveries.Max(d => d.Id);
         var result = deliveryController.Delete(context.Deliveries.Max(d => d.Id) + 1) as ObjectResult;
+        Assert.IsNotNull(result);
+        Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task Download()
+    {
+        assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));
+        var guid = Guid.NewGuid();
+        var delivery = new Delivery { JobId = guid };
+        delivery.Assets.Add(new Asset() { OriginalFilename = "Test.xml", SanitizedFilename = "xyz.xml" });
+        context.Deliveries.Add(delivery);
+        context.SaveChanges();
+
+        var result = await deliveryController.DownloadAsync(delivery.Assets[0].Id) as FileContentResult;
+        Assert.IsNotNull(result);
+        Assert.IsNotNull(result.FileContents);
+        Assert.AreEqual("Test.xml", result.FileDownloadName);
+        Assert.AreEqual("text/xml", result.ContentType);
+    }
+
+    [TestMethod]
+    public async Task DownloadFailsAssetNotFound()
+    {
+        var result = await deliveryController.DownloadAsync(context.Assets.Max(d => d.Id) + 1) as ObjectResult;
 
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
