@@ -1,4 +1,4 @@
-namespace GeoCop.Api;
+﻿namespace GeoCop.Api;
 
 /// <summary>
 /// Provides access to the upload and asset directories.
