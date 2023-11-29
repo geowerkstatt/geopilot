@@ -124,7 +124,6 @@ export const Admin = () => {
           <DataGrid
             localeText={deDE.components.MuiDataGrid.defaultProps.localeText}
             sx={{
-              margin: "20px 35px",
               fontFamily: "system-ui, -apple-syste",
             }}
             pagination

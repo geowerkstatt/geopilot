@@ -112,6 +112,7 @@ public class DeliveryController : ControllerBase
     /// <returns>A list of <see cref="Delivery"/>.</returns>
     [HttpGet]
     [SwaggerResponse(StatusCodes.Status200OK, "A list with available deliveries has been returned.", typeof(List<Delivery>), new[] { "application/json" })]
+    [Authorize(Policy = GeocopPolicies.Admin)]
     public List<Delivery> Get()
     {
         return context.DeliveriesWithIncludes;
@@ -124,9 +125,10 @@ public class DeliveryController : ControllerBase
     [Route("{deliveryId}")]
     [HttpDelete]
     [SwaggerResponse(StatusCodes.Status200OK, "The delivery was successfully deleted.")]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(int), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    [Authorize(Policy = GeocopPolicies.Admin)]
     public IActionResult Delete([FromRoute] int deliveryId)
     {
         try
@@ -161,9 +163,10 @@ public class DeliveryController : ControllerBase
     [HttpGet]
     [Route("assets/{assetId}")]
     [SwaggerResponse(StatusCodes.Status200OK, "A file has been downloaded.", typeof(File), new[] { "application/json" })]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(int), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The asset could be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    [Authorize(Policy = GeocopPolicies.Admin)]
     public async Task<IActionResult> DownloadAsync([FromRoute] int assetId)
     {
         try
@@ -175,8 +178,8 @@ public class DeliveryController : ControllerBase
                 return NotFound($"No delivery with id <{assetId}> found.");
             }
 
-            var (stream, contentType) = await assetHandler.DownloadAssetAsync(asset.Delivery.JobId, asset.SanitizedFilename);
-            return File(stream, contentType, asset.OriginalFilename);
+            var (content, contentType) = await assetHandler.DownloadAssetAsync(asset.Delivery.JobId, asset.SanitizedFilename);
+            return File(content, contentType, asset.OriginalFilename);
         }
         catch (Exception e)
         {
