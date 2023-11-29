@@ -27,8 +27,8 @@ namespace GeoCop.Api.Test.Controllers
             context = AssemblyInitialize.DbFixture.GetTestContext();
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
 
-            unrestrictedMandate = new DeliveryMandate() { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
-            xtfMandate = new DeliveryMandate() { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate) };
+            unrestrictedMandate = new DeliveryMandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
+            xtfMandate = new DeliveryMandate { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate) };
             unassociatedMandate = new DeliveryMandate { FileTypes = new string[] { "*.itf" }, Name = nameof(unassociatedMandate) };
 
             context.DeliveryMandates.Add(unrestrictedMandate);
@@ -122,6 +122,14 @@ namespace GeoCop.Api.Test.Controllers
 
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+        }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            context.Dispose();
+            loggerMock.VerifyAll();
+            validationServiceMock.VerifyAll();
         }
     }
 }
