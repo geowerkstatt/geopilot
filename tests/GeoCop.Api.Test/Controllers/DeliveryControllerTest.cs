@@ -15,8 +15,7 @@ namespace GeoCop.Api.Controllers;
 public class DeliveryControllerTest
 {
     private Mock<IValidationService> validationServiceMock;
-    private Mock<IValidationAssetPersistor> validationAssetPersistorMock;
-    private Mock<IPersistedAssetDeleter> persistedAssetDeleterMock;
+    private Mock<IAssetHandler> assetHandlerMock;
     private Mock<ILogger<DeliveryController>> loggerMock;
     private DeliveryController deliveryController;
     private Context context;
@@ -26,10 +25,9 @@ public class DeliveryControllerTest
     {
         loggerMock = new Mock<ILogger<DeliveryController>>();
         validationServiceMock = new Mock<IValidationService>();
-        validationAssetPersistorMock = new Mock<IValidationAssetPersistor>();
-        persistedAssetDeleterMock = new Mock<IPersistedAssetDeleter>();
+        assetHandlerMock = new Mock<IAssetHandler>();
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        deliveryController = new DeliveryController(loggerMock.Object, context, validationServiceMock.Object, validationAssetPersistorMock.Object, persistedAssetDeleterMock.Object);
+        deliveryController = new DeliveryController(loggerMock.Object, context, validationServiceMock.Object, assetHandlerMock.Object);
     }
 
     public void Cleanup()
@@ -110,7 +108,7 @@ public class DeliveryControllerTest
         validationServiceMock
             .Setup(s => s.GetJobStatus(guid))
             .Returns(new ValidationJobStatus(guid) { JobId = guid, Status = Status.Completed });
-        validationAssetPersistorMock
+        assetHandlerMock
             .Setup(p => p.PersistJobAssets(guid))
             .Returns(new List<Asset> { new Asset(), new Asset() });
         var startTime = DateTime.Now;

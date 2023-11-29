@@ -1,34 +1,37 @@
 ﻿using GeoCop.Api.Models;
 using GeoCop.Api.Validation;
+using Microsoft.AspNetCore.StaticFiles;
 using System.Security.Cryptography;
 
 namespace GeoCop.Api.FileAccess;
 
 /// <summary>
-/// Migrates files delivered for validation into a persistent storage.
+/// Provides functionality to move, delete and download asset files.
 /// </summary>
-public class ValidationAssetPersistor : IValidationAssetPersistor
+public class AssetHandler : IAssetHandler
 {
-    private readonly ILogger<ValidationAssetPersistor> logger;
+    private readonly ILogger<AssetHandler> logger;
     private readonly IValidationService validationService;
     private readonly IFileProvider temporaryFileProvider;
-
     private readonly IDirectoryProvider directoryProvider;
+    private readonly IContentTypeProvider fileContentTypeProvider;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ValidationAssetPersistor"/> class.
+    /// Initializes a new instance of the <see cref="AssetHandler"/> class.
     /// </summary>
     /// <param name="logger">The logger used for the instance.</param>
     /// <param name="validationService">Validation service to migrate files from.</param>
     /// <param name="temporaryFileProvider">The provider to access temporary file storage.</param>
     /// <param name="directoryProvider">The service configuration.</param>
+    /// <param name="fileContentTypeProvider">The file extension content type provider.</param>
     /// <exception cref="InvalidOperationException">Thrown if required configuration values are not defined.</exception>
-    public ValidationAssetPersistor(ILogger<ValidationAssetPersistor> logger, IValidationService validationService, IFileProvider temporaryFileProvider, IDirectoryProvider directoryProvider)
+    public AssetHandler(ILogger<AssetHandler> logger, IValidationService validationService, IFileProvider temporaryFileProvider, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
     {
         this.logger = logger;
         this.validationService = validationService;
         this.temporaryFileProvider = temporaryFileProvider;
         this.directoryProvider = directoryProvider;
+        this.fileContentTypeProvider = fileContentTypeProvider;
     }
 
     /// <inheritdoc/>
@@ -48,6 +51,39 @@ public class ValidationAssetPersistor : IValidationAssetPersistor
         assets.AddRange(PersistValidationJobValidatorAssets(jobStatus));
 
         return assets;
+    }
+
+    /// <inheritdoc/>
+    public void DeleteJobAssets(Guid jobId)
+    {
+        try
+        {
+            Directory.Delete(directoryProvider.GetAssetDirectoryPath(jobId), true);
+        }
+        catch (Exception e)
+        {
+            var message = $"Failed to delete assets for job <{jobId}>.";
+            logger.LogError(e, message);
+            throw new InvalidOperationException(message, e);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<(byte[], string)> DownloadAssetAsync(Guid jobId, string assetName)
+    {
+        try
+        {
+            var filePath = Path.Combine(directoryProvider.GetAssetDirectoryPath(jobId), assetName);
+            if (!File.Exists(filePath)) throw new FileNotFoundException($"File {filePath} not found.");
+            var stream = await File.ReadAllBytesAsync(filePath);
+            return (stream, fileContentTypeProvider.GetContentTypeAsString(assetName));
+        }
+        catch (Exception e)
+        {
+            var message = $"Failed to download asset <{assetName}>.";
+            logger.LogError(e, message);
+            throw new InvalidOperationException(message, e);
+        }
     }
 
     /// <summary>

@@ -22,21 +22,17 @@ public class DeliveryController : ControllerBase
     private readonly ILogger<DeliveryController> logger;
     private readonly Context context;
     private readonly IValidationService validatorService;
-    private readonly IValidationAssetPersistor assetPersistor;
-    private readonly IPersistedAssetDeleter persistedAssetDeleter;
-    private readonly IPersistedAssetDownload persistedAssetDownload;
+    private readonly IAssetHandler assetHandler;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IValidationAssetPersistor assetPersistor, IPersistedAssetDeleter persistedAssetDeleter, IPersistedAssetDownload persistedAssetDownload)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IAssetHandler assetHandler)
     {
         this.logger = logger;
         this.context = context;
         this.validatorService = validatorService;
-        this.assetPersistor = assetPersistor;
-        this.persistedAssetDeleter = persistedAssetDeleter;
-        this.persistedAssetDownload = persistedAssetDownload;
+        this.assetHandler = assetHandler;
     }
 
     /// <summary>
@@ -88,7 +84,7 @@ public class DeliveryController : ControllerBase
 
         try
         {
-            delivery.Assets.AddRange(assetPersistor.PersistJobAssets(declaration.JobId));
+            delivery.Assets.AddRange(assetHandler.PersistJobAssets(declaration.JobId));
         }
         catch (Exception e)
         {
@@ -144,7 +140,7 @@ public class DeliveryController : ControllerBase
 
             delivery.Deleted = true;
             delivery.Assets.ForEach(a => a.Deleted = true);
-            persistedAssetDeleter.DeleteJobAssets(delivery.JobId);
+            assetHandler.DeleteJobAssets(delivery.JobId);
 
             context.SaveChanges();
 
@@ -179,7 +175,7 @@ public class DeliveryController : ControllerBase
                 return NotFound($"No delivery with id <{assetId}> found.");
             }
 
-            var (stream, contentType) = await persistedAssetDownload.DownloadAssetAsync(asset.Delivery.JobId, asset.SanitizedFilename);
+            var (stream, contentType) = await assetHandler.DownloadAssetAsync(asset.Delivery.JobId, asset.SanitizedFilename);
             return File(stream, contentType, asset.OriginalFilename);
         }
         catch (Exception e)
