@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using GeoCop.Api.FileAccess;
 using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

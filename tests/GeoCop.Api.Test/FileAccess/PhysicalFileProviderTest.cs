@@ -1,19 +1,16 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using GeoCop.Api.Test;
 
-namespace GeoCop.Api;
+namespace GeoCop.Api.FileAccess;
 
 [TestClass]
 public sealed class PhysicalFileProviderTest
 {
     private const string JobId = "8c0681a9-6f7e-4fa1-9f46-ec4431414b7f";
 
-    public TestContext TestContext { get; set; }
-
     [TestMethod]
     public void CreateFileWithRandomName()
     {
-        var configuration = CreateConfiguration();
-        var fileProvider = new PhysicalFileProvider(configuration);
+        var fileProvider = new PhysicalFileProvider(Initialize.TestDirectoryProvider);
 
         fileProvider.Initialize(new Guid(JobId));
 
@@ -27,10 +24,4 @@ public sealed class PhysicalFileProviderTest
         Assert.IsTrue(fileProvider.Exists(fileHandle.FileName));
         Assert.IsTrue(fileHandle.Stream.CanWrite);
     }
-
-    private IConfiguration CreateConfiguration() =>
-        new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        {
-            { "Storage:UploadDirectory", TestContext.DeploymentDirectory },
-        }).Build();
 }

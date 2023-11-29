@@ -1,4 +1,5 @@
 ﻿using GeoCop.Api.Contracts;
+using GeoCop.Api.FileAccess;
 using GeoCop.Api.Models;
 using GeoCop.Api.Test;
 using GeoCop.Api.Validation;

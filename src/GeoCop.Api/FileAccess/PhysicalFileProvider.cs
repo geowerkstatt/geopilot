@@ -1,11 +1,11 @@
-﻿namespace GeoCop.Api;
+﻿namespace GeoCop.Api.FileAccess;
 
 /// <summary>
 /// Provides read/write access to files in a predefined folder.
 /// </summary>
 public class PhysicalFileProvider : IFileProvider
 {
-    private readonly IConfiguration configuration;
+    private readonly IDirectoryProvider directoryProvider;
 
     private DirectoryInfo? homeDirectory;
 
@@ -14,11 +14,10 @@ public class PhysicalFileProvider : IFileProvider
     /// <summary>
     /// Initializes a new instance of the <see cref="PhysicalFileProvider"/> at the given root directory path.
     /// </summary>
-    /// <param name="configuration">The configuration.</param>
-    /// <exception cref="ArgumentNullException">If <see cref="configuration"/> is <c>null</c>.</exception>
-    public PhysicalFileProvider(IConfiguration configuration)
+    /// <param name="directoryProvider">The directory provider.</param>
+    public PhysicalFileProvider(IDirectoryProvider directoryProvider)
     {
-        this.configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        this.directoryProvider = directoryProvider;
     }
 
     /// <inheritdoc/>
@@ -59,9 +58,6 @@ public class PhysicalFileProvider : IFileProvider
     public void Initialize(Guid id)
     {
         if (id == Guid.Empty) throw new ArgumentException("The specified id is not valid.", nameof(id));
-        var rootDirectory = configuration.GetValue<string>("Storage:UploadDirectory")
-            ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
-
-        homeDirectory = new DirectoryInfo(rootDirectory).CreateSubdirectory(id.ToString());
+        homeDirectory = Directory.CreateDirectory(directoryProvider.GetUploadDirectoryPath(id));
     }
 }

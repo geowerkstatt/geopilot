@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using GeoCop.Api.Authorization;
 using GeoCop.Api.Contracts;
+using GeoCop.Api.FileAccess;
 using GeoCop.Api.Models;
 using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Authorization;

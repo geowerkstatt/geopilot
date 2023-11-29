@@ -2,6 +2,7 @@
 using GeoCop.Api;
 using GeoCop.Api.Authorization;
 using GeoCop.Api.Conventions;
+using GeoCop.Api.FileAccess;
 using GeoCop.Api.StacServices;
 using GeoCop.Api.Validation;
 using GeoCop.Api.Validation.Interlis;
@@ -126,6 +127,7 @@ builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 builder.Services.AddSingleton<IValidationRunner, ValidationRunner>();
 builder.Services.AddHostedService(services => (ValidationRunner)services.GetRequiredService<IValidationRunner>());
 builder.Services.AddTransient<IValidationService, ValidationService>();
+builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
 builder.Services.AddTransient<IValidationAssetPersistor, ValidationAssetPersistor>();
 builder.Services.AddTransient<IPersistedAssetDeleter, PersistedAssetDeleter>();
