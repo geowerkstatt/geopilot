@@ -10,7 +10,7 @@ public sealed class PhysicalFileProviderTest
     [TestMethod]
     public void CreateFileWithRandomName()
     {
-        var fileProvider = new PhysicalFileProvider(Initialize.TestDirectoryProvider);
+        var fileProvider = new PhysicalFileProvider(AssemblyInitialize.TestDirectoryProvider);
 
         fileProvider.Initialize(new Guid(JobId));
 

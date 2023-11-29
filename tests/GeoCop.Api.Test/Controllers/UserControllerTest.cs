@@ -13,9 +13,9 @@ public class UserControllerTest
     private UserController userController;
 
     [TestInitialize]
-    public void Setup()
+    public void Initialize()
     {
-        context = Initialize.DbFixture.GetTestContext();
+        context = AssemblyInitialize.DbFixture.GetTestContext();
         userController = new UserController(context);
     }
 

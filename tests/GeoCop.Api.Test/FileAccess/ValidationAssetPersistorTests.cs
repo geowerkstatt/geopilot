@@ -20,15 +20,15 @@ public class ValidationAssetPersistorTests
     private string assetDirectory;
 
     [TestInitialize]
-    public void Setup()
+    public void Initialize()
     {
         jobId = Guid.NewGuid();
-        uploadDirectory = Initialize.TestDirectoryProvider.GetUploadDirectoryPath(jobId);
-        assetDirectory = Initialize.TestDirectoryProvider.GetAssetDirectoryPath(jobId);
+        uploadDirectory = AssemblyInitialize.TestDirectoryProvider.GetUploadDirectoryPath(jobId);
+        assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(jobId);
         loggerMock = new Mock<ILogger<ValidationAssetPersistor>>();
         validationServiceMock = new Mock<IValidationService>();
         fileProviderMock = new Mock<IFileProvider>();
-        persistor = new ValidationAssetPersistor(loggerMock.Object, validationServiceMock.Object, fileProviderMock.Object, Initialize.TestDirectoryProvider);
+        persistor = new ValidationAssetPersistor(loggerMock.Object, validationServiceMock.Object, fileProviderMock.Object, AssemblyInitialize.TestDirectoryProvider);
 
         validationServiceMock.Setup(s => s.GetJob(jobId)).Returns(new ValidationJob(jobId, "OriginalName", "TempFileName"));
         validationServiceMock.Setup(s => s.GetJobStatus(jobId)).Returns(new ValidationJobStatus(jobId) { Status = Status.Completed });

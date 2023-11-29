@@ -17,9 +17,9 @@ public class PersistedAssetDeleterTest
     public void Setup()
     {
         jobId = Guid.NewGuid();
-        assetDirectory = Initialize.TestDirectoryProvider.GetAssetDirectoryPath(jobId);
+        assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(jobId);
         loggerMock = new Mock<ILogger<PersistedAssetDeleter>>();
-        deleter = new PersistedAssetDeleter(loggerMock.Object, Initialize.TestDirectoryProvider);
+        deleter = new PersistedAssetDeleter(loggerMock.Object, AssemblyInitialize.TestDirectoryProvider);
     }
 
     [TestMethod]

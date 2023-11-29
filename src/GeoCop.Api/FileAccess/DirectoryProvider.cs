@@ -11,7 +11,6 @@ public class DirectoryProvider : IDirectoryProvider
     /// <summary>
     /// Initializes a new instance of the <see cref="DirectoryProvider"/> class.
     /// </summary>
-    /// <param name="configuration"></param>
     public DirectoryProvider(IConfiguration configuration)
     {
         uploadDirecory = configuration.GetValue<string>("Storage:UploadDirectory")
