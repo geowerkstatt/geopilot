@@ -1,4 +1,4 @@
-import { Button, Container, Card, Col, Collapse, Form, Row, Spinner } from "react-bootstrap";
+import { Alert, Button, Container, Card, Col, Collapse, Form, Row, Spinner } from "react-bootstrap";
 import { useState, useEffect } from "react";
 
 const DeliveryState = Object.freeze({
@@ -163,10 +163,10 @@ export const Delivery = ({ statusData, validationRunning }) => {
               </Button>
             )}
             {deliveryState === DeliveryState.Failed && (
-              <p>
-                Bei der Abgabe ist ein unbekannter fehler Aufgetreten, bitte versuchen sie es mit einer neuen
+              <Alert variant={"danger"}>
+                Bei der Abgabe ist ein unbekannter Fehler aufgetreten, bitte versuchen sie es mit einer neuen
                 Validierung.
-              </p>
+              </Alert>
             )}
           </Card.Footer>
         </Card>
