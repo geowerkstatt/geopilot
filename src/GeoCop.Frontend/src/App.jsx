@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { Alert } from "react-bootstrap";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Snackbar } from "@mui/material";
 import BannerContent from "./BannerContent";
 import Footer from "./Footer";
 import Header from "./Header";
@@ -26,6 +28,7 @@ export const App = () => {
   const [quickStartContent, setQuickStartContent] = useState(null);
   const [licenseInfo, setLicenseInfo] = useState(null);
   const [licenseInfoCustom, setLicenseInfoCustom] = useState(null);
+  const [alertText, setAlertText] = useState("");
 
   // Update HTML title property
   useEffect(() => {
@@ -84,7 +87,7 @@ export const App = () => {
     setModalContent(content) & setModalContentType(type) & setShowModalContent(true);
 
   return (
-    <AuthProvider authScopes={clientSettings?.authScopes} oauth={clientSettings?.oauth}>
+    <AuthProvider authScopes={clientSettings?.authScopes} oauth={clientSettings?.oauth} onLoginError={setAlertText}>
       <div className="app">
         <Router>
           <Header clientSettings={clientSettings} />
@@ -136,6 +139,11 @@ export const App = () => {
           <BannerContent className="banner" content={bannerContent} onHide={() => setShowBannerContent(false)} />
         )}
       </div>
+      <Snackbar key={alertText} open={alertText !== ""} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
+        <Alert variant="danger" dismissible onClose={() => setAlertText("")}>
+          <p>{alertText}</p>
+        </Alert>
+      </Snackbar>
     </AuthProvider>
   );
 };

@@ -10,7 +10,7 @@ const authDefault = {
 
 export const AuthContext = createContext(authDefault);
 
-export const AuthProvider = ({ children, authScopes, oauth }) => {
+export const AuthProvider = ({ children, authScopes, oauth, onLoginError }) => {
   const msalInstance = useMemo(() => {
     return new PublicClientApplication(oauth ?? {});
   }, [oauth]);
@@ -34,8 +34,9 @@ export const AuthProvider = ({ children, authScopes, oauth }) => {
     [fetchUserInfo],
   );
 
-  const logoutCompleted = useCallback(() => {
+  const logoutCompleted = useCallback(async () => {
     msalInstance.setActiveAccount(null);
+    await msalInstance.clearCache();
     clearInterval(loginSilentIntervalRef.current);
     document.cookie = "geocop.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
     setUser(undefined);
@@ -47,10 +48,10 @@ export const AuthProvider = ({ children, authScopes, oauth }) => {
       const result = await msalInstance.acquireTokenSilent({
         scopes: authScopes,
       });
-      loginCompleted(result.idToken);
+      await loginCompleted(result.idToken);
     } catch (error) {
       console.warn("Failed to refresh authentication.", error);
-      logoutCompleted();
+      await logoutCompleted();
     }
   }, [msalInstance, authScopes, loginCompleted, logoutCompleted]);
 
@@ -74,18 +75,24 @@ export const AuthProvider = ({ children, authScopes, oauth }) => {
       const result = await msalInstance.loginPopup({
         scopes: authScopes,
       });
-      msalInstance.setActiveAccount(result.account);
-      loginCompleted(result.idToken);
-      setRefreshTokenInterval();
+      try {
+        await loginCompleted(result.idToken);
+        msalInstance.setActiveAccount(result.account);
+        setRefreshTokenInterval();
+      } catch (error) {
+        onLoginError?.("Dieser Account ist nicht berechtigt zur Anmeldung.");
+        await logoutCompleted();
+      }
     } catch (error) {
-      console.warn(error);
+      console.warn("Login failed.", error);
+      await logoutCompleted();
     }
   }
 
   async function logout() {
     try {
       await msalInstance.logoutPopup();
-      logoutCompleted();
+      await logoutCompleted();
     } catch (error) {
       console.warn(error);
     }
