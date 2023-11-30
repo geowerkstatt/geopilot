@@ -1,6 +1,8 @@
-﻿using GeoCop.Api.Models;
+﻿using GeoCop.Api.Contracts;
+using GeoCop.Api.Models;
 using GeoCop.Api.Test;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using Moq;
 using System.Security.Claims;
 
@@ -10,18 +12,21 @@ namespace GeoCop.Api.Controllers;
 public class UserControllerTest
 {
     private Context context;
+    private Mock<IOptions<BrowserAuthOptions>> authOptions;
     private UserController userController;
 
     [TestInitialize]
     public void Initialize()
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        userController = new UserController(context);
+        authOptions = new Mock<IOptions<BrowserAuthOptions>>();
+        userController = new UserController(context, authOptions.Object);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
+        authOptions.VerifyAll();
         context.Dispose();
     }
 
