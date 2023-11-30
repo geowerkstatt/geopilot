@@ -45,7 +45,7 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job or mandate could not be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
-    public IActionResult Create(DeliveryRequest declaration)
+    public async Task<IActionResult> Create(DeliveryRequest declaration)
     {
         logger.LogTrace("Declaration for job <{JobId}> requested.", declaration.JobId);
 
@@ -61,24 +61,41 @@ public class DeliveryController : ControllerBase
             return BadRequest($"Job <{declaration.JobId}> is not completed.");
         }
 
+        var user = await context.GetUserByPrincipalAsync(User);
         var mandate = context.DeliveryMandates
             .Include(m => m.Organisations)
             .ThenInclude(o => o.Users)
             .FirstOrDefault(m => m.Id == declaration.DeliveryMandateId);
 
-        var dummyUser = mandate?.Organisations.SelectMany(u => u.Users).First() ?? new User();
+        if (user is null)
+            return Unauthorized();
 
-        if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.AuthIdentifier.Equals(dummyUser.AuthIdentifier, StringComparison.OrdinalIgnoreCase)))
+        if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
         {
-            logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate <{MandateId}>.", dummyUser, declaration.DeliveryMandateId);
-            return NotFound("Mandate with id <{declaration.DeliveryMandateId}> not found or user is not authorized.");
+            logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate <{MandateId}>.", user.AuthIdentifier, declaration.DeliveryMandateId);
+            return NotFound($"Mandate with id <{declaration.DeliveryMandateId}> not found or user is not authorized.");
+        }
+
+        var precursorDelivery = declaration.PrecursorDeliveryId.HasValue ?
+            context.Deliveries
+            .Include(d => d.DeliveryMandate)
+            .Where(d => d.DeliveryMandate.Id == mandate.Id)
+            .FirstOrDefault(d => d.Id == declaration.PrecursorDeliveryId) : null;
+
+        if (declaration.PrecursorDeliveryId.HasValue && precursorDelivery is null)
+        {
+            logger.LogTrace("Precursor delivery with Id <{DeliveryId}> was not found or user <{AuthIdentifier}> is not authorized.", declaration.PrecursorDeliveryId.Value, user.AuthIdentifier);
+            return NotFound($"Precursor delivery with Id {declaration.PrecursorDeliveryId} not found or user is not authorized.");
         }
 
         var delivery = new Delivery
         {
             JobId = declaration.JobId,
             DeliveryMandate = mandate,
-            DeclaringUser = dummyUser,
+            DeclaringUser = user,
+            PrecursorDelivery = precursorDelivery,
+            Partial = declaration.PartialDelivery,
+            Comment = declaration.Comment?.Trim() ?? string.Empty,
             Assets = new List<Asset>(),
         };
 

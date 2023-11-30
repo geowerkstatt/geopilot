@@ -149,11 +149,17 @@ internal static class ContextExtensions
                 .SelectMany(o => o.Users)
                 .ToList()))
             .RuleFor(d => d.Assets, _ => new List<Asset>())
+            .RuleFor(d => d.Partial, f => f.Random.Bool())
+            .RuleFor(d => d.PrecursorDelivery, f => f.PickRandom(context.Deliveries.ToList().Append(null)))
+            .RuleFor(d => d.Comment, f => f.Rant.Review())
             .RuleFor(d => d.Deleted, false);
 
         Delivery SeedDelivery(int seed) => deliveryFaker.UseSeed(seed).Generate();
-        context.Deliveries.AddRange(Enumerable.Range(0, 20).Select(SeedDelivery));
-        context.SaveChanges();
+        for (int i = 0; i < 20; i++)
+        {
+            context.Deliveries.Add(SeedDelivery(i));
+            context.SaveChanges();
+        }
     }
 
     public static void SeedAssets(this Context context)
