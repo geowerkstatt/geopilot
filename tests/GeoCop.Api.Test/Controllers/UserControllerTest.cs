@@ -1,6 +1,8 @@
-﻿using GeoCop.Api.Models;
+﻿using GeoCop.Api.Contracts;
+using GeoCop.Api.Models;
 using GeoCop.Api.Test;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using Moq;
 using System.Security.Claims;
 
@@ -10,18 +12,32 @@ namespace GeoCop.Api.Controllers;
 public class UserControllerTest
 {
     private Context context;
+    private Mock<IOptions<BrowserAuthOptions>> authOptionsMock;
+    private BrowserAuthOptions browserAuthOptions;
     private UserController userController;
 
     [TestInitialize]
     public void Initialize()
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        userController = new UserController(context);
+        authOptionsMock = new Mock<IOptions<BrowserAuthOptions>>();
+        browserAuthOptions = new BrowserAuthOptions
+        {
+            Authority = "https://localhost/some-authority",
+            ClientId = Guid.NewGuid().ToString(),
+            RedirectUri = "/",
+            PostLogoutRedirectUri = "/logout",
+            NavigateToLoginRequestUrl = false,
+        };
+        authOptionsMock.SetupGet(o => o.Value).Returns(browserAuthOptions);
+
+        userController = new UserController(context, authOptionsMock.Object);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
+        authOptionsMock.VerifyAll();
         context.Dispose();
     }
 
@@ -98,5 +114,18 @@ public class UserControllerTest
 
         Assert.IsNull(userResult);
         httpContextMock.VerifyAll();
+    }
+
+    [TestMethod]
+    public void GetAuthOptions()
+    {
+        var authOptions = userController.GetAuthOptions();
+
+        Assert.IsNotNull(authOptions);
+        Assert.AreEqual(browserAuthOptions.Authority, authOptions.Authority);
+        Assert.AreEqual(browserAuthOptions.ClientId, authOptions.ClientId);
+        Assert.AreEqual(browserAuthOptions.RedirectUri, authOptions.RedirectUri);
+        Assert.AreEqual(browserAuthOptions.PostLogoutRedirectUri, authOptions.PostLogoutRedirectUri);
+        Assert.AreEqual(browserAuthOptions.NavigateToLoginRequestUrl, authOptions.NavigateToLoginRequestUrl);
     }
 }
