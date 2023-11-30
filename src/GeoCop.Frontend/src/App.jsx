@@ -21,6 +21,7 @@ export const App = () => {
   const [showModalContent, setShowModalContent] = useState(false);
   const [showBannerContent, setShowBannerContent] = useState(false);
   const [clientSettings, setClientSettings] = useState({});
+  const [auth, setAuth] = useState(undefined);
   const [backendVersion, setBackendVersion] = useState("");
   const [datenschutzContent, setDatenschutzContent] = useState(null);
   const [impressumContent, setImpressumContent] = useState(null);
@@ -42,6 +43,12 @@ export const App = () => {
     fetch("client-settings.json")
       .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
       .then(setClientSettings);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/v1/user/auth")
+      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then(setAuth);
   }, []);
 
   useEffect(() => {
@@ -88,10 +95,13 @@ export const App = () => {
   const openModalContent = (content, type) =>
     setModalContent(content) & setModalContentType(type) & setShowModalContent(true);
 
-  const oauth = clientSettings?.oauth;
+  const authCache = clientSettings?.authCache;
   const msalInstance = useMemo(() => {
-    return new PublicClientApplication(oauth ?? {});
-  }, [oauth]);
+    return new PublicClientApplication({
+      auth,
+      cache: authCache,
+    });
+  }, [auth, authCache]);
 
   return (
     <MsalProvider instance={msalInstance}>

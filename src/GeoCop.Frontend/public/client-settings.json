@@ -1,16 +1,7 @@
 {
-  "oauth": {
-    "auth": {
-      "clientId": "ac09549e-6cf8-40fe-91a9-25515ec71954",
-      "authority": "https://login.microsoftonline.com/16e916d3-12c9-4353-ad04-5a4319422e03/",
-      "redirectUri": "/",
-      "postLogoutRedirectUri": "/",
-      "navigateToLoginRequestUrl": false
-    },
-    "cache": {
-      "cacheLocation": "localStorage",
-      "storeAuthStateInCookie": false
-    }
+  "authCache": {
+    "cacheLocation": "localStorage",
+    "storeAuthStateInCookie": false
   },
   "authScopes": ["user.read", "openid", "profile", "email"],
   "application": {

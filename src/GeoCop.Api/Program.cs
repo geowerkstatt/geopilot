@@ -1,6 +1,7 @@
 ﻿using Asp.Versioning;
 using GeoCop.Api;
 using GeoCop.Api.Authorization;
+using GeoCop.Api.Contracts;
 using GeoCop.Api.Conventions;
 using GeoCop.Api.FileAccess;
 using GeoCop.Api.StacServices;
@@ -47,6 +48,8 @@ builder.Services
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
+
+builder.Services.Configure<BrowserAuthOptions>(builder.Configuration.GetSection("Auth"));
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
