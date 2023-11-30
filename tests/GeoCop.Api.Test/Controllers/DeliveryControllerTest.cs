@@ -219,4 +219,100 @@ public class DeliveryControllerTest
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
     }
+
+    [TestMethod]
+    public async Task GetAsAdminReturnsList()
+    {
+        var admin = context.Users.First(u => u.IsAdmin);
+        deliveryController.SetupTestUser(admin);
+
+        var response = (await deliveryController.Get()) as ObjectResult;
+        var list = response?.Value as List<Delivery>;
+
+        Assert.IsNotNull(list);
+        Assert.AreEqual(context.Deliveries.Count(), list.Count);
+    }
+
+    [TestMethod]
+    public async Task GetAsUserReturnsListFilteredByOrganisations()
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        deliveryController.SetupTestUser(user);
+
+        var response = (await deliveryController.Get()) as ObjectResult;
+        var list = response?.Value as List<Delivery>;
+
+        var accessibleDeliveries = context.Users
+            .Include(u => u.Organisations)
+            .ThenInclude(o => o.Mandates)
+            .ThenInclude(m => m.Deliveries)
+            .First(u => u.Id == user.Id)
+            .Organisations
+            .SelectMany(o => o.Mandates)
+            .SelectMany(m => m.Deliveries)
+            .ToList();
+
+        Assert.IsNotNull(list);
+        Assert.IsTrue(accessibleDeliveries.Any());
+        Assert.AreEqual(accessibleDeliveries.Count, list.Count);
+        CollectionAssert.AllItemsAreUnique(list);
+    }
+
+    [TestMethod]
+    public async Task GetAsAdminReturnsListFilteredByMandateId()
+    {
+        var admin = context.Users.First(u => u.IsAdmin);
+        admin.Organisations.Clear();
+        context.SaveChanges();
+        deliveryController.SetupTestUser(admin);
+        var mandateId = context.DeliveryMandates
+            .Where(m => m.Deliveries.Any())
+            .First()
+            .Id;
+
+        var response = (await deliveryController.Get(mandateId)) as ObjectResult;
+        var list = response?.Value as List<Delivery>;
+
+        Assert.IsNotNull(list);
+        Assert.AreEqual(context.Deliveries.Where(d => d.DeliveryMandate.Id == mandateId).Count(), list.Count);
+    }
+
+    [TestMethod]
+    public async Task GetAsUserReturnsNotFoundForUnauthorizedMandate()
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        deliveryController.SetupTestUser(user);
+        var mandateId = context.DeliveryMandates
+            .Where(m => !m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))
+            .First()
+            .Id;
+
+        var response = await deliveryController.Get(mandateId);
+
+        Assert.IsInstanceOfType(response, typeof(NotFoundResult));
+    }
+
+    [TestMethod]
+    public async Task GetAsUserReturnsListFilteredByOrganisationsAndMandateId()
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        deliveryController.SetupTestUser(user);
+        var mandateId = context.DeliveryMandates
+            .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id) && m.Deliveries.Any())
+            .First()
+            .Id;
+
+        var response = (await deliveryController.Get(mandateId)) as ObjectResult;
+        var list = response?.Value as List<Delivery>;
+
+        var deliveris = context.DeliveryMandates
+            .Include(m => m.Deliveries)
+            .First(m => m.Id == mandateId)
+            .Deliveries;
+
+        Assert.IsNotNull(list);
+        Assert.IsTrue(deliveris.Any());
+        Assert.AreEqual(deliveris.Count, list.Count);
+        CollectionAssert.AllItemsAreUnique(list);
+    }
 }

@@ -145,7 +145,7 @@ public class DeliveryController : ControllerBase
             .ToList();
 
         if (mandateId.HasValue && !userMandatesIds.Contains(mandateId.Value))
-            return NotFound($"Mandate with id ${mandateId} was not found");
+            return NotFound();
 
         var result = context.DeliveriesWithIncludes
             .Where(d => userMandatesIds.Contains(d.DeliveryMandate.Id));
