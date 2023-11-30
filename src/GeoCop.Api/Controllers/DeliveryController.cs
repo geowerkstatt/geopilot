@@ -7,6 +7,7 @@ using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Triangulate;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace GeoCop.Api.Controllers;
@@ -124,15 +125,37 @@ public class DeliveryController : ControllerBase
     }
 
     /// <summary>
-    /// Gets all deliveries.
+    /// Gets a filtered list of deliveries accessible for the user.
     /// </summary>
+    /// <param name="mandateId">Optional. Filter deliveries for given mandate.</param>
     /// <returns>A list of <see cref="Delivery"/>.</returns>
     [HttpGet]
-    [SwaggerResponse(StatusCodes.Status200OK, "A list with available deliveries has been returned.", typeof(List<Delivery>), new[] { "application/json" })]
-    [Authorize(Policy = GeocopPolicies.Admin)]
-    public List<Delivery> Get()
+    [SwaggerResponse(StatusCodes.Status200OK, "A list matching filter criteria.", typeof(List<Delivery>), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "Failed to find mandate.")]
+    [Authorize(Policy = GeocopPolicies.User)]
+    public async Task<IActionResult> Get([FromQuery] int? mandateId = null)
     {
-        return context.DeliveriesWithIncludes;
+        var user = await context.GetUserByPrincipalAsync(User);
+        if (user == null)
+            return Unauthorized();
+
+        var userMandatesIds = context.DeliveryMandates
+            .Where(m => user.IsAdmin || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))
+            .Select(m => m.Id)
+            .ToList();
+
+        if (mandateId.HasValue && !userMandatesIds.Contains(mandateId.Value))
+            return NotFound($"Mandate with id ${mandateId} was not found");
+
+        var result = context.DeliveriesWithIncludes
+            .Where(d => userMandatesIds.Contains(d.DeliveryMandate.Id));
+
+        if (mandateId.HasValue)
+        {
+            result = result.Where(d => d.DeliveryMandate.Id == mandateId.Value);
+        }
+
+        return Ok(result.ToList());
     }
 
     /// <summary>
