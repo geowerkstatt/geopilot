@@ -7,7 +7,6 @@ using GeoCop.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using NetTopologySuite.Triangulate;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace GeoCop.Api.Controllers;
