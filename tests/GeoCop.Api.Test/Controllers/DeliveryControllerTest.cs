@@ -41,7 +41,7 @@ public class DeliveryControllerTest
     [DataRow(Status.Processing, StatusCodes.Status400BadRequest)]
     [DataRow(Status.CompletedWithErrors, StatusCodes.Status400BadRequest)]
     [DataRow(Status.Failed, StatusCodes.Status400BadRequest)]
-    public void CreateFailsJobNotCompleted(Status status, int resultCode)
+    public async Task CreateFailsJobNotCompleted(Status status, int resultCode)
     {
         var guid = Guid.NewGuid();
         validationServiceMock
@@ -54,7 +54,7 @@ public class DeliveryControllerTest
         var deliveriesCount = context.Deliveries.Count();
         var mandateId = context.DeliveryMandates.First().Id;
 
-        var result = deliveryController.Create(new DeliveryRequest { JobId = guid,  DeliveryMandateId = mandateId }) as ObjectResult;
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid,  DeliveryMandateId = mandateId })) as ObjectResult;
 
         context.ChangeTracker.Clear();
 
@@ -64,7 +64,7 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public void CreateFailsJobNotFound()
+    public async Task CreateFailsJobNotFound()
     {
         var guid = Guid.NewGuid();
         validationServiceMock
@@ -74,7 +74,7 @@ public class DeliveryControllerTest
         var deliveriesCount = context.Deliveries.Count();
         var mandateId = context.DeliveryMandates.First().Id;
 
-        var result = deliveryController.Create(new DeliveryRequest { JobId = guid, DeliveryMandateId = mandateId }) as ObjectResult;
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid, DeliveryMandateId = mandateId })) as ObjectResult;
 
         context.ChangeTracker.Clear();
 
@@ -84,14 +84,19 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public void CreateFailsUnauthorizedUser()
+    public async Task CreateFailsUnauthorizedUser()
     {
         var guid = Guid.NewGuid();
+        validationServiceMock
+            .Setup(s => s.GetJobStatus(guid))
+            .Returns(new ValidationJobStatus(guid) { Status = Status.Completed });
 
+        var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
         var addedMandate = context.DeliveryMandates.Add(new DeliveryMandate());
         context.SaveChanges();
 
-        var result = deliveryController.Create(new DeliveryRequest { JobId = guid, DeliveryMandateId = addedMandate.Entity.Id }) as ObjectResult;
+        deliveryController.SetupTestUser(user.Entity);
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid, DeliveryMandateId = addedMandate.Entity.Id })) as ObjectResult;
 
         context.ChangeTracker.Clear();
 
@@ -100,7 +105,9 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public void Create()
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task Create(bool setOptionals)
     {
         var guid = Guid.NewGuid();
         validationServiceMock
@@ -114,14 +121,28 @@ public class DeliveryControllerTest
             .Returns(new List<Asset> { new Asset(), new Asset() });
         var startTime = DateTime.Now;
 
-        var dummyUserWithMandates = context.Users
+        var testUserWithMandate = context.Users
             .Include(u => u.Organisations)
             .ThenInclude(o => o.Mandates)
+            .ThenInclude(m => m.Deliveries)
             .First(u => u.Organisations.SelectMany(o => o.Mandates).Any());
 
-        var mandateId = dummyUserWithMandates.Organisations.First().Mandates.First().Id;
+        deliveryController.SetupTestUser(testUserWithMandate);
 
-        var result = deliveryController.Create(new DeliveryRequest { JobId = guid, DeliveryMandateId = mandateId }) as ObjectResult;
+        var mandate = testUserWithMandate.Organisations.First().Mandates.First();
+        var mandateId = mandate.Id;
+        var predecessorDeliveryId = mandate.Deliveries.Last().Id;
+
+        var request = new DeliveryRequest
+        {
+            JobId = guid,
+            DeliveryMandateId = mandateId,
+            Comment = setOptionals ? "Some test comment   " : null,
+            PartialDelivery = setOptionals,
+            PrecursorDeliveryId = setOptionals ? predecessorDeliveryId : null,
+        };
+
+        var result = (await deliveryController.Create(request)) as ObjectResult;
 
         context.ChangeTracker.Clear();
         Assert.IsNotNull(result);
@@ -131,12 +152,18 @@ public class DeliveryControllerTest
         Assert.IsNotNull(delivery);
 
         var dbDelivery = context.Deliveries
+            .Include(d => d.DeliveryMandate)
+            .Include(d => d.PrecursorDelivery)
             .FirstOrDefault(d => d.Id == delivery.Id);
 
         Assert.IsNotNull(dbDelivery);
-        Assert.AreEqual(guid, dbDelivery.JobId);
         Assert.AreEqual(DateTimeKind.Utc, dbDelivery.Date.Kind);
         Assert.IsTrue(dbDelivery.Date > startTime.ToUniversalTime() && dbDelivery.Date < DateTime.UtcNow);
+        Assert.AreEqual(guid, dbDelivery.JobId);
+        Assert.AreEqual(request.DeliveryMandateId, dbDelivery.DeliveryMandate.Id);
+        Assert.AreEqual(request.Comment?.Trim() ?? string.Empty, dbDelivery.Comment);
+        Assert.AreEqual(request.PartialDelivery, dbDelivery.Partial);
+        Assert.AreEqual(request.PrecursorDeliveryId, dbDelivery.PrecursorDelivery?.Id);
     }
 
     [TestMethod]
