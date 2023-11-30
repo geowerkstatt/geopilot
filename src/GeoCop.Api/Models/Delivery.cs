@@ -41,7 +41,7 @@ public class Delivery
     public bool Partial { get; set; }
 
     /// <summary>
-    /// The id of a previous delivery on the same <see cref="DeliveryMandate"/>.
+    /// The previous delivery on the same <see cref="DeliveryMandate"/>.
     /// </summary>
     public Delivery? PrecursorDelivery { get; set; }
 
