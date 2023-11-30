@@ -1,6 +1,9 @@
-import { UnauthenticatedTemplate } from "@azure/msal-react";
-import { useEffect, useState } from "react";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { MsalProvider } from "@azure/msal-react";
+import { useEffect, useMemo, useState } from "react";
+import { Alert } from "react-bootstrap";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Snackbar } from "@mui/material";
 import BannerContent from "./BannerContent";
 import Footer from "./Footer";
 import Header from "./Header";
@@ -8,8 +11,9 @@ import Home from "./pages/home/Home";
 import Admin from "./pages/admin/Admin";
 import ModalContent from "./ModalContent";
 import "./app.css";
-import { AuthProvider } from "./contexts/AuthContext";
-import { AdminTemplate } from "./AdminTemplate";
+import { AuthProvider } from "./auth/AuthContext";
+import { AdminTemplate } from "./auth/AdminTemplate";
+import { LoggedOutTemplate } from "./auth/LoggedOutTemplate";
 
 export const App = () => {
   const [modalContent, setModalContent] = useState(false);
@@ -26,6 +30,7 @@ export const App = () => {
   const [quickStartContent, setQuickStartContent] = useState(null);
   const [licenseInfo, setLicenseInfo] = useState(null);
   const [licenseInfoCustom, setLicenseInfoCustom] = useState(null);
+  const [alertText, setAlertText] = useState("");
 
   // Update HTML title property
   useEffect(() => {
@@ -83,60 +88,72 @@ export const App = () => {
   const openModalContent = (content, type) =>
     setModalContent(content) & setModalContentType(type) & setShowModalContent(true);
 
+  const oauth = clientSettings?.oauth;
+  const msalInstance = useMemo(() => {
+    return new PublicClientApplication(oauth ?? {});
+  }, [oauth]);
+
   return (
-    <AuthProvider authScopes={clientSettings?.authScopes} oauth={clientSettings?.oauth}>
-      <div className="app">
-        <Router>
-          <Header clientSettings={clientSettings} />
-          <Routes>
-            <Route
-              exact
-              path="/"
-              element={
-                <Home
-                  clientSettings={clientSettings}
-                  nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
-                  showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
-                  quickStartContent={quickStartContent}
-                  setShowBannerContent={setShowBannerContent}
-                />
-              }
-            />
-          </Routes>
-          <UnauthenticatedTemplate>
+    <MsalProvider instance={msalInstance}>
+      <AuthProvider authScopes={clientSettings?.authScopes} onLoginError={setAlertText}>
+        <div className="app">
+          <Router>
+            <Header clientSettings={clientSettings} />
             <Routes>
-              <Route path="*" element={<Navigate to="/" />} />
+              <Route
+                exact
+                path="/"
+                element={
+                  <Home
+                    clientSettings={clientSettings}
+                    nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
+                    showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
+                    quickStartContent={quickStartContent}
+                    setShowBannerContent={setShowBannerContent}
+                  />
+                }
+              />
             </Routes>
-          </UnauthenticatedTemplate>
-          <AdminTemplate>
-            <Routes>
-              <Route path="/admin" element={<Admin />} />
-            </Routes>
-          </AdminTemplate>
-        </Router>
-        <Footer
-          openModalContent={openModalContent}
-          infoHilfeContent={infoHilfeContent}
-          nutzungsbestimmungenContent={nutzungsbestimmungenContent}
-          datenschutzContent={datenschutzContent}
-          impressumContent={impressumContent}
-          clientSettings={clientSettings}
-          appVersion={backendVersion}
-          licenseInfoCustom={licenseInfoCustom}
-          licenseInfo={licenseInfo}
-        />
-        <ModalContent
-          className="modal"
-          show={showModalContent}
-          content={modalContent}
-          type={modalContentType}
-          onHide={() => setShowModalContent(false)}
-        />
-        {bannerContent && showBannerContent && (
-          <BannerContent className="banner" content={bannerContent} onHide={() => setShowBannerContent(false)} />
-        )}
-      </div>
-    </AuthProvider>
+            <LoggedOutTemplate>
+              <Routes>
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </LoggedOutTemplate>
+            <AdminTemplate>
+              <Routes>
+                <Route path="/admin" element={<Admin />} />
+              </Routes>
+            </AdminTemplate>
+          </Router>
+          <Footer
+            openModalContent={openModalContent}
+            infoHilfeContent={infoHilfeContent}
+            nutzungsbestimmungenContent={nutzungsbestimmungenContent}
+            datenschutzContent={datenschutzContent}
+            impressumContent={impressumContent}
+            clientSettings={clientSettings}
+            appVersion={backendVersion}
+            licenseInfoCustom={licenseInfoCustom}
+            licenseInfo={licenseInfo}
+          />
+          <ModalContent
+            className="modal"
+            show={showModalContent}
+            content={modalContent}
+            type={modalContentType}
+            onHide={() => setShowModalContent(false)}
+          />
+          {bannerContent && showBannerContent && (
+            <BannerContent className="banner" content={bannerContent} onHide={() => setShowBannerContent(false)} />
+          )}
+        </div>
+        <Snackbar key={alertText} open={alertText !== ""} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
+          <Alert variant="danger" dismissible onClose={() => setAlertText("")}>
+            <p>{alertText}</p>
+          </Alert>
+        </Snackbar>
+      </AuthProvider>
+    </MsalProvider>
   );
 };
 

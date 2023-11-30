@@ -1,6 +1,5 @@
-import { PublicClientApplication } from "@azure/msal-browser";
-import { MsalProvider } from "@azure/msal-react";
-import { createContext, useCallback, useState, useMemo, useEffect, useRef } from "react";
+import { useMsal } from "@azure/msal-react";
+import { createContext, useCallback, useState, useEffect, useRef } from "react";
 
 const authDefault = {
   user: undefined,
@@ -10,10 +9,8 @@ const authDefault = {
 
 export const AuthContext = createContext(authDefault);
 
-export const AuthProvider = ({ children, authScopes, oauth }) => {
-  const msalInstance = useMemo(() => {
-    return new PublicClientApplication(oauth ?? {});
-  }, [oauth]);
+export const AuthProvider = ({ children, authScopes, onLoginError }) => {
+  const { instance } = useMsal();
 
   const [user, setUser] = useState();
   const loginSilentIntervalRef = useRef();
@@ -34,25 +31,26 @@ export const AuthProvider = ({ children, authScopes, oauth }) => {
     [fetchUserInfo],
   );
 
-  const logoutCompleted = useCallback(() => {
-    msalInstance.setActiveAccount(null);
+  const logoutCompleted = useCallback(async () => {
+    instance.setActiveAccount(null);
+    await instance.clearCache();
     clearInterval(loginSilentIntervalRef.current);
     document.cookie = "geocop.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
     setUser(undefined);
-  }, [setUser, msalInstance]);
+  }, [setUser, instance]);
 
   const loginSilent = useCallback(async () => {
     try {
-      await msalInstance.initialize();
-      const result = await msalInstance.acquireTokenSilent({
+      await instance.initialize();
+      const result = await instance.acquireTokenSilent({
         scopes: authScopes,
       });
-      loginCompleted(result.idToken);
+      await loginCompleted(result.idToken);
     } catch (error) {
       console.warn("Failed to refresh authentication.", error);
-      logoutCompleted();
+      await logoutCompleted();
     }
-  }, [msalInstance, authScopes, loginCompleted, logoutCompleted]);
+  }, [instance, authScopes, loginCompleted, logoutCompleted]);
 
   const setRefreshTokenInterval = useCallback(() => {
     clearInterval(loginSilentIntervalRef.current);
@@ -60,7 +58,7 @@ export const AuthProvider = ({ children, authScopes, oauth }) => {
   }, [loginSilent]);
 
   // Fetch user info after reload
-  const activeAccount = msalInstance.getActiveAccount();
+  const activeAccount = instance.getActiveAccount();
   const hasActiveAccount = activeAccount !== null;
   useEffect(() => {
     if (hasActiveAccount && !user) {
@@ -71,37 +69,41 @@ export const AuthProvider = ({ children, authScopes, oauth }) => {
 
   async function login() {
     try {
-      const result = await msalInstance.loginPopup({
+      const result = await instance.loginPopup({
         scopes: authScopes,
       });
-      msalInstance.setActiveAccount(result.account);
-      loginCompleted(result.idToken);
-      setRefreshTokenInterval();
+      try {
+        await loginCompleted(result.idToken);
+        instance.setActiveAccount(result.account);
+        setRefreshTokenInterval();
+      } catch (error) {
+        onLoginError?.("Dieser Account ist nicht berechtigt zur Anmeldung.");
+        await logoutCompleted();
+      }
     } catch (error) {
-      console.warn(error);
+      console.warn("Login failed.", error);
+      await logoutCompleted();
     }
   }
 
   async function logout() {
     try {
-      await msalInstance.logoutPopup();
-      logoutCompleted();
+      await instance.logoutPopup();
+      await logoutCompleted();
     } catch (error) {
       console.warn(error);
     }
   }
 
   return (
-    <MsalProvider instance={msalInstance}>
-      <AuthContext.Provider
-        value={{
-          user,
-          login,
-          logout,
-        }}
-      >
-        {children}
-      </AuthContext.Provider>
-    </MsalProvider>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
 };

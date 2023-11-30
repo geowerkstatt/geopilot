@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useMsal } from "@azure/msal-react";
 import { Button, Modal, Alert } from "react-bootstrap";
 import { GoTrash } from "react-icons/go";
 import { DataGrid, deDE } from "@mui/x-data-grid";
 import { Snackbar } from "@mui/material";
+import { useAuth } from "@/auth";
 
 const columns = [
   { field: "id", headerName: "ID", width: 60 },
@@ -36,10 +36,9 @@ export const Admin = () => {
   const [currentAlert, setCurrentAlert] = useState(undefined);
   const [showAlert, setShowAlert] = useState(false);
 
-  const { instance } = useMsal();
-  const activeAccount = instance.getActiveAccount();
+  const { user } = useAuth();
 
-  if (activeAccount && deliveries == undefined) {
+  if (user && deliveries == undefined) {
     loadDeliveries();
   }
 
