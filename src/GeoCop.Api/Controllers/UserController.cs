@@ -10,7 +10,6 @@ namespace GeoCop.Api.Controllers;
 /// <summary>
 /// Controller for user information.
 /// </summary>
-[Authorize(Policy = GeocopPolicies.User)]
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
 public class UserController : ControllerBase
@@ -34,6 +33,7 @@ public class UserController : ControllerBase
     /// </summary>
     /// <returns>The <see cref="User"/> that is currently logged in.</returns>
     [HttpGet]
+    [Authorize(Policy = GeocopPolicies.User)]
     public async Task<User?> GetAsync()
     {
         return await context.GetUserByPrincipalAsync(User);
