@@ -14,9 +14,9 @@ namespace GeoCop.Api.Controllers;
 /// <summary>
 /// Controller for file validation.
 /// </summary>
-[AllowAnonymous]
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
+[AllowAnonymous]
 public class ValidationController : ControllerBase
 {
     private readonly ILogger<ValidationController> logger;

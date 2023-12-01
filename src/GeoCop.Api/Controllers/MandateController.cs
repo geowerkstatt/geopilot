@@ -12,7 +12,6 @@ namespace GeoCop.Api.Controllers;
 /// Controller for listing mandates.
 /// </summary>
 [ApiController]
-[Authorize(Policy = GeocopPolicies.User)]
 [Route("api/v{version:apiVersion}/[controller]")]
 public class MandateController : ControllerBase
 {
@@ -39,6 +38,7 @@ public class MandateController : ControllerBase
     /// <param name="jobId">Optional. Get matching mandates by validation job id.</param>
     /// <returns>List of mandates matching optional filter criteria.</returns>
     [HttpGet]
+    [Authorize(Policy = GeocopPolicies.User)]
     [SwaggerResponse(StatusCodes.Status200OK, "Returns list of mandates associated to the current user matching the optional filter criteria.", typeof(IEnumerable<DeliveryMandate>), new[] { "application/json" })]
     public async Task<IActionResult> Get(
         [FromQuery, SwaggerParameter("Filter mandates matching validation job file extension.")]

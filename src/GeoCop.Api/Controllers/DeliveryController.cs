@@ -15,7 +15,6 @@ namespace GeoCop.Api.Controllers;
 /// Controller for declaring deliveries.
 /// </summary>
 [ApiController]
-[Authorize(Policy = GeocopPolicies.User)]
 [Route("api/v{version:apiVersion}/[controller]")]
 public class DeliveryController : ControllerBase
 {
@@ -41,6 +40,7 @@ public class DeliveryController : ControllerBase
     /// <param name="declaration"><see cref="DeliveryRequest"/> containing all information for the declaration process.</param>
     /// <returns>Created <see cref="Delivery"/>.</returns>
     [HttpPost]
+    [Authorize(Policy = GeocopPolicies.User)]
     [SwaggerResponse(StatusCodes.Status201Created, "The delivery was created successfully.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job or mandate could not be found.")]
@@ -129,9 +129,9 @@ public class DeliveryController : ControllerBase
     /// <param name="mandateId">Optional. Filter deliveries for given mandate.</param>
     /// <returns>A list of <see cref="Delivery"/>.</returns>
     [HttpGet]
+    [Authorize(Policy = GeocopPolicies.User)]
     [SwaggerResponse(StatusCodes.Status200OK, "A list matching filter criteria.", typeof(List<Delivery>), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Failed to find mandate.")]
-    [Authorize(Policy = GeocopPolicies.User)]
     public async Task<IActionResult> Get([FromQuery] int? mandateId = null)
     {
         var user = await context.GetUserByPrincipalAsync(User);
@@ -161,13 +161,13 @@ public class DeliveryController : ControllerBase
     /// Performs a soft delete in the database and deletes the files from the storage.
     /// </summary>
     /// <returns>An updated list of <see cref="Delivery"/>.</returns>
-    [Route("{deliveryId}")]
     [HttpDelete]
+    [Route("{deliveryId}")]
+    [Authorize(Policy = GeocopPolicies.Admin)]
     [SwaggerResponse(StatusCodes.Status200OK, "The delivery was successfully deleted.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
-    [Authorize(Policy = GeocopPolicies.Admin)]
     public IActionResult Delete([FromRoute] int deliveryId)
     {
         try
@@ -201,11 +201,11 @@ public class DeliveryController : ControllerBase
     /// <returns>The asset file.</returns>
     [HttpGet]
     [Route("assets/{assetId}")]
+    [Authorize(Policy = GeocopPolicies.Admin)]
     [SwaggerResponse(StatusCodes.Status200OK, "A file has been downloaded.", typeof(File), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The asset could be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
-    [Authorize(Policy = GeocopPolicies.Admin)]
     public async Task<IActionResult> DownloadAsync([FromRoute] int assetId)
     {
         try
