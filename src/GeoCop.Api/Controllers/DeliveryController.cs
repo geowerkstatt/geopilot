@@ -161,8 +161,7 @@ public class DeliveryController : ControllerBase
     /// Performs a soft delete in the database and deletes the files from the storage.
     /// </summary>
     /// <returns>An updated list of <see cref="Delivery"/>.</returns>
-    [HttpDelete]
-    [Route("{deliveryId}")]
+    [HttpDelete("{deliveryId}")]
     [Authorize(Policy = GeocopPolicies.Admin)]
     [SwaggerResponse(StatusCodes.Status200OK, "The delivery was successfully deleted.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
@@ -199,8 +198,7 @@ public class DeliveryController : ControllerBase
     /// Downloads an asset from the persistent storage.
     /// </summary>
     /// <returns>The asset file.</returns>
-    [HttpGet]
-    [Route("assets/{assetId}")]
+    [HttpGet("assets/{assetId}")]
     [Authorize(Policy = GeocopPolicies.Admin)]
     [SwaggerResponse(StatusCodes.Status200OK, "A file has been downloaded.", typeof(File), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
