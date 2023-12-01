@@ -14,16 +14,19 @@ namespace GeoCop.Api.Controllers;
 [Route("api/v{version:apiVersion}/[controller]")]
 public class UserController : ControllerBase
 {
+    private readonly ILogger<UserController> logger;
     private readonly Context context;
     private readonly BrowserAuthOptions authOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UserController"/> class.
     /// </summary>
+    /// <param name="logger">The logger for the instance.</param>
     /// <param name="context">The database context.</param>
     /// <param name="authOptions">The browser auth options.</param>
-    public UserController(Context context, IOptions<BrowserAuthOptions> authOptions)
+    public UserController(ILogger<UserController> logger, Context context, IOptions<BrowserAuthOptions> authOptions)
     {
+        this.logger = logger;
         this.context = context;
         this.authOptions = authOptions.Value;
     }
@@ -36,7 +39,17 @@ public class UserController : ControllerBase
     [Authorize(Policy = GeocopPolicies.User)]
     public async Task<User?> GetAsync()
     {
-        return await context.GetUserByPrincipalAsync(User);
+        var user = await context.GetUserByPrincipalAsync(User);
+        if (user == null)
+        {
+            logger.LogWarning("Getting user information attempted othout registered user with name <{UserName}>", User.Identity?.Name);
+        }
+        else
+        {
+            logger.LogTrace("User <{AuthIdenifier}> getting account information.", user.AuthIdentifier);
+        }
+
+        return user;
     }
 
     /// <summary>
@@ -47,6 +60,7 @@ public class UserController : ControllerBase
     [AllowAnonymous]
     public BrowserAuthOptions GetAuthOptions()
     {
+        logger.LogInformation("Getting auth options.");
         return authOptions;
     }
 }
