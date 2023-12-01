@@ -44,7 +44,7 @@ ENV HOME=/app
 ENV TZ=Europe/Zurich
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV Storage__UploadDirectory=/uploads
-ENV Storage__AssetsDirectory=/home/assets
+ENV Storage__AssetsDirectory=/assets
 WORKDIR ${HOME}
 
 # Install missing packages
