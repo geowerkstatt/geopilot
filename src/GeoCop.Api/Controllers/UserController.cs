@@ -42,7 +42,7 @@ public class UserController : ControllerBase
         var user = await context.GetUserByPrincipalAsync(User);
         if (user == null)
         {
-            logger.LogWarning("Getting user information attempted othout registered user with name <{UserName}>", User.Identity?.Name);
+            logger.LogWarning("Getting user information attempted without registered user with name <{UserName}>", User.Identity?.Name);
         }
         else
         {
