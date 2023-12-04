@@ -177,7 +177,7 @@ public class ValidationController : ControllerBase
 
         if (!fileProvider.Exists(file))
         {
-            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", file.ReplaceLineEndings(string.em), jobId);
+            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", file, jobId);
             return Problem($"No log file <{file}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
