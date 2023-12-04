@@ -44,7 +44,7 @@ public class MandateController : ControllerBase
         [FromQuery, SwaggerParameter("Filter mandates matching validation job file extension.")]
         string jobId = "")
     {
-        logger.LogInformation("Getting mandates for job with id <{JobId}>.", jobId);
+        logger.LogInformation("Getting mandates for job with id <{JobId}>.", jobId.ReplaceLineEndings(string.Empty));
 
         var user = await context.GetUserByPrincipalAsync(User);
         if (user == null)
@@ -70,7 +70,7 @@ public class MandateController : ControllerBase
 
         var result = await mandates.ToListAsync();
 
-        logger.LogInformation("Getting mandates with for job with id <{JobId}> resulted in <{MatchingMandatesCount}> matching mandates.", jobId, result.Count);
+        logger.LogInformation("Getting mandates with for job with id <{JobId}> resulted in <{MatchingMandatesCount}> matching mandates.", guid.ToString(), result.Count);
         return Ok(mandates);
     }
 }

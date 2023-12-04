@@ -139,7 +139,9 @@ public class DeliveryController : ControllerBase
         if (user == null)
             return Unauthorized();
 
-        logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>", user.AuthIdentifier, mandateId);
+        logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>",
+            user.AuthIdentifier,
+            mandateId?.ToString(CultureInfo.InvariantCulture).ReplaceLineEndings(string.Empty));
 
         var userMandatesIds = context.DeliveryMandates
             .Where(m => user.IsAdmin || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))

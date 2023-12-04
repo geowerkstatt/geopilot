@@ -162,7 +162,10 @@ public class ValidationController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job or log file cannot be found.", typeof(ProblemDetails), new[] { "application/json" })]
     public IActionResult Download(Guid jobId, string file)
     {
-        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", file, jobId);
+        // Sanitize user provided file name.
+        file = file.Trim().ReplaceLineEndings(string.Empty);
+
+        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", file.ReplaceLineEndings(string.Empty), jobId.ToString());
         fileProvider.Initialize(jobId);
 
         var validationJob = validationService.GetJob(jobId);
@@ -174,7 +177,7 @@ public class ValidationController : ControllerBase
 
         if (!fileProvider.Exists(file))
         {
-            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", file, jobId);
+            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", file.ReplaceLineEndings(string.em), jobId);
             return Problem($"No log file <{file}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
