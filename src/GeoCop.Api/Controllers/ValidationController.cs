@@ -163,7 +163,7 @@ public class ValidationController : ControllerBase
     public IActionResult Download(Guid jobId, string file)
     {
         // Sanitize user provided file name.
-        file = file.Trim().ReplaceLineEndings(string.Empty);
+        file = Path.GetFileName(file.Trim().ReplaceLineEndings(string.Empty));
 
         logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", file.ReplaceLineEndings(string.Empty), jobId.ToString());
         fileProvider.Initialize(jobId);
