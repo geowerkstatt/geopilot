@@ -44,7 +44,7 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status201Created, "The delivery was created successfully.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job or mandate could not be found.")]
-    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was a error persisting the assets.", typeof(ProblemDetails), new[] { "application/json" })]
     public async Task<IActionResult> Create(DeliveryRequest declaration)
     {
         logger.LogInformation("Declaration for job with id <{JobId}> requested.", declaration.JobId);
@@ -171,7 +171,7 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "The delivery was successfully deleted.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could be found.")]
-    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was an error deleting the assets.", typeof(ProblemDetails), new[] { "application/json" })]
     public IActionResult Delete([FromRoute] int deliveryId)
     {
         logger.LogInformation("Deleting of delivery with id <{DeliveryId}> started.", deliveryId);
@@ -209,7 +209,7 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "A file has been downloaded.", typeof(File), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The asset could be found.")]
-    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely the file could not be read.", typeof(ProblemDetails), new[] { "application/json" })]
     public async Task<IActionResult> DownloadAsync([FromRoute] int assetId)
     {
         logger.LogInformation("Downloading asset with id <{AssetId}> started.", assetId);

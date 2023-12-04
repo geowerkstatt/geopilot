@@ -4,6 +4,7 @@ using GeoCop.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace GeoCop.Api.Controllers;
 
@@ -37,6 +38,7 @@ public class UserController : ControllerBase
     /// <returns>The <see cref="User"/> that is currently logged in.</returns>
     [HttpGet]
     [Authorize(Policy = GeocopPolicies.User)]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the user currently logged in user.", typeof(User), new[] { "application/json" })]
     public async Task<User?> GetAsync()
     {
         var user = await context.GetUserByPrincipalAsync(User);
@@ -58,6 +60,7 @@ public class UserController : ControllerBase
     /// <returns>The configured options used for authentication.</returns>
     [HttpGet("auth")]
     [AllowAnonymous]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the auth configuration used by the server for token validation.", typeof(BrowserAuthOptions), new[] { "application/json" })]
     public BrowserAuthOptions GetAuthOptions()
     {
         logger.LogInformation("Getting auth options.");
