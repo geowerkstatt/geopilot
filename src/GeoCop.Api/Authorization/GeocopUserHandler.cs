@@ -8,14 +8,14 @@ namespace GeoCop.Api.Authorization;
 public class GeocopUserHandler : AuthorizationHandler<GeocopUserRequirement>
 {
     private readonly Context dbContext;
-    private readonly Logger<GeocopUserHandler> logger;
+    private readonly ILogger<GeocopUserHandler> logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GeocopUserHandler"/> class.
     /// </summary>
     /// <param name="dbContext">The database context.</param>
     /// <param name="logger">The logger used for authorization related logging.</param>
-    public GeocopUserHandler(Logger<GeocopUserHandler> logger, Context dbContext)
+    public GeocopUserHandler(ILogger<GeocopUserHandler> logger, Context dbContext)
     {
         this.dbContext = dbContext;
         this.logger = logger;
