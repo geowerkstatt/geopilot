@@ -40,6 +40,7 @@ public class GeocopUserHandler : AuthorizationHandler<GeocopUserRequirement>
         if (requirement.RequireAdmin && !dbUser.IsAdmin)
         {
             logger.LogWarning("User with id <{UserId}> did not fulfill admin requirement.", dbUser.AuthIdentifier);
+            return;
         }
 
         context.Succeed(requirement);
