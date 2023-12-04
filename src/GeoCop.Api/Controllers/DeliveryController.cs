@@ -47,18 +47,18 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
     public async Task<IActionResult> Create(DeliveryRequest declaration)
     {
-        logger.LogTrace("Declaration for job <{JobId}> requested.", declaration.JobId);
+        logger.LogInformation("Declaration for job with id <{JobId}> requested.", declaration.JobId);
 
         var jobStatus = validatorService.GetJobStatus(declaration.JobId);
         if (jobStatus == default)
         {
-            logger.LogTrace("No job information available for job id <{JobId}>.", declaration.JobId);
-            return NotFound($"No job information available for job id <{declaration.JobId}>");
+            logger.LogTrace("No job information available for job with id <{JobId}>.", declaration.JobId);
+            return NotFound($"No job information available for job with id <{declaration.JobId}>");
         }
         else if (jobStatus.Status != Status.Completed)
         {
-            logger.LogTrace("Job <{JobId}> is not completed.", declaration.JobId);
-            return BadRequest($"Job <{declaration.JobId}> is not completed.");
+            logger.LogTrace("Job with id <{JobId}> is not completed.", declaration.JobId);
+            return BadRequest($"Job with id <{declaration.JobId}> is not completed.");
         }
 
         var user = await context.GetUserByPrincipalAsync(User);
@@ -72,7 +72,7 @@ public class DeliveryController : ControllerBase
 
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
         {
-            logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate <{MandateId}>.", user.AuthIdentifier, declaration.DeliveryMandateId);
+            logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate with id <{MandateId}>.", user.AuthIdentifier, declaration.DeliveryMandateId);
             return NotFound($"Mandate with id <{declaration.DeliveryMandateId}> not found or user is not authorized.");
         }
 
@@ -84,8 +84,8 @@ public class DeliveryController : ControllerBase
 
         if (declaration.PrecursorDeliveryId.HasValue && precursorDelivery is null)
         {
-            logger.LogTrace("Precursor delivery with Id <{DeliveryId}> was not found or user <{AuthIdentifier}> is not authorized.", declaration.PrecursorDeliveryId.Value, user.AuthIdentifier);
-            return NotFound($"Precursor delivery with Id {declaration.PrecursorDeliveryId} not found or user is not authorized.");
+            logger.LogTrace("Precursor delivery with id <{DeliveryId}> was not found or user <{AuthIdentifier}> is not authorized.", declaration.PrecursorDeliveryId.Value, user.AuthIdentifier);
+            return NotFound($"Precursor delivery with id {declaration.PrecursorDeliveryId} not found or user is not authorized.");
         }
 
         var delivery = new Delivery
@@ -105,8 +105,8 @@ public class DeliveryController : ControllerBase
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Error while persisting assets for job <{JobId}>.", declaration.JobId);
-            return Problem($"Error while persisting assets for job <{declaration.JobId}>.");
+            logger.LogError(e, "Error while persisting assets for job whith id <{JobId}>.", declaration.JobId);
+            return Problem($"Error while persisting assets for job whith id <{declaration.JobId}>.");
         }
 
         var entityEntry = context.Deliveries.Add(delivery);
@@ -120,6 +120,7 @@ public class DeliveryController : ControllerBase
             string.Format(CultureInfo.InvariantCulture, "/api/v1/delivery/{0}", entityEntry.Entity.Id),
             UriKind.Relative);
 
+        logger.LogInformation("Declaration for job whith id <{JobId}> created.", declaration.JobId);
         return Created(location, resultDelivery);
     }
 
@@ -137,6 +138,10 @@ public class DeliveryController : ControllerBase
         var user = await context.GetUserByPrincipalAsync(User);
         if (user == null)
             return Unauthorized();
+
+        logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>",
+            user.AuthIdentifier,
+            mandateId?.ToString(CultureInfo.InvariantCulture).ReplaceLineEndings(string.Empty));
 
         var userMandatesIds = context.DeliveryMandates
             .Where(m => user.IsAdmin || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))
@@ -169,12 +174,13 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
     public IActionResult Delete([FromRoute] int deliveryId)
     {
+        logger.LogInformation("Deleting of delivery with id <{DeliveryId}> started.", deliveryId);
         try
         {
             var delivery = context.Deliveries.Include(d => d.Assets).FirstOrDefault(d => d.Id == deliveryId);
             if (delivery == default)
             {
-                logger.LogTrace($"No delivery with id <{deliveryId}> found.");
+                logger.LogTrace("No delivery with id <{DeliveryId}> found.", deliveryId);
                 return NotFound($"No delivery with id <{deliveryId}> found.");
             }
 
@@ -184,13 +190,13 @@ public class DeliveryController : ControllerBase
 
             context.SaveChanges();
 
+            logger.LogInformation("Deleting of delivery with id <{DeliveryId}> successful.", deliveryId);
             return Ok();
         }
         catch (Exception e)
         {
-            var message = $"Error while deleting delivery <{deliveryId}>.";
-            logger.LogError(e, message);
-            return Problem(message);
+            logger.LogError(e, "Error while deleting delivery with id <{DeliveryId}>.", deliveryId);
+            return Problem($"Error while deleting delivery with id <{deliveryId}>.");
         }
     }
 
@@ -206,12 +212,13 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), new[] { "application/json" })]
     public async Task<IActionResult> DownloadAsync([FromRoute] int assetId)
     {
+        logger.LogInformation("Downloading asset with id <{AssetId}> started.", assetId);
         try
         {
             var asset = context.Assets.Include(a => a.Delivery).FirstOrDefault(a => a.Id == assetId && !a.Deleted);
             if (asset == default)
             {
-                logger.LogTrace($"No delivery with id <{assetId}> found.");
+                logger.LogTrace("No delivery with id <{AssetId}> found.", assetId);
                 return NotFound($"No delivery with id <{assetId}> found.");
             }
 
@@ -220,9 +227,8 @@ public class DeliveryController : ControllerBase
         }
         catch (Exception e)
         {
-            var message = $"Error while deleting delivery <{assetId}>.";
-            logger.LogError(e, message);
-            return Problem(message);
+            logger.LogError(e, "Error while accessing delivery asset with id <{AssetId}>.", assetId);
+            return Problem($"Error while accessing delivery asset with id <{assetId}>.");
         }
     }
 }

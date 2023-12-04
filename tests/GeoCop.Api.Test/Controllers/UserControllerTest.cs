@@ -1,7 +1,9 @@
-﻿using GeoCop.Api.Contracts;
+﻿using Castle.Core.Logging;
+using GeoCop.Api.Contracts;
 using GeoCop.Api.Models;
 using GeoCop.Api.Test;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Security.Claims;
@@ -19,6 +21,7 @@ public class UserControllerTest
     [TestInitialize]
     public void Initialize()
     {
+        var loggerMock = new Mock<ILogger<UserController>>();
         context = AssemblyInitialize.DbFixture.GetTestContext();
         authOptionsMock = new Mock<IOptions<BrowserAuthOptions>>();
         browserAuthOptions = new BrowserAuthOptions
@@ -31,7 +34,7 @@ public class UserControllerTest
         };
         authOptionsMock.SetupGet(o => o.Value).Returns(browserAuthOptions);
 
-        userController = new UserController(context, authOptionsMock.Object);
+        userController = new UserController(loggerMock.Object, context, authOptionsMock.Object);
     }
 
     [TestCleanup]

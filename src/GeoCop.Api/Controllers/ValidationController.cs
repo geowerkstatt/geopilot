@@ -94,7 +94,12 @@ public class ValidationController : ControllerBase
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1629:DocumentationTextMustEndWithAPeriod", Justification = "Not applicable for code examples.")]
     public async Task<IActionResult> UploadAsync(ApiVersion version, IFormFile file)
     {
-        if (file == null) return Problem($"Form data <{nameof(file)}> cannot be empty.", statusCode: StatusCodes.Status400BadRequest);
+        logger.LogInformation("File upload started.");
+        if (file == null)
+        {
+            logger.LogTrace("Uploaded file was emtpy.");
+            return Problem($"Form data <{nameof(file)}> cannot be empty.", statusCode: StatusCodes.Status400BadRequest);
+        }
 
         var fileExtension = Path.GetExtension(file.FileName);
         if (!await validationService.IsFileExtensionSupportedAsync(fileExtension))
@@ -157,8 +162,10 @@ public class ValidationController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job or log file cannot be found.", typeof(ProblemDetails), new[] { "application/json" })]
     public IActionResult Download(Guid jobId, string file)
     {
-        logger.LogTrace("Download file <{File}> for job <{JobId}> requested.", file, jobId);
+        // Sanitize user provided file name.
+        file = Path.GetFileName(file.Trim().ReplaceLineEndings(string.Empty));
 
+        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", file.ReplaceLineEndings(string.Empty), jobId.ToString());
         fileProvider.Initialize(jobId);
 
         var validationJob = validationService.GetJob(jobId);
