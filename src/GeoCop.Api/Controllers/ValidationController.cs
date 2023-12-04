@@ -162,10 +162,9 @@ public class ValidationController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job or log file cannot be found.", typeof(ProblemDetails), new[] { "application/json" })]
     public IActionResult Download(Guid jobId, string file)
     {
-        // Sanitize user provided file name.
-        file = Path.GetFileName(file.Trim().ReplaceLineEndings(string.Empty));
+        var sanitizedFilename = Path.GetFileName(file.Trim().ReplaceLineEndings(string.Empty));
 
-        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", file.ReplaceLineEndings(string.Empty), jobId.ToString());
+        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", sanitizedFilename, jobId.ToString());
         fileProvider.Initialize(jobId);
 
         var validationJob = validationService.GetJob(jobId);
@@ -175,15 +174,15 @@ public class ValidationController : ControllerBase
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        if (!fileProvider.Exists(file))
+        if (!fileProvider.Exists(sanitizedFilename))
         {
-            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", file, jobId);
-            return Problem($"No log file <{file}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
+            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", sanitizedFilename, jobId);
+            return Problem($"No log file <{sanitizedFilename}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        var logFile = fileProvider.Open(file);
-        var contentType = contentTypeProvider.GetContentTypeAsString(file);
-        var logFileName = Path.GetFileNameWithoutExtension(validationJob.OriginalFileName) + "_log" + Path.GetExtension(file);
+        var logFile = fileProvider.Open(sanitizedFilename);
+        var contentType = contentTypeProvider.GetContentTypeAsString(sanitizedFilename);
+        var logFileName = Path.GetFileNameWithoutExtension(validationJob.OriginalFileName) + "_log" + Path.GetExtension(sanitizedFilename);
         return File(logFile, contentType, logFileName);
     }
 }
