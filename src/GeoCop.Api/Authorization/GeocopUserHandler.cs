@@ -33,7 +33,7 @@ public class GeocopUserHandler : AuthorizationHandler<GeocopUserRequirement>
         if (dbUser == null)
         {
             logger.LogWarning("There was a logging attempt for user with id <{UserId}> without corresponding user in database.",
-                context.User.Claims.FirstOrDefault(claim => claim.Type == "oid")?.Value.Replace(Environment.NewLine, string.Empty));
+                context.User.Claims.FirstOrDefault(claim => claim.Type == "oid")?.Value.ReplaceLineEndings(string.Empty));
             return;
         }
 
