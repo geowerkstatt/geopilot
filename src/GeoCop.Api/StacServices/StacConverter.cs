@@ -87,9 +87,8 @@ public class StacConverter
             Collection = GetCollectionId(delivery.DeliveryMandate),
             Title = DeliveryNamePrefix + delivery.Date.ToString("s"),
             Description = string.Empty,
-            DateTime = new TimePeriodChain(),
+            DateTime = new TimeBlock(delivery.Date),
         };
-        item.DateTime.Setup(delivery.Date, delivery.Date);
 
         var stacApiContext = StacApiContextFactory.Create();
         var assets = delivery.Assets.Select(file => ToStacAsset(file, item, stacApiContext.BaseUri)).ToDictionary(asset => asset.Title);
