@@ -38,7 +38,7 @@ public class UserController : ControllerBase
     /// <returns>The <see cref="User"/> that is currently logged in.</returns>
     [HttpGet]
     [Authorize(Policy = GeocopPolicies.User)]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns the user currently logged in user.", typeof(User), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the currently logged in user.", typeof(User), new[] { "application/json" })]
     public async Task<User?> GetAsync()
     {
         var user = await context.GetUserByPrincipalAsync(User);
