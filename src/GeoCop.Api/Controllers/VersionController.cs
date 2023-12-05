@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.Annotations;
 using System.Reflection;
 
 namespace GeoCop.Api.Controllers;
@@ -17,6 +18,7 @@ public class VersionController : ControllerBase
     /// </summary>
     /// <returns>Version string.</returns>
     [HttpGet]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the application version.", typeof(string), new[] { "text/plain" })]
     public string Get()
     {
         var assembly = typeof(Program).Assembly;
