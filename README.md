@@ -1,4 +1,4 @@
-[![CI](https://github.com/GeoWerkstatt/geocop/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GeoWerkstatt/geocop/actions/workflows/ci.yml)
+[![CI](https://github.com/GeoWerkstatt/geocop/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GeoWerkstatt/geocop/actions/workflows/ci.yml) [![Release](https://github.com/GeoWerkstatt/geocop/actions/workflows/release.yml/badge.svg)](https://github.com/GeoWerkstatt/geocop/actions/workflows/release.yml) [![Latest Release](https://img.shields.io/github/v/release/GeoWerkstatt/geocop)](https://github.com/GeoWerkstatt/geocop/releases/latest) [![License](https://img.shields.io/github/license/GeoWerkstatt/geocop)](https://github.com/GeoWerkstatt/geocop/blob/main/LICENSE)
 
 # geocop
 
