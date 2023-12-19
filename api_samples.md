@@ -1,6 +1,7 @@
 # API Beispiel Workflow
 
 Dokumentation eines exemplarischen Workflows zur Nutzung der geocop API
+API-Doku / Swagger: https://geocop.ch/swagger/index.html****
 
 ## Health Check
 ![POST](https://img.shields.io/badge/POST-yellow.svg?style=flat-square)
