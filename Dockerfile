@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
-ARG VERSION
-ARG REVISION
+ARG VERSION=0.0.1
+ARG REVISION=0000000
 
 # Set default shell
 SHELL ["/bin/bash", "-c"]
