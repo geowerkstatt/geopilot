@@ -5,8 +5,11 @@ set -e
 echo -n "Fix permissions for mounted volumes ..." && \
   chown -R abc:abc $Storage__UploadDirectory && \
   chown -R abc:abc $Storage__AssetsDirectory && \
+  chown -R abc:abc $PublicAssetsOverride && \
   echo "done!"
 
+# Override public assets in app's public directory.
+cp -R $PublicAssetsOverride/* $HOME/wwwroot/
 
 echo "
 --------------------------------------------------------------------------
