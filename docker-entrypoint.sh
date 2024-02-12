@@ -9,7 +9,7 @@ echo -n "Fix permissions for mounted volumes ..." && \
   echo "done!"
 
 # Override public assets in app's public directory.
-cp -R $PublicAssetsOverride/* $HOME/wwwroot/
+(cp -R $PublicAssetsOverride/* $HOME/wwwroot/ || true)
 
 echo "
 --------------------------------------------------------------------------
