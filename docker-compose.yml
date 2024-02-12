@@ -70,5 +70,5 @@ services:
     volumes:
       - ./src/GeoCop.Api/Uploads:/uploads
       - ./src/GeoCop.Api/Persistent:/assets
-      - ./src/GeoCop.Frontend/public:/public
-
+      - ./README.md:/public/info-hilfe.md
+      - ./LICENSE:/public/nutzungsbestimmungen.md
