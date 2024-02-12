@@ -4,8 +4,11 @@
       "commandName": "DockerCompose",
       "commandVersion": "1.0",
       "serviceActions": {
-        "db": "Start",
-        "pgadmin": "Start"
+        "db": "StartWithoutDebugging",
+        "pgadmin": "StartWithoutDebugging",
+        "geocop": "DoNotStart",
+        "interlis-check-service": "StartWithoutDebugging",
+        "stac-browser": "StartWithoutDebugging"
       }
     }
   }

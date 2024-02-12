@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
-ARG VERSION
-ARG REVISION
+ARG VERSION=0.0.1
+ARG REVISION=0000000
 
 # Set default shell
 SHELL ["/bin/bash", "-c"]
@@ -45,6 +45,7 @@ ENV TZ=Europe/Zurich
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV Storage__UploadDirectory=/uploads
 ENV Storage__AssetsDirectory=/assets
+ENV PublicAssetsOverride=/public
 WORKDIR ${HOME}
 
 # Install missing packages
@@ -60,7 +61,8 @@ RUN \
  useradd --uid 941 --user-group --home $HOME --shell /bin/bash abc && \
  usermod --groups users abc && \
  mkdir -p $Storage__UploadDirectory && \
- mkdir -p $Storage__AssetsDirectory
+ mkdir -p $Storage__AssetsDirectory && \
+ mkdir -p $PublicAssetsOverride
 
 EXPOSE 80
 VOLUME $Storage__UploadDirectory
