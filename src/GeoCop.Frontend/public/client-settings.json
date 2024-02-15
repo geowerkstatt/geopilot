@@ -7,7 +7,7 @@
   "application": {
     "name": "geocop",
     "logo": "/app.svg",
-    "favicon": "/favicon.svg"
+    "favicon": "/favicon.ico"
   },
   "vendor": {
     "name": "geocop",
