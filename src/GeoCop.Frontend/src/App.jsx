@@ -38,6 +38,14 @@ export const App = () => {
     document.title = clientSettings?.application?.name + " " + backendVersion;
   }, [clientSettings, backendVersion]);
 
+  useEffect(() => {
+    const link = document.querySelector("link[rel=icon]");
+    const faviconHref = clientSettings?.application?.favicon;
+    if (faviconHref) {
+      link.setAttribute("href", faviconHref);
+    }
+  }, [clientSettings]);
+
   // Fetch client settings
   useEffect(() => {
     fetch("client-settings.json")
