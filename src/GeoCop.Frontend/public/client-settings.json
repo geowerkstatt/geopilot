@@ -6,7 +6,8 @@
   "authScopes": ["user.read", "openid", "profile", "email"],
   "application": {
     "name": "geocop",
-    "logo":  "/app.svg"
+    "logo": "/app.svg",
+    "favicon": "/favicon.svg"
   },
   "vendor": {
     "name": "geocop",
