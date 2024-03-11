@@ -1,12 +1,12 @@
 <Project>
 
   <PropertyGroup>
-    <Product>geocop</Product>
+    <Product>geopilot</Product>
     <Authors>GeoWerkstatt GmbH</Authors>
     <Company>GeoWerkstatt GmbH</Company>
     <Copyright>© GeoWerkstatt GmbH</Copyright>
-    <PackageProjectUrl>https://github.com/GeoWerkstatt/geocop</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/GeoWerkstatt/geocop.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/GeoWerkstatt/geopilot</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/GeoWerkstatt/geopilot.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <AnalysisLevel>7.0-recommended</AnalysisLevel>
     <IsPackable>false</IsPackable>

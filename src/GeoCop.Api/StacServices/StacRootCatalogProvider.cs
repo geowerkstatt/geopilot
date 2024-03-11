@@ -11,7 +11,7 @@ public class StacRootCatalogProvider : IRootCatalogProvider
     /// <inheritdoc/>
     public Task<StacCatalog> GetRootCatalogAsync(IStacApiContext stacApiContext, CancellationToken cancellationToken = default)
     {
-        var catalog = new StacCatalog("geocop", "Root catalog for geocop");
+        var catalog = new StacCatalog("geopilot", "Root catalog for geopilot");
         return Task.FromResult(catalog);
     }
 }

@@ -125,7 +125,7 @@ export const FileDropzone = ({
   const accept = acceptsAllFileTypes
     ? undefined
     : {
-        "application/x-geocop-files": acceptedFileTypes ?? [],
+        "application/x-geopilot-files": acceptedFileTypes ?? [],
       };
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDropAccepted,

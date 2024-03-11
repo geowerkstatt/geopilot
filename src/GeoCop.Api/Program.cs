@@ -64,7 +64,7 @@ builder.Services
             OnMessageReceived = context =>
             {
                 // Allow token to be in a cookie in addition to the default Authorization header
-                context.Token = context.Request.Cookies["geocop.auth"];
+                context.Token = context.Request.Cookies["geopilot.auth"];
                 return Task.CompletedTask;
             },
         };
@@ -88,7 +88,7 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Version = "1.0",
-        Title = $"geocop API Documentation",
+        Title = $"geopilot API Documentation",
     });
 
     // Include existing documentation in Swagger UI.
@@ -178,7 +178,7 @@ context.Database.Migrate();
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "geocop API v1.0");
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "geopilot API v1.0");
 });
 
 if (app.Environment.IsDevelopment())

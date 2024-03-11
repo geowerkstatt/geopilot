@@ -27,7 +27,7 @@ public class DbHealthCheck : IHealthCheck
         }
         catch (Exception ex)
         {
-            return HealthCheckResult.Unhealthy("The geocop database is unreachable.", ex);
+            return HealthCheckResult.Unhealthy("The geopilot database is unreachable.", ex);
         }
     }
 }

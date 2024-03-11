@@ -8,15 +8,15 @@ export const About = ({ clientSettings, licenseInfo, appVersion }) => (
     <h2>Entwicklung und Bugtracking</h2>
     <p>
       Der Code steht unter der{" "}
-      <a href="https://github.com/GeoWerkstatt/geocop/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">
+      <a href="https://github.com/GeoWerkstatt/geopilot/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">
         MIT License
       </a>{" "}
       im{" "}
-      <a href="https://github.com/GeoWerkstatt/geocop" target="_blank" rel="noopener noreferrer">
+      <a href="https://github.com/GeoWerkstatt/geopilot" target="_blank" rel="noopener noreferrer">
         GitHub Repository
       </a>{" "}
       zur Verfügung. Falls Ihnen Bugs begegnen, können Sie dort ein{" "}
-      <a href="https://github.com/GeoWerkstatt/geocop/issues/" target="_blank" rel="noopener noreferrer">
+      <a href="https://github.com/GeoWerkstatt/geopilot/issues/" target="_blank" rel="noopener noreferrer">
         Issue
       </a>{" "}
       eröffnen.

@@ -25,7 +25,7 @@ export const AuthProvider = ({ children, authScopes, onLoginError }) => {
 
   const loginCompleted = useCallback(
     async (idToken) => {
-      document.cookie = `geocop.auth=${idToken};Path=/;Secure`;
+      document.cookie = `geopilot.auth=${idToken};Path=/;Secure`;
       await fetchUserInfo();
     },
     [fetchUserInfo],
@@ -35,7 +35,7 @@ export const AuthProvider = ({ children, authScopes, onLoginError }) => {
     instance.setActiveAccount(null);
     await instance.clearCache();
     clearInterval(loginSilentIntervalRef.current);
-    document.cookie = "geocop.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
+    document.cookie = "geopilot.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
     setUser(undefined);
   }, [setUser, instance]);
 
