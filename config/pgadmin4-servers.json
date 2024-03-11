@@ -1,11 +1,11 @@
 {
   "Servers": {
       "1": {
-          "Name": "geocop",
+          "Name": "geopilot",
           "Group": "Servers",
           "Host": "db",
           "Port": 5432,
-          "MaintenanceDB": "geocop",
+          "MaintenanceDB": "geopilot",
           "Username": "HAPPYWALK",
           "PassFile": "/tmp/.pgpass",
           "SSLMode": "prefer",

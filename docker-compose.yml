@@ -19,9 +19,9 @@ services:
     environment:
       POSTGRES_USER: HAPPYWALK
       POSTGRES_PASSWORD: SOMBERSPORK
-      POSTGRES_DB: geocop
+      POSTGRES_DB: geopilot
     healthcheck:
-      test: "pg_isready -U HAPPYWALK -d geocop -h db"
+      test: "pg_isready -U HAPPYWALK -d geopilot -h db"
       interval: 3s
       timeout: 1s
       retries: 20
@@ -55,14 +55,14 @@ services:
     ports:
       - 3080:80
 
-  geocop:
+  geopilot:
     build:
       context: .
     restart: unless-stopped
     ports:
       - 5173:80
     environment:
-      ConnectionStrings__Context: Server=db;Port=5432;Database=geocop;User Id=HAPPYWALK;Password=SOMBERSPORK;
+      ConnectionStrings__Context: Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
       Auth__Authority: https://login.microsoftonline.com/16e916d3-12c9-4353-ad04-5a4319422e03/v2.0
       Auth__ClientId: ac09549e-6cf8-40fe-91a9-25515ec71954

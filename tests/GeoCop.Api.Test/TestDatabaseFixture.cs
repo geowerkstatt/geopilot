@@ -4,7 +4,7 @@ namespace GeoCop.Api.Test;
 
 public class TestDatabaseFixture
 {
-    private const string ConnectionString = "Server=localhost;Port=5432;Database=geocop-test;User Id=HAPPYWALK;Password=SOMBERSPORK;";
+    private const string ConnectionString = "Server=localhost;Port=5432;Database=geopilot-test;User Id=HAPPYWALK;Password=SOMBERSPORK;";
 
     private static readonly object @lock = new ();
     private static bool databaseInitialized;
