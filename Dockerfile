@@ -18,13 +18,13 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 # Restore dependencies and tools
-COPY src/GeoCop.Api/GeoCop.Api.csproj GeoCop.Api/
-COPY src/GeoCop.Frontend/nuget.config GeoCop.Frontend/
-COPY src/GeoCop.Frontend/package* GeoCop.Frontend/
-COPY src/GeoCop.Frontend/GeoCop.Frontend.esproj GeoCop.Frontend/
+COPY src/Geopilot.Api/Geopilot.Api.csproj Geopilot.Api/
+COPY src/Geopilot.Frontend/nuget.config Geopilot.Frontend/
+COPY src/Geopilot.Frontend/package* Geopilot.Frontend/
+COPY src/Geopilot.Frontend/Geopilot.Frontend.esproj Geopilot.Frontend/
 
-RUN dotnet restore "GeoCop.Api/GeoCop.Api.csproj"
-RUN npm install -C GeoCop.Frontend
+RUN dotnet restore "Geopilot.Api/Geopilot.Api.csproj"
+RUN npm install -C Geopilot.Frontend
 
 # Set environment variables
 ENV PUBLISH_DIR=/app/publish
@@ -32,7 +32,7 @@ ENV GENERATE_SOURCEMAP=false
 
 # Create optimized production build
 COPY src/ .
-RUN dotnet publish "GeoCop.Api/GeoCop.Api.csproj" \
+RUN dotnet publish "Geopilot.Api/Geopilot.Api.csproj" \
   -c Release \
   -p:VersionPrefix=${VERSION} \
   -p:SourceRevisionId=${REVISION} \

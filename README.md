@@ -20,16 +20,16 @@ Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Optio
 | Project | Action |
 |-----------------|-------------------------|
 | docker-compose | Start without debugging |
-| GeoCop.Api | Start |
-| GeoCop.Api.Test | None |
-| GeoCop.Frontend | Start |
+| Geopilot.Api | Start |
+| Geopilot.Api.Test | None |
+| Geopilot.Frontend | Start |
 
 ### URLs Entwicklungsumgebung 🔗
 
 | URL | Project | Reverse Proxy |
 | --- | --- | --- |
-| https://localhost:5173 | GeoCop.Frontend | `/api` und `/browser` zu https://localhost:7188 |
-| https://localhost:7188 | GeoCop.Api | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
+| https://localhost:5173 | Geopilot.Frontend | `/api` und `/browser` zu https://localhost:7188 |
+| https://localhost:7188 | Geopilot.Api | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
 | http://localhost:8080 | stac-browser (in docker-compose) | - |
 | http://localhost:3001 | PgAdmin (in docker-compose) | - |
 | http://localhost:3080 | interlis-check-service (in docker-compose) | - |
@@ -39,7 +39,7 @@ Der STAC Browser ist auch über https://localhost:5173/browser erreichbar und da
 
 ### Debugging 🪲
 
-Das Debugging sollte nun sowol für das GeoCop.Frontend in JavaScript als auch für GeoCop.Api in C# funtkionieren.
+Das Debugging sollte nun sowohl für das Geopilot.Frontend in JavaScript als auch für Geopilot.Api in C# funtkionieren.
 
 PgAdmin kann für eine Analyse der Datenbank verwendet werden und ist unter [localhost:3001](http://localhost:3001/) verfügbar.
 

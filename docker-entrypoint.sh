@@ -22,4 +22,4 @@ timezone:                         $TZ
 "
 
 echo -e "geopilot app is up and running!\n" && \
-  sudo -H --preserve-env --user abc dotnet GeoCop.Api.dll
+  sudo -H --preserve-env --user abc dotnet Geopilot.Api.dll

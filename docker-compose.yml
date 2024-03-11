@@ -68,7 +68,7 @@ services:
       Auth__ClientId: ac09549e-6cf8-40fe-91a9-25515ec71954
       Validation__InterlisCheckServiceUrl: http://interlis-check-service/
     volumes:
-      - ./src/GeoCop.Api/Uploads:/uploads
-      - ./src/GeoCop.Api/Persistent:/assets
+      - ./src/Geopilot.Api/Uploads:/uploads
+      - ./src/Geopilot.Api/Persistent:/assets
       - ./README.md:/public/info-hilfe.md
       - ./LICENSE:/public/nutzungsbestimmungen.md
