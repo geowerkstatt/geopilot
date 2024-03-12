@@ -22,22 +22,22 @@ jobs:
           dotnet-version: '7.0'
 
       - name: Install dependencies
-        run: dotnet restore GeoCop.sln
+        run: dotnet restore Geopilot.sln
 
       - name: Build dotnet
-        run: dotnet build GeoCop.sln -c Release --no-restore /warnaserror
+        run: dotnet build Geopilot.sln -c Release --no-restore /warnaserror
 
       - name: Test
-        run: dotnet test GeoCop.sln -c Release --no-build --verbosity normal
+        run: dotnet test Geopilot.sln -c Release --no-build --verbosity normal
 
       - name: Run frontend ci
-        working-directory: ./src/GeoCop.Frontend
+        working-directory: ./src/Geopilot.Frontend
         run: npm ci
 
       - name: Build frontend
-        working-directory: ./src/GeoCop.Frontend
+        working-directory: ./src/Geopilot.Frontend
         run: npm run build --if-present
 
       - name: Lint frontend
-        working-directory: ./src/GeoCop.Frontend
+        working-directory: ./src/Geopilot.Frontend
         run: npm run lint

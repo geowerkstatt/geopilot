@@ -1,8 +1,8 @@
-[![CI](https://github.com/GeoWerkstatt/geocop/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GeoWerkstatt/geocop/actions/workflows/ci.yml) [![Release](https://github.com/GeoWerkstatt/geocop/actions/workflows/release.yml/badge.svg)](https://github.com/GeoWerkstatt/geocop/actions/workflows/release.yml) [![Latest Release](https://img.shields.io/github/v/release/GeoWerkstatt/geocop)](https://github.com/GeoWerkstatt/geocop/releases/latest) [![License](https://img.shields.io/github/license/GeoWerkstatt/geocop)](https://github.com/GeoWerkstatt/geocop/blob/main/LICENSE)
+[![CI](https://github.com/GeoWerkstatt/geopilot/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/GeoWerkstatt/geopilot/actions/workflows/ci.yml) [![Release](https://github.com/GeoWerkstatt/geopilot/actions/workflows/release.yml/badge.svg)](https://github.com/GeoWerkstatt/geopilot/actions/workflows/release.yml) [![Latest Release](https://img.shields.io/github/v/release/GeoWerkstatt/geopilot)](https://github.com/GeoWerkstatt/geopilot/releases/latest) [![License](https://img.shields.io/github/license/GeoWerkstatt/geopilot)](https://github.com/GeoWerkstatt/geopilot/blob/main/LICENSE)
 
-# geocop
+# geopilot
 
-geocop ist ein benutzerfreundliches Tool für das Liefern und Validieren von Geodaten. Es ermöglicht das Hochladen von Geodaten in verschiedenen Formaten und überprüft sie auf Einhaltung geltender Standards. Anwender können ihre hochgeladenen und validierten Daten deklarieren um diese für die Weiterverarbeitung bereit zu stellen. Mit geocop wird der Prozess der Geodatenverarbeitung für eine reibungslose und zuverlässige Datenübermittlung optimiert.
+geopilot ist ein benutzerfreundliches Tool für das Liefern und Validieren von Geodaten. Es ermöglicht das Hochladen von Geodaten in verschiedenen Formaten und überprüft sie auf Einhaltung geltender Standards. Anwender können ihre hochgeladenen und validierten Daten deklarieren um diese für die Weiterverarbeitung bereit zu stellen. Mit geopilot wird der Prozess der Geodatenverarbeitung für eine reibungslose und zuverlässige Datenübermittlung optimiert.
 
 ## Einrichten der Entwicklungsumgebung
 
@@ -20,16 +20,16 @@ Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Optio
 | Project | Action |
 |-----------------|-------------------------|
 | docker-compose | Start without debugging |
-| GeoCop.Api | Start |
-| GeoCop.Api.Test | None |
-| GeoCop.Frontend | Start |
+| Geopilot.Api | Start |
+| Geopilot.Api.Test | None |
+| Geopilot.Frontend | Start |
 
 ### URLs Entwicklungsumgebung 🔗
 
 | URL | Project | Reverse Proxy |
 | --- | --- | --- |
-| https://localhost:5173 | GeoCop.Frontend | `/api` und `/browser` zu https://localhost:7188 |
-| https://localhost:7188 | GeoCop.Api | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
+| https://localhost:5173 | Geopilot.Frontend | `/api` und `/browser` zu https://localhost:7188 |
+| https://localhost:7188 | Geopilot.Api | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
 | http://localhost:8080 | stac-browser (in docker-compose) | - |
 | http://localhost:3001 | PgAdmin (in docker-compose) | - |
 | http://localhost:3080 | interlis-check-service (in docker-compose) | - |
@@ -39,7 +39,7 @@ Der STAC Browser ist auch über https://localhost:5173/browser erreichbar und da
 
 ### Debugging 🪲
 
-Das Debugging sollte nun sowol für das GeoCop.Frontend in JavaScript als auch für GeoCop.Api in C# funtkionieren.
+Das Debugging sollte nun sowohl für das Geopilot.Frontend in JavaScript als auch für Geopilot.Api in C# funtkionieren.
 
 PgAdmin kann für eine Analyse der Datenbank verwendet werden und ist unter [localhost:3001](http://localhost:3001/) verfügbar.
 
@@ -59,4 +59,4 @@ docker inspect --format='{{json .State.Health.Status}}' container_name
 
 ## Neue Version erstellen
 
-Ein neuer GitHub _Pre-release_ wird bei jeder Änderung auf [main](https://github.com/GeoWerkstatt/geocop) [automatisch](./.github/workflows/pre-release.yml) erstellt. In diesem Kontext wird auch ein neues Docker Image mit dem Tag _:edge_ erstellt und in die [GitHub Container Registry (ghcr.io)](https://github.com/geowerkstatt/geocop/pkgs/container/geocop) gepusht. Der definitve Release erfolgt, indem die Checkbox _Set as the latest release_ eines beliebigen Pre-releases gesetzt wird. In der Folge wird das entsprechende Docker Image in der ghcr.io Registry mit den Tags (bspw.: _:v1.2.3_ und _:latest_) [ergänzt](./.github/workflows/release.yml).
+Ein neuer GitHub _Pre-release_ wird bei jeder Änderung auf [main](https://github.com/GeoWerkstatt/geopilot) [automatisch](./.github/workflows/pre-release.yml) erstellt. In diesem Kontext wird auch ein neues Docker Image mit dem Tag _:edge_ erstellt und in die [GitHub Container Registry (ghcr.io)](https://github.com/geowerkstatt/geopilot/pkgs/container/geopilot) gepusht. Der definitve Release erfolgt, indem die Checkbox _Set as the latest release_ eines beliebigen Pre-releases gesetzt wird. In der Folge wird das entsprechende Docker Image in der ghcr.io Registry mit den Tags (bspw.: _:v1.2.3_ und _:latest_) [ergänzt](./.github/workflows/release.yml).

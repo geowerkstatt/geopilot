@@ -1,0 +1,17 @@
+{
+  "authCache": {
+    "cacheLocation": "localStorage",
+    "storeAuthStateInCookie": false
+  },
+  "authScopes": ["user.read", "openid", "profile", "email"],
+  "application": {
+    "name": "geopilot",
+    "logo": "/app.svg",
+    "favicon": "/favicon.ico"
+  },
+  "vendor": {
+    "name": "geopilot",
+    "logo": "/logo.svg",
+    "url": "https://github.com/GeoWerkstatt/geopilot"
+  }
+}

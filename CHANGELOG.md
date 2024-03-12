@@ -1,3 +1,3 @@
 # Change Log
 
-This Log shows all major changes and enhancements of geocop
+This Log shows all major changes and enhancements of geopilot

@@ -6,7 +6,7 @@
       "serviceActions": {
         "db": "StartWithoutDebugging",
         "pgadmin": "StartWithoutDebugging",
-        "geocop": "DoNotStart",
+        "geopilot": "DoNotStart",
         "interlis-check-service": "StartWithoutDebugging",
         "stac-browser": "StartWithoutDebugging"
       }
