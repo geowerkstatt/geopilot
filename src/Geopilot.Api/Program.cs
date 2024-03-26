@@ -9,7 +9,9 @@ using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
@@ -168,6 +170,11 @@ builder.Services
     .AddHealthChecks()
     .AddCheck<DbHealthCheck>("Db");
 
+// Set the maximum request body size to 200MB
+const int MaxRequestBodySize = 209715200;
+builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = MaxRequestBodySize);
+builder.Services.Configure<KestrelServerOptions>(options => options.Limits.MaxRequestBodySize = MaxRequestBodySize);
+
 var app = builder.Build();
 
 // Migrate db changes on startup
@@ -216,6 +223,19 @@ app.Use(async (context, next) =>
     {
         await next(context);
     }
+});
+
+// By default Kestrel responds with a HTTP 400 if payload is too large.
+app.Use(async (context, next) =>
+{
+    if (context.Request.ContentLength > MaxRequestBodySize)
+    {
+        context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+        await context.Response.WriteAsync("Payload Too Large");
+        return;
+    }
+
+    await next.Invoke();
 });
 
 app.UseAuthorization();
