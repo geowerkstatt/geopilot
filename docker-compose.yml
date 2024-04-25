@@ -72,3 +72,6 @@ services:
       - ./src/Geopilot.Api/Persistent:/assets
       - ./README.md:/public/info-hilfe.md
       - ./LICENSE:/public/nutzungsbestimmungen.md
+    depends_on:
+      db:
+        condition: service_healthy
