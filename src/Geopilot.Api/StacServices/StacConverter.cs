@@ -118,16 +118,16 @@ public class StacConverter
     /// <returns>The <see cref="GeoJSON.Net.Geometry.Polygon"/>.</returns>
     public GeoJSON.Net.Geometry.Polygon ToGeoJsonPolygon(Geometry geometry)
     {
-        var (xMin, yMin, xMax, yMax) = GetCoordinatesBounds(geometry);
+        var (longMin, latMin, longMax, latMax) = GetCoordinatesBounds(geometry);
         return new GeoJSON.Net.Geometry.Polygon(new List<GeoJSON.Net.Geometry.LineString>()
         {
             new (new List<GeoJSON.Net.Geometry.Position>()
             {
-                new (xMin, yMin),
-                new (xMax, yMin),
-                new (xMax, yMax),
-                new (xMin, yMax),
-                new (xMin, yMin),
+                new (latMin, longMin),
+                new (latMin, longMax),
+                new (latMax, longMax),
+                new (latMax, longMin),
+                new (latMin, longMin),
             }),
         });
     }
@@ -139,18 +139,18 @@ public class StacConverter
     /// <returns>The <see cref="StacSpatialExtent"/>.</returns>
     public StacSpatialExtent ToStacSpatialExtent(Geometry geometry)
     {
-        var (xMin, yMin, xMax, yMax) = GetCoordinatesBounds(geometry);
-        return new StacSpatialExtent(xMin, yMin, xMax, yMax);
+        var (longMin, latMin, longMax, latMax) = GetCoordinatesBounds(geometry);
+        return new StacSpatialExtent(longMin, latMin, longMax, latMax);
     }
 
-    private (double xMin, double yMin, double xMax, double yMax) GetCoordinatesBounds(Geometry geometry)
+    private (double longMin, double latMin, double longMax, double latMax) GetCoordinatesBounds(Geometry geometry)
     {
         var coordinates = geometry.Coordinates;
-        var xMin = coordinates.Min((Coordinate c) => c.X);
-        var yMin = coordinates.Min((Coordinate c) => c.Y);
-        var xMax = coordinates.Max((Coordinate c) => c.X);
-        var yMax = coordinates.Max((Coordinate c) => c.Y);
+        var longMin = coordinates.Min((Coordinate c) => c.X);
+        var latMin = coordinates.Min((Coordinate c) => c.Y);
+        var longMax = coordinates.Max((Coordinate c) => c.X);
+        var latMax = coordinates.Max((Coordinate c) => c.Y);
 
-        return (xMin, yMin, xMax, yMax);
+        return (longMin, latMin, longMax, latMax);
     }
 }
