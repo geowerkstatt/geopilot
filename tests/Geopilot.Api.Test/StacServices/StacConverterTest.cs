@@ -12,7 +12,23 @@ namespace Geopilot.Api.StacServices;
 [TestClass]
 public class StacConverterTest
 {
-    private readonly Delivery testDelivery = new ()
+    private static readonly double[] mandateExtent = new double[] { 7.536621, 46.521076, 9.398804, 47.476376 };
+
+    private static readonly DeliveryMandate mandate = new ()
+    {
+        Id = 1,
+        Name = "Test Mandate",
+        SpatialExtent = new Polygon(new LinearRing(new Coordinate[]
+        {
+                new (mandateExtent[1], mandateExtent[0]),
+                new (mandateExtent[3], mandateExtent[0]),
+                new (mandateExtent[3], mandateExtent[2]),
+                new (mandateExtent[1], mandateExtent[2]),
+                new (mandateExtent[1], mandateExtent[0]),
+        })),
+    };
+
+    private static readonly Delivery testDelivery = new ()
     {
         Id = 1,
         Date = new DateTime(2023, 11, 6, 10, 45, 18),
@@ -20,18 +36,7 @@ public class StacConverterTest
         {
             Id = 2,
         },
-        DeliveryMandate = new DeliveryMandate()
-        {
-            Id = 3,
-            SpatialExtent = new Polygon(new LinearRing(new Coordinate[]
-        {
-                    new (1, 1),
-                    new (3, 1),
-                    new (3, 3),
-                    new (1, 3),
-                    new (1, 1),
-        })),
-        },
+        DeliveryMandate = mandate,
         Assets = new List<Asset>()
             {
                 new Asset()
@@ -47,19 +52,6 @@ public class StacConverterTest
                     AssetType = AssetType.ValidationReport,
                 },
             },
-    };
-    private readonly DeliveryMandate mandate = new ()
-    {
-        Id = 1,
-        Name = "Test Mandate",
-        SpatialExtent = new Polygon(new LinearRing(new Coordinate[]
-        {
-                new (10, 10),
-                new (30, 10),
-                new (30, 30),
-                new (10, 30),
-                new (10, 10),
-        })),
     };
 
     private Mock<IContentTypeProvider> contentTypeProviderMock;
@@ -108,10 +100,11 @@ public class StacConverterTest
         Assert.AreEqual("Test Mandate", collection.Title);
         Assert.AreEqual(string.Empty, collection.Description);
         Assert.AreEqual(0, collection.Links.Count);
-        var expectedExtent = converter.ToStacSpatialExtent(mandate.SpatialExtent).BoundingBoxes[0];
         var actualExtent = collection.Extent.Spatial.BoundingBoxes[0];
-        Assert.AreEqual(true, Enumerable.Range(0, expectedExtent.GetLength(0))
-            .All(i => expectedExtent[i] == actualExtent[i]));
+        Assert.AreEqual(mandateExtent[0], actualExtent[1]);
+        Assert.AreEqual(mandateExtent[1], actualExtent[0]);
+        Assert.AreEqual(mandateExtent[2], actualExtent[3]);
+        Assert.AreEqual(mandateExtent[3], actualExtent[2]);
     }
 
     [TestMethod]
@@ -138,10 +131,11 @@ public class StacConverterTest
         Assert.AreEqual(string.Empty, collection.Description);
         Assert.AreEqual(1, collection.Links.Count);
         Assert.AreEqual("item", collection.Links.First().RelationshipType);
-        var expectedExtent = converter.ToStacSpatialExtent(testDelivery.DeliveryMandate.SpatialExtent).BoundingBoxes[0];
         var actualExtent = collection.Extent.Spatial.BoundingBoxes[0];
-        Assert.AreEqual(true, Enumerable.Range(0, expectedExtent.GetLength(0))
-            .All(i => expectedExtent[i] == actualExtent[i]));
+        Assert.AreEqual(mandateExtent[0], actualExtent[1]);
+        Assert.AreEqual(mandateExtent[1], actualExtent[0]);
+        Assert.AreEqual(mandateExtent[2], actualExtent[3]);
+        Assert.AreEqual(mandateExtent[3], actualExtent[2]);
     }
 
     [TestMethod]
