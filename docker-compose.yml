@@ -42,7 +42,7 @@ services:
       - /bin/sh
       - -c
       - |
-        /bin/echo '*:*:bdms:SPAWNPLOW:YELLOWSPATULA' > /tmp/.pgpass
+        /bin/echo '*:*:geopilot:HAPPYWALK:SOMBERSPORK' > /tmp/.pgpass
         chmod 0600 /tmp/.pgpass
         /entrypoint.sh
     depends_on:
