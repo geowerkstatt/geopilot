@@ -14,7 +14,11 @@ Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
 
 Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Options/Text Editor/Javascript/Linting/General` _Enable ESLint_ auf `true` setzen, resp. im VS Code die _ESLint_-Extension installieren.
 
+Damit die Launch Settings für _docker-compose_ korrekt geladen werden, mit Rechtsklick auf dem Projekt _Manage Docker Compose Launch Settings_ öffnen, warten bis alle Services geladen sind und dann speichern.
+
 ### Starten der Applikation 🚀
+
+Vor dem ersten Start oder bei Änderungen in den Packages muss in _Geopilot.Frontend_ manuell `npm install` ausgeführt werden.
 
 Über _Start_ > _Configure Startup Projects_ > _Common Properties_ > _Startup Projects_ müssen _Multiple starup projects_ definiert werden.
 | Project | Action |
@@ -26,13 +30,13 @@ Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Optio
 
 ### URLs Entwicklungsumgebung 🔗
 
-| URL | Project | Reverse Proxy |
-| --- | --- | --- |
-| https://localhost:5173 | Geopilot.Frontend | `/api` und `/browser` zu https://localhost:7188 |
-| https://localhost:7188 | Geopilot.Api | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
-| http://localhost:8080 | stac-browser (in docker-compose) | - |
-| http://localhost:3001 | PgAdmin (in docker-compose) | - |
-| http://localhost:3080 | interlis-check-service (in docker-compose) | - |
+| URL                    | Project                                    | Reverse Proxy                                                             |
+| ---------------------- | ------------------------------------------ | ------------------------------------------------------------------------- |
+| https://localhost:5173 | Geopilot.Frontend                          | `/api` und `/browser` zu https://localhost:7188                           |
+| https://localhost:7188 | Geopilot.Api                               | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
+| http://localhost:8080  | stac-browser (in docker-compose)           | -                                                                         |
+| http://localhost:3001  | PgAdmin (in docker-compose)                | -                                                                         |
+| http://localhost:3080  | interlis-check-service (in docker-compose) | -                                                                         |
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
 Der STAC Browser ist auch über https://localhost:5173/browser erreichbar und das Cookie kann somit auch da zur Authentifizierung verwendet werden.
@@ -45,7 +49,7 @@ PgAdmin kann für eine Analyse der Datenbank verwendet werden und ist unter [loc
 
 ## Health Check API
 
-Für das Monitoring im produktiven Betrieb steht unter `https://<host>:<port>/health` eine Health Check API zur Verfügung. Anhand der Antwort *Healthy* (HTTP Status Code 200), resp. *Unhealthy* (HTTP Status Code 503) kann der Status der Applikation bspw. mit cURL abgefragt werden.
+Für das Monitoring im produktiven Betrieb steht unter `https://<host>:<port>/health` eine Health Check API zur Verfügung. Anhand der Antwort _Healthy_ (HTTP Status Code 200), resp. _Unhealthy_ (HTTP Status Code 503) kann der Status der Applikation bspw. mit cURL abgefragt werden.
 
 ```bash
 curl -f https://<host>:<port>/health || exit 1;
