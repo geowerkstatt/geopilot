@@ -97,18 +97,29 @@ internal static class ContextExtensions
         context.SaveChanges();
     }
 
-    public static Geometry GetExtent(this Address address)
+    public static Geometry GetExtent()
     {
-        var longitude = address.Longitude();
-        var latitude = address.Latitude();
+        // Reference extent for Switzerland
+        var longMinRef = 7.536621;
+        var latMinRef = 46.521076;
+        var longMaxRef = 9.398804;
+        var latMaxRef = 47.476376;
+
+        var longDiffHalf = (longMaxRef - longMinRef) / 2;
+        var latDiffHalf = (latMaxRef - latMinRef) / 2;
+
+        var longMin = new Faker().Random.Double(longMinRef, longMinRef + longDiffHalf);
+        var latMin = new Faker().Random.Double(latMinRef, latMinRef + latDiffHalf);
+        var longMax = new Faker().Random.Double(longMaxRef - longDiffHalf, longMaxRef);
+        var latMax = new Faker().Random.Double(latMaxRef - latDiffHalf, latMaxRef);
 
         return GeometryFactory.Default.CreatePolygon(new Coordinate[]
         {
-            new (longitude - 0.1, latitude - 0.1),
-            new (longitude + 0.1, latitude - 0.1),
-            new (longitude + 0.1, latitude + 0.1),
-            new (longitude - 0.1, latitude + 0.1),
-            new (longitude - 0.1, latitude - 0.1),
+            new (longMin, latMin),
+            new (longMax, latMin),
+            new (longMax, latMax),
+            new (longMin, latMax),
+            new (longMin, latMin),
         });
     }
 
@@ -120,7 +131,7 @@ internal static class ContextExtensions
             .RuleFor(o => o.Id, f => 0)
             .RuleFor(o => o.Name, f => f.Commerce.ProductName())
             .RuleFor(o => o.FileTypes, f => f.PickRandom(knownFileFormats, 4).Distinct().ToArray())
-            .RuleFor(o => o.SpatialExtent, f => f.Address.GetExtent())
+            .RuleFor(o => o.SpatialExtent, f => GetExtent())
             .RuleFor(o => o.Organisations, f => f.PickRandom(context.Organisations.ToList(), 1).ToList())
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>());
 
