@@ -15,6 +15,8 @@ internal static class ContextExtensions
     internal const string NameClaim = "name";
     internal const string EmailClaim = "email";
 
+    private static readonly double[] extentCh = new double[] { 7.536621, 46.521076, 9.398804, 47.476376 };
+
     /// <summary>
     /// Retreives the user that matches the provided principal from the database.
     /// Automatically updates the user information in the database if it has changed.
@@ -99,19 +101,13 @@ internal static class ContextExtensions
 
     public static Geometry GetExtent()
     {
-        // Reference extent for Switzerland
-        var longMinRef = 7.536621;
-        var latMinRef = 46.521076;
-        var longMaxRef = 9.398804;
-        var latMaxRef = 47.476376;
+        var longDiffHalf = (extentCh[2] - extentCh[0]) / 2;
+        var latDiffHalf = (extentCh[3] - extentCh[1]) / 2;
 
-        var longDiffHalf = (longMaxRef - longMinRef) / 2;
-        var latDiffHalf = (latMaxRef - latMinRef) / 2;
-
-        var longMin = new Faker().Random.Double(longMinRef, longMinRef + longDiffHalf);
-        var latMin = new Faker().Random.Double(latMinRef, latMinRef + latDiffHalf);
-        var longMax = new Faker().Random.Double(longMaxRef - longDiffHalf, longMaxRef);
-        var latMax = new Faker().Random.Double(latMaxRef - latDiffHalf, latMaxRef);
+        var longMin = new Faker().Random.Double(extentCh[0], extentCh[0] + longDiffHalf);
+        var latMin = new Faker().Random.Double(extentCh[1], extentCh[1] + latDiffHalf);
+        var longMax = new Faker().Random.Double(extentCh[2] - longDiffHalf, extentCh[2]);
+        var latMax = new Faker().Random.Double(extentCh[3] - latDiffHalf, extentCh[3]);
 
         return GeometryFactory.Default.CreatePolygon(new Coordinate[]
         {
