@@ -24,7 +24,7 @@ export const AuthProvider = ({ children, authScopes, onLoginError }) => {
   }, [setUser]);
 
   const loginCompleted = useCallback(
-    async (idToken) => {
+    async idToken => {
       document.cookie = `geopilot.auth=${idToken};Path=/;Secure`;
       await fetchUserInfo();
     },
@@ -101,8 +101,7 @@ export const AuthProvider = ({ children, authScopes, onLoginError }) => {
         user,
         login,
         logout,
-      }}
-    >
+      }}>
       {children}
     </AuthContext.Provider>
   );

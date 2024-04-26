@@ -22,7 +22,7 @@ export const About = ({ clientSettings, licenseInfo, appVersion }) => (
       eröffnen.
     </p>
     <h2>Lizenzinformationen</h2>
-    {Object.keys(licenseInfo).map((key) => (
+    {Object.keys(licenseInfo).map(key => (
       <div key={key} className="about-licenses">
         <h3>
           {licenseInfo[key].name}

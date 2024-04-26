@@ -27,8 +27,8 @@ export const Home = ({
 
   useEffect(() => {
     fetch("/api/v1/validation")
-      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then((settings) => setValidationSettings(settings));
+      .then(res => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then(settings => setValidationSettings(settings));
   }, []);
 
   // Enable Upload logging
@@ -43,7 +43,7 @@ export const Home = ({
   const updateLog = useCallback(
     (message, { disableUploadLogs = true } = {}) => {
       if (disableUploadLogs) setUploadLogsEnabled(false);
-      setLog((log) => {
+      setLog(log => {
         if (message === log[log.length - 1]) return log;
         else return [...log, message];
       });
@@ -76,7 +76,7 @@ export const Home = ({
     func();
     return setInterval(func, interval);
   };
-  const checkFile = (e) => {
+  const checkFile = e => {
     e.stopPropagation();
     resetLog();
     setStatusData(null);
@@ -85,7 +85,7 @@ export const Home = ({
     uploadFile(fileToCheck);
   };
 
-  const uploadFile = async (file) => {
+  const uploadFile = async file => {
     const formData = new FormData();
     formData.append("file", file, file.name);
     const response = await fetch(`api/v1/validation`, {
@@ -96,7 +96,7 @@ export const Home = ({
       // Use ref instead of state to check current file status in async function
       if (fileToCheckRef.current) {
         const data = await response.json();
-        const getStatusData = async (data) => {
+        const getStatusData = async data => {
           const status = await fetch(`/api/v1/validation/${data.jobId}`, {
             method: "GET",
           });

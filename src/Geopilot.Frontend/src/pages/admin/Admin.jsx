@@ -10,7 +10,7 @@ const columns = [
   {
     field: "date",
     headerName: "Abgabedatum",
-    valueFormatter: (params) => {
+    valueFormatter: params => {
       const date = new Date(params.value);
       return (
         `${date.getHours().toString().padStart(2, "0")}:` +
@@ -45,7 +45,7 @@ export const Admin = () => {
   useEffect(() => {
     if (alertMessages.length && (!currentAlert || !showAlert)) {
       setCurrentAlert(alertMessages[0]);
-      setAlertMessages((prev) => prev.slice(1));
+      setAlertMessages(prev => prev.slice(1));
       setShowAlert(true);
     }
   }, [alertMessages, currentAlert, showAlert]);
@@ -63,7 +63,7 @@ export const Admin = () => {
       if (response.status == 200) {
         var deliveries = await response.json();
         setDeliveries(
-          deliveries.map((d) => ({
+          deliveries.map(d => ({
             id: d.id,
             date: d.date,
             user: d.declaringUser.fullName,
@@ -72,7 +72,7 @@ export const Admin = () => {
         );
       }
     } catch (error) {
-      setAlertMessages((prev) => [
+      setAlertMessages(prev => [
         ...prev,
         {
           message: "Beim Laden der Datenabgaben ist ein Fehler aufgetreten: " + error,
@@ -90,7 +90,7 @@ export const Admin = () => {
           method: "DELETE",
         });
         if (response.status == 404) {
-          setAlertMessages((prev) => [
+          setAlertMessages(prev => [
             ...prev,
             {
               message: "Die Datenabgabe mit der ID " + row + " existiert nicht.",
@@ -98,7 +98,7 @@ export const Admin = () => {
             },
           ]);
         } else if (response.status == 500) {
-          setAlertMessages((prev) => [
+          setAlertMessages(prev => [
             ...prev,
             {
               message: "Beim Löschen der Datenabgabe mit ID " + row + " ist ein Fehler aufgetreten.",
@@ -107,7 +107,7 @@ export const Admin = () => {
           ]);
         }
       } catch (error) {
-        setAlertMessages((prev) => [
+        setAlertMessages(prev => [
           ...prev,
           { message: "Beim Löschen ist ein Fehler aufgetreten: " + error, key: new Date().getTime() },
         ]);
@@ -135,7 +135,7 @@ export const Admin = () => {
             }}
             pageSizeOptions={[5, 10, 25]}
             checkboxSelection
-            onRowSelectionModelChange={(newSelection) => {
+            onRowSelectionModelChange={newSelection => {
               setSelectedRows(newSelection);
             }}
             hideFooterRowCount
@@ -148,8 +148,7 @@ export const Admin = () => {
               className="icon-button"
               onClick={() => {
                 setShowModal(true);
-              }}
-            >
+              }}>
               <GoTrash />
               <div style={{ marginLeft: 10 }}>
                 {selectedRows.length} Datenabgabe
@@ -167,8 +166,7 @@ export const Admin = () => {
               variant="secondary"
               onClick={() => {
                 setShowModal(false);
-              }}
-            >
+              }}>
               Abbrechen
             </Button>
             <Button variant="danger" onClick={handleDelete}>
@@ -180,8 +178,7 @@ export const Admin = () => {
           key={currentAlert ? currentAlert.key : undefined}
           open={showAlert}
           onClose={closeAlert}
-          anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        >
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}>
           <Alert variant="danger" onClose={closeAlert} dismissible>
             <p>{currentAlert ? currentAlert.message : undefined}</p>
           </Alert>

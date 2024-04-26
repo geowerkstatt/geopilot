@@ -2,7 +2,7 @@ import ReactMarkdown from "react-markdown";
 import { Modal, Button } from "react-bootstrap";
 import rehypeExternalLinks from "rehype-external-links";
 
-export const ModalContent = (props) => {
+export const ModalContent = props => {
   const { content, type, onHide } = props;
 
   return (

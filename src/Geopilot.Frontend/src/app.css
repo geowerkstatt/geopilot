@@ -519,7 +519,7 @@ footer {
   #navbar-nav {
     display: none;
   }
-  
+
   .show#navbar-nav {
     display: flex;
     flex-direction: column;
@@ -541,15 +541,15 @@ footer {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .navbar-container {
-    display:flex;
+    display: flex;
     justify-content: space-between;
     flex-direction: row;
     width: 100%;
     padding-top: 18px;
   }
-  
+
   .navbar-info-container {
     display: flex;
     flex-direction: row;
@@ -557,7 +557,6 @@ footer {
     width: 100%;
     align-items: center;
   }
-
 }
 
 .nav-link {
@@ -594,8 +593,7 @@ footer {
   margin-bottom: -1rem !important;
 }
 
-
 /************ Alerts ************/
 .alert p {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
