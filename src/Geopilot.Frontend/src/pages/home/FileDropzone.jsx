@@ -4,7 +4,7 @@ import { MdCancel, MdFileUpload } from "react-icons/md";
 import { Button, Spinner } from "react-bootstrap";
 import styled from "styled-components";
 
-const getColor = (isDragActive) => {
+const getColor = isDragActive => {
   if (isDragActive) {
     return "#2196f3";
   } else {
@@ -22,7 +22,7 @@ const Container = styled.div`
   font-size: 20px;
   border-width: 2px;
   border-radius: 5px;
-  border-color: ${(props) => getColor(props.$isDragActive)};
+  border-color: ${props => getColor(props.$isDragActive)};
   border-style: dashed;
   background-color: #d1d6d991;
   color: #9f9f9f;
@@ -58,7 +58,7 @@ export const FileDropzone = ({
   useEffect(() => setDropZoneText(dropZoneDefaultText), [dropZoneDefaultText]);
 
   const onDropAccepted = useCallback(
-    (acceptedFiles) => {
+    acceptedFiles => {
       const updateDropZoneClass = () => {
         if (!checkFile || (nutzungsbestimmungenAvailable && !checkedNutzungsbestimmungen)) {
           setDropZoneTextClass("dropzone dropzone-text-disabled");
@@ -84,7 +84,7 @@ export const FileDropzone = ({
   }, [fileToCheckRef, setFileToCheck]);
 
   const onDropRejected = useCallback(
-    (fileRejections) => {
+    fileRejections => {
       setDropZoneTextClass("dropzone dropzone-text-error");
       const errorCode = fileRejections[0].errors[0].code;
       const genericError =
@@ -113,7 +113,7 @@ export const FileDropzone = ({
     [resetFileToCheck, acceptsAllFileTypes, acceptedFileTypesText],
   );
 
-  const removeFile = (e) => {
+  const removeFile = e => {
     e.stopPropagation();
     setUploadLogsEnabled(false);
     resetFileToCheck();
@@ -152,7 +152,7 @@ export const FileDropzone = ({
             </p>
           )}
           {fileToCheck && nutzungsbestimmungenAvailable && (
-            <div onClick={(e) => e.stopPropagation()} className="terms-of-use">
+            <div onClick={e => e.stopPropagation()} className="terms-of-use">
               <label>
                 <input
                   type="checkbox"
@@ -166,8 +166,7 @@ export const FileDropzone = ({
                     className="terms-of-use link"
                     onClick={() => {
                       showNutzungsbestimmungen();
-                    }}
-                  >
+                    }}>
                     Nutzungsbestimmungen
                   </Button>
                   .
@@ -185,8 +184,7 @@ export const FileDropzone = ({
               <Button
                 className={fileToCheck && !validationRunning ? "check-button" : "invisible-check-button"}
                 onClick={checkFile}
-                disabled={(nutzungsbestimmungenAvailable && !checkedNutzungsbestimmungen) || validationRunning}
-              >
+                disabled={(nutzungsbestimmungenAvailable && !checkedNutzungsbestimmungen) || validationRunning}>
                 Validieren
               </Button>
             </p>

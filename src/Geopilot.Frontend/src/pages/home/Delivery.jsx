@@ -32,8 +32,8 @@ export const Delivery = ({ statusData, validationRunning }) => {
   useEffect(() => {
     if (statusData?.status === DeliveryState.Completed && !validationRunning) {
       fetch("/api/v1/mandate?" + new URLSearchParams({ jobId: statusData?.jobId }))
-        .then((res) => res.ok && res.json())
-        .then((json) => {
+        .then(res => res.ok && res.json())
+        .then(json => {
           setMandates(json);
           setSelectedMandateId(json[0]?.id);
           setDeliveryState(json?.length > 0 ? DeliveryState.Available : DeliveryState.Unavailable);
@@ -73,7 +73,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
     }
 
     fetch("/api/v1/delivery?" + new URLSearchParams({ mandateId: selectedMandateId }))
-      .then((res) => res.ok && res.json())
+      .then(res => res.ok && res.json())
       .then(setPreviousDeliveries);
   }, [selectedMandateId]);
 
@@ -91,13 +91,12 @@ export const Delivery = ({ statusData, validationRunning }) => {
                   <Col>
                     <Form.Select
                       value={selectedMandateId}
-                      onChange={(e) => {
+                      onChange={e => {
                         setSelectedMandateId(e.target.value);
-                      }}
-                    >
+                      }}>
                       {mandates
                         ?.sort((a, b) => a.name.localeCompare(b.name))
-                        .map((mandate) => (
+                        .map(mandate => (
                           <option key={mandate.id} value={mandate.id}>
                             {mandate.name}
                           </option>
@@ -114,7 +113,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
                       type="switch"
                       label="ist Teillieferung"
                       checked={partialDelivery}
-                      onChange={(e) => {
+                      onChange={e => {
                         setPartialDelivery(e.target.checked);
                       }}
                     />
@@ -127,10 +126,9 @@ export const Delivery = ({ statusData, validationRunning }) => {
                   <Col>
                     <Form.Select
                       value={selectedDeliveryId}
-                      onChange={(e) => setSelectedDeliveryId(e.target.value > 0 ? e.target.value : undefined)}
-                    >
+                      onChange={e => setSelectedDeliveryId(e.target.value > 0 ? e.target.value : undefined)}>
                       <option value="-1"></option>
-                      {previousDeliveries?.map((delivery) => (
+                      {previousDeliveries?.map(delivery => (
                         <option key={delivery.id} value={delivery.id}>
                           {delivery.date}
                         </option>
@@ -143,7 +141,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
                     Kommentar
                   </Form.Label>
                   <Col>
-                    <Form.Control as="textarea" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} />
+                    <Form.Control as="textarea" rows={3} value={comment} onChange={e => setComment(e.target.value)} />
                   </Col>
                 </Form.Group>
               </fieldset>

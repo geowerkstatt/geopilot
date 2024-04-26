@@ -18,7 +18,7 @@ export const Header = ({ clientSettings }) => {
                 className="vendor-logo"
                 src={clientSettings?.vendor?.logo}
                 alt={`Logo of ${clientSettings?.vendor?.name}`}
-                onError={(e) => {
+                onError={e => {
                   e.target.style.display = "none";
                 }}
               />

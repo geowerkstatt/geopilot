@@ -20,8 +20,7 @@ export const Footer = ({
         <Button
           variant="link"
           className="footer-button no-outline-on-focus"
-          onClick={() => openModalContent(infoHilfeContent, "markdown")}
-        >
+          onClick={() => openModalContent(infoHilfeContent, "markdown")}>
           INFO & HILFE
         </Button>
       )}
@@ -29,8 +28,7 @@ export const Footer = ({
         <Button
           variant="link"
           className="footer-button no-outline-on-focus"
-          onClick={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
-        >
+          onClick={() => openModalContent(nutzungsbestimmungenContent, "markdown")}>
           NUTZUNGSBESTIMMUNGEN
         </Button>
       )}
@@ -38,8 +36,7 @@ export const Footer = ({
         <Button
           variant="link"
           className="footer-button no-outline-on-focus"
-          onClick={() => openModalContent(datenschutzContent, "markdown")}
-        >
+          onClick={() => openModalContent(datenschutzContent, "markdown")}>
           DATENSCHUTZ
         </Button>
       )}
@@ -47,8 +44,7 @@ export const Footer = ({
         <Button
           variant="link"
           className="footer-button no-outline-on-focus"
-          onClick={() => openModalContent(impressumContent, "markdown")}
-        >
+          onClick={() => openModalContent(impressumContent, "markdown")}>
           IMPRESSUM
         </Button>
       )}
@@ -64,8 +60,7 @@ export const Footer = ({
             />,
             "raw",
           )
-        }
-      >
+        }>
         ABOUT
       </Button>
     </div>
@@ -74,8 +69,7 @@ export const Footer = ({
         href="https://www.swissmadesoftware.org/en/home/swiss-hosting.html"
         title="Link zu Swiss Hosting"
         target="_blank"
-        rel="noreferrer"
-      >
+        rel="noreferrer">
         <img className="footer-icon" src={swissMadeSwissHosted} alt="Swiss Hosting Logo" />
       </a>
     </div>

@@ -24,8 +24,7 @@ export const ValidatorResult = ({ jobId, protokollFileName, validatorName, resul
                 <a
                   download={protokollFileName + getExtension(logFile)}
                   className={statusClass + " download-icon"}
-                  href={`/api/v1/validation/${jobId}/files/${logFile}`}
-                >
+                  href={`/api/v1/validation/${jobId}/files/${logFile}`}>
                   <GoFile />
                   <span className="download-description">{logFileType}</span>
                 </a>

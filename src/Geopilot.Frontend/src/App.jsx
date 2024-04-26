@@ -49,55 +49,55 @@ export const App = () => {
   // Fetch client settings
   useEffect(() => {
     fetch("client-settings.json")
-      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then(res => res.headers.get("content-type")?.includes("application/json") && res.json())
       .then(setClientSettings);
   }, []);
 
   useEffect(() => {
     fetch("/api/v1/user/auth")
-      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then(res => res.headers.get("content-type")?.includes("application/json") && res.json())
       .then(setAuth);
   }, []);
 
   useEffect(() => {
     fetch("api/v1/version")
-      .then((res) => res.headers.get("content-type")?.includes("text/plain") && res.text())
-      .then((version) => setBackendVersion(version));
+      .then(res => res.headers.get("content-type")?.includes("text/plain") && res.text())
+      .then(version => setBackendVersion(version));
   }, []);
 
   // Fetch optional custom content
   useEffect(() => {
     fetch("impressum.md")
-      .then((res) => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
-      .then((text) => setImpressumContent(text));
+      .then(res => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
+      .then(text => setImpressumContent(text));
 
     fetch("datenschutz.md")
-      .then((res) => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
-      .then((text) => setDatenschutzContent(text));
+      .then(res => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
+      .then(text => setDatenschutzContent(text));
 
     fetch("info-hilfe.md")
-      .then((res) => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
-      .then((text) => setInfoHilfeContent(text));
+      .then(res => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
+      .then(text => setInfoHilfeContent(text));
 
     fetch("nutzungsbestimmungen.md")
-      .then((res) => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
-      .then((text) => setNutzungsbestimmungenContent(text));
+      .then(res => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
+      .then(text => setNutzungsbestimmungenContent(text));
 
     fetch("banner.md")
-      .then((res) => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
-      .then((text) => setBannerContent(text));
+      .then(res => res.headers.get("content-type")?.includes("ext/markdown") && res.text())
+      .then(text => setBannerContent(text));
 
     fetch("quickstart.txt")
-      .then((res) => res.headers.get("content-type")?.includes("text/plain") && res.text())
-      .then((text) => setQuickStartContent(text));
+      .then(res => res.headers.get("content-type")?.includes("text/plain") && res.text())
+      .then(text => setQuickStartContent(text));
 
     fetch("license.json")
-      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then((json) => setLicenseInfo(json));
+      .then(res => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then(json => setLicenseInfo(json));
 
     fetch("license.custom.json")
-      .then((res) => res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then((json) => setLicenseInfoCustom(json));
+      .then(res => res.headers.get("content-type")?.includes("application/json") && res.json())
+      .then(json => setLicenseInfoCustom(json));
   }, []);
 
   const openModalContent = (content, type) =>
