@@ -1,3 +1,11 @@
-# Change Log
+# Changelog
 
-This Log shows all major changes and enhancements of geopilot
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Fixed
+
+- Spatial extent in STAC browser

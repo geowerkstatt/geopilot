@@ -15,6 +15,8 @@ internal static class ContextExtensions
     internal const string NameClaim = "name";
     internal const string EmailClaim = "email";
 
+    private static readonly double[] extentCh = new double[] { 7.536621, 46.521076, 9.398804, 47.476376 };
+
     /// <summary>
     /// Retreives the user that matches the provided principal from the database.
     /// Automatically updates the user information in the database if it has changed.
@@ -97,18 +99,23 @@ internal static class ContextExtensions
         context.SaveChanges();
     }
 
-    public static Geometry GetExtent(this Address address)
+    public static Geometry GetExtent()
     {
-        var longitude = address.Longitude();
-        var latitude = address.Latitude();
+        var longDiffHalf = (extentCh[2] - extentCh[0]) / 2;
+        var latDiffHalf = (extentCh[3] - extentCh[1]) / 2;
+
+        var longMin = new Faker().Random.Double(extentCh[0], extentCh[0] + longDiffHalf);
+        var latMin = new Faker().Random.Double(extentCh[1], extentCh[1] + latDiffHalf);
+        var longMax = new Faker().Random.Double(extentCh[2] - longDiffHalf, extentCh[2]);
+        var latMax = new Faker().Random.Double(extentCh[3] - latDiffHalf, extentCh[3]);
 
         return GeometryFactory.Default.CreatePolygon(new Coordinate[]
         {
-            new (longitude - 0.1, latitude - 0.1),
-            new (longitude + 0.1, latitude - 0.1),
-            new (longitude + 0.1, latitude + 0.1),
-            new (longitude - 0.1, latitude + 0.1),
-            new (longitude - 0.1, latitude - 0.1),
+            new (longMin, latMin),
+            new (longMax, latMin),
+            new (longMax, latMax),
+            new (longMin, latMax),
+            new (longMin, latMin),
         });
     }
 
@@ -120,7 +127,7 @@ internal static class ContextExtensions
             .RuleFor(o => o.Id, f => 0)
             .RuleFor(o => o.Name, f => f.Commerce.ProductName())
             .RuleFor(o => o.FileTypes, f => f.PickRandom(knownFileFormats, 4).Distinct().ToArray())
-            .RuleFor(o => o.SpatialExtent, f => f.Address.GetExtent())
+            .RuleFor(o => o.SpatialExtent, f => GetExtent())
             .RuleFor(o => o.Organisations, f => f.PickRandom(context.Organisations.ToList(), 1).ToList())
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>());
 
