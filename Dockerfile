@@ -39,6 +39,15 @@ RUN dotnet publish "Geopilot.Api/Geopilot.Api.csproj" \
   -p:UseAppHost=false \
   -o ${PUBLISH_DIR}
 
+# Generate license and copyright notice for Node packages
+COPY config/license.template.json Geopilot.Frontend/
+COPY config/license.custom.json ${PUBLISH_DIR}/wwwroot/
+RUN \
+  cd Geopilot.Frontend && \
+  npx license-checker --json --production \
+    --customPath license.template.json \
+    --out ${PUBLISH_DIR}/wwwroot/license.json
+
 FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS final
 ENV HOME=/app
 ENV TZ=Europe/Zurich
