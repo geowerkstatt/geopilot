@@ -95,11 +95,13 @@ export const Delivery = ({ statusData, validationRunning }) => {
                         setSelectedMandateId(e.target.value);
                       }}
                     >
-                      {mandates?.map((mandate) => (
-                        <option key={mandate.id} value={mandate.id}>
-                          {mandate.name}
-                        </option>
-                      ))}
+                      {mandates
+                        ?.sort((a, b) => a.name.localeCompare(b.name))
+                        .map((mandate) => (
+                          <option key={mandate.id} value={mandate.id}>
+                            {mandate.name}
+                          </option>
+                        ))}
                     </Form.Select>
                   </Col>
                 </Form.Group>
