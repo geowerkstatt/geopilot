@@ -44,7 +44,7 @@ public class PhysicalFileProvider : IFileProvider
     /// <inheritdoc/>
     public bool Exists(string file)
     {
-        return File.Exists(Path.Combine(HomeDirectory.FullName, file));
+        return File.Exists(Path.Combine(HomeDirectory.FullName, file.SanitizeFileName()));
     }
 
     /// <inheritdoc/>

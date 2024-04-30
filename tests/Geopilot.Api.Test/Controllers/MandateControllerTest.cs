@@ -70,7 +70,7 @@ namespace Geopilot.Api.Test.Controllers
                 .Setup(m => m.GetJob(jobId))
                 .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf"));
 
-            var result = (await mandateController.Get(jobId.ToString())) as OkObjectResult;
+            var result = (await mandateController.Get(jobId)) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<DeliveryMandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
@@ -88,7 +88,7 @@ namespace Geopilot.Api.Test.Controllers
                 .Setup(m => m.GetJob(jobId))
                 .Returns(new ValidationJob(jobId, "Original.csv", "tmp.csv"));
 
-            var result = (await mandateController.Get(jobId: jobId.ToString())) as OkObjectResult;
+            var result = (await mandateController.Get(jobId)) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<DeliveryMandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
@@ -106,7 +106,7 @@ namespace Geopilot.Api.Test.Controllers
                 .Setup(m => m.GetJob(jobId))
                 .Returns(() => null);
 
-            var result = (await mandateController.Get(jobId: jobId.ToString())) as OkObjectResult;
+            var result = (await mandateController.Get(jobId)) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<DeliveryMandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
