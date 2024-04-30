@@ -42,9 +42,9 @@ public class MandateController : ControllerBase
     [SwaggerResponse(StatusCodes.Status200OK, "Returns list of mandates associated to the current user matching the optional filter criteria.", typeof(IEnumerable<DeliveryMandate>), new[] { "application/json" })]
     public async Task<IActionResult> Get(
         [FromQuery, SwaggerParameter("Filter mandates matching validation job file extension.")]
-        string jobId = "")
+        Guid jobId = default)
     {
-        logger.LogInformation("Getting mandates for job with id <{JobId}>.", jobId.ReplaceLineEndings(string.Empty));
+        logger.LogInformation("Getting mandates for job with id <{JobId}>.", jobId);
 
         var user = await context.GetUserByPrincipalAsync(User);
         if (user == null)
@@ -53,16 +53,16 @@ public class MandateController : ControllerBase
         var mandates = context.DeliveryMandates
             .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
 
-        if (Guid.TryParse(jobId, out var guid))
+        if (jobId != default)
         {
-            var job = validationService.GetJob(guid);
+            var job = validationService.GetJob(jobId);
             if (job is null)
             {
-                logger.LogTrace("Validation job with id <{JobId}> was not found.", guid.ToString());
+                logger.LogTrace("Validation job with id <{JobId}> was not found.", jobId);
                 return Ok(Array.Empty<DeliveryMandate>());
             }
 
-            logger.LogTrace("Filtering mandates for job with id <{JobId}>", guid.ToString());
+            logger.LogTrace("Filtering mandates for job with id <{JobId}>", jobId);
             var extension = Path.GetExtension(job.OriginalFileName);
             mandates = mandates
                 .Where(m => m.FileTypes.Contains(".*") || m.FileTypes.Contains(extension));
@@ -70,7 +70,7 @@ public class MandateController : ControllerBase
 
         var result = await mandates.ToListAsync();
 
-        logger.LogInformation("Getting mandates with for job with id <{JobId}> resulted in <{MatchingMandatesCount}> matching mandates.", guid.ToString(), result.Count);
+        logger.LogInformation("Getting mandates with for job with id <{JobId}> resulted in <{MatchingMandatesCount}> matching mandates.", jobId, result.Count);
         return Ok(mandates);
     }
 }

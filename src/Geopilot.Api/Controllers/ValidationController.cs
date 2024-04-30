@@ -166,9 +166,9 @@ public class ValidationController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job or log file cannot be found.", typeof(ProblemDetails), new[] { "application/json" })]
     public IActionResult Download(Guid jobId, string file)
     {
-        var sanitizedFilename = Path.GetFileName(file.Trim().ReplaceLineEndings(string.Empty));
+        var sanitizedFilename = file.SanitizeFileName();
 
-        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", sanitizedFilename, jobId.ToString());
+        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", sanitizedFilename, jobId);
         fileProvider.Initialize(jobId);
 
         var validationJob = validationService.GetJob(jobId);
