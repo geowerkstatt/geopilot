@@ -86,7 +86,7 @@ public class StacConverter
         {
             Collection = GetCollectionId(delivery.DeliveryMandate),
             Title = DeliveryNamePrefix + delivery.Date.ToString("s"),
-            Description = string.Empty,
+            Description = delivery.Comment,
             DateTime = new TimeBlock(delivery.Date),
         };
 
