@@ -33,6 +33,7 @@ public class Extensions
         AssertSanitizeFileName("ZANYWATER", "ZANYWATER$");
         AssertSanitizeFileName("SLICKERCANDID", "..\\SLICKERCANDID");
         AssertSanitizeFileName("DIREFOOT", "./DIREFOOT:");
+        AssertSanitizeFileName("FIREFOOT", ".../...//FIREFOOT\\");
     }
 
     private static void AssertSanitizeFileName(string expected, string fileName)

@@ -14,7 +14,7 @@ public static class Extensions
     {
         // Get invalid characters for file names and add some platform-specific ones.
         var invalidFileNameChars = Path.GetInvalidFileNameChars()
-            .Concat(new[] { '?', '$', '*', '|', '<', '>', '"', ':' }).ToArray();
+            .Concat(new[] { '?', '$', '*', '|', '<', '>', '"', ':', '\\' }).ToArray();
 
         return new string(fileName
             .Trim()
