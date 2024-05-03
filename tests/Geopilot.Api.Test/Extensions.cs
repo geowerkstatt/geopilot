@@ -36,6 +36,14 @@ public class Extensions
         AssertSanitizeFileName("FIREFOOT", ".../...//FIREFOOT\\");
     }
 
+    [TestMethod]
+    public void SanitizeFileNameForInvalid()
+    {
+        Assert.ThrowsException<ArgumentNullException>(() => string.Empty.SanitizeFileName());
+        Assert.ThrowsException<ArgumentNullException>(() => "   ".SanitizeFileName());
+        Assert.ThrowsException<ArgumentNullException>(() => (null as string).SanitizeFileName());
+    }
+
     private static void AssertSanitizeFileName(string expected, string fileName)
         => Assert.AreEqual(expected, fileName.SanitizeFileName());
 }

@@ -12,15 +12,17 @@ public static class Extensions
     /// <returns>The sanitized file name.</returns>
     public static string SanitizeFileName(this string fileName)
     {
+        if (string.IsNullOrWhiteSpace(fileName)) throw new ArgumentNullException(nameof(fileName));
+
         // Get invalid characters for file names and add some platform-specific ones.
         var invalidFileNameChars = Path.GetInvalidFileNameChars()
             .Concat(new[] { '?', '$', '*', '|', '<', '>', '"', ':', '\\' }).ToArray();
 
-        return new string(fileName
+        return Path.GetFileName(new string(fileName
             .Trim()
             .ReplaceLineEndings(string.Empty)
             .Replace("..", string.Empty)
             .Replace("./", string.Empty)
-            .Where(x => !invalidFileNameChars.Contains(x)).ToArray());
+            .Where(x => !invalidFileNameChars.Contains(x)).ToArray()));
     }
 }
