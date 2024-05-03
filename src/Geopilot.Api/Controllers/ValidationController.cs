@@ -167,9 +167,7 @@ public class ValidationController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job or log file cannot be found.", typeof(ProblemDetails), new[] { "application/json" })]
     public IActionResult Download(Guid jobId, string file)
     {
-        var sanitizedFilename = file.SanitizeFileName();
-
-        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", HttpUtility.HtmlEncode(sanitizedFilename), jobId);
+        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", HttpUtility.HtmlEncode(file), jobId);
         fileProvider.Initialize(jobId);
 
         var validationJob = validationService.GetJob(jobId);
@@ -179,15 +177,15 @@ public class ValidationController : ControllerBase
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        if (!fileProvider.Exists(sanitizedFilename))
+        if (!fileProvider.Exists(file))
         {
-            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", HttpUtility.HtmlEncode(sanitizedFilename), jobId);
-            return Problem($"No log file <{sanitizedFilename}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
+            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", HttpUtility.HtmlEncode(file), jobId);
+            return Problem($"No log file <{file}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        var logFile = fileProvider.Open(sanitizedFilename);
-        var contentType = contentTypeProvider.GetContentTypeAsString(sanitizedFilename);
-        var logFileName = Path.GetFileNameWithoutExtension(validationJob.OriginalFileName) + "_log" + Path.GetExtension(sanitizedFilename);
+        var logFile = fileProvider.Open(file);
+        var contentType = contentTypeProvider.GetContentTypeAsString(file);
+        var logFileName = Path.GetFileNameWithoutExtension(validationJob.OriginalFileName) + "_log" + Path.GetExtension(file);
         return File(logFile, contentType, logFileName);
     }
 }
