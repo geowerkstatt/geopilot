@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-
-namespace Geopilot.Api;
+﻿namespace Geopilot.Api;
 
 /// <summary>
 /// GeoPilot API extensions.
@@ -14,17 +12,15 @@ public static class Extensions
     /// <returns>The sanitized file name.</returns>
     public static string SanitizeFileName(this string fileName)
     {
-        fileName = fileName.Trim().ReplaceLineEndings(string.Empty);
-
         // Get invalid characters for file names and add some platform-specific ones.
         var invalidFileNameChars = Path.GetInvalidFileNameChars()
             .Concat(new[] { '?', '$', '*', '|', '<', '>', '"', ':' }).ToArray();
 
-        foreach (var invalidFileNameChar in invalidFileNameChars)
-        {
-            fileName = fileName.Replace(invalidFileNameChar.ToString(CultureInfo.InvariantCulture), string.Empty);
-        }
-
-        return fileName;
+        return new string(fileName
+            .Trim()
+            .ReplaceLineEndings(string.Empty)
+            .Replace("..", string.Empty)
+            .Replace("./", string.Empty)
+            .Where(x => !invalidFileNameChars.Contains(x)).ToArray());
     }
 }

@@ -25,11 +25,14 @@ public class Extensions
         AssertSanitizeFileName("SLEEPYBOUNCE", "SLEEPYBOUNCE\n");
         AssertSanitizeFileName("PLOWARK", "PLOWARK\r");
         AssertSanitizeFileName("JUNIORGLEE", "JUNIORGLEE\t");
+        AssertSanitizeFileName("SILLYWATER", "SILLYWATER\r\n");
         AssertSanitizeFileName("LATENTROUTE34", "LATENTROUTE?34");
-        AssertSanitizeFileName("TRAWLSOUFFLE", "TRAWLSOUFFLE*");
+        AssertSanitizeFileName("TRAWLSOUFFLE", "/TRAWLSOUFFLE*");
         AssertSanitizeFileName("VIOLENTIRON", "><VIOLENTIRON\"|");
         AssertSanitizeFileName("YELLOWBAGEL", "YELLOWBAGEL://");
         AssertSanitizeFileName("ZANYWATER", "ZANYWATER$");
+        AssertSanitizeFileName("SLICKERCANDID", "..\\SLICKERCANDID");
+        AssertSanitizeFileName("DIREFOOT", "./DIREFOOT:");
     }
 
     private static void AssertSanitizeFileName(string expected, string fileName)
