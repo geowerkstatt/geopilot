@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Web;
 
 namespace Geopilot.Api.Controllers;
 
@@ -168,7 +169,7 @@ public class ValidationController : ControllerBase
     {
         var sanitizedFilename = file.SanitizeFileName();
 
-        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", sanitizedFilename, jobId);
+        logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", HttpUtility.HtmlEncode(sanitizedFilename), jobId);
         fileProvider.Initialize(jobId);
 
         var validationJob = validationService.GetJob(jobId);
@@ -180,7 +181,7 @@ public class ValidationController : ControllerBase
 
         if (!fileProvider.Exists(sanitizedFilename))
         {
-            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", sanitizedFilename, jobId);
+            logger.LogTrace("No log file <{File}> found for job id <{JobId}>", HttpUtility.HtmlEncode(sanitizedFilename), jobId);
             return Problem($"No log file <{sanitizedFilename}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
