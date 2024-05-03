@@ -7,6 +7,7 @@
 ### Added
 
 - Add licensing information to the about page
+- Show delivery comment in STAC browser and on admin page
 
 ### Changed
 
