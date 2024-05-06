@@ -21,11 +21,11 @@ const columns = [
         `${date.getFullYear()}`
       );
     },
-    flex: 1,
-    minWidth: 150,
+    width: 180,
   },
-  { field: "user", headerName: "Abgegeben von", flex: 1, minWidth: 200 },
-  { field: "mandate", headerName: "Operat", flex: 1, minWidth: 200 },
+  { field: "user", headerName: "Abgegeben von", flex: 0.5, minWidth: 200 },
+  { field: "mandate", headerName: "Operat", flex: 0.5, minWidth: 200 },
+  { field: "comment", headerName: "Kommentar", flex: 1, minWidth: 600 },
 ];
 
 export const Admin = () => {
@@ -68,6 +68,7 @@ export const Admin = () => {
             date: d.date,
             user: d.declaringUser.fullName,
             mandate: d.deliveryMandate.name,
+            comment: d.comment,
           })),
         );
       }
