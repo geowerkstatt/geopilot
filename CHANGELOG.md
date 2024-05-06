@@ -2,16 +2,20 @@
 
 ## [Unreleased]
 
+### Added
+
+- When releasing a GitHub pre-release, the release notes are automatically updated with the corresponding entries from the `CHANGELOG.md` file.
+
 ## v1.0.87 - 2024-04-26
 
 ### Added
 
-- Add licensing information to the about page
+- Add licensing information to the about page.
 
 ### Changed
 
-- Sort delivery mandates alphabetically
+- Sort delivery mandates alphabetically.
 
 ### Fixed
 
-- Spatial extent in STAC browser
+- Spatial extent in STAC browser.
