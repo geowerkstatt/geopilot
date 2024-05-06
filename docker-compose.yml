@@ -1,5 +1,3 @@
-version: "3.4"
-
 services:
   stac-browser:
     image: ghcr.io/geowerkstatt/stac-browser:latest
