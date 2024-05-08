@@ -5,6 +5,7 @@
 ### Added
 
 - When releasing a GitHub pre-release, the release notes are automatically updated with the corresponding entries from the `CHANGELOG.md` file.
+- Show additional delivery properties in STAC browser.
 
 ## v1.0.87 - 2024-04-26
 

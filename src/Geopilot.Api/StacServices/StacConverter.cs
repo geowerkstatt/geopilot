@@ -6,6 +6,7 @@ using Stac;
 using Stac.Api.Interfaces;
 using Stac.Api.WebApi.Services;
 using Stac.Collection;
+using System.Globalization;
 
 namespace Geopilot.Api.StacServices;
 
@@ -89,6 +90,13 @@ public class StacConverter
             Description = delivery.Comment,
             DateTime = new TimeBlock(delivery.Date),
         };
+
+        item.Properties.Add("Teilabgabe", delivery.Partial ? "Ja" : "Nein");
+        item.Properties.Add("Abgegeben durch", delivery.DeclaringUser.FullName);
+        if (delivery.PrecursorDelivery != null)
+        {
+            item.Properties.Add("Vorgängerversion", delivery.PrecursorDelivery.Date.ToString("d.M.yyyy, H:mm:ss 'UTC'", CultureInfo.InvariantCulture));
+        }
 
         var stacApiContext = StacApiContextFactory.Create();
         var assets = delivery.Assets.Select(file => ToStacAsset(file, item, stacApiContext.BaseUri)).ToDictionary(asset => asset.Title);
