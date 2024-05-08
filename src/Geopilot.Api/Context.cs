@@ -44,6 +44,8 @@ public class Context : DbContext
                 .Include(d => d.DeliveryMandate)
                 .Include(d => d.Assets)
                 .Include(d => d.DeclaringUser)
+                .Include(d => d.PrecursorDelivery)
+                .ThenInclude(p => p.DeliveryMandate)
                 .AsNoTracking()
                 .ToList();
         }
