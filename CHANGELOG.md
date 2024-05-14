@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## v1.0.93 - 2024-05-14
+
 ### Added
 
 - When releasing a GitHub pre-release, the release notes are automatically updated with the corresponding entries from the `CHANGELOG.md` file.
