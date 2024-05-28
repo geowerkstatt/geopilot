@@ -68,7 +68,7 @@ public class ValidationService : IValidationService
     /// <inheritdoc/>
     public async Task<ICollection<string>> GetSupportedFileExtensionsAsync()
     {
-        var mandateFileExtensions = GetFileExtensionsForDeliveryMandates();
+        var mandateFileExtensions = GetFileExtensionsForMandates();
         var validatorFileExtensions = await GetFileExtensionsForValidatorsAsync();
 
         return mandateFileExtensions
@@ -84,9 +84,9 @@ public class ValidationService : IValidationService
         return IsExtensionSupported(extensions, fileExtension);
     }
 
-    private HashSet<string> GetFileExtensionsForDeliveryMandates()
+    private HashSet<string> GetFileExtensionsForMandates()
     {
-        return context.DeliveryMandates
+        return context.Mandates
             .Select(mandate => mandate.FileTypes)
             .AsEnumerable()
             .SelectMany(ext => ext)

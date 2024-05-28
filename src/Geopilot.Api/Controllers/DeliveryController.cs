@@ -62,24 +62,24 @@ public class DeliveryController : ControllerBase
         }
 
         var user = await context.GetUserByPrincipalAsync(User);
-        var mandate = context.DeliveryMandates
+        var mandate = context.Mandates
             .Include(m => m.Organisations)
             .ThenInclude(o => o.Users)
-            .FirstOrDefault(m => m.Id == declaration.DeliveryMandateId);
+            .FirstOrDefault(m => m.Id == declaration.MandateId);
 
         if (user is null)
             return Unauthorized();
 
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
         {
-            logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate with id <{MandateId}>.", user.AuthIdentifier, declaration.DeliveryMandateId);
-            return NotFound($"Mandate with id <{declaration.DeliveryMandateId}> not found or user is not authorized.");
+            logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate with id <{MandateId}>.", user.AuthIdentifier, declaration.MandateId);
+            return NotFound($"Mandate with id <{declaration.MandateId}> not found or user is not authorized.");
         }
 
         var precursorDelivery = declaration.PrecursorDeliveryId.HasValue ?
             context.Deliveries
-            .Include(d => d.DeliveryMandate)
-            .Where(d => d.DeliveryMandate.Id == mandate.Id)
+            .Include(d => d.Mandate)
+            .Where(d => d.Mandate.Id == mandate.Id)
             .FirstOrDefault(d => d.Id == declaration.PrecursorDeliveryId) : null;
 
         if (declaration.PrecursorDeliveryId.HasValue && precursorDelivery is null)
@@ -91,7 +91,7 @@ public class DeliveryController : ControllerBase
         var delivery = new Delivery
         {
             JobId = declaration.JobId,
-            DeliveryMandate = mandate,
+            Mandate = mandate,
             DeclaringUser = user,
             PrecursorDelivery = precursorDelivery,
             Partial = declaration.PartialDelivery,
@@ -143,7 +143,7 @@ public class DeliveryController : ControllerBase
             user.AuthIdentifier,
             mandateId?.ToString(CultureInfo.InvariantCulture).ReplaceLineEndings(string.Empty));
 
-        var userMandatesIds = context.DeliveryMandates
+        var userMandatesIds = context.Mandates
             .Where(m => user.IsAdmin || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))
             .Select(m => m.Id)
             .ToList();
@@ -152,11 +152,11 @@ public class DeliveryController : ControllerBase
             return NotFound();
 
         var result = context.DeliveriesWithIncludes
-            .Where(d => userMandatesIds.Contains(d.DeliveryMandate.Id));
+            .Where(d => userMandatesIds.Contains(d.Mandate.Id));
 
         if (mandateId.HasValue)
         {
-            result = result.Where(d => d.DeliveryMandate.Id == mandateId.Value);
+            result = result.Where(d => d.Mandate.Id == mandateId.Value);
         }
 
         return Ok(result.ToList());
