@@ -12,7 +12,7 @@ export const Title = ({ clientSettings, quickStartContent }) => {
 
   return (
     <div className="title-wrapper">
-      <div className="app-subtitle">Online Validierung & Abgabe von Geodaten</div>
+      <div className="app-subtitle">Online Validierung & Lieferung von Geodaten</div>
       {customAppLogoPresent ? (
         <div>
           <img
