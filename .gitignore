@@ -396,3 +396,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Cypress test output
+src/client/cypress/screenshot
+src/client/cypress/downloads
+src/client/cypress/videos
+src/client/cypress/screenshots

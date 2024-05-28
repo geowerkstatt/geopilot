@@ -9,7 +9,9 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0 --fix",
     "preview": "vite preview",
-    "predev": "node aspnetcore-https.js"
+    "predev": "node aspnetcore-https.js",
+    "test": "cypress run",
+    "cy": "cypress open"
   },
   "dependencies": {
     "@azure/msal-browser": "^3.5.0",
@@ -34,6 +36,8 @@
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
+    "cypress": "^13.10.0",
+    "cypress-vite": "^1.5.0",
     "eslint": "^8.45.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.1",
