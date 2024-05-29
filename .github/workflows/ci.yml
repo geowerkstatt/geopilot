@@ -8,6 +8,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+  cypress-tests:
+    runs-on: ubuntu-latest
+    name: Run cypress tests
+    strategy:
+      fail-fast: false
+      matrix:
+        containers: [1, 2, 3, 4, 5]
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Checkout repository
@@ -19,7 +27,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '7.0'
+          dotnet-version: "7.0"
 
       - name: Install dependencies
         run: dotnet restore Geopilot.sln
@@ -41,3 +49,22 @@ jobs:
       - name: Lint frontend
         working-directory: ./src/Geopilot.Frontend
         run: npm run lint
+
+      - name: Start db and api's
+        run: docker compose up --wait stac-browser db interlis-check-service geopilot
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v6
+        with:
+          command: npx cypress run --record --parallel --key ${{ secrets.CYPRESS_RECORD_KEY }} --ci-build-id ${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt}}
+          build: npm run build
+          start: npm start
+          wait-on: "http://localhost:5173"
+          wait-on-timeout: 120
+          working-directory: ./src/Geopilot.Frontend
+        env:
+          VITE_APP_VERSION: 0.0.99+dev
+          TZ: Europe/Zurich
+          # Pass the GitHub token lets this action correctly
+          # determine the unique run id necessary to re-run the checks
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
