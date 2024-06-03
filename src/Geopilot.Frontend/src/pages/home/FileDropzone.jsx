@@ -56,7 +56,7 @@ export const FileDropzone = ({
   useEffect(() => {
     const fileDescription = acceptsAllFileTypes ? t("file") : `${t("file")} (${acceptedFileTypesText})`;
     setDropZoneDefaultText(t("dropZoneDefaultText", { fileDescription }));
-  }, [acceptsAllFileTypes, acceptedFileTypesText]);
+  }, [acceptsAllFileTypes, acceptedFileTypesText, t]);
   useEffect(() => setDropZoneText(dropZoneDefaultText), [dropZoneDefaultText]);
 
   const onDropAccepted = useCallback(
@@ -110,7 +110,7 @@ export const FileDropzone = ({
       resetFileToCheck();
       setFileAvailable(false);
     },
-    [resetFileToCheck, acceptsAllFileTypes, acceptedFileTypesText],
+    [resetFileToCheck, acceptsAllFileTypes, acceptedFileTypesText, t],
   );
 
   const removeFile = e => {

@@ -6,7 +6,7 @@ import { DataGrid } from "@mui/x-data-grid";
 import { Snackbar } from "@mui/material";
 import { useAuth } from "@/auth";
 
-export const useTranslatedColumns = t => {
+const useTranslatedColumns = t => {
   const columns = [
     { field: "id", headerName: t("id"), width: 60 },
     {
