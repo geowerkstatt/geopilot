@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added localization.
+
 ## v1.0.93 - 2024-05-14
 
 ### Added
