@@ -27,7 +27,6 @@ i18n
     react: {
       useSuspense: false,
     },
-    fallbackLng: "de",
     fallbackLng: {
       de: ["de-CH"],
       default: ["de"],
