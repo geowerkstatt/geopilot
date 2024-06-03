@@ -4,20 +4,12 @@ import { initReactI18next } from "react-i18next";
 
 i18n
   .use(backend)
-
   .use(initReactI18next)
   .init({
     detection: {
       order: ["cookie", "htmlTag"],
-
-      // keys or params to lookup language from
       lookupCookie: "i18next",
-
-      // cache user language on
       caches: ["cookie"],
-
-      // optional set cookie options, reference:[MDN Set-Cookie docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie)
-      // cookieOptions: { path: '/', sameSite: 'strict' }
     },
     backend: {
       loadPath: `/locale/{{lng}}/{{ns}}.json`,
