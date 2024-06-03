@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button, Modal, Alert } from "react-bootstrap";
 import { GoTrash } from "react-icons/go";
 import { useTranslation } from "react-i18next";
-import { DataGrid, deDE } from "@mui/x-data-grid";
+import { DataGrid } from "@mui/x-data-grid";
 import { Snackbar } from "@mui/material";
 import { useAuth } from "@/auth";
 
