@@ -3,6 +3,7 @@ import { useDropzone } from "react-dropzone";
 import { MdCancel, MdFileUpload } from "react-icons/md";
 import { Button, Spinner } from "react-bootstrap";
 import styled from "styled-components";
+import { useTranslation, Trans } from "react-i18next";
 
 const getColor = isDragActive => {
   if (isDragActive) {
@@ -43,6 +44,7 @@ export const FileDropzone = ({
   acceptedFileTypes,
   fileToCheckRef,
 }) => {
+  const { t } = useTranslation();
   const [fileAvailable, setFileAvailable] = useState(false);
   const [dropZoneDefaultText, setDropZoneDefaultText] = useState();
   const [dropZoneText, setDropZoneText] = useState(dropZoneDefaultText);
@@ -52,8 +54,8 @@ export const FileDropzone = ({
   const acceptedFileTypesText = acceptedFileTypes?.join(", ") ?? "";
 
   useEffect(() => {
-    const fileDescription = acceptsAllFileTypes ? "Datei" : `Datei (${acceptedFileTypesText})`;
-    setDropZoneDefaultText(`${fileDescription} hier ablegen oder klicken um vom lokalen Dateisystem auszuwählen.`);
+    const fileDescription = acceptsAllFileTypes ? t("file") : `${t("file")} (${acceptedFileTypesText})`;
+    setDropZoneDefaultText(t("dropZoneDefaultText", { fileDescription }));
   }, [acceptsAllFileTypes, acceptedFileTypesText]);
   useEffect(() => setDropZoneText(dropZoneDefaultText), [dropZoneDefaultText]);
 
@@ -87,21 +89,19 @@ export const FileDropzone = ({
     fileRejections => {
       setDropZoneTextClass("dropzone dropzone-text-error");
       const errorCode = fileRejections[0].errors[0].code;
-      const genericError =
-        "Bitte wähle eine Datei (max. 200MB)" +
-        (acceptsAllFileTypes ? "" : ` mit einer der folgenden Dateiendungen: ${acceptedFileTypesText}`);
+      const genericError = acceptsAllFileTypes
+        ? t("dropZoneErrorChooseFile")
+        : t("dropZoneErrorChooseFileOfType", { acceptedFileTypesText: acceptedFileTypesText });
 
       switch (errorCode) {
         case "file-invalid-type":
-          setDropZoneText(`Der Dateityp wird nicht unterstützt. ${genericError}`);
+          setDropZoneText(t("dropZoneErrorChooseFileOfType", { genericError: genericError }));
           break;
         case "too-many-files":
-          setDropZoneText("Es kann nur eine Datei aufs Mal geprüft werden.");
+          setDropZoneText(t("dropZoneErrorTooManyFiles"));
           break;
         case "file-too-large":
-          setDropZoneText(
-            "Die ausgewählte Datei ist über 200MB gross. Bitte wähle eine kleinere Datei oder erstelle eine ZIP-Datei.",
-          );
+          setDropZoneText(t("dropZoneErrorFileTooLarge"));
           break;
         default:
           setDropZoneText(genericError);
@@ -160,16 +160,20 @@ export const FileDropzone = ({
                   onChange={() => setCheckedNutzungsbestimmungen(!checkedNutzungsbestimmungen)}
                 />
                 <span className="nutzungsbestimmungen-input">
-                  Ich akzeptiere die{" "}
-                  <Button
-                    variant="link"
-                    className="terms-of-use link"
-                    onClick={() => {
-                      showNutzungsbestimmungen();
-                    }}>
-                    Nutzungsbestimmungen
-                  </Button>
-                  .
+                  <Trans
+                    i18nKey="termsOfUseAccpetance"
+                    components={{
+                      button: (
+                        <Button
+                          variant="link"
+                          className="terms-of-use link"
+                          onClick={() => {
+                            showNutzungsbestimmungen();
+                          }}
+                        />
+                      ),
+                    }}
+                  />
                 </span>
               </label>
             </div>
@@ -185,7 +189,7 @@ export const FileDropzone = ({
                 className={fileToCheck && !validationRunning ? "check-button" : "invisible-check-button"}
                 onClick={checkFile}
                 disabled={(nutzungsbestimmungenAvailable && !checkedNutzungsbestimmungen) || validationRunning}>
-                Validieren
+                {t("validate")}
               </Button>
             </p>
           )}

@@ -1,5 +1,6 @@
 import { Card } from "react-bootstrap";
 import { GoFile } from "react-icons/go";
+import { useTranslation } from "react-i18next";
 
 function getExtension(filename) {
   const index = filename.lastIndexOf(".");
@@ -7,8 +8,9 @@ function getExtension(filename) {
 }
 
 export const ValidatorResult = ({ jobId, protokollFileName, validatorName, result }) => {
+  const { t } = useTranslation();
   const statusClass = result && result.status === "completed" ? "valid" : "errors";
-  const statusText = result && result.status === "completed" ? "Keine Fehler!" : "Fehler!";
+  const statusText = result && result.status === "completed" ? `${t("noErrors")}!` : `${t("errors")}!`;
 
   return (
     <>
@@ -28,7 +30,10 @@ export const ValidatorResult = ({ jobId, protokollFileName, validatorName, resul
                   <GoFile />
                   <span className="download-description">{logFileType}</span>
                 </a>
-                <span className="icon-tooltip-text">{logFileType}-Datei herunterladen</span>
+                <span className="icon-tooltip-text">
+                  {logFileType}
+                  {t("downloadLogTooltip")}
+                </span>
               </span>
             ))}
         </span>

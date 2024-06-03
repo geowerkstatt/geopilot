@@ -1,9 +1,11 @@
 import ReactMarkdown from "react-markdown";
 import { Modal, Button } from "react-bootstrap";
 import rehypeExternalLinks from "rehype-external-links";
+import { useTranslation } from "react-i18next";
 
 export const ModalContent = props => {
   const { content, type, onHide } = props;
+  const { t } = useTranslation();
 
   return (
     <Modal {...props} size="lg" aria-labelledby="contained-modal-title-vcenter" centered>
@@ -17,7 +19,7 @@ export const ModalContent = props => {
       </Modal.Body>
       <Modal.Footer>
         <Button variant="outline-dark" onClick={onHide}>
-          Schliessen
+          {t("close")}
         </Button>
       </Modal.Footer>
     </Modal>

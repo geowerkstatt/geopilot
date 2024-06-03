@@ -1,5 +1,6 @@
 import { Alert, Button, Container, Card, Col, Collapse, Form, Row, Spinner } from "react-bootstrap";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 const DeliveryState = Object.freeze({
   Unavailable: "unavailable",
@@ -10,6 +11,7 @@ const DeliveryState = Object.freeze({
 });
 
 export const Delivery = ({ statusData, validationRunning }) => {
+  const { t } = useTranslation();
   const [deliveryState, setDeliveryState] = useState(DeliveryState.Unavailable);
   const [mandates, setMandates] = useState(undefined);
   const [previousDeliveries, setPreviousDeliveries] = useState(undefined);
@@ -86,7 +88,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
               <fieldset disabled={deliveryState !== DeliveryState.Available}>
                 <Form.Group as={Row} controlId="DeliveryMandateId">
                   <Form.Label column lg={2}>
-                    Operat
+                    {t("mandate")}
                   </Form.Label>
                   <Col>
                     <Form.Select
@@ -106,7 +108,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
                 </Form.Group>
                 <Form.Group as={Row} controlId="Partial">
                   <Form.Label column lg={2}>
-                    Typ
+                    {t("type")}
                   </Form.Label>
                   <Col>
                     <Form.Check
@@ -121,7 +123,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
                 </Form.Group>
                 <Form.Group as={Row} controlId="PrecursorDelivery">
                   <Form.Label column lg={2}>
-                    Vorgänger
+                    {t("predecessor")}
                   </Form.Label>
                   <Col>
                     <Form.Select
@@ -138,7 +140,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
                 </Form.Group>
                 <Form.Group as={Row} controlId="Comment">
                   <Form.Label column lg={2}>
-                    Kommentar
+                    {t("comment")}
                   </Form.Label>
                   <Col>
                     <Form.Control as="textarea" rows={3} value={comment} onChange={e => setComment(e.target.value)} />
@@ -150,7 +152,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
           <Card.Footer>
             {deliveryState === DeliveryState.Available && (
               <Button variant="primary" onClick={executeDelivery}>
-                Abgabe erstellen
+                {t("createDelivery")}
               </Button>
             )}
             {deliveryState === DeliveryState.Running && (
@@ -158,15 +160,10 @@ export const Delivery = ({ statusData, validationRunning }) => {
             )}
             {deliveryState === DeliveryState.Completed && (
               <Button variant="success" disabled>
-                Abgabe erfolgreich
+                {t("createDeliverySuccess")}
               </Button>
             )}
-            {deliveryState === DeliveryState.Failed && (
-              <Alert variant={"danger"}>
-                Bei der Abgabe ist ein unbekannter Fehler aufgetreten, bitte versuchen Sie es mit einer neuen
-                Validierung.
-              </Alert>
-            )}
+            {deliveryState === DeliveryState.Failed && <Alert variant={"danger"}>{t("createDeliveryFailed")}</Alert>}
           </Card.Footer>
         </Card>
       </Container>

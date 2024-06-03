@@ -2,8 +2,10 @@ import { useState } from "react";
 import InfoCarousel from "./InfoCarousel";
 import "../../app.css";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 export const Title = ({ clientSettings, quickStartContent }) => {
+  const { t } = useTranslation();
   const [customAppLogoPresent, setCustomAppLogoPresent] = useState(false);
 
   useEffect(() => {
@@ -12,7 +14,7 @@ export const Title = ({ clientSettings, quickStartContent }) => {
 
   return (
     <div className="title-wrapper">
-      <div className="app-subtitle">Online Validierung & Abgabe von Geodaten</div>
+      <div className="app-subtitle">{t("appSubTitle")}</div>
       {customAppLogoPresent ? (
         <div>
           <img
