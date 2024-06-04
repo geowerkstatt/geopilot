@@ -14,10 +14,10 @@ public class DeliveryRequest
     public Guid JobId { get; set; }
 
     /// <summary>
-    /// The id of a DeliveryMandate selected by the user to reference.
+    /// The id of a Mandate selected by the user to reference.
     /// </summary>
     [Required]
-    public int DeliveryMandateId { get; set; }
+    public int MandateId { get; set; }
 
     /// <summary>
     /// Indicate whether the delivery contains partial data.
@@ -26,7 +26,7 @@ public class DeliveryRequest
     public bool PartialDelivery { get; set; }
 
     /// <summary>
-    /// Optional. The id of a previous delivery on the same DeliveryMandate.
+    /// Optional. The id of a previous delivery on the same Mandate.
     /// </summary>
     public int? PrecursorDeliveryId { get; set; }
 

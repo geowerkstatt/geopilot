@@ -1,7 +1,7 @@
 ﻿namespace Geopilot.Api.Models;
 
 /// <summary>
-/// A fullfillment of a <see cref="DeliveryMandate"/>. Contains all relevant meta information and assets provided or created by the validation and delivery process.
+/// A fullfillment of a <see cref="Mandate"/>. Contains all relevant meta information and assets provided or created by the validation and delivery process.
 /// </summary>
 public class Delivery
 {
@@ -28,7 +28,7 @@ public class Delivery
     /// <summary>
     /// The mandate the delivery fulfills.
     /// </summary>
-    public DeliveryMandate DeliveryMandate { get; set; } = new DeliveryMandate();
+    public Mandate Mandate { get; set; } = new Mandate();
 
     /// <summary>
     /// Assets delivered or created by the validation and delivery process.
@@ -41,7 +41,7 @@ public class Delivery
     public bool Partial { get; set; }
 
     /// <summary>
-    /// The previous delivery on the same <see cref="DeliveryMandate"/>.
+    /// The previous delivery on the same <see cref="Mandate"/>.
     /// </summary>
     public Delivery? PrecursorDelivery { get; set; }
 

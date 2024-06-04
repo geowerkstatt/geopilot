@@ -53,7 +53,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
         },
         body: JSON.stringify({
           JobId: statusData.jobId,
-          DeliveryMandateId: selectedMandateId,
+          MandateId: selectedMandateId,
           PartialDelivery: partialDelivery,
           PrecursorDeliveryId: selectedDeliveryId,
           Comment: comment,
@@ -86,7 +86,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
           <Card.Body>
             <Form>
               <fieldset disabled={deliveryState !== DeliveryState.Available}>
-                <Form.Group as={Row} controlId="DeliveryMandateId">
+                <Form.Group as={Row} controlId="MandateId">
                   <Form.Label column lg={2}>
                     {t("mandate")}
                   </Form.Label>

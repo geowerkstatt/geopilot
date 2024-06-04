@@ -192,7 +192,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseCors("All");
 
-    if (!context.DeliveryMandates.Any())
+    if (!context.Mandates.Any())
         context.SeedTestData();
 
     app.UseMiddleware<DevelopmentAuthorizationMiddleware>();

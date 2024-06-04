@@ -73,7 +73,7 @@ export const Admin = () => {
             id: d.id,
             date: d.date,
             user: d.declaringUser.fullName,
-            mandate: d.deliveryMandate.name,
+            mandate: d.mandate.name,
             comment: d.comment,
           })),
         );
