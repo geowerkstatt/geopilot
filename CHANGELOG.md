@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed DeliveryMandate to Mandate.
+- Rename _Abgabe_ to _Lieferung_.
+
 ## v1.0.93 - 2024-05-14
 
 ### Added

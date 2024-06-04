@@ -29,11 +29,11 @@ export const Header = ({ clientSettings }) => {
             <div className="navbar-container">
               <Nav className="full-width mr-auto" navbarScroll>
                 <NavLink className="nav-link" to="/">
-                  DATENABGABE
+                  DATENLIEFERUNG
                 </NavLink>
                 <AdminTemplate>
                   <NavLink className="nav-link" to="/admin">
-                    ABGABEÜBERSICHT
+                    LIEFERÜBERSICHT
                   </NavLink>
                   <a className="nav-link" href="/browser">
                     STAC BROWSER

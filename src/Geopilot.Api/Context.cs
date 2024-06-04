@@ -28,7 +28,7 @@ public class Context : DbContext
     public DbSet<Organisation> Organisations { get; set; }
 
     /// <summary>
-    /// Set of all <see cref="DeliveryMandate"/>.
+    /// Set of all <see cref="Delivery"/>.
     /// </summary>
     public DbSet<Delivery> Deliveries { get; set; }
 
@@ -41,7 +41,7 @@ public class Context : DbContext
         {
             return Deliveries
                 .Where(d => !d.Deleted)
-                .Include(d => d.DeliveryMandate)
+                .Include(d => d.Mandate)
                 .Include(d => d.Assets)
                 .Include(d => d.DeclaringUser)
                 .Include(d => d.PrecursorDelivery)
@@ -51,18 +51,18 @@ public class Context : DbContext
     }
 
     /// <summary>
-    /// Set of all <see cref="DeliveryMandate"/>.
+    /// Set of all <see cref="Mandate"/>.
     /// </summary>
-    public DbSet<DeliveryMandate> DeliveryMandates { get; set; }
+    public DbSet<Mandate> Mandates { get; set; }
 
     /// <summary>
-    /// Gets the <see cref="DeliveryMandate"/> entity with all includes.
+    /// Gets the <see cref="Mandate"/> entity with all includes.
     /// </summary>
-    public List<DeliveryMandate> DeliveryMandatesWithIncludes
+    public List<Mandate> MandatesWithIncludes
     {
         get
         {
-            return DeliveryMandates
+            return Mandates
                 .Include(d => d.Deliveries.Where(delivery => !delivery.Deleted))
                 .ThenInclude(d => d.Assets)
                 .AsNoTracking()

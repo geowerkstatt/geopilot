@@ -23,5 +23,5 @@ public class Organisation
     /// <summary>
     /// Mandates the organisation has for delivering data to the system owner.
     /// </summary>
-    public List<DeliveryMandate> Mandates { get; set; } = new List<DeliveryMandate>();
+    public List<Mandate> Mandates { get; set; } = new List<Mandate>();
 }
