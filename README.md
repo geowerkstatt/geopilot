@@ -47,6 +47,10 @@ Das Debugging sollte nun sowohl für das Geopilot.Frontend in JavaScript als auc
 
 PgAdmin kann für eine Analyse der Datenbank verwendet werden und ist unter [localhost:3001](http://localhost:3001/) verfügbar.
 
+## Cypress Tests
+
+Die Cypress Tests können mit `npm run cy` oder `npm run test` gestartet werden. Sie werden zudem automatisch in der CI/CD Pipeline ausgeführt. Das Projekt ist mit [Cypress Cloud](https://cloud.cypress.io/) konfiguriert, wodurch unter anderem die parallele Ausführung der End-to-End (E2E) Tests ermöglicht wird. Testergebnisse und Aufzeichnungen sind ebenfalls direkt in [Cypress Cloud](https://cloud.cypress.io/) einsehbar, was die Identifikation und Behebung möglicher Fehler und Probleme erleichtert. Um die detaillierten Testergebnisse einzusehen und die E2E-Tests des Projekts zu debuggen, kann die [Cypress Dashboard-Seite](https://cloud.cypress.io/projects/bqtbpp/runs) besucht werden.
+
 ## Health Check API
 
 Für das Monitoring im produktiven Betrieb steht unter `https://<host>:<port>/health` eine Health Check API zur Verfügung. Anhand der Antwort _Healthy_ (HTTP Status Code 200), resp. _Unhealthy_ (HTTP Status Code 503) kann der Status der Applikation bspw. mit cURL abgefragt werden.

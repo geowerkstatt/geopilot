@@ -396,3 +396,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Cypress test output
+src/Geopilot.Frontend/cypress/screenshot
+src/Geopilot.Frontend/cypress/downloads
+src/Geopilot.Frontend/cypress/videos
+src/Geopilot.Frontend/cypress/screenshots
