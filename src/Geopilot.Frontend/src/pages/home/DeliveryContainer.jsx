@@ -16,7 +16,7 @@ export const DeliveryContainer = ({ statusData, validationRunning }) => {
         <Collapse in={statusData?.status === "completed" && !validationRunning}>
           <Container>
             <Card>
-              <Button onClick={login}>Zur Abgabe einloggen</Button>
+              <Button onClick={login}>Zur Lieferung einloggen</Button>
             </Card>
           </Container>
         </Collapse>

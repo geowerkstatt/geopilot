@@ -9,7 +9,7 @@ const columns = [
   { field: "id", headerName: "ID", width: 60 },
   {
     field: "date",
-    headerName: "Abgabedatum",
+    headerName: "Lieferdatum",
     valueFormatter: params => {
       const date = new Date(params.value);
       return (
@@ -76,7 +76,7 @@ export const Admin = () => {
       setAlertMessages(prev => [
         ...prev,
         {
-          message: "Beim Laden der Datenabgaben ist ein Fehler aufgetreten: " + error,
+          message: "Beim Laden der Datenlieferungen ist ein Fehler aufgetreten: " + error,
           key: new Date().getTime(),
         },
       ]);
@@ -94,7 +94,7 @@ export const Admin = () => {
           setAlertMessages(prev => [
             ...prev,
             {
-              message: "Die Datenabgabe mit der ID " + row + " existiert nicht.",
+              message: "Die Datenlieferung mit der ID " + row + " existiert nicht.",
               key: new Date().getTime(),
             },
           ]);
@@ -102,7 +102,7 @@ export const Admin = () => {
           setAlertMessages(prev => [
             ...prev,
             {
-              message: "Beim Löschen der Datenabgabe mit ID " + row + " ist ein Fehler aufgetreten.",
+              message: "Beim Löschen der Datenlieferung mit ID " + row + " ist ein Fehler aufgetreten.",
               key: new Date().getTime(),
             },
           ]);
@@ -152,7 +152,7 @@ export const Admin = () => {
               }}>
               <GoTrash />
               <div style={{ marginLeft: 10 }}>
-                {selectedRows.length} Datenabgabe
+                {selectedRows.length} Datenlieferung
                 {selectedRows.length > 1 ? "n" : ""} löschen
               </div>
             </Button>
@@ -160,7 +160,7 @@ export const Admin = () => {
         )}
         <Modal show={showModal} animation={false}>
           <Modal.Body>
-            Möchten Sie die Datenabgabe wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+            Möchten Sie die Datenlieferung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
           </Modal.Body>
           <Modal.Footer>
             <Button

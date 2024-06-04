@@ -19,7 +19,7 @@ public class StacConverter
     private IContentTypeProvider FileContentTypeProvider { get; }
     private IStacApiContextFactory StacApiContextFactory { get; }
 
-    private const string DeliveryNamePrefix = "Datenabgabe_";
+    private const string DeliveryNamePrefix = "Datenlieferung_";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StacConverter"/> class.
@@ -91,7 +91,7 @@ public class StacConverter
             DateTime = new TimeBlock(delivery.Date),
         };
 
-        item.Properties.Add("Teilabgabe", delivery.Partial ? "Ja" : "Nein");
+        item.Properties.Add("Teillieferung", delivery.Partial ? "Ja" : "Nein");
         item.Properties.Add("Abgegeben durch", delivery.DeclaringUser.FullName);
         if (delivery.PrecursorDelivery != null)
         {

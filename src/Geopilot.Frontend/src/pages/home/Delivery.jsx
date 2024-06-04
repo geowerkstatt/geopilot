@@ -150,7 +150,7 @@ export const Delivery = ({ statusData, validationRunning }) => {
           <Card.Footer>
             {deliveryState === DeliveryState.Available && (
               <Button variant="primary" onClick={executeDelivery}>
-                Abgabe erstellen
+                Lieferung erstellen
               </Button>
             )}
             {deliveryState === DeliveryState.Running && (
@@ -158,12 +158,12 @@ export const Delivery = ({ statusData, validationRunning }) => {
             )}
             {deliveryState === DeliveryState.Completed && (
               <Button variant="success" disabled>
-                Abgabe erfolgreich
+                Lieferung erfolgreich
               </Button>
             )}
             {deliveryState === DeliveryState.Failed && (
               <Alert variant={"danger"}>
-                Bei der Abgabe ist ein unbekannter Fehler aufgetreten, bitte versuchen Sie es mit einer neuen
+                Bei der Lieferung ist ein unbekannter Fehler aufgetreten, bitte versuchen Sie es mit einer neuen
                 Validierung.
               </Alert>
             )}

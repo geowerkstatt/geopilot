@@ -158,7 +158,7 @@ public class StacConverterTest
         Assert.IsNotNull(item, "StacItem should not be null.");
         Assert.AreEqual(converter.GetItemId(testDelivery), item.Id);
         Assert.AreEqual(converter.GetCollectionId(testDelivery.Mandate), item.Collection);
-        Assert.AreEqual("Datenabgabe_2023-11-06T10:45:18", item.Title);
+        Assert.AreEqual("Datenlieferung_2023-11-06T10:45:18", item.Title);
         Assert.AreEqual(string.Empty, item.Description);
         Assert.AreEqual(true, item.Links.Any());
 
