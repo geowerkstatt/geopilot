@@ -62,7 +62,7 @@ RUN \
   DEBIAN_FRONTEND=noninteractive && \
   mkdir -p /usr/share/man/man1 /usr/share/man/man2 && \
   apt-get update && \
-  apt-get install -y sudo vim htop libcap2-bin && \
+  apt-get install -y curl sudo vim htop libcap2-bin && \
   rm -rf /var/lib/apt/lists/*
 
 # Add non-root user
