@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Add Cypress test support.
+
 ### Changed
 
 - Renamed DeliveryMandate to Mandate.
