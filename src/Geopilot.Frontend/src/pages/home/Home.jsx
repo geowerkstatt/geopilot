@@ -1,6 +1,7 @@
 import "../../app.css";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Container, Stack } from "react-bootstrap";
+import { useTranslation } from "react-i18next";
 import { FileDropzone } from "./FileDropzone";
 import { Title } from "./Title";
 import { Protokoll } from "./Protokoll";
@@ -13,6 +14,7 @@ export const Home = ({
   quickStartContent,
   setShowBannerContent,
 }) => {
+  const { t } = useTranslation();
   const [fileToCheck, setFileToCheck] = useState(null);
   const fileToCheckRef = useRef(fileToCheck);
   const [validationRunning, setValidationRunning] = useState(false);
@@ -71,7 +73,8 @@ export const Home = ({
     }
   }, [validationRunning, isFirstValidation, setShowBannerContent, setIsFirstValidation]);
 
-  const logUploadLogMessages = () => updateLog(`${fileToCheck.name} hochladen...`, { disableUploadLogs: false });
+  const logUploadLogMessages = () =>
+    updateLog(`${t("uploadFile", { fileName: fileToCheck.name })}`, { disableUploadLogs: false });
   const setIntervalImmediately = (func, interval) => {
     func();
     return setInterval(func, interval);
@@ -120,7 +123,7 @@ export const Home = ({
       }
     } else {
       console.log("Error while uploading file: " + response.json());
-      updateLog("Der Upload war nicht erfolgreich. Die Validierung wurde abgebrochen.");
+      updateLog(t("uploadNotSuccessful"));
       setValidationRunning(false);
     }
   };

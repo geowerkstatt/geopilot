@@ -14,6 +14,10 @@ import "./app.css";
 import { AuthProvider } from "./auth/AuthContext";
 import { AdminTemplate } from "./auth/AdminTemplate";
 import { LoggedOutTemplate } from "./auth/LoggedOutTemplate";
+import { I18nextProvider } from "react-i18next";
+import i18n from "./i18n";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { deDE } from "@mui/material/locale";
 
 export const App = () => {
   const [modalContent, setModalContent] = useState(false);
@@ -111,67 +115,73 @@ export const App = () => {
     });
   }, [auth, authCache]);
 
+  const theme = createTheme({}, deDE);
+
   return (
-    <MsalProvider instance={msalInstance}>
-      <AuthProvider authScopes={clientSettings?.authScopes} onLoginError={setAlertText}>
-        <div className="app">
-          <Router>
-            <Header clientSettings={clientSettings} />
-            <Routes>
-              <Route
-                exact
-                path="/"
-                element={
-                  <Home
-                    clientSettings={clientSettings}
-                    nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
-                    showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
-                    quickStartContent={quickStartContent}
-                    setShowBannerContent={setShowBannerContent}
+    <I18nextProvider i18n={i18n}>
+      <ThemeProvider theme={theme}>
+        <MsalProvider instance={msalInstance}>
+          <AuthProvider authScopes={clientSettings?.authScopes} onLoginError={setAlertText}>
+            <div className="app">
+              <Router>
+                <Header clientSettings={clientSettings} />
+                <Routes>
+                  <Route
+                    exact
+                    path="/"
+                    element={
+                      <Home
+                        clientSettings={clientSettings}
+                        nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
+                        showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
+                        quickStartContent={quickStartContent}
+                        setShowBannerContent={setShowBannerContent}
+                      />
+                    }
                   />
-                }
+                </Routes>
+                <LoggedOutTemplate>
+                  <Routes>
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </LoggedOutTemplate>
+                <AdminTemplate>
+                  <Routes>
+                    <Route path="/admin" element={<Admin />} />
+                  </Routes>
+                </AdminTemplate>
+              </Router>
+              <Footer
+                openModalContent={openModalContent}
+                infoHilfeContent={infoHilfeContent}
+                nutzungsbestimmungenContent={nutzungsbestimmungenContent}
+                datenschutzContent={datenschutzContent}
+                impressumContent={impressumContent}
+                clientSettings={clientSettings}
+                appVersion={backendVersion}
+                licenseInfoCustom={licenseInfoCustom}
+                licenseInfo={licenseInfo}
               />
-            </Routes>
-            <LoggedOutTemplate>
-              <Routes>
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
-            </LoggedOutTemplate>
-            <AdminTemplate>
-              <Routes>
-                <Route path="/admin" element={<Admin />} />
-              </Routes>
-            </AdminTemplate>
-          </Router>
-          <Footer
-            openModalContent={openModalContent}
-            infoHilfeContent={infoHilfeContent}
-            nutzungsbestimmungenContent={nutzungsbestimmungenContent}
-            datenschutzContent={datenschutzContent}
-            impressumContent={impressumContent}
-            clientSettings={clientSettings}
-            appVersion={backendVersion}
-            licenseInfoCustom={licenseInfoCustom}
-            licenseInfo={licenseInfo}
-          />
-          <ModalContent
-            className="modal"
-            show={showModalContent}
-            content={modalContent}
-            type={modalContentType}
-            onHide={() => setShowModalContent(false)}
-          />
-          {bannerContent && showBannerContent && (
-            <BannerContent className="banner" content={bannerContent} onHide={() => setShowBannerContent(false)} />
-          )}
-        </div>
-        <Snackbar key={alertText} open={alertText !== ""} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
-          <Alert variant="danger" dismissible onClose={() => setAlertText("")}>
-            <p>{alertText}</p>
-          </Alert>
-        </Snackbar>
-      </AuthProvider>
-    </MsalProvider>
+              <ModalContent
+                className="modal"
+                show={showModalContent}
+                content={modalContent}
+                type={modalContentType}
+                onHide={() => setShowModalContent(false)}
+              />
+              {bannerContent && showBannerContent && (
+                <BannerContent className="banner" content={bannerContent} onHide={() => setShowBannerContent(false)} />
+              )}
+            </div>
+            <Snackbar key={alertText} open={alertText !== ""} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
+              <Alert variant="danger" dismissible onClose={() => setAlertText("")}>
+                <p>{alertText}</p>
+              </Alert>
+            </Snackbar>
+          </AuthProvider>
+        </MsalProvider>
+      </ThemeProvider>
+    </I18nextProvider>
   );
 };
 

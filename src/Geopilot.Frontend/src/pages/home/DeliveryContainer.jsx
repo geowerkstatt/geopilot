@@ -3,9 +3,11 @@ import { Delivery } from "./Delivery";
 import { useAuth } from "@/auth";
 import { LoggedInTemplate } from "@/auth/LoggedInTemplate";
 import { LoggedOutTemplate } from "@/auth/LoggedOutTemplate";
+import { useTranslation } from "react-i18next";
 
 export const DeliveryContainer = ({ statusData, validationRunning }) => {
   const { login } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <>
@@ -16,7 +18,7 @@ export const DeliveryContainer = ({ statusData, validationRunning }) => {
         <Collapse in={statusData?.status === "completed" && !validationRunning}>
           <Container>
             <Card>
-              <Button onClick={login}>Zur Lieferung einloggen</Button>
+              <Button onClick={login}>{t("logInForDelivery")}</Button>
             </Card>
           </Container>
         </Collapse>

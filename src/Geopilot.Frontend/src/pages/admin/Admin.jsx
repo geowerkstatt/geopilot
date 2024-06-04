@@ -1,34 +1,40 @@
 import { useState, useEffect } from "react";
 import { Button, Modal, Alert } from "react-bootstrap";
 import { GoTrash } from "react-icons/go";
-import { DataGrid, deDE } from "@mui/x-data-grid";
+import { useTranslation } from "react-i18next";
+import { DataGrid } from "@mui/x-data-grid";
 import { Snackbar } from "@mui/material";
 import { useAuth } from "@/auth";
 
-const columns = [
-  { field: "id", headerName: "ID", width: 60 },
-  {
-    field: "date",
-    headerName: "Lieferdatum",
-    valueFormatter: params => {
-      const date = new Date(params.value);
-      return (
-        `${date.getHours().toString().padStart(2, "0")}:` +
-        `${date.getMinutes().toString().padStart(2, "0")}:` +
-        `${date.getSeconds().toString().padStart(2, "0")} ` +
-        `${date.getDate().toString().padStart(2, "0")}.` +
-        `${(date.getMonth() + 1).toString().padStart(2, "0")}.` +
-        `${date.getFullYear()}`
-      );
+const useTranslatedColumns = t => {
+  const columns = [
+    { field: "id", headerName: t("id"), width: 60 },
+    {
+      field: "date",
+      headerName: t("deliveryDate"),
+      valueFormatter: params => {
+        const date = new Date(params.value);
+        return (
+          `${date.getHours().toString().padStart(2, "0")}:` +
+          `${date.getMinutes().toString().padStart(2, "0")}:` +
+          `${date.getSeconds().toString().padStart(2, "0")} ` +
+          `${date.getDate().toString().padStart(2, "0")}.` +
+          `${(date.getMonth() + 1).toString().padStart(2, "0")}.` +
+          `${date.getFullYear()}`
+        );
+      },
+      width: 180,
     },
-    width: 180,
-  },
-  { field: "user", headerName: "Abgegeben von", flex: 0.5, minWidth: 200 },
-  { field: "mandate", headerName: "Operat", flex: 0.5, minWidth: 200 },
-  { field: "comment", headerName: "Kommentar", flex: 1, minWidth: 600 },
-];
+    { field: "user", headerName: t("deliveredBy"), flex: 0.5, minWidth: 200 },
+    { field: "mandate", headerName: t("mandate"), flex: 0.5, minWidth: 200 },
+    { field: "comment", headerName: t("comment"), flex: 1, minWidth: 600 },
+  ];
+  return columns;
+};
 
 export const Admin = () => {
+  const { t } = useTranslation();
+  const columns = useTranslatedColumns(t);
   const [deliveries, setDeliveries] = useState(undefined);
   const [selectedRows, setSelectedRows] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -76,7 +82,7 @@ export const Admin = () => {
       setAlertMessages(prev => [
         ...prev,
         {
-          message: "Beim Laden der Datenlieferungen ist ein Fehler aufgetreten: " + error,
+          message: t("deliveryOverviewLoadingError", { error: error }),
           key: new Date().getTime(),
         },
       ]);
@@ -94,7 +100,7 @@ export const Admin = () => {
           setAlertMessages(prev => [
             ...prev,
             {
-              message: "Die Datenlieferung mit der ID " + row + " existiert nicht.",
+              message: t("deliveryOverviewDeleteIdNotExistError", { id: row }),
               key: new Date().getTime(),
             },
           ]);
@@ -102,7 +108,7 @@ export const Admin = () => {
           setAlertMessages(prev => [
             ...prev,
             {
-              message: "Beim Löschen der Datenlieferung mit ID " + row + " ist ein Fehler aufgetreten.",
+              message: t("deliveryOverviewDeleteIdError", { id: row }),
               key: new Date().getTime(),
             },
           ]);
@@ -110,7 +116,7 @@ export const Admin = () => {
       } catch (error) {
         setAlertMessages(prev => [
           ...prev,
-          { message: "Beim Löschen ist ein Fehler aufgetreten: " + error, key: new Date().getTime() },
+          { message: t("deliveryOverviewDeleteError", { error: error }), key: new Date().getTime() },
         ]);
       }
     }
@@ -122,7 +128,6 @@ export const Admin = () => {
       <main>
         {deliveries?.length > 0 && (
           <DataGrid
-            localeText={deDE.components.MuiDataGrid.defaultProps.localeText}
             sx={{
               fontFamily: "system-ui, -apple-syste",
             }}
@@ -151,27 +156,22 @@ export const Admin = () => {
                 setShowModal(true);
               }}>
               <GoTrash />
-              <div style={{ marginLeft: 10 }}>
-                {selectedRows.length} Datenlieferung
-                {selectedRows.length > 1 ? "n" : ""} löschen
-              </div>
+              <div style={{ marginLeft: 10 }}>{t("deleteDelivery", { count: selectedRows.length })}</div>
             </Button>
           </div>
         )}
         <Modal show={showModal} animation={false}>
-          <Modal.Body>
-            Möchten Sie die Datenlieferung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
-          </Modal.Body>
+          <Modal.Body>{t("deleteDeliveryConfirmation")}</Modal.Body>
           <Modal.Footer>
             <Button
               variant="secondary"
               onClick={() => {
                 setShowModal(false);
               }}>
-              Abbrechen
+              {t("cancel")}
             </Button>
             <Button variant="danger" onClick={handleDelete}>
-              Löschen
+              {t("delete")}
             </Button>
           </Modal.Footer>
         </Modal>

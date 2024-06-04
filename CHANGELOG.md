@@ -5,6 +5,7 @@
 ### Added
 
 - Add Cypress test support.
+- Added localization.
 
 ### Changed
 
