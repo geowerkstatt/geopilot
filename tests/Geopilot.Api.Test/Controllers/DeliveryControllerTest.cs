@@ -52,9 +52,9 @@ public class DeliveryControllerTest
             .Returns(new ValidationJobStatus(guid) { Status = status });
 
         var deliveriesCount = context.Deliveries.Count();
-        var mandateId = context.DeliveryMandates.First().Id;
+        var mandateId = context.Mandates.First().Id;
 
-        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid,  DeliveryMandateId = mandateId })) as ObjectResult;
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid,  MandateId = mandateId })) as ObjectResult;
 
         context.ChangeTracker.Clear();
 
@@ -72,9 +72,9 @@ public class DeliveryControllerTest
             .Returns(default(ValidationJobStatus?));
 
         var deliveriesCount = context.Deliveries.Count();
-        var mandateId = context.DeliveryMandates.First().Id;
+        var mandateId = context.Mandates.First().Id;
 
-        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid, DeliveryMandateId = mandateId })) as ObjectResult;
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid, MandateId = mandateId })) as ObjectResult;
 
         context.ChangeTracker.Clear();
 
@@ -92,11 +92,11 @@ public class DeliveryControllerTest
             .Returns(new ValidationJobStatus(guid) { Status = Status.Completed });
 
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
-        var addedMandate = context.DeliveryMandates.Add(new DeliveryMandate());
+        var addedMandate = context.Mandates.Add(new Mandate());
         context.SaveChanges();
 
         deliveryController.SetupTestUser(user.Entity);
-        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid, DeliveryMandateId = addedMandate.Entity.Id })) as ObjectResult;
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid, MandateId = addedMandate.Entity.Id })) as ObjectResult;
 
         context.ChangeTracker.Clear();
 
@@ -136,7 +136,7 @@ public class DeliveryControllerTest
         var request = new DeliveryRequest
         {
             JobId = guid,
-            DeliveryMandateId = mandateId,
+            MandateId = mandateId,
             Comment = setOptionals ? "Some test comment   " : null,
             PartialDelivery = setOptionals,
             PrecursorDeliveryId = setOptionals ? predecessorDeliveryId : null,
@@ -152,7 +152,7 @@ public class DeliveryControllerTest
         Assert.IsNotNull(delivery);
 
         var dbDelivery = context.Deliveries
-            .Include(d => d.DeliveryMandate)
+            .Include(d => d.Mandate)
             .Include(d => d.PrecursorDelivery)
             .FirstOrDefault(d => d.Id == delivery.Id);
 
@@ -160,7 +160,7 @@ public class DeliveryControllerTest
         Assert.AreEqual(DateTimeKind.Utc, dbDelivery.Date.Kind);
         Assert.IsTrue(dbDelivery.Date > startTime.ToUniversalTime() && dbDelivery.Date < DateTime.UtcNow);
         Assert.AreEqual(guid, dbDelivery.JobId);
-        Assert.AreEqual(request.DeliveryMandateId, dbDelivery.DeliveryMandate.Id);
+        Assert.AreEqual(request.MandateId, dbDelivery.Mandate.Id);
         Assert.AreEqual(request.Comment?.Trim() ?? string.Empty, dbDelivery.Comment);
         Assert.AreEqual(request.PartialDelivery, dbDelivery.Partial);
         Assert.AreEqual(request.PrecursorDeliveryId, dbDelivery.PrecursorDelivery?.Id);
@@ -265,7 +265,7 @@ public class DeliveryControllerTest
         admin.Organisations.Clear();
         context.SaveChanges();
         deliveryController.SetupTestUser(admin);
-        var mandateId = context.DeliveryMandates
+        var mandateId = context.Mandates
             .Where(m => m.Deliveries.Any())
             .First()
             .Id;
@@ -274,7 +274,7 @@ public class DeliveryControllerTest
         var list = response?.Value as List<Delivery>;
 
         Assert.IsNotNull(list);
-        Assert.AreEqual(context.Deliveries.Where(d => d.DeliveryMandate.Id == mandateId).Count(), list.Count);
+        Assert.AreEqual(context.Deliveries.Where(d => d.Mandate.Id == mandateId).Count(), list.Count);
     }
 
     [TestMethod]
@@ -282,7 +282,7 @@ public class DeliveryControllerTest
     {
         var user = context.Users.First(u => !u.IsAdmin);
         deliveryController.SetupTestUser(user);
-        var mandateId = context.DeliveryMandates
+        var mandateId = context.Mandates
             .Where(m => !m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))
             .First()
             .Id;
@@ -297,7 +297,7 @@ public class DeliveryControllerTest
     {
         var user = context.Users.First(u => !u.IsAdmin);
         deliveryController.SetupTestUser(user);
-        var mandateId = context.DeliveryMandates
+        var mandateId = context.Mandates
             .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id) && m.Deliveries.Any())
             .First()
             .Id;
@@ -305,7 +305,7 @@ public class DeliveryControllerTest
         var response = (await deliveryController.Get(mandateId)) as ObjectResult;
         var list = response?.Value as List<Delivery>;
 
-        var deliveris = context.DeliveryMandates
+        var deliveris = context.Mandates
             .Include(m => m.Deliveries)
             .First(m => m.Id == mandateId)
             .Deliveries;

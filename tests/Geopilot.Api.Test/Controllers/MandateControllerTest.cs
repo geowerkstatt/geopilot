@@ -15,9 +15,9 @@ namespace Geopilot.Api.Test.Controllers
         private Context context;
         private MandateController mandateController;
         private User user;
-        private DeliveryMandate unrestrictedMandate;
-        private DeliveryMandate xtfMandate;
-        private DeliveryMandate unassociatedMandate;
+        private Mandate unrestrictedMandate;
+        private Mandate xtfMandate;
+        private Mandate unassociatedMandate;
 
         [TestInitialize]
         public void Initialize()
@@ -27,13 +27,13 @@ namespace Geopilot.Api.Test.Controllers
             context = AssemblyInitialize.DbFixture.GetTestContext();
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
 
-            unrestrictedMandate = new DeliveryMandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
-            xtfMandate = new DeliveryMandate { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate) };
-            unassociatedMandate = new DeliveryMandate { FileTypes = new string[] { "*.itf" }, Name = nameof(unassociatedMandate) };
+            unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
+            xtfMandate = new Mandate { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate) };
+            unassociatedMandate = new Mandate { FileTypes = new string[] { "*.itf" }, Name = nameof(unassociatedMandate) };
 
-            context.DeliveryMandates.Add(unrestrictedMandate);
-            context.DeliveryMandates.Add(xtfMandate);
-            context.DeliveryMandates.Add(unassociatedMandate);
+            context.Mandates.Add(unrestrictedMandate);
+            context.Mandates.Add(xtfMandate);
+            context.Mandates.Add(unassociatedMandate);
 
             user = new User { AuthIdentifier = "123" };
             context.Users.Add(user);
@@ -53,7 +53,7 @@ namespace Geopilot.Api.Test.Controllers
             mandateController.SetupTestUser(user);
 
             var result = (await mandateController.Get()) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<DeliveryMandate>)?.ToList();
+            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
             CollectionAssert.Contains(mandates, unrestrictedMandate);
@@ -71,7 +71,7 @@ namespace Geopilot.Api.Test.Controllers
                 .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf"));
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<DeliveryMandate>)?.ToList();
+            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
             CollectionAssert.Contains(mandates, unrestrictedMandate);
@@ -89,7 +89,7 @@ namespace Geopilot.Api.Test.Controllers
                 .Returns(new ValidationJob(jobId, "Original.csv", "tmp.csv"));
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<DeliveryMandate>)?.ToList();
+            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
             CollectionAssert.Contains(mandates, unrestrictedMandate);
@@ -107,10 +107,10 @@ namespace Geopilot.Api.Test.Controllers
                 .Returns(() => null);
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<DeliveryMandate>)?.ToList();
+            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            CollectionAssert.AreEquivalent(Array.Empty<DeliveryMandate>(), mandates);
+            CollectionAssert.AreEquivalent(Array.Empty<Mandate>(), mandates);
         }
 
         [TestMethod]

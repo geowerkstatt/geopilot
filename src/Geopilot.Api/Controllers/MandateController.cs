@@ -39,7 +39,7 @@ public class MandateController : ControllerBase
     /// <returns>List of mandates matching optional filter criteria.</returns>
     [HttpGet]
     [Authorize(Policy = GeopilotPolicies.User)]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns list of mandates associated to the current user matching the optional filter criteria.", typeof(IEnumerable<DeliveryMandate>), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns list of mandates associated to the current user matching the optional filter criteria.", typeof(IEnumerable<Mandate>), new[] { "application/json" })]
     public async Task<IActionResult> Get(
         [FromQuery, SwaggerParameter("Filter mandates matching validation job file extension.")]
         Guid jobId = default)
@@ -50,7 +50,7 @@ public class MandateController : ControllerBase
         if (user == null)
             return Unauthorized();
 
-        var mandates = context.DeliveryMandates
+        var mandates = context.Mandates
             .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
 
         if (jobId != default)
@@ -59,7 +59,7 @@ public class MandateController : ControllerBase
             if (job is null)
             {
                 logger.LogTrace("Validation job with id <{JobId}> was not found.", jobId);
-                return Ok(Array.Empty<DeliveryMandate>());
+                return Ok(Array.Empty<Mandate>());
             }
 
             logger.LogTrace("Filtering mandates for job with id <{JobId}>", jobId);

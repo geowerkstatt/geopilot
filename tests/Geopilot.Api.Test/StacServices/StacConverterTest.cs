@@ -14,7 +14,7 @@ public class StacConverterTest
 {
     private static readonly double[] mandateExtent = new double[] { 7.536621, 46.521076, 9.398804, 47.476376 };
 
-    private static readonly DeliveryMandate mandate = new ()
+    private static readonly Mandate mandate = new ()
     {
         Id = 1,
         Name = "Test Mandate",
@@ -36,7 +36,7 @@ public class StacConverterTest
         {
             Id = 2,
         },
-        DeliveryMandate = mandate,
+        Mandate = mandate,
         Assets = new List<Asset>()
             {
                 new Asset()
@@ -157,7 +157,7 @@ public class StacConverterTest
         var item = converter.ToStacItem(testDelivery);
         Assert.IsNotNull(item, "StacItem should not be null.");
         Assert.AreEqual(converter.GetItemId(testDelivery), item.Id);
-        Assert.AreEqual(converter.GetCollectionId(testDelivery.DeliveryMandate), item.Collection);
+        Assert.AreEqual(converter.GetCollectionId(testDelivery.Mandate), item.Collection);
         Assert.AreEqual("Datenlieferung_2023-11-06T10:45:18", item.Title);
         Assert.AreEqual(string.Empty, item.Description);
         Assert.AreEqual(true, item.Links.Any());

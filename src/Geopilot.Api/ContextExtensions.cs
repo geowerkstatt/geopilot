@@ -60,7 +60,7 @@ internal static class ContextExtensions
 
         context.SeedUsers();
         context.SeedOrganisations();
-        context.SeedOperate();
+        context.SeedMandates();
         context.SeedDeliveries();
         context.SeedAssets();
         context.AuthorizeFirstUser();
@@ -92,7 +92,7 @@ internal static class ContextExtensions
             .RuleFor(o => o.Id, _ => 0)
             .RuleFor(o => o.Name, f => f.Company.CompanyName())
             .RuleFor(o => o.Users, f => f.PickRandom(context.Users.ToList(), f.Random.Number(1, 4)).ToList())
-            .RuleFor(o => o.Mandates, _ => new List<DeliveryMandate>());
+            .RuleFor(o => o.Mandates, _ => new List<Mandate>());
 
         Organisation SeedOrganisations(int seed) => organisationFaker.UseSeed(seed).Generate();
         context.Organisations.AddRange(Enumerable.Range(0, 3).Select(SeedOrganisations));
@@ -119,10 +119,10 @@ internal static class ContextExtensions
         });
     }
 
-    public static void SeedOperate(this Context context)
+    public static void SeedMandates(this Context context)
     {
         var knownFileFormats = new string[] { ".xtf", ".gpkg", ".*", ".itf", ".xml", ".zip", ".csv" };
-        var operateFaker = new Faker<DeliveryMandate>()
+        var mandateFaker = new Faker<Mandate>()
             .StrictMode(true)
             .RuleFor(o => o.Id, f => 0)
             .RuleFor(o => o.Name, f => f.Commerce.ProductName())
@@ -131,15 +131,15 @@ internal static class ContextExtensions
             .RuleFor(o => o.Organisations, f => f.PickRandom(context.Organisations.ToList(), 1).ToList())
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>());
 
-        DeliveryMandate SeedOperat(int seed) => operateFaker.UseSeed(seed).Generate();
-        context.DeliveryMandates.AddRange(Enumerable.Range(0, 10).Select(SeedOperat));
+        Mandate SeedMandate(int seed) => mandateFaker.UseSeed(seed).Generate();
+        context.Mandates.AddRange(Enumerable.Range(0, 10).Select(SeedMandate));
         context.SaveChanges();
     }
 
     public static void SeedDeliveries(this Context context)
     {
         var deliveryContracts =
-            context.DeliveryMandates
+            context.Mandates
                 .Include(o => o.Organisations)
                 .ThenInclude(o => o.Users)
                 .Where(o => o.Organisations.SelectMany(o => o.Users).Any())
@@ -150,9 +150,9 @@ internal static class ContextExtensions
             .RuleFor(d => d.Id, 0)
             .RuleFor(d => d.JobId, f => f.Random.Guid())
             .RuleFor(d => d.Date, f => f.Date.Past().ToUniversalTime())
-            .RuleFor(d => d.DeliveryMandate, f => f.PickRandom(deliveryContracts))
+            .RuleFor(d => d.Mandate, f => f.PickRandom(deliveryContracts))
             .RuleFor(d => d.DeclaringUser, (f, d) => f.PickRandom(
-                d.DeliveryMandate.Organisations
+                d.Mandate.Organisations
                 .SelectMany(o => o.Users)
                 .ToList()))
             .RuleFor(d => d.Assets, _ => new List<Asset>())
@@ -199,11 +199,11 @@ internal static class ContextExtensions
     {
         var user = context.Users.OrderBy(u => u.Id).First();
         var organisation = context.Organisations.OrderBy(o => o.Id).First();
-        var deliveryMandates = context.DeliveryMandates.OrderBy(m => m.Id).Skip(1);
+        var mandates = context.Mandates.OrderBy(m => m.Id).Skip(1);
 
         user.IsAdmin = true;
         user.Organisations.Add(organisation);
-        organisation.Mandates.AddRange(deliveryMandates);
+        organisation.Mandates.AddRange(mandates);
 
         context.SaveChanges();
     }

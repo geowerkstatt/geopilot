@@ -31,7 +31,7 @@ public class StacItemsProvider : IItemsProvider
         {
             try
             {
-                return db.DeliveryMandatesWithIncludes.FirstOrDefault(dm => stacConverter.GetCollectionId(dm) == collection)?.Deliveries?.Any() ?? false;
+                return db.MandatesWithIncludes.FirstOrDefault(m => stacConverter.GetCollectionId(m) == collection)?.Deliveries?.Any() ?? false;
             }
             catch (Exception ex)
             {
@@ -50,7 +50,7 @@ public class StacItemsProvider : IItemsProvider
         {
             using var db = contextFactory.CreateDbContext();
             var delivery = db.DeliveriesWithIncludes
-                .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && (stacConverter.GetCollectionId(d.DeliveryMandate) == stacApiContext.Collections.First()))
+                .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && (stacConverter.GetCollectionId(d.Mandate) == stacApiContext.Collections.First()))
                 ?? throw new InvalidOperationException($"Item with id {featureId} does not exist.");
             var item = stacConverter.ToStacItem(delivery);
             return Task.FromResult(item);
@@ -76,14 +76,14 @@ public class StacItemsProvider : IItemsProvider
 
         var collectionIds = stacApiContext.Collections?.ToList();
         using var db = contextFactory.CreateDbContext();
-        var deliveryMandates = db.DeliveryMandatesWithIncludes;
+        var mandates = db.MandatesWithIncludes;
 
         if (collectionIds?.Any() == true)
         {
-            deliveryMandates = deliveryMandates.FindAll(dm => collectionIds.Contains(stacConverter.GetCollectionId(dm)));
+            mandates = mandates.FindAll(m => collectionIds.Contains(stacConverter.GetCollectionId(m)));
         }
 
-        deliveryMandates.ToList().ForEach(dm => items.Concat(dm.Deliveries.Select(d => stacConverter.ToStacItem(d))));
+        mandates.ToList().ForEach(m => items.Concat(m.Deliveries.Select(d => stacConverter.ToStacItem(d))));
         return Task.FromResult(items);
     }
 }

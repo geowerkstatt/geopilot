@@ -32,11 +32,11 @@ public class StacConverter
     }
 
     /// <summary>
-    /// Returns the collection id for the specified <see cref="DeliveryMandate"/>.
+    /// Returns the collection id for the specified <see cref="Mandate"/>.
     /// </summary>
-    /// <param name="mandate">The <see cref="DeliveryMandate"/>.</param>
+    /// <param name="mandate">The <see cref="Mandate"/>.</param>
     /// <returns>Collection id.</returns>
-    public string GetCollectionId(DeliveryMandate mandate) => "coll_" + mandate.Id;
+    public string GetCollectionId(Mandate mandate) => "coll_" + mandate.Id;
 
     /// <summary>
     /// Returns the item id for the specified <see cref="Delivery"/>.
@@ -46,11 +46,11 @@ public class StacConverter
     public string GetItemId(Delivery delivery) => "item_" + delivery.Id;
 
     /// <summary>
-    /// Converts a <see cref="DeliveryMandate"/> to a <see cref="StacCollection"/>.
+    /// Converts a <see cref="Mandate"/> to a <see cref="StacCollection"/>.
     /// </summary>
-    /// <param name="mandate">The <see cref="DeliveryMandate"/> to convert.</param>
+    /// <param name="mandate">The <see cref="Mandate"/> to convert.</param>
     /// <returns>A STAC collection.</returns>
-    public StacCollection ToStacCollection(DeliveryMandate mandate)
+    public StacCollection ToStacCollection(Mandate mandate)
     {
         var collectionId = GetCollectionId(mandate);
         var items = mandate.Deliveries
@@ -83,9 +83,9 @@ public class StacConverter
     {
         var stacId = GetItemId(delivery);
 
-        var item = new StacItem(stacId, ToGeoJsonPolygon(delivery.DeliveryMandate.SpatialExtent))
+        var item = new StacItem(stacId, ToGeoJsonPolygon(delivery.Mandate.SpatialExtent))
         {
-            Collection = GetCollectionId(delivery.DeliveryMandate),
+            Collection = GetCollectionId(delivery.Mandate),
             Title = DeliveryNamePrefix + delivery.Date.ToString("s"),
             Description = delivery.Comment,
             DateTime = new TimeBlock(delivery.Date),
