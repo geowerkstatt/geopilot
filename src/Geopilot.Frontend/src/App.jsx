@@ -144,7 +144,7 @@ export const App = () => {
     return () => {
       i18n.off("languageChanged", handleLanguageChange);
     };
-  }, [i18n]);
+  }, []);
 
   return (
     <I18nextProvider i18n={i18n}>
