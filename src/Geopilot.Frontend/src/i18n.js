@@ -1,13 +1,15 @@
 import i18n from "i18next";
 import backend from "i18next-http-backend";
+import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 
 i18n
   .use(backend)
   .use(initReactI18next)
+  .use(LanguageDetector)
   .init({
     detection: {
-      order: ["cookie", "htmlTag"],
+      order: ["navigator", "cookie", "htmlTag"],
       lookupCookie: "i18next",
       caches: ["cookie"],
     },
@@ -19,12 +21,8 @@ i18n
     react: {
       useSuspense: false,
     },
-    fallbackLng: {
-      de: ["de-CH"],
-      default: ["de"],
-    },
-    supportedLngs: ["de"],
-    whitelist: ["de"],
+    supportedLngs: ["de", "en", "it", "fr"],
+    whitelist: ["de", "en", "it", "fr"],
     ns: ["common"],
     defaultNS: "common",
     interpolation: {
