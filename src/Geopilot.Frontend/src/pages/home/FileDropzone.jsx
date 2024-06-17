@@ -4,6 +4,7 @@ import { MdCancel, MdFileUpload } from "react-icons/md";
 import { Button, Spinner } from "react-bootstrap";
 import styled from "styled-components";
 import { useTranslation, Trans } from "react-i18next";
+import i18n from "../../i18n.js";
 
 const getColor = isDragActive => {
   if (isDragActive) {
@@ -54,7 +55,10 @@ export const FileDropzone = ({
   const acceptedFileTypesText = acceptedFileTypes?.join(", ") ?? "";
 
   useEffect(() => {
-    const fileDescription = acceptsAllFileTypes ? t("file") : `${t("file")} (${acceptedFileTypesText})`;
+    let fileDescription = acceptsAllFileTypes ? t("file") : `${t("file")} (${acceptedFileTypesText})`;
+    if (i18n.language !== "de") {
+      fileDescription = fileDescription.toLowerCase();
+    }
     setDropZoneDefaultText(t("dropZoneDefaultText", { fileDescription }));
   }, [acceptsAllFileTypes, acceptedFileTypesText, t]);
   useEffect(() => setDropZoneText(dropZoneDefaultText), [dropZoneDefaultText]);

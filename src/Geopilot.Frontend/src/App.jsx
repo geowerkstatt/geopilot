@@ -17,7 +17,24 @@ import { LoggedOutTemplate } from "./auth/LoggedOutTemplate";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { deDE } from "@mui/material/locale";
+import { deDE, enUS, frFR, itIT } from "@mui/material/locale";
+
+const baseTheme = {};
+
+const getThemeByLanguage = lng => {
+  switch (lng) {
+    case "de":
+      return createTheme(baseTheme, deDE);
+    case "fr":
+      return createTheme(baseTheme, frFR);
+    case "it":
+      return createTheme(baseTheme, itIT);
+    case "en":
+      return createTheme(baseTheme, enUS);
+    default:
+      return createTheme(baseTheme, enUS);
+  }
+};
 
 export const App = () => {
   const [modalContent, setModalContent] = useState(false);
@@ -36,6 +53,7 @@ export const App = () => {
   const [licenseInfo, setLicenseInfo] = useState(null);
   const [licenseInfoCustom, setLicenseInfoCustom] = useState(null);
   const [alertText, setAlertText] = useState("");
+  const [theme, setTheme] = useState(getThemeByLanguage(i18n.language));
 
   // Update HTML title property
   useEffect(() => {
@@ -115,7 +133,18 @@ export const App = () => {
     });
   }, [auth, authCache]);
 
-  const theme = createTheme({}, deDE);
+  useEffect(() => {
+    const handleLanguageChange = lng => {
+      const newTheme = getThemeByLanguage(lng);
+      setTheme(newTheme);
+    };
+
+    i18n.on("languageChanged", handleLanguageChange);
+
+    return () => {
+      i18n.off("languageChanged", handleLanguageChange);
+    };
+  }, []);
 
   return (
     <I18nextProvider i18n={i18n}>
