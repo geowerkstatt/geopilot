@@ -6,6 +6,7 @@
 
 - Add Cypress test support.
 - Added localization.
+- Added separate administration area and user navigation menu to switch between delivery, administration and STAC browser.
 
 ### Changed
 
