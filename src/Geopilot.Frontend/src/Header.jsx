@@ -55,7 +55,7 @@ export const Header = ({ clientSettings }) => {
             </Box>
             <Box sx={{ flexGrow: 0 }}>
               <LoggedOutTemplate>
-                <Button color="inherit" onClick={login}>
+                <Button className="nav-button" sx={{ color: "white" }} onClick={login}>
                   {t("logIn")}
                 </Button>
               </LoggedOutTemplate>
