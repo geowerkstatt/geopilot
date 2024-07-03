@@ -13,5 +13,24 @@
     "name": "geopilot",
     "logo": "/logo.svg",
     "url": "https://github.com/GeoWerkstatt/geopilot"
+  },
+  "theme":{
+    "palette": {
+      "primary": {
+        "main": "#007cc3"
+      },
+      "secondary": {
+        "main": "#ff5252"
+      },
+      "warning": {
+        "main": "#fd9903"
+      },
+      "error": {
+        "main": "#c10026"
+      },
+      "success": {
+        "main": "#4caf51"
+      }
+    }
   }
 }
