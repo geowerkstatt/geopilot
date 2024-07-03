@@ -157,19 +157,23 @@ input {
   .title-wrapper {
     margin-top: 12vh;
   }
+
   .dropzone {
     min-height: 12vh !important;
     margin-top: 3vh;
     font-size: 1rem;
   }
+
   .carousel {
     font-size: 20px;
   }
+
   .vendor-logo {
     max-height: 40px;
     max-width: 200px;
     margin: 0 20px 0 0 !important;
   }
+
   .app-logo {
     max-height: 200px;
   }
@@ -187,23 +191,28 @@ input {
     justify-content: center;
   }
 }
+
 @media screen and (max-width: 1200px) {
   .title-wrapper {
     margin-top: 12vh;
   }
+
   .dropzone {
     min-height: 12vh !important;
     margin-top: 3vh;
     font-size: 1rem;
   }
+
   .carousel {
     font-size: 18px;
   }
+
   .vendor-logo {
     margin-left: 2rem;
     max-height: 40px;
     max-width: 150px;
   }
+
   .app-logo {
     max-height: 150px;
   }
@@ -213,14 +222,17 @@ input {
   .title-wrapper {
     margin-top: 5vh;
   }
+
   .dropzone {
     min-height: 10vh !important;
     margin-top: 1vh;
     font-size: 0.8rem;
   }
+
   .carousel {
     font-size: 14px;
   }
+
   .app-logo {
     max-height: 100px;
   }
