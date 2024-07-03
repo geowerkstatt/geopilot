@@ -19,23 +19,6 @@ import i18n from "./i18n";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { deDE, enUS, frFR, itIT } from "@mui/material/locale";
 
-const baseTheme = {};
-
-const getThemeByLanguage = lng => {
-  switch (lng) {
-    case "de":
-      return createTheme(baseTheme, deDE);
-    case "fr":
-      return createTheme(baseTheme, frFR);
-    case "it":
-      return createTheme(baseTheme, itIT);
-    case "en":
-      return createTheme(baseTheme, enUS);
-    default:
-      return createTheme(baseTheme, enUS);
-  }
-};
-
 export const App = () => {
   const [modalContent, setModalContent] = useState(false);
   const [modalContentType, setModalContentType] = useState(null);
@@ -53,7 +36,8 @@ export const App = () => {
   const [licenseInfo, setLicenseInfo] = useState(null);
   const [licenseInfoCustom, setLicenseInfoCustom] = useState(null);
   const [alertText, setAlertText] = useState("");
-  const [theme, setTheme] = useState(getThemeByLanguage(i18n.language));
+  const [language, setLanguage] = useState(null);
+  const [theme, setTheme] = useState({});
 
   // Update HTML title property
   useEffect(() => {
@@ -122,6 +106,30 @@ export const App = () => {
       .then(json => setLicenseInfoCustom(json));
   }, []);
 
+  useEffect(() => {
+    let baseTheme = {};
+    if (clientSettings && clientSettings.theme) {
+      baseTheme = clientSettings.theme;
+    }
+
+    let lng = enUS;
+    switch (language) {
+      case "de":
+        lng = deDE;
+        break;
+      case "fr":
+        lng = frFR;
+        break;
+      case "it":
+        lng = itIT;
+        break;
+      case "en":
+        lng = enUS;
+        break;
+    }
+    setTheme(createTheme(baseTheme, lng));
+  }, [clientSettings, language]);
+
   const openModalContent = (content, type) =>
     setModalContent(content) & setModalContentType(type) & setShowModalContent(true);
 
@@ -135,8 +143,7 @@ export const App = () => {
 
   useEffect(() => {
     const handleLanguageChange = lng => {
-      const newTheme = getThemeByLanguage(lng);
-      setTheme(newTheme);
+      setLanguage(lng);
     };
 
     i18n.on("languageChanged", handleLanguageChange);
