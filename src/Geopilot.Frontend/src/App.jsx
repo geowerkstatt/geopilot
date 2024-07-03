@@ -198,6 +198,7 @@ export const App = () => {
                 </LoggedOutTemplate>
                 <AdminTemplate>
                   <Routes>
+                    <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
                     <Route path="admin" element={<Admin clientSettings={clientSettings} />}>
                       <Route path="delivery-overview" element={<DeliveryOverview />} />
                       <Route path="users" element={<Users />} />
