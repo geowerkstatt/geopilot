@@ -1,11 +1,12 @@
 import "../../app.css";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Container, Stack } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { FileDropzone } from "./FileDropzone";
 import { Title } from "./Title";
 import { Protokoll } from "./Protokoll";
 import { DeliveryContainer } from "./DeliveryContainer";
+import Header from "../../Header.jsx";
 
 export const Home = ({
   clientSettings,
@@ -129,33 +130,36 @@ export const Home = ({
   };
 
   return (
-    <main>
-      <Stack gap={3}>
-        <Container className="main-container">
-          <Title clientSettings={clientSettings} quickStartContent={quickStartContent} />
-          <FileDropzone
-            setUploadLogsEnabled={setUploadLogsEnabled}
-            setFileToCheck={setFileToCheck}
-            fileToCheck={fileToCheck}
-            nutzungsbestimmungenAvailable={nutzungsbestimmungenAvailable}
-            checkedNutzungsbestimmungen={checkedNutzungsbestimmungen}
-            checkFile={checkFile}
+    <>
+      <Header clientSettings={clientSettings} />
+      <main>
+        <Stack gap={3}>
+          <Container className="main-container">
+            <Title clientSettings={clientSettings} quickStartContent={quickStartContent} />
+            <FileDropzone
+              setUploadLogsEnabled={setUploadLogsEnabled}
+              setFileToCheck={setFileToCheck}
+              fileToCheck={fileToCheck}
+              nutzungsbestimmungenAvailable={nutzungsbestimmungenAvailable}
+              checkedNutzungsbestimmungen={checkedNutzungsbestimmungen}
+              checkFile={checkFile}
+              validationRunning={validationRunning}
+              setCheckedNutzungsbestimmungen={setCheckedNutzungsbestimmungen}
+              showNutzungsbestimmungen={showNutzungsbestimmungen}
+              acceptedFileTypes={validationSettings?.allowedFileExtensions}
+              fileToCheckRef={fileToCheckRef}
+            />
+          </Container>
+          <Protokoll
+            log={log}
+            statusData={statusData}
+            fileName={fileToCheck ? fileToCheck.name : ""}
             validationRunning={validationRunning}
-            setCheckedNutzungsbestimmungen={setCheckedNutzungsbestimmungen}
-            showNutzungsbestimmungen={showNutzungsbestimmungen}
-            acceptedFileTypes={validationSettings?.allowedFileExtensions}
-            fileToCheckRef={fileToCheckRef}
           />
-        </Container>
-        <Protokoll
-          log={log}
-          statusData={statusData}
-          fileName={fileToCheck ? fileToCheck.name : ""}
-          validationRunning={validationRunning}
-        />
-        <DeliveryContainer statusData={statusData} validationRunning={validationRunning} />
-      </Stack>
-    </main>
+          <DeliveryContainer statusData={statusData} validationRunning={validationRunning} />
+        </Stack>
+      </main>
+    </>
   );
 };
 

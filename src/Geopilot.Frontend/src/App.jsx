@@ -2,11 +2,10 @@ import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { useEffect, useMemo, useState } from "react";
 import { Alert } from "react-bootstrap";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Snackbar } from "@mui/material";
 import BannerContent from "./BannerContent";
 import Footer from "./Footer";
-import Header from "./Header";
 import Home from "./pages/home/Home";
 import Admin from "./pages/admin/Admin";
 import ModalContent from "./ModalContent";
@@ -18,6 +17,10 @@ import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { deDE, enUS, frFR, itIT } from "@mui/material/locale";
+import DeliveryOverview from "./pages/admin/DeliveryOverview.jsx";
+import Users from "./pages/admin/Users.jsx";
+import Mandates from "./pages/admin/Mandates.jsx";
+import Organisations from "./pages/admin/Organisations.jsx";
 
 export const App = () => {
   const [modalContent, setModalContent] = useState(false);
@@ -159,20 +162,32 @@ export const App = () => {
         <MsalProvider instance={msalInstance}>
           <AuthProvider authScopes={clientSettings?.authScopes} onLoginError={setAlertText}>
             <div className="app">
-              <Router>
-                <Header clientSettings={clientSettings} />
+              <BrowserRouter>
                 <Routes>
                   <Route
                     exact
                     path="/"
                     element={
-                      <Home
-                        clientSettings={clientSettings}
-                        nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
-                        showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
-                        quickStartContent={quickStartContent}
-                        setShowBannerContent={setShowBannerContent}
-                      />
+                      <>
+                        <Home
+                          clientSettings={clientSettings}
+                          nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
+                          showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
+                          quickStartContent={quickStartContent}
+                          setShowBannerContent={setShowBannerContent}
+                        />
+                        <Footer
+                          openModalContent={openModalContent}
+                          infoHilfeContent={infoHilfeContent}
+                          nutzungsbestimmungenContent={nutzungsbestimmungenContent}
+                          datenschutzContent={datenschutzContent}
+                          impressumContent={impressumContent}
+                          clientSettings={clientSettings}
+                          appVersion={backendVersion}
+                          licenseInfoCustom={licenseInfoCustom}
+                          licenseInfo={licenseInfo}
+                        />
+                      </>
                     }
                   />
                 </Routes>
@@ -183,21 +198,15 @@ export const App = () => {
                 </LoggedOutTemplate>
                 <AdminTemplate>
                   <Routes>
-                    <Route path="/admin" element={<Admin />} />
+                    <Route path="admin" element={<Admin clientSettings={clientSettings} />}>
+                      <Route path="delivery-overview" element={<DeliveryOverview />} />
+                      <Route path="users" element={<Users />} />
+                      <Route path="mandates" element={<Mandates />} />
+                      <Route path="organisations" element={<Organisations />} />
+                    </Route>
                   </Routes>
                 </AdminTemplate>
-              </Router>
-              <Footer
-                openModalContent={openModalContent}
-                infoHilfeContent={infoHilfeContent}
-                nutzungsbestimmungenContent={nutzungsbestimmungenContent}
-                datenschutzContent={datenschutzContent}
-                impressumContent={impressumContent}
-                clientSettings={clientSettings}
-                appVersion={backendVersion}
-                licenseInfoCustom={licenseInfoCustom}
-                licenseInfo={licenseInfo}
-              />
+              </BrowserRouter>
               <ModalContent
                 className="modal"
                 show={showModalContent}

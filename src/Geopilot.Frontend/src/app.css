@@ -9,6 +9,17 @@ body {
   height: 100vh;
 }
 
+.admin {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.admin header {
+  z-index: 1150;
+  position: relative !important;
+}
+
 main {
   flex: 1 1 auto;
   overflow: auto;

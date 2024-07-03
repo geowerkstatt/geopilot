@@ -43,7 +43,9 @@
   "logInForDelivery": "Log in to create delivery",
   "logOut": "Log Out",
   "mandate": "Mandate",
+  "mandates": "Mandates",
   "noErrors": "No Errors",
+  "organisations": "Organisations",
   "predecessor": "Predecessor",
   "privacyPolicy": "Privacy policy",
   "stacBrowser": "STAC Browser",
@@ -52,6 +54,7 @@
   "type": "Type",
   "uploadFile": "Upload {{fileName}}...",
   "uploadNotSuccessful": "The upload was not successful. Validation has been aborted.",
+  "users": "Users",
   "validate": "Validate",
   "version": "Version",
   "versionInformation": "Version information"

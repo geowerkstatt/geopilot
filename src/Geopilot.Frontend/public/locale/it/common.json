@@ -43,7 +43,9 @@
   "logInForDelivery": "Accedi per creare una consegna",
   "logOut": "Esci",
   "mandate": "Mandato",
+  "mandates": "Mandati",
   "noErrors": "Nessun errore",
+  "organisations": "Organizzazioni",
   "predecessor": "Predecessore",
   "privacyPolicy": "Informativa sulla privacy",
   "stacBrowser": "Browser STAC",
@@ -52,6 +54,7 @@
   "type": "Tipo",
   "uploadFile": "Carica {{fileName}}...",
   "uploadNotSuccessful": "Caricamento non riuscito. La validazione è stata interrotta.",
+  "users": "Utenti",
   "validate": "Valida",
   "version": "Versione",
   "versionInformation": "Informazioni sulla versione"
