@@ -47,7 +47,7 @@ export const DeliveryOverview = () => {
       setAlertMessages(prev => prev.slice(1));
       showAlert(alertMessages[0], "error");
     }
-  }, [alertMessages, currentAlert, alertIsOpen]);
+  }, [alertMessages, currentAlert, alertIsOpen, showAlert]);
 
   async function loadDeliveries() {
     try {
