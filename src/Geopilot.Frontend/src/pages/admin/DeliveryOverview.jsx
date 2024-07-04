@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Modal } from "react-bootstrap";
-import { GoTrash } from "react-icons/go";
+import { Alert, Modal } from "react-bootstrap";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { DataGrid } from "@mui/x-data-grid";
-import { Snackbar } from "@mui/material";
+import { Button, Snackbar } from "@mui/material";
 import { useAuth } from "@/auth";
 
 const useTranslatedColumns = t => {
@@ -141,12 +141,13 @@ export const DeliveryOverview = () => {
       {selectedRows.length > 0 && (
         <div className="center-button-container">
           <Button
-            className="icon-button"
+            color="error"
+            variant="contained"
+            startIcon={<DeleteOutlinedIcon />}
             onClick={() => {
               setShowModal(true);
             }}>
-            <GoTrash />
-            <div style={{ marginLeft: 10 }}>{t("deleteDelivery", { count: selectedRows.length })}</div>
+            <div>{t("deleteDelivery", { count: selectedRows.length })}</div>
           </Button>
         </div>
       )}
