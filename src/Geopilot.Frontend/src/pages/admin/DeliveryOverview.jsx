@@ -4,7 +4,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { DataGrid } from "@mui/x-data-grid";
 import { Button, Snackbar } from "@mui/material";
-import { useAuth } from "@/auth";
+import { useAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext.jsx";
 
 const useTranslatedColumns = t => {
