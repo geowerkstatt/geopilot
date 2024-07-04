@@ -43,7 +43,9 @@
   "logInForDelivery": "Anmelden um Lieferung zu erstellen",
   "logOut": "Abmelden",
   "mandate": "Mandat",
+  "mandates": "Mandate",
   "noErrors": "Keine Fehler",
+  "organisations": "Organisationen",
   "predecessor": "Vorgänger",
   "privacyPolicy": "Datenschutz",
   "stacBrowser": "STAC Browser",
@@ -52,6 +54,7 @@
   "type": "Typ",
   "uploadFile": "{{fileName}} hochladen...",
   "uploadNotSuccessful": "Der Upload war nicht erfolgreich. Die Validierung wurde abgebrochen.",
+  "users": "Benutzer:innen",
   "validate": "Validieren",
   "version": "Version",
   "versionInformation": "Versionsinformationen"

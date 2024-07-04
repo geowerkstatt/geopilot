@@ -7,6 +7,7 @@ import {
   Button,
   Divider,
   Drawer,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
@@ -14,12 +15,14 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import { LoggedInTemplate } from "./auth/LoggedInTemplate.jsx";
 import { LoggedOutTemplate } from "./auth/LoggedOutTemplate.jsx";
 import { AdminTemplate } from "./auth/AdminTemplate.jsx";
 import { useLocation, useNavigate } from "react-router-dom";
 
-export const Header = ({ clientSettings }) => {
+export const Header = ({ clientSettings, hasDrawerToggle, handleDrawerToggle }) => {
   const { user, login, logout } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -31,16 +34,37 @@ export const Header = ({ clientSettings }) => {
   };
 
   return (
-    <header>
-      <Box sx={{ flexGrow: 1 }}>
-        <AppBar position="static">
-          <Toolbar
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              justifyContent: "space-between",
-            }}>
-            <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+    <>
+      <AppBar>
+        <Toolbar
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}>
+          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+            {hasDrawerToggle ? (
+              <>
+                <IconButton
+                  color="inherit"
+                  aria-label="open drawer"
+                  edge="start"
+                  onClick={handleDrawerToggle}
+                  sx={{ mr: 2, display: { sm: "none" } }}>
+                  <MenuIcon fontSize="large" />
+                </IconButton>
+                <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                  <img
+                    className="vendor-logo"
+                    src={clientSettings?.vendor?.logo}
+                    alt={`Logo of ${clientSettings?.vendor?.name}`}
+                    onError={e => {
+                      e.target.style.display = "none";
+                    }}
+                  />
+                </Box>
+              </>
+            ) : (
               <img
                 className="vendor-logo"
                 src={clientSettings?.vendor?.logo}
@@ -49,25 +73,25 @@ export const Header = ({ clientSettings }) => {
                   e.target.style.display = "none";
                 }}
               />
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                {location.pathname.includes("admin") ? t("administration").toUpperCase() : t("delivery").toUpperCase()}
-              </Typography>
-            </Box>
-            <Box sx={{ flexGrow: 0 }}>
-              <LoggedOutTemplate>
-                <Button className="nav-button" sx={{ color: "white" }} onClick={login}>
-                  {t("logIn")}
-                </Button>
-              </LoggedOutTemplate>
-              <LoggedInTemplate>
-                <Button className="nav-button" sx={{ color: "white" }} onClick={toggleUserMenu(true)}>
-                  {user?.name}
-                </Button>
-              </LoggedInTemplate>
-            </Box>
-          </Toolbar>
-        </AppBar>
-      </Box>
+            )}
+            <Typography variant="h6" component="div" sx={{ display: { xs: "none", sm: "block" }, flexGrow: 1 }}>
+              {location.pathname.includes("admin") ? t("administration").toUpperCase() : t("delivery").toUpperCase()}
+            </Typography>
+          </Box>
+          <Box sx={{ flexGrow: 0 }}>
+            <LoggedOutTemplate>
+              <Button className="nav-button" sx={{ color: "white" }} onClick={login}>
+                {t("logIn")}
+              </Button>
+            </LoggedOutTemplate>
+            <LoggedInTemplate>
+              <IconButton className="nav-button" sx={{ color: "white" }} onClick={toggleUserMenu(true)}>
+                <AccountCircleOutlinedIcon fontSize="large" />
+              </IconButton>
+            </LoggedInTemplate>
+          </Box>
+        </Toolbar>
+      </AppBar>
       <Drawer anchor={"right"} open={userMenuOpen} onClose={toggleUserMenu(false)}>
         <div className="user-menu">
           <Box
@@ -115,7 +139,7 @@ export const Header = ({ clientSettings }) => {
           </Button>
         </div>
       </Drawer>
-    </header>
+    </>
   );
 };
 

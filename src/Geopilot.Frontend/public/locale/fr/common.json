@@ -43,7 +43,9 @@
   "logInForDelivery": "Connectez-vous pour créer une livraison",
   "logOut": "Se déconnecter",
   "mandate": "Mandat",
+  "mandates": "Mandats",
   "noErrors": "Pas d'erreurs",
+  "organisations": "Organisations",
   "predecessor": "Prédécesseur",
   "privacyPolicy": "Politique de confidentialité",
   "stacBrowser": "Navigateur STAC",
@@ -52,6 +54,7 @@
   "type": "Type",
   "uploadFile": "Télécharger {{fileName}}...",
   "uploadNotSuccessful": "Le téléchargement n'a pas réussi. La validation a été annulée.",
+  "users": "Utilisateurs",
   "validate": "Valider",
   "version": "Version",
   "versionInformation": "Informations sur la version"
