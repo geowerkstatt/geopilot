@@ -7,7 +7,7 @@ import { Snackbar } from "@mui/material";
 import { useAuth } from "@/auth";
 
 const useTranslatedColumns = t => {
-  const columns = [
+  return [
     { field: "id", headerName: t("id"), width: 60 },
     {
       field: "date",
@@ -22,7 +22,6 @@ const useTranslatedColumns = t => {
     { field: "mandate", headerName: t("mandate"), flex: 0.5, minWidth: 200 },
     { field: "comment", headerName: t("comment"), flex: 1, minWidth: 600 },
   ];
-  return columns;
 };
 
 export const DeliveryOverview = () => {
@@ -58,9 +57,9 @@ export const DeliveryOverview = () => {
 
   async function loadDeliveries() {
     try {
-      var response = await fetch("/api/v1/delivery");
-      if (response.status == 200) {
-        var deliveries = await response.json();
+      const response = await fetch("/api/v1/delivery");
+      if (response.status === 200) {
+        const deliveries = await response.json();
         setDeliveries(
           deliveries.map(d => ({
             id: d.id,
@@ -83,10 +82,9 @@ export const DeliveryOverview = () => {
   }
 
   async function handleDelete() {
-    setShowModal(false);
-    for (var row of selectedRows) {
+    for (const row of selectedRows) {
       try {
-        var response = await fetch("api/v1/delivery/" + row, {
+        const response = await fetch("api/v1/delivery/" + row, {
           method: "DELETE",
         });
         if (response.status == 404) {
