@@ -1,11 +1,11 @@
 import { useContext, useEffect, useState } from "react";
-import { Alert } from "react-bootstrap";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { DataGrid } from "@mui/x-data-grid";
-import { Button, Snackbar } from "@mui/material";
+import { Button } from "@mui/material";
 import { useAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext.jsx";
+import { AlertContext } from "../../components/alert/alertContext.jsx";
 
 const useTranslatedColumns = t => {
   return [
@@ -33,28 +33,21 @@ export const DeliveryOverview = () => {
   const [alertMessages, setAlertMessages] = useState([]);
   const [currentAlert, setCurrentAlert] = useState(undefined);
   const { showPrompt } = useContext(PromptContext);
-  const [showAlert, setShowAlert] = useState(false);
+  const { showAlert, alertIsOpen } = useContext(AlertContext);
 
   const { user } = useAuth();
 
-  if (user && deliveries == undefined) {
+  if (user && deliveries === undefined) {
     loadDeliveries();
   }
 
   useEffect(() => {
-    if (alertMessages.length && (!currentAlert || !showAlert)) {
+    if (alertMessages.length && (!currentAlert || !alertIsOpen)) {
       setCurrentAlert(alertMessages[0]);
       setAlertMessages(prev => prev.slice(1));
-      setShowAlert(true);
+      showAlert(alertMessages[0], "error");
     }
-  }, [alertMessages, currentAlert, showAlert]);
-
-  const closeAlert = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setShowAlert(false);
-  };
+  }, [alertMessages, currentAlert, alertIsOpen]);
 
   async function loadDeliveries() {
     try {
@@ -72,13 +65,7 @@ export const DeliveryOverview = () => {
         );
       }
     } catch (error) {
-      setAlertMessages(prev => [
-        ...prev,
-        {
-          message: t("deliveryOverviewLoadingError", { error: error }),
-          key: new Date().getTime(),
-        },
-      ]);
+      setAlertMessages(prev => [...prev, t("deliveryOverviewLoadingError", { error: error })]);
     }
   }
 
@@ -88,28 +75,13 @@ export const DeliveryOverview = () => {
         const response = await fetch("api/v1/delivery/" + row, {
           method: "DELETE",
         });
-        if (response.status == 404) {
-          setAlertMessages(prev => [
-            ...prev,
-            {
-              message: t("deliveryOverviewDeleteIdNotExistError", { id: row }),
-              key: new Date().getTime(),
-            },
-          ]);
-        } else if (response.status == 500) {
-          setAlertMessages(prev => [
-            ...prev,
-            {
-              message: t("deliveryOverviewDeleteIdError", { id: row }),
-              key: new Date().getTime(),
-            },
-          ]);
+        if (response.status === 404) {
+          setAlertMessages(prev => [...prev, t("deliveryOverviewDeleteIdNotExistError", { id: row })]);
+        } else if (response.status === 500) {
+          setAlertMessages(prev => [...prev, t("deliveryOverviewDeleteIdError", { id: row })]);
         }
       } catch (error) {
-        setAlertMessages(prev => [
-          ...prev,
-          { message: t("deliveryOverviewDeleteError", { error: error }), key: new Date().getTime() },
-        ]);
+        setAlertMessages(prev => [...prev, t("deliveryOverviewDeleteError", { error: error })]);
       }
     }
     await loadDeliveries();
@@ -155,15 +127,6 @@ export const DeliveryOverview = () => {
           </Button>
         </div>
       )}
-      <Snackbar
-        key={currentAlert ? currentAlert.key : undefined}
-        open={showAlert}
-        onClose={closeAlert}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}>
-        <Alert variant="danger" onClose={closeAlert} dismissible>
-          <p>{currentAlert ? currentAlert.message : undefined}</p>
-        </Alert>
-      </Snackbar>
     </>
   );
 };
