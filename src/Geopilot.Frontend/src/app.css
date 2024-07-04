@@ -523,11 +523,6 @@ footer {
   margin-top: 20px;
 }
 
-.icon-button {
-  display: flex;
-  align-items: center;
-}
-
 .nav-button {
   background-color: transparent !important;
   font-size: 1.25rem !important;

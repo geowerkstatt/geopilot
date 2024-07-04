@@ -1,27 +1,21 @@
-import { useEffect, useState } from "react";
-import { Alert, Button, Modal } from "react-bootstrap";
-import { GoTrash } from "react-icons/go";
+import { useContext, useEffect, useState } from "react";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { DataGrid } from "@mui/x-data-grid";
-import { Snackbar } from "@mui/material";
-import { useAuth } from "@/auth";
+import { Button } from "@mui/material";
+import { useAuth } from "../../auth";
+import { PromptContext } from "../../components/prompt/promptContext.jsx";
+import { AlertContext } from "../../components/alert/alertContext.jsx";
 
 const useTranslatedColumns = t => {
-  const columns = [
+  return [
     { field: "id", headerName: t("id"), width: 60 },
     {
       field: "date",
       headerName: t("deliveryDate"),
       valueFormatter: params => {
         const date = new Date(params.value);
-        return (
-          `${date.getHours().toString().padStart(2, "0")}:` +
-          `${date.getMinutes().toString().padStart(2, "0")}:` +
-          `${date.getSeconds().toString().padStart(2, "0")} ` +
-          `${date.getDate().toString().padStart(2, "0")}.` +
-          `${(date.getMonth() + 1).toString().padStart(2, "0")}.` +
-          `${date.getFullYear()}`
-        );
+        return `${date.toLocaleString()}`;
       },
       width: 180,
     },
@@ -29,7 +23,6 @@ const useTranslatedColumns = t => {
     { field: "mandate", headerName: t("mandate"), flex: 0.5, minWidth: 200 },
     { field: "comment", headerName: t("comment"), flex: 1, minWidth: 600 },
   ];
-  return columns;
 };
 
 export const DeliveryOverview = () => {
@@ -37,37 +30,30 @@ export const DeliveryOverview = () => {
   const columns = useTranslatedColumns(t);
   const [deliveries, setDeliveries] = useState(undefined);
   const [selectedRows, setSelectedRows] = useState([]);
-  const [showModal, setShowModal] = useState(false);
   const [alertMessages, setAlertMessages] = useState([]);
   const [currentAlert, setCurrentAlert] = useState(undefined);
-  const [showAlert, setShowAlert] = useState(false);
+  const { showPrompt } = useContext(PromptContext);
+  const { showAlert, alertIsOpen } = useContext(AlertContext);
 
   const { user } = useAuth();
 
-  if (user && deliveries == undefined) {
+  if (user && deliveries === undefined) {
     loadDeliveries();
   }
 
   useEffect(() => {
-    if (alertMessages.length && (!currentAlert || !showAlert)) {
+    if (alertMessages.length && (!currentAlert || !alertIsOpen)) {
       setCurrentAlert(alertMessages[0]);
       setAlertMessages(prev => prev.slice(1));
-      setShowAlert(true);
+      showAlert(alertMessages[0], "error");
     }
-  }, [alertMessages, currentAlert, showAlert]);
-
-  const closeAlert = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setShowAlert(false);
-  };
+  }, [alertMessages, currentAlert, alertIsOpen, showAlert]);
 
   async function loadDeliveries() {
     try {
-      var response = await fetch("/api/v1/delivery");
-      if (response.status == 200) {
-        var deliveries = await response.json();
+      const response = await fetch("/api/v1/delivery");
+      if (response.status === 200) {
+        const deliveries = await response.json();
         setDeliveries(
           deliveries.map(d => ({
             id: d.id,
@@ -79,45 +65,23 @@ export const DeliveryOverview = () => {
         );
       }
     } catch (error) {
-      setAlertMessages(prev => [
-        ...prev,
-        {
-          message: t("deliveryOverviewLoadingError", { error: error }),
-          key: new Date().getTime(),
-        },
-      ]);
+      setAlertMessages(prev => [...prev, t("deliveryOverviewLoadingError", { error: error })]);
     }
   }
 
   async function handleDelete() {
-    setShowModal(false);
-    for (var row of selectedRows) {
+    for (const row of selectedRows) {
       try {
-        var response = await fetch("api/v1/delivery/" + row, {
+        const response = await fetch("api/v1/delivery/" + row, {
           method: "DELETE",
         });
-        if (response.status == 404) {
-          setAlertMessages(prev => [
-            ...prev,
-            {
-              message: t("deliveryOverviewDeleteIdNotExistError", { id: row }),
-              key: new Date().getTime(),
-            },
-          ]);
-        } else if (response.status == 500) {
-          setAlertMessages(prev => [
-            ...prev,
-            {
-              message: t("deliveryOverviewDeleteIdError", { id: row }),
-              key: new Date().getTime(),
-            },
-          ]);
+        if (response.status === 404) {
+          setAlertMessages(prev => [...prev, t("deliveryOverviewDeleteIdNotExistError", { id: row })]);
+        } else if (response.status === 500) {
+          setAlertMessages(prev => [...prev, t("deliveryOverviewDeleteIdError", { id: row })]);
         }
       } catch (error) {
-        setAlertMessages(prev => [
-          ...prev,
-          { message: t("deliveryOverviewDeleteError", { error: error }), key: new Date().getTime() },
-        ]);
+        setAlertMessages(prev => [...prev, t("deliveryOverviewDeleteError", { error: error })]);
       }
     }
     await loadDeliveries();
@@ -150,39 +114,19 @@ export const DeliveryOverview = () => {
       {selectedRows.length > 0 && (
         <div className="center-button-container">
           <Button
-            className="icon-button"
+            color="error"
+            variant="contained"
+            startIcon={<DeleteOutlinedIcon />}
             onClick={() => {
-              setShowModal(true);
+              showPrompt(t("deleteDeliveryConfirmationTitle"), t("deleteDeliveryConfirmationMessage"), [
+                { label: t("cancel"), action: null },
+                { label: t("delete"), action: handleDelete, color: "error", variant: "contained" },
+              ]);
             }}>
-            <GoTrash />
-            <div style={{ marginLeft: 10 }}>{t("deleteDelivery", { count: selectedRows.length })}</div>
+            <div>{t("deleteDelivery", { count: selectedRows.length })}</div>
           </Button>
         </div>
       )}
-      <Modal show={showModal} animation={false}>
-        <Modal.Body>{t("deleteDeliveryConfirmation")}</Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setShowModal(false);
-            }}>
-            {t("cancel")}
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            {t("delete")}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-      <Snackbar
-        key={currentAlert ? currentAlert.key : undefined}
-        open={showAlert}
-        onClose={closeAlert}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}>
-        <Alert variant="danger" onClose={closeAlert} dismissible>
-          <p>{currentAlert ? currentAlert.message : undefined}</p>
-        </Alert>
-      </Snackbar>
     </>
   );
 };
