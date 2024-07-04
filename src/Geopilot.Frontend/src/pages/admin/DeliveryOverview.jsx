@@ -14,14 +14,7 @@ const useTranslatedColumns = t => {
       headerName: t("deliveryDate"),
       valueFormatter: params => {
         const date = new Date(params.value);
-        return (
-          `${date.getHours().toString().padStart(2, "0")}:` +
-          `${date.getMinutes().toString().padStart(2, "0")}:` +
-          `${date.getSeconds().toString().padStart(2, "0")} ` +
-          `${date.getDate().toString().padStart(2, "0")}.` +
-          `${(date.getMonth() + 1).toString().padStart(2, "0")}.` +
-          `${date.getFullYear()}`
-        );
+        return `${date.toLocaleString()}`;
       },
       width: 180,
     },
