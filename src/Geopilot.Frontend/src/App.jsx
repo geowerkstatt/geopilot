@@ -21,6 +21,8 @@ import DeliveryOverview from "./pages/admin/DeliveryOverview.jsx";
 import Users from "./pages/admin/Users.jsx";
 import Mandates from "./pages/admin/Mandates.jsx";
 import Organisations from "./pages/admin/Organisations.jsx";
+import { PromptProvider } from "./components/prompt/promptContext.jsx";
+import { Prompt } from "./components/prompt/prompt.jsx";
 
 export const App = () => {
   const [modalContent, setModalContent] = useState(false);
@@ -161,69 +163,76 @@ export const App = () => {
       <ThemeProvider theme={theme}>
         <MsalProvider instance={msalInstance}>
           <AuthProvider authScopes={clientSettings?.authScopes} onLoginError={setAlertText}>
-            <div className="app">
-              <BrowserRouter>
-                <Routes>
-                  <Route
-                    exact
-                    path="/"
-                    element={
-                      <>
-                        <Home
-                          clientSettings={clientSettings}
-                          nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
-                          showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
-                          quickStartContent={quickStartContent}
-                          setShowBannerContent={setShowBannerContent}
-                        />
-                        <Footer
-                          openModalContent={openModalContent}
-                          infoHilfeContent={infoHilfeContent}
-                          nutzungsbestimmungenContent={nutzungsbestimmungenContent}
-                          datenschutzContent={datenschutzContent}
-                          impressumContent={impressumContent}
-                          clientSettings={clientSettings}
-                          appVersion={backendVersion}
-                          licenseInfoCustom={licenseInfoCustom}
-                          licenseInfo={licenseInfo}
-                        />
-                      </>
-                    }
+            <PromptProvider>
+              <Prompt />
+              <div className="app">
+                <BrowserRouter>
+                  <Routes>
+                    <Route
+                      exact
+                      path="/"
+                      element={
+                        <>
+                          <Home
+                            clientSettings={clientSettings}
+                            nutzungsbestimmungenAvailable={nutzungsbestimmungenContent ? true : false}
+                            showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
+                            quickStartContent={quickStartContent}
+                            setShowBannerContent={setShowBannerContent}
+                          />
+                          <Footer
+                            openModalContent={openModalContent}
+                            infoHilfeContent={infoHilfeContent}
+                            nutzungsbestimmungenContent={nutzungsbestimmungenContent}
+                            datenschutzContent={datenschutzContent}
+                            impressumContent={impressumContent}
+                            clientSettings={clientSettings}
+                            appVersion={backendVersion}
+                            licenseInfoCustom={licenseInfoCustom}
+                            licenseInfo={licenseInfo}
+                          />
+                        </>
+                      }
+                    />
+                  </Routes>
+                  <LoggedOutTemplate>
+                    <Routes>
+                      <Route path="*" element={<Navigate to="/" />} />
+                    </Routes>
+                  </LoggedOutTemplate>
+                  <AdminTemplate>
+                    <Routes>
+                      <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
+                      <Route path="admin" element={<Admin clientSettings={clientSettings} />}>
+                        <Route path="delivery-overview" element={<DeliveryOverview />} />
+                        <Route path="users" element={<Users />} />
+                        <Route path="mandates" element={<Mandates />} />
+                        <Route path="organisations" element={<Organisations />} />
+                      </Route>
+                    </Routes>
+                  </AdminTemplate>
+                </BrowserRouter>
+                <ModalContent
+                  className="modal"
+                  show={showModalContent}
+                  content={modalContent}
+                  type={modalContentType}
+                  onHide={() => setShowModalContent(false)}
+                />
+                {bannerContent && showBannerContent && (
+                  <BannerContent
+                    className="banner"
+                    content={bannerContent}
+                    onHide={() => setShowBannerContent(false)}
                   />
-                </Routes>
-                <LoggedOutTemplate>
-                  <Routes>
-                    <Route path="*" element={<Navigate to="/" />} />
-                  </Routes>
-                </LoggedOutTemplate>
-                <AdminTemplate>
-                  <Routes>
-                    <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
-                    <Route path="admin" element={<Admin clientSettings={clientSettings} />}>
-                      <Route path="delivery-overview" element={<DeliveryOverview />} />
-                      <Route path="users" element={<Users />} />
-                      <Route path="mandates" element={<Mandates />} />
-                      <Route path="organisations" element={<Organisations />} />
-                    </Route>
-                  </Routes>
-                </AdminTemplate>
-              </BrowserRouter>
-              <ModalContent
-                className="modal"
-                show={showModalContent}
-                content={modalContent}
-                type={modalContentType}
-                onHide={() => setShowModalContent(false)}
-              />
-              {bannerContent && showBannerContent && (
-                <BannerContent className="banner" content={bannerContent} onHide={() => setShowBannerContent(false)} />
-              )}
-            </div>
-            <Snackbar key={alertText} open={alertText !== ""} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
-              <Alert variant="danger" dismissible onClose={() => setAlertText("")}>
-                <p>{alertText}</p>
-              </Alert>
-            </Snackbar>
+                )}
+              </div>
+              <Snackbar key={alertText} open={alertText !== ""} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
+                <Alert variant="danger" dismissible onClose={() => setAlertText("")}>
+                  <p>{alertText}</p>
+                </Alert>
+              </Snackbar>
+            </PromptProvider>
           </AuthProvider>
         </MsalProvider>
       </ThemeProvider>

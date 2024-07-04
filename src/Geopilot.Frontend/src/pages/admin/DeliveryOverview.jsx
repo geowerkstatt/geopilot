@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import { Alert, Modal } from "react-bootstrap";
+import { useContext, useEffect, useState } from "react";
+import { Alert } from "react-bootstrap";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { DataGrid } from "@mui/x-data-grid";
 import { Button, Snackbar } from "@mui/material";
 import { useAuth } from "@/auth";
+import { PromptContext } from "../../components/prompt/promptContext.jsx";
 
 const useTranslatedColumns = t => {
   return [
@@ -29,9 +30,9 @@ export const DeliveryOverview = () => {
   const columns = useTranslatedColumns(t);
   const [deliveries, setDeliveries] = useState(undefined);
   const [selectedRows, setSelectedRows] = useState([]);
-  const [showModal, setShowModal] = useState(false);
   const [alertMessages, setAlertMessages] = useState([]);
   const [currentAlert, setCurrentAlert] = useState(undefined);
+  const { showPrompt } = useContext(PromptContext);
   const [showAlert, setShowAlert] = useState(false);
 
   const { user } = useAuth();
@@ -145,27 +146,15 @@ export const DeliveryOverview = () => {
             variant="contained"
             startIcon={<DeleteOutlinedIcon />}
             onClick={() => {
-              setShowModal(true);
+              showPrompt(t("deleteDeliveryConfirmationTitle"), t("deleteDeliveryConfirmationMessage"), [
+                { label: t("cancel"), action: null },
+                { label: t("delete"), action: handleDelete, color: "error" },
+              ]);
             }}>
             <div>{t("deleteDelivery", { count: selectedRows.length })}</div>
           </Button>
         </div>
       )}
-      <Modal show={showModal} animation={false}>
-        <Modal.Body>{t("deleteDeliveryConfirmation")}</Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setShowModal(false);
-            }}>
-            {t("cancel")}
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            {t("delete")}
-          </Button>
-        </Modal.Footer>
-      </Modal>
       <Snackbar
         key={currentAlert ? currentAlert.key : undefined}
         open={showAlert}
