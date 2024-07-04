@@ -20,7 +20,8 @@ export const Prompt = () => {
               }
               closePrompt();
             }}
-            color={action.color ? action.color : "primary"}
+            color={action.color ? action.color : "inherit"}
+            variant={action.variant ? action.variant : "outlined"}
             disabled={action.disabled === true}
             data-cy={"prompt-button-" + action.label}>
             {action.label}

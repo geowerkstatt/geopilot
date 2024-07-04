@@ -120,7 +120,7 @@ export const DeliveryOverview = () => {
             onClick={() => {
               showPrompt(t("deleteDeliveryConfirmationTitle"), t("deleteDeliveryConfirmationMessage"), [
                 { label: t("cancel"), action: null },
-                { label: t("delete"), action: handleDelete, color: "error" },
+                { label: t("delete"), action: handleDelete, color: "error", variant: "contained" },
               ]);
             }}>
             <div>{t("deleteDelivery", { count: selectedRows.length })}</div>
