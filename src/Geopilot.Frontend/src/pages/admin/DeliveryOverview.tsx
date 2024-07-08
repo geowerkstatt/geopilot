@@ -73,7 +73,7 @@ export const DeliveryOverview = () => {
   async function handleDelete() {
     for (const row of selectedRows) {
       try {
-        const response = await fetch("api/v1/delivery/" + row, {
+        const response = await fetch("/api/v1/delivery/" + row, {
           method: "DELETE",
         });
         if (response.status === 404) {
