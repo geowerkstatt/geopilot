@@ -17,7 +17,7 @@ export interface PromptOptions {
 
 export interface PromptAction {
   label: string;
-  action?: () => never;
+  action?: () => void | Promise<void>;
   color?: PromptActionColor;
   variant?: PromptActionVariant;
   disabled?: boolean;

@@ -25,10 +25,6 @@ export interface TranslationFunction {
   (key: string): string;
 }
 
-export interface DataGridColumnValueFormatterParams {
-  value: string | number;
-}
-
 export type ModalContentType = "markdown" | "raw";
 
 export interface Mandate {

@@ -6,7 +6,7 @@ import { Button } from "@mui/material";
 import { useAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/PromptContext.tsx";
 import { AlertContext } from "../../components/alert/AlertContext.tsx";
-import { DataGridColumnValueFormatterParams, Delivery, TranslationFunction } from "../../AppInterfaces";
+import { Delivery, TranslationFunction } from "../../AppInterfaces";
 
 const useTranslatedColumns = (t: TranslationFunction) => {
   return [
@@ -14,8 +14,8 @@ const useTranslatedColumns = (t: TranslationFunction) => {
     {
       field: "date",
       headerName: t("deliveryDate"),
-      valueFormatter: (params: DataGridColumnValueFormatterParams) => {
-        const date = new Date(params.value);
+      valueFormatter: (params: string) => {
+        const date = new Date(params);
         return `${date.toLocaleString()}`;
       },
       width: 180,
