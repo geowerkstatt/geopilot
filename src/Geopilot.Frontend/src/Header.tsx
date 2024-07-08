@@ -1,6 +1,5 @@
 ﻿import { useAuth } from "./auth";
 import { useTranslation } from "react-i18next";
-import * as React from "react";
 import {
   AppBar,
   Box,
@@ -17,19 +16,27 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import { LoggedInTemplate } from "./auth/LoggedInTemplate.jsx";
-import { LoggedOutTemplate } from "./auth/LoggedOutTemplate.jsx";
-import { AdminTemplate } from "./auth/AdminTemplate.jsx";
+import { LoggedInTemplate } from "./auth/LoggedInTemplate.js";
+import { LoggedOutTemplate } from "./auth/LoggedOutTemplate.js";
+import { AdminTemplate } from "./auth/AdminTemplate.js";
 import { useLocation, useNavigate } from "react-router-dom";
+import { ClientSettings } from "./AppInterfaces";
+import { FC, useState } from "react";
 
-export const Header = ({ clientSettings, hasDrawerToggle, handleDrawerToggle }) => {
+interface HeaderProps {
+  clientSettings: ClientSettings;
+  hasDrawerToggle?: boolean;
+  handleDrawerToggle?: () => void;
+}
+
+export const Header: FC<HeaderProps> = ({ clientSettings, hasDrawerToggle, handleDrawerToggle }) => {
   const { user, login, logout } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
 
-  const toggleUserMenu = newOpen => () => {
+  const toggleUserMenu = (newOpen: boolean) => () => {
     setUserMenuOpen(newOpen);
   };
 
@@ -59,7 +66,8 @@ export const Header = ({ clientSettings, hasDrawerToggle, handleDrawerToggle }) 
                     src={clientSettings?.vendor?.logo}
                     alt={`Logo of ${clientSettings?.vendor?.name}`}
                     onError={e => {
-                      e.target.style.display = "none";
+                      const img = e.target as HTMLImageElement;
+                      img.style.display = "none";
                     }}
                   />
                 </Box>
@@ -70,7 +78,8 @@ export const Header = ({ clientSettings, hasDrawerToggle, handleDrawerToggle }) 
                 src={clientSettings?.vendor?.logo}
                 alt={`Logo of ${clientSettings?.vendor?.name}`}
                 onError={e => {
-                  e.target.style.display = "none";
+                  const img = e.target as HTMLImageElement;
+                  img.style.display = "none";
                 }}
               />
             )}
@@ -100,8 +109,8 @@ export const Header = ({ clientSettings, hasDrawerToggle, handleDrawerToggle }) 
             onClick={toggleUserMenu(false)}
             onKeyDown={toggleUserMenu(false)}>
             <List>
-              <ListItem key={user?.name}>
-                <ListItemText primary={user?.name} />
+              <ListItem key={user?.fullName}>
+                <ListItemText primary={user?.fullName} />
               </ListItem>
             </List>
             <Divider />

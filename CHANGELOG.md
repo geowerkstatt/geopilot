@@ -13,6 +13,7 @@
 - Renamed DeliveryMandate to Mandate.
 - Rename _Abgabe_ to _Lieferung_.
 - Refactored delivery overview to use only [MUI](https://mui.com/material-ui/) components.
+- Use Typescript for new components.
 
 ## v1.0.93 - 2024-05-14
 

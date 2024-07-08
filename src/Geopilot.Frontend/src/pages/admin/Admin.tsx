@@ -1,15 +1,19 @@
 import { useTranslation } from "react-i18next";
 import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Toolbar } from "@mui/material";
-import Header from "../../Header.jsx";
-import { useState } from "react";
+import Header from "../../Header.js";
+import { FC, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
+import { ClientSettings } from "../../AppInterfaces";
 
-export const Admin = props => {
+interface AdminProps {
+  clientSettings: ClientSettings;
+}
+
+export const Admin: FC<AdminProps> = ({ clientSettings }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
-  const clientSettings = props.clientSettings;
 
   const handleDrawerClose = () => {
     setIsClosing(true);
@@ -26,7 +30,7 @@ export const Admin = props => {
     }
   };
 
-  const navigateTo = path => {
+  const navigateTo = (path: string) => {
     navigate(path);
     if (adminMenuOpen) {
       handleDrawerClose();

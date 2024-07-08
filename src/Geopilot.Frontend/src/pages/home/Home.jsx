@@ -6,7 +6,7 @@ import { FileDropzone } from "./FileDropzone";
 import { Title } from "./Title";
 import { Protokoll } from "./Protokoll";
 import { DeliveryContainer } from "./DeliveryContainer";
-import Header from "../../Header.jsx";
+import Header from "../../Header.tsx";
 
 export const Home = ({
   clientSettings,
@@ -36,7 +36,7 @@ export const Home = ({
 
   // Enable Upload logging
   useEffect(() => {
-    if (uploadLogsInterval != 0) setUploadLogsEnabled(true);
+    if (uploadLogsInterval !== 0) setUploadLogsEnabled(true);
   }, [uploadLogsInterval]);
   useEffect(() => {
     if (!uploadLogsEnabled) clearInterval(uploadLogsInterval);
@@ -104,8 +104,7 @@ export const Home = ({
           const status = await fetch(`/api/v1/validation/${data.jobId}`, {
             method: "GET",
           });
-          const statusData = await status.json();
-          return statusData;
+          return await status.json();
         };
 
         const interval = setIntervalImmediately(async () => {

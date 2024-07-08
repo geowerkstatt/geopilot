@@ -8,7 +8,7 @@ export const ModalContent = props => {
   const { t } = useTranslation();
 
   return (
-    <Modal {...props} size="lg" aria-labelledby="contained-modal-title-vcenter" centered>
+    <Modal {...props} size="lg" aria-labelledby="contained-modal-title-vcenter" className="modal" centered>
       <Modal.Body>
         {type === "markdown" && (
           <ReactMarkdown rehypePlugins={[() => rehypeExternalLinks({ target: "_blank" })]}>

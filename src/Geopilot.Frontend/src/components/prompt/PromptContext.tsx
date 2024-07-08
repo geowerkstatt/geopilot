@@ -1,18 +1,19 @@
-import { createContext, useState } from "react";
+import { createContext, FC, useState } from "react";
+import { PromptAction, PromptContextInterface, PromptOptions, PromptProviderProps } from "./PromptInterfaces";
 
-export const PromptContext = createContext({
-  title: "",
-  message: "",
+export const PromptContext = createContext<PromptContextInterface>({
+  title: undefined,
+  message: undefined,
   actions: [],
   promptIsOpen: false,
   showPrompt: () => {},
   closePrompt: () => {},
 });
 
-export const PromptProvider = props => {
-  const [prompt, setPrompt] = useState(null);
+export const PromptProvider: FC<PromptProviderProps> = ({ children }) => {
+  const [prompt, setPrompt] = useState<PromptOptions | null>(null);
 
-  const showPrompt = (title, message, actions) => {
+  const showPrompt = (title: string, message: string, actions: PromptAction[]) => {
     setPrompt({
       title: title,
       message: message,
@@ -34,7 +35,7 @@ export const PromptProvider = props => {
         showPrompt,
         closePrompt,
       }}>
-      {props.children}
+      {children}
     </PromptContext.Provider>
   );
 };
