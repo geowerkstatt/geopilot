@@ -59,6 +59,7 @@ builder.Services
     {
         options.Authority = builder.Configuration["Auth:Authority"];
         options.Audience = builder.Configuration["Auth:ClientId"];
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.MapInboundClaims = false;
 
         options.Events = new JwtBearerEvents

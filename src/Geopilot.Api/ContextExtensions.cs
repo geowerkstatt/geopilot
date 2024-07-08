@@ -82,6 +82,14 @@ internal static class ContextExtensions
 
         User SeedUsers(int seed) => userFaker.UseSeed(seed).Generate();
         context.Users.AddRange(Enumerable.Range(0, 10).Select(SeedUsers));
+        context.Users.Add(new User
+        {
+            AuthIdentifier = "1f9f9000-c651-4b04-b6ae-9ce1e7f45c15",
+            FullName = "SLIMY ANGRYMAESTRO",
+            Email = "angrymaestro@example.com",
+            IsAdmin = true,
+        });
+
         context.SaveChanges();
     }
 

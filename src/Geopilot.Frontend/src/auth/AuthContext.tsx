@@ -71,6 +71,8 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children, authScopes, onLo
   async function login() {
     try {
       const result = await instance.loginPopup({
+        clientId: "geopilot-client",
+        authority: "http://localhost:4011/realms/geopilot",
         scopes: authScopes,
       });
       try {
