@@ -60,100 +60,39 @@ export const App: FC = () => {
     }
   }, [clientSettings]);
 
-  // Fetch client settings
-  useEffect(() => {
-    fetch("client-settings.json")
-      .then(res => res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then(setClientSettings);
-  }, []);
+  const runFetch = async (url: string, contentType?: string) => {
+    const response = await fetch(url, {
+      method: "GET",
+    });
+
+    if (response.ok) {
+      const responseContentType = response.headers.get("content-type");
+      if (responseContentType?.indexOf("application/json") !== -1) {
+        return await response.json();
+      } else if (!contentType || responseContentType?.includes(contentType)) {
+        return await response.text();
+      } else {
+        return "";
+      }
+    } else {
+      return response;
+    }
+  };
 
   useEffect(() => {
-    fetch("/api/v1/user/auth")
-      .then(res => res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then(setAuth);
-  }, []);
-
-  useEffect(() => {
-    fetch("api/v1/version")
-      .then(res => {
-        if (res.headers.get("content-type")?.includes("text/plain")) {
-          return res.text();
-        } else {
-          return "";
-        }
-      })
-      .then(version => setBackendVersion(version));
-  }, []);
-
-  // Fetch optional custom content
-  useEffect(() => {
-    fetch("impressum.md")
-      .then(res => {
-        if (res.headers.get("content-type")?.includes("ext/markdown")) {
-          return res.text();
-        } else {
-          return "";
-        }
-      })
-      .then(text => setImpressumContent(text));
-
-    fetch("datenschutz.md")
-      .then(res => {
-        if (res.headers.get("content-type")?.includes("ext/markdown")) {
-          return res.text();
-        } else {
-          return "";
-        }
-      })
-      .then(text => setDatenschutzContent(text));
-
-    fetch("info-hilfe.md")
-      .then(res => {
-        if (res.headers.get("content-type")?.includes("ext/markdown")) {
-          return res.text();
-        } else {
-          return "";
-        }
-      })
-      .then(text => setInfoHilfeContent(text));
-
-    fetch("nutzungsbestimmungen.md")
-      .then(res => {
-        if (res.headers.get("content-type")?.includes("ext/markdown")) {
-          return res.text();
-        } else {
-          return "";
-        }
-      })
-      .then(text => setNutzungsbestimmungenContent(text));
-
-    fetch("banner.md")
-      .then(res => {
-        if (res.headers.get("content-type")?.includes("ext/markdown")) {
-          return res.text();
-        } else {
-          return "";
-        }
-      })
-      .then(text => setBannerContent(text));
-
-    fetch("quickstart.txt")
-      .then(res => {
-        if (res.headers.get("content-type")?.includes("text/plain")) {
-          return res.text();
-        } else {
-          return "";
-        }
-      })
-      .then(text => setQuickStartContent(text));
-
-    fetch("license.json")
-      .then(res => res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then(json => setLicenseInfo(json));
-
-    fetch("license.custom.json")
-      .then(res => res.headers.get("content-type")?.includes("application/json") && res.json())
-      .then(json => setLicenseInfoCustom(json));
+    runFetch("client-settings.json").then(setClientSettings);
+    runFetch("/api/v1/user/auth").then(setAuth);
+    runFetch("/api/v1/version").then(version => {
+      setBackendVersion(version.split("+")[0]);
+    });
+    runFetch("impressum.md", "ext/markdown").then(setImpressumContent);
+    runFetch("datenschutz.md", "ext/markdown").then(setDatenschutzContent);
+    runFetch("info-hilfe.md", "ext/markdown").then(setInfoHilfeContent);
+    runFetch("nutzungsbestimmungen.md", "ext/markdown").then(setNutzungsbestimmungenContent);
+    runFetch("banner.md", "ext/markdown").then(setBannerContent);
+    runFetch("quickstart.txt", "text/plain").then(setQuickStartContent);
+    runFetch("license.json", "application/json").then(setLicenseInfo);
+    runFetch("license.custom.json", "application/json").then(setLicenseInfoCustom);
   }, []);
 
   useEffect(() => {
