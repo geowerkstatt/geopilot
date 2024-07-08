@@ -196,8 +196,8 @@ export const App: FC = () => {
     } else {
       return new PublicClientApplication({
         auth: {
-          clientId: "", // Replace with your client ID
-          authority: "", // Replace with your authority URL
+          clientId: "",
+          authority: "",
           redirectUri: window.location.origin,
         },
         cache: {
