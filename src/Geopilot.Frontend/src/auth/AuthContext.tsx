@@ -1,5 +1,6 @@
 import { useMsal } from "@azure/msal-react";
-import { createContext, useCallback, useState, useEffect, useRef } from "react";
+import { createContext, FC, useCallback, useState, useEffect, useRef } from "react";
+import { AuthContextInterface, AuthProviderProps, User } from "./AuthInterfaces";
 
 const authDefault = {
   user: undefined,
@@ -7,24 +8,24 @@ const authDefault = {
   logout: () => {},
 };
 
-export const AuthContext = createContext(authDefault);
+export const AuthContext = createContext<AuthContextInterface>(authDefault);
 
-export const AuthProvider = ({ children, authScopes, onLoginError }) => {
+export const AuthProvider: FC<AuthProviderProps> = ({ children, authScopes, onLoginError }) => {
   const { instance } = useMsal();
 
-  const [user, setUser] = useState();
-  const loginSilentIntervalRef = useRef();
+  const [user, setUser] = useState<User | undefined>();
+  const loginSilentIntervalRef = useRef<NodeJS.Timeout>();
 
   const fetchUserInfo = useCallback(async () => {
     const userResult = await fetch("/api/v1/user");
     if (!userResult.ok) throw new Error(userResult.statusText);
 
     const userJson = await userResult.json();
-    setUser({ name: userJson.fullName, isAdmin: userJson.isAdmin });
+    setUser({ id: userJson.id, fullName: userJson.fullName, isAdmin: userJson.isAdmin, email: userJson.email });
   }, [setUser]);
 
   const loginCompleted = useCallback(
-    async idToken => {
+    async (idToken: string) => {
       document.cookie = `geopilot.auth=${idToken};Path=/;Secure`;
       await fetchUserInfo();
     },

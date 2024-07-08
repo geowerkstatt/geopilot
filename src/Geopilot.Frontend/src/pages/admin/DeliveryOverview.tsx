@@ -1,19 +1,20 @@
 import { useContext, useEffect, useState } from "react";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
 import { Button } from "@mui/material";
 import { useAuth } from "../../auth";
-import { PromptContext } from "../../components/prompt/promptContext.jsx";
-import { AlertContext } from "../../components/alert/alertContext.jsx";
+import { PromptContext } from "../../components/prompt/PromptContext.tsx";
+import { AlertContext } from "../../components/alert/AlertContext.tsx";
+import { DataGridColumnValueFormatterParams, Delivery, TranslationFunction } from "../../AppInterfaces";
 
-const useTranslatedColumns = t => {
+const useTranslatedColumns = (t: TranslationFunction) => {
   return [
     { field: "id", headerName: t("id"), width: 60 },
     {
       field: "date",
       headerName: t("deliveryDate"),
-      valueFormatter: params => {
+      valueFormatter: (params: DataGridColumnValueFormatterParams) => {
         const date = new Date(params.value);
         return `${date.toLocaleString()}`;
       },
@@ -28,10 +29,10 @@ const useTranslatedColumns = t => {
 export const DeliveryOverview = () => {
   const { t } = useTranslation();
   const columns = useTranslatedColumns(t);
-  const [deliveries, setDeliveries] = useState(undefined);
-  const [selectedRows, setSelectedRows] = useState([]);
-  const [alertMessages, setAlertMessages] = useState([]);
-  const [currentAlert, setCurrentAlert] = useState(undefined);
+  const [deliveries, setDeliveries] = useState<Delivery[] | undefined>(undefined);
+  const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([]);
+  const [alertMessages, setAlertMessages] = useState<string[]>([]);
+  const [currentAlert, setCurrentAlert] = useState<string | undefined>(undefined);
   const { showPrompt } = useContext(PromptContext);
   const { showAlert, alertIsOpen } = useContext(AlertContext);
 
@@ -55,7 +56,7 @@ export const DeliveryOverview = () => {
       if (response.status === 200) {
         const deliveries = await response.json();
         setDeliveries(
-          deliveries.map(d => ({
+          deliveries.map((d: Delivery) => ({
             id: d.id,
             date: d.date,
             user: d.declaringUser.fullName,
@@ -89,7 +90,7 @@ export const DeliveryOverview = () => {
 
   return (
     <>
-      {deliveries?.length > 0 && (
+      {deliveries != undefined && deliveries?.length > 0 && (
         <DataGrid
           sx={{
             fontFamily: "system-ui, -apple-syste",
@@ -107,7 +108,6 @@ export const DeliveryOverview = () => {
           onRowSelectionModelChange={newSelection => {
             setSelectedRows(newSelection);
           }}
-          hideFooterRowCount
           hideFooterSelectedRowCount
         />
       )}
@@ -119,7 +119,7 @@ export const DeliveryOverview = () => {
             startIcon={<DeleteOutlinedIcon />}
             onClick={() => {
               showPrompt(t("deleteDeliveryConfirmationTitle"), t("deleteDeliveryConfirmationMessage"), [
-                { label: t("cancel"), action: null },
+                { label: t("cancel") },
                 { label: t("delete"), action: handleDelete, color: "error", variant: "contained" },
               ]);
             }}>

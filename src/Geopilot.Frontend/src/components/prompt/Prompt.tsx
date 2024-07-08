@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
-import { PromptContext } from "./promptContext";
+import { PromptContext } from "./PromptContext";
 
 export const Prompt = () => {
   const { promptIsOpen, title, message, actions, closePrompt } = useContext(PromptContext);
@@ -15,9 +15,7 @@ export const Prompt = () => {
           <Button
             key={index}
             onClick={() => {
-              if (action.action != null) {
-                action.action();
-              }
+              !!action.action && action.action();
               closePrompt();
             }}
             color={action.color ? action.color : "inherit"}
