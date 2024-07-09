@@ -1,9 +1,96 @@
 import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
+import { Mandate, Organisation } from "../../AppInterfaces.ts";
+import { useAuth } from "../../auth";
+import { AdminGrid } from "../../components/adminGrid/AdminGrid.tsx";
+import { DataRow } from "../../components/adminGrid/AdminGridTypes.ts";
+import { GridColDef } from "@mui/x-data-grid";
 
 export const Mandates = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [mandates, setMandates] = useState<Mandate[]>();
+  const [organisations, setOrganisations] = useState<Organisation[]>();
 
-  return <>{t("mandates")}</>;
+  async function loadMandates() {
+    try {
+      const response = await fetch("/api/v1/mandate");
+      if (response.ok) {
+        const results = await response.json();
+        setMandates(results);
+      }
+    } catch (error) {
+      // TODO: Show error alert
+    }
+  }
+
+  async function loadOrganisations() {
+    try {
+      const response = await fetch("/api/v1/organisation");
+      if (response.ok) {
+        const results = await response.json();
+        console.log(results);
+        setOrganisations(results);
+      }
+    } catch (error) {
+      // TODO: Show error alert
+    }
+  }
+
+  async function onSave(row: DataRow) {
+    console.log("onSave: ", row);
+    // TODO: Save changes
+  }
+
+  async function onDisconnect(row: DataRow) {
+    console.log("onDisconnect: ", row);
+    const mandate = row as unknown as Mandate;
+    mandate.organisations = [];
+    // TODO: Save changes
+  }
+
+  useEffect(() => {
+    if (user?.isAdmin) {
+      if (mandates === undefined) {
+        loadMandates();
+      }
+      if (organisations === undefined) {
+        loadOrganisations();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const columns: GridColDef[] = [
+    {
+      field: "name",
+      headerName: t("name"),
+      type: "string",
+      editable: true,
+      flex: 1,
+    },
+    { field: "fileTypes", headerName: t("fileTypes"), type: "string", editable: true, flex: 1 },
+    {
+      field: "organisations",
+      headerName: t("organisations"),
+      editable: true,
+      flex: 1,
+      type: "singleSelect",
+      valueOptions: organisations,
+      getOptionLabel: value => (value as Organisation).name,
+      getOptionValue: value => (value as Organisation).id,
+    },
+  ];
+
+  return (
+    <AdminGrid
+      addLabel="addMandate"
+      data={mandates as unknown as DataRow[]}
+      columns={columns}
+      onSave={onSave}
+      onDisconnect={onDisconnect}
+    />
+  );
 };
 
 export default Mandates;

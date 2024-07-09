@@ -1,4 +1,4 @@
-import { User } from "./auth/AuthInterfaces";
+import { DataRow } from "./components/adminGrid/AdminGridTypes.ts";
 
 export interface ClientSettings {
   authCache: {
@@ -28,7 +28,19 @@ export interface TranslationFunction {
 export type ModalContentType = "markdown" | "raw";
 
 export interface Mandate {
+  id: number;
   name: string;
+  fileTypes: string[];
+  spatialExtent: number[];
+  organisations?: Organisation[];
+  deliveries?: Delivery[];
+}
+
+export interface Organisation {
+  id: number;
+  name: string;
+  mandates?: Mandate[];
+  users?: User[];
 }
 
 export interface Delivery {
@@ -37,4 +49,13 @@ export interface Delivery {
   declaringUser: User;
   mandate: Mandate;
   comment: string;
+}
+
+export interface User {
+  id: number;
+  fullName: string;
+  isAdmin: boolean;
+  email: string;
+  organisations?: Organisation[];
+  deliveries?: Delivery[];
 }
