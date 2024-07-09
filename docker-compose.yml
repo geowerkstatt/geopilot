@@ -74,6 +74,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     environment:
