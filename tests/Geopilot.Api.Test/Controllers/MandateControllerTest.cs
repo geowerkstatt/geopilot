@@ -10,11 +10,12 @@ namespace Geopilot.Api.Test.Controllers
     [TestClass]
     public class MandateControllerTest
     {
-        private Mock<ILogger<MandateController>> loggerMock;
+        private Mock<ILogger<Mandate>> loggerMock;
         private Mock<IValidationService> validationServiceMock;
         private Context context;
         private MandateController mandateController;
-        private User user;
+        private User editUser;
+        private User adminUser;
         private Mandate unrestrictedMandate;
         private Mandate xtfMandate;
         private Mandate unassociatedMandate;
@@ -22,7 +23,7 @@ namespace Geopilot.Api.Test.Controllers
         [TestInitialize]
         public void Initialize()
         {
-            loggerMock = new Mock<ILogger<MandateController>>();
+            loggerMock = new Mock<ILogger<Mandate>>();
             validationServiceMock = new Mock<IValidationService>();
             context = AssemblyInitialize.DbFixture.GetTestContext();
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
@@ -35,13 +36,16 @@ namespace Geopilot.Api.Test.Controllers
             context.Mandates.Add(xtfMandate);
             context.Mandates.Add(unassociatedMandate);
 
-            user = new User { AuthIdentifier = "123" };
-            context.Users.Add(user);
+            editUser = new User { AuthIdentifier = "123", FullName = "Edit User" };
+            context.Users.Add(editUser);
+            adminUser = new User { AuthIdentifier = "1234", FullName = "Admin User", IsAdmin = true };
+            context.Users.Add(adminUser);
 
             var tempOrg = new Organisation { Name = "TestOrg" };
             tempOrg.Mandates.Add(unrestrictedMandate);
             tempOrg.Mandates.Add(xtfMandate);
-            tempOrg.Users.Add(user);
+            tempOrg.Users.Add(editUser);
+            tempOrg.Users.Add(adminUser);
 
             context.Add(tempOrg);
             context.SaveChanges();
@@ -50,7 +54,7 @@ namespace Geopilot.Api.Test.Controllers
         [TestMethod]
         public async Task GetReturnsListOfMandatesForUser()
         {
-            mandateController.SetupTestUser(user);
+            mandateController.SetupTestUser(editUser);
 
             var result = (await mandateController.Get()) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
@@ -65,7 +69,7 @@ namespace Geopilot.Api.Test.Controllers
         public async Task GetWithJobIdIncludesMatchingMandates()
         {
             var jobId = Guid.NewGuid();
-            mandateController.SetupTestUser(user);
+            mandateController.SetupTestUser(editUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
                 .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf"));
@@ -83,7 +87,7 @@ namespace Geopilot.Api.Test.Controllers
         public async Task GetWithJobIdExcludesNonMatchinMandates()
         {
             var jobId = Guid.NewGuid();
-            mandateController.SetupTestUser(user);
+            mandateController.SetupTestUser(editUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
                 .Returns(new ValidationJob(jobId, "Original.csv", "tmp.csv"));
@@ -101,7 +105,7 @@ namespace Geopilot.Api.Test.Controllers
         public async Task GetWithInvalidJobIdReturnsEmptyArray()
         {
             var jobId = Guid.NewGuid();
-            mandateController.SetupTestUser(user);
+            mandateController.SetupTestUser(editUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
                 .Returns(() => null);
@@ -122,6 +126,54 @@ namespace Geopilot.Api.Test.Controllers
 
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+        }
+
+        [TestMethod]
+        public async Task CreateMandate()
+        {
+            mandateController.SetupTestUser(adminUser);
+            var mandate = new Mandate() { FileTypes = new string[] { ".*" }, Name = "Test create" };
+            var result = await mandateController.Create(mandate).ConfigureAwait(false);
+            ActionResultAssert.IsCreated(result);
+        }
+
+        [TestMethod]
+        public async Task CreateMandateUnauthorized()
+        {
+            mandateController.SetupTestUser(editUser);
+            var mandate = new Mandate() { FileTypes = new string[] { ".*" }, Name = "Test create" };
+            var result = await mandateController.Create(mandate).ConfigureAwait(false);
+            ActionResultAssert.IsUnauthorized(result);
+        }
+
+        [TestMethod]
+        public async Task EditMandate()
+        {
+            mandateController.SetupTestUser(adminUser);
+            var mandate = new Mandate() { FileTypes = new string[] { ".*" }, Name = "Test update" };
+            var result = await mandateController.Create(mandate).ConfigureAwait(false) as CreatedResult;
+
+            mandateController.SetupTestUser(adminUser);
+            var updatedMandate = result?.Value as Mandate;
+            updatedMandate.Name = "Updated name";
+            var updateResult = await mandateController.Edit(updatedMandate).ConfigureAwait(false);
+            ActionResultAssert.IsOk(updateResult);
+            var resultValue = (updateResult as OkObjectResult)?.Value as Mandate;
+            Assert.AreEqual(updatedMandate.Name, resultValue?.Name);
+        }
+
+        [TestMethod]
+        public async Task EditMandateUnauthorized()
+        {
+            mandateController.SetupTestUser(adminUser);
+            var mandate = new Mandate() { FileTypes = new string[] { ".*" }, Name = "Test update" };
+            var result = await mandateController.Create(mandate).ConfigureAwait(false) as CreatedResult;
+
+            mandateController.SetupTestUser(editUser);
+            var updatedMandate = result?.Value as Mandate;
+            updatedMandate.Name = "Updated name";
+            var updateResult = await mandateController.Edit(updatedMandate).ConfigureAwait(false);
+            ActionResultAssert.IsUnauthorized(updateResult);
         }
 
         [TestCleanup]
