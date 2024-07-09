@@ -14,8 +14,6 @@
     "cy": "cypress open"
   },
   "dependencies": {
-    "@azure/msal-browser": "^3.18.0",
-    "@azure/msal-react": "^2.0.20",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
     "@mui/icons-material": "^5.16.0",
@@ -26,6 +24,7 @@
     "i18next": "^23.11.5",
     "i18next-browser-languagedetector": "^8.0.0",
     "i18next-http-backend": "^2.5.2",
+    "oidc-client-ts": "^3.0.1",
     "react": "^18.3.1",
     "react-bootstrap": "^2.10.4",
     "react-dom": "^18.3.1",
@@ -33,6 +32,7 @@
     "react-i18next": "^14.1.2",
     "react-icons": "^5.2.1",
     "react-markdown": "^9.0.1",
+    "react-oidc-context": "^3.1.0",
     "react-router-dom": "^6.24.1",
     "rehype-external-links": "^3.0.0",
     "styled-components": "^6.1.11"
