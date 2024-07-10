@@ -80,10 +80,6 @@ public class MandateController : BaseController<Mandate>
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), new[] { "application/json" })]
     public override async Task<IActionResult> Create(Mandate entity)
     {
-        var user = await Context.GetUserByPrincipalAsync(User);
-        if (user == null || !user.IsAdmin)
-            return Unauthorized();
-
         return await base.Create(entity);
     }
 
@@ -98,10 +94,6 @@ public class MandateController : BaseController<Mandate>
 
     public override async Task<IActionResult> Edit(Mandate entity)
     {
-        var user = await Context.GetUserByPrincipalAsync(User);
-        if (user == null || !user.IsAdmin)
-            return Unauthorized();
-
-        return await base.Edit(entity);
+         return await base.Edit(entity);
     }
 }

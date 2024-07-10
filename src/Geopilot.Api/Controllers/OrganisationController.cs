@@ -51,10 +51,6 @@ public class OrganisationController : BaseController<Organisation>
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), new[] { "application/json" })]
     public override async Task<IActionResult> Create(Organisation entity)
     {
-        var user = await Context.GetUserByPrincipalAsync(User);
-        if (user == null || !user.IsAdmin)
-            return Unauthorized();
-
         return await base.Create(entity);
     }
 
@@ -69,10 +65,6 @@ public class OrganisationController : BaseController<Organisation>
 
     public override async Task<IActionResult> Edit(Organisation entity)
     {
-        var user = await Context.GetUserByPrincipalAsync(User);
-        if (user == null || !user.IsAdmin)
-            return Unauthorized();
-
         return await base.Edit(entity);
     }
 }
