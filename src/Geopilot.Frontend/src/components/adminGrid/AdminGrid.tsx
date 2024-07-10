@@ -165,6 +165,7 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
         isCellEditable={(params: GridCellParams) =>
           rowModesModel && rowModesModel[params.id]?.mode === GridRowModes.Edit
         }
+        disableColumnSelector
         rowModesModel={rowModesModel}
         onRowModesModelChange={handleRowModesModelChange}
         processRowUpdate={processRowUpdate}

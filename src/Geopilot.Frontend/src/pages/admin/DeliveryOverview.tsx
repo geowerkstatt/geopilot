@@ -103,6 +103,7 @@ export const DeliveryOverview = () => {
               paginationModel: { page: 0, pageSize: 10 },
             },
           }}
+          disableColumnSelector
           pageSizeOptions={[5, 10, 25]}
           checkboxSelection
           onRowSelectionModelChange={newSelection => {
