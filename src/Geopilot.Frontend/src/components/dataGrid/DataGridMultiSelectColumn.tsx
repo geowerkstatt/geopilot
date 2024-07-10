@@ -14,10 +14,9 @@ import { DataRow } from "../adminGrid/AdminGridTypes.ts";
 export interface GridMultiSelectColDef<R extends GridValidRowModel = any, V = any, F = V>
   extends GridBaseColDef<R, V, F> {
   type: "custom";
-  valueOptions: Array<DataRow>;
-  getOptionLabel: (value: DataRow) => string;
-  // eslint-disable-next-line
-  getOptionValue: (value: DataRow) => any;
+  valueOptions: Array<DataRow | string>;
+  getOptionLabel: (value: DataRow | string) => string;
+  getOptionValue: (value: DataRow | string) => string | number;
 }
 
 // eslint-disable-next-line
@@ -31,12 +30,12 @@ export const IsGridMultiSelectColDef = (columnDef: GridColDef) =>
   columnDef.type === "custom" && "valueOptions" in columnDef;
 
 export const TransformToMultiSelectColumn = (columnDef: GridMultiSelectColDef) => {
-  columnDef.valueFormatter = (value: number[] | DataRow[]) => {
+  columnDef.valueFormatter = (value: number[] | DataRow[] | string[]) => {
     return value
-      .map(row => {
-        let selectedOption: DataRow | undefined;
+      .map((row: number | DataRow | string) => {
+        let selectedOption: DataRow | string | undefined;
         if (typeof row === "number") {
-          selectedOption = columnDef.valueOptions.find(option => (option["id"] as number) === row);
+          selectedOption = (columnDef.valueOptions as DataRow[]).find(option => (option["id"] as number) === row);
         } else {
           selectedOption = row;
         }
@@ -65,8 +64,10 @@ export const TransformToMultiSelectColumn = (columnDef: GridMultiSelectColDef) =
           return null;
         }
 
-        return (values: DataRow[]) => {
-          return values?.some(value => value["id"] === filterItem.value);
+        return (values: DataRow[] | string[]) => {
+          return values?.some(value =>
+            typeof value === "string" ? value === filterItem.value : value["id"] === filterItem.value,
+          );
         };
       },
       InputComponent: props => (
@@ -103,7 +104,9 @@ const DataGridMultiSelectColumn = ({ params, children }: DataGridMultiSelectColu
       labelId="data-grid-multiselect-label"
       id="data-grid-multiselect"
       multiple
-      value={params.value?.map((row: DataRow | number) => (typeof row === "number" ? row : row["id"]))}
+      value={params.value?.map((row: DataRow | number | string) =>
+        typeof row === "number" || typeof row === "string" ? row : row["id"],
+      )}
       onChange={handleChange}
       sx={{ width: "100%" }}>
       {children}

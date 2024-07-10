@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
-import { Mandate, Organisation } from "../../AppInterfaces.ts";
+import { Mandate, Organisation, Validation } from "../../AppInterfaces.ts";
 import { useAuth } from "../../auth";
 import { AdminGrid } from "../../components/adminGrid/AdminGrid.tsx";
 import { DataRow } from "../../components/adminGrid/AdminGridTypes.ts";
@@ -11,6 +11,7 @@ export const Mandates = () => {
   const { user } = useAuth();
   const [mandates, setMandates] = useState<Mandate[]>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
+  const [fileExtensions, setFileExtensions] = useState<string[]>();
 
   async function loadMandates() {
     try {
@@ -30,6 +31,18 @@ export const Mandates = () => {
       if (response.ok) {
         const results = await response.json();
         setOrganisations(results);
+      }
+    } catch (error) {
+      // TODO: Show error alert
+    }
+  }
+
+  async function loadFileExtensions() {
+    try {
+      const response = await fetch("/api/v1/validation");
+      if (response.ok) {
+        const results: Validation = await response.json();
+        setFileExtensions(results.allowedFileExtensions);
       }
     } catch (error) {
       // TODO: Show error alert
@@ -56,6 +69,9 @@ export const Mandates = () => {
       if (organisations === undefined) {
         loadOrganisations();
       }
+      if (fileExtensions === undefined) {
+        loadFileExtensions();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -68,7 +84,16 @@ export const Mandates = () => {
       editable: true,
       flex: 0.5,
     },
-    { field: "fileTypes", headerName: t("fileTypes"), type: "string", editable: true, flex: 0.5 },
+    {
+      field: "fileTypes",
+      headerName: t("fileTypes"),
+      editable: true,
+      flex: 1,
+      type: "custom",
+      valueOptions: fileExtensions,
+      getOptionLabel: (value: DataRow | string) => value as string,
+      getOptionValue: (value: DataRow | string) => value as string,
+    },
     {
       field: "organisations",
       headerName: t("organisations"),
@@ -76,8 +101,8 @@ export const Mandates = () => {
       flex: 1,
       type: "custom",
       valueOptions: organisations,
-      getOptionLabel: (value: DataRow) => (value as Organisation).name,
-      getOptionValue: (value: DataRow) => (value as Organisation).id,
+      getOptionLabel: (value: DataRow | string) => (value as Organisation).name,
+      getOptionValue: (value: DataRow | string) => (value as Organisation).id,
     },
   ];
 

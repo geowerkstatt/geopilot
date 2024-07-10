@@ -1,4 +1,10 @@
-import { DataRow } from "./components/adminGrid/AdminGridTypes.ts";
+export type Language = "de" | "fr" | "it" | "en";
+
+export interface TranslationFunction {
+  (key: string): string;
+}
+
+export type ModalContentType = "markdown" | "raw";
 
 export interface ClientSettings {
   authCache: {
@@ -19,13 +25,9 @@ export interface ClientSettings {
   theme: object;
 }
 
-export type Language = "de" | "fr" | "it" | "en";
-
-export interface TranslationFunction {
-  (key: string): string;
+export interface Validation {
+  allowedFileExtensions: string[];
 }
-
-export type ModalContentType = "markdown" | "raw";
 
 export interface Mandate {
   id: number;
