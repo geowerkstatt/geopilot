@@ -48,7 +48,13 @@ public class MandateController : BaseController<Mandate>
             return Unauthorized();
 
         var mandates = Context.Mandates
-            .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+            .Include(m => m.Organisations)
+            .AsNoTracking();
+
+        if (!user.IsAdmin)
+        {
+            mandates = mandates.Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+        }
 
         if (jobId != default)
         {

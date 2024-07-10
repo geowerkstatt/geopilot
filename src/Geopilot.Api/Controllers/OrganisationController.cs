@@ -34,11 +34,11 @@ public class OrganisationController : BaseController<Organisation>
     {
         Logger.LogInformation("Getting organisations.");
 
-        var user = await Context.GetUserByPrincipalAsync(User);
-        if (user == null || !user.IsAdmin)
-            return Unauthorized();
-
-        var organisations = await Context.Organisations.AsNoTracking().ToListAsync();
+        var organisations = await Context.Organisations
+            .Include(o => o.Mandates)
+            .Include(o => o.Users)
+            .AsNoTracking()
+            .ToListAsync();
         return Ok(organisations);
     }
 
