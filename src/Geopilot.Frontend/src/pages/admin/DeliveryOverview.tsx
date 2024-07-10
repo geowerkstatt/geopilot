@@ -29,7 +29,7 @@ const useTranslatedColumns = (t: TranslationFunction) => {
 export const DeliveryOverview = () => {
   const { t } = useTranslation();
   const columns = useTranslatedColumns(t);
-  const [deliveries, setDeliveries] = useState<Delivery[] | undefined>(undefined);
+  const [deliveries, setDeliveries] = useState<Delivery[]>();
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([]);
   const [alertMessages, setAlertMessages] = useState<string[]>([]);
   const [currentAlert, setCurrentAlert] = useState<string | undefined>(undefined);
@@ -38,7 +38,7 @@ export const DeliveryOverview = () => {
 
   const { user } = useAuth();
 
-  if (user && deliveries === undefined) {
+  if (user?.isAdmin && deliveries === undefined) {
     loadDeliveries();
   }
 
@@ -93,14 +93,14 @@ export const DeliveryOverview = () => {
       {deliveries != undefined && deliveries?.length > 0 && (
         <DataGrid
           sx={{
-            fontFamily: "system-ui, -apple-syste",
+            fontFamily: "system-ui, -apple-system",
           }}
           pagination
           rows={deliveries}
           columns={columns}
           initialState={{
             pagination: {
-              paginationModel: { page: 0, pageSize: 5 },
+              paginationModel: { page: 0, pageSize: 10 },
             },
           }}
           pageSizeOptions={[5, 10, 25]}
