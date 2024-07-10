@@ -1,4 +1,4 @@
-import { GridColDef } from "@mui/x-data-grid";
+import { GridColDef } from "../dataGrid/DataGridMultiSelectColumn.tsx";
 
 export interface AdminGridProps {
   addLabel: string;

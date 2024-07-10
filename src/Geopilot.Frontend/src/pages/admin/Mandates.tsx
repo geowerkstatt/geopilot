@@ -4,7 +4,7 @@ import { Mandate, Organisation } from "../../AppInterfaces.ts";
 import { useAuth } from "../../auth";
 import { AdminGrid } from "../../components/adminGrid/AdminGrid.tsx";
 import { DataRow } from "../../components/adminGrid/AdminGridTypes.ts";
-import { GridColDef } from "@mui/x-data-grid";
+import { GridColDef } from "../../components/dataGrid/DataGridMultiSelectColumn.tsx";
 
 export const Mandates = () => {
   const { t } = useTranslation();
@@ -29,7 +29,6 @@ export const Mandates = () => {
       const response = await fetch("/api/v1/organisation");
       if (response.ok) {
         const results = await response.json();
-        console.log(results);
         setOrganisations(results);
       }
     } catch (error) {
@@ -67,18 +66,18 @@ export const Mandates = () => {
       headerName: t("name"),
       type: "string",
       editable: true,
-      flex: 1,
+      flex: 0.5,
     },
-    { field: "fileTypes", headerName: t("fileTypes"), type: "string", editable: true, flex: 1 },
+    { field: "fileTypes", headerName: t("fileTypes"), type: "string", editable: true, flex: 0.5 },
     {
       field: "organisations",
       headerName: t("organisations"),
       editable: true,
       flex: 1,
-      type: "singleSelect",
+      type: "custom",
       valueOptions: organisations,
-      getOptionLabel: value => (value as Organisation).name,
-      getOptionValue: value => (value as Organisation).id,
+      getOptionLabel: (value: DataRow) => (value as Organisation).name,
+      getOptionValue: (value: DataRow) => (value as Organisation).id,
     },
   ];
 

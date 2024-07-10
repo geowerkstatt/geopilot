@@ -4,13 +4,10 @@ import AddIcon from "@mui/icons-material/Add";
 import {
   DataGrid,
   GridActionsCellItem,
-  GridColDef,
-  GridRowEditStopReasons,
+  GridCellParams,
   GridRowId,
   GridRowModes,
   GridRowModesModel,
-  GridRowParams,
-  MuiEvent,
 } from "@mui/x-data-grid";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
@@ -18,15 +15,21 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { useTranslation } from "react-i18next";
 import { AdminGridProps, DataRow } from "./AdminGridTypes.ts";
+import {
+  GridColDef,
+  GridMultiSelectColDef,
+  IsGridMultiSelectColDef,
+  TransformToMultiSelectColumn,
+} from "../dataGrid/DataGridMultiSelectColumn.tsx";
 
 export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave, onDisconnect }) => {
   const { t } = useTranslation();
   const [rows, setRows] = useState<DataRow[]>([]);
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
+  const [editingRow, setEditingRow] = useState<GridRowId>();
 
   useEffect(() => {
     if (data) {
-      console.log(data);
       setRows(data);
     }
   }, [data]);
@@ -66,6 +69,7 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
           label={t("edit")}
           onClick={handleEditClick(id)}
           color="inherit"
+          disabled={!!editingRow}
         />,
         <GridActionsCellItem
           key="disconnect"
@@ -78,9 +82,13 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
     },
   };
   const adminGridColumns: GridColDef[] = columns.concat(actionColumn);
+  adminGridColumns.forEach(column => {
+    if (IsGridMultiSelectColDef(column)) {
+      TransformToMultiSelectColumn(column as GridMultiSelectColDef);
+    }
+  });
 
   const handleClick = () => {
-    console.log("add record");
     const id = 0;
     setRows(oldRows => [...oldRows, { id }]);
     setRowModesModel(oldModel => ({
@@ -89,19 +97,14 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
     }));
   };
 
-  const handleRowEditStop = (params: GridRowParams, event: MuiEvent) => {
-    if (params.reason === GridRowEditStopReasons.rowFocusOut) {
-      event.defaultMuiPrevented = true;
-    }
-  };
-
   const handleEditClick = (id: GridRowId) => () => {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
+    setEditingRow(id);
   };
 
   const handleSaveClick = (id: GridRowId) => () => {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
-    onSave(rows[id as number]);
+    setEditingRow(undefined);
   };
 
   const handleDisconnectClick = (id: GridRowId) => () => {
@@ -118,11 +121,23 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
     if (editedRow?.id === 0) {
       setRows(rows.filter(row => row.id !== id));
     }
+    setEditingRow(undefined);
   };
 
   const processRowUpdate = (newRow: DataRow) => {
     const updatedRow = { ...newRow };
-    setRows(rows.map(row => (row.id === newRow.id ? updatedRow : row)));
+    setRows(
+      rows.map(row => {
+        if (row.id === newRow.id) {
+          if (row !== updatedRow) {
+            onSave(updatedRow);
+          }
+          return updatedRow;
+        } else {
+          return row;
+        }
+      }),
+    );
     return updatedRow;
   };
 
@@ -147,10 +162,20 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
         rows={rows}
         columns={adminGridColumns}
         editMode="row"
+        isCellEditable={(params: GridCellParams) =>
+          rowModesModel && rowModesModel[params.id]?.mode === GridRowModes.Edit
+        }
         rowModesModel={rowModesModel}
         onRowModesModelChange={handleRowModesModelChange}
-        onRowEditStop={handleRowEditStop}
         processRowUpdate={processRowUpdate}
+        hideFooterSelectedRowCount
+        pagination
+        initialState={{
+          pagination: {
+            paginationModel: { page: 0, pageSize: 10 },
+          },
+        }}
+        pageSizeOptions={[5, 10, 25]}
       />
     </>
   );
