@@ -35,7 +35,7 @@ public abstract class BaseController<TEntity> : ControllerBase
     {
         this.context = context;
         this.logger = logger;
-        this.entityTypeName = typeof(TEntity).Name.ToLower(System.Globalization.CultureInfo.CurrentCulture);
+        this.entityTypeName = typeof(TEntity).Name.ToLower(CultureInfo.CurrentCulture);
     }
 
     /// <summary>
