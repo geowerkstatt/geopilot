@@ -30,20 +30,24 @@ export const IsGridMultiSelectColDef = (columnDef: GridColDef) =>
   columnDef.type === "custom" && "valueOptions" in columnDef;
 
 export const TransformToMultiSelectColumn = (columnDef: GridMultiSelectColDef) => {
-  columnDef.valueFormatter = (value: number[] | DataRow[] | string[]) => {
-    return value
-      .map((row: number | DataRow | string) => {
-        let selectedOption: DataRow | string | undefined;
-        if (typeof row === "number") {
-          selectedOption = (columnDef.valueOptions as DataRow[]).find(option => (option["id"] as number) === row);
-        } else {
-          selectedOption = row;
-        }
-        if (selectedOption) {
-          return columnDef.getOptionLabel(selectedOption);
-        }
-      })
-      .join(", ");
+  columnDef.valueFormatter = (value: number[] | DataRow[] | string[] | undefined) => {
+    if (value) {
+      return value
+        .map((row: number | DataRow | string) => {
+          let selectedOption: DataRow | string | undefined;
+          if (typeof row === "number") {
+            selectedOption = (columnDef.valueOptions as DataRow[]).find(option => (option["id"] as number) === row);
+          } else {
+            selectedOption = row;
+          }
+          if (selectedOption) {
+            return columnDef.getOptionLabel(selectedOption);
+          }
+        })
+        .join(", ");
+    } else {
+      return "";
+    }
   };
 
   columnDef.renderEditCell = params => (
@@ -99,14 +103,18 @@ const DataGridMultiSelectColumn = ({ params, children }: DataGridMultiSelectColu
     });
   };
 
+  const values = params.value
+    ? params.value?.map((row: DataRow | number | string) =>
+        typeof row === "number" || typeof row === "string" ? row : row["id"],
+      )
+    : [];
+
   return (
     <Select
       labelId="data-grid-multiselect-label"
       id="data-grid-multiselect"
       multiple
-      value={params.value?.map((row: DataRow | number | string) =>
-        typeof row === "number" || typeof row === "string" ? row : row["id"],
-      )}
+      value={values}
       onChange={handleChange}
       sx={{ width: "100%" }}>
       {children}
