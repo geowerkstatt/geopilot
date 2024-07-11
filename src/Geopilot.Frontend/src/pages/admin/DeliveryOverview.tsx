@@ -32,7 +32,7 @@ export const DeliveryOverview = () => {
   const [deliveries, setDeliveries] = useState<Delivery[]>();
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([]);
   const [alertMessages, setAlertMessages] = useState<string[]>([]);
-  const [currentAlert, setCurrentAlert] = useState<string | undefined>(undefined);
+  const [currentAlert, setCurrentAlert] = useState<string>();
   const { showPrompt } = useContext(PromptContext);
   const { showAlert, alertIsOpen } = useContext(AlertContext);
 
