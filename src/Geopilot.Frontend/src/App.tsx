@@ -1,4 +1,4 @@
-import { PublicClientApplication } from "@azure/msal-browser";
+import { FC, useEffect, useState } from "react";
 import { MsalProvider } from "@azure/msal-react";
 import { FC, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-bootstrap";
@@ -10,7 +10,7 @@ import Home from "./pages/home/Home";
 import Admin from "./pages/admin/Admin";
 import ModalContent from "./ModalContent";
 import "./app.css";
-import { AuthProvider } from "./auth/AuthContext";
+import { OidcContainer } from "./auth/OidcContainer.js";
 import { AdminTemplate } from "./auth/AdminTemplate";
 import { LoggedOutTemplate } from "./auth/LoggedOutTemplate";
 import { I18nextProvider } from "react-i18next";
@@ -33,7 +33,6 @@ export const App: FC = () => {
   const [showModalContent, setShowModalContent] = useState(false);
   const [showBannerContent, setShowBannerContent] = useState(false);
   const [clientSettings, setClientSettings] = useState<ClientSettings>();
-  const [auth, setAuth] = useState();
   const [backendVersion, setBackendVersion] = useState("");
   const [datenschutzContent, setDatenschutzContent] = useState("");
   const [impressumContent, setImpressumContent] = useState("");
@@ -81,7 +80,6 @@ export const App: FC = () => {
 
   useEffect(() => {
     runFetch("client-settings.json").then(setClientSettings);
-    runFetch("/api/v1/user/auth").then(setAuth);
     runFetch("/api/v1/version").then(version => {
       setBackendVersion(version.split("+")[0]);
     });
@@ -125,28 +123,6 @@ export const App: FC = () => {
     setShowModalContent(true);
   };
 
-  const authCache = clientSettings?.authCache;
-  const msalInstance = useMemo(() => {
-    if (auth !== undefined && authCache != undefined) {
-      return new PublicClientApplication({
-        auth: auth,
-        cache: authCache,
-      });
-    } else {
-      return new PublicClientApplication({
-        auth: {
-          clientId: "",
-          authority: "",
-          redirectUri: window.location.origin,
-        },
-        cache: {
-          cacheLocation: "localStorage",
-          storeAuthStateInCookie: false,
-        },
-      });
-    }
-  }, [auth, authCache]);
-
   useEffect(() => {
     const handleLanguageChange = (lng: Language) => {
       setLanguage(lng);
@@ -162,9 +138,7 @@ export const App: FC = () => {
   return (
     <I18nextProvider i18n={i18n}>
       <ThemeProvider theme={theme}>
-        <MsalProvider instance={msalInstance}>
-          {clientSettings !== undefined && (
-            <AuthProvider authScopes={clientSettings?.authScopes} onLoginError={setAlertText}>
+        <OidcContainer authScopes={clientSettings?.authScopes} onLoginError={setAlertText}>
               <PromptProvider>
                 <Prompt />
                 <AlertProvider>
@@ -179,9 +153,7 @@ export const App: FC = () => {
                               <Home
                                 clientSettings={clientSettings}
                                 nutzungsbestimmungenAvailable={!!nutzungsbestimmungenContent}
-                                showNutzungsbestimmungen={() =>
-                                  openModalContent(nutzungsbestimmungenContent, "markdown")
-                                }
+                            showNutzungsbestimmungen={() => openModalContent(nutzungsbestimmungenContent, "markdown")}
                                 quickStartContent={quickStartContent}
                                 setShowBannerContent={setShowBannerContent}
                               />
@@ -227,19 +199,14 @@ export const App: FC = () => {
                       <BannerContent content={bannerContent} onHide={() => setShowBannerContent(false)} />
                     )}
                   </div>
-                  <Snackbar
-                    key={alertText}
-                    open={alertText !== ""}
-                    anchorOrigin={{ vertical: "top", horizontal: "right" }}>
+              <Snackbar key={alertText} open={alertText !== ""} anchorOrigin={{ vertical: "top", horizontal: "right" }}>
                     <Alert variant="danger" dismissible onClose={() => setAlertText("")}>
                       <p>{alertText}</p>
                     </Alert>
                   </Snackbar>
                 </AlertProvider>
               </PromptProvider>
-            </AuthProvider>
-          )}
-        </MsalProvider>
+        </OidcContainer>
       </ThemeProvider>
     </I18nextProvider>
   );
