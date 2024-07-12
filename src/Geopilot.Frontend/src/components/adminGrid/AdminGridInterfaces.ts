@@ -1,7 +1,7 @@
 import { GridColDef } from "../dataGrid/DataGridMultiSelectColumn.tsx";
 
 export interface AdminGridProps {
-  addLabel: string;
+  addLabel?: string;
   data: DataRow[];
   columns: GridColDef[];
   onSave: (row: DataRow) => void | Promise<void>;

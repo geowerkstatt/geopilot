@@ -14,7 +14,7 @@ import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { useTranslation } from "react-i18next";
-import { AdminGridProps, DataRow } from "./AdminGridTypes.ts";
+import { AdminGridProps, DataRow } from "./AdminGridInterfaces.ts";
 import {
   GridColDef,
   GridMultiSelectColDef,
@@ -147,14 +147,16 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
 
   return (
     <>
-      <Button
-        color="primary"
-        variant="outlined"
-        startIcon={<AddIcon />}
-        sx={{ marginBottom: "20px" }}
-        onClick={handleClick}>
-        {t(addLabel)}
-      </Button>
+      {!!addLabel && (
+        <Button
+          color="primary"
+          variant="outlined"
+          startIcon={<AddIcon />}
+          sx={{ marginBottom: "20px" }}
+          onClick={handleClick}>
+          {t(addLabel)}
+        </Button>
+      )}
       <DataGrid
         sx={{
           fontFamily: "system-ui, -apple-system",

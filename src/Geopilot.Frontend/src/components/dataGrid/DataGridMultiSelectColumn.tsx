@@ -8,7 +8,7 @@ import {
 import { FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { ReactNode } from "react";
 import { GridBaseColDef } from "@mui/x-data-grid/internals";
-import { DataRow } from "../adminGrid/AdminGridTypes.ts";
+import { DataRow } from "../adminGrid/AdminGridInterfaces.ts";
 
 // eslint-disable-next-line
 export interface GridMultiSelectColDef<R extends GridValidRowModel = any, V = any, F = V>
