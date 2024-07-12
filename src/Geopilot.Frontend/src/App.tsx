@@ -172,11 +172,6 @@ export const App: FC = () => {
                           }
                         />
                       </Routes>
-                      <LoggedOutTemplate>
-                        <Routes>
-                          <Route path="*" element={<Navigate to="/" />} />
-                        </Routes>
-                      </LoggedOutTemplate>
                       <AdminTemplate>
                         <Routes>
                           <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
