@@ -3,7 +3,7 @@ import { useContext, useEffect, useState } from "react";
 import { ErrorResponse, Mandate, Organisation, Validation } from "../../AppInterfaces.ts";
 import { useAuth } from "../../auth";
 import { AdminGrid } from "../../components/adminGrid/AdminGrid.tsx";
-import { DataRow } from "../../components/adminGrid/AdminGridTypes.ts";
+import { DataRow } from "../../components/adminGrid/AdminGridInterfaces.ts";
 import { GridColDef } from "../../components/dataGrid/DataGridMultiSelectColumn.tsx";
 import { AlertContext } from "../../components/alert/AlertContext.tsx";
 import { PromptContext } from "../../components/prompt/PromptContext.tsx";
