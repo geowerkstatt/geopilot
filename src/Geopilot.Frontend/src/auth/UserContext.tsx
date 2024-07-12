@@ -1,4 +1,4 @@
-import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
+import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { User } from "./AuthInterfaces";
 import { useAuth } from "react-oidc-context";
 
@@ -8,7 +8,7 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<User | undefined>(undefined);
   const auth = useAuth();
 
-  const fetchUserInfo = async () => {
+  const fetchUserInfo = useCallback(async () => {
     const userResult = await fetch("/api/v1/user", {
       headers: {
         Authorization: `Bearer ${auth.user?.id_token}`,
@@ -18,7 +18,7 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
 
     const user = ((await userResult.json()) as User) ?? undefined;
     setUser(user);
-  };
+  }, [auth?.user?.id_token]);
 
   useEffect(() => {
     if (auth?.isAuthenticated) {
@@ -26,7 +26,7 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
     } else if (auth?.isLoading) {
       setUser(undefined);
     }
-  }, [auth?.isAuthenticated, auth?.isLoading]);
+  }, [auth?.isAuthenticated, auth?.isLoading, fetchUserInfo]);
 
   return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
 };
