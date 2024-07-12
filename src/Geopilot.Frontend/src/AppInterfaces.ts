@@ -29,11 +29,21 @@ export interface Validation {
   allowedFileExtensions: string[];
 }
 
+export interface ErrorResponse {
+  status: string;
+  detail: string;
+}
+
+export interface Coordinate {
+  x: number;
+  y: number;
+}
+
 export interface Mandate {
   id: number;
   name: string;
   fileTypes: string[];
-  spatialExtent: number[];
+  spatialExtent: Coordinate[];
   organisations?: Organisation[];
   deliveries?: Delivery[];
 }

@@ -108,7 +108,7 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
   };
 
   const handleDisconnectClick = (id: GridRowId) => () => {
-    onDisconnect(rows[id as number]);
+    onDisconnect(rows.find(r => r.id === id) as DataRow);
   };
 
   const handleCancelClick = (id: GridRowId) => () => {
