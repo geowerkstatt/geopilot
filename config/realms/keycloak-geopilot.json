@@ -23,16 +23,48 @@
   "users": [
     {
       "id": "1f9f9000-c651-4b04-b6ae-9ce1e7f45c15",
-      "username": "angrymaestro",
+      "username": "admin",
       "enabled": true,
       "emailVerified": true,
-      "email": "angrymaestro@example.com",
-      "firstName": "SLIMY",
-      "lastName": "ANGRYMAESTRO",
+      "email": "admin@geopilot.ch",
+      "firstName": "Andreas",
+      "lastName": "Admin",
       "credentials": [
         {
           "type": "password",
-          "value": "JUNIORSCAN",
+          "value": "geopilot_password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "1ed45832-2880-4fd4-a274-bbcc101c3307",
+      "username": "user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "user@geopilot.ch",
+      "firstName": "Ursula",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "geopilot_password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "ceab20b3-2e6a-41e7-bd77-3d96e04098ab",
+      "username": "unregistered",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "unregistered@geopilot.ch",
+      "firstName": "Unknown",
+      "lastName": "Unregistered",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "geopilot_password",
           "temporary": false
         }
       ]
