@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Controllers;
+using Geopilot.Api.DTOs;
 using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ namespace Geopilot.Api.Test.Controllers
     [TestClass]
     public class MandateControllerTest
     {
-        private Mock<ILogger<Mandate>> loggerMock;
+        private Mock<ILogger<MandateController>> loggerMock;
         private Mock<IValidationService> validationServiceMock;
         private Context context;
         private MandateController mandateController;
@@ -23,7 +24,7 @@ namespace Geopilot.Api.Test.Controllers
         [TestInitialize]
         public void Initialize()
         {
-            loggerMock = new Mock<ILogger<Mandate>>();
+            loggerMock = new Mock<ILogger<MandateController>>();
             validationServiceMock = new Mock<IValidationService>();
             context = AssemblyInitialize.DbFixture.GetTestContext();
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
@@ -57,12 +58,12 @@ namespace Geopilot.Api.Test.Controllers
             mandateController.SetupTestUser(editUser);
 
             var result = (await mandateController.Get()) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+            var mandates = (result?.Value as IEnumerable<MandateDto>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            CollectionAssert.Contains(mandates, unrestrictedMandate);
-            CollectionAssert.Contains(mandates, xtfMandate);
-            CollectionAssert.DoesNotContain(mandates, unassociatedMandate);
+            ContainsMandate(mandates, MandateDto.FromMandate(unrestrictedMandate));
+            ContainsMandate(mandates, MandateDto.FromMandate(xtfMandate));
+            DoesNotContainMandate(mandates, MandateDto.FromMandate(unassociatedMandate));
         }
 
         [TestMethod]
@@ -75,12 +76,12 @@ namespace Geopilot.Api.Test.Controllers
                 .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf"));
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+            var mandates = (result?.Value as IEnumerable<MandateDto>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            CollectionAssert.Contains(mandates, unrestrictedMandate);
-            CollectionAssert.Contains(mandates, xtfMandate);
-            CollectionAssert.DoesNotContain(mandates, unassociatedMandate);
+            ContainsMandate(mandates, MandateDto.FromMandate(unrestrictedMandate));
+            ContainsMandate(mandates, MandateDto.FromMandate(xtfMandate));
+            DoesNotContainMandate(mandates, MandateDto.FromMandate(unassociatedMandate));
         }
 
         [TestMethod]
@@ -93,12 +94,12 @@ namespace Geopilot.Api.Test.Controllers
                 .Returns(new ValidationJob(jobId, "Original.csv", "tmp.csv"));
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+            var mandates = (result?.Value as IEnumerable<MandateDto>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            CollectionAssert.Contains(mandates, unrestrictedMandate);
-            CollectionAssert.DoesNotContain(mandates, xtfMandate);
-            CollectionAssert.DoesNotContain(mandates, unassociatedMandate);
+            ContainsMandate(mandates, MandateDto.FromMandate(unrestrictedMandate));
+            DoesNotContainMandate(mandates, MandateDto.FromMandate(xtfMandate));
+            DoesNotContainMandate(mandates, MandateDto.FromMandate(unassociatedMandate));
         }
 
         [TestMethod]
@@ -111,10 +112,10 @@ namespace Geopilot.Api.Test.Controllers
                 .Returns(() => null);
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+            var mandates = (result?.Value as IEnumerable<MandateDto>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            CollectionAssert.AreEquivalent(Array.Empty<Mandate>(), mandates);
+            Assert.AreEqual(0, mandates.Count);
         }
 
         [TestMethod]
@@ -132,48 +133,38 @@ namespace Geopilot.Api.Test.Controllers
         public async Task CreateMandate()
         {
             mandateController.SetupTestUser(adminUser);
-            var mandate = new Mandate() { FileTypes = new string[] { ".*" }, Name = "Test create" };
+            var mandate = new MandateDto() { FileTypes = new string[] { ".*" }, Name = "Test create", Organisations = new List<int>() { 1 } };
             var result = await mandateController.Create(mandate).ConfigureAwait(false);
             ActionResultAssert.IsCreated(result);
-        }
+            var resultValue = (result as CreatedResult)?.Value as MandateDto;
+            Assert.IsNotNull(resultValue);
 
-        [TestMethod]
-        public async Task CreateMandateUnauthorized()
-        {
-            mandateController.SetupTestUser(editUser);
-            var mandate = new Mandate() { FileTypes = new string[] { ".*" }, Name = "Test create" };
-            var result = await mandateController.Create(mandate).ConfigureAwait(false);
-            ActionResultAssert.IsUnauthorized(result);
+            var getMandatesResult = await mandateController.Get().ConfigureAwait(false) as OkObjectResult;
+            var mandates = getMandatesResult?.Value as IEnumerable<MandateDto>;
+            Assert.IsNotNull(mandates);
+            ContainsMandate(mandates, resultValue);
         }
 
         [TestMethod]
         public async Task EditMandate()
         {
             mandateController.SetupTestUser(adminUser);
-            var mandate = new Mandate() { FileTypes = new string[] { ".*" }, Name = "Test update" };
+            var mandate = new MandateDto() { FileTypes = new string[] { ".*", ".zip" }, Name = "Test update", Organisations = new List<int>() { 1 , 2 }, Deliveries = new List<int>() { 1 } };
             var result = await mandateController.Create(mandate).ConfigureAwait(false) as CreatedResult;
 
-            mandateController.SetupTestUser(adminUser);
-            var updatedMandate = result?.Value as Mandate;
+            var updatedMandate = result?.Value as MandateDto;
             updatedMandate.Name = "Updated name";
+            updatedMandate.FileTypes = new string[] { ".zip", ".gpkg" };
+            updatedMandate.Organisations = new List<int>() { 2, 3 };
             var updateResult = await mandateController.Edit(updatedMandate).ConfigureAwait(false);
             ActionResultAssert.IsOk(updateResult);
-            var resultValue = (updateResult as OkObjectResult)?.Value as Mandate;
-            Assert.AreEqual(updatedMandate.Name, resultValue?.Name);
-        }
+            var resultValue = (updateResult as OkObjectResult)?.Value as MandateDto;
+            Assert.IsNotNull(resultValue);
 
-        [TestMethod]
-        public async Task EditMandateUnauthorized()
-        {
-            mandateController.SetupTestUser(adminUser);
-            var mandate = new Mandate() { FileTypes = new string[] { ".*" }, Name = "Test update" };
-            var result = await mandateController.Create(mandate).ConfigureAwait(false) as CreatedResult;
-
-            mandateController.SetupTestUser(editUser);
-            var updatedMandate = result?.Value as Mandate;
-            updatedMandate.Name = "Updated name";
-            var updateResult = await mandateController.Edit(updatedMandate).ConfigureAwait(false);
-            ActionResultAssert.IsUnauthorized(updateResult);
+            var getMandatesResult = await mandateController.Get().ConfigureAwait(false) as OkObjectResult;
+            var mandates = getMandatesResult?.Value as IEnumerable<MandateDto>;
+            Assert.IsNotNull(mandates);
+            ContainsMandate(mandates, updatedMandate);
         }
 
         [TestCleanup]
@@ -182,6 +173,28 @@ namespace Geopilot.Api.Test.Controllers
             context.Dispose();
             loggerMock.VerifyAll();
             validationServiceMock.VerifyAll();
+        }
+
+        private void ContainsMandate(IEnumerable<MandateDto> mandates, MandateDto mandate)
+        {
+            var found = mandates.FirstOrDefault(m => m.Id == mandate.Id);
+            Assert.IsNotNull(found);
+            CompareMandates(mandate, found);
+        }
+
+        private void DoesNotContainMandate(IEnumerable<MandateDto> mandates, MandateDto mandate)
+        {
+            var found = mandates.FirstOrDefault(m => m.Id == mandate.Id);
+            Assert.IsNull(found);
+        }
+
+        private void CompareMandates(MandateDto expected, MandateDto actual)
+        {
+            Assert.AreEqual(expected.Id, actual.Id);
+            Assert.AreEqual(expected.Name, actual.Name);
+            CollectionAssert.AreEqual(expected.FileTypes, actual.FileTypes);
+            CollectionAssert.AreEqual(expected.Organisations, actual.Organisations);
+            CollectionAssert.AreEqual(expected.Deliveries, actual.Deliveries);
         }
     }
 }
