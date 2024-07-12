@@ -41,7 +41,7 @@ const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
         enabled: auth !== undefined,
         user: user,
         login: auth !== undefined ? auth.signinPopup : () => {},
-        logout: auth !== undefined ? auth.signinPopup : () => {},
+        logout: auth !== undefined ? auth.signoutRedirect : () => {},
       }}>
       {children}
     </GeopilotAuthContext.Provider>
