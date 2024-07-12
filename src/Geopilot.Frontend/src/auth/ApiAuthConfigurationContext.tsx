@@ -18,11 +18,16 @@ export const ApiAuthConfigurationProvider: FC<PropsWithChildren> = ({ children }
   useEffect(() => {
     if (apiAuthSettings) return;
 
-    const interval = setInterval(async () => {
-      const authSettings = await loadAuthConfiguration();
-      setApiAuthSettings(authSettings);
-    }, 3000);
+    const load = () => loadAuthConfiguration().then(setApiAuthSettings);
+    load();
 
+    // Retry every 3s
+    const interval = setInterval(load, 3_000);
+
+    // Cancel retry after 30s
+    setTimeout(() => clearInterval(interval), 30_000);
+
+    // Clear retry on successful load
     return () => {
       clearInterval(interval);
     };
