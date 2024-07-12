@@ -1,12 +1,12 @@
 import { Button, Card, Collapse, Container } from "react-bootstrap";
 import { Delivery } from "./Delivery";
-import { useAuth } from "@/auth";
+import { useGeopilotAuth } from "@/auth";
 import { LoggedInTemplate } from "@/auth/LoggedInTemplate";
 import { LoggedOutTemplate } from "@/auth/LoggedOutTemplate";
 import { useTranslation } from "react-i18next";
 
 export const DeliveryContainer = ({ statusData, validationRunning }) => {
-  const { login } = useAuth();
+  const { login } = useGeopilotAuth();
   const { t } = useTranslation();
 
   return (

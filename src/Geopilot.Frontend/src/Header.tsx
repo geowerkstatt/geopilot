@@ -1,4 +1,4 @@
-﻿import { useAuth } from "./auth";
+import { useGeopilotAuth } from "./auth";
 import { useTranslation } from "react-i18next";
 import {
   AppBar,
@@ -30,7 +30,7 @@ interface HeaderProps {
 }
 
 export const Header: FC<HeaderProps> = ({ clientSettings, hasDrawerToggle, handleDrawerToggle }) => {
-  const { user, login, logout } = useAuth();
+  const { user, login, logout } = useGeopilotAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();

@@ -3,7 +3,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
 import { Button } from "@mui/material";
-import { useAuth } from "../../auth";
+import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/PromptContext.tsx";
 import { AlertContext } from "../../components/alert/AlertContext.tsx";
 import { Delivery, TranslationFunction } from "../../AppInterfaces";
@@ -36,7 +36,7 @@ export const DeliveryOverview = () => {
   const { showPrompt } = useContext(PromptContext);
   const { showAlert, alertIsOpen } = useContext(AlertContext);
 
-  const { user } = useAuth();
+  const { user } = useGeopilotAuth();
 
   if (user && deliveries === undefined) {
     loadDeliveries();

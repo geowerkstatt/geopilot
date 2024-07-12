@@ -1,4 +1,4 @@
-import { useAuth } from ".";
+import { useUser } from ".";
 import { FC, ReactNode } from "react";
 
 interface AdminTemplateProps {
@@ -6,7 +6,7 @@ interface AdminTemplateProps {
 }
 
 export const AdminTemplate: FC<AdminTemplateProps> = ({ children }) => {
-  const { user } = useAuth();
+  const user = useUser();
 
   return user?.isAdmin ? children : null;
 };

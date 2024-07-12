@@ -1,4 +1,4 @@
-import { useAuth } from ".";
+import { useUser } from ".";
 import { FC, ReactNode } from "react";
 
 interface LoggedInTemplateProps {
@@ -6,7 +6,7 @@ interface LoggedInTemplateProps {
 }
 
 export const LoggedInTemplate: FC<LoggedInTemplateProps> = ({ children }) => {
-  const { user } = useAuth();
+  const user = useUser();
 
   return user ? children : null;
 };
