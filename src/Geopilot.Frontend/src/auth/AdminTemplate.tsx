@@ -1,4 +1,4 @@
-import { useUser } from ".";
+import { useGeopilotAuth } from ".";
 import { FC, ReactNode } from "react";
 
 interface AdminTemplateProps {
@@ -6,7 +6,7 @@ interface AdminTemplateProps {
 }
 
 export const AdminTemplate: FC<AdminTemplateProps> = ({ children }) => {
-  const user = useUser();
+  const { enabled, user } = useGeopilotAuth();
 
-  return user?.isAdmin ? children : null;
+  return enabled && user?.isAdmin ? children : null;
 };
