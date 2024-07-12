@@ -5,6 +5,7 @@ import {
   DataGrid,
   GridActionsCellItem,
   GridCellParams,
+  GridPaginationModel,
   GridRowId,
   GridRowModes,
   GridRowModesModel,
@@ -27,11 +28,17 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
   const [rows, setRows] = useState<DataRow[]>([]);
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
   const [editingRow, setEditingRow] = useState<GridRowId>();
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 10,
+  });
   const defaultRow: DataRow = { id: 0 };
 
   useEffect(() => {
     if (data) {
       setRows(data);
+      setRowModesModel({});
+      setEditingRow(undefined);
     }
   }, [data]);
 
@@ -39,7 +46,8 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
     field: "actions",
     type: "actions",
     headerName: "",
-    width: 86,
+    flex: 0,
+    resizable: false,
     cellClassName: "actions",
     getActions: ({ id }) => {
       const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
@@ -91,13 +99,20 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
   const adminGridColumns: GridColDef[] = columns.concat(actionColumn);
 
   const addRow = () => {
-    setRows(oldRows => [...oldRows, defaultRow]);
-    setRowModesModel(oldModel => ({
-      ...oldModel,
-      [defaultRow.id]: { mode: GridRowModes.Edit, fieldToFocus: columns[0].field },
-    }));
     setEditingRow(defaultRow.id);
+    setRows(oldRows => [...oldRows, defaultRow]);
   };
+
+  useEffect(() => {
+    if (editingRow === defaultRow.id) {
+      const newPage = Math.ceil(rows.length / paginationModel.pageSize) - 1;
+      setPaginationModel({ page: newPage, pageSize: paginationModel.pageSize });
+      setRowModesModel(oldModel => ({
+        ...oldModel,
+        [defaultRow.id]: { mode: GridRowModes.Edit, fieldToFocus: columns[0].field },
+      }));
+    }
+  }, [rows]);
 
   const handleEditClick = (id: GridRowId) => () => {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
@@ -143,7 +158,14 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
   };
 
   const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
+    if (editingRow !== undefined && newRowModesModel[editingRow]) {
+      newRowModesModel[editingRow].mode = GridRowModes.Edit;
+    }
     setRowModesModel(newRowModesModel);
+  };
+
+  const handlePaginationModelChange = (newPaginationModel: GridPaginationModel) => {
+    setPaginationModel(newPaginationModel);
   };
 
   return (
@@ -175,11 +197,8 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
         processRowUpdate={processRowUpdate}
         hideFooterSelectedRowCount
         pagination
-        initialState={{
-          pagination: {
-            paginationModel: { page: 0, pageSize: 10 },
-          },
-        }}
+        paginationModel={paginationModel}
+        onPaginationModelChange={handlePaginationModelChange}
         pageSizeOptions={[5, 10, 25]}
       />
     </>
