@@ -149,13 +149,15 @@ namespace Geopilot.Api.Test.Controllers
         public async Task EditMandate()
         {
             mandateController.SetupTestUser(adminUser);
-            var mandate = new MandateDto() { FileTypes = new string[] { ".*", ".zip" }, Name = "Test update", Organisations = new List<int>() { 1 , 2 }, Deliveries = new List<int>() { 1 } };
+            var mandate = new MandateDto() { FileTypes = new string[] { ".*", ".zip" }, Name = "Test update", Organisations = new List<int>() { 1, 2 }, Deliveries = new List<int>() { 1 } };
             var result = await mandateController.Create(mandate).ConfigureAwait(false) as CreatedResult;
 
             var updatedMandate = result?.Value as MandateDto;
+            Assert.IsNotNull(updatedMandate);
             updatedMandate.Name = "Updated name";
             updatedMandate.FileTypes = new string[] { ".zip", ".gpkg" };
             updatedMandate.Organisations = new List<int>() { 2, 3 };
+
             var updateResult = await mandateController.Edit(updatedMandate).ConfigureAwait(false);
             ActionResultAssert.IsOk(updateResult);
             var resultValue = (updateResult as OkObjectResult)?.Value as MandateDto;

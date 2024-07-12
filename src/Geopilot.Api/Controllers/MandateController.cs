@@ -106,7 +106,7 @@ public class MandateController : ControllerBase
             var entityEntry = await context.AddAsync(mandate).ConfigureAwait(false);
             await context.SaveChangesAsync().ConfigureAwait(false);
 
-            var result = (Mandate?)entityEntry.Entity;
+            var result = entityEntry.Entity;
             var location = new Uri(string.Format(CultureInfo.InvariantCulture, $"/api/v1/mandate/{result.Id}"), UriKind.Relative);
             return Created(location, MandateDto.FromMandate(result));
         }
