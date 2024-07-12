@@ -27,6 +27,7 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
   const [rows, setRows] = useState<DataRow[]>([]);
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
   const [editingRow, setEditingRow] = useState<GridRowId>();
+  const defaultRow: DataRow = { id: 0 };
 
   useEffect(() => {
     if (data) {
@@ -69,7 +70,7 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
           label={t("edit")}
           onClick={handleEditClick(id)}
           color="inherit"
-          disabled={!!editingRow}
+          disabled={editingRow !== undefined}
         />,
         <GridActionsCellItem
           key="disconnect"
@@ -81,20 +82,21 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
       ];
     },
   };
-  const adminGridColumns: GridColDef[] = columns.concat(actionColumn);
-  adminGridColumns.forEach(column => {
+  columns.forEach(column => {
+    defaultRow[column.field] = undefined;
     if (IsGridMultiSelectColDef(column)) {
       TransformToMultiSelectColumn(column as GridMultiSelectColDef);
     }
   });
+  const adminGridColumns: GridColDef[] = columns.concat(actionColumn);
 
-  const handleClick = () => {
-    const id = 0;
-    setRows(oldRows => [...oldRows, { id }]);
+  const addRow = () => {
+    setRows(oldRows => [...oldRows, defaultRow]);
     setRowModesModel(oldModel => ({
       ...oldModel,
-      [id]: { mode: GridRowModes.Edit, fieldToFocus: columns[0].field },
+      [defaultRow.id]: { mode: GridRowModes.Edit, fieldToFocus: columns[0].field },
     }));
+    setEditingRow(defaultRow.id);
   };
 
   const handleEditClick = (id: GridRowId) => () => {
@@ -124,11 +126,10 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
     setEditingRow(undefined);
   };
 
-  const processRowUpdate = (newRow: DataRow) => {
-    const updatedRow = { ...newRow };
+  const processRowUpdate = (updatedRow: DataRow) => {
     setRows(
       rows.map(row => {
-        if (row.id === newRow.id) {
+        if (row.id === updatedRow.id) {
           if (row !== updatedRow) {
             onSave(updatedRow);
           }
@@ -153,7 +154,8 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
           variant="outlined"
           startIcon={<AddIcon />}
           sx={{ marginBottom: "20px" }}
-          onClick={handleClick}>
+          disabled={editingRow !== undefined}
+          onClick={addRow}>
           {t(addLabel)}
         </Button>
       )}
