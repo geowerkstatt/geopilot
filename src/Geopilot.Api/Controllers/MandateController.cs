@@ -168,21 +168,29 @@ public class MandateController : ControllerBase
     {
         var organisations = await context.Organisations.Where(o => mandateDto.Organisations.Contains(o.Id)).ToListAsync();
         var deliveries = await context.Deliveries.Where(d => mandateDto.Deliveries.Contains(d.Id)).ToListAsync();
-        var spatialExtent = new List<Coordinate>()
+        Geometry spatialExtent;
+        if (mandateDto.SpatialExtent.Count != 2)
         {
-            new (mandateDto.SpatialExtent[0].X, mandateDto.SpatialExtent[0].Y),
-            new (mandateDto.SpatialExtent[0].X, mandateDto.SpatialExtent[1].Y),
-            new (mandateDto.SpatialExtent[1].X, mandateDto.SpatialExtent[1].Y),
-            new (mandateDto.SpatialExtent[1].X, mandateDto.SpatialExtent[0].Y),
-            new (mandateDto.SpatialExtent[0].X, mandateDto.SpatialExtent[0].Y),
-        };
+            spatialExtent = Geometry.DefaultFactory.CreatePolygon();
+        }
+        else
+        {
+            spatialExtent = Geometry.DefaultFactory.CreatePolygon(new Coordinate[]
+            {
+                new (mandateDto.SpatialExtent[0].X, mandateDto.SpatialExtent[0].Y),
+                new (mandateDto.SpatialExtent[0].X, mandateDto.SpatialExtent[1].Y),
+                new (mandateDto.SpatialExtent[1].X, mandateDto.SpatialExtent[1].Y),
+                new (mandateDto.SpatialExtent[1].X, mandateDto.SpatialExtent[0].Y),
+                new (mandateDto.SpatialExtent[0].X, mandateDto.SpatialExtent[0].Y),
+            });
+        }
 
         return new Mandate
         {
             Id = mandateDto.Id,
             Name = mandateDto.Name,
             FileTypes = mandateDto.FileTypes.ToArray(),
-            SpatialExtent = Geometry.DefaultFactory.CreatePolygon(spatialExtent.ToArray()),
+            SpatialExtent = spatialExtent,
             Organisations = organisations,
             Deliveries = deliveries,
         };
