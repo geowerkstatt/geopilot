@@ -99,7 +99,7 @@ public class MandateController : ControllerBase
         try
         {
             if (mandateDto == null)
-            return BadRequest();
+                return BadRequest();
 
             var mandate = await TransformToMandate(mandateDto);
 
