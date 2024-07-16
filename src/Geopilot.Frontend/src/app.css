@@ -538,3 +538,14 @@ footer {
 .alert p {
   margin-bottom: 0;
 }
+
+.spatial-extent-popover {
+  padding: 20px;
+}
+
+.spatial-extent-coordinate-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-top: 20px;
+}

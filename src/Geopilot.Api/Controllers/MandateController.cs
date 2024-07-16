@@ -168,12 +168,21 @@ public class MandateController : ControllerBase
     {
         var organisations = await context.Organisations.Where(o => mandateDto.Organisations.Contains(o.Id)).ToListAsync();
         var deliveries = await context.Deliveries.Where(d => mandateDto.Deliveries.Contains(d.Id)).ToListAsync();
+        var spatialExtent = new List<Coordinate>()
+        {
+            new (mandateDto.SpatialExtent[0].X, mandateDto.SpatialExtent[0].Y),
+            new (mandateDto.SpatialExtent[0].X, mandateDto.SpatialExtent[1].Y),
+            new (mandateDto.SpatialExtent[1].X, mandateDto.SpatialExtent[1].Y),
+            new (mandateDto.SpatialExtent[1].X, mandateDto.SpatialExtent[0].Y),
+            new (mandateDto.SpatialExtent[0].X, mandateDto.SpatialExtent[0].Y),
+        };
+
         return new Mandate
         {
             Id = mandateDto.Id,
             Name = mandateDto.Name,
             FileTypes = mandateDto.FileTypes.ToArray(),
-            SpatialExtent = Geometry.DefaultFactory.CreatePolygon(),
+            SpatialExtent = Geometry.DefaultFactory.CreatePolygon(spatialExtent.ToArray()),
             Organisations = organisations,
             Deliveries = deliveries,
         };

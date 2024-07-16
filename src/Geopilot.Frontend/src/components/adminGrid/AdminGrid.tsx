@@ -16,13 +16,13 @@ import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import { useTranslation } from "react-i18next";
-import { AdminGridProps, DataRow } from "./AdminGridInterfaces.ts";
+import { AdminGridProps, DataRow, GridColDef } from "./AdminGridInterfaces.ts";
 import {
-  GridColDef,
   GridMultiSelectColDef,
   IsGridMultiSelectColDef,
   TransformToMultiSelectColumn,
 } from "../dataGrid/DataGridMultiSelectColumn.tsx";
+import { IsGridSpatialExtentColDef, TransformToSpatialExtentColumn } from "../dataGrid/DataGridSpatialExtentColumn.tsx";
 
 export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave, onDisconnect }) => {
   const { t } = useTranslation();
@@ -112,6 +112,9 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
     if (IsGridMultiSelectColDef(column)) {
       TransformToMultiSelectColumn(column as GridMultiSelectColDef);
     }
+    if (IsGridSpatialExtentColDef(column)) {
+      TransformToSpatialExtentColumn(column);
+    }
   });
   const adminGridColumns: GridColDef[] = columns.concat(actionColumn);
 
@@ -129,6 +132,7 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
         [defaultRow.id]: { mode: GridRowModes.Edit, fieldToFocus: columns[0].field },
       }));
     }
+    // eslint-disable-next-line
   }, [rows]);
 
   const handleEditClick = (id: GridRowId) => () => {

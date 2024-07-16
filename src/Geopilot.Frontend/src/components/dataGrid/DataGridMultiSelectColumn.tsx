@@ -1,14 +1,8 @@
-import {
-  GridActionsColDef,
-  GridRenderEditCellParams,
-  GridSingleSelectColDef,
-  GridValidRowModel,
-  useGridApiContext,
-} from "@mui/x-data-grid";
+import { GridRenderEditCellParams, GridValidRowModel, useGridApiContext } from "@mui/x-data-grid";
 import { FormControl, InputLabel, MenuItem, Select, SelectChangeEvent } from "@mui/material";
 import { ReactNode } from "react";
 import { GridBaseColDef } from "@mui/x-data-grid/internals";
-import { DataRow } from "../adminGrid/AdminGridInterfaces.ts";
+import { DataRow, GridColDef } from "../adminGrid/AdminGridInterfaces.ts";
 
 // eslint-disable-next-line
 export interface GridMultiSelectColDef<R extends GridValidRowModel = any, V = any, F = V>
@@ -18,13 +12,6 @@ export interface GridMultiSelectColDef<R extends GridValidRowModel = any, V = an
   getOptionLabel: (value: DataRow | string) => string;
   getOptionValue: (value: DataRow | string) => string | number;
 }
-
-// eslint-disable-next-line
-export type GridColDef<R extends GridValidRowModel = any, V = any, F = V> =
-  | GridBaseColDef<R, V, F>
-  | GridActionsColDef<R, V, F>
-  | GridSingleSelectColDef<R, V, F>
-  | GridMultiSelectColDef<R, V, F>;
 
 export const IsGridMultiSelectColDef = (columnDef: GridColDef) =>
   columnDef.type === "custom" && "valueOptions" in columnDef;
