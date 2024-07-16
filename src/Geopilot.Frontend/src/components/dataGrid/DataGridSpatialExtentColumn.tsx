@@ -2,7 +2,7 @@ import { GridRenderEditCellParams, useGridApiContext } from "@mui/x-data-grid";
 import { IconButton, Popover, Tooltip } from "@mui/material";
 import { GridBaseColDef } from "@mui/x-data-grid/internals";
 import { GridColDef } from "../adminGrid/AdminGridInterfaces.ts";
-import PolylineIcon from "@mui/icons-material/Polyline";
+import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import { MouseEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DataGridSpatialExtentPopoverContent } from "./DataGridSpatialExtentPopoverContent.tsx";
@@ -14,7 +14,7 @@ export const IsGridSpatialExtentColDef = (columnDef: GridColDef) =>
 export const TransformToSpatialExtentColumn = (columnDef: GridBaseColDef) => {
   columnDef.renderCell = () => (
     <IconButton size="small" color="inherit" disabled>
-      <PolylineIcon fontSize="small" />
+      <PublicOutlinedIcon fontSize="small" />
     </IconButton>
   );
   columnDef.renderEditCell = params => <DataGridSpatialExtentColumn params={params} />;
@@ -40,7 +40,7 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
           onClick={(event: MouseEvent<HTMLButtonElement>) => {
             setPopoverAnchor(event.currentTarget);
           }}>
-          <PolylineIcon fontSize="small" />
+          <PublicOutlinedIcon fontSize="small" />
         </IconButton>
       </Tooltip>
       <Popover
