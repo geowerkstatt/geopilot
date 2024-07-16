@@ -1,6 +1,7 @@
 {
   "about": "Informazioni",
   "addMandate": "Aggiungi mandato",
+  "addOrganisation": "Aggiungi organizzazione",
   "administration": "Amministrazione",
   "appSubTitle": "Validazione online e consegna di dati geografici",
   "bugTracking": "Tracciamento bug",
@@ -59,6 +60,9 @@
   "mandatesLoadingError": "Si è verificato un errore durante il caricamento dei mandati: {{error}}",
   "name": "Nome",
   "noErrors": "Nessun errore",
+  "organisationDisconnectMessage": "Questa operazione rimuove tutti i collegamenti ai mandati e agli utenti, e non può essere annullata.",
+  "organisationDisconnectTitle": "Volete davvero scollegare l'organizzazione?",
+  "organisationSaveError": "Si è verificato un errore durante il salvataggio dell'organizzazione: {{error}}",
   "organisations": "Organizzazioni",
   "organisationsLoadingError": "Si è verificato un errore durante il caricamento delle organizzazioni: {{error}}",
   "predecessor": "Predecessore",
@@ -71,6 +75,7 @@
   "uploadFile": "Carica {{fileName}}...",
   "uploadNotSuccessful": "Caricamento non riuscito. La validazione è stata interrotta.",
   "users": "Utenti",
+  "usersLoadingError": "Si è verificato un errore durante il caricamento degli utenti: {{error}}",
   "validate": "Valida",
   "version": "Versione",
   "versionInformation": "Informazioni sulla versione"

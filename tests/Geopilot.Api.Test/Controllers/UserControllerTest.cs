@@ -66,7 +66,7 @@ public class UserControllerTest
         dbUser.FullName = "This value should be replaced by name claim";
         context.SaveChanges();
 
-        var userResult = await userController.GetAsync();
+        var userResult = await userController.GetSelfAsync();
 
         Assert.IsNotNull(userResult);
         Assert.AreEqual(authIdentifier, userResult.AuthIdentifier);
@@ -86,7 +86,7 @@ public class UserControllerTest
 
         var httpContextMock = userController.SetupTestUser(user);
 
-        var userResult = await userController.GetAsync();
+        var userResult = await userController.GetSelfAsync();
 
         Assert.IsNull(userResult);
         httpContextMock.VerifyAll();
@@ -113,10 +113,33 @@ public class UserControllerTest
         httpContextMock.SetupGet(c => c.User).Returns(principal);
         userController.ControllerContext.HttpContext = httpContextMock.Object;
 
-        var userResult = await userController.GetAsync();
+        var userResult = await userController.GetSelfAsync();
 
         Assert.IsNull(userResult);
         httpContextMock.VerifyAll();
+    }
+
+    [TestMethod]
+    public void GetUsers()
+    {
+        var testUser = new User
+        {
+            AuthIdentifier = Guid.NewGuid().ToString(),
+            FullName = "Test User",
+            Email = "test@user.com",
+            IsAdmin = true,
+        };
+        context.Users.Add(testUser);
+        context.SaveChanges();
+
+        var users = userController.Get();
+
+        Assert.IsNotNull(users);
+        var lastUser = users.Last();
+        Assert.AreEqual(testUser.AuthIdentifier, lastUser.AuthIdentifier);
+        Assert.AreEqual(testUser.FullName, lastUser.FullName);
+        Assert.AreEqual(testUser.Email, lastUser.Email);
+        Assert.AreEqual(testUser.IsAdmin, lastUser.IsAdmin);
     }
 
     [TestMethod]

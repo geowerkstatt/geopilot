@@ -1,6 +1,7 @@
 {
   "about": "About",
   "addMandate": "Add mandate",
+  "addOrganisation": "Add organisation",
   "administration": "Administration",
   "appSubTitle": "Online validation & delivery of geodata",
   "bugTracking": "bug tracking",
@@ -59,6 +60,9 @@
   "mandatesLoadingError": "An error occurred while loading the mandates: {{error}}",
   "name": "Name",
   "noErrors": "No Errors",
+  "organisationDisconnectMessage": "This will remove all connections to mandates and users, and cannot be undone.",
+  "organisationDisconnectTitle": "Do you really want to disconnect the organisation?",
+  "organisationSaveError": "An error occurred while saving the organisation: {{error}}",
   "organisations": "Organisations",
   "organisationsLoadingError": "An error occurred while loading the organisations: {{error}}",
   "predecessor": "Predecessor",
@@ -71,6 +75,7 @@
   "uploadFile": "Upload {{fileName}}...",
   "uploadNotSuccessful": "The upload was not successful. Validation has been aborted.",
   "users": "Users",
+  "usersLoadingError": "An error occurred while loading the users: {{error}}",
   "validate": "Validate",
   "version": "Version",
   "versionInformation": "Version information"

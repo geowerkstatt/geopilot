@@ -3,6 +3,7 @@ using Geopilot.Api.Contracts;
 using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -33,13 +34,29 @@ public class UserController : ControllerBase
     }
 
     /// <summary>
+    /// Gets a list of users.
+    /// </summary>
+    [HttpGet]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns list of users.", typeof(IEnumerable<User>), new[] { "application/json" })]
+    public List<User> Get()
+    {
+        logger.LogInformation("Getting users.");
+
+        return context.Users
+            .Include(u => u.Organisations)
+            .AsNoTracking()
+            .ToList();
+    }
+
+    /// <summary>
     /// Gets the current user information.
     /// </summary>
     /// <returns>The <see cref="User"/> that is currently logged in.</returns>
-    [HttpGet]
+    [HttpGet("self")]
     [Authorize(Policy = GeopilotPolicies.User)]
     [SwaggerResponse(StatusCodes.Status200OK, "Returns the currently logged in user.", typeof(User), new[] { "application/json" })]
-    public async Task<User?> GetAsync()
+    public async Task<User?> GetSelfAsync()
     {
         var user = await context.GetUserByPrincipalAsync(User);
         if (user == null)

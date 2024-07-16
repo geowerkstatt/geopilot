@@ -1,6 +1,7 @@
 {
   "about": "À propos",
   "addMandate": "Ajouter un mandat",
+  "addOrganisation": "Ajouter une organisation",
   "administration": "Administration",
   "appSubTitle": "Validation en ligne et livraison de données géographiques",
   "bugTracking": "Suivi des bugs",
@@ -59,6 +60,9 @@
   "mandatesLoadingError": "Une erreur s'est produite lors du chargement des mandats: {{error}}",
   "name": "Nom",
   "noErrors": "Pas d'erreurs",
+  "organisationDisconnectMessage": "Cette action supprime toutes les connexions avec les mandats et les utilisateurs, et ne peut être annulée.",
+  "organisationDisconnectTitle": "Voulez-vous vraiment déconnecter l'organisation?",
+  "organisationSaveError": "Une erreur s'est produite lors de l'enregistrement de l'organisation: {{error}}",
   "organisations": "Organisations",
   "organisationsLoadingError": "Une erreur s'est produite lors du chargement des organisations: {{error}}",
   "predecessor": "Prédécesseur",
@@ -71,6 +75,7 @@
   "uploadFile": "Télécharger {{fileName}}...",
   "uploadNotSuccessful": "Le téléchargement n'a pas réussi. La validation a été annulée.",
   "users": "Utilisateurs",
+  "usersLoadingError": "Une erreur s'est produite lors du chargement des utilisateurs: {{error}}",
   "validate": "Valider",
   "version": "Version",
   "versionInformation": "Informations sur la version"
