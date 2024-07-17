@@ -54,7 +54,6 @@ public class Context : DbContext
         get
         {
             return Deliveries
-                .Where(d => !d.Deleted)
                 .Include(d => d.Mandate)
                 .Include(d => d.Assets)
                 .Include(d => d.DeclaringUser)
@@ -77,7 +76,7 @@ public class Context : DbContext
             return Mandates
                 .Include(m => m.Organisations)
                 .ThenInclude(o => o.Users)
-                .Include(m => m.Deliveries.Where(delivery => !delivery.Deleted))
+                .Include(m => m.Deliveries)
                 .ThenInclude(d => d.Assets);
         }
     }
@@ -86,4 +85,10 @@ public class Context : DbContext
     /// Set of all <see cref="Asset"/>.
     /// </summary>
     public DbSet<Asset> Assets { get; set; }
+
+    /// <inheritdoc/>
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Delivery>().HasQueryFilter(d => !d.Deleted);
+    }
 }

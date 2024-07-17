@@ -179,7 +179,9 @@ public class DeliveryControllerTest
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status200OK, result.StatusCode);
 
-        var dbDelivery = context.Deliveries.Include(d => d.Assets).FirstOrDefault(d => d.Id == delivery.Id);
+        var dbDelivery = context.DeliveriesWithIncludes
+            .IgnoreQueryFilters()
+            .FirstOrDefault(d => d.Id == delivery.Id);
         Assert.IsNotNull(dbDelivery);
         Assert.AreEqual(true, dbDelivery.Deleted);
         Assert.AreEqual(true, dbDelivery.Assets.All(a => a.Deleted));
