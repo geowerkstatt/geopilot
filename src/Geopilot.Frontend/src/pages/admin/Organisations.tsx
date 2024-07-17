@@ -6,6 +6,7 @@ import { ErrorResponse, Mandate, Organisation, User } from "../../AppInterfaces.
 import { useAuth } from "../../auth";
 import { AlertContext } from "../../components/alert/AlertContext.tsx";
 import { PromptContext } from "../../components/prompt/PromptContext.tsx";
+import { CircularProgress, Stack } from "@mui/material";
 
 export const Organisations = () => {
   const { t } = useTranslation();
@@ -13,8 +14,15 @@ export const Organisations = () => {
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [mandates, setMandates] = useState<Mandate[]>();
   const [users, setUsers] = useState<User[]>();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const { showAlert } = useContext(AlertContext);
   const { showPrompt } = useContext(PromptContext);
+
+  useEffect(() => {
+    if (organisations && mandates && users) {
+      setIsLoading(false);
+    }
+  }, [organisations, mandates, users]);
 
   async function loadOrganisations() {
     try {
@@ -150,7 +158,11 @@ export const Organisations = () => {
     },
   ];
 
-  return (
+  return isLoading ? (
+    <Stack sx={{ flex: "1 0 0", justifyContent: "center", alignItems: "center", height: "100%" }}>
+      <CircularProgress />
+    </Stack>
+  ) : (
     <AdminGrid
       addLabel="addOrganisation"
       data={organisations as unknown as DataRow[]}
