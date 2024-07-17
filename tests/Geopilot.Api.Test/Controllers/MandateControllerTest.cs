@@ -188,23 +188,19 @@ namespace Geopilot.Api.Controllers
         {
             mandateController.SetupTestUser(adminUser);
             var mandate = new MandateDto() { FileTypes = new string[] { ".*", ".zip" }, Name = "Test update", Organisations = new List<int>() { 1, 2 }, Deliveries = new List<int>() { 1 } };
-            var result = await mandateController.Create(mandate).ConfigureAwait(false) as CreatedResult;
+            var result = await mandateController.Create(mandate) as CreatedResult;
 
-            var updatedMandate = result?.Value as MandateDto;
-            Assert.IsNotNull(updatedMandate);
-            updatedMandate.Name = "Updated name";
-            updatedMandate.FileTypes = new string[] { ".zip", ".gpkg" };
-            updatedMandate.Organisations = new List<int>() { 2, 3 };
+            var mandateToUpdate = result?.Value as MandateDto;
+            Assert.IsNotNull(mandateToUpdate);
+            mandateToUpdate.Name = "Updated name";
+            mandateToUpdate.FileTypes = new string[] { ".zip", ".gpkg" };
+            mandateToUpdate.Organisations = new List<int>() { 2, 3 };
 
-            var updateResult = await mandateController.Edit(updatedMandate).ConfigureAwait(false);
+            var updateResult = await mandateController.Edit(mandateToUpdate);
             ActionResultAssert.IsOk(updateResult);
-            var resultValue = (updateResult as OkObjectResult)?.Value as MandateDto;
-            Assert.IsNotNull(resultValue);
-
-            var getMandatesResult = await mandateController.Get().ConfigureAwait(false) as OkObjectResult;
-            var mandates = getMandatesResult?.Value as IEnumerable<MandateDto>;
-            Assert.IsNotNull(mandates);
-            ContainsMandate(mandates, updatedMandate);
+            var updatedMandate = (updateResult as OkObjectResult)?.Value as MandateDto;
+            Assert.IsNotNull(updatedMandate);
+            CompareMandates(mandateToUpdate, updatedMandate);
         }
 
         [TestCleanup]

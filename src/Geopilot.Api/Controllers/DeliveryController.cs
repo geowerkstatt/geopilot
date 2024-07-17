@@ -152,6 +152,7 @@ public class DeliveryController : ControllerBase
             return NotFound();
 
         var result = context.DeliveriesWithIncludes
+            .AsNoTracking()
             .Where(d => userMandatesIds.Contains(d.Mandate.Id));
 
         if (mandateId.HasValue)

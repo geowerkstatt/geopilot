@@ -6,6 +6,7 @@ import { AdminGrid } from "../../components/adminGrid/AdminGrid.tsx";
 import { DataRow, GridColDef } from "../../components/adminGrid/AdminGridInterfaces.ts";
 import { AlertContext } from "../../components/alert/AlertContext.tsx";
 import { PromptContext } from "../../components/prompt/PromptContext.tsx";
+import { CircularProgress, Stack } from "@mui/material";
 
 export const Mandates = () => {
   const { t } = useTranslation();
@@ -13,8 +14,15 @@ export const Mandates = () => {
   const [mandates, setMandates] = useState<Mandate[]>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [fileExtensions, setFileExtensions] = useState<string[]>();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const { showAlert } = useContext(AlertContext);
   const { showPrompt } = useContext(PromptContext);
+
+  useEffect(() => {
+    if (mandates && organisations && fileExtensions) {
+      setIsLoading(false);
+    }
+  }, [mandates, organisations, fileExtensions]);
 
   async function loadMandates() {
     try {
@@ -159,7 +167,11 @@ export const Mandates = () => {
     },
   ];
 
-  return (
+  return isLoading ? (
+    <Stack sx={{ flex: "1 0 0", justifyContent: "center", alignItems: "center", height: "100%" }}>
+      <CircularProgress />
+    </Stack>
+  ) : (
     <AdminGrid
       addLabel="addMandate"
       data={mandates as unknown as DataRow[]}

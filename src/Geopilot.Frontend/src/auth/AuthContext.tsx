@@ -17,7 +17,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children, authScopes, onLo
   const loginSilentIntervalRef = useRef<NodeJS.Timeout>();
 
   const fetchUserInfo = useCallback(async () => {
-    const userResult = await fetch("/api/v1/user");
+    const userResult = await fetch("/api/v1/user/self");
     if (!userResult.ok) throw new Error(userResult.statusText);
 
     const userJson = await userResult.json();
