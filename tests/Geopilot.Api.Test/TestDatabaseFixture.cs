@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace Geopilot.Api.Test;
+namespace Geopilot.Api;
 
 public class TestDatabaseFixture
 {

@@ -1,6 +1,4 @@
-﻿using Geopilot.Api.Test;
-
-namespace Geopilot.Api.FileAccess;
+﻿namespace Geopilot.Api.FileAccess;
 
 [TestClass]
 public sealed class PhysicalFileProviderTest
