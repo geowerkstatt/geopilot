@@ -1,11 +1,10 @@
-﻿using Geopilot.Api.Controllers;
-using Geopilot.Api.DTOs;
+﻿using Geopilot.Api.DTOs;
 using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace Geopilot.Api.Test.Controllers
+namespace Geopilot.Api.Controllers
 {
     [TestClass]
     public class OrganisationControllerTest

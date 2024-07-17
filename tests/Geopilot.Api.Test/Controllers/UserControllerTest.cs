@@ -1,7 +1,6 @@
 ﻿using Castle.Core.Logging;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.Models;
-using Geopilot.Api.Test;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

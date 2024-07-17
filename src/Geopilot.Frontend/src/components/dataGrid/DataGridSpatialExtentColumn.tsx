@@ -3,10 +3,11 @@ import { IconButton, Popover, Tooltip } from "@mui/material";
 import { GridBaseColDef } from "@mui/x-data-grid/internals";
 import { GridColDef } from "../adminGrid/AdminGridInterfaces.ts";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
-import { MouseEvent, useEffect, useState } from "react";
+import { MouseEvent, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DataGridSpatialExtentPopoverContent } from "./DataGridSpatialExtentPopoverContent.tsx";
 import { Coordinate } from "../../AppInterfaces.ts";
+import { PromptContext } from "../prompt/PromptContext.tsx";
 
 export const IsGridSpatialExtentColDef = (columnDef: GridColDef) =>
   columnDef.type === "custom" && columnDef.field === "spatialExtent";
@@ -29,8 +30,9 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
   const { t } = useTranslation();
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLButtonElement | null>(null);
   const [spatialExtent, setSpatialExtent] = useState<Coordinate[]>(params.value);
+  const { showPrompt } = useContext(PromptContext);
 
-  useEffect(() => {
+  const setDefaultSpatialExtent = () => {
     if (params.value) {
       setSpatialExtent(params.value);
     } else {
@@ -39,6 +41,11 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
         { x: null, y: null },
       ]);
     }
+  };
+
+  useEffect(() => {
+    setDefaultSpatialExtent();
+    // eslint-disable-next-line
   }, []);
 
   return (
@@ -59,12 +66,29 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
         open={!!popoverAnchor}
         anchorEl={popoverAnchor}
         onClose={() => {
-          apiRef.current.setEditCellValue({
-            id: params.id,
-            field: "spatialExtent",
-            value: spatialExtent,
-          });
-          setPopoverAnchor(null);
+          const allNull = spatialExtent.every(coord => coord.x === null && coord.y === null);
+          const noneNull = spatialExtent.every(coord => coord.x !== null && coord.y !== null);
+          if (allNull || noneNull) {
+            apiRef.current.setEditCellValue({
+              id: params.id,
+              field: "spatialExtent",
+              value: spatialExtent,
+            });
+            setPopoverAnchor(null);
+          } else {
+            showPrompt(t("spatialExtentIncompleteTitle"), t("spatialExtentIncompleteMessage"), [
+              { label: t("cancel") },
+              {
+                label: t("reset"),
+                action: () => {
+                  setDefaultSpatialExtent();
+                  setPopoverAnchor(null);
+                },
+                color: "error",
+                variant: "contained",
+              },
+            ]);
+          }
         }}
         anchorOrigin={{
           vertical: "bottom",
@@ -76,9 +100,8 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
         }}>
         <DataGridSpatialExtentPopoverContent
           spatialExtent={spatialExtent}
-          onChange={(spatialExtent: Coordinate[]) => {
-            setSpatialExtent(spatialExtent);
-          }}
+          onChange={setSpatialExtent}
+          reset={setDefaultSpatialExtent}
         />
       </Popover>
     </>
