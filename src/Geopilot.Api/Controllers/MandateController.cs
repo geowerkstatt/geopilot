@@ -106,6 +106,9 @@ public class MandateController : ControllerBase
             var result = await context.MandatesWithIncludes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == entityEntry.Entity.Id);
+            if (result == default)
+                return Problem("Unable to retrieve created mandate.");
+
             var location = new Uri(string.Format(CultureInfo.InvariantCulture, $"/api/v1/mandate/{result.Id}"), UriKind.Relative);
             return Created(location, MandateDto.FromMandate(result));
         }
@@ -156,6 +159,9 @@ public class MandateController : ControllerBase
             var result = await context.MandatesWithIncludes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == mandateDto.Id);
+            if (result == default)
+                return Problem("Unable to retrieve updated mandate.");
+
             return Ok(MandateDto.FromMandate(result));
         }
         catch (Exception e)

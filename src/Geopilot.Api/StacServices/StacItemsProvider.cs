@@ -44,7 +44,7 @@ public class StacItemsProvider : IItemsProvider
     }
 
     /// <inheritdoc/>
-    public async Task<StacItem> GetItemByIdAsync(string featureId, IStacApiContext stacApiContext, CancellationToken cancellationToken)
+    public Task<StacItem> GetItemByIdAsync(string featureId, IStacApiContext stacApiContext, CancellationToken cancellationToken)
     {
         try
         {
@@ -55,7 +55,7 @@ public class StacItemsProvider : IItemsProvider
                 .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && (stacConverter.GetCollectionId(d.Mandate) == stacApiContext.Collections.First()))
                 ?? throw new InvalidOperationException($"Item with id {featureId} does not exist.");
             var item = stacConverter.ToStacItem(delivery);
-            return item;
+            return Task.FromResult(item);
         }
         catch (Exception ex)
         {

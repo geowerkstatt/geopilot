@@ -71,6 +71,9 @@ public class OrganisationController : ControllerBase
             var result = await context.OrganisationsWithIncludes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == entityEntry.Entity.Id);
+            if (result == default)
+                return Problem("Unable to retrieve created organisation.");
+
             var location = new Uri(string.Format(CultureInfo.InvariantCulture, $"/api/v1/organisation/{result.Id}"), UriKind.Relative);
             return Created(location, OrganisationDto.FromOrganisation(result));
         }
@@ -128,6 +131,10 @@ public class OrganisationController : ControllerBase
             var result = await context.OrganisationsWithIncludes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == organisationDto.Id);
+
+            if (result == default)
+                return Problem("Unable to retrieve updated organisation.");
+
             return Ok(OrganisationDto.FromOrganisation(result));
         }
         catch (Exception e)
