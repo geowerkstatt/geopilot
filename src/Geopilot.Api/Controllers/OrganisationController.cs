@@ -40,9 +40,7 @@ public class OrganisationController : ControllerBase
     {
         logger.LogInformation("Getting organisations.");
 
-        return context.Organisations
-            .Include(o => o.Mandates)
-            .Include(o => o.Users)
+        return context.OrganisationsWithIncludes
             .AsNoTracking()
             .Select(OrganisationDto.FromOrganisation)
             .ToList();
@@ -70,7 +68,9 @@ public class OrganisationController : ControllerBase
             var entityEntry = await context.AddAsync(organisation).ConfigureAwait(false);
             await context.SaveChangesAsync().ConfigureAwait(false);
 
-            var result = entityEntry.Entity;
+            var result = await context.OrganisationsWithIncludes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == entityEntry.Entity.Id);
             var location = new Uri(string.Format(CultureInfo.InvariantCulture, $"/api/v1/organisation/{result.Id}"), UriKind.Relative);
             return Created(location, OrganisationDto.FromOrganisation(result));
         }
@@ -101,9 +101,7 @@ public class OrganisationController : ControllerBase
                 return BadRequest();
 
             var updatedOrganisation = await TransformToOrganisation(organisationDto);
-            var existingOrganisation = await context.Organisations
-                .Include(o => o.Mandates)
-                .Include(o => o.Users)
+            var existingOrganisation = await context.OrganisationsWithIncludes
                 .FirstOrDefaultAsync(o => o.Id == organisationDto.Id);
 
             if (existingOrganisation == null)
@@ -126,7 +124,11 @@ public class OrganisationController : ControllerBase
             }
 
             await context.SaveChangesAsync().ConfigureAwait(false);
-            return Ok(OrganisationDto.FromOrganisation(updatedOrganisation));
+
+            var result = await context.OrganisationsWithIncludes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == organisationDto.Id);
+            return Ok(OrganisationDto.FromOrganisation(result));
         }
         catch (Exception e)
         {

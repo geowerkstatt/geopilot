@@ -53,7 +53,7 @@ public class MandateController : ControllerBase
         if (user == null)
             return Unauthorized();
 
-        var mandates = context.MandatesWithIncludes.AsQueryable();
+        var mandates = context.MandatesWithIncludes.AsNoTracking();
 
         if (!user.IsAdmin)
         {
@@ -103,7 +103,9 @@ public class MandateController : ControllerBase
             var entityEntry = await context.AddAsync(mandate).ConfigureAwait(false);
             await context.SaveChangesAsync().ConfigureAwait(false);
 
-            var result = entityEntry.Entity;
+            var result = await context.MandatesWithIncludes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == entityEntry.Entity.Id);
             var location = new Uri(string.Format(CultureInfo.InvariantCulture, $"/api/v1/mandate/{result.Id}"), UriKind.Relative);
             return Created(location, MandateDto.FromMandate(result));
         }
@@ -134,9 +136,7 @@ public class MandateController : ControllerBase
                 return BadRequest();
 
             var updatedMandate = await TransformToMandate(mandateDto);
-            var existingMandate = await context.Mandates
-                .Include(m => m.Organisations)
-                .Include(m => m.Deliveries)
+            var existingMandate = await context.MandatesWithIncludes
                 .FirstOrDefaultAsync(m => m.Id == mandateDto.Id);
 
             if (existingMandate == null)
@@ -152,7 +152,11 @@ public class MandateController : ControllerBase
             }
 
             await context.SaveChangesAsync().ConfigureAwait(false);
-            return Ok(MandateDto.FromMandate(updatedMandate));
+
+            var result = await context.MandatesWithIncludes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == mandateDto.Id);
+            return Ok(MandateDto.FromMandate(result));
         }
         catch (Exception e)
         {

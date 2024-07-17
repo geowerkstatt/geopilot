@@ -44,16 +44,18 @@ public class StacItemsProvider : IItemsProvider
     }
 
     /// <inheritdoc/>
-    public Task<StacItem> GetItemByIdAsync(string featureId, IStacApiContext stacApiContext, CancellationToken cancellationToken)
+    public async Task<StacItem> GetItemByIdAsync(string featureId, IStacApiContext stacApiContext, CancellationToken cancellationToken)
     {
         try
         {
             using var db = contextFactory.CreateDbContext();
             var delivery = db.DeliveriesWithIncludes
+                .AsNoTracking()
+                .AsEnumerable()
                 .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && (stacConverter.GetCollectionId(d.Mandate) == stacApiContext.Collections.First()))
                 ?? throw new InvalidOperationException($"Item with id {featureId} does not exist.");
             var item = stacConverter.ToStacItem(delivery);
-            return Task.FromResult(item);
+            return item;
         }
         catch (Exception ex)
         {
@@ -76,7 +78,7 @@ public class StacItemsProvider : IItemsProvider
 
         var collectionIds = stacApiContext.Collections?.ToList();
         using var db = contextFactory.CreateDbContext();
-        var mandates = db.MandatesWithIncludes;
+        var mandates = db.MandatesWithIncludes.AsNoTracking().ToList();
 
         if (collectionIds?.Any() == true)
         {

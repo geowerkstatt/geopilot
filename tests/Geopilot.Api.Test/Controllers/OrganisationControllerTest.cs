@@ -91,20 +91,17 @@ namespace Geopilot.Api.Controllers
             };
             var result = await organisationController.Create(organisation).ConfigureAwait(false) as CreatedResult;
 
-            var updatedOrganisation = result?.Value as OrganisationDto;
-            Assert.IsNotNull(updatedOrganisation);
-            updatedOrganisation.Name = "UpdatedOrg";
-            updatedOrganisation.Users = new List<int> { adminUser.Id };
-            updatedOrganisation.Mandates = new List<int> { xtfMandate.Id, unassociatedMandate.Id };
+            var organisationToUpdate = result?.Value as OrganisationDto;
+            Assert.IsNotNull(organisationToUpdate);
+            organisationToUpdate.Name = "UpdatedOrg";
+            organisationToUpdate.Users = new List<int> { adminUser.Id };
+            organisationToUpdate.Mandates = new List<int> { xtfMandate.Id, unassociatedMandate.Id };
 
-            var updateResult = await organisationController.Edit(updatedOrganisation).ConfigureAwait(false);
+            var updateResult = await organisationController.Edit(organisationToUpdate).ConfigureAwait(false);
             ActionResultAssert.IsOk(updateResult);
-            var resultValue = (updateResult as OkObjectResult)?.Value as OrganisationDto;
-            Assert.IsNotNull(resultValue);
-
-            var organisations = organisationController.Get();
-            Assert.IsNotNull(organisations);
-            ContainsOrganisation(organisations, updatedOrganisation);
+            var updatedOrganisation = (updateResult as OkObjectResult)?.Value as OrganisationDto;
+            Assert.IsNotNull(updatedOrganisation);
+            CompareOrganisations(organisationToUpdate, updatedOrganisation);
         }
 
         [TestCleanup]
