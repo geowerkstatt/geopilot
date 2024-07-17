@@ -61,14 +61,14 @@ export const DataGridSpatialExtentPopoverContent: FC<SpatialExtentPopoverContent
           sx={{ marginRight: "20px" }}
           label={t("longitude")}
           defaultValue={spatialExtent[1]?.x || null}
-          onChange={e => onChange([spatialExtent[0], { x: +e.target.value, y: spatialExtent[0].y }])}
+          onChange={e => onChange([spatialExtent[0], { x: +e.target.value, y: spatialExtent[1].y }])}
         />
         <TextField
           type="number"
           size="small"
           label={t("latitude")}
           defaultValue={spatialExtent[1]?.y || null}
-          onChange={e => onChange([spatialExtent[0], { x: spatialExtent[0].x, y: +e.target.value }])}
+          onChange={e => onChange([spatialExtent[0], { x: spatialExtent[1].x, y: +e.target.value }])}
         />
       </div>
     </div>

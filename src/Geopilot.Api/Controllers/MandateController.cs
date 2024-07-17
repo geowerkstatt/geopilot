@@ -87,7 +87,7 @@ public class MandateController : ControllerBase
     /// <summary>
     /// Asynchronously creates the <paramref name="mandateDto"/> specified.
     /// </summary>
-    /// <param name="mandateDto">The entity to create.</param>
+    /// <param name="mandateDto">The mandate to create.</param>
     [HttpPost]
     [Authorize(Policy = GeopilotPolicies.Admin)]
     [SwaggerResponse(StatusCodes.Status201Created, "The mandate was created successfully.")]
@@ -120,7 +120,7 @@ public class MandateController : ControllerBase
     /// <summary>
     /// Asynchronously updates the <paramref name="mandateDto"/> specified.
     /// </summary>
-    /// <param name="mandateDto">The mandate to create.</param>
+    /// <param name="mandateDto">The mandate to update.</param>
     [HttpPut]
     [Authorize(Policy = GeopilotPolicies.Admin)]
     [SwaggerResponse(StatusCodes.Status200OK, "The mandate was updated successfully.")]
@@ -159,7 +159,7 @@ public class MandateController : ControllerBase
         }
         catch (Exception e)
         {
-            logger.LogError(e, $"An error occured while creating the mandate.");
+            logger.LogError(e, $"An error occured while updating the mandate.");
             return Problem(e.Message);
         }
     }

@@ -2,8 +2,8 @@ import { GridRenderEditCellParams, useGridApiContext } from "@mui/x-data-grid";
 import { IconButton, Popover, Tooltip } from "@mui/material";
 import { GridBaseColDef } from "@mui/x-data-grid/internals";
 import { GridColDef } from "../adminGrid/AdminGridInterfaces.ts";
-import PolylineIcon from "@mui/icons-material/Polyline";
-import { MouseEvent, useState } from "react";
+import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
+import { MouseEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DataGridSpatialExtentPopoverContent } from "./DataGridSpatialExtentPopoverContent.tsx";
 import { Coordinate } from "../../AppInterfaces.ts";
@@ -14,7 +14,7 @@ export const IsGridSpatialExtentColDef = (columnDef: GridColDef) =>
 export const TransformToSpatialExtentColumn = (columnDef: GridBaseColDef) => {
   columnDef.renderCell = () => (
     <IconButton size="small" color="inherit" disabled>
-      <PolylineIcon fontSize="small" />
+      <PublicOutlinedIcon fontSize="small" />
     </IconButton>
   );
   columnDef.renderEditCell = params => <DataGridSpatialExtentColumn params={params} />;
@@ -30,6 +30,17 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLButtonElement | null>(null);
   const [spatialExtent, setSpatialExtent] = useState<Coordinate[]>(params.value);
 
+  useEffect(() => {
+    if (params.value) {
+      setSpatialExtent(params.value);
+    } else {
+      setSpatialExtent([
+        { x: null, y: null },
+        { x: null, y: null },
+      ]);
+    }
+  }, []);
+
   return (
     <>
       <Tooltip title={t("spatialExtent")}>
@@ -40,7 +51,7 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
           onClick={(event: MouseEvent<HTMLButtonElement>) => {
             setPopoverAnchor(event.currentTarget);
           }}>
-          <PolylineIcon fontSize="small" />
+          <PublicOutlinedIcon fontSize="small" />
         </IconButton>
       </Tooltip>
       <Popover
