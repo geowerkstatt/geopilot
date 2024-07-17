@@ -35,8 +35,8 @@ export interface ErrorResponse {
 }
 
 export interface Coordinate {
-  x: number;
-  y: number;
+  x: number | null;
+  y: number | null;
 }
 
 export interface Mandate {
