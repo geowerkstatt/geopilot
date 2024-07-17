@@ -44,8 +44,6 @@ namespace Geopilot.Api.Controllers
         [TestMethod]
         public void GetOrganisations()
         {
-/*            organisationController.SetupTestUser(adminUser);
-*/
             var result = organisationController.Get() as OkObjectResult;
             var organisations = (result?.Value as IEnumerable<OrganisationDto>)?.ToList();
 
