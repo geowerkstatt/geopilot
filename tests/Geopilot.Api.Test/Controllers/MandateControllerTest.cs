@@ -5,6 +5,7 @@ using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NetTopologySuite.Geometries;
 
 namespace Geopilot.Api.Test.Controllers
 {
@@ -30,7 +31,18 @@ namespace Geopilot.Api.Test.Controllers
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
 
             unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
-            xtfMandate = new Mandate { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate) };
+            xtfMandate = new Mandate {
+                FileTypes = new string[] { ".xtf" },
+                Name = nameof(xtfMandate),
+                SpatialExtent = Geometry.DefaultFactory.CreatePolygon(new Coordinate[]
+                {
+                    new (8.046284, 47.392423),
+                    new (8.057055, 47.392423),
+                    new (8.057055, 47.388181),
+                    new (8.046284, 47.388181),
+                    new (8.046284, 47.392423),
+                }),
+            };
             unassociatedMandate = new Mandate { FileTypes = new string[] { "*.itf" }, Name = nameof(unassociatedMandate) };
 
             context.Mandates.Add(unrestrictedMandate);
@@ -127,6 +139,21 @@ namespace Geopilot.Api.Test.Controllers
 
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+        }
+
+        [TestMethod]
+        public async Task GetExtractsCorrectCoordinates()
+        {
+            mandateController.SetupTestUser(adminUser);
+            var result = await mandateController.Get() as OkObjectResult;
+            var mandates = (result?.Value as IEnumerable<MandateDto>)?.ToList();
+            Assert.IsNotNull(mandates);
+            var xtfMandateDto = mandates.FirstOrDefault(m => m.Id == xtfMandate.Id);
+            Assert.IsNotNull(xtfMandateDto);
+            Assert.AreEqual(8.046284, xtfMandateDto.SpatialExtent[0].X);
+            Assert.AreEqual(47.388181, xtfMandateDto.SpatialExtent[0].Y);
+            Assert.AreEqual(8.057055, xtfMandateDto.SpatialExtent[1].X);
+            Assert.AreEqual(47.392423, xtfMandateDto.SpatialExtent[1].Y);
         }
 
         [TestMethod]
