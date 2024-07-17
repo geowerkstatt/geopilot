@@ -4,6 +4,7 @@ using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using NetTopologySuite.Geometries;
 
 namespace Geopilot.Api.Controllers
 {
@@ -29,7 +30,19 @@ namespace Geopilot.Api.Controllers
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
 
             unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
-            xtfMandate = new Mandate { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate) };
+            xtfMandate = new Mandate
+            {
+                FileTypes = new string[] { ".xtf" },
+                Name = nameof(xtfMandate),
+                SpatialExtent = Geometry.DefaultFactory.CreatePolygon(new Coordinate[]
+                {
+                    new (8.046284, 47.392423),
+                    new (8.057055, 47.392423),
+                    new (8.057055, 47.388181),
+                    new (8.046284, 47.388181),
+                    new (8.046284, 47.392423),
+                }),
+            };
             unassociatedMandate = new Mandate { FileTypes = new string[] { "*.itf" }, Name = nameof(unassociatedMandate) };
 
             context.Mandates.Add(unrestrictedMandate);
@@ -129,10 +142,31 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task GetExtractsCorrectCoordinates()
+        {
+            mandateController.SetupTestUser(adminUser);
+            var result = await mandateController.Get() as OkObjectResult;
+            var mandates = (result?.Value as IEnumerable<MandateDto>)?.ToList();
+            Assert.IsNotNull(mandates);
+            var xtfMandateDto = mandates.FirstOrDefault(m => m.Id == xtfMandate.Id);
+            Assert.IsNotNull(xtfMandateDto);
+            Assert.AreEqual(8.046284, xtfMandateDto.SpatialExtent[0].X);
+            Assert.AreEqual(47.388181, xtfMandateDto.SpatialExtent[0].Y);
+            Assert.AreEqual(8.057055, xtfMandateDto.SpatialExtent[1].X);
+            Assert.AreEqual(47.392423, xtfMandateDto.SpatialExtent[1].Y);
+        }
+
+        [TestMethod]
         public async Task CreateMandate()
         {
             mandateController.SetupTestUser(adminUser);
-            var mandate = new MandateDto() { FileTypes = new string[] { ".*" }, Name = "Test create", Organisations = new List<int>() { 1 } };
+            var mandate = new MandateDto()
+            {
+                FileTypes = new string[] { ".*" },
+                Name = "Test create",
+                Organisations = new List<int>() { 1 },
+                SpatialExtent = new List<CoordinateDto>() { new () { X = 7.93770851245525, Y = 46.706944924654366 }, new () { X = 8.865921640681403, Y = 47.02476048042957 } },
+            };
             var result = await mandateController.Create(mandate).ConfigureAwait(false);
             ActionResultAssert.IsCreated(result);
             var resultValue = (result as CreatedResult)?.Value as MandateDto;
@@ -142,6 +176,11 @@ namespace Geopilot.Api.Controllers
             var mandates = getMandatesResult?.Value as IEnumerable<MandateDto>;
             Assert.IsNotNull(mandates);
             ContainsMandate(mandates, resultValue);
+            Assert.AreEqual(mandate.SpatialExtent.Count, resultValue.SpatialExtent.Count);
+            Assert.AreEqual(mandate.SpatialExtent[0].X, resultValue.SpatialExtent[0].X);
+            Assert.AreEqual(mandate.SpatialExtent[0].Y, resultValue.SpatialExtent[0].Y);
+            Assert.AreEqual(mandate.SpatialExtent[1].X, resultValue.SpatialExtent[1].X);
+            Assert.AreEqual(mandate.SpatialExtent[1].Y, resultValue.SpatialExtent[1].Y);
         }
 
         [TestMethod]

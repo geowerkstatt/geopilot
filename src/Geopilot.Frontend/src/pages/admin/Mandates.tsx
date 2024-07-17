@@ -3,8 +3,7 @@ import { useContext, useEffect, useState } from "react";
 import { ErrorResponse, Mandate, Organisation, Validation } from "../../AppInterfaces.ts";
 import { useAuth } from "../../auth";
 import { AdminGrid } from "../../components/adminGrid/AdminGrid.tsx";
-import { DataRow } from "../../components/adminGrid/AdminGridInterfaces.ts";
-import { GridColDef } from "../../components/dataGrid/DataGridMultiSelectColumn.tsx";
+import { DataRow, GridColDef } from "../../components/adminGrid/AdminGridInterfaces.ts";
 import { AlertContext } from "../../components/alert/AlertContext.tsx";
 import { PromptContext } from "../../components/prompt/PromptContext.tsx";
 
@@ -145,6 +144,18 @@ export const Mandates = () => {
       valueOptions: organisations,
       getOptionLabel: (value: DataRow | string) => (value as Organisation).name,
       getOptionValue: (value: DataRow | string) => (value as Organisation).id,
+    },
+    {
+      field: "spatialExtent",
+      type: "custom",
+      headerName: "",
+      editable: true,
+      width: 50,
+      resizable: false,
+      filterable: false,
+      sortable: false,
+      hideSortIcons: true,
+      disableColumnMenu: true,
     },
   ];
 

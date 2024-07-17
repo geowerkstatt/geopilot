@@ -13,12 +13,30 @@ public class MandateDto
     /// </summary>
     public static MandateDto FromMandate(Mandate mandate)
     {
-        var wkt = mandate.SpatialExtent.AsText();
         var spatialExtent = new List<CoordinateDto>();
-        if (mandate.SpatialExtent.Coordinates.Length == 5)
+        switch (mandate.SpatialExtent.Coordinates.Length)
         {
-            spatialExtent.Add(CoordinateDto.FromCoordinate(mandate.SpatialExtent.Coordinates[0]));
-            spatialExtent.Add(CoordinateDto.FromCoordinate(mandate.SpatialExtent.Coordinates[2]));
+            case 0:
+                break;
+            case 5:
+                double minX = mandate.SpatialExtent.Coordinates[0].X;
+                double minY = mandate.SpatialExtent.Coordinates[0].Y;
+                double maxX = mandate.SpatialExtent.Coordinates[0].X;
+                double maxY = mandate.SpatialExtent.Coordinates[0].Y;
+
+                foreach (var coord in mandate.SpatialExtent.Coordinates)
+                {
+                    minX = Math.Min(minX, coord.X);
+                    minY = Math.Min(minY, coord.Y);
+                    maxX = Math.Max(maxX, coord.X);
+                    maxY = Math.Max(maxY, coord.Y);
+                }
+
+                spatialExtent.Add(new CoordinateDto { X = minX, Y = minY });
+                spatialExtent.Add(new CoordinateDto { X = maxX, Y = maxY });
+                break;
+            default:
+                throw new InvalidOperationException($"Unsupported number of coordinates. Spatial extent must be a rectangle.");
         }
 
         return new MandateDto
