@@ -1,15 +1,18 @@
 ﻿using Geopilot.Api.Authorization;
+using Geopilot.Api.DTOs;
 using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Geometries;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Globalization;
 
 namespace Geopilot.Api.Controllers;
 
 /// <summary>
-/// Controller for listing mandates.
+/// Controller for mandates.
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
@@ -50,8 +53,12 @@ public class MandateController : ControllerBase
         if (user == null)
             return Unauthorized();
 
-        var mandates = context.Mandates
-            .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+        var mandates = context.MandatesWithIncludes.AsQueryable();
+
+        if (!user.IsAdmin)
+        {
+            mandates = mandates.Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+        }
 
         if (jobId != default)
         {
@@ -59,7 +66,7 @@ public class MandateController : ControllerBase
             if (job is null)
             {
                 logger.LogTrace("Validation job with id <{JobId}> was not found.", jobId);
-                return Ok(Array.Empty<Mandate>());
+                return Ok(Array.Empty<MandateDto>());
             }
 
             logger.LogTrace("Filtering mandates for job with id <{JobId}>", jobId);
@@ -68,9 +75,104 @@ public class MandateController : ControllerBase
                 .Where(m => m.FileTypes.Contains(".*") || m.FileTypes.Contains(extension));
         }
 
-        var result = await mandates.ToListAsync();
+        var result = mandates.Select(MandateDto.FromMandate).ToList();
 
-        logger.LogInformation("Getting mandates with for job with id <{JobId}> resulted in <{MatchingMandatesCount}> matching mandates.", jobId, result.Count);
-        return Ok(mandates);
+        logger.LogInformation($"Getting mandates with for job with id <{jobId}> resulted in <{result.Count}> matching mandates.");
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Asynchronously creates the <paramref name="mandateDto"/> specified.
+    /// </summary>
+    /// <param name="mandateDto">The mandate to create.</param>
+    [HttpPost]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status201Created, "The mandate was created successfully.")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be created due to invalid input.")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to create a mandate.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), new[] { "application/json" })]
+    public async Task<IActionResult> Create(MandateDto mandateDto)
+    {
+        try
+        {
+            if (mandateDto == null)
+            return BadRequest();
+
+            var mandate = await TransformToMandate(mandateDto);
+
+            var entityEntry = await context.AddAsync(mandate).ConfigureAwait(false);
+            await context.SaveChangesAsync().ConfigureAwait(false);
+
+            var result = entityEntry.Entity;
+            var location = new Uri(string.Format(CultureInfo.InvariantCulture, $"/api/v1/mandate/{result.Id}"), UriKind.Relative);
+            return Created(location, MandateDto.FromMandate(result));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, $"An error occured while creating the mandate.");
+            return Problem(e.Message);
+        }
+    }
+
+    /// <summary>
+    /// Asynchronously updates the <paramref name="mandateDto"/> specified.
+    /// </summary>
+    /// <param name="mandateDto">The mandate to update.</param>
+    [HttpPut]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "The mandate was updated successfully.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The mandate could not be found.")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be updated due to invalid input.")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to edit a mandate.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), new[] { "application/json" })]
+
+    public async Task<IActionResult> Edit(MandateDto mandateDto)
+    {
+        try
+        {
+            if (mandateDto == null)
+                return BadRequest();
+
+            var updatedMandate = await TransformToMandate(mandateDto);
+            var existingMandate = await context.Mandates
+                .Include(m => m.Organisations)
+                .Include(m => m.Deliveries)
+                .FirstOrDefaultAsync(m => m.Id == mandateDto.Id);
+
+            if (existingMandate == null)
+                return NotFound();
+
+            context.Entry(existingMandate).CurrentValues.SetValues(updatedMandate);
+
+            existingMandate.Organisations.Clear();
+            foreach (var organisation in updatedMandate.Organisations)
+            {
+                if (!existingMandate.Organisations.Contains(organisation))
+                    existingMandate.Organisations.Add(organisation);
+            }
+
+            await context.SaveChangesAsync().ConfigureAwait(false);
+            return Ok(MandateDto.FromMandate(updatedMandate));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, $"An error occured while updating the mandate.");
+            return Problem(e.Message);
+        }
+    }
+
+    private async Task<Mandate> TransformToMandate(MandateDto mandateDto)
+    {
+        var organisations = await context.Organisations.Where(o => mandateDto.Organisations.Contains(o.Id)).ToListAsync();
+        var deliveries = await context.Deliveries.Where(d => mandateDto.Deliveries.Contains(d.Id)).ToListAsync();
+        return new Mandate
+        {
+            Id = mandateDto.Id,
+            Name = mandateDto.Name,
+            FileTypes = mandateDto.FileTypes.ToArray(),
+            SpatialExtent = Geometry.DefaultFactory.CreatePolygon(),
+            Organisations = organisations,
+            Deliveries = deliveries,
+        };
     }
 }

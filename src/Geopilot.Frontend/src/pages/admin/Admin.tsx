@@ -96,7 +96,7 @@ export const Admin: FC<AdminProps> = ({ clientSettings }) => {
         }}>
         {drawerContent}
       </Drawer>
-      <Box sx={{ marginLeft: { xs: "0", sm: drawerWidth }, padding: "20px 35px", overflow: "auto" }}>
+      <Box sx={{ height: "100%", marginLeft: { xs: "0", sm: drawerWidth }, padding: "20px 35px", overflow: "auto" }}>
         <Outlet />
       </Box>
     </div>

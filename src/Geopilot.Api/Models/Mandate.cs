@@ -7,7 +7,7 @@ namespace Geopilot.Api.Models;
 /// A contract between the system owner and an organisation for data delivery.
 /// The mandate describes where and in what format data should be delivered.
 /// </summary>
-public class Mandate
+public class Mandate : IIdentifiable
 {
     /// <summary>
     /// The unique identifier for the mandate.

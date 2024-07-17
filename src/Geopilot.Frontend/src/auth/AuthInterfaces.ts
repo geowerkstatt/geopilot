@@ -1,11 +1,5 @@
 import React, { Dispatch } from "react";
-
-export interface User {
-  id: number;
-  fullName: string;
-  isAdmin: boolean;
-  email: string;
-}
+import { User } from "../AppInterfaces.ts";
 
 export interface AuthContextInterface {
   user: User | undefined;

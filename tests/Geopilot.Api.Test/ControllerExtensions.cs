@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using System.Security.Claims;
 
-namespace Geopilot.Api.Test;
+namespace Geopilot.Api;
 
 internal static class ControllerExtensions
 {

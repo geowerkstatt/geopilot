@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
@@ -29,26 +29,16 @@ const useTranslatedColumns = (t: TranslationFunction) => {
 export const DeliveryOverview = () => {
   const { t } = useTranslation();
   const columns = useTranslatedColumns(t);
-  const [deliveries, setDeliveries] = useState<Delivery[] | undefined>(undefined);
+  const [deliveries, setDeliveries] = useState<Delivery[]>();
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([]);
-  const [alertMessages, setAlertMessages] = useState<string[]>([]);
-  const [currentAlert, setCurrentAlert] = useState<string | undefined>(undefined);
   const { showPrompt } = useContext(PromptContext);
-  const { showAlert, alertIsOpen } = useContext(AlertContext);
+  const { showAlert } = useContext(AlertContext);
 
   const { user } = useAuth();
 
-  if (user && deliveries === undefined) {
+  if (user?.isAdmin && deliveries === undefined) {
     loadDeliveries();
   }
-
-  useEffect(() => {
-    if (alertMessages.length && (!currentAlert || !alertIsOpen)) {
-      setCurrentAlert(alertMessages[0]);
-      setAlertMessages(prev => prev.slice(1));
-      showAlert(alertMessages[0], "error");
-    }
-  }, [alertMessages, currentAlert, alertIsOpen, showAlert]);
 
   async function loadDeliveries() {
     try {
@@ -66,7 +56,7 @@ export const DeliveryOverview = () => {
         );
       }
     } catch (error) {
-      setAlertMessages(prev => [...prev, t("deliveryOverviewLoadingError", { error: error })]);
+      showAlert(t("deliveryOverviewLoadingError", { error: error }), "error");
     }
   }
 
@@ -77,12 +67,12 @@ export const DeliveryOverview = () => {
           method: "DELETE",
         });
         if (response.status === 404) {
-          setAlertMessages(prev => [...prev, t("deliveryOverviewDeleteIdNotExistError", { id: row })]);
+          showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: row }), "error");
         } else if (response.status === 500) {
-          setAlertMessages(prev => [...prev, t("deliveryOverviewDeleteIdError", { id: row })]);
+          showAlert(t("deliveryOverviewDeleteIdError", { id: row }), "error");
         }
       } catch (error) {
-        setAlertMessages(prev => [...prev, t("deliveryOverviewDeleteError", { error: error })]);
+        showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
       }
     }
     await loadDeliveries();
@@ -93,16 +83,17 @@ export const DeliveryOverview = () => {
       {deliveries != undefined && deliveries?.length > 0 && (
         <DataGrid
           sx={{
-            fontFamily: "system-ui, -apple-syste",
+            fontFamily: "system-ui, -apple-system",
           }}
           pagination
           rows={deliveries}
           columns={columns}
           initialState={{
             pagination: {
-              paginationModel: { page: 0, pageSize: 5 },
+              paginationModel: { page: 0, pageSize: 10 },
             },
           }}
+          disableColumnSelector
           pageSizeOptions={[5, 10, 25]}
           checkboxSelection
           onRowSelectionModelChange={newSelection => {
