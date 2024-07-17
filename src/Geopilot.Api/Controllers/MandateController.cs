@@ -53,10 +53,7 @@ public class MandateController : ControllerBase
         if (user == null)
             return Unauthorized();
 
-        var mandates = context.Mandates
-            .Include(m => m.Organisations)
-            .Include(m => m.Deliveries)
-            .AsNoTracking();
+        var mandates = context.MandatesWithIncludes.AsQueryable();
 
         if (!user.IsAdmin)
         {
