@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api.Models;
-using Geopilot.Api.Test;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;

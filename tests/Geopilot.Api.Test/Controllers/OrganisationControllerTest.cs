@@ -1,11 +1,10 @@
-﻿using Geopilot.Api.Controllers;
-using Geopilot.Api.DTOs;
+﻿using Geopilot.Api.DTOs;
 using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace Geopilot.Api.Test.Controllers
+namespace Geopilot.Api.Controllers
 {
     [TestClass]
     public class OrganisationControllerTest
@@ -45,8 +44,6 @@ namespace Geopilot.Api.Test.Controllers
         [TestMethod]
         public void GetOrganisations()
         {
-/*            organisationController.SetupTestUser(adminUser);
-*/
             var result = organisationController.Get() as OkObjectResult;
             var organisations = (result?.Value as IEnumerable<OrganisationDto>)?.ToList();
 
