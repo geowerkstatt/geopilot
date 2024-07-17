@@ -30,7 +30,8 @@ namespace Geopilot.Api.Controllers
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
 
             unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
-            xtfMandate = new Mandate {
+            xtfMandate = new Mandate
+            {
                 FileTypes = new string[] { ".xtf" },
                 Name = nameof(xtfMandate),
                 SpatialExtent = Geometry.DefaultFactory.CreatePolygon(new Coordinate[]
