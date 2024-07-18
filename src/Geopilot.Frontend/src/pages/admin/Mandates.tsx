@@ -71,6 +71,9 @@ export const Mandates = () => {
 
   async function saveMandate(mandate: Mandate) {
     try {
+      mandate.organisations = mandate.organisations?.map(organisationId => {
+        return { id: organisationId as number } as Organisation;
+      });
       const response = await fetch("/api/v1/mandate", {
         method: mandate.id === 0 ? "POST" : "PUT",
         headers: {
@@ -154,7 +157,7 @@ export const Mandates = () => {
       getOptionValue: (value: DataRow | string) => (value as Organisation).id,
     },
     {
-      field: "spatialExtent",
+      field: "coordinates",
       type: "custom",
       headerName: "",
       editable: true,

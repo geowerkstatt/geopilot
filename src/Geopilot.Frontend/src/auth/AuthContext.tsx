@@ -1,6 +1,7 @@
 import { useMsal } from "@azure/msal-react";
 import { createContext, FC, useCallback, useState, useEffect, useRef } from "react";
-import { AuthContextInterface, AuthProviderProps, User } from "./AuthInterfaces";
+import { AuthContextInterface, AuthProviderProps } from "./AuthInterfaces";
+import { User } from "../AppInterfaces.ts";
 
 const authDefault = {
   user: undefined,
@@ -21,7 +22,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children, authScopes, onLo
     if (!userResult.ok) throw new Error(userResult.statusText);
 
     const userJson = await userResult.json();
-    setUser({ id: userJson.id, fullName: userJson.fullName, isAdmin: userJson.isAdmin, email: userJson.email });
+    setUser(userJson);
   }, [setUser]);
 
   const loginCompleted = useCallback(

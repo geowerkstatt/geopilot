@@ -3,7 +3,7 @@
 /// <summary>
 /// A company or group of users that may have a mandate for delivering data to the system owner.
 /// </summary>
-public class Organisation : IIdentifiable
+public class Organisation
 {
     /// <summary>
     /// The unique identifier for the organisation.

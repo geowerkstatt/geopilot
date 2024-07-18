@@ -10,7 +10,7 @@ import { Coordinate } from "../../AppInterfaces.ts";
 import { PromptContext } from "../prompt/PromptContext.tsx";
 
 export const IsGridSpatialExtentColDef = (columnDef: GridColDef) =>
-  columnDef.type === "custom" && columnDef.field === "spatialExtent";
+  columnDef.type === "custom" && columnDef.field === "coordinates";
 
 export const TransformToSpatialExtentColumn = (columnDef: GridBaseColDef) => {
   columnDef.renderCell = () => (
@@ -71,7 +71,7 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
           if (allNull || noneNull) {
             apiRef.current.setEditCellValue({
               id: params.id,
-              field: "spatialExtent",
+              field: "coordinates",
               value: spatialExtent,
             });
             setPopoverAnchor(null);
