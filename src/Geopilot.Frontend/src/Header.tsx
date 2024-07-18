@@ -135,7 +135,7 @@ export const Header: FC<HeaderProps> = ({ clientSettings, hasDrawerToggle, handl
                 <ListItem key={t("stacBrowser").toUpperCase()} disablePadding>
                   <ListItemButton
                     onClick={() => {
-                      window.location.href = "/browser";
+                      window.open("/browser", "_blank");
                     }}>
                     <ListItemText primary={t("stacBrowser").toUpperCase()} />
                   </ListItemButton>
