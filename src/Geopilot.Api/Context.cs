@@ -23,6 +23,16 @@ public class Context : DbContext
     /// </summary>
     public DbSet<User> Users { get; set; }
 
+    public IQueryable<User> UsersWithIncludes
+    {
+        get
+        {
+            return Users
+                .Include(u => u.Organisations)
+                .Include(u => u.Deliveries);
+        }
+    }
+
     /// <summary>
     /// Set of all <see cref="Organisation"/>.
     /// </summary>

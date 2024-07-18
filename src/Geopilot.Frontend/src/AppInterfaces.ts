@@ -68,6 +68,6 @@ export interface User {
   fullName: string;
   isAdmin: boolean;
   email: string;
-  organisations: Organisation[];
+  organisations: Organisation[] | number[];
   deliveries: Delivery[];
 }
