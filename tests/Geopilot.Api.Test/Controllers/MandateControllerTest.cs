@@ -22,6 +22,7 @@ namespace Geopilot.Api.Controllers
         private Mandate unrestrictedMandate;
         private Mandate xtfMandate;
         private Mandate unassociatedMandate;
+        private Organisation organisation;
 
         [TestInitialize]
         public void Initialize()
@@ -56,13 +57,13 @@ namespace Geopilot.Api.Controllers
             adminUser = new User { AuthIdentifier = "1234", FullName = "Admin User", IsAdmin = true };
             context.Users.Add(adminUser);
 
-            var tempOrg = new Organisation { Name = "TestOrg" };
-            tempOrg.Mandates.Add(unrestrictedMandate);
-            tempOrg.Mandates.Add(xtfMandate);
-            tempOrg.Users.Add(editUser);
-            tempOrg.Users.Add(adminUser);
+            organisation = new Organisation { Name = "GAMMAHUNT" };
+            organisation.Mandates.Add(unrestrictedMandate);
+            organisation.Mandates.Add(xtfMandate);
+            organisation.Users.Add(editUser);
+            organisation.Users.Add(adminUser);
 
-            context.Add(tempOrg);
+            context.Add(organisation);
             context.SaveChanges();
         }
 
@@ -167,7 +168,7 @@ namespace Geopilot.Api.Controllers
             var mandate = new Mandate()
             {
                 FileTypes = new string[] { ".*" },
-                Name = "Test create",
+                Name = "ACCORDIANWALK",
                 Organisations = new List<Organisation>() { new () { Id = 1 } },
                 Coordinates = new List<Models.Coordinate>() { new () { X = 7.93770851245525, Y = 46.706944924654366 }, new () { X = 8.865921640681403, Y = 47.02476048042957 } },
             };
@@ -190,8 +191,8 @@ namespace Geopilot.Api.Controllers
             var mandate = new Mandate()
             {
                 FileTypes = new string[] { ".*", ".zip" },
-                Name = "Test update",
-                Organisations = new List<Organisation>() { new () { Id = 1 }, new () { Id = 4 } },
+                Name = "PEARLFOLLOWER",
+                Organisations = new List<Organisation>() { new () { Id = 1 }, new () { Id = organisation.Id } },
                 Coordinates = new List<Models.Coordinate> { new () { X = 7.93770851245525, Y = 46.706944924654366 }, new () { X = 8.865921640681403, Y = 47.02476048042957 } },
             };
             var mandateToUpdateResult = await mandateController.Create(mandate) as CreatedResult;
@@ -217,13 +218,13 @@ namespace Geopilot.Api.Controllers
                 PartialDelivery = false,
             };
 
-            var result = await deliveryController.Create(request) as CreatedResult;
-            var delivery = result?.Value as Delivery;
+            var result = await deliveryController.Create(request);
+            var delivery = (result as CreatedResult)?.Value as Delivery;
             Assert.IsNotNull(delivery);
 
-            mandateToUpdate.Name = "Updated name";
+            mandateToUpdate.Name = "ARKMUTANT";
             mandateToUpdate.FileTypes = new string[] { ".zip", ".gpkg" };
-            mandateToUpdate.Organisations = new List<Organisation>() { new () { Id = 3 }, new () { Id = 4 } };
+            mandateToUpdate.Organisations = new List<Organisation>() { new () { Id = 3 }, new () { Id = organisation.Id } };
             mandateToUpdate.Coordinates = new List<Models.Coordinate> { new () { X = 7.93, Y = 46.70 }, new () { X = 8.86, Y = 47.02 } };
             mandateToUpdate.Deliveries = new List<Delivery>();
 
