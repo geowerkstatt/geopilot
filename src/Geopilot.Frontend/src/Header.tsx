@@ -10,6 +10,7 @@ import {
   List,
   ListItem,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
   Toolbar,
   Typography,
@@ -22,6 +23,7 @@ import { AdminTemplate } from "./auth/AdminTemplate.js";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ClientSettings } from "./AppInterfaces";
 import { FC, useState } from "react";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 interface HeaderProps {
   clientSettings: ClientSettings;
@@ -135,9 +137,12 @@ export const Header: FC<HeaderProps> = ({ clientSettings, hasDrawerToggle, handl
                 <ListItem key={t("stacBrowser").toUpperCase()} disablePadding>
                   <ListItemButton
                     onClick={() => {
-                      window.location.href = "/browser";
+                      window.open("/browser", "_blank");
                     }}>
                     <ListItemText primary={t("stacBrowser").toUpperCase()} />
+                    <ListItemIcon>
+                      <OpenInNewIcon fontSize="small" />
+                    </ListItemIcon>
                   </ListItemButton>
                 </ListItem>
               </AdminTemplate>
