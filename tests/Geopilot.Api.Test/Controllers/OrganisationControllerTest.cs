@@ -87,7 +87,6 @@ namespace Geopilot.Api.Controllers
                 Name = "NewOrg",
                 Users = new List<User> { new () { Id = editUser.Id } },
                 Mandates = new List<Mandate> { new () { Id = unrestrictedMandate.Id }, new () { Id = xtfMandate.Id } },
-
             };
             var result = await organisationController.Create(organisation) as CreatedResult;
 

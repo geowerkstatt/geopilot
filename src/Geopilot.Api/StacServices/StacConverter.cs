@@ -81,6 +81,11 @@ public class StacConverter
     /// <returns>The STAC item.</returns>
     public StacItem ToStacItem(Delivery delivery)
     {
+        if (delivery.Mandate == null)
+        {
+            throw new InvalidOperationException("Mandate is null for delivery " + delivery.Id);
+        }
+
         var stacId = GetItemId(delivery);
 
         var item = new StacItem(stacId, ToGeoJsonPolygon(delivery.Mandate.SpatialExtent))

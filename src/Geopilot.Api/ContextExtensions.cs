@@ -151,7 +151,7 @@ internal static class ContextExtensions
             .RuleFor(d => d.Date, f => f.Date.Past().ToUniversalTime())
             .RuleFor(d => d.Mandate, f => f.PickRandom(deliveryContracts))
             .RuleFor(d => d.DeclaringUser, (f, d) => f.PickRandom(
-                d.Mandate.Organisations
+                d.Mandate!.Organisations
                 .SelectMany(o => o.Users)
                 .ToList()))
             .RuleFor(d => d.Assets, _ => new List<Asset>())

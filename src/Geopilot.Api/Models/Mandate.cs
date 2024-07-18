@@ -75,7 +75,7 @@ public class Mandate
     /// <summary>
     /// Transforms the <see cref="SpatialExtent"/> polygon to a <see cref="Coordinates"/> list.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Exception thrown if the coordinate list is of an invalid length</exception>
+    /// <exception cref="InvalidOperationException">Exception thrown if the coordinate list is of an invalid length.</exception>
     public void SetCoordinateListFromPolygon()
     {
         Coordinates = new List<Coordinate>();
