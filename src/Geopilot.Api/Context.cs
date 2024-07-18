@@ -23,6 +23,9 @@ public class Context : DbContext
     /// </summary>
     public DbSet<User> Users { get; set; }
 
+    /// <summary>
+    /// Gets the <see cref="User"/> entity with all includes.
+    /// </summary>
     public IQueryable<User> UsersWithIncludes
     {
         get

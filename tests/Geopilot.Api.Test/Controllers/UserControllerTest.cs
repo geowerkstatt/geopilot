@@ -185,8 +185,6 @@ public class UserControllerTest
         Assert.AreEqual(browserAuthOptions.NavigateToLoginRequestUrl, authOptions.NavigateToLoginRequestUrl);
     }
 
-
-
     [TestMethod]
     public async Task EditUser()
     {
