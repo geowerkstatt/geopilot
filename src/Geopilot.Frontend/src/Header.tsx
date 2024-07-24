@@ -42,6 +42,13 @@ export const Header: FC<HeaderProps> = ({ clientSettings, hasDrawerToggle, handl
     setUserMenuOpen(newOpen);
   };
 
+  const isActive = (path: string) => {
+    if (path === "") {
+      return location.pathname === "/";
+    }
+    return location.pathname.split("/").includes(path);
+  };
+
   return (
     <>
       <AppBar>
@@ -119,6 +126,7 @@ export const Header: FC<HeaderProps> = ({ clientSettings, hasDrawerToggle, handl
             <List>
               <ListItem key={t("delivery").toUpperCase()} disablePadding>
                 <ListItemButton
+                  selected={isActive("")}
                   onClick={() => {
                     navigate("/");
                   }}>
@@ -128,6 +136,7 @@ export const Header: FC<HeaderProps> = ({ clientSettings, hasDrawerToggle, handl
               <AdminTemplate>
                 <ListItem key={t("administration").toUpperCase()} disablePadding>
                   <ListItemButton
+                    selected={isActive("admin")}
                     onClick={() => {
                       navigate("/admin");
                     }}>
@@ -136,6 +145,7 @@ export const Header: FC<HeaderProps> = ({ clientSettings, hasDrawerToggle, handl
                 </ListItem>
                 <ListItem key={t("stacBrowser").toUpperCase()} disablePadding>
                   <ListItemButton
+                    selected={isActive("browser")}
                     onClick={() => {
                       window.open("/browser", "_blank");
                     }}>
