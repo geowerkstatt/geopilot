@@ -52,7 +52,7 @@ public class StacItemsProvider : IItemsProvider
             var delivery = db.DeliveriesWithIncludes
                 .AsNoTracking()
                 .AsEnumerable()
-                .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && (stacConverter.GetCollectionId(d.Mandate) == stacApiContext.Collections.First()))
+                .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && d.Mandate != null && stacConverter.GetCollectionId(d.Mandate) == stacApiContext.Collections.First())
                 ?? throw new InvalidOperationException($"Item with id {featureId} does not exist.");
             var item = stacConverter.ToStacItem(delivery);
             return Task.FromResult(item);

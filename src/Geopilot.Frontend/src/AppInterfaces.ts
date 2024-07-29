@@ -43,16 +43,16 @@ export interface Mandate {
   id: number;
   name: string;
   fileTypes: string[];
-  spatialExtent: Coordinate[];
-  organisations?: Organisation[];
-  deliveries?: Delivery[];
+  coordinates: Coordinate[];
+  organisations: Organisation[] | number[];
+  deliveries: Delivery[];
 }
 
 export interface Organisation {
   id: number;
   name: string;
-  mandates?: Mandate[];
-  users?: User[];
+  mandates: Mandate[] | number[];
+  users: User[] | number[];
 }
 
 export interface Delivery {
@@ -68,6 +68,6 @@ export interface User {
   fullName: string;
   isAdmin: boolean;
   email: string;
-  organisations?: Organisation[];
-  deliveries?: Delivery[];
+  organisations: Organisation[];
+  deliveries: Delivery[];
 }

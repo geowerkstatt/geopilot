@@ -71,6 +71,12 @@ export const Organisations = () => {
 
   async function saveOrganisation(organisation: Organisation) {
     try {
+      organisation.mandates = organisation.mandates?.map(mandateId => {
+        return { id: mandateId as number } as Mandate;
+      });
+      organisation.users = organisation.users?.map(userId => {
+        return { id: userId as number } as User;
+      });
       const response = await fetch("/api/v1/organisation", {
         method: organisation.id === 0 ? "POST" : "PUT",
         headers: {

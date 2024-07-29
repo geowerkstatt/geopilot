@@ -159,7 +159,7 @@ public class DeliveryControllerTest
         Assert.AreEqual(DateTimeKind.Utc, dbDelivery.Date.Kind);
         Assert.IsTrue(dbDelivery.Date > startTime.ToUniversalTime() && dbDelivery.Date < DateTime.UtcNow);
         Assert.AreEqual(guid, dbDelivery.JobId);
-        Assert.AreEqual(request.MandateId, dbDelivery.Mandate.Id);
+        Assert.AreEqual(request.MandateId, dbDelivery.Mandate?.Id);
         Assert.AreEqual(request.Comment?.Trim() ?? string.Empty, dbDelivery.Comment);
         Assert.AreEqual(request.PartialDelivery, dbDelivery.Partial);
         Assert.AreEqual(request.PrecursorDeliveryId, dbDelivery.PrecursorDelivery?.Id);
@@ -275,7 +275,7 @@ public class DeliveryControllerTest
         var list = response?.Value as List<Delivery>;
 
         Assert.IsNotNull(list);
-        Assert.AreEqual(context.Deliveries.Where(d => d.Mandate.Id == mandateId).Count(), list.Count);
+        Assert.AreEqual(context.Deliveries.Where(d => d.Mandate != null && d.Mandate.Id == mandateId).Count(), list.Count);
     }
 
     [TestMethod]

@@ -79,7 +79,7 @@ public class DeliveryController : ControllerBase
         var precursorDelivery = declaration.PrecursorDeliveryId.HasValue ?
             context.Deliveries
             .Include(d => d.Mandate)
-            .Where(d => d.Mandate.Id == mandate.Id)
+            .Where(d => d.Mandate!.Id == mandate.Id)
             .FirstOrDefault(d => d.Id == declaration.PrecursorDeliveryId) : null;
 
         if (declaration.PrecursorDeliveryId.HasValue && precursorDelivery is null)
@@ -153,11 +153,11 @@ public class DeliveryController : ControllerBase
 
         var result = context.DeliveriesWithIncludes
             .AsNoTracking()
-            .Where(d => userMandatesIds.Contains(d.Mandate.Id));
+            .Where(d => userMandatesIds.Contains(d.Mandate!.Id));
 
         if (mandateId.HasValue)
         {
-            result = result.Where(d => d.Mandate.Id == mandateId.Value);
+            result = result.Where(d => d.Mandate != null && d.Mandate.Id == mandateId.Value);
         }
 
         return Ok(result.ToList());
@@ -221,6 +221,11 @@ public class DeliveryController : ControllerBase
             {
                 logger.LogTrace("No delivery with id <{AssetId}> found.", assetId);
                 return NotFound($"No delivery with id <{assetId}> found.");
+            }
+
+            if (asset.Delivery == null)
+            {
+                throw new InvalidOperationException($"Asset with id {assetId} has no delivery.");
             }
 
             var (content, contentType) = await assetHandler.DownloadAssetAsync(asset.Delivery.JobId, asset.SanitizedFilename);
