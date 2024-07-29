@@ -24,6 +24,19 @@ public class Context : DbContext
     public DbSet<User> Users { get; set; }
 
     /// <summary>
+    /// Gets the <see cref="User"/> entity with all includes.
+    /// </summary>
+    public IQueryable<User> UsersWithIncludes
+    {
+        get
+        {
+            return Users
+                .Include(u => u.Organisations)
+                .Include(u => u.Deliveries);
+        }
+    }
+
+    /// <summary>
     /// Set of all <see cref="Organisation"/>.
     /// </summary>
     public DbSet<Organisation> Organisations { get; set; }

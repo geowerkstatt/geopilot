@@ -43,8 +43,7 @@ public class UserController : ControllerBase
     {
         logger.LogInformation("Getting users.");
 
-        return context.Users
-            .Include(u => u.Organisations)
+        return context.UsersWithIncludes
             .AsNoTracking()
             .ToList();
     }
@@ -72,6 +71,25 @@ public class UserController : ControllerBase
     }
 
     /// <summary>
+    /// Get a user with the specified <paramref name="id"/>.
+    /// </summary>
+    [HttpGet("{id}")]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the user with the specified id.", typeof(User), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The user could not be found.")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var user = await context.UsersWithIncludes
+            .AsNoTracking()
+            .SingleOrDefaultAsync(u => u.Id == id);
+
+        if (user == default)
+            return NotFound();
+
+        return Ok(user);
+    }
+
+    /// <summary>
     /// Gets the specified auth options.
     /// </summary>
     /// <returns>The configured options used for authentication.</returns>
@@ -82,5 +100,55 @@ public class UserController : ControllerBase
     {
         logger.LogInformation("Getting auth options.");
         return authOptions;
+    }
+
+    /// <summary>
+    /// Asynchronously updates the <paramref name="user"/> specified.
+    /// </summary>
+    /// <param name="user">The user to update.</param>
+    [HttpPut]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the updated user.", typeof(User), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The user could not be found.")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The user could not be updated due to invalid input.")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to update the user.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The user could not be updated due to an internal server error.", typeof(ProblemDetails), new[] { "application/json" })]
+    public async Task<IActionResult> Edit(User user)
+    {
+        try
+        {
+            if (user == null)
+                return BadRequest();
+
+            var existingUser = await context.UsersWithIncludes.SingleOrDefaultAsync(u => u.Id == user.Id);
+
+            if (existingUser == null)
+                return NotFound();
+
+            existingUser.IsAdmin = user.IsAdmin;
+
+            var organisationIds = user.Organisations.Select(o => o.Id).ToList();
+            var organisations = await context.Organisations
+                .Where(o => organisationIds.Contains(o.Id))
+                .ToListAsync();
+            existingUser.Organisations.Clear();
+            foreach (var organisation in organisations)
+            {
+                existingUser.Organisations.Add(organisation);
+            }
+
+            await context.SaveChangesAsync().ConfigureAwait(false);
+
+            var result = await context.UsersWithIncludes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+            return Ok(result);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "An error occurred while updating the user.");
+            return Problem(e.Message);
+        }
     }
 }

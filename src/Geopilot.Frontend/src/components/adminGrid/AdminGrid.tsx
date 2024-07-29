@@ -24,7 +24,7 @@ import {
 } from "../dataGrid/DataGridMultiSelectColumn.tsx";
 import { IsGridSpatialExtentColDef, TransformToSpatialExtentColumn } from "../dataGrid/DataGridSpatialExtentColumn.tsx";
 
-export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave, onDisconnect }) => {
+export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave, onDisconnect, disableRow }) => {
   const { t } = useTranslation();
   const [rows, setRows] = useState<DataRow[]>([]);
   const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
@@ -51,6 +51,10 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
     resizable: false,
     cellClassName: "actions",
     getActions: ({ id }) => {
+      if (id === disableRow) {
+        return [];
+      }
+
       const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
 
       if (isInEditMode) {

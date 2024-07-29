@@ -8,6 +8,7 @@ export interface AdminGridProps {
   columns: GridColDef[];
   onSave: (row: DataRow) => void | Promise<void>;
   onDisconnect: (row: DataRow) => void | Promise<void>;
+  disableRow?: number;
 }
 
 export interface DataRow {

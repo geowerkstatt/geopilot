@@ -1,7 +1,7 @@
-﻿using Castle.Core.Logging;
-using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -44,7 +44,7 @@ public class UserControllerTest
     }
 
     [TestMethod]
-    public async Task GetUserAsync()
+    public async Task GetCurrentUserAsync()
     {
         var authIdentifier = Guid.NewGuid().ToString();
         const string fullName = "Full Name";
@@ -76,7 +76,7 @@ public class UserControllerTest
     }
 
     [TestMethod]
-    public async Task GetUserAsyncNotFound()
+    public async Task GetCurrentUserAsyncNotFound()
     {
         var user = new User
         {
@@ -92,7 +92,7 @@ public class UserControllerTest
     }
 
     [TestMethod]
-    public async Task GetUserAsyncMissingClaims()
+    public async Task GetCurrentUserAsyncMissingClaims()
     {
         var authIdentifier = Guid.NewGuid().ToString();
 
@@ -116,6 +116,37 @@ public class UserControllerTest
 
         Assert.IsNull(userResult);
         httpContextMock.VerifyAll();
+    }
+
+    [TestMethod]
+    public async Task GetUserById()
+    {
+        var testUser = new User
+        {
+            AuthIdentifier = Guid.NewGuid().ToString(),
+            FullName = "AGILITY MOSES",
+            Email = "agility@moses.com",
+            IsAdmin = true,
+        };
+        context.Users.Add(testUser);
+        context.SaveChanges();
+
+        var userResult = await userController.GetById(testUser.Id);
+        ActionResultAssert.IsOk(userResult);
+        var user = (userResult as OkObjectResult)?.Value as User;
+        Assert.IsNotNull(user);
+        Assert.AreEqual(testUser.AuthIdentifier, user.AuthIdentifier);
+        Assert.AreEqual(testUser.FullName, user.FullName);
+        Assert.AreEqual(testUser.Email, user.Email);
+        Assert.AreEqual(testUser.IsAdmin, user.IsAdmin);
+    }
+
+    [TestMethod]
+    public async Task GetUserByIdNotFound()
+    {
+        var userResult = await userController.GetById(0);
+        ActionResultAssert.IsNotFound(userResult);
+        Assert.IsNotNull(userResult);
     }
 
     [TestMethod]
@@ -152,5 +183,56 @@ public class UserControllerTest
         Assert.AreEqual(browserAuthOptions.RedirectUri, authOptions.RedirectUri);
         Assert.AreEqual(browserAuthOptions.PostLogoutRedirectUri, authOptions.PostLogoutRedirectUri);
         Assert.AreEqual(browserAuthOptions.NavigateToLoginRequestUrl, authOptions.NavigateToLoginRequestUrl);
+    }
+
+    [TestMethod]
+    public async Task EditUser()
+    {
+        var testUser = new User
+        {
+            AuthIdentifier = Guid.NewGuid().ToString(),
+            FullName = "FLEA XI",
+            Email = "flea@xi.com",
+            IsAdmin = false,
+        };
+        context.Users.Add(testUser);
+        context.SaveChanges();
+
+        var userResult = await userController.GetById(testUser.Id) as OkObjectResult;
+        var user = userResult?.Value as User;
+        Assert.IsNotNull(user);
+        user.FullName = "FLEA XI Updated";
+        user.IsAdmin = true;
+        user.Organisations = new List<Organisation> { new () { Id = 1 }, new () { Id = 2 } };
+
+        var result = await userController.Edit(user);
+        ActionResultAssert.IsOk(result);
+        var resultValue = (result as OkObjectResult)?.Value as User;
+        Assert.IsNotNull(resultValue);
+        Assert.AreEqual("FLEA XI", resultValue.FullName);
+        Assert.IsTrue(resultValue.IsAdmin);
+        Assert.AreEqual(2, resultValue.Organisations.Count);
+        for (var i = 0; i < 2; i++)
+        {
+            Assert.AreEqual(testUser.Organisations[i].Id, resultValue.Organisations[i].Id);
+        }
+
+        testUser.Organisations = new List<Organisation> { new () { Id = 2 }, new () { Id = 3 } };
+        result = await userController.Edit(testUser);
+        ActionResultAssert.IsOk(result);
+        resultValue = (result as OkObjectResult)?.Value as User;
+        Assert.IsNotNull(resultValue);
+        Assert.AreEqual(2, resultValue.Organisations.Count);
+        for (var i = 0; i < 2; i++)
+        {
+            Assert.AreEqual(testUser.Organisations[i].Id, resultValue.Organisations[i].Id);
+        }
+    }
+
+    [TestMethod]
+    public async Task EditUserNotFound()
+    {
+        var result = await userController.Edit(new User { Id = 0 });
+        ActionResultAssert.IsNotFound(result);
     }
 }
