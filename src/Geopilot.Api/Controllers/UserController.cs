@@ -120,8 +120,7 @@ public class UserController : ControllerBase
             if (user == null)
                 return BadRequest();
 
-            var existingUser = await context.UsersWithIncludes
-                .SingleOrDefaultAsync(u => u.Id == user.Id);
+            var existingUser = await context.UsersWithIncludes.SingleOrDefaultAsync(u => u.Id == user.Id);
 
             if (existingUser == null)
                 return NotFound();
@@ -148,7 +147,7 @@ public class UserController : ControllerBase
         }
         catch (Exception e)
         {
-            logger.LogError(e, $"An error occurred while updating the user.");
+            logger.LogError(e, "An error occurred while updating the user.");
             return Problem(e.Message);
         }
     }
