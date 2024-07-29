@@ -73,7 +73,7 @@
   "spatialExtentIncompleteTitle": "Misura spaziale non valida",
   "stacBrowser": "Browser STAC",
   "termsOfUse": "Termini di utilizzo",
-  "termsOfUseAccpetance": "Accetto i <button>Termini di utilizzo</button>.",
+  "termsOfUseAcceptance": "Accetto i <button>Termini di utilizzo</button>.",
   "type": "Tipo",
   "uploadFile": "Carica {{fileName}}...",
   "uploadNotSuccessful": "Caricamento non riuscito. La validazione è stata interrotta.",

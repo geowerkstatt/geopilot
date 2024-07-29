@@ -73,7 +73,7 @@
   "spatialExtentIncompleteTitle": "Ungültige räumliche Ausdehnung",
   "stacBrowser": "STAC Browser",
   "termsOfUse": "Nutzungsbestimmungen",
-  "termsOfUseAccpetance": "Ich akzeptiere die <button>Nutzungsbestimmungen</button>.",
+  "termsOfUseAcceptance": "Ich akzeptiere die <button>Nutzungsbestimmungen</button>.",
   "type": "Typ",
   "uploadFile": "{{fileName}} hochladen...",
   "uploadNotSuccessful": "Der Upload war nicht erfolgreich. Die Validierung wurde abgebrochen.",
