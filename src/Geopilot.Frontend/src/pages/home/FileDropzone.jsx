@@ -165,7 +165,7 @@ export const FileDropzone = ({
                 />
                 <span className="nutzungsbestimmungen-input">
                   <Trans
-                    i18nKey="termsOfUseAccpetance"
+                    i18nKey="termsOfUseAcceptance"
                     components={{
                       button: (
                         <Button

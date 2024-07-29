@@ -73,7 +73,7 @@
   "spatialExtentIncompleteTitle": "Invalid spatial extent",
   "stacBrowser": "STAC Browser",
   "termsOfUse": "Terms of use",
-  "termsOfUseAccpetance": "I accept the <button>terms of use</button>.",
+  "termsOfUseAcceptance": "I accept the <button>terms of use</button>.",
   "type": "Type",
   "uploadFile": "Upload {{fileName}}...",
   "uploadNotSuccessful": "The upload was not successful. Validation has been aborted.",
