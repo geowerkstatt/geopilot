@@ -85,24 +85,16 @@ public class Mandate
             case 0:
                 break;
             case 5:
-                double minX = SpatialExtent.Coordinates[0].X;
-                double minY = SpatialExtent.Coordinates[0].Y;
-                double maxX = SpatialExtent.Coordinates[0].X;
-                double maxY = SpatialExtent.Coordinates[0].Y;
-
-                foreach (var coord in SpatialExtent.Coordinates)
-                {
-                    minX = Math.Min(minX, coord.X);
-                    minY = Math.Min(minY, coord.Y);
-                    maxX = Math.Max(maxX, coord.X);
-                    maxY = Math.Max(maxY, coord.Y);
-                }
+                double minX = SpatialExtent.Coordinates.Min(coord => coord.X);
+                double minY = SpatialExtent.Coordinates.Min(coord => coord.Y);
+                double maxX = SpatialExtent.Coordinates.Max(coord => coord.X);
+                double maxY = SpatialExtent.Coordinates.Max(coord => coord.Y);
 
                 Coordinates.Add(new Coordinate { X = minX, Y = minY });
                 Coordinates.Add(new Coordinate { X = maxX, Y = maxY });
                 break;
             default:
-                throw new InvalidOperationException($"Unsupported number of coordinates. Spatial extent must be a rectangle.");
+                throw new InvalidOperationException("Unsupported number of coordinates. Spatial extent must be a rectangle.");
         }
     }
 }

@@ -81,27 +81,6 @@ public class MandateController : ControllerBase
     }
 
     /// <summary>
-    /// Get a mandate with the specified id.
-    /// </summary>
-    [HttpGet("{id}")]
-    [Authorize(Policy = GeopilotPolicies.User)]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns the mandate with the specified id.", typeof(Mandate), new[] { "application/json" })]
-    [SwaggerResponse(StatusCodes.Status404NotFound, "The mandate with the specified id could not be found.")]
-    public async Task<IActionResult> Get(int id)
-    {
-        var mandate = await context.MandatesWithIncludes
-            .AsNoTracking()
-            .SingleOrDefaultAsync(m => m.Id == id);
-
-        if (mandate == default)
-            return NotFound();
-
-        mandate.SetCoordinateListFromPolygon();
-
-        return Ok(mandate);
-    }
-
-    /// <summary>
     /// Asynchronously creates the <paramref name="mandate"/> specified.
     /// </summary>
     /// <param name="mandate">The mandate to create.</param>
