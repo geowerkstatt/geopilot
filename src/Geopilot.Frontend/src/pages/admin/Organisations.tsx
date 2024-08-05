@@ -3,14 +3,14 @@ import { AdminGrid } from "../../components/adminGrid/AdminGrid.tsx";
 import { DataRow, GridColDef } from "../../components/adminGrid/AdminGridInterfaces.ts";
 import { useContext, useEffect, useState } from "react";
 import { ErrorResponse, Mandate, Organisation, User } from "../../AppInterfaces.ts";
-import { useAuth } from "../../auth";
+import { useGeopilotAuth } from "../../auth";
 import { AlertContext } from "../../components/alert/AlertContext.tsx";
 import { PromptContext } from "../../components/prompt/PromptContext.tsx";
 import { CircularProgress, Stack } from "@mui/material";
 
 export const Organisations = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user } = useGeopilotAuth();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [mandates, setMandates] = useState<Mandate[]>();
   const [users, setUsers] = useState<User[]>();
