@@ -60,7 +60,7 @@ services:
     ports:
       - 5173:80
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: Staging
       ConnectionStrings__Context: Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
       Auth__Authority: http://localhost:4011/realms/geopilot
@@ -71,6 +71,8 @@ services:
       - ./src/Geopilot.Api/Persistent:/assets
       - ./README.md:/public/info-hilfe.md
       - ./LICENSE:/public/nutzungsbestimmungen.md
+    extra_hosts:
+      - "localhost:host-gateway"
     depends_on:
       db:
         condition: service_healthy
