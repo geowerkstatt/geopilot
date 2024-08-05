@@ -30,7 +30,10 @@ public class StacCollectionsProvider : ICollectionsProvider
         try
         {
             using var db = contextFactory.CreateDbContext();
-            var mandate = db.MandatesWithIncludes.FirstOrDefault(m => stacConverter.GetCollectionId(m) == collectionId)
+            var mandate = db.MandatesWithIncludes
+                .AsNoTracking()
+                .AsEnumerable()
+                .FirstOrDefault(m => stacConverter.GetCollectionId(m) == collectionId)
                 ?? throw new InvalidOperationException($"Collection with id {collectionId} does not exist.");
             var collection = stacConverter.ToStacCollection(mandate);
             return Task.FromResult(collection);
@@ -47,9 +50,12 @@ public class StacCollectionsProvider : ICollectionsProvider
     public Task<IEnumerable<StacCollection>> GetCollectionsAsync(IStacApiContext stacApiContext, CancellationToken cancellationToken = default)
     {
         using var db = contextFactory.CreateDbContext();
-        var collections = db.MandatesWithIncludes.Select(stacConverter.ToStacCollection);
+        var collections = db.MandatesWithIncludes
+            .AsNoTracking()
+            .ToList()
+            .Select(stacConverter.ToStacCollection);
         stacApiContext.Properties.SetProperty(DefaultConventions.MatchedCountPropertiesKey, collections.Count());
 
-        return Task.FromResult<IEnumerable<StacCollection>>(collections);
+        return Task.FromResult(collections);
     }
 }

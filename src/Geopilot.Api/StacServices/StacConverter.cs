@@ -81,6 +81,11 @@ public class StacConverter
     /// <returns>The STAC item.</returns>
     public StacItem ToStacItem(Delivery delivery)
     {
+        if (delivery.Mandate == null)
+        {
+            throw new InvalidOperationException("Mandate is null for delivery " + delivery.Id);
+        }
+
         var stacId = GetItemId(delivery);
 
         var item = new StacItem(stacId, ToGeoJsonPolygon(delivery.Mandate.SpatialExtent))
@@ -154,10 +159,10 @@ public class StacConverter
     private (double longMin, double latMin, double longMax, double latMax) GetCoordinatesBounds(Geometry geometry)
     {
         var coordinates = geometry.Coordinates;
-        var longMin = coordinates.Min((Coordinate c) => c.X);
-        var latMin = coordinates.Min((Coordinate c) => c.Y);
-        var longMax = coordinates.Max((Coordinate c) => c.X);
-        var latMax = coordinates.Max((Coordinate c) => c.Y);
+        var longMin = coordinates.Min((NetTopologySuite.Geometries.Coordinate c) => c.X);
+        var latMin = coordinates.Min((NetTopologySuite.Geometries.Coordinate c) => c.Y);
+        var longMax = coordinates.Max((NetTopologySuite.Geometries.Coordinate c) => c.X);
+        var latMax = coordinates.Max((NetTopologySuite.Geometries.Coordinate c) => c.Y);
 
         return (longMin, latMin, longMax, latMax);
     }

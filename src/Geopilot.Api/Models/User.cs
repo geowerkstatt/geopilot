@@ -10,7 +10,6 @@ public class User
     /// <summary>
     /// The unique identifier for the user.
     /// </summary>
-    [JsonIgnore]
     public int Id { get; set; }
 
     /// <summary>

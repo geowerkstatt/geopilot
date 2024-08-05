@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace Geopilot.Api;
 
@@ -23,9 +24,35 @@ public class Context : DbContext
     public DbSet<User> Users { get; set; }
 
     /// <summary>
+    /// Gets the <see cref="User"/> entity with all includes.
+    /// </summary>
+    public IQueryable<User> UsersWithIncludes
+    {
+        get
+        {
+            return Users
+                .Include(u => u.Organisations)
+                .Include(u => u.Deliveries);
+        }
+    }
+
+    /// <summary>
     /// Set of all <see cref="Organisation"/>.
     /// </summary>
     public DbSet<Organisation> Organisations { get; set; }
+
+    /// <summary>
+    /// Gets the <see cref="Organisation"/> entity with all includes.
+    /// </summary>
+    public IQueryable<Organisation> OrganisationsWithIncludes
+    {
+        get
+        {
+            return Organisations
+                .Include(o => o.Users)
+                .Include(o => o.Mandates);
+        }
+    }
 
     /// <summary>
     /// Set of all <see cref="Delivery"/>.
@@ -35,18 +62,15 @@ public class Context : DbContext
     /// <summary>
     /// Gets the <see cref="Delivery"/> entity with all includes.
     /// </summary>
-    public List<Delivery> DeliveriesWithIncludes
+    public IQueryable<Delivery> DeliveriesWithIncludes
     {
         get
         {
             return Deliveries
-                .Where(d => !d.Deleted)
                 .Include(d => d.Mandate)
                 .Include(d => d.Assets)
                 .Include(d => d.DeclaringUser)
-                .Include(d => d.PrecursorDelivery)
-                .AsNoTracking()
-                .ToList();
+                .Include(d => d.PrecursorDelivery);
         }
     }
 
@@ -58,15 +82,15 @@ public class Context : DbContext
     /// <summary>
     /// Gets the <see cref="Mandate"/> entity with all includes.
     /// </summary>
-    public List<Mandate> MandatesWithIncludes
+    public IQueryable<Mandate> MandatesWithIncludes
     {
         get
         {
             return Mandates
-                .Include(d => d.Deliveries.Where(delivery => !delivery.Deleted))
-                .ThenInclude(d => d.Assets)
-                .AsNoTracking()
-                .ToList();
+                .Include(m => m.Organisations)
+                .ThenInclude(o => o.Users)
+                .Include(m => m.Deliveries)
+                .ThenInclude(d => d.Assets);
         }
     }
 
@@ -74,4 +98,10 @@ public class Context : DbContext
     /// Set of all <see cref="Asset"/>.
     /// </summary>
     public DbSet<Asset> Assets { get; set; }
+
+    /// <inheritdoc/>
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Delivery>().HasQueryFilter(d => !d.Deleted);
+    }
 }

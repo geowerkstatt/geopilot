@@ -1,7 +1,7 @@
 ﻿using Geopilot.Api.FileAccess;
 using Microsoft.Extensions.Configuration;
 
-namespace Geopilot.Api.Test;
+namespace Geopilot.Api;
 
 [TestClass]
 public sealed class AssemblyInitialize

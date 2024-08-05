@@ -1,7 +1,6 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
-using Geopilot.Api.Test;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -160,7 +159,7 @@ public class DeliveryControllerTest
         Assert.AreEqual(DateTimeKind.Utc, dbDelivery.Date.Kind);
         Assert.IsTrue(dbDelivery.Date > startTime.ToUniversalTime() && dbDelivery.Date < DateTime.UtcNow);
         Assert.AreEqual(guid, dbDelivery.JobId);
-        Assert.AreEqual(request.MandateId, dbDelivery.Mandate.Id);
+        Assert.AreEqual(request.MandateId, dbDelivery.Mandate?.Id);
         Assert.AreEqual(request.Comment?.Trim() ?? string.Empty, dbDelivery.Comment);
         Assert.AreEqual(request.PartialDelivery, dbDelivery.Partial);
         Assert.AreEqual(request.PrecursorDeliveryId, dbDelivery.PrecursorDelivery?.Id);
@@ -180,7 +179,9 @@ public class DeliveryControllerTest
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status200OK, result.StatusCode);
 
-        var dbDelivery = context.Deliveries.Include(d => d.Assets).FirstOrDefault(d => d.Id == delivery.Id);
+        var dbDelivery = context.DeliveriesWithIncludes
+            .IgnoreQueryFilters()
+            .FirstOrDefault(d => d.Id == delivery.Id);
         Assert.IsNotNull(dbDelivery);
         Assert.AreEqual(true, dbDelivery.Deleted);
         Assert.AreEqual(true, dbDelivery.Assets.All(a => a.Deleted));
@@ -274,7 +275,7 @@ public class DeliveryControllerTest
         var list = response?.Value as List<Delivery>;
 
         Assert.IsNotNull(list);
-        Assert.AreEqual(context.Deliveries.Where(d => d.Mandate.Id == mandateId).Count(), list.Count);
+        Assert.AreEqual(context.Deliveries.Where(d => d.Mandate != null && d.Mandate.Id == mandateId).Count(), list.Count);
     }
 
     [TestMethod]

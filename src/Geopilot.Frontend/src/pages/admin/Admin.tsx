@@ -37,6 +37,13 @@ export const Admin: FC<AdminProps> = ({ clientSettings }) => {
     }
   };
 
+  const isActive = (path: string) => {
+    if (path === "") {
+      return location.pathname === "/";
+    }
+    return location.pathname.split("/").includes(path);
+  };
+
   const drawerWidth = "250px";
   const drawerContent = (
     <div>
@@ -45,6 +52,7 @@ export const Admin: FC<AdminProps> = ({ clientSettings }) => {
         <List>
           <ListItem key={"deliveryOverview"} disablePadding>
             <ListItemButton
+              selected={isActive("delivery-overview")}
               onClick={() => {
                 navigateTo("delivery-overview");
               }}>
@@ -57,6 +65,7 @@ export const Admin: FC<AdminProps> = ({ clientSettings }) => {
           {["users", "mandates", "organisations"].map(link => (
             <ListItem key={link} disablePadding>
               <ListItemButton
+                selected={isActive(link)}
                 onClick={() => {
                   navigateTo(link);
                 }}>
@@ -96,7 +105,7 @@ export const Admin: FC<AdminProps> = ({ clientSettings }) => {
         }}>
         {drawerContent}
       </Drawer>
-      <Box sx={{ marginLeft: { xs: "0", sm: drawerWidth }, padding: "20px 35px", overflow: "auto" }}>
+      <Box sx={{ height: "100%", marginLeft: { xs: "0", sm: drawerWidth }, padding: "20px 35px", overflow: "auto" }}>
         <Outlet />
       </Box>
     </div>

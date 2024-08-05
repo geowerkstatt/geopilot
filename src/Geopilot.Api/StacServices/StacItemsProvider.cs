@@ -50,7 +50,9 @@ public class StacItemsProvider : IItemsProvider
         {
             using var db = contextFactory.CreateDbContext();
             var delivery = db.DeliveriesWithIncludes
-                .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && (stacConverter.GetCollectionId(d.Mandate) == stacApiContext.Collections.First()))
+                .AsNoTracking()
+                .AsEnumerable()
+                .FirstOrDefault(d => stacConverter.GetItemId(d) == featureId && d.Mandate != null && stacConverter.GetCollectionId(d.Mandate) == stacApiContext.Collections.First())
                 ?? throw new InvalidOperationException($"Item with id {featureId} does not exist.");
             var item = stacConverter.ToStacItem(delivery);
             return Task.FromResult(item);
@@ -76,7 +78,7 @@ public class StacItemsProvider : IItemsProvider
 
         var collectionIds = stacApiContext.Collections?.ToList();
         using var db = contextFactory.CreateDbContext();
-        var mandates = db.MandatesWithIncludes;
+        var mandates = db.MandatesWithIncludes.AsNoTracking().ToList();
 
         if (collectionIds?.Any() == true)
         {

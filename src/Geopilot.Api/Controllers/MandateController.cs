@@ -5,11 +5,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Globalization;
 
 namespace Geopilot.Api.Controllers;
 
 /// <summary>
-/// Controller for listing mandates.
+/// Controller for mandates.
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
@@ -50,8 +51,12 @@ public class MandateController : ControllerBase
         if (user == null)
             return Unauthorized();
 
-        var mandates = context.Mandates
-            .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+        var mandates = context.MandatesWithIncludes.AsNoTracking();
+
+        if (!user.IsAdmin)
+        {
+            mandates = mandates.Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+        }
 
         if (jobId != default)
         {
@@ -68,9 +73,112 @@ public class MandateController : ControllerBase
                 .Where(m => m.FileTypes.Contains(".*") || m.FileTypes.Contains(extension));
         }
 
-        var result = await mandates.ToListAsync();
+        var result = mandates.ToList();
+        result.ForEach(m => m.SetCoordinateListFromPolygon());
 
-        logger.LogInformation("Getting mandates with for job with id <{JobId}> resulted in <{MatchingMandatesCount}> matching mandates.", jobId, result.Count);
-        return Ok(mandates);
+        logger.LogInformation($"Getting mandates with for job with id <{jobId}> resulted in <{result.Count}> matching mandates.");
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Asynchronously creates the <paramref name="mandate"/> specified.
+    /// </summary>
+    /// <param name="mandate">The mandate to create.</param>
+    [HttpPost]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status201Created, "The mandate was created successfully.")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be created due to invalid input.")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to create a mandate.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), new[] { "application/json" })]
+    public async Task<IActionResult> Create(Mandate mandate)
+    {
+        try
+        {
+            if (mandate == null)
+                return BadRequest();
+
+            var organisationIds = mandate.Organisations.Select(o => o.Id).ToList();
+            mandate.Organisations = await context.Organisations
+                .Where(o => organisationIds.Contains(o.Id))
+                .ToListAsync();
+            mandate.SetPolygonFromCoordinates();
+
+            var entityEntry = await context.AddAsync(mandate).ConfigureAwait(false);
+            await context.SaveChangesAsync().ConfigureAwait(false);
+
+            var result = await context.MandatesWithIncludes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == entityEntry.Entity.Id);
+            if (result == default)
+                return Problem("Unable to retrieve created mandate.");
+
+            result.SetCoordinateListFromPolygon();
+
+            var location = new Uri(string.Format(CultureInfo.InvariantCulture, $"/api/v1/mandate/{result.Id}"), UriKind.Relative);
+            return Created(location, result);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, $"An error occured while creating the mandate.");
+            return Problem(e.Message);
+        }
+    }
+
+    /// <summary>
+    /// Asynchronously updates the <paramref name="mandate"/> specified.
+    /// </summary>
+    /// <param name="mandate">The mandate to update.</param>
+    [HttpPut]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "The mandate was updated successfully.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The mandate could not be found.")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be updated due to invalid input.")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to edit a mandate.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), new[] { "application/json" })]
+
+    public async Task<IActionResult> Edit(Mandate mandate)
+    {
+        try
+        {
+            if (mandate == null)
+                return BadRequest();
+
+            var existingMandate = await context.MandatesWithIncludes
+                .FirstOrDefaultAsync(m => m.Id == mandate.Id);
+
+            if (existingMandate == null)
+                return NotFound();
+
+            mandate.SetPolygonFromCoordinates();
+
+            context.Entry(existingMandate).CurrentValues.SetValues(mandate);
+
+            var organisationIds = mandate.Organisations.Select(o => o.Id).ToList();
+            var organisations = await context.Organisations
+                .Where(o => organisationIds.Contains(o.Id))
+                .ToListAsync();
+            existingMandate.Organisations.Clear();
+            foreach (var organisation in organisations)
+            {
+                existingMandate.Organisations.Add(organisation);
+            }
+
+            await context.SaveChangesAsync().ConfigureAwait(false);
+
+            var result = await context.MandatesWithIncludes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Id == mandate.Id);
+            if (result == default)
+                return Problem("Unable to retrieve updated mandate.");
+
+            result.SetCoordinateListFromPolygon();
+
+            return Ok(result);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, $"An error occured while updating the mandate.");
+            return Problem(e.Message);
+        }
     }
 }

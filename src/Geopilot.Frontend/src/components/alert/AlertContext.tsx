@@ -1,4 +1,4 @@
-import { createContext, FC, useState } from "react";
+import { createContext, FC, useEffect, useState } from "react";
 import { AlertOptions, AlertProviderProps, AlertContextInterface } from "./AlertInterfaces";
 import { AlertColor } from "@mui/material";
 
@@ -12,27 +12,32 @@ export const AlertContext = createContext<AlertContextInterface>({
 });
 
 export const AlertProvider: FC<AlertProviderProps> = ({ children }) => {
-  const [alert, setAlert] = useState<AlertOptions | null>(null);
+  const [currentAlert, setCurrentAlert] = useState<AlertOptions>();
+  const [alerts, setAlerts] = useState<AlertOptions[]>([]);
 
   const showAlert = (text: string, severity: AlertColor | undefined, allowAutoHide: boolean | undefined) => {
-    setAlert({
-      text: text,
-      severity: severity ?? "info",
-      allowAutoHide: allowAutoHide ?? false,
-    });
+    const newAlert = { text, severity: severity ?? "info", allowAutoHide: allowAutoHide ?? false };
+    setAlerts(prevAlerts => [...prevAlerts, newAlert]);
   };
 
   const closeAlert = () => {
-    setAlert(null);
+    setCurrentAlert(undefined);
   };
+
+  useEffect(() => {
+    if (alerts.length > 0 && !currentAlert) {
+      setCurrentAlert(alerts[0]);
+      setAlerts(prevAlerts => prevAlerts.slice(1));
+    }
+  }, [alerts, currentAlert]);
 
   return (
     <AlertContext.Provider
       value={{
-        alertIsOpen: alert?.text != null,
-        text: alert?.text,
-        severity: alert?.severity,
-        autoHideDuration: alert?.allowAutoHide === true ? 6000 : null,
+        alertIsOpen: currentAlert?.text != null,
+        text: currentAlert?.text,
+        severity: currentAlert?.severity,
+        autoHideDuration: currentAlert?.allowAutoHide === true ? 6000 : null,
         showAlert,
         closeAlert,
       }}>

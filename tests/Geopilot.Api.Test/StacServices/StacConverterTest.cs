@@ -18,7 +18,7 @@ public class StacConverterTest
     {
         Id = 1,
         Name = "Test Mandate",
-        SpatialExtent = new Polygon(new LinearRing(new Coordinate[]
+        SpatialExtent = new Polygon(new LinearRing(new NetTopologySuite.Geometries.Coordinate[]
         {
                 new (mandateExtent[1], mandateExtent[0]),
                 new (mandateExtent[3], mandateExtent[0]),
