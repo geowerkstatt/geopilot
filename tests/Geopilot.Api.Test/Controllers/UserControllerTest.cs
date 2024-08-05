@@ -27,9 +27,6 @@ public class UserControllerTest
         {
             Authority = "https://localhost/some-authority",
             ClientId = Guid.NewGuid().ToString(),
-            RedirectUri = "/",
-            PostLogoutRedirectUri = "/logout",
-            NavigateToLoginRequestUrl = false,
         };
         authOptionsMock.SetupGet(o => o.Value).Returns(browserAuthOptions);
 
@@ -180,9 +177,6 @@ public class UserControllerTest
         Assert.IsNotNull(authOptions);
         Assert.AreEqual(browserAuthOptions.Authority, authOptions.Authority);
         Assert.AreEqual(browserAuthOptions.ClientId, authOptions.ClientId);
-        Assert.AreEqual(browserAuthOptions.RedirectUri, authOptions.RedirectUri);
-        Assert.AreEqual(browserAuthOptions.PostLogoutRedirectUri, authOptions.PostLogoutRedirectUri);
-        Assert.AreEqual(browserAuthOptions.NavigateToLoginRequestUrl, authOptions.NavigateToLoginRequestUrl);
     }
 
     [TestMethod]
