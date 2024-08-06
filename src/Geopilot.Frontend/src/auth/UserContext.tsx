@@ -5,7 +5,7 @@ import { useAuth } from "react-oidc-context";
 export const UserContext = createContext<User | undefined>(undefined);
 
 export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
-  const [user, setUser] = useState<User | undefined>(undefined);
+  const [user, setUser] = useState<User>();
   const auth = useAuth();
 
   const fetchUserInfo = useCallback(async () => {
