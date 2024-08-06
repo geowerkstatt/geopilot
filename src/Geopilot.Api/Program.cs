@@ -59,6 +59,7 @@ builder.Services
     {
         options.Authority = builder.Configuration["Auth:Authority"];
         options.Audience = builder.Configuration["Auth:ClientId"];
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.MapInboundClaims = false;
 
         options.Events = new JwtBearerEvents
@@ -188,6 +189,10 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "geopilot API v1.0");
 });
 
+app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseCors("All");
@@ -201,12 +206,7 @@ else
 {
     // Disallow CORS for all origins in production
     app.UseCors();
-
-    app.UseDefaultFiles();
-    app.UseStaticFiles();
 }
-
-app.UseHttpsRedirection();
 
 app.Use(async (context, next) =>
 {

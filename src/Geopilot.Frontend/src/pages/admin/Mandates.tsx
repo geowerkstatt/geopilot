@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useContext, useEffect, useState } from "react";
 import { ErrorResponse, Mandate, Organisation, Validation } from "../../AppInterfaces.ts";
-import { useAuth } from "../../auth";
+import { useGeopilotAuth } from "../../auth";
 import { AdminGrid } from "../../components/adminGrid/AdminGrid.tsx";
 import { DataRow, GridColDef } from "../../components/adminGrid/AdminGridInterfaces.ts";
 import { AlertContext } from "../../components/alert/AlertContext.tsx";
@@ -10,7 +10,7 @@ import { CircularProgress, Stack } from "@mui/material";
 
 export const Mandates = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user } = useGeopilotAuth();
   const [mandates, setMandates] = useState<Mandate[]>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [fileExtensions, setFileExtensions] = useState<string[]>();

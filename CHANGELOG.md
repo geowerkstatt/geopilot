@@ -10,6 +10,7 @@
 - Added grid to manage mandates in administration area.
 - Added grid to manage organisations in administration area.
 - Added grid to manage users in administration area.
+- Added local Keycloak server for development.
 
 ### Changed
 
@@ -18,6 +19,7 @@
 - Refactored delivery overview to use only [MUI](https://mui.com/material-ui/) components.
 - Use Typescript for new components.
 - STAC browser now opens in a new tab.
+- Use react-oidc-context for authentication.
 
 ## v1.0.93 - 2024-05-14
 

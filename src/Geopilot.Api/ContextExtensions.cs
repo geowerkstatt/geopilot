@@ -82,6 +82,22 @@ internal static class ContextExtensions
 
         User SeedUsers(int seed) => userFaker.UseSeed(seed).Generate();
         context.Users.AddRange(Enumerable.Range(0, 10).Select(SeedUsers));
+        context.Users.Add(new User
+        {
+            AuthIdentifier = "1f9f9000-c651-4b04-b6ae-9ce1e7f45c15",
+            FullName = "Andreas Admin",
+            Email = "admin@geopilot.ch",
+            IsAdmin = true,
+        });
+
+        context.Users.Add(new User
+        {
+            AuthIdentifier = "1ed45832-2880-4fd4-a274-bbcc101c3307",
+            FullName = "Ursula User",
+            Email = "user@geopilot.ch",
+            IsAdmin = false,
+        });
+
         context.SaveChanges();
     }
 

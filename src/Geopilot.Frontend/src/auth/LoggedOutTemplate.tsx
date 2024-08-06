@@ -1,4 +1,4 @@
-import { useAuth } from ".";
+import { useGeopilotAuth } from ".";
 import { FC, ReactNode } from "react";
 
 interface LoggedOutTemplateProps {
@@ -6,7 +6,7 @@ interface LoggedOutTemplateProps {
 }
 
 export const LoggedOutTemplate: FC<LoggedOutTemplateProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { enabled, user } = useGeopilotAuth();
 
-  return user ? null : children;
+  return !enabled || user ? null : children;
 };

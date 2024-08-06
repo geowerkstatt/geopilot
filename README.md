@@ -37,6 +37,7 @@ Vor dem ersten Start oder bei Änderungen in den Packages muss in _Geopilot.Fron
 | http://localhost:8080  | stac-browser (in docker-compose)           | -                                                                         |
 | http://localhost:3001  | PgAdmin (in docker-compose)                | -                                                                         |
 | http://localhost:3080  | interlis-check-service (in docker-compose) | -                                                                         |
+| http://localhost:4011  | Keycloak Server Administration             | -                                                                         |
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
 Der STAC Browser ist auch über https://localhost:5173/browser erreichbar und das Cookie kann somit auch da zur Authentifizierung verwendet werden.

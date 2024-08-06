@@ -4,13 +4,13 @@ import { AdminGrid } from "../../components/adminGrid/AdminGrid.tsx";
 import { DataRow, GridColDef } from "../../components/adminGrid/AdminGridInterfaces.ts";
 import { ErrorResponse, Organisation, User } from "../../AppInterfaces.ts";
 import { useContext, useEffect, useState } from "react";
-import { useAuth } from "../../auth";
+import { useGeopilotAuth } from "../../auth";
 import { AlertContext } from "../../components/alert/AlertContext.tsx";
 import { PromptContext } from "../../components/prompt/PromptContext.tsx";
 
 export const Users = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user } = useGeopilotAuth();
   const [users, setUsers] = useState<User[]>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [isLoading, setIsLoading] = useState<boolean>(true);
