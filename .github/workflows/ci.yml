@@ -13,9 +13,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Start db
-        run: docker-compose up -d db
-
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
@@ -26,11 +23,7 @@ jobs:
 
       - name: Build dotnet
         run: dotnet build Geopilot.sln -c Release --no-restore /warnaserror
-
-      - name: Test
-        run: dotnet test Geopilot.sln -c Release --no-build --verbosity normal
-
-      - name: Run frontend ci
+      - name: Run frontend ci install
         working-directory: ./src/Geopilot.Frontend
         run: npm ci
 
@@ -41,3 +34,10 @@ jobs:
       - name: Lint frontend
         working-directory: ./src/Geopilot.Frontend
         run: npm run lint
+
+      - name: Start test db
+        run: docker compose up -d db
+
+      - name: Test
+        run: dotnet test Geopilot.sln -c Release --no-build --verbosity normal
+
