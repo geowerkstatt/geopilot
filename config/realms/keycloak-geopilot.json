@@ -13,10 +13,12 @@
       "publicClient": true,
       "alwaysDisplayInConsole": true,
       "redirectUris": [
-        "https://localhost:5173"
+        "https://localhost:5173",
+        "http://localhost:5173"
       ],
       "webOrigins": [
-        "https://localhost:5173"
+        "https://localhost:5173",
+        "http://localhost:5173"
       ]
     }
   ],
