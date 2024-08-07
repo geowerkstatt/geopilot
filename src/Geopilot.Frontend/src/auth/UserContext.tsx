@@ -9,7 +9,7 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
   const auth = useAuth();
 
   const fetchUserInfo = useCallback(async () => {
-    const userResult = await fetch("/api/v1/user", {
+    const userResult = await fetch("/api/v1/user/self", {
       headers: {
         Authorization: `Bearer ${auth.user?.id_token}`,
       },
@@ -23,7 +23,7 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
   useEffect(() => {
     if (auth?.isAuthenticated) {
       fetchUserInfo();
-    } else if (auth?.isLoading) {
+    } else if (!auth?.isLoading) {
       setUser(undefined);
     }
   }, [auth?.isAuthenticated, auth?.isLoading, fetchUserInfo]);
