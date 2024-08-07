@@ -199,8 +199,6 @@ if (app.Environment.IsDevelopment())
 
     if (!context.Mandates.Any())
         context.SeedTestData();
-
-    app.UseMiddleware<DevelopmentAuthorizationMiddleware>();
 }
 else
 {
