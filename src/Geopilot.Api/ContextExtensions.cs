@@ -11,7 +11,7 @@ namespace Geopilot.Api;
 
 internal static class ContextExtensions
 {
-    internal const string UserIdClaim = "oid";
+    internal const string UserIdClaim = "sub";
     internal const string NameClaim = "name";
     internal const string EmailClaim = "email";
 
