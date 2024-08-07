@@ -67,12 +67,9 @@ export const App: FC = () => {
         return await response.json();
       } else if (!contentType || responseContentType?.includes(contentType)) {
         return await response.text();
-      } else {
-        return "";
       }
-    } else {
-      return response;
     }
+    return "";
   };
 
   useEffect(() => {
