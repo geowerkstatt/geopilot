@@ -1,5 +1,5 @@
 {
-  "authScopes": ["openid", "email"],
+  "authScopes": ["openid", "email", "profile"],
   "application": {
     "name": "geopilot",
     "logo": "/app.svg",
