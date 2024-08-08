@@ -155,7 +155,7 @@ builder.Services
 
 var configureContextOptions = (DbContextOptionsBuilder options) =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Context"), o =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString(nameof(Context)), o =>
     {
         o.UseNetTopologySuite();
         o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
