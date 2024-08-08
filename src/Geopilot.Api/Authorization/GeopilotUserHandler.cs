@@ -33,7 +33,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         if (dbUser == null)
         {
             logger.LogWarning("There was a logging attempt for user with id <{UserId}> without corresponding user in database.",
-                context.User.Claims.FirstOrDefault(claim => claim.Type == "oid")?.Value.ReplaceLineEndings(string.Empty));
+                context.User.Claims.FirstOrDefault(claim => claim.Type == ContextExtensions.UserIdClaim)?.Value.ReplaceLineEndings(string.Empty));
             return;
         }
 

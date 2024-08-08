@@ -20,6 +20,7 @@
 - Use Typescript for new components.
 - STAC browser now opens in a new tab.
 - Use react-oidc-context for authentication.
+- Use OpenID Connect "sub" claim as user identifier.
 
 ## v1.0.93 - 2024-05-14
 
