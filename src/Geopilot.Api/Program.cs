@@ -170,7 +170,8 @@ builder.Services.AddStacData(builder => { });
 builder.Services
     .AddHealthChecks()
     .AddDbContextCheck<Context>("Database")
-    .AddCheck<ValidationServiceHealthCheck>("Validators");
+    .AddCheck<ValidationServiceHealthCheck>("Validators")
+    .AddCheck<StorageHealthCheck>("Storage");
 
 // Set the maximum request body size to 200MB
 const int MaxRequestBodySize = 209715200;
