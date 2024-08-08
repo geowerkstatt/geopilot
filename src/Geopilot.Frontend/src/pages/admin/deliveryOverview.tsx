@@ -6,7 +6,8 @@ import { Box, Button } from "@mui/material";
 import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { AlertContext } from "../../components/alert/alertContext";
-import { Delivery, TranslationFunction } from "../../appInterfaces";
+import { Delivery } from "../../api/apiInterfaces";
+import { TranslationFunction } from "../../appInterfaces";
 
 const useTranslatedColumns = (t: TranslationFunction) => {
   return [

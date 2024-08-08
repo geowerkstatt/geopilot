@@ -6,7 +6,7 @@ import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import { MouseEvent, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DataGridSpatialExtentPopoverContent } from "./dataGridSpatialExtentPopoverContent";
-import { Coordinate } from "../../appInterfaces";
+import { Coordinate } from "../../api/apiInterfaces";
 import { PromptContext } from "../prompt/promptContext";
 
 export const IsGridSpatialExtentColDef = (columnDef: GridColDef) =>

@@ -10,6 +10,8 @@ import { CookieSynchronizer } from "./cookieSynchronizer";
 export const GeopilotAuthContext = createContext<GeopilotAuthContextInterface>({
   enabled: false,
   user: undefined,
+  isAdmin: false,
+  isLoggedIn: false,
   login: () => {
     throw new Error();
   },
@@ -35,11 +37,15 @@ const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
   const auth = useAuth();
   const user = useUser();
 
+  const enabled = auth !== undefined && !auth.isLoading;
+
   return (
     <GeopilotAuthContext.Provider
       value={{
-        enabled: auth !== undefined && !auth.isLoading,
+        enabled: enabled,
         user: user,
+        isAdmin: enabled && !!user?.isAdmin,
+        isLoggedIn: enabled && !!user,
         login: auth !== undefined ? auth.signinPopup : () => {},
         logout: auth !== undefined ? auth.signoutRedirect : () => {},
       }}>

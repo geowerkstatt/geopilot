@@ -29,7 +29,7 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { clientSettings } = useAppSettings();
-  const { user, enabled, login, logout } = useGeopilotAuth();
+  const { user, isAdmin, isLoggedIn, login, logout } = useGeopilotAuth();
 
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
 
@@ -72,7 +72,7 @@ const Header = () => {
           </Box>
           <Box sx={{ flexGrow: 0, gap: "20px" }}>
             <LanguagePopup />
-            {enabled && !!user ? (
+            {isLoggedIn ? (
               <IconButton
                 sx={{
                   padding: "0",
@@ -130,7 +130,7 @@ const Header = () => {
                   <ListItemText primary={t("delivery").toUpperCase()} />
                 </ListItemButton>
               </ListItem>
-              {enabled && !!user?.isAdmin && (
+              {isAdmin && (
                 <>
                   <ListItem key={t("administration").toUpperCase()} disablePadding>
                     <ListItemButton

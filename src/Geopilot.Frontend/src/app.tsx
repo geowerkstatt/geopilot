@@ -25,7 +25,7 @@ import Footer from "./pages/footer/footer";
 export const App: FC = () => {
   const [language, setLanguage] = useState<Language>(Language.EN);
   const [theme, setTheme] = useState({});
-  const { enabled, user } = useGeopilotAuth();
+  const { isAdmin } = useGeopilotAuth();
   useEffect(() => {
     let lng = enUS;
     switch (language) {
@@ -71,7 +71,7 @@ export const App: FC = () => {
                   <PageContentBox>
                     <Routes>
                       <Route path="/" element={<Delivery />} />
-                      {enabled && !!user?.isAdmin ? (
+                      {isAdmin ? (
                         <>
                           <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
                           <Route path="admin" element={<Admin />}>

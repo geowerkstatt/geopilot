@@ -1,5 +1,5 @@
 import { ChangeEvent, FC } from "react";
-import { Coordinate } from "../../appInterfaces";
+import { Coordinate } from "../../api/apiInterfaces";
 import { useTranslation } from "react-i18next";
 import { Box, Button, TextField } from "@mui/material";
 

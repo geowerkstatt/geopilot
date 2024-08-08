@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useContext, useEffect, useState } from "react";
-import { ErrorResponse, Mandate, Organisation, Validation } from "../../appInterfaces";
+import { Mandate, Organisation } from "../../api/apiInterfaces";
+import { ErrorResponse, Validation } from "../../appInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
