@@ -3,6 +3,8 @@ using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace Geopilot.Api.Test.Authorization;
 
@@ -98,6 +100,20 @@ public class GeopilotUserHandlerTest
         Assert.AreEqual("STORMSLAW", user.FullName);
         Assert.AreEqual("MAIN@example.com", user.Email);
         Assert.AreEqual(true, user.IsAdmin, "First user added to the database should be elevated to admin.");
+    }
+
+    [TestMethod]
+    public async Task UpdateOrCreateUserWithMissingClaimsDoesNothing()
+    {
+        var principalWithMissingClaims = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, Guid.NewGuid().ToString()),
+        }));
+
+        var authHandlerContext = new AuthorizationHandlerContext(Enumerable.Empty<IAuthorizationRequirement>(), principalWithMissingClaims, null);
+
+        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        Assert.IsNull(user);
     }
 
     private AuthorizationHandlerContext SetupAuthorizationHandlerContext(User user)
