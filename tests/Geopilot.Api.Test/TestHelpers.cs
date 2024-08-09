@@ -20,6 +20,6 @@ internal static class TestHelpers
             AuthIdentifier = authIdentifier,
             FullName = fullName,
             Email = email,
-            IsAdmin = isAdmin,  
+            IsAdmin = isAdmin,
         };
 }
