@@ -77,7 +77,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
 
     private async Task ElevateFirstUserToAdmin(User user)
     {
-        if (!dbContext.Users.Any(u => u.Id != user.Id))
+        if (dbContext.Users.Any(u => u.Id == user.Id))
         {
             user.IsAdmin = true;
             await dbContext.SaveChangesAsync();
