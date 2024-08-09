@@ -3,7 +3,6 @@ using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NetTopologySuite.Geometries;

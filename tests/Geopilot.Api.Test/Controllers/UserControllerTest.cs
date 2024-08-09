@@ -1,12 +1,9 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
 namespace Geopilot.Api.Controllers;
 
