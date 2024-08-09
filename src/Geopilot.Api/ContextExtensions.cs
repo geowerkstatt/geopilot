@@ -23,7 +23,7 @@ internal static class ContextExtensions
     public static async Task<User> GetUserByPrincipalAsync(this Context context, ClaimsPrincipal principal)
     {
         var subjectId = principal.Claims.First(claim => claim.Type == JwtRegisteredClaimNames.Sub).Value;
-        return await context.Users.FirstAsync(u => u.AuthIdentifier == subjectId);
+        return await context.Users.SingleAsync(u => u.AuthIdentifier == subjectId);
     }
 
     public static void SeedTestData(this Context context)

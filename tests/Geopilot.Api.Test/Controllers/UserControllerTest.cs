@@ -60,11 +60,7 @@ public class UserControllerTest
 
         var httpContextMock = userController.SetupTestUser(dbUser);
 
-        dbUser.FullName = "This value should be replaced by name claim";
-        context.SaveChanges();
-
         var userResult = await userController.GetSelfAsync();
-
         Assert.IsNotNull(userResult);
         Assert.AreEqual(authIdentifier, userResult.AuthIdentifier);
         Assert.AreEqual(fullName, userResult.FullName);
@@ -74,7 +70,7 @@ public class UserControllerTest
     }
 
     [TestMethod]
-    public async Task GetCurrentUserAsyncNotFound()
+    public async Task GetCurrentUserAsyncForÛnknownUserThrowsException()
     {
         var user = new User
         {
@@ -83,36 +79,7 @@ public class UserControllerTest
 
         var httpContextMock = userController.SetupTestUser(user);
 
-        var userResult = await userController.GetSelfAsync();
-
-        Assert.IsNull(userResult);
-        httpContextMock.VerifyAll();
-    }
-
-    [TestMethod]
-    public async Task GetCurrentUserAsyncMissingClaims()
-    {
-        var authIdentifier = Guid.NewGuid().ToString();
-
-        var dbUser = new User
-        {
-            AuthIdentifier = authIdentifier,
-        };
-        context.Users.Add(dbUser);
-        context.SaveChanges();
-
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, authIdentifier),
-        }));
-
-        var httpContextMock = new Mock<HttpContext>();
-        httpContextMock.SetupGet(c => c.User).Returns(principal);
-        userController.ControllerContext.HttpContext = httpContextMock.Object;
-
-        var userResult = await userController.GetSelfAsync();
-
-        Assert.IsNull(userResult);
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () => await userController.GetSelfAsync());
         httpContextMock.VerifyAll();
     }
 
