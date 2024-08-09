@@ -34,16 +34,7 @@ public class GeopilotUserHandlerTest
     public async Task UpdateOrCreateUser()
     {
         var authIdentifier = Guid.NewGuid().ToString();
-        const string fullName = "BROOMNEIGHBOR";
-        const string email = "ONYXSHADOW@example.com";
-
-        var newUser = new User
-        {
-            AuthIdentifier = authIdentifier,
-            FullName = fullName,
-            Email = email,
-        };
-
+        var newUser = CreateUser(authIdentifier, "BROOMNEIGHBOR", "ONYXSHADOW@example.com");
         var authHandlerContext = SetupAuthorizationHandlerContext(newUser);
 
         // Create user
@@ -55,14 +46,9 @@ public class GeopilotUserHandlerTest
         Assert.AreEqual(false, user.IsAdmin, "Automatically added user should not get admin rights when there are already users in the database.");
 
         // Update user
-        var updatedUser = new User
-        {
-            AuthIdentifier = authIdentifier,
-            FullName = "PERFECTSTONE",
-            Email = "DIRERUN@example.com",
-        };
-
+        var updatedUser = CreateUser(authIdentifier, "PERFECTSTONE", "DIRERUN@example.com");
         authHandlerContext = SetupAuthorizationHandlerContext(updatedUser);
+
         user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
         Assert.IsNotNull(user);
         Assert.AreEqual(authIdentifier, user.AuthIdentifier);
@@ -75,16 +61,7 @@ public class GeopilotUserHandlerTest
     public async Task UpdateOrCreateUserElevatesFirstUserToAdmin()
     {
         var authIdentifier = Guid.NewGuid().ToString();
-        const string fullName = "STORMSLAW";
-        const string email = "MAIN@example.com";
-
-        var newUser = new User
-        {
-            AuthIdentifier = authIdentifier,
-            FullName = fullName,
-            Email = email,
-        };
-
+        var newUser = CreateUser(authIdentifier, "STORMSLAW", "MAIN@example.com");
         var authHandlerContext = SetupAuthorizationHandlerContext(newUser);
 
         // Clear users with all relations in database, so that the first user is elevated to admin.

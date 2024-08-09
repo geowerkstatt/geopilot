@@ -33,9 +33,10 @@ namespace Geopilot.Api.Controllers
             context.Mandates.Add(xtfMandate);
             context.Mandates.Add(unassociatedMandate);
 
-            editUser = new User { AuthIdentifier = "123", FullName = "Edit User" };
+            editUser = CreateUser("123", "Edit User", "example@example.org");
             context.Users.Add(editUser);
-            adminUser = new User { AuthIdentifier = "1234", FullName = "Admin User", IsAdmin = true };
+
+            adminUser = CreateUser("1234", "Admin User", "admin.example@example.org", isAdmin: true);
             context.Users.Add(adminUser);
 
             testOrganisation = new Organisation { Name = "TestOrg" };

@@ -13,4 +13,13 @@ internal static class TestHelpers
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Name, user.FullName),
         }));
+
+    public static User CreateUser(string authIdentifier, string fullName, string email, bool isAdmin = false)
+        => new User
+        {
+            AuthIdentifier = authIdentifier,
+            FullName = fullName,
+            Email = email,
+            IsAdmin = isAdmin,  
+        };
 }

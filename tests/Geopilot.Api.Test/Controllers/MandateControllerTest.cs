@@ -51,9 +51,10 @@ namespace Geopilot.Api.Controllers
             context.Mandates.Add(xtfMandate);
             context.Mandates.Add(unassociatedMandate);
 
-            editUser = new User { AuthIdentifier = "123", FullName = "Edit User" };
+            editUser = CreateUser("123", "Edit User", "example@example.org");
             context.Users.Add(editUser);
-            adminUser = new User { AuthIdentifier = "1234", FullName = "Admin User", IsAdmin = true };
+
+            adminUser = CreateUser("1234", "Admin User", "admin.example@example.org", isAdmin: true);
             context.Users.Add(adminUser);
 
             organisation = new Organisation { Name = "GAMMAHUNT" };
@@ -224,8 +225,7 @@ namespace Geopilot.Api.Controllers
             mandateToUpdate.Deliveries = new List<Delivery>();
 
             var updateResult = await mandateController.Edit(mandateToUpdate);
-            ActionResultAssert.IsOk(updateResult);
-            var updatedMandate = (updateResult as OkObjectResult)?.Value as Mandate;
+            var updatedMandate = ActionResultAssert.IsOkObjectResult<Mandate>(updateResult);
             Assert.IsNotNull(updatedMandate);
 
             Assert.AreEqual(mandateToUpdate.Name, updatedMandate.Name);
