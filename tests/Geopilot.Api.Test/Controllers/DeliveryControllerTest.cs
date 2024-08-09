@@ -30,9 +30,11 @@ public class DeliveryControllerTest
         deliveryController = new DeliveryController(loggerMock.Object, context, validationServiceMock.Object, assetHandlerMock.Object);
     }
 
+    [TestCleanup]
     public void Cleanup()
     {
         validationServiceMock.VerifyAll();
+        loggerMock.VerifyAll();
         context.Dispose();
     }
 
@@ -43,9 +45,6 @@ public class DeliveryControllerTest
     public async Task CreateFailsJobNotCompleted(Status status, int resultCode)
     {
         var guid = Guid.NewGuid();
-        validationServiceMock
-            .Setup(s => s.GetJob(guid))
-            .Returns(new ValidationJob(guid, "OriginalName", "TempFileName"));
         validationServiceMock
             .Setup(s => s.GetJobStatus(guid))
             .Returns(new ValidationJobStatus(guid) { Status = status });
@@ -109,9 +108,6 @@ public class DeliveryControllerTest
     public async Task Create(bool setOptionals)
     {
         var guid = Guid.NewGuid();
-        validationServiceMock
-            .Setup(s => s.GetJob(guid))
-            .Returns(new ValidationJob(guid, "OriginalName", "TempFileName"));
         validationServiceMock
             .Setup(s => s.GetJobStatus(guid))
             .Returns(new ValidationJobStatus(guid) { JobId = guid, Status = Status.Completed });

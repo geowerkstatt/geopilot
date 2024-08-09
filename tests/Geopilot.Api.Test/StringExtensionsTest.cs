@@ -1,7 +1,7 @@
-﻿namespace Geopilot.Api.Controllers;
+﻿namespace Geopilot.Api;
 
 [TestClass]
-public class StringExtensions
+public class StringExtensionsTest
 {
     [TestMethod]
     [DataRow("SQUIRRELGENESIS", "SQUIRRELGENESIS")]

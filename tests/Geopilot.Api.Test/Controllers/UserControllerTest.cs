@@ -1,11 +1,9 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using System.Security.Claims;
 
 namespace Geopilot.Api.Controllers;
 
@@ -44,36 +42,23 @@ public class UserControllerTest
     public async Task GetCurrentUserAsync()
     {
         var authIdentifier = Guid.NewGuid().ToString();
-        const string fullName = "Full Name";
-        const string email = "some@email.com";
-
-        var dbUser = new User
-        {
-            AuthIdentifier = authIdentifier,
-            FullName = fullName,
-            Email = email,
-            IsAdmin = true,
-        };
+        var dbUser = CreateUser(authIdentifier, "Full Name", "some@email.com", isAdmin: true);
         context.Users.Add(dbUser);
         context.SaveChanges();
 
         var httpContextMock = userController.SetupTestUser(dbUser);
 
-        dbUser.FullName = "This value should be replaced by name claim";
-        context.SaveChanges();
-
         var userResult = await userController.GetSelfAsync();
-
         Assert.IsNotNull(userResult);
         Assert.AreEqual(authIdentifier, userResult.AuthIdentifier);
-        Assert.AreEqual(fullName, userResult.FullName);
-        Assert.AreEqual(email, userResult.Email);
+        Assert.AreEqual("Full Name", userResult.FullName);
+        Assert.AreEqual("some@email.com", userResult.Email);
         Assert.AreEqual(true, userResult.IsAdmin);
         httpContextMock.VerifyAll();
     }
 
     [TestMethod]
-    public async Task GetCurrentUserAsyncNotFound()
+    public async Task GetCurrentUserAsyncForÛnknownUserThrowsException()
     {
         var user = new User
         {
@@ -82,56 +67,19 @@ public class UserControllerTest
 
         var httpContextMock = userController.SetupTestUser(user);
 
-        var userResult = await userController.GetSelfAsync();
-
-        Assert.IsNull(userResult);
-        httpContextMock.VerifyAll();
-    }
-
-    [TestMethod]
-    public async Task GetCurrentUserAsyncMissingClaims()
-    {
-        var authIdentifier = Guid.NewGuid().ToString();
-
-        var dbUser = new User
-        {
-            AuthIdentifier = authIdentifier,
-        };
-        context.Users.Add(dbUser);
-        context.SaveChanges();
-
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
-        {
-            new Claim(ContextExtensions.UserIdClaim, authIdentifier),
-        }));
-
-        var httpContextMock = new Mock<HttpContext>();
-        httpContextMock.SetupGet(c => c.User).Returns(principal);
-        userController.ControllerContext.HttpContext = httpContextMock.Object;
-
-        var userResult = await userController.GetSelfAsync();
-
-        Assert.IsNull(userResult);
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () => await userController.GetSelfAsync());
         httpContextMock.VerifyAll();
     }
 
     [TestMethod]
     public async Task GetUserById()
     {
-        var testUser = new User
-        {
-            AuthIdentifier = Guid.NewGuid().ToString(),
-            FullName = "AGILITY MOSES",
-            Email = "agility@moses.com",
-            IsAdmin = true,
-        };
+        var testUser = CreateUser(Guid.NewGuid().ToString(), "AGILITY MOSES", "agility@moses.com", isAdmin: true);
         context.Users.Add(testUser);
         context.SaveChanges();
 
         var userResult = await userController.GetById(testUser.Id);
-        ActionResultAssert.IsOk(userResult);
-        var user = (userResult as OkObjectResult)?.Value as User;
-        Assert.IsNotNull(user);
+        var user = ActionResultAssert.IsOkObjectResult<User>(userResult);
         Assert.AreEqual(testUser.AuthIdentifier, user.AuthIdentifier);
         Assert.AreEqual(testUser.FullName, user.FullName);
         Assert.AreEqual(testUser.Email, user.Email);
@@ -149,13 +97,7 @@ public class UserControllerTest
     [TestMethod]
     public void GetUsers()
     {
-        var testUser = new User
-        {
-            AuthIdentifier = Guid.NewGuid().ToString(),
-            FullName = "Test User",
-            Email = "test@user.com",
-            IsAdmin = true,
-        };
+        var testUser = CreateUser(Guid.NewGuid().ToString(), "Test User", "test@user.com", isAdmin: true);
         context.Users.Add(testUser);
         context.SaveChanges();
 
@@ -182,13 +124,7 @@ public class UserControllerTest
     [TestMethod]
     public async Task EditUser()
     {
-        var testUser = new User
-        {
-            AuthIdentifier = Guid.NewGuid().ToString(),
-            FullName = "FLEA XI",
-            Email = "flea@xi.com",
-            IsAdmin = false,
-        };
+        var testUser = CreateUser(Guid.NewGuid().ToString(), "FLEA XI", "flea@xi.com", isAdmin: false);
         context.Users.Add(testUser);
         context.SaveChanges();
 
@@ -200,8 +136,7 @@ public class UserControllerTest
         user.Organisations = new List<Organisation> { new () { Id = 1 }, new () { Id = 2 } };
 
         var result = await userController.Edit(user);
-        ActionResultAssert.IsOk(result);
-        var resultValue = (result as OkObjectResult)?.Value as User;
+        var resultValue = ActionResultAssert.IsOkObjectResult<User>(result);
         Assert.IsNotNull(resultValue);
         Assert.AreEqual("FLEA XI", resultValue.FullName);
         Assert.IsTrue(resultValue.IsAdmin);
@@ -213,8 +148,7 @@ public class UserControllerTest
 
         testUser.Organisations = new List<Organisation> { new () { Id = 2 }, new () { Id = 3 } };
         result = await userController.Edit(testUser);
-        ActionResultAssert.IsOk(result);
-        resultValue = (result as OkObjectResult)?.Value as User;
+        resultValue = ActionResultAssert.IsOkObjectResult<User>(result);
         Assert.IsNotNull(resultValue);
         Assert.AreEqual(2, resultValue.Organisations.Count);
         for (var i = 0; i < 2; i++)

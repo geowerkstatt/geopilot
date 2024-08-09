@@ -67,9 +67,6 @@ public class DeliveryController : ControllerBase
             .ThenInclude(o => o.Users)
             .FirstOrDefault(m => m.Id == declaration.MandateId);
 
-        if (user is null)
-            return Unauthorized();
-
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
         {
             logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate with id <{MandateId}>.", user.AuthIdentifier, declaration.MandateId);
@@ -136,8 +133,6 @@ public class DeliveryController : ControllerBase
     public async Task<IActionResult> Get([FromQuery] int? mandateId = null)
     {
         var user = await context.GetUserByPrincipalAsync(User);
-        if (user == null)
-            return Unauthorized();
 
         logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>",
             user.AuthIdentifier,

@@ -48,9 +48,6 @@ public class MandateController : ControllerBase
         logger.LogInformation("Getting mandates for job with id <{JobId}>.", jobId);
 
         var user = await context.GetUserByPrincipalAsync(User);
-        if (user == null)
-            return Unauthorized();
-
         var mandates = context.MandatesWithIncludes.AsNoTracking();
 
         if (!user.IsAdmin)
