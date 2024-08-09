@@ -155,7 +155,7 @@ builder.Services
 
 var configureContextOptions = (DbContextOptionsBuilder options) =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Context"), o =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString(nameof(Context)), o =>
     {
         o.UseNetTopologySuite();
         o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
@@ -169,7 +169,9 @@ builder.Services.AddStacData(builder => { });
 
 builder.Services
     .AddHealthChecks()
-    .AddCheck<DbHealthCheck>("Db");
+    .AddDbContextCheck<Context>("Database")
+    .AddCheck<ValidationServiceHealthCheck>("Validators")
+    .AddCheck<StorageHealthCheck>("Storage");
 
 // Set the maximum request body size to 200MB
 const int MaxRequestBodySize = 209715200;
