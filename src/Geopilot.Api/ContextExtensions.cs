@@ -4,6 +4,7 @@ using Geopilot.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
@@ -11,45 +12,16 @@ namespace Geopilot.Api;
 
 internal static class ContextExtensions
 {
-    internal const string UserIdClaim = "sub";
-    internal const string NameClaim = "name";
-    internal const string EmailClaim = "email";
-
     private static readonly double[] extentCh = new double[] { 7.536621, 46.521076, 9.398804, 47.476376 };
 
     /// <summary>
     /// Retreives the user that matches the provided principal from the database.
-    /// Automatically updates the user information in the database if it has changed.
     /// </summary>
     /// <param name="context">The database context.</param>
     /// <param name="principal">The user principal.</param>
-    /// <returns>The matching <see cref="User"/> from the database or <c>null</c>.</returns>
-    public static async Task<User?> GetUserByPrincipalAsync(this Context context, ClaimsPrincipal principal)
-    {
-        var userId = principal.Claims.FirstOrDefault(claim => claim.Type == UserIdClaim)?.Value;
-        var name = principal.Claims.FirstOrDefault(claim => claim.Type == NameClaim)?.Value;
-        var email = principal.Claims.FirstOrDefault(claim => claim.Type == EmailClaim)?.Value;
-        if (userId == null || name == null || email == null)
-        {
-            return null;
-        }
-
-        var user = await context.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == userId);
-        if (user == null)
-        {
-            return null;
-        }
-
-        if (user.Email != email || user.FullName != name)
-        {
-            // Update user information in database from provided principal
-            user.Email = email;
-            user.FullName = name;
-            await context.SaveChangesAsync();
-        }
-
-        return user;
-    }
+    /// <returns>The matching <see cref="User"/> from the database.</returns>
+    public static async Task<User> GetUserByPrincipalAsync(this Context context, ClaimsPrincipal principal) =>
+        await context.Users.FirstAsync(u => u.AuthIdentifier == principal.Claims.First(claim => claim.Type == JwtRegisteredClaimNames.Sub).Value);
 
     public static void SeedTestData(this Context context)
     {

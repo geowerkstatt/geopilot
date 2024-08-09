@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Geopilot.Api.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Geopilot.Api.Authorization;
 
@@ -25,24 +28,49 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, GeopilotUserRequirement requirement)
     {
         if (context.User.Identity?.IsAuthenticated != true)
-        {
             return;
-        }
 
-        var dbUser = await dbContext.GetUserByPrincipalAsync(context.User);
-        if (dbUser == null)
-        {
-            logger.LogWarning("There was a logging attempt for user with id <{UserId}> without corresponding user in database.",
-                context.User.Claims.FirstOrDefault(claim => claim.Type == ContextExtensions.UserIdClaim)?.Value.ReplaceLineEndings(string.Empty));
+        var user = await UpdateOrCreateUser(context);
+        if (user is null)
             return;
-        }
 
-        if (requirement.RequireAdmin && !dbUser.IsAdmin)
+        if (requirement.RequireAdmin && !user.IsAdmin)
         {
-            logger.LogWarning("User with id <{UserId}> did not fulfill admin requirement.", dbUser.AuthIdentifier);
+            logger.LogWarning("User with id <{UserId}> did not fulfill admin requirement.", user.AuthIdentifier);
             return;
         }
 
         context.Succeed(requirement);
+    }
+
+    private async Task<User?> UpdateOrCreateUser(AuthorizationHandlerContext context)
+    {
+        var sub = context.User.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Sub)?.Value;
+        var email = context.User.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Email)?.Value;
+        var name = context.User.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Name)?.Value;
+
+        if (sub == null || name == null || email == null)
+        {
+            logger.LogError("Login failed as not all required claims were provided: sub: <{Sub}>, email: <{Email}>, name <{Name}>", sub, email, name);
+            return null;
+        }
+
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == sub);
+        if (user == null)
+        {
+            user = new User { AuthIdentifier = sub, Email = email, FullName = name };
+            await dbContext.Users.AddAsync(user);
+            logger.LogInformation("New User has been registred in database: sub: <{Sub}>, email: <{Email}>, name <{Name}>", sub, email, name);
+            await dbContext.SaveChangesAsync();
+        }
+        else if (user.Email != email || user.FullName != name)
+        {
+            // Update user information in database from provided principal
+            user.Email = email;
+            user.FullName = name;
+            await dbContext.SaveChangesAsync();
+        }
+
+        return user;
     }
 }

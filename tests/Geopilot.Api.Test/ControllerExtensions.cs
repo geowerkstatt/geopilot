@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace Geopilot.Api;
@@ -15,9 +16,9 @@ internal static class ControllerExtensions
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
-            new Claim(ContextExtensions.UserIdClaim, user.AuthIdentifier),
-            new Claim(ContextExtensions.NameClaim, user.FullName),
-            new Claim(ContextExtensions.EmailClaim, user.Email),
+            new Claim(JwtRegisteredClaimNames.Sub, user.AuthIdentifier),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim(JwtRegisteredClaimNames.Name, user.FullName),
         }));
         httpContextMock.SetupGet(c => c.User).Returns(principal);
         return httpContextMock;

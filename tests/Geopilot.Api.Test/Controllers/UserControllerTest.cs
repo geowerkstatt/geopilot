@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace Geopilot.Api.Controllers;
@@ -102,7 +103,7 @@ public class UserControllerTest
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
-            new Claim(ContextExtensions.UserIdClaim, authIdentifier),
+            new Claim(JwtRegisteredClaimNames.Sub, authIdentifier),
         }));
 
         var httpContextMock = new Mock<HttpContext>();
