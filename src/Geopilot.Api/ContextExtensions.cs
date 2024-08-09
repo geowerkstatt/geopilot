@@ -20,8 +20,11 @@ internal static class ContextExtensions
     /// <param name="context">The database context.</param>
     /// <param name="principal">The user principal.</param>
     /// <returns>The matching <see cref="User"/> from the database.</returns>
-    public static async Task<User> GetUserByPrincipalAsync(this Context context, ClaimsPrincipal principal) =>
-        await context.Users.FirstAsync(u => u.AuthIdentifier == principal.Claims.First(claim => claim.Type == JwtRegisteredClaimNames.Sub).Value);
+    public static async Task<User> GetUserByPrincipalAsync(this Context context, ClaimsPrincipal principal)
+    {
+        var subjectId = principal.Claims.First(claim => claim.Type == JwtRegisteredClaimNames.Sub).Value;
+        return await context.Users.FirstAsync(u => u.AuthIdentifier == subjectId);
+    }
 
     public static void SeedTestData(this Context context)
     {
