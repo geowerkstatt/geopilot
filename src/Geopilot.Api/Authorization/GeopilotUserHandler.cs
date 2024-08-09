@@ -62,6 +62,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             await dbContext.Users.AddAsync(user);
             logger.LogInformation("New User has been registred in database: sub: <{Sub}>, email: <{Email}>, name <{Name}>", sub, email, name);
             await dbContext.SaveChangesAsync();
+            await ElevateFirstUserToAdmin(user);
         }
         else if (user.Email != email || user.FullName != name)
         {
@@ -72,5 +73,14 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         }
 
         return user;
+    }
+
+    private async Task ElevateFirstUserToAdmin(User user)
+    {
+        if (!dbContext.Users.Any(u => u.Id != user.Id))
+        {
+            user.IsAdmin = true;
+            await dbContext.SaveChangesAsync();
+        }
     }
 }

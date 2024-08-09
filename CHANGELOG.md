@@ -22,7 +22,8 @@
 - Use react-oidc-context for authentication.
 - Use OpenID Connect "sub" claim as user identifier.
 - Expanded API health checks.
-- Authenticated Users are now registed in the database.
+- Authenticated users are now registed in the database.
+- First registered user is granted administrator priveleges.
 
 ## v1.0.93 - 2024-05-14
 
