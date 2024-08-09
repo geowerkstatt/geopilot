@@ -58,15 +58,7 @@ public class UserController : ControllerBase
     public async Task<User?> GetSelfAsync()
     {
         var user = await context.GetUserByPrincipalAsync(User);
-        if (user == null)
-        {
-            logger.LogWarning("Getting user information attempted without registered user with name <{UserName}>", User.Identity?.Name);
-        }
-        else
-        {
-            logger.LogTrace("User <{AuthIdenifier}> getting account information.", user.AuthIdentifier);
-        }
-
+        logger.LogTrace("User <{AuthIdenifier}> getting account information.", user.AuthIdentifier);
         return user;
     }
 
