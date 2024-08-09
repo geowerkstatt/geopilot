@@ -51,7 +51,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
 
         if (sub == null || name == null || email == null)
         {
-            logger.LogError("Login failed as not all required claims were provided: sub: <{Sub}>, email: <{Email}>, name <{Name}>", sub, email, name);
+            logger.LogError("Login failed as not all required claims were provided.");
             return null;
         }
 
@@ -60,7 +60,9 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         {
             user = new User { AuthIdentifier = sub, Email = email, FullName = name };
             await dbContext.Users.AddAsync(user);
-            logger.LogInformation("New User has been registred in database: sub: <{Sub}>, email: <{Email}>, name <{Name}>", sub, email, name);
+
+            logger.LogInformation("New user (with sub <{Sub}>) has been registered in database.", sub);
+
             await dbContext.SaveChangesAsync();
             await ElevateFirstUserToAdmin(user);
         }
