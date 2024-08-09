@@ -43,7 +43,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         context.Succeed(requirement);
     }
 
-    private async Task<User?> UpdateOrCreateUser(AuthorizationHandlerContext context)
+    internal async Task<User?> UpdateOrCreateUser(AuthorizationHandlerContext context)
     {
         var sub = context.User.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Sub)?.Value;
         var email = context.User.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Email)?.Value;
@@ -59,30 +59,25 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         if (user == null)
         {
             user = new User { AuthIdentifier = sub, Email = email, FullName = name };
+
+            // Elevate first user to admin
+            if (!dbContext.Users.Any())
+            {
+                user.IsAdmin = true;
+            }
+
             await dbContext.Users.AddAsync(user);
-
             logger.LogInformation("New user (with sub <{Sub}>) has been registered in database.", sub);
-
-            await dbContext.SaveChangesAsync();
-            await ElevateFirstUserToAdmin(user);
         }
         else if (user.Email != email || user.FullName != name)
         {
             // Update user information in database from provided principal
             user.Email = email;
             user.FullName = name;
-            await dbContext.SaveChangesAsync();
         }
 
-        return user;
-    }
+        await dbContext.SaveChangesAsync();
 
-    private async Task ElevateFirstUserToAdmin(User user)
-    {
-        if (dbContext.Users.Any(u => u.Id == user.Id))
-        {
-            user.IsAdmin = true;
-            await dbContext.SaveChangesAsync();
-        }
+        return await dbContext.Users.SingleAsync(u => u.AuthIdentifier == sub);
     }
 }
