@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./app.css";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { createTheme, CustomTheme, ThemeProvider } from "@mui/material/styles";
 import { deDE as coreDe, enUS as coreEn, frFR as coreFr, itIT as coreIt } from "@mui/material/locale";
 import { deDE as gridDe, enUS as gridEn, frFR as gridFr, itIT as gridIt } from "@mui/x-data-grid/locales";
 import { PromptProvider } from "./components/prompt/promptContext";
@@ -25,7 +25,7 @@ import Footer from "./pages/footer/footer";
 
 export const App: FC = () => {
   const [language, setLanguage] = useState<Language>(Language.EN);
-  const [theme, setTheme] = useState({});
+  const [theme, setTheme] = useState<CustomTheme>(geopilotTheme);
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
   const { isAdmin } = useGeopilotAuth();
   useEffect(() => {
@@ -49,7 +49,7 @@ export const App: FC = () => {
         gridLng = gridEn;
         break;
     }
-    setTheme(createTheme(geopilotTheme, gridLng, coreLng));
+    setTheme(createTheme(geopilotTheme, gridLng, coreLng) as unknown as CustomTheme);
   }, [language]);
 
   useEffect(() => {
