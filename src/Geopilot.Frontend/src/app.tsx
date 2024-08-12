@@ -4,7 +4,8 @@ import "./app.css";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import { deDE, enUS, frFR, itIT } from "@mui/material/locale";
+import { deDE as coreDe, enUS as coreEn, frFR as coreFr, itIT as coreIt } from "@mui/material/locale";
+import { deDE as gridDe, enUS as gridEn, frFR as gridFr, itIT as gridIt } from "@mui/x-data-grid/locales";
 import { PromptProvider } from "./components/prompt/promptContext";
 import { Prompt } from "./components/prompt/prompt";
 import { AlertProvider } from "./components/alert/alertContext";
@@ -28,22 +29,27 @@ export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
   const { isAdmin } = useGeopilotAuth();
   useEffect(() => {
-    let lng = enUS;
+    let coreLng = coreEn;
+    let gridLng = gridEn;
     switch (language) {
       case Language.DE:
-        lng = deDE;
+        coreLng = coreDe;
+        gridLng = gridDe;
         break;
       case Language.FR:
-        lng = frFR;
+        coreLng = coreFr;
+        gridLng = gridFr;
         break;
       case Language.IT:
-        lng = itIT;
+        coreLng = coreIt;
+        gridLng = gridIt;
         break;
       case Language.EN:
-        lng = enUS;
+        coreLng = coreEn;
+        gridLng = gridEn;
         break;
     }
-    setTheme(createTheme(geopilotTheme, lng));
+    setTheme(createTheme(geopilotTheme, gridLng, coreLng));
   }, [language]);
 
   useEffect(() => {
