@@ -1,32 +1,26 @@
 import { useTranslation } from "react-i18next";
-import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText } from "@mui/material";
-import { useState } from "react";
+import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Typography } from "@mui/material";
+import { FC } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
+import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 
-const Admin = () => {
+interface AdminProps {
+  isSubMenuOpen: boolean;
+  setIsSubMenuOpen: (isOpen: boolean) => void;
+}
+
+const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+  const { clientSettings } = useAppSettings();
 
   const handleDrawerClose = () => {
-    setIsClosing(true);
-    setAdminMenuOpen(false);
-  };
-
-  const handleDrawerTransitionEnd = () => {
-    setIsClosing(false);
-  };
-
-  const handleDrawerToggle = () => {
-    if (!isClosing) {
-      setAdminMenuOpen(!adminMenuOpen);
-    }
+    setIsSubMenuOpen(false);
   };
 
   const navigateTo = (path: string) => {
     navigate(path);
-    if (adminMenuOpen) {
+    if (isSubMenuOpen) {
       handleDrawerClose();
     }
   };
@@ -41,8 +35,6 @@ const Admin = () => {
   const drawerWidth = "250px";
   const drawerContent = (
     <div>
-      <Box sx={{ height: "60px" }} />
-      <Divider />
       <Box sx={{ overflow: "auto" }}>
         <List>
           <ListItem key={"deliveryOverview"} disablePadding>
@@ -75,32 +67,66 @@ const Admin = () => {
 
   return (
     <div className="admin">
-      {/*<Header hasDrawerToggle={true} handleDrawerToggle={handleDrawerToggle} />*/}
       <Drawer
         variant="permanent"
         sx={{
-          display: { xs: "none", sm: "block" },
+          display: { xs: "none", md: "block" },
           width: drawerWidth,
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box", zIndex: 1000 },
         }}>
-        {drawerContent}
+        <>
+          {" "}
+          <Box sx={{ height: "60px" }} />
+          <Divider />
+          {drawerContent}
+        </>
       </Drawer>
       <Drawer
         variant="temporary"
-        open={adminMenuOpen}
-        onTransitionEnd={handleDrawerTransitionEnd}
+        open={isSubMenuOpen}
         onClose={handleDrawerClose}
         ModalProps={{
           keepMounted: true,
         }}
         sx={{
-          display: { xs: "block", sm: "none" },
-          "& .MuiDrawer-paper": { boxSizing: "border-box" },
+          display: { xs: "block", md: "none" },
+          width: drawerWidth,
+          "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
         }}>
-        {drawerContent}
+        <>
+          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", padding: "8px 16px" }}>
+            {clientSettings?.application?.logo && (
+              <Box>
+                <img
+                  src={clientSettings?.application?.logo}
+                  alt={`Logo of ${clientSettings?.application?.name}`}
+                  style={{ maxHeight: "40px", cursor: "pointer" }}
+                />
+              </Box>
+            )}
+            <Box
+              sx={{
+                marginLeft: "20px",
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                alignItems: { xs: "start", md: "center" },
+              }}>
+              <Typography sx={{ typography: { xs: "h4", md: "h1" } }}>geopilot</Typography>
+              {clientSettings?.application?.name && (
+                <Typography sx={{ typography: { xs: "h6", md: "h1" } }}>{clientSettings?.application?.name}</Typography>
+              )}
+            </Box>
+          </Box>
+          {drawerContent}
+        </>
       </Drawer>
-      <Box sx={{ height: "100%", marginLeft: { xs: "0", sm: drawerWidth }, padding: "20px 35px", overflow: "auto" }}>
+      <Box
+        sx={{
+          height: "100%",
+          marginLeft: { xs: "0", md: drawerWidth },
+          overflow: "auto",
+        }}>
         <Outlet />
       </Box>
     </div>

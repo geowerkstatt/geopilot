@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { FC, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
@@ -23,8 +23,13 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { useGeopilotAuth } from "../../auth";
 import { LanguagePopup } from "./languagePopup";
+import MenuIcon from "@mui/icons-material/Menu";
 
-const Header = () => {
+interface HeaderProps {
+  openSubMenu: () => void;
+}
+
+const Header: FC<HeaderProps> = ({ openSubMenu }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,6 +48,7 @@ const Header = () => {
     }
     return location.pathname.split("/").includes(path);
   };
+  const hasSubMenu = location.pathname.startsWith("/admin");
 
   return (
     <>
@@ -54,8 +60,31 @@ const Header = () => {
             justifyContent: "space-between",
           }}>
           <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", padding: "5px 0" }}>
+            <Box sx={{ display: { xs: "block", md: "none" }, flex: "0" }}>
+              {hasSubMenu ? (
+                <IconButton
+                  sx={{ paddingLeft: "0" }}
+                  color="inherit"
+                  onClick={() => {
+                    openSubMenu();
+                  }}>
+                  <MenuIcon fontSize="large" />
+                </IconButton>
+              ) : (
+                <Box>
+                  <img
+                    src={clientSettings?.application?.logo}
+                    alt={`Logo of ${clientSettings?.application?.name}`}
+                    style={{ maxHeight: "40px", cursor: "pointer" }}
+                    onClick={() => {
+                      window.open(clientSettings?.application?.url, "_blank");
+                    }}
+                  />
+                </Box>
+              )}
+            </Box>
             {clientSettings?.application?.logo && (
-              <Box>
+              <Box sx={{ display: { xs: "none", md: "block" } }}>
                 <img
                   src={clientSettings?.application?.logo}
                   alt={`Logo of ${clientSettings?.application?.name}`}
@@ -66,11 +95,20 @@ const Header = () => {
                 />
               </Box>
             )}
-            <Typography variant="h1" sx={{ marginLeft: "20px" }}>
-              geopilot {clientSettings?.application?.name}
-            </Typography>
+            <Box
+              sx={{
+                marginLeft: "20px",
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                alignItems: { xs: "start", md: "center" },
+              }}>
+              <Typography sx={{ typography: { xs: "h4", md: "h1" } }}>geopilot&nbsp;</Typography>
+              {clientSettings?.application?.name && (
+                <Typography sx={{ typography: { xs: "h6", md: "h1" } }}>{clientSettings?.application?.name}</Typography>
+              )}
+            </Box>
           </Box>
-          <Box sx={{ flexGrow: 0, gap: "20px" }}>
+          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
             <LanguagePopup />
             {isLoggedIn ? (
               <IconButton
@@ -93,9 +131,14 @@ const Header = () => {
                 </Avatar>
               </IconButton>
             ) : (
-              <Button onClick={login} startIcon={<LoginIcon />}>
-                {t("logIn")}
-              </Button>
+              <>
+                <Button onClick={login} startIcon={<LoginIcon />} sx={{ display: { xs: "none", md: "flex" } }}>
+                  {t("logIn")}
+                </Button>
+                <IconButton onClick={login} sx={{ display: { xs: "flex", md: "none" } }} color="primary">
+                  <LoginIcon />
+                </IconButton>
+              </>
             )}
           </Box>
         </Toolbar>

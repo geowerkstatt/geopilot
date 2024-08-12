@@ -117,6 +117,7 @@ export const Users = () => {
       type: "string",
       editable: false,
       flex: 1,
+      minWidth: 200,
     },
     {
       field: "email",
@@ -124,12 +125,13 @@ export const Users = () => {
       type: "string",
       editable: false,
       flex: 1,
+      minWidth: 280,
     },
     {
       field: "isAdmin",
       headerName: t("isAdmin"),
       editable: true,
-      flex: 1,
+      width: 160,
       type: "boolean",
     },
     {
@@ -137,6 +139,7 @@ export const Users = () => {
       headerName: t("organisations"),
       editable: true,
       flex: 1,
+      minWidth: 400,
       type: "custom",
       valueOptions: organisations,
       getOptionLabel: (value: DataRow | string) => (value as Organisation).name,

@@ -25,6 +25,7 @@ import Footer from "./pages/footer/footer";
 export const App: FC = () => {
   const [language, setLanguage] = useState<Language>(Language.EN);
   const [theme, setTheme] = useState({});
+  const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
   const { isAdmin } = useGeopilotAuth();
   useEffect(() => {
     let lng = enUS;
@@ -66,7 +67,11 @@ export const App: FC = () => {
             <AlertBanner />
             <AppBox>
               <BrowserRouter>
-                <Header />
+                <Header
+                  openSubMenu={() => {
+                    setIsSubMenuOpen(true);
+                  }}
+                />
                 <LayoutBox>
                   <PageContentBox>
                     <Routes>
@@ -74,7 +79,9 @@ export const App: FC = () => {
                       {isAdmin ? (
                         <>
                           <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
-                          <Route path="admin" element={<Admin />}>
+                          <Route
+                            path="admin"
+                            element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
                             <Route path="delivery-overview" element={<DeliveryOverview />} />
                             <Route path="users" element={<Users />} />
                             <Route path="mandates" element={<Mandates />} />

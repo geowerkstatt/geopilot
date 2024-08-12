@@ -12,12 +12,12 @@ const Footer = () => {
   return (
     <Box
       sx={{
-        width: `calc(100% - ${marginLeft})`,
+        width: { xs: "100%", md: `calc(100% - ${marginLeft})` },
         display: "flex",
         flexDirection: "row",
         justifyContent: "center",
         gap: "10px",
-        marginLeft: { xs: "0", sm: marginLeft },
+        marginLeft: { xs: "0", md: marginLeft },
       }}
       className="footer">
       <Button
