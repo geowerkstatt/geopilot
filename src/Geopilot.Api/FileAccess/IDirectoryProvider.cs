@@ -6,6 +6,16 @@
 public interface IDirectoryProvider
 {
     /// <summary>
+    /// Gets the root directory for file uploads.
+    /// </summary>
+    string UploadDirectory { get; }
+
+    /// <summary>
+    /// Gets the root directory for persisted assets.
+    /// </summary>
+    string AssetDicrectory { get; }
+
+    /// <summary>
     /// Gets the upload directory for the specified <paramref name="jobId"/>.
     /// </summary>
     /// <returns>The path of the upload directory.</returns>
