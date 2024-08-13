@@ -1,13 +1,13 @@
 @font-face {
   font-family: 'NeoGeo';
-  src: url('./NeoGeo-Regular.woff2') format('woff2');
+  src: url('./NeoGeo-Light.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'NeoGeo';
-  src: url('./NeoGeo-Italic.woff2') format('woff2');
+  src: url('./NeoGeo-LightItalic.woff2') format('woff2');
   font-weight: normal;
   font-style: italic;
 }
