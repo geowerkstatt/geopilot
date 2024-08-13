@@ -8,6 +8,7 @@ export const login = user => {
   cy.session(
     ["login", user],
     () => {
+      cy.intercept("http://localhost:4011/realms/geopilot/protocol/openid-connect/token").as("token");
       cy.visit("/");
       cy.wait("@version");
       cy.get('[data-cy="login-button"]').click({ force: true });
@@ -16,10 +17,15 @@ export const login = user => {
         cy.get("#password").type("geopilot_password");
         cy.get("[type=submit]").click({ force: true });
       });
+      cy.wait("@token")
+        .then(interception => interception.response.body.id_token)
+        .then(token => window.localStorage.setItem("id_token", token));
     },
     {
       validate() {
-        cy.getCookie("geopilot.auth").should("exist");
+        cy.window()
+          .then(win => win.localStorage.getItem("id_token"))
+          .as("id_token");
         cy.request({
           url: "/api/v1/user/self",
           failOnStatusCode: false,
