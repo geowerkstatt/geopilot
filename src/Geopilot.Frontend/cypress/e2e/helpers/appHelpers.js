@@ -47,6 +47,11 @@ export const loginAsUploader = () => {
   cy.visit("/");
 };
 
+export const loginAsNewUser = () => {
+  login("newuser");
+  cy.visit("/");
+};
+
 export const logout = () => {
   cy.get('[data-cy="loggedInUser-button"]').click();
   cy.get('[data-cy="logout-button"]').click();

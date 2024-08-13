@@ -1,4 +1,4 @@
-import { loginAsAdmin, loginAsUploader, selectLanguage } from "./helpers/appHelpers.js";
+import { loginAsAdmin, loginAsNewUser, loginAsUploader, selectLanguage } from "./helpers/appHelpers.js";
 
 describe("General app tests", () => {
   it("shows no login button if auth settings could not be loaded", () => {
@@ -8,6 +8,13 @@ describe("General app tests", () => {
       body: {},
     });
     cy.get('[data-cy="loggedInUser-button"]').should("not.exist");
+  });
+
+  it("registers new users and logs them in", () => {
+    loginAsNewUser();
+    cy.get('[data-cy="loggedInUser-button"]').should("exist");
+    cy.get('[data-cy="loggedInUser-button"]').click();
+    cy.contains("Norbert Newuser");
   });
 
   it("shows admin tools only for admin users", () => {
