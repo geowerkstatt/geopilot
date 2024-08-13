@@ -4,7 +4,7 @@ import vitePreprocessor from "cypress-vite";
 export default defineConfig({
   projectId: "bqtbpp",
   e2e: {
-    baseUrl: "https://localhost:5173",
+    baseUrl: "http://localhost:5173",
     video: false,
     viewportWidth: 1920,
     viewportHeight: 1080,
