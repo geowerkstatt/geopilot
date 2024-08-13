@@ -1,4 +1,13 @@
-import { loginAsAdmin, loginAsNewUser, loginAsUploader, selectLanguage } from "./helpers/appHelpers.js";
+import {
+  isSelectedNavItem,
+  loginAsAdmin,
+  loginAsNewUser,
+  loginAsUploader,
+  logout,
+  openTool,
+  selectLanguage,
+} from "./helpers/appHelpers.js";
+import { selectAdminNavItem } from "./helpers/adminHelpers.js";
 
 describe("General app tests", () => {
   it("shows no login button if auth settings could not be loaded", () => {
@@ -21,16 +30,31 @@ describe("General app tests", () => {
     loginAsUploader();
     cy.get('[data-cy="loggedInUser-button"]').click();
     cy.get('[data-cy="delivery-nav"]').should("exist");
-    cy.get('[data-cy="administration-nav"]').should("not.exist");
+    cy.get('[data-cy="admin-nav"]').should("not.exist");
     cy.get('[data-cy="stacBrowser-nav"]').should("not.exist");
-    cy.get('[data-cy="logout-button"]').click();
+    logout();
 
     loginAsAdmin();
     cy.get('[data-cy="loggedInUser-button"]').click();
     cy.get('[data-cy="delivery-nav"]').should("exist");
-    cy.get('[data-cy="administration-nav"]').should("exist");
+    isSelectedNavItem("delivery-nav", "tool-navigation");
+    cy.get('[data-cy="admin-nav"]').should("exist");
     cy.get('[data-cy="stacBrowser-nav"]').should("exist");
-    cy.get('[data-cy="logout-button"]').click();
+
+    openTool("admin");
+    cy.location().should(location => {
+      expect(location.pathname).to.eq(`/admin/delivery-overview`);
+    });
+    isSelectedNavItem("admin-delivery-overview-nav", "admin-navigation");
+
+    cy.get('[data-cy="loggedInUser-button"]').click();
+    isSelectedNavItem("admin-nav", "tool-navigation");
+    cy.get('[data-cy="admin-nav"]').click();
+
+    selectAdminNavItem("users");
+    selectAdminNavItem("mandates");
+    selectAdminNavItem("organisations");
+    selectAdminNavItem("delivery-overview");
   });
 
   it("updates the language when the user selects a different language", () => {

@@ -53,7 +53,7 @@ export const loginAsNewUser = () => {
 };
 
 export const logout = () => {
-  cy.get('[data-cy="loggedInUser-button"]').click();
+  openToolMenu();
   cy.get('[data-cy="logout-button"]').click();
 };
 
@@ -61,4 +61,28 @@ export const selectLanguage = language => {
   cy.get('[data-cy="language-selector"]').click({ force: true });
   cy.get(`[data-cy="language-${language.toLowerCase()}"]`).click({ force: true });
   cy.wait(1000);
+};
+
+export const createBaseSelector = parent => {
+  if (parent) {
+    return `[data-cy="${parent}"] `;
+  } else {
+    return "";
+  }
+};
+
+export const openToolMenu = () => {
+  if (!cy.get('[data-cy="tool-navigation"]').should("be.visible")) {
+    cy.get('[data-cy="loggedInUser-button"]').click();
+  }
+};
+
+export const openTool = tool => {
+  openToolMenu();
+  cy.get(`[data-cy="${tool}-nav"]`).click();
+};
+
+export const isSelectedNavItem = (item, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${item}"]`;
+  cy.get(selector).should("have.class", "Mui-selected");
 };
