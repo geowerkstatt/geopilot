@@ -17,20 +17,6 @@ jobs:
       - name: Start db and api's
         run: docker compose up --wait
 
-      - name: Wait for keycloak
-        run: |
-          end=$((SECONDS+300))
-          while [ $SECONDS -lt $end ]; do
-            if curl --output /dev/null --silent --head --fail http://localhost:4011/realms/geopilot/.well-known/openid-configuration; then
-              echo "Keycloak is available."
-              exit 0
-            fi
-            echo "Waiting for Keycloak to be available..."
-            sleep 5
-          done
-          echo "Timeout reached. Keycloak is still not available."
-          exit 1
-
       - name: Cypress run
         uses: cypress-io/github-action@v6
         with:
