@@ -12,6 +12,7 @@ export const LayoutBox = styled(Box)({
   flex: "1 1 100%",
   display: "flex",
   flexDirection: "column",
+  minHeight: "calc(100vh - 60px)",
 });
 
 export const PageContentBox = styled(Box)({
