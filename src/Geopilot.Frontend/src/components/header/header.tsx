@@ -34,7 +34,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { clientSettings } = useAppSettings();
-  const { user, isAdmin, isLoggedIn, login, logout } = useGeopilotAuth();
+  const { user, enabled, isAdmin, login, logout } = useGeopilotAuth();
 
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
 
@@ -60,7 +60,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             justifyContent: "space-between",
           }}>
           <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", padding: "5px 0" }}>
-            <Box sx={{ display: { xs: "block", md: "none" }, flex: "0" }}>
+            <Box sx={{ display: { xs: "block", md: "none" }, flex: "0", marginRight: "10px" }}>
               {hasSubMenu ? (
                 <IconButton
                   sx={{ paddingLeft: "0" }}
@@ -84,7 +84,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </Box>
             {clientSettings?.application?.logo && (
-              <Box sx={{ display: { xs: "none", md: "block" } }}>
+              <Box sx={{ display: { xs: "none", md: "block" }, marginRight: "20px" }}>
                 <img
                   src={clientSettings?.application?.logo}
                   alt={`Logo of ${clientSettings?.application?.name}`}
@@ -97,7 +97,6 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             )}
             <Box
               sx={{
-                marginLeft: "20px",
                 display: "flex",
                 flexDirection: { xs: "column", md: "row" },
                 alignItems: { xs: "start", md: "center" },
@@ -110,36 +109,42 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
           </Box>
           <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
             <LanguagePopup />
-            {isLoggedIn ? (
-              <IconButton
-                sx={{
-                  padding: "0",
-                  "&:hover, &.Mui-focusVisible, &:active, &:focus, &:focus-visible": {
-                    backgroundColor: "rgba(0, 0, 0, 0.0)",
-                  },
-                  "& .MuiTouchRipple-root": {
-                    display: "none",
-                  },
-                }}
-                onClick={toggleUserMenu(true)}>
-                <Avatar
+            {enabled &&
+              (user ? (
+                <IconButton
                   sx={{
-                    backgroundColor: "primary.main",
-                    color: "primary.contrastText",
-                  }}>
-                  {user?.fullName[0].toUpperCase()}
-                </Avatar>
-              </IconButton>
-            ) : (
-              <>
-                <Button onClick={login} startIcon={<LoginIcon />} sx={{ display: { xs: "none", md: "flex" } }}>
-                  {t("logIn")}
-                </Button>
-                <IconButton onClick={login} sx={{ display: { xs: "flex", md: "none" } }} color="primary">
-                  <LoginIcon />
+                    padding: "0",
+                    "&:hover, &.Mui-focusVisible, &:active, &:focus, &:focus-visible": {
+                      backgroundColor: "rgba(0, 0, 0, 0.0)",
+                    },
+                    "& .MuiTouchRipple-root": {
+                      display: "none",
+                    },
+                  }}
+                  onClick={toggleUserMenu(true)}
+                  data-cy="loggedInUser-button">
+                  <Avatar
+                    sx={{
+                      backgroundColor: "primary.main",
+                      color: "primary.contrastText",
+                    }}>
+                    {user?.fullName[0].toUpperCase()}
+                  </Avatar>
                 </IconButton>
-              </>
-            )}
+              ) : (
+                <>
+                  <Button
+                    onClick={login}
+                    startIcon={<LoginIcon />}
+                    sx={{ display: { xs: "none", md: "flex" } }}
+                    data-cy="login-button">
+                    {t("logIn")}
+                  </Button>
+                  <IconButton onClick={login} sx={{ display: { xs: "flex", md: "none" } }} color="primary">
+                    <LoginIcon />
+                  </IconButton>
+                </>
+              ))}
           </Box>
         </Toolbar>
       </AppBar>
@@ -169,7 +174,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                   selected={isActive("")}
                   onClick={() => {
                     navigate("/");
-                  }}>
+                  }}
+                  data-cy="delivery-nav">
                   <ListItemText primary={t("delivery").toUpperCase()} />
                 </ListItemButton>
               </ListItem>
@@ -180,7 +186,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                       selected={isActive("admin")}
                       onClick={() => {
                         navigate("/admin");
-                      }}>
+                      }}
+                      data-cy="administration-nav">
                       <ListItemText primary={t("administration").toUpperCase()} />
                     </ListItemButton>
                   </ListItem>
@@ -189,7 +196,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                       selected={isActive("browser")}
                       onClick={() => {
                         window.open("/browser", "_blank");
-                      }}>
+                      }}
+                      data-cy="stacBrowser-nav">
                       <ListItemText primary={t("stacBrowser").toUpperCase()} />
                       <ListItemIcon>
                         <OpenInNewIcon fontSize="small" />
@@ -200,7 +208,12 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </List>
           </Box>
-          <Button className="nav-button" sx={{ color: "black" }} onClick={logout} startIcon={<LogoutIcon />}>
+          <Button
+            className="nav-button"
+            sx={{ color: "black" }}
+            onClick={logout}
+            startIcon={<LogoutIcon />}
+            data-cy="logout-button">
             {t("logOut")}
           </Button>
         </Box>

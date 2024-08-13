@@ -11,7 +11,6 @@ export const GeopilotAuthContext = createContext<GeopilotAuthContextInterface>({
   enabled: false,
   user: undefined,
   isAdmin: false,
-  isLoggedIn: false,
   login: () => {
     throw new Error();
   },
@@ -38,6 +37,14 @@ const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
   const user = useUser();
 
   const enabled = auth !== undefined && !auth.isLoading;
+  const getLoginFunction = () => {
+    if (!auth) return () => {};
+    if (window.Cypress) {
+      return auth.signinRedirect;
+    } else {
+      return auth.signinPopup;
+    }
+  };
 
   return (
     <GeopilotAuthContext.Provider
@@ -45,8 +52,7 @@ const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
         enabled: enabled,
         user: user,
         isAdmin: enabled && !!user?.isAdmin,
-        isLoggedIn: enabled && !!user,
-        login: auth !== undefined ? auth.signinPopup : () => {},
+        login: getLoginFunction(),
         logout: auth !== undefined ? auth.signoutRedirect : () => {},
       }}>
       {children}

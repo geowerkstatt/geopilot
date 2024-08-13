@@ -5,7 +5,6 @@ export interface GeopilotAuthContextInterface {
   enabled: boolean;
   user: User | undefined;
   isAdmin: boolean;
-  isLoggedIn: boolean;
   login: () => void;
   logout: () => void;
 }
