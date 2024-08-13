@@ -1,4 +1,4 @@
-import { loginAsAdmin, loginAsEditor, selectLanguage } from "./helpers/appHelpers.js";
+import { loginAsAdmin, loginAsUploader, selectLanguage } from "./helpers/appHelpers.js";
 
 describe("General app tests", () => {
   it("shows no login button if auth settings could not be loaded", () => {
@@ -11,7 +11,7 @@ describe("General app tests", () => {
   });
 
   it("shows admin tools only for admin users", () => {
-    loginAsEditor();
+    loginAsUploader();
     cy.get('[data-cy="loggedInUser-button"]').click();
     cy.get('[data-cy="delivery-nav"]').should("exist");
     cy.get('[data-cy="administration-nav"]').should("not.exist");

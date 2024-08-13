@@ -41,12 +41,12 @@
     },
     {
       "id": "1ed45832-2880-4fd4-a274-bbcc101c3307",
-      "username": "user",
+      "username": "uploader",
       "enabled": true,
       "emailVerified": true,
-      "email": "user@geopilot.ch",
+      "email": "uploader@geopilot.ch",
       "firstName": "Ursula",
-      "lastName": "User",
+      "lastName": "Uploader",
       "credentials": [
         {
           "type": "password",
@@ -57,12 +57,12 @@
     },
     {
       "id": "ceab20b3-2e6a-41e7-bd77-3d96e04098ab",
-      "username": "unregistered",
+      "username": "newuser",
       "enabled": true,
       "emailVerified": true,
-      "email": "unregistered@geopilot.ch",
-      "firstName": "Unknown",
-      "lastName": "Unregistered",
+      "email": "newuser@geopilot.ch",
+      "firstName": "Norbert",
+      "lastName": "Newuser",
       "credentials": [
         {
           "type": "password",
