@@ -33,10 +33,12 @@ export const login = user => {
 
 export const loginAsAdmin = () => {
   login("admin");
+  cy.visit("/");
 };
 
 export const loginAsEditor = () => {
   login("user");
+  cy.visit("/");
 };
 
 export const logout = () => {

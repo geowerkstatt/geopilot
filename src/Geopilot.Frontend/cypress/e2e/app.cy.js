@@ -12,7 +12,6 @@ describe("General app tests", () => {
 
   it("shows admin tools only for admin users", () => {
     loginAsEditor();
-    cy.visit("/");
     cy.get('[data-cy="loggedInUser-button"]').click();
     cy.get('[data-cy="delivery-nav"]').should("exist");
     cy.get('[data-cy="administration-nav"]').should("not.exist");
@@ -20,7 +19,6 @@ describe("General app tests", () => {
     cy.get('[data-cy="logout-button"]').click();
 
     loginAsAdmin();
-    cy.visit("/");
     cy.get('[data-cy="loggedInUser-button"]').click();
     cy.get('[data-cy="delivery-nav"]').should("exist");
     cy.get('[data-cy="administration-nav"]').should("exist");
