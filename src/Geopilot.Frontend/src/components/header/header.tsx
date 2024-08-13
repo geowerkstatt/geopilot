@@ -148,7 +148,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
           </Box>
         </Toolbar>
       </AppBar>
-      <Drawer anchor={"right"} open={userMenuOpen} onClose={toggleUserMenu(false)}>
+      <Drawer anchor={"right"} open={userMenuOpen} onClose={toggleUserMenu(false)} data-cy="tool-navigation">
         <Box
           sx={{
             display: "flex;",
@@ -187,7 +187,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                       onClick={() => {
                         navigate("/admin");
                       }}
-                      data-cy="administration-nav">
+                      data-cy="admin-nav">
                       <ListItemText primary={t("administration").toUpperCase()} />
                     </ListItemButton>
                   </ListItem>

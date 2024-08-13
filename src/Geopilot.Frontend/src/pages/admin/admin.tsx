@@ -42,7 +42,8 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
               selected={isActive("delivery-overview")}
               onClick={() => {
                 navigateTo("delivery-overview");
-              }}>
+              }}
+              data-cy="admin-delivery-overview-nav">
               <ListItemText primary={t("deliveryOverview").toUpperCase()} />
             </ListItemButton>
           </ListItem>
@@ -55,7 +56,8 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
                 selected={isActive(link)}
                 onClick={() => {
                   navigateTo(link);
-                }}>
+                }}
+                data-cy={`admin-${link}-nav`}>
                 <ListItemText primary={t(link).toUpperCase()} />
               </ListItemButton>
             </ListItem>
@@ -74,7 +76,8 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           width: drawerWidth,
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box", zIndex: 1000 },
-        }}>
+        }}
+        data-cy="admin-navigation">
         <>
           {" "}
           <Box sx={{ height: "60px" }} />
