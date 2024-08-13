@@ -87,4 +87,5 @@ services:
     ports:
       - "4011:8080"
     command: start-dev --import-realm
-
+    healthcheck:
+      test: "curl --fail http://localhost:4011/realms/geopilot/.well-known/openid-configuration"
