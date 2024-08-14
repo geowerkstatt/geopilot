@@ -3,11 +3,11 @@ import { CircularProgress, Stack } from "@mui/material";
 import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
 import { Organisation, User } from "../../api/apiInterfaces";
-import { ErrorResponse } from "../../appInterfaces";
 import { useContext, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
 import { AlertContext } from "../../components/alert/alertContext";
 import { PromptContext } from "../../components/prompt/promptContext";
+import { FetchMethod, runFetch } from "../../api/fetch.ts";
 
 export const Users = () => {
   const { t } = useTranslation();
@@ -25,57 +25,44 @@ export const Users = () => {
   }, [users, organisations]);
 
   async function loadUsers() {
-    try {
-      const response = await fetch("/api/v1/user");
-      if (response.ok) {
-        const results = await response.json();
-        setUsers(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("usersLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("usersLoadingError", { error: error }), "error");
-    }
+    await runFetch({
+      url: "/api/v1/user",
+      onSuccess: response => {
+        setUsers(response as User[]);
+      },
+      onError: (error: string) => {
+        showAlert(t("usersLoadingError", { error: error }), "error");
+      },
+    });
   }
 
   async function loadOrganisations() {
-    try {
-      const response = await fetch("/api/v1/organisation");
-      if (response.ok) {
-        const results = await response.json();
-        setOrganisations(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("organisationsLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("organisationsLoadingError", { error: error }), "error");
-    }
+    await runFetch({
+      url: "/api/v1/organisation",
+      onSuccess: response => {
+        setOrganisations(response as Organisation[]);
+      },
+      onError: (error: string) => {
+        showAlert(t("organisationsLoadingError", { error: error }), "error");
+      },
+    });
   }
 
   async function saveUser(user: User) {
-    try {
-      user.organisations = user.organisations?.map(organisationId => {
-        return { id: organisationId as number } as Organisation;
-      });
-      const response = await fetch("/api/v1/user", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(user),
-      });
-
-      if (response.ok) {
+    user.organisations = user.organisations?.map(organisationId => {
+      return { id: organisationId as number } as Organisation;
+    });
+    await runFetch({
+      url: "/api/v1/user",
+      method: FetchMethod.PUT,
+      body: JSON.stringify(user),
+      onSuccess: () => {
         loadUsers();
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("userSaveError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("userSaveError", { error: error }), "error");
-    }
+      },
+      onError: (error: string) => {
+        showAlert(t("userSaveError", { error: error }), "error");
+      },
+    });
   }
 
   async function onSave(row: DataRow) {

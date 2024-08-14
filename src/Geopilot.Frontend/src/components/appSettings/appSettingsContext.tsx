@@ -1,6 +1,6 @@
 import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
 import { AppSettingsContextInterface, ClientSettings } from "./appSettingsInterface";
-import { runFetch } from "../../api/fetch";
+import { FetchContentType, runFetch } from "../../api/fetch";
 
 export const AppSettingsContext = createContext<AppSettingsContextInterface>({
   version: undefined,
@@ -12,9 +12,18 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const [backendVersion, setBackendVersion] = useState("");
 
   useEffect(() => {
-    runFetch("client-settings.json").then(setClientSettings);
-    runFetch("/api/v1/version").then(version => {
-      setBackendVersion(version.split("+")[0]);
+    runFetch({
+      url: "client-settings.json",
+      onSuccess: settings => {
+        setClientSettings(settings as ClientSettings);
+      },
+    });
+    runFetch({
+      url: "/api/v1/version",
+      contentType: FetchContentType.TEXT,
+      onSuccess: version => {
+        setBackendVersion((version as string).split("+")[0]);
+      },
     });
   }, []);
 

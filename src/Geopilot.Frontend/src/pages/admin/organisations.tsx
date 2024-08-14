@@ -3,11 +3,11 @@ import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
 import { useContext, useEffect, useState } from "react";
 import { Mandate, Organisation, User } from "../../api/apiInterfaces";
-import { ErrorResponse } from "../../appInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { AlertContext } from "../../components/alert/alertContext";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { CircularProgress, Stack } from "@mui/material";
+import { FetchMethod, runFetch } from "../../api/fetch.ts";
 
 export const Organisations = () => {
   const { t } = useTranslation();
@@ -26,75 +26,59 @@ export const Organisations = () => {
   }, [organisations, mandates, users]);
 
   async function loadOrganisations() {
-    try {
-      const response = await fetch("/api/v1/organisation");
-      if (response.ok) {
-        const results = await response.json();
-        setOrganisations(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("organisationsLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("organisationsLoadingError", { error: error }), "error");
-    }
+    await runFetch({
+      url: "/api/v1/organisation",
+      onSuccess: response => {
+        setOrganisations(response as Organisation[]);
+      },
+      onError: (error: string) => {
+        showAlert(t("organisationsLoadingError", { error: error }), "error");
+      },
+    });
   }
 
   async function loadMandates() {
-    try {
-      const response = await fetch("/api/v1/mandate");
-      if (response.ok) {
-        const results = await response.json();
-        setMandates(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("mandatesLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("mandatesLoadingError", { error: error }), "error");
-    }
+    await runFetch({
+      url: "/api/v1/mandate",
+      onSuccess: response => {
+        setMandates(response as Mandate[]);
+      },
+      onError: (error: string) => {
+        showAlert(t("mandatesLoadingError", { error: error }), "error");
+      },
+    });
   }
 
   async function loadUsers() {
-    try {
-      const response = await fetch("/api/v1/user");
-      if (response.ok) {
-        const results = await response.json();
-        setUsers(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("usersLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("usersLoadingError", { error: error }), "error");
-    }
+    await runFetch({
+      url: "/api/v1/user",
+      onSuccess: response => {
+        setUsers(response as User[]);
+      },
+      onError: (error: string) => {
+        showAlert(t("usersLoadingError", { error: error }), "error");
+      },
+    });
   }
 
   async function saveOrganisation(organisation: Organisation) {
-    try {
-      organisation.mandates = organisation.mandates?.map(mandateId => {
-        return { id: mandateId as number } as Mandate;
-      });
-      organisation.users = organisation.users?.map(userId => {
-        return { id: userId as number } as User;
-      });
-      const response = await fetch("/api/v1/organisation", {
-        method: organisation.id === 0 ? "POST" : "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(organisation),
-      });
-
-      if (response.ok) {
+    organisation.mandates = organisation.mandates?.map(mandateId => {
+      return { id: mandateId as number } as Mandate;
+    });
+    organisation.users = organisation.users?.map(userId => {
+      return { id: userId as number } as User;
+    });
+    await runFetch({
+      url: "/api/v1/organisation",
+      method: organisation.id === 0 ? FetchMethod.POST : FetchMethod.PUT,
+      body: JSON.stringify(organisation),
+      onSuccess: () => {
         loadOrganisations();
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("organisationSaveError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("organisationSaveError", { error: error }), "error");
-    }
+      },
+      onError: (error: string) => {
+        showAlert(t("organisationSaveError", { error: error }), "error");
+      },
+    });
   }
 
   async function onSave(row: DataRow) {
