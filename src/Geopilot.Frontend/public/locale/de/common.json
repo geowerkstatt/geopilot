@@ -81,6 +81,7 @@
   "uploadNotSuccessful": "Der Upload war nicht erfolgreich. Die Validierung wurde abgebrochen.",
   "userDisconnectMessage": "Der Benutzer wird von allen Organisationen getrennt. Diese Aktion kann nicht rückgängig gemacht werden.",
   "userDisconnectTitle": "Möchten Sie den Benutzer wirklich inaktiv setzen?",
+  "userLoadingError": "Beim Laden der Benutzer:in ist ein Fehler aufgetreten: {{error}}",
   "userSaveError": "Beim Speichern des Benutzers ist ein Fehler aufgetreten: {{error}}",
   "users": "Benutzer:innen",
   "usersLoadingError": "Beim Laden der Benutzer:innen ist ein Fehler aufgetreten: {{error}}",

@@ -1,3 +1,22 @@
+export interface FetchParams extends RequestInit {
+  errorMessageLabel?: string;
+}
+
+export class ApiError extends Error {
+  status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = "ApiError";
+    this.message = message;
+    this.status = status;
+  }
+}
+
+export interface ApiContextInterface {
+  fetchApi: <T>(url: string, options?: Partial<FetchParams>) => Promise<T>;
+}
+
 export interface Coordinate {
   x: number | null;
   y: number | null;

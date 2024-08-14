@@ -81,6 +81,7 @@
   "uploadNotSuccessful": "Caricamento non riuscito. La validazione è stata interrotta.",
   "userDisconnectMessage": "Questa operazione rimuove tutti i collegamenti alle organizzazioni e non può essere annullata.",
   "userDisconnectTitle": "Volete davvero scollegare l'utente?",
+  "userLoadingError": "Si è verificato un errore durante il caricamento del' utento: {{error}}",
   "userSaveError": "Si è verificato un errore durante il salvataggio dell'utente: {{error}}",
   "users": "Utenti",
   "usersLoadingError": "Si è verificato un errore durante il caricamento degli utenti: {{error}}",

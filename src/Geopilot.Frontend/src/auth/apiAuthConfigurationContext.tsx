@@ -1,28 +1,23 @@
-import { createContext, FC, useState, useEffect, PropsWithChildren } from "react";
+import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
 import { AuthSettings } from "./authInterfaces";
+import { useApi } from "../api";
 
 export const ApiAuthConfigurationContext = createContext<AuthSettings | undefined>(undefined);
 
-const loadAuthConfiguration = async (): Promise<AuthSettings> => {
-  const authConfigResult = await fetch("/api/v1/user/auth");
-  if (!authConfigResult.ok || !authConfigResult.headers.get("content-type")?.includes("application/json")) {
-    throw new Error();
-  }
-
-  return (await authConfigResult.json()) as AuthSettings;
-};
-
 export const ApiAuthConfigurationProvider: FC<PropsWithChildren> = ({ children }) => {
   const [apiAuthSettings, setApiAuthSettings] = useState<AuthSettings>();
+  const { fetchApi } = useApi();
+
+  const loadAuthSettings = () => {
+    fetchApi<AuthSettings>("/api/v1/user/auth").then(setApiAuthSettings);
+  };
 
   useEffect(() => {
     if (apiAuthSettings) return;
 
-    const load = () => loadAuthConfiguration().then(setApiAuthSettings);
-    load();
-
+    loadAuthSettings();
     // Retry every 3s
-    const interval = setInterval(load, 3_000);
+    const interval = setInterval(loadAuthSettings, 3_000);
 
     // Cancel retry after 30s
     setTimeout(() => clearInterval(interval), 30_000);
@@ -31,6 +26,7 @@ export const ApiAuthConfigurationProvider: FC<PropsWithChildren> = ({ children }
     return () => {
       clearInterval(interval);
     };
+    // eslint-disable-next-line
   }, [apiAuthSettings]);
 
   return (

@@ -81,6 +81,7 @@
   "uploadNotSuccessful": "Le téléchargement n'a pas réussi. La validation a été annulée.",
   "userDisconnectMessage": "Cet utilisateur sera déconnecté de toutes les organisations. Cette action ne peut pas être annulée.",
   "userDisconnectTitle": "Voulez-vous vraiment déconnecter l'utilisateur?",
+  "userLoadingError": "Une erreur s'est produite lors du chargement d'utilisateur: {{error}}",
   "userSaveError": "Une erreur s'est produite lors de l'enregistrement de l'utilisateur: {{error}}",
   "users": "Utilisateurs",
   "usersLoadingError": "Une erreur s'est produite lors du chargement des utilisateurs: {{error}}",

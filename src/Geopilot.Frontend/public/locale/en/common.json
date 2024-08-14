@@ -81,6 +81,7 @@
   "uploadNotSuccessful": "The upload was not successful. Validation has been aborted.",
   "userDisconnectMessage": "This will remove all connections to organisations and cannot be undone.",
   "userDisconnectTitle": "Do you really want to disconnect the user?",
+  "userLoadingError": "An error occurred while loading the user: {{error}}",
   "userSaveError": "An error occurred while saving the user: {{error}}",
   "users": "Users",
   "usersLoadingError": "An error occurred while loading the users: {{error}}",

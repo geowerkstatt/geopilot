@@ -4,10 +4,9 @@ import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfa
 import { useContext, useEffect, useState } from "react";
 import { Mandate, Organisation, User } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
-import { AlertContext } from "../../components/alert/alertContext";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { CircularProgress, Stack } from "@mui/material";
-import { FetchMethod, runFetch } from "../../api/fetch.ts";
+import { useApi } from "../../api";
 
 export const Organisations = () => {
   const { t } = useTranslation();
@@ -16,8 +15,8 @@ export const Organisations = () => {
   const [mandates, setMandates] = useState<Mandate[]>();
   const [users, setUsers] = useState<User[]>();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { showAlert } = useContext(AlertContext);
   const { showPrompt } = useContext(PromptContext);
+  const { fetchApi } = useApi();
 
   useEffect(() => {
     if (organisations && mandates && users) {
@@ -25,40 +24,18 @@ export const Organisations = () => {
     }
   }, [organisations, mandates, users]);
 
-  async function loadOrganisations() {
-    await runFetch({
-      url: "/api/v1/organisation",
-      onSuccess: response => {
-        setOrganisations(response as Organisation[]);
-      },
-      onError: (error: string) => {
-        showAlert(t("organisationsLoadingError", { error: error }), "error");
-      },
-    });
+  function loadOrganisations() {
+    fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
+      setOrganisations,
+    );
   }
 
-  async function loadMandates() {
-    await runFetch({
-      url: "/api/v1/mandate",
-      onSuccess: response => {
-        setMandates(response as Mandate[]);
-      },
-      onError: (error: string) => {
-        showAlert(t("mandatesLoadingError", { error: error }), "error");
-      },
-    });
+  function loadMandates() {
+    fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" }).then(setMandates);
   }
 
-  async function loadUsers() {
-    await runFetch({
-      url: "/api/v1/user",
-      onSuccess: response => {
-        setUsers(response as User[]);
-      },
-      onError: (error: string) => {
-        showAlert(t("usersLoadingError", { error: error }), "error");
-      },
-    });
+  function loadUsers() {
+    fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
   }
 
   async function saveOrganisation(organisation: Organisation) {
@@ -68,17 +45,12 @@ export const Organisations = () => {
     organisation.users = organisation.users?.map(userId => {
       return { id: userId as number } as User;
     });
-    await runFetch({
-      url: "/api/v1/organisation",
-      method: organisation.id === 0 ? FetchMethod.POST : FetchMethod.PUT,
+
+    fetchApi("/api/v1/organisation", {
+      method: organisation.id === 0 ? "POST" : "PUT",
       body: JSON.stringify(organisation),
-      onSuccess: () => {
-        loadOrganisations();
-      },
-      onError: (error: string) => {
-        showAlert(t("organisationSaveError", { error: error }), "error");
-      },
-    });
+      errorMessageLabel: "organisationSaveError",
+    }).then(loadOrganisations);
   }
 
   async function onSave(row: DataRow) {

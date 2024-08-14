@@ -5,9 +5,8 @@ import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfa
 import { Organisation, User } from "../../api/apiInterfaces";
 import { useContext, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
-import { AlertContext } from "../../components/alert/alertContext";
 import { PromptContext } from "../../components/prompt/promptContext";
-import { FetchMethod, runFetch } from "../../api/fetch.ts";
+import { useApi } from "../../api";
 
 export const Users = () => {
   const { t } = useTranslation();
@@ -15,8 +14,8 @@ export const Users = () => {
   const [users, setUsers] = useState<User[]>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { showAlert } = useContext(AlertContext);
   const { showPrompt } = useContext(PromptContext);
+  const { fetchApi } = useApi();
 
   useEffect(() => {
     if (users && organisations) {
@@ -24,45 +23,25 @@ export const Users = () => {
     }
   }, [users, organisations]);
 
-  async function loadUsers() {
-    await runFetch({
-      url: "/api/v1/user",
-      onSuccess: response => {
-        setUsers(response as User[]);
-      },
-      onError: (error: string) => {
-        showAlert(t("usersLoadingError", { error: error }), "error");
-      },
-    });
+  function loadUsers() {
+    fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
   }
 
-  async function loadOrganisations() {
-    await runFetch({
-      url: "/api/v1/organisation",
-      onSuccess: response => {
-        setOrganisations(response as Organisation[]);
-      },
-      onError: (error: string) => {
-        showAlert(t("organisationsLoadingError", { error: error }), "error");
-      },
-    });
+  function loadOrganisations() {
+    fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
+      setOrganisations,
+    );
   }
 
   async function saveUser(user: User) {
     user.organisations = user.organisations?.map(organisationId => {
       return { id: organisationId as number } as Organisation;
     });
-    await runFetch({
-      url: "/api/v1/user",
-      method: FetchMethod.PUT,
+    fetchApi("/api/v1/user", {
+      method: "PUT",
       body: JSON.stringify(user),
-      onSuccess: () => {
-        loadUsers();
-      },
-      onError: (error: string) => {
-        showAlert(t("userSaveError", { error: error }), "error");
-      },
-    });
+      errorMessageLabel: "userSaveError",
+    }).then(loadUsers);
   }
 
   async function onSave(row: DataRow) {

@@ -6,9 +6,9 @@ import { Box, Button } from "@mui/material";
 import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { AlertContext } from "../../components/alert/alertContext";
-import { Delivery } from "../../api/apiInterfaces";
+import { ApiError, Delivery } from "../../api/apiInterfaces";
 import { TranslationFunction } from "../../appInterfaces";
-import { FetchMethod, runFetch } from "../../api/fetch.ts";
+import { useApi } from "../../api";
 
 const useTranslatedColumns = (t: TranslationFunction) => {
   return [
@@ -45,14 +45,14 @@ export const DeliveryOverview = () => {
   const { showPrompt } = useContext(PromptContext);
   const { showAlert } = useContext(AlertContext);
   const { user } = useGeopilotAuth();
+  const { fetchApi } = useApi();
 
   async function loadDeliveries() {
     setIsLoading(true);
-    runFetch({
-      url: "/api/v1/delivery",
-      onSuccess: response => {
+    fetchApi<Delivery[]>("/api/v1/delivery", { errorMessageLabel: "deliveryOverviewLoadingError" })
+      .then(response => {
         setDeliveries(
-          (response as Delivery[]).map((d: Delivery) => ({
+          response.map((d: Delivery) => ({
             id: d.id,
             date: d.date,
             userName: d.declaringUser.fullName,
@@ -60,13 +60,10 @@ export const DeliveryOverview = () => {
             comment: d.comment,
           })),
         );
+      })
+      .finally(() => {
         setIsLoading(false);
-      },
-      onError: (error: string) => {
-        setIsLoading(false);
-        showAlert(t("deliveryOverviewLoadingError", { error: error }), "error");
-      },
-    });
+      });
   }
 
   useEffect(() => {
@@ -78,19 +75,14 @@ export const DeliveryOverview = () => {
 
   async function handleDelete() {
     for (const row of selectedRows) {
-      runFetch({
-        url: "/api/v1/delivery/" + row,
-        method: FetchMethod.DELETE,
-        onSuccess: () => {},
-        onError: (error: string, status?: number) => {
-          if (status === 404) {
-            showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: row }), "error");
-          } else if (status === 500) {
-            showAlert(t("deliveryOverviewDeleteIdError", { id: row }), "error");
-          } else {
-            showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
-          }
-        },
+      fetchApi("/api/v1/delivery/" + row, { method: "DELETE" }).catch((error: ApiError) => {
+        if (error.status === 404) {
+          showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: row }), "error");
+        } else if (error.status === 500) {
+          showAlert(t("deliveryOverviewDeleteIdError", { id: row }), "error");
+        } else {
+          showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
+        }
       });
     }
     await loadDeliveries();
