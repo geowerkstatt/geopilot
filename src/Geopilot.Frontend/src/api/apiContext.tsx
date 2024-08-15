@@ -20,9 +20,11 @@ export const ApiProvider: FC<PropsWithChildren> = ({ children }) => {
       if (response.ok) {
         const responseContentType = response.headers.get("content-type");
         if (responseContentType?.indexOf("application/json") !== -1) {
-          return await response.json();
-        } else {
+          return (await response.json()) as T;
+        } else if (!options.responseType || responseContentType?.includes(options.responseType)) {
           return (await response.text()) as T;
+        } else {
+          throw new ApiError(t("invalidContentType", { contentType: responseContentType }));
         }
       } else {
         const errorResponse = await response.json();

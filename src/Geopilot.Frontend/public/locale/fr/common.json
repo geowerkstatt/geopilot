@@ -44,6 +44,7 @@
   "id": "ID",
   "impressum": "Mentions légales",
   "info": "Info",
+  "invalidContentType": "Type de réponse non valide",
   "isAdmin": "Est administrateur",
   "latitude": "Latitude",
   "licenseInformation": "Informations sur la licence",

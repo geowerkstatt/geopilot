@@ -1,5 +1,12 @@
+export enum ContentType {
+  Json = "application/json",
+  Markdown = "ext/markdown",
+  PlainText = "text/plain",
+}
+
 export interface FetchParams extends RequestInit {
   errorMessageLabel?: string;
+  responseType?: ContentType;
 }
 
 export class ApiError extends Error {

@@ -44,6 +44,7 @@
   "id": "ID",
   "impressum": "Impressum",
   "info": "Info",
+  "invalidContentType": "Ungültiger Antworttyp",
   "isAdmin": "Ist Admin",
   "latitude": "Breite",
   "licenseInformation": "Lizenzinformationen",
