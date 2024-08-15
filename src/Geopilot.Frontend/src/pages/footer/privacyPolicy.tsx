@@ -11,7 +11,7 @@ export const PrivacyPolicy = () => {
   const { fetchApi } = useApi();
 
   useEffect(() => {
-    fetchApi<string>("privacy_policy.md", { responseType: ContentType.Markdown }).then(setContent);
+    fetchApi<string>("privacy-policy.md", { responseType: ContentType.Markdown }).then(setContent);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
