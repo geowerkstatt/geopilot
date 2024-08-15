@@ -34,7 +34,7 @@ public class OrganisationController : ControllerBase
     /// </summary>
     [HttpGet]
     [Authorize(Policy = GeopilotPolicies.Admin)]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns list of organisations.", typeof(IEnumerable<Organisation>), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns list of organisations.", typeof(IEnumerable<Organisation>), "application/json")]
     public List<Organisation> Get()
     {
         logger.LogInformation("Getting organisations.");
@@ -53,7 +53,7 @@ public class OrganisationController : ControllerBase
     [SwaggerResponse(StatusCodes.Status201Created, "The organisation was created successfully.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The organisation could not be created due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to create an organisation.")]
-    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Create(Organisation organisation)
     {
         try
@@ -100,7 +100,7 @@ public class OrganisationController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The organisation could not be found.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The organisation could not be updated due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to edit an organisation.")]
-    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), "application/json")]
 
     public async Task<IActionResult> Edit(Organisation organisation)
     {

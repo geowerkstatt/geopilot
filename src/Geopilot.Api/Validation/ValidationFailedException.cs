@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-
-namespace Geopilot.Api.Validation;
+﻿namespace Geopilot.Api.Validation;
 
 /// <summary>
 /// The exception that is thrown when a validation failed.
@@ -34,15 +32,6 @@ public class ValidationFailedException : Exception
     /// <param name="innerException">The exception that is the cause of the current exception.</param>
     public ValidationFailedException(string message, Exception innerException)
         : base(message, innerException)
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ValidationFailedException"/> class
-    /// with serialized data.
-    /// </summary>
-    protected ValidationFailedException(SerializationInfo info, StreamingContext streamingContext)
-        : base(info, streamingContext)
     {
     }
 }

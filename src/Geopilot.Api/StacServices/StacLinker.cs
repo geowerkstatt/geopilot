@@ -137,7 +137,7 @@ public class StacLinker : IStacLinker
         return new StacApiLink(new Uri(uri), "self", null, "application/geo+json");
     }
 
-    private StacLink GetParentLink(StacFeatureCollection collection, IStacApiContext stacApiContext)
+    private StacApiLink GetParentLink(StacFeatureCollection collection, IStacApiContext stacApiContext)
     {
         IList<string> collections = stacApiContext.Collections;
         if (collections != null && collections.Count == 1)
