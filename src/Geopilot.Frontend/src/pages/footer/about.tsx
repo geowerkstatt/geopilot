@@ -31,7 +31,7 @@ export const About = () => {
   const [licenseInfo, setLicenseInfo] = useState<PackageList>();
   const [licenseInfoCustom, setLicenseInfoCustom] = useState<PackageList>();
   const { fetchApi } = useApi();
-  const { version, clientSettings } = useAppSettings();
+  const { version, clientSettings, termsOfUse } = useAppSettings();
 
   useEffect(() => {
     fetchApi<string>("info.md", { responseType: ContentType.Markdown }).then(setInfo);
@@ -43,6 +43,7 @@ export const About = () => {
   return (
     <Box sx={{ maxWidth: "1000px" }}>
       {info && <MarkdownContent content={info} />}
+      {termsOfUse && <MarkdownContent content={termsOfUse} />}
       <Typography variant="h1">{t("versionInformation")}</Typography>
       <p>
         <b>{clientSettings?.application?.name}</b>: {version}

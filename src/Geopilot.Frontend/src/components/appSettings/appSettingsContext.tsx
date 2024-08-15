@@ -1,23 +1,27 @@
 import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
 import { AppSettingsContextInterface, ClientSettings } from "./appSettingsInterface";
 import { useApi } from "../../api";
+import { ContentType } from "../../api/apiInterfaces.ts";
 
 export const AppSettingsContext = createContext<AppSettingsContextInterface>({
   version: undefined,
   clientSettings: undefined,
+  termsOfUse: undefined,
 });
 
 export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const { fetchApi } = useApi();
   const [clientSettings, setClientSettings] = useState<ClientSettings>();
   const [backendVersion, setBackendVersion] = useState("");
+  const [termsOfUse, setTermsOfUse] = useState<string>();
 
   useEffect(() => {
     fetchApi<ClientSettings>("client-settings.json").then(setClientSettings);
-
     fetchApi<string>("/api/v1/version").then(version => {
       setBackendVersion(version.split("+")[0]);
     });
+    fetchApi<string>("terms-of-use.md", { responseType: ContentType.Markdown }).then(setTermsOfUse);
+
     // eslint-disable-next-line
   }, []);
 
@@ -58,6 +62,7 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
       value={{
         version: backendVersion,
         clientSettings: clientSettings,
+        termsOfUse: termsOfUse,
       }}>
       {children}
     </AppSettingsContext.Provider>
