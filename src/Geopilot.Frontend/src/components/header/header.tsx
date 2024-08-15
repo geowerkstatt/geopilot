@@ -209,8 +209,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             </List>
           </Box>
           <Button
-            className="nav-button"
-            sx={{ color: "black" }}
+            variant="contained"
+            sx={{ margin: "0 20px" }}
             onClick={logout}
             startIcon={<LogoutIcon />}
             data-cy="logout-button">

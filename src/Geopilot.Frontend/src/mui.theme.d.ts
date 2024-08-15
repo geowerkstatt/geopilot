@@ -53,6 +53,7 @@ declare module "@mui/material/styles" {
       };
     };
     components?: {
+      MuiSelect: object;
       MuiButtonBase: object;
       MuiAppBar: object;
       MuiDataGrid: object;

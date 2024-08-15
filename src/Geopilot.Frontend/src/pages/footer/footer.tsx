@@ -22,15 +22,21 @@ const Footer = () => {
       className="footer">
       <Button
         onClick={() => {
-          navigate("/privacyPolicy");
+          navigate("/");
+        }}>
+        geopilot
+      </Button>
+      <Button
+        onClick={() => {
+          navigate("/privacy-policy");
         }}>
         {t("privacyPolicy")}
       </Button>
       <Button
         onClick={() => {
-          navigate("/impressum");
+          navigate("/imprint");
         }}>
-        {t("impressum")}
+        {t("imprint")}
       </Button>
       <Button
         onClick={() => {

@@ -1,4 +1,5 @@
 import { createTheme } from "@mui/material/styles";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 export const geopilotTheme = createTheme({
   palette: {
@@ -24,13 +25,6 @@ export const geopilotTheme = createTheme({
   },
   typography: {
     fontFamily: "NeoGeo, sans-serif",
-    body1: {
-      fontSize: "14px",
-      letterSpacing: "0.05em",
-    },
-    body2: {
-      letterSpacing: "0.05em",
-    },
     h1: {
       fontSize: "28px",
       fontWeight: 600,
@@ -57,6 +51,11 @@ export const geopilotTheme = createTheme({
     },
   },
   components: {
+    MuiSelect: {
+      defaultProps: {
+        IconComponent: ExpandMoreIcon,
+      },
+    },
     MuiButtonBase: {
       defaultProps: {
         disableRipple: true,

@@ -11,6 +11,9 @@ import Users from "./pages/admin/users";
 import Mandates from "./pages/admin/mandates";
 import Organisations from "./pages/admin/organisations";
 import Footer from "./pages/footer/footer";
+import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
+import { About } from "./pages/footer/about.tsx";
+import { Imprint } from "./pages/footer/imprint.tsx";
 
 export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
@@ -43,6 +46,9 @@ export const App: FC = () => {
               ) : (
                 <Route path="admin/*" element={<Navigate to="/" replace />} />
               )}
+              <Route path="/imprint" element={<Imprint />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/about" element={<About />} />
             </Routes>
           </PageContentBox>
           <Footer />
