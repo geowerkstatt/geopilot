@@ -25,24 +25,33 @@ export const geopilotTheme = createTheme({
   },
   typography: {
     fontFamily: "NeoGeo, sans-serif",
+    body1: {
+      fontSize: "14px",
+    },
+    body2: {
+      fontSize: "14px",
+    },
     h1: {
       fontSize: "28px",
       fontWeight: 600,
+      marginBottom: "0.5rem",
     },
     h2: {
-      fontSize: "26px",
-      fontWeight: 600,
-    },
-    h3: {
       fontSize: "24px",
       fontWeight: 600,
+      marginBottom: "0.5rem",
+    },
+    h3: {
+      fontSize: "20px",
+      fontWeight: 600,
+      marginBottom: "0.5rem",
     },
     h4: {
-      fontSize: "22px",
+      fontSize: "18px",
       fontWeight: 600,
     },
     h5: {
-      fontSize: "20px",
+      fontSize: "16px",
       fontWeight: 600,
     },
     h6: {

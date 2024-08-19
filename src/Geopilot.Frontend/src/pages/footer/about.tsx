@@ -46,7 +46,7 @@ export const About = () => {
       {termsOfUse && <MarkdownContent content={termsOfUse} />}
       <Typography variant="h1">{t("versionInformation")}</Typography>
       <p>
-        <b>{clientSettings?.application?.name}</b>: {version}
+        <b>geopilot {clientSettings?.application?.name}</b>: {version}
       </p>
       <Typography variant="h1">
         {t("development")} & {t("bugTracking")}
@@ -67,10 +67,10 @@ export const About = () => {
       {licenseInfoCustom &&
         Object.keys(licenseInfoCustom).map(key => (
           <div key={key} className="about-licenses">
-            <h3>
+            <Typography variant="h3">
               {licenseInfoCustom[key].name}
               {licenseInfoCustom[key].version && ` (${t("version")} ${licenseInfoCustom[key].version})`}{" "}
-            </h3>
+            </Typography>
             <p>
               <a href={licenseInfoCustom[key].repository}>{licenseInfoCustom[key].repository}</a>
             </p>
@@ -85,10 +85,10 @@ export const About = () => {
       {licenseInfo &&
         Object.keys(licenseInfo).map(key => (
           <div key={key} className="about-licenses">
-            <h3>
+            <Typography variant="h3">
               {licenseInfo[key].name}
               {licenseInfo[key].version && ` (${t("version")} ${licenseInfo[key].version})`}{" "}
-            </h3>
+            </Typography>
             <p>
               <a href={licenseInfo[key].repository}>{licenseInfo[key].repository}</a>
             </p>
