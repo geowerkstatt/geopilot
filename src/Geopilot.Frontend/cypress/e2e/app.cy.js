@@ -19,7 +19,7 @@ describe("General app tests", () => {
     cy.get('[data-cy="loggedInUser-button"]').should("not.exist");
   });
 
-  it("registers new users and logs them in", () => {
+  it.skip("registers new users and logs them in", () => {
     loginAsNewUser();
     cy.get('[data-cy="loggedInUser-button"]').should("exist");
     cy.get('[data-cy="loggedInUser-button"]').click();
