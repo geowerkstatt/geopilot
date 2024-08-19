@@ -1,0 +1,20 @@
+{
+  "claeis/ili2db": {
+    "licenses": "LGPL",
+    "repository": "https://github.com/claeis/ili2db",
+    "url": "http://www.eisenhutinformatik.ch/",
+    "name": "ili2db",
+    "description": "INTERLIS import/export to relational databases",
+    "copyright": "Copyright (c) 2006 Eisenhut Informatik AG",
+    "licenseText": ""
+  },
+  "claeis/ilivalidator": {
+    "licenses": "LGPL",
+    "repository": "https://github.com/claeis/ilivalidator",
+    "url": "http://www.eisenhutinformatik.ch/",
+    "name": "ilivalidator",
+    "description": "Checks INTERLIS transfer files",
+    "copyright": "Copyright (c) 2006 Eisenhut Informatik AG",
+    "licenseText": ""
+  }
+}

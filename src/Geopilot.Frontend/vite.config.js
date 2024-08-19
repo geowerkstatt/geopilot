@@ -30,4 +30,5 @@ export default defineConfig({
     },
     port: 5173,
   },
+  assetsInclude: ["**/*.md"],
 });

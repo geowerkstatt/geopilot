@@ -23,24 +23,28 @@ const Footer = () => {
       }}
       className="footer">
       <Button
+        data-cy="home-nav"
         onClick={() => {
           navigate("/");
         }}>
         geopilot
       </Button>
       <Button
+        data-cy="privacy-policy-nav"
         onClick={() => {
           navigate("/privacy-policy");
         }}>
         {t("privacyPolicy")}
       </Button>
       <Button
+        data-cy="imprint-nav"
         onClick={() => {
           navigate("/imprint");
         }}>
         {t("imprint")}
       </Button>
       <Button
+        data-cy="about-nav"
         onClick={() => {
           navigate("/about");
         }}>
