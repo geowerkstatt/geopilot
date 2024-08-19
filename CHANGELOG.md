@@ -25,7 +25,7 @@
 - Authenticated users are now registed in the database.
 - First registered user is granted administrator privileges.
 - Redesigned complete application.
-- Renamed public files: _impressum.md_ to _imprint.md_, _datenschutz.md_ to _privacy-policy.md_, _info-hile.md_ to _info.md_ and _nutzungsbestimmungen.md_ to _terms-of-use.md_.
+- Renamed various public files.
 
 ## v1.0.93 - 2024-05-14
 
