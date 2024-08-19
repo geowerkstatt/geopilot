@@ -16,8 +16,10 @@ const Footer = () => {
         display: "flex",
         flexDirection: "row",
         justifyContent: "center",
+        flexWrap: "wrap",
         gap: "10px",
         marginLeft: { xs: "0", md: marginLeft },
+        padding: "0 20px 10px 20px",
       }}
       className="footer">
       <Button
