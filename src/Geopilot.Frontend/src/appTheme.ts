@@ -34,29 +34,38 @@ export const geopilotTheme = createTheme({
     h1: {
       fontSize: "28px",
       fontWeight: 600,
+      marginTop: "1rem",
       marginBottom: "0.5rem",
     },
     h2: {
       fontSize: "24px",
       fontWeight: 600,
+      marginTop: "1rem",
       marginBottom: "0.5rem",
     },
     h3: {
       fontSize: "20px",
       fontWeight: 600,
+      marginTop: "1rem",
       marginBottom: "0.5rem",
     },
     h4: {
       fontSize: "18px",
       fontWeight: 600,
+      marginTop: "1rem",
+      marginBottom: "0.5rem",
     },
     h5: {
       fontSize: "16px",
       fontWeight: 600,
+      marginTop: "1rem",
+      marginBottom: "0.5rem",
     },
     h6: {
       fontSize: "14px",
       fontWeight: 600,
+      marginTop: "1rem",
+      marginBottom: "0.5rem",
     },
   },
   components: {

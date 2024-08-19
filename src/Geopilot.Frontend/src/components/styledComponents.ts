@@ -24,6 +24,7 @@ export const PageContentBox = styled(Box)({
 });
 
 export const CenteredBox = styled(Box)({
+  margin: "40px 0",
   width: "100%",
   maxWidth: "1000px",
   display: "flex",
