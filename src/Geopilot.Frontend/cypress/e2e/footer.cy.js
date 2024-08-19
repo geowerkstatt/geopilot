@@ -52,8 +52,8 @@ describe("Footer tests", () => {
       .each(($el, index) => {
         cy.wrap($el).should("contain.text", expectedHeaders[index]);
       });
-    cy.contains("ili2db");
-    cy.contains("msal-browser");
+    cy.contains("project1");
+    cy.contains("projectA");
   });
 
   it("shows and navigates correctly between footer pages without content", () => {
