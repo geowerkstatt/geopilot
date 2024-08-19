@@ -20,4 +20,12 @@ export const PageContentBox = styled(Box)({
   flex: "1 1 100%",
   display: "flex",
   flexDirection: "column",
+  alignItems: "center",
+});
+
+export const CenteredBox = styled(Box)({
+  width: "100%",
+  maxWidth: "1000px",
+  display: "flex",
+  flexDirection: "column",
 });

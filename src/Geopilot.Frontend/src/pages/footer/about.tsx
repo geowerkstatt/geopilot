@@ -1,10 +1,11 @@
 import { Trans, useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useApi } from "../../api";
-import { Box, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import { MarkdownContent } from "./markdownContent.tsx";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { ContentType } from "../../api/apiInterfaces.ts";
+import { CenteredBox } from "../../components/styledComponents.ts";
 
 interface PackageList {
   [packageName: string]: PackageDetails;
@@ -41,7 +42,7 @@ export const About = () => {
   }, []);
 
   return (
-    <Box sx={{ maxWidth: "1000px" }}>
+    <CenteredBox>
       {info && <MarkdownContent content={info} />}
       {termsOfUse && <MarkdownContent content={termsOfUse} />}
       <Typography variant="h1">{t("versionInformation")}</Typography>
@@ -100,6 +101,6 @@ export const About = () => {
             <p>{licenseInfo[key].licenseText}</p>
           </div>
         ))}
-    </Box>
+    </CenteredBox>
   );
 };
