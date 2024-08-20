@@ -3,7 +3,7 @@ import { CircularProgress, Stack } from "@mui/material";
 import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
 import { Organisation, User } from "../../api/apiInterfaces";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { useApi } from "../../api";
@@ -23,15 +23,15 @@ export const Users = () => {
     }
   }, [users, organisations]);
 
-  function loadUsers() {
+  const loadUsers = useCallback(() => {
     fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
-  }
+  }, [fetchApi]);
 
-  function loadOrganisations() {
+  const loadOrganisations = useCallback(() => {
     fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
       setOrganisations,
     );
-  }
+  }, [fetchApi]);
 
   async function saveUser(user: User) {
     user.organisations = user.organisations?.map(organisationId => {

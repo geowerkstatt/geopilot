@@ -69,6 +69,14 @@ export const geopilotTheme = createTheme({
     },
   },
   components: {
+    MuiAvatar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#3A6060",
+          color: "#ffffff",
+        },
+      },
+    },
     MuiSelect: {
       defaultProps: {
         IconComponent: ExpandMoreIcon,

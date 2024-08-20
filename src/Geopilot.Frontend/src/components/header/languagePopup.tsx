@@ -5,6 +5,7 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import i18n from "../../i18n";
 import { Language } from "../../appInterfaces";
+import { geopilotTheme } from "../../appTheme.ts";
 
 const defaultLanguage = Language.DE;
 
@@ -53,7 +54,7 @@ export function LanguagePopup() {
         endIcon={anchorEl ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         sx={{
           marginRight: "10px",
-          ...(isOpen && { backgroundColor: "primary.hover" }),
+          ...(isOpen && { backgroundColor: geopilotTheme.palette.primary.hover }),
         }}
         data-cy="language-selector">
         {selectedLanguage.toUpperCase()}
@@ -81,7 +82,7 @@ export function LanguagePopup() {
               }}
               sx={{
                 cursor: "pointer",
-                "&:hover": { backgroundColor: "primary.hover" },
+                "&:hover": { backgroundColor: geopilotTheme.palette.primary.hover },
               }}>
               {selectedLanguage === language && (
                 <ListItemIcon sx={{ minWidth: "20px" }}>
