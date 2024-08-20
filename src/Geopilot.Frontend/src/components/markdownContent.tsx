@@ -21,6 +21,7 @@ export const MarkdownContent: FC<MarkdownContentProps> = ({ content }) => {
         h4: props => <Typography component="h4" variant="h4" {...props} />,
         h5: props => <Typography component="h5" variant="h6" {...props} />,
         h6: props => <Typography component="h6" variant="h5" {...props} />,
+        p: props => <Typography component="body1" variant="body1" {...props} />,
       }}>
       {content}
     </ReactMarkdown>
