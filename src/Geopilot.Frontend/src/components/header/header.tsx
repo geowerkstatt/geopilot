@@ -24,7 +24,7 @@ import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { useGeopilotAuth } from "../../auth";
 import { LanguagePopup } from "./languagePopup";
 import MenuIcon from "@mui/icons-material/Menu";
-import { FlexColumnBox, FlexRowBox } from "../styledComponents.ts";
+import { FlexColumnSpaceBetweenBox, FlexRowBox } from "../styledComponents.ts";
 
 interface HeaderProps {
   openSubMenu: () => void;
@@ -60,7 +60,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             flexDirection: "row",
             justifyContent: "space-between",
           }}>
-          <FlexRowBox sx={{ alignItems: "center", padding: "5px 0" }}>
+          <FlexRowBox sx={{ padding: "5px 0" }}>
             <Box sx={{ display: { xs: "block", md: "none" }, flex: "0", marginRight: "10px" }}>
               {hasSubMenu ? (
                 <IconButton
@@ -114,7 +114,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </Box>
           </FlexRowBox>
-          <FlexRowBox sx={{ alignItems: "center" }}>
+          <FlexRowBox>
             <LanguagePopup />
             {enabled &&
               (user ? (
@@ -150,9 +150,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
         </Toolbar>
       </AppBar>
       <Drawer anchor={"right"} open={userMenuOpen} onClose={toggleUserMenu(false)} data-cy="tool-navigation">
-        <FlexColumnBox
+        <FlexColumnSpaceBetweenBox
           sx={{
-            justifyContent: "space-between",
             height: "100%",
             padding: "20px 0",
           }}>
@@ -215,7 +214,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             data-cy="logout-button">
             {t("logOut")}
           </Button>
-        </FlexColumnBox>
+        </FlexColumnSpaceBetweenBox>
       </Drawer>
     </>
   );

@@ -99,7 +99,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
         }}>
         <>
-          <FlexRowBox sx={{ alignItems: "center", padding: "8px 16px" }}>
+          <FlexRowBox sx={{ padding: "8px 16px" }}>
             {clientSettings?.application?.logo && (
               <Box>
                 <img

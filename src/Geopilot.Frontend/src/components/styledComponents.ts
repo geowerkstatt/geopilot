@@ -4,11 +4,28 @@ import { styled } from "@mui/system";
 export const FlexRowBox = styled(Box)({
   display: "flex",
   flexDirection: "row",
+  alignItems: "center",
+});
+
+export const FlexRowSpaceBetweenBox = styled(FlexRowBox)({
+  justifyContent: "space-between",
+});
+
+export const FlexRowCenterBox = styled(FlexRowBox)({
+  justifyContent: "center",
+});
+
+export const FlexRowEndBox = styled(FlexRowBox)({
+  justifyContent: "flex-end",
 });
 
 export const FlexColumnBox = styled(Box)({
   display: "flex",
   flexDirection: "column",
+});
+
+export const FlexColumnSpaceBetweenBox = styled(FlexColumnBox)({
+  justifyContent: "space-between",
 });
 
 export const AppBox = styled(FlexColumnBox)({

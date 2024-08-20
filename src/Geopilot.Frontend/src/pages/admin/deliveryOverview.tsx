@@ -9,7 +9,7 @@ import { AlertContext } from "../../components/alert/alertContext";
 import { ApiError, Delivery } from "../../api/apiInterfaces";
 import { TranslationFunction } from "../../appInterfaces";
 import { useApi } from "../../api";
-import { FlexRowBox } from "../../components/styledComponents.ts";
+import { FlexRowCenterBox } from "../../components/styledComponents.ts";
 
 const useTranslatedColumns = (t: TranslationFunction) => {
   return [
@@ -110,7 +110,7 @@ export const DeliveryOverview = () => {
         hideFooterSelectedRowCount
       />
       {selectedRows.length > 0 && (
-        <FlexRowBox sx={{ justifyContent: "center", marginTop: "20px" }}>
+        <FlexRowCenterBox sx={{ marginTop: "20px" }}>
           <Button
             color="error"
             variant="contained"
@@ -123,7 +123,7 @@ export const DeliveryOverview = () => {
             }}>
             <div>{t("deleteDelivery", { count: selectedRows.length })}</div>
           </Button>
-        </FlexRowBox>
+        </FlexRowCenterBox>
       )}
     </>
   );
