@@ -38,7 +38,6 @@ export const About = () => {
     fetchApi<string>("info.md", { responseType: ContentType.Markdown }).then(setInfo);
     fetchApi<PackageList>("licenses.json", { responseType: ContentType.Json }).then(setLicenseInfo);
     fetchApi<PackageList>("licenses.custom.json", { responseType: ContentType.Json }).then(setLicenseInfoCustom);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

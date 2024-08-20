@@ -13,7 +13,6 @@ export const PrivacyPolicy = () => {
 
   useEffect(() => {
     fetchApi<string>("privacy-policy.md", { responseType: ContentType.Markdown }).then(setContent);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
