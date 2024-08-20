@@ -71,16 +71,18 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                   <MenuIcon fontSize="large" />
                 </IconButton>
               ) : (
-                <Box>
-                  <img
-                    src={clientSettings?.application?.logo}
-                    alt={`Logo of ${clientSettings?.application?.name}`}
-                    style={{ maxHeight: "40px", cursor: "pointer" }}
-                    onClick={() => {
-                      window.open(clientSettings?.application?.url, "_blank");
-                    }}
-                  />
-                </Box>
+                clientSettings?.application?.logo && (
+                  <Box>
+                    <img
+                      src={clientSettings?.application?.logo}
+                      alt={`Logo of ${clientSettings?.application?.name}`}
+                      style={{ maxHeight: "40px", cursor: "pointer" }}
+                      onClick={() => {
+                        window.open(clientSettings?.application?.url, "_blank");
+                      }}
+                    />
+                  </Box>
+                )
               )}
             </Box>
             {clientSettings?.application?.logo && (
