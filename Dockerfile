@@ -82,6 +82,6 @@ ENV LC_ALL=C.UTF-8
 COPY --from=build /app/publish $HOME
 COPY docker-entrypoint.sh /entrypoint.sh
 
-HEALTHCHECK CMD curl --fail http://localhost/health || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:8080/health || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]
