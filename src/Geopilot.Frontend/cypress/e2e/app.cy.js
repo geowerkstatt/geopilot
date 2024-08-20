@@ -14,7 +14,7 @@ describe("General app tests", () => {
     cy.visit("/");
     cy.intercept("/api/v1/user/auth", {
       statusCode: 200,
-      body: {},
+      body: { authority: "", clientId: "" },
     });
     cy.get('[data-cy="loggedInUser-button"]').should("not.exist");
   });
