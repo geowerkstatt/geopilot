@@ -2,7 +2,7 @@ import { Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useApi } from "../../api";
-import { MarkdownContent } from "./markdownContent.tsx";
+import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { CenteredBox } from "../../components/styledComponents.ts";
 
