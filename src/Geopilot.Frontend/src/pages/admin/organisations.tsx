@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { Mandate, Organisation, User } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext";
@@ -24,19 +24,19 @@ export const Organisations = () => {
     }
   }, [organisations, mandates, users]);
 
-  function loadOrganisations() {
+  const loadOrganisations = useCallback(() => {
     fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
       setOrganisations,
     );
-  }
+  }, [fetchApi]);
 
-  function loadMandates() {
+  const loadMandates = useCallback(() => {
     fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" }).then(setMandates);
-  }
+  }, [fetchApi]);
 
-  function loadUsers() {
+  const loadUsers = useCallback(() => {
     fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
-  }
+  }, [fetchApi]);
 
   async function saveOrganisation(organisation: Organisation) {
     organisation.mandates = organisation.mandates?.map(mandateId => {

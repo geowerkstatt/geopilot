@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { useContext, useEffect, useState } from "react";
-import { Mandate, Organisation } from "../../api/apiInterfaces";
-import { Validation } from "../../appInterfaces";
+import { useCallback, useContext, useEffect, useState } from "react";
+import { Mandate, Organisation, ValidationSettings } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
@@ -25,21 +24,23 @@ export const Mandates = () => {
     }
   }, [mandates, organisations, fileExtensions]);
 
-  async function loadMandates() {
-    fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" }).then(setMandates);
-  }
-
-  async function loadOrganisations() {
+  const loadOrganisations = useCallback(() => {
     fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
       setOrganisations,
     );
-  }
+  }, [fetchApi]);
 
-  async function loadFileExtensions() {
-    fetchApi<Validation>("/api/v1/validation", { errorMessageLabel: "fileTypesLoadingError" }).then(validation => {
-      setFileExtensions(validation.allowedFileExtensions);
-    });
-  }
+  const loadMandates = useCallback(() => {
+    fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" }).then(setMandates);
+  }, [fetchApi]);
+
+  const loadFileExtensions = useCallback(() => {
+    fetchApi<ValidationSettings>("/api/v1/validation", { errorMessageLabel: "fileTypesLoadingError" }).then(
+      validation => {
+        setFileExtensions(validation?.allowedFileExtensions);
+      },
+    );
+  }, [fetchApi]);
 
   async function saveMandate(mandate: Mandate) {
     mandate.organisations = mandate.organisations?.map(organisationId => {
