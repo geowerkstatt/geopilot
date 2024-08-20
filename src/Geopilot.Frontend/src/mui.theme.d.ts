@@ -24,6 +24,8 @@ declare module "@mui/material/styles" {
       };
     };
     components: {
+      MuiAvatar: object;
+      MuiSelect: object;
       MuiButtonBase: object;
       MuiAppBar: object;
       MuiDataGrid: object;
@@ -53,6 +55,7 @@ declare module "@mui/material/styles" {
       };
     };
     components?: {
+      MuiAvatar: object;
       MuiSelect: object;
       MuiButtonBase: object;
       MuiAppBar: object;

@@ -129,13 +129,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                   }}
                   onClick={toggleUserMenu(true)}
                   data-cy="loggedInUser-button">
-                  <Avatar
-                    sx={{
-                      backgroundColor: "primary.main",
-                      color: "primary.contrastText",
-                    }}>
-                    {user?.fullName[0].toUpperCase()}
-                  </Avatar>
+                  <Avatar>{user?.fullName[0].toUpperCase()}</Avatar>
                 </IconButton>
               ) : (
                 <>
