@@ -68,7 +68,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   );
 
   return (
-    <div className="admin">
+    <Box sx={{ width: "100%" }}>
       <Drawer
         variant="permanent"
         sx={{
@@ -132,7 +132,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
         }}>
         <Outlet />
       </Box>
-    </div>
+    </Box>
   );
 };
 

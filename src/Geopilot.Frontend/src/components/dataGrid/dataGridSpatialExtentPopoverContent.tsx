@@ -22,7 +22,7 @@ export const DataGridSpatialExtentPopoverContent: FC<SpatialExtentPopoverContent
   };
 
   const renderCoordinateRow = (index: number) => (
-    <div className="spatial-extent-coordinate-row">
+    <Box sx={{ display: "flex", flexDirection: "row", justifyContent: "space-between", marginTop: "20px" }}>
       <Box
         sx={{
           margin: "10px 20px 10px 10px",
@@ -50,11 +50,11 @@ export const DataGridSpatialExtentPopoverContent: FC<SpatialExtentPopoverContent
         value={spatialExtent[index]?.y ?? ""}
         onChange={handleChange(index, "y")}
       />
-    </div>
+    </Box>
   );
 
   return (
-    <div className="spatial-extent-popover">
+    <Box sx={{ padding: "20px" }}>
       <h6>{t("spatialExtent")}</h6>
       {renderCoordinateRow(0)}
       {renderCoordinateRow(1)}
@@ -63,6 +63,6 @@ export const DataGridSpatialExtentPopoverContent: FC<SpatialExtentPopoverContent
           {t("reset")}
         </Button>
       </div>
-    </div>
+    </Box>
   );
 };

@@ -16,23 +16,35 @@ const Footer = () => {
         display: "flex",
         flexDirection: "row",
         justifyContent: "center",
+        flexWrap: "wrap",
         gap: "10px",
         marginLeft: { xs: "0", md: marginLeft },
+        padding: "0 20px 10px 20px",
       }}
       className="footer">
       <Button
+        data-cy="home-nav"
         onClick={() => {
-          navigate("/privacyPolicy");
+          navigate("/");
+        }}>
+        geopilot
+      </Button>
+      <Button
+        data-cy="privacy-policy-nav"
+        onClick={() => {
+          navigate("/privacy-policy");
         }}>
         {t("privacyPolicy")}
       </Button>
       <Button
+        data-cy="imprint-nav"
         onClick={() => {
-          navigate("/impressum");
+          navigate("/imprint");
         }}>
-        {t("impressum")}
+        {t("imprint")}
       </Button>
       <Button
+        data-cy="about-nav"
         onClick={() => {
           navigate("/about");
         }}>

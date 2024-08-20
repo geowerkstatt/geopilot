@@ -101,9 +101,13 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 flexDirection: { xs: "column", md: "row" },
                 alignItems: { xs: "start", md: "center" },
               }}>
-              <Typography sx={{ typography: { xs: "h4", md: "h1" } }}>geopilot&nbsp;</Typography>
+              <Typography sx={{ typography: { xs: "h4", md: "h1" }, margin: "0 !important" }}>
+                geopilot&nbsp;
+              </Typography>
               {clientSettings?.application?.name && (
-                <Typography sx={{ typography: { xs: "h6", md: "h1" } }}>{clientSettings?.application?.name}</Typography>
+                <Typography sx={{ typography: { xs: "h6", md: "h1" }, margin: "0 !important" }}>
+                  {clientSettings?.application?.name}
+                </Typography>
               )}
             </Box>
           </Box>
@@ -209,8 +213,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             </List>
           </Box>
           <Button
-            className="nav-button"
-            sx={{ color: "black" }}
+            variant="contained"
+            sx={{ margin: "0 20px" }}
             onClick={logout}
             startIcon={<LogoutIcon />}
             data-cy="logout-button">

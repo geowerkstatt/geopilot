@@ -25,6 +25,7 @@
 - Authenticated users are now registed in the database.
 - First registered user is granted administrator privileges.
 - Redesigned complete application.
+- Renamed various public files.
 
 ## v1.0.93 - 2024-05-14
 
