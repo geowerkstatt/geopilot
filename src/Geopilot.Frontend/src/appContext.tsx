@@ -19,7 +19,7 @@ import { frFR as gridFr } from "@mui/x-data-grid/locales/frFR";
 import { itIT as gridIt } from "@mui/x-data-grid/locales/itIT";
 import { createTheme, CustomTheme } from "@mui/material/styles";
 
-export const AppBase = () => {
+export const AppContext = () => {
   const [language, setLanguage] = useState<Language>(Language.EN);
   const [theme, setTheme] = useState<CustomTheme>(geopilotTheme);
 
