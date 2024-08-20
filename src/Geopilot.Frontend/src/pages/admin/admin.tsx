@@ -3,6 +3,7 @@ import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Typ
 import { FC } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
+import { FlexRowBox } from "../../components/styledComponents.ts";
 
 interface AdminProps {
   isSubMenuOpen: boolean;
@@ -98,7 +99,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
         }}>
         <>
-          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", padding: "8px 16px" }}>
+          <FlexRowBox sx={{ alignItems: "center", padding: "8px 16px" }}>
             {clientSettings?.application?.logo && (
               <Box>
                 <img
@@ -120,7 +121,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
                 <Typography sx={{ typography: { xs: "h6", md: "h1" } }}>{clientSettings?.application?.name}</Typography>
               )}
             </Box>
-          </Box>
+          </FlexRowBox>
           {drawerContent}
         </>
       </Drawer>

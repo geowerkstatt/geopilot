@@ -2,13 +2,14 @@ import { useContext, useEffect, useState } from "react";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
-import { Box, Button } from "@mui/material";
+import { Button } from "@mui/material";
 import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { AlertContext } from "../../components/alert/alertContext";
 import { ApiError, Delivery } from "../../api/apiInterfaces";
 import { TranslationFunction } from "../../appInterfaces";
 import { useApi } from "../../api";
+import { FlexRowBox } from "../../components/styledComponents.ts";
 
 const useTranslatedColumns = (t: TranslationFunction) => {
   return [
@@ -109,7 +110,7 @@ export const DeliveryOverview = () => {
         hideFooterSelectedRowCount
       />
       {selectedRows.length > 0 && (
-        <Box sx={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
+        <FlexRowBox sx={{ justifyContent: "center", marginTop: "20px" }}>
           <Button
             color="error"
             variant="contained"
@@ -122,7 +123,7 @@ export const DeliveryOverview = () => {
             }}>
             <div>{t("deleteDelivery", { count: selectedRows.length })}</div>
           </Button>
-        </Box>
+        </FlexRowBox>
       )}
     </>
   );

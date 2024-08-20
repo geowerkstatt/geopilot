@@ -1,32 +1,34 @@
 import { Box } from "@mui/material";
 import { styled } from "@mui/system";
 
-export const AppBox = styled(Box)({
+export const FlexRowBox = styled(Box)({
+  display: "flex",
+  flexDirection: "row",
+});
+
+export const FlexColumnBox = styled(Box)({
   display: "flex",
   flexDirection: "column",
+});
+
+export const AppBox = styled(FlexColumnBox)({
   height: "100vh",
 });
 
-export const LayoutBox = styled(Box)({
+export const LayoutBox = styled(FlexColumnBox)({
   marginTop: "60px",
   flex: "1 1 100%",
-  display: "flex",
-  flexDirection: "column",
   minHeight: "calc(100vh - 60px)",
 });
 
-export const PageContentBox = styled(Box)({
+export const PageContentBox = styled(FlexColumnBox)({
   padding: "20px",
   flex: "1 1 100%",
-  display: "flex",
-  flexDirection: "column",
   alignItems: "center",
 });
 
-export const CenteredBox = styled(Box)({
+export const CenteredBox = styled(FlexColumnBox)({
   margin: "40px 0",
   width: "100%",
   maxWidth: "1000px",
-  display: "flex",
-  flexDirection: "column",
 });

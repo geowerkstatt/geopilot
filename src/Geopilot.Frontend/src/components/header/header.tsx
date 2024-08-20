@@ -24,6 +24,7 @@ import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { useGeopilotAuth } from "../../auth";
 import { LanguagePopup } from "./languagePopup";
 import MenuIcon from "@mui/icons-material/Menu";
+import { FlexColumnBox, FlexRowBox } from "../styledComponents.ts";
 
 interface HeaderProps {
   openSubMenu: () => void;
@@ -59,7 +60,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             flexDirection: "row",
             justifyContent: "space-between",
           }}>
-          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", padding: "5px 0" }}>
+          <FlexRowBox sx={{ alignItems: "center", padding: "5px 0" }}>
             <Box sx={{ display: { xs: "block", md: "none" }, flex: "0", marginRight: "10px" }}>
               {hasSubMenu ? (
                 <IconButton
@@ -112,8 +113,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 </Typography>
               )}
             </Box>
-          </Box>
-          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+          </FlexRowBox>
+          <FlexRowBox sx={{ alignItems: "center" }}>
             <LanguagePopup />
             {enabled &&
               (user ? (
@@ -145,14 +146,12 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                   </IconButton>
                 </>
               ))}
-          </Box>
+          </FlexRowBox>
         </Toolbar>
       </AppBar>
       <Drawer anchor={"right"} open={userMenuOpen} onClose={toggleUserMenu(false)} data-cy="tool-navigation">
-        <Box
+        <FlexColumnBox
           sx={{
-            display: "flex;",
-            flexDirection: "column",
             justifyContent: "space-between",
             height: "100%",
             padding: "20px 0",
@@ -216,7 +215,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             data-cy="logout-button">
             {t("logOut")}
           </Button>
-        </Box>
+        </FlexColumnBox>
       </Drawer>
     </>
   );
