@@ -20,10 +20,8 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
     fetchApi<string>("/api/v1/version").then(version => {
       setBackendVersion(version.split("+")[0]);
     });
-    fetchApi<string>("terms-of-use.md", { responseType: ContentType.Markdown }).then(setTermsOfUse);
-
-    // eslint-disable-next-line
-  }, []);
+      fetchApi<string>("terms-of-use.md", { responseType: ContentType.Markdown }).then(setTermsOfUse);
+  }, [fetchApi]);
 
   useEffect(() => {
     const link = document.querySelector("link[rel=icon]");

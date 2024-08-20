@@ -17,8 +17,7 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
       },
       errorMessageLabel: "userLoadingError",
     }).then(setUser);
-    // eslint-disable-next-line
-  }, [auth?.user?.id_token]);
+  }, [auth?.user?.id_token, fetchApi]);
 
   useEffect(() => {
     if (auth?.isAuthenticated) {

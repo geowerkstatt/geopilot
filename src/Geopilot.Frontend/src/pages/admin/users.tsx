@@ -73,8 +73,7 @@ export const Users = () => {
         loadOrganisations();
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadOrganisations, loadUsers, organisations, user?.isAdmin, users]);
 
   const columns: GridColDef[] = [
     {

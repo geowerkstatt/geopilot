@@ -26,8 +26,7 @@ export const ApiAuthConfigurationProvider: FC<PropsWithChildren> = ({ children }
     return () => {
       clearInterval(interval);
     };
-    // eslint-disable-next-line
-  }, [apiAuthSettings]);
+  }, [apiAuthSettings, loadAuthSettings]);
 
   return (
     <ApiAuthConfigurationContext.Provider value={apiAuthSettings}>{children}</ApiAuthConfigurationContext.Provider>
