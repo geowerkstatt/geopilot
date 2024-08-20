@@ -13,7 +13,7 @@ export const PrivacyPolicy = () => {
 
   useEffect(() => {
     fetchApi<string>("privacy-policy.md", { responseType: ContentType.Markdown }).then(setContent);
-  }, []);
+  }, [fetchApi]);
 
   return (
     <CenteredBox>

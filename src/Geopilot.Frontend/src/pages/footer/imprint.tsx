@@ -13,7 +13,7 @@ export const Imprint = () => {
 
   useEffect(() => {
     fetchApi<string>("imprint.md", { responseType: ContentType.Markdown }).then(setContent);
-  }, []);
+  }, [fetchApi]);
 
   return (
     <CenteredBox>
