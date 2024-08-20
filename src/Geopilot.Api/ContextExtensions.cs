@@ -1,5 +1,4 @@
 ﻿using Bogus;
-using Bogus.DataSets;
 using Geopilot.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
@@ -13,6 +12,7 @@ namespace Geopilot.Api;
 internal static class ContextExtensions
 {
     private static readonly double[] extentCh = new double[] { 7.536621, 46.521076, 9.398804, 47.476376 };
+    private static readonly DateTime referenceDateTime = DateTime.Parse("01.11.2023 00:00:00", new CultureInfo("de_CH", false));
 
     /// <summary>
     /// Retreives the user that matches the provided principal from the database.
@@ -30,9 +30,6 @@ internal static class ContextExtensions
     {
         var transaction = context.Database.BeginTransaction();
 
-        // Set Bogus Data System Clock
-        Date.SystemClock = () => DateTime.Parse("01.11.2023 00:00:00", new CultureInfo("de_CH", false));
-
         context.SeedUsers();
         context.SeedOrganisations();
         context.SeedMandates();
@@ -46,6 +43,7 @@ internal static class ContextExtensions
     public static void SeedUsers(this Context context)
     {
         var userFaker = new Faker<User>()
+            .UseDateTimeReference(referenceDateTime)
             .StrictMode(true)
             .RuleFor(u => u.Id, _ => 0)
             .RuleFor(u => u.AuthIdentifier, f => f.Random.Uuid().ToString())
@@ -79,6 +77,7 @@ internal static class ContextExtensions
     public static void SeedOrganisations(this Context context)
     {
         var organisationFaker = new Faker<Organisation>()
+            .UseDateTimeReference(referenceDateTime)
             .StrictMode(true)
             .RuleFor(o => o.Id, _ => 0)
             .RuleFor(o => o.Name, f => f.Company.CompanyName())
@@ -114,6 +113,7 @@ internal static class ContextExtensions
     {
         var knownFileFormats = new string[] { ".xtf", ".gpkg", ".*", ".itf", ".xml", ".zip", ".csv" };
         var mandateFaker = new Faker<Mandate>()
+            .UseDateTimeReference(referenceDateTime)
             .RuleFor(o => o.Id, f => 0)
             .RuleFor(o => o.Name, f => f.Commerce.ProductName())
             .RuleFor(o => o.FileTypes, f => f.PickRandom(knownFileFormats, 4).Distinct().ToArray())
@@ -136,6 +136,7 @@ internal static class ContextExtensions
                 .ToList();
 
         var deliveryFaker = new Faker<Delivery>()
+            .UseDateTimeReference(referenceDateTime)
             .StrictMode(true)
             .RuleFor(d => d.Id, 0)
             .RuleFor(d => d.JobId, f => f.Random.Guid())
@@ -162,6 +163,7 @@ internal static class ContextExtensions
     public static void SeedAssets(this Context context)
     {
         var assetFaker = new Faker<Asset>()
+            .UseDateTimeReference(referenceDateTime)
             .StrictMode(true)
             .RuleFor(a => a.Id, _ => 0)
             .RuleFor(a => a.FileHash, f => SHA256.HashData(f.Random.Bytes(10)))

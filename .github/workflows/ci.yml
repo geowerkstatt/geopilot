@@ -16,7 +16,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "7.0"
+          dotnet-version: "8.0"
 
       - name: Install dependencies
         run: dotnet restore Geopilot.sln
@@ -36,7 +36,7 @@ jobs:
         run: npm run lint
 
       - name: Start test db
-        run: docker compose up -d db
+        run: docker compose up -d --wait --wait-timeout 30 db
 
       - name: Test
         run: dotnet test Geopilot.sln -c Release --no-build --verbosity normal

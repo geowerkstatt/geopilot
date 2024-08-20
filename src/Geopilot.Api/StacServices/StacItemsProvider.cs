@@ -31,7 +31,7 @@ public class StacItemsProvider : IItemsProvider
         {
             try
             {
-                return db.MandatesWithIncludes.FirstOrDefault(m => stacConverter.GetCollectionId(m) == collection)?.Deliveries?.Any() ?? false;
+                return db.MandatesWithIncludes.FirstOrDefault(m => stacConverter.GetCollectionId(m) == collection)?.Deliveries?.Count > 0;
             }
             catch (Exception ex)
             {
@@ -80,7 +80,7 @@ public class StacItemsProvider : IItemsProvider
         using var db = contextFactory.CreateDbContext();
         var mandates = db.MandatesWithIncludes.AsNoTracking().ToList();
 
-        if (collectionIds?.Any() == true)
+        if (collectionIds?.Count > 0)
         {
             mandates = mandates.FindAll(m => collectionIds.Contains(stacConverter.GetCollectionId(m)));
         }

@@ -55,7 +55,7 @@ public class StacConverter
         var collectionId = GetCollectionId(mandate);
         var items = mandate.Deliveries
             .Select(ToStacItem)
-            .ToDictionary(i => i.Links.First(l => l.RelationshipType.ToLowerInvariant() == "self").Uri);
+            .ToDictionary(i => i.Links.First(l => l.RelationshipType.Equals("self", StringComparison.OrdinalIgnoreCase)).Uri);
 
         if (items.Values.Count == 0)
         {

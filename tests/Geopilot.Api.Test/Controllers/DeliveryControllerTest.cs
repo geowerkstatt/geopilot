@@ -250,7 +250,7 @@ public class DeliveryControllerTest
             .ToList();
 
         Assert.IsNotNull(list);
-        Assert.IsTrue(accessibleDeliveries.Any());
+        Assert.AreNotEqual(0, accessibleDeliveries.Count);
         Assert.AreEqual(accessibleDeliveries.Count, list.Count);
         CollectionAssert.AllItemsAreUnique(list);
     }
@@ -263,7 +263,7 @@ public class DeliveryControllerTest
         context.SaveChanges();
         deliveryController.SetupTestUser(admin);
         var mandateId = context.Mandates
-            .Where(m => m.Deliveries.Any())
+            .Where(m => m.Deliveries.Count != 0)
             .First()
             .Id;
 
@@ -295,7 +295,7 @@ public class DeliveryControllerTest
         var user = context.Users.First(u => !u.IsAdmin);
         deliveryController.SetupTestUser(user);
         var mandateId = context.Mandates
-            .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id) && m.Deliveries.Any())
+            .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id) && m.Deliveries.Count != 0)
             .First()
             .Id;
 
@@ -308,7 +308,7 @@ public class DeliveryControllerTest
             .Deliveries;
 
         Assert.IsNotNull(list);
-        Assert.IsTrue(deliveris.Any());
+        Assert.AreNotEqual(0, deliveris.Count);
         Assert.AreEqual(deliveris.Count, list.Count);
         CollectionAssert.AllItemsAreUnique(list);
     }

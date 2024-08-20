@@ -41,7 +41,7 @@ public class ValidationController : ControllerBase
     /// </summary>
     /// <returns>Configuration settings for validations.</returns>
     [HttpGet]
-    [SwaggerResponse(StatusCodes.Status200OK, "The specified settings for uploading files.", typeof(ValidationSettingsResponse), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "The specified settings for uploading files.", typeof(ValidationSettingsResponse), "application/json")]
     public async Task<IActionResult> GetValidationSettings()
     {
         return Ok(new ValidationSettingsResponse
@@ -89,13 +89,13 @@ public class ValidationController : ControllerBase
     /// </remarks>
     /// <returns>Information for a newly created validation job.</returns>
     [HttpPost]
-    [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(ValidationJobStatus), new[] { "application/json" })]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(ValidationJobStatus), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status413PayloadTooLarge, "The file is too large. Max allowed request body size is 200 MB.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError,
         "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely the file could not be written or the file extension is not supported.",
         typeof(ProblemDetails),
-        new[] { "application/json" })]
+        "application/json")]
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1629:DocumentationTextMustEndWithAPeriod", Justification = "Not applicable for code examples.")]
     public async Task<IActionResult> UploadAsync(ApiVersion version, IFormFile file)
     {
@@ -138,9 +138,9 @@ public class ValidationController : ControllerBase
     /// <param name="jobId" example="2e71ae96-e6ad-4b67-b817-f09412d09a2c">The job identifier.</param>
     /// <returns>The status information for the specified <paramref name="jobId"/>.</returns>
     [HttpGet("{jobId}")]
-    [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(ValidationJobStatus), new[] { "application/json" })]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
-    [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(ValidationJobStatus), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), "application/json")]
     public IActionResult GetStatus(Guid jobId)
     {
         logger.LogTrace("Status for job <{JobId}> requested.", jobId);
@@ -163,8 +163,8 @@ public class ValidationController : ControllerBase
     /// <returns>The <paramref name="file"/> for the specified <paramref name="jobId"/>.</returns>
     [HttpGet("{jobId}/files/{file}")]
     [SwaggerResponse(StatusCodes.Status200OK, "The specified log file was found.")]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), new[] { "application/json" })]
-    [SwaggerResponse(StatusCodes.Status404NotFound, "The job or log file cannot be found.", typeof(ProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The job or log file cannot be found.", typeof(ProblemDetails), "application/json")]
     public IActionResult Download(Guid jobId, string file)
     {
         logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", HttpUtility.HtmlEncode(file), jobId);

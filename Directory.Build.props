@@ -8,9 +8,9 @@
     <PackageProjectUrl>https://github.com/GeoWerkstatt/geopilot</PackageProjectUrl>
     <RepositoryUrl>https://github.com/GeoWerkstatt/geopilot.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <AnalysisLevel>7.0-recommended</AnalysisLevel>
+    <AnalysisLevel>8.0-recommended</AnalysisLevel>
     <IsPackable>false</IsPackable>
-    <VersionPrefix>1.0</VersionPrefix>
+    <VersionPrefix>1.1</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj' And '$(MSBuildProjectExtension)' != '.esproj'">
