@@ -36,7 +36,7 @@ jobs:
         run: npm run lint
 
       - name: Start test db
-        run: docker compose up -d db
+        run: docker compose up -d --wait --wait-timeout 30 db
 
       - name: Test
         run: dotnet test Geopilot.sln -c Release --no-build --verbosity normal
