@@ -33,6 +33,9 @@ export const geopilotTheme = createTheme({
       fontSize: "14px",
       letterSpacing: "0.05em",
     },
+    caption: {
+      letterSpacing: "0.1em",
+    },
     h1: {
       fontSize: "28px",
       fontWeight: 600,
