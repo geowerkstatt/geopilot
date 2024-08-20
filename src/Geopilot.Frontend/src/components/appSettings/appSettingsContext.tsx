@@ -18,8 +18,7 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
     fetchApi<string>("/api/v1/version").then(version => {
       setBackendVersion(version.split("+")[0]);
     });
-    // eslint-disable-next-line
-  }, []);
+  }, [fetchApi]);
 
   useEffect(() => {
     const link = document.querySelector("link[rel=icon]");

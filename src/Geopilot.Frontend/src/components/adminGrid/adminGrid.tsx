@@ -132,8 +132,7 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
         [defaultRow.id]: { mode: GridRowModes.Edit, fieldToFocus: columns[0].field },
       }));
     }
-    // eslint-disable-next-line
-  }, [rows]);
+  }, [columns, defaultRow.id, editingRow, paginationModel.pageSize, rows]);
 
   const handleEditClick = (id: GridRowId) => () => {
     setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });

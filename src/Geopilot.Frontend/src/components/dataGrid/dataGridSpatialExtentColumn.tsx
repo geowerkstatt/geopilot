@@ -45,8 +45,7 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
 
   useEffect(() => {
     setDefaultSpatialExtent();
-    // eslint-disable-next-line
-  }, []);
+  }, [setDefaultSpatialExtent]);
 
   return (
     <>

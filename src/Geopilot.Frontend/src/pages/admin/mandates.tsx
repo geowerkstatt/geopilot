@@ -84,8 +84,7 @@ export const Mandates = () => {
         loadFileExtensions();
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fileExtensions, loadFileExtensions, loadMandates, loadOrganisations, mandates, organisations, user?.isAdmin]);
 
   const columns: GridColDef[] = [
     {
