@@ -2,9 +2,9 @@
   "application": {
     "name": "geowerkstatt",
     "url": "https://github.com/GeoWerkstatt/geopilot",
-    "logo": "/emblem-black.png",
-    "favicon": "/emblem-black.png",
-    "faviconDark": "/emblem-neon.png"
+    "logo": "/logo.png",
+    "favicon": "/logo.png",
+    "faviconDark": "/logo-dark.png"
   },
   "authScopes": ["openid", "email", "profile"]
 }
