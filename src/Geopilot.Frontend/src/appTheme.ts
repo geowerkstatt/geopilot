@@ -5,12 +5,14 @@ export const geopilotTheme = createTheme({
   palette: {
     primary: {
       main: "#3A6060",
-      hover: "#3A60600A",
+      inactive: "#3A606099",
+      hover: "#3A60600D",
       contrastText: "#ffffff",
     },
     secondary: {
       main: "#00ff97",
-      hover: "#00ff970A",
+      inactive: "#00ff9799",
+      hover: "#00ff970D",
       contrastText: "#000",
     },
     warning: {

@@ -5,11 +5,13 @@ declare module "@mui/material/styles" {
     palette: {
       primary: {
         main: string;
+        inactive: string;
         hover: string;
         contrastText: string;
       };
       secondary: {
         main: string;
+        inactive: string;
         hover: string;
         contrastText: string;
       };
@@ -36,11 +38,13 @@ declare module "@mui/material/styles" {
     palette?: {
       primary: {
         main: string;
+        inactive: string;
         hover: string;
         contrastText: string;
       };
       secondary: {
         main: string;
+        inactive: string;
         hover: string;
         contrastText: string;
       };
