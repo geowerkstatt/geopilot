@@ -20,7 +20,7 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
     fetchApi<string>("/api/v1/version").then(version => {
       setBackendVersion(version.split("+")[0]);
     });
-      fetchApi<string>("terms-of-use.md", { responseType: ContentType.Markdown }).then(setTermsOfUse);
+    fetchApi<string>("terms-of-use.md", { responseType: ContentType.Markdown }).then(setTermsOfUse);
   }, [fetchApi]);
 
   useEffect(() => {
