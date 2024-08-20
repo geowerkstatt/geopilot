@@ -1,6 +1,6 @@
 import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n";
-import { ThemeProvider } from "@mui/material";
+import { GlobalStyles, ThemeProvider } from "@mui/material";
 import { PromptProvider } from "./components/prompt/promptContext.tsx";
 import { Prompt } from "./components/prompt/prompt.tsx";
 import { AlertProvider } from "./components/alert/alertContext.tsx";
@@ -62,6 +62,15 @@ export const AppContext = () => {
   return (
     <I18nextProvider i18n={i18n}>
       <ThemeProvider theme={theme}>
+        <GlobalStyles
+          styles={{
+            ":root": {
+              "--bs-body-font-family": '"NeoGeo", sans-serif',
+              "--bs-body-font-size": "16px",
+              "--bs-body-letter-spacing": "0.05em",
+            },
+          }}
+        />
         <PromptProvider>
           <Prompt />
           <AlertProvider>

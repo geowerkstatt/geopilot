@@ -1,8 +1,0 @@
-body, p, h1, h2, h3, h4, h5, h6, em, strong, small, mark, del, ins, sub, sup, blockquote, q, ul, ol, li, a, img, table, tr, td, th, video, audio, iframe, form, input, textarea, button, header, footer, section, article, nav, aside, figure, figcaption {
-  font-family: 'NeoGeo', "system-ui", sans-serif;
-  letter-spacing: 0.05em;
-}
-
-body, p, span {
-  font-size: 14px;
-}
