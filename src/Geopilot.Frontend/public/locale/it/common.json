@@ -90,7 +90,7 @@
   "userSaveError": "Si è verificato un errore durante il salvataggio dell'utente: {{error}}",
   "users": "Utenti",
   "usersLoadingError": "Si è verificato un errore durante il caricamento degli utenti: {{error}}",
-  "validate": "Valida",
+  "validate": "Validare",
   "version": "Versione",
   "versionInformation": "Informazioni sulla versione"
 }
