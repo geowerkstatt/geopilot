@@ -3,11 +3,10 @@ import { CircularProgress, Stack } from "@mui/material";
 import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
 import { Organisation, User } from "../../api/apiInterfaces";
-import { ErrorResponse } from "../../appInterfaces";
 import { useContext, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
-import { AlertContext } from "../../components/alert/alertContext";
 import { PromptContext } from "../../components/prompt/promptContext";
+import { useApi } from "../../api";
 
 export const Users = () => {
   const { t } = useTranslation();
@@ -15,8 +14,8 @@ export const Users = () => {
   const [users, setUsers] = useState<User[]>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { showAlert } = useContext(AlertContext);
   const { showPrompt } = useContext(PromptContext);
+  const { fetchApi } = useApi();
 
   useEffect(() => {
     if (users && organisations) {
@@ -24,58 +23,25 @@ export const Users = () => {
     }
   }, [users, organisations]);
 
-  async function loadUsers() {
-    try {
-      const response = await fetch("/api/v1/user");
-      if (response.ok) {
-        const results = await response.json();
-        setUsers(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("usersLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("usersLoadingError", { error: error }), "error");
-    }
+  function loadUsers() {
+    fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
   }
 
-  async function loadOrganisations() {
-    try {
-      const response = await fetch("/api/v1/organisation");
-      if (response.ok) {
-        const results = await response.json();
-        setOrganisations(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("organisationsLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("organisationsLoadingError", { error: error }), "error");
-    }
+  function loadOrganisations() {
+    fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
+      setOrganisations,
+    );
   }
 
   async function saveUser(user: User) {
-    try {
-      user.organisations = user.organisations?.map(organisationId => {
-        return { id: organisationId as number } as Organisation;
-      });
-      const response = await fetch("/api/v1/user", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(user),
-      });
-
-      if (response.ok) {
-        loadUsers();
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("userSaveError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("userSaveError", { error: error }), "error");
-    }
+    user.organisations = user.organisations?.map(organisationId => {
+      return { id: organisationId as number } as Organisation;
+    });
+    fetchApi("/api/v1/user", {
+      method: "PUT",
+      body: JSON.stringify(user),
+      errorMessageLabel: "userSaveError",
+    }).then(loadUsers);
   }
 
   async function onSave(row: DataRow) {
@@ -107,8 +73,7 @@ export const Users = () => {
         loadOrganisations();
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadOrganisations, loadUsers, organisations, user?.isAdmin, users]);
 
   const columns: GridColDef[] = [
     {

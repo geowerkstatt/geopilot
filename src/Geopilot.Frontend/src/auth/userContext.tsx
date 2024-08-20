@@ -1,24 +1,23 @@
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { User } from "../api/apiInterfaces";
 import { useAuth } from "react-oidc-context";
+import { useApi } from "../api";
 
 export const UserContext = createContext<User | undefined>(undefined);
 
 export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<User>();
   const auth = useAuth();
+  const { fetchApi } = useApi();
 
   const fetchUserInfo = useCallback(async () => {
-    const userResult = await fetch("/api/v1/user/self", {
+    fetchApi<User>("/api/v1/user/self", {
       headers: {
         Authorization: `Bearer ${auth.user?.id_token}`,
       },
-    });
-    if (!userResult.ok) throw new Error(userResult.statusText);
-
-    const user = ((await userResult.json()) as User) ?? undefined;
-    setUser(user);
-  }, [auth?.user?.id_token]);
+      errorMessageLabel: "userLoadingError",
+    }).then(setUser);
+  }, [auth?.user?.id_token, fetchApi]);
 
   useEffect(() => {
     if (auth?.isAuthenticated) {

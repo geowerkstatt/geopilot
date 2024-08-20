@@ -1,6 +1,6 @@
 import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
 import { AppSettingsContextInterface, ClientSettings } from "./appSettingsInterface";
-import { runFetch } from "../../api/fetch";
+import { useApi } from "../../api";
 
 export const AppSettingsContext = createContext<AppSettingsContextInterface>({
   version: undefined,
@@ -8,15 +8,17 @@ export const AppSettingsContext = createContext<AppSettingsContextInterface>({
 });
 
 export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
+  const { fetchApi } = useApi();
   const [clientSettings, setClientSettings] = useState<ClientSettings>();
   const [backendVersion, setBackendVersion] = useState("");
 
   useEffect(() => {
-    runFetch("client-settings.json").then(setClientSettings);
-    runFetch("/api/v1/version").then(version => {
+    fetchApi<ClientSettings>("client-settings.json").then(setClientSettings);
+
+    fetchApi<string>("/api/v1/version").then(version => {
       setBackendVersion(version.split("+")[0]);
     });
-  }, []);
+  }, [fetchApi]);
 
   useEffect(() => {
     const link = document.querySelector("link[rel=icon]");

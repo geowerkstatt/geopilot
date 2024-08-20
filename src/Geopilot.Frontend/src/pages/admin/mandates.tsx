@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { useContext, useEffect, useState } from "react";
 import { Mandate, Organisation } from "../../api/apiInterfaces";
-import { ErrorResponse, Validation } from "../../appInterfaces";
+import { Validation } from "../../appInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
-import { AlertContext } from "../../components/alert/alertContext";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { CircularProgress, Stack } from "@mui/material";
+import { useApi } from "../../api";
 
 export const Mandates = () => {
   const { t } = useTranslation();
@@ -16,8 +16,8 @@ export const Mandates = () => {
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [fileExtensions, setFileExtensions] = useState<string[]>();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { showAlert } = useContext(AlertContext);
   const { showPrompt } = useContext(PromptContext);
+  const { fetchApi } = useApi();
 
   useEffect(() => {
     if (mandates && organisations && fileExtensions) {
@@ -26,72 +26,30 @@ export const Mandates = () => {
   }, [mandates, organisations, fileExtensions]);
 
   async function loadMandates() {
-    try {
-      const response = await fetch("/api/v1/mandate");
-      if (response.ok) {
-        const results = await response.json();
-        setMandates(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("mandatesLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("mandatesLoadingError", { error: error }), "error");
-    }
+    fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" }).then(setMandates);
   }
 
   async function loadOrganisations() {
-    try {
-      const response = await fetch("/api/v1/organisation");
-      if (response.ok) {
-        const results = await response.json();
-        setOrganisations(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("organisationsLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("organisationsLoadingError", { error: error }), "error");
-    }
+    fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
+      setOrganisations,
+    );
   }
 
   async function loadFileExtensions() {
-    try {
-      const response = await fetch("/api/v1/validation");
-      if (response.ok) {
-        const results: Validation = await response.json();
-        setFileExtensions(results.allowedFileExtensions);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("fileTypesLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("fileTypesLoadingError", { error: error }), "error");
-    }
+    fetchApi<Validation>("/api/v1/validation", { errorMessageLabel: "fileTypesLoadingError" }).then(validation => {
+      setFileExtensions(validation.allowedFileExtensions);
+    });
   }
 
   async function saveMandate(mandate: Mandate) {
-    try {
-      mandate.organisations = mandate.organisations?.map(organisationId => {
-        return { id: organisationId as number } as Organisation;
-      });
-      const response = await fetch("/api/v1/mandate", {
-        method: mandate.id === 0 ? "POST" : "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(mandate),
-      });
-
-      if (response.ok) {
-        loadMandates();
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("mandateSaveError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("mandateSaveError", { error: error }), "error");
-    }
+    mandate.organisations = mandate.organisations?.map(organisationId => {
+      return { id: organisationId as number } as Organisation;
+    });
+    fetchApi("/api/v1/mandate", {
+      method: mandate.id === 0 ? "POST" : "PUT",
+      body: JSON.stringify(mandate),
+      errorMessageLabel: "mandateSaveError",
+    }).then(() => loadMandates);
   }
 
   async function onSave(row: DataRow) {
@@ -126,8 +84,7 @@ export const Mandates = () => {
         loadFileExtensions();
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fileExtensions, loadFileExtensions, loadMandates, loadOrganisations, mandates, organisations, user?.isAdmin]);
 
   const columns: GridColDef[] = [
     {

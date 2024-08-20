@@ -6,8 +6,9 @@ import { Box, Button } from "@mui/material";
 import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { AlertContext } from "../../components/alert/alertContext";
-import { Delivery } from "../../api/apiInterfaces";
+import { ApiError, Delivery } from "../../api/apiInterfaces";
 import { TranslationFunction } from "../../appInterfaces";
+import { useApi } from "../../api";
 
 const useTranslatedColumns = (t: TranslationFunction) => {
   return [
@@ -21,43 +22,48 @@ const useTranslatedColumns = (t: TranslationFunction) => {
       },
       width: 180,
     },
-    { field: "user", headerName: t("deliveredBy"), flex: 0.5, minWidth: 200 },
-    { field: "mandate", headerName: t("mandate"), flex: 0.5, minWidth: 200 },
+    { field: "userName", headerName: t("deliveredBy"), flex: 0.5, minWidth: 200 },
+    { field: "mandateName", headerName: t("mandate"), flex: 0.5, minWidth: 200 },
     { field: "comment", headerName: t("comment"), flex: 1, minWidth: 600 },
   ];
 };
+
+interface DeliveryMandate {
+  id: number;
+  date: Date;
+  userName: string;
+  mandateName: string;
+  comment: string;
+}
 
 export const DeliveryOverview = () => {
   const { t } = useTranslation();
   const columns = useTranslatedColumns(t);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [deliveries, setDeliveries] = useState<DeliveryMandate[]>([]);
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([]);
   const { showPrompt } = useContext(PromptContext);
   const { showAlert } = useContext(AlertContext);
   const { user } = useGeopilotAuth();
+  const { fetchApi } = useApi();
 
   async function loadDeliveries() {
     setIsLoading(true);
-    try {
-      const response = await fetch("/api/v1/delivery");
-      if (response.status === 200) {
-        const deliveries = await response.json();
+    fetchApi<Delivery[]>("/api/v1/delivery", { errorMessageLabel: "deliveryOverviewLoadingError" })
+      .then(response => {
         setDeliveries(
-          deliveries.map((d: Delivery) => ({
+          response.map((d: Delivery) => ({
             id: d.id,
             date: d.date,
-            user: d.declaringUser.fullName,
-            mandate: d.mandate.name,
+            userName: d.declaringUser.fullName,
+            mandateName: d.mandate.name,
             comment: d.comment,
           })),
         );
+      })
+      .finally(() => {
         setIsLoading(false);
-      }
-    } catch (error) {
-      setIsLoading(false);
-      showAlert(t("deliveryOverviewLoadingError", { error: error }), "error");
-    }
+      });
   }
 
   useEffect(() => {
@@ -69,18 +75,15 @@ export const DeliveryOverview = () => {
 
   async function handleDelete() {
     for (const row of selectedRows) {
-      try {
-        const response = await fetch("/api/v1/delivery/" + row, {
-          method: "DELETE",
-        });
-        if (response.status === 404) {
+      fetchApi("/api/v1/delivery/" + row, { method: "DELETE" }).catch((error: ApiError) => {
+        if (error.status === 404) {
           showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: row }), "error");
-        } else if (response.status === 500) {
+        } else if (error.status === 500) {
           showAlert(t("deliveryOverviewDeleteIdError", { id: row }), "error");
+        } else {
+          showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
         }
-      } catch (error) {
-        showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
-      }
+      });
     }
     await loadDeliveries();
   }

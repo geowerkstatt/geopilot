@@ -3,11 +3,10 @@ import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
 import { useContext, useEffect, useState } from "react";
 import { Mandate, Organisation, User } from "../../api/apiInterfaces";
-import { ErrorResponse } from "../../appInterfaces";
 import { useGeopilotAuth } from "../../auth";
-import { AlertContext } from "../../components/alert/alertContext";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { CircularProgress, Stack } from "@mui/material";
+import { useApi } from "../../api";
 
 export const Organisations = () => {
   const { t } = useTranslation();
@@ -16,8 +15,8 @@ export const Organisations = () => {
   const [mandates, setMandates] = useState<Mandate[]>();
   const [users, setUsers] = useState<User[]>();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { showAlert } = useContext(AlertContext);
   const { showPrompt } = useContext(PromptContext);
+  const { fetchApi } = useApi();
 
   useEffect(() => {
     if (organisations && mandates && users) {
@@ -25,76 +24,33 @@ export const Organisations = () => {
     }
   }, [organisations, mandates, users]);
 
-  async function loadOrganisations() {
-    try {
-      const response = await fetch("/api/v1/organisation");
-      if (response.ok) {
-        const results = await response.json();
-        setOrganisations(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("organisationsLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("organisationsLoadingError", { error: error }), "error");
-    }
+  function loadOrganisations() {
+    fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
+      setOrganisations,
+    );
   }
 
-  async function loadMandates() {
-    try {
-      const response = await fetch("/api/v1/mandate");
-      if (response.ok) {
-        const results = await response.json();
-        setMandates(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("mandatesLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("mandatesLoadingError", { error: error }), "error");
-    }
+  function loadMandates() {
+    fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" }).then(setMandates);
   }
 
-  async function loadUsers() {
-    try {
-      const response = await fetch("/api/v1/user");
-      if (response.ok) {
-        const results = await response.json();
-        setUsers(results);
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("usersLoadingError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("usersLoadingError", { error: error }), "error");
-    }
+  function loadUsers() {
+    fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
   }
 
   async function saveOrganisation(organisation: Organisation) {
-    try {
-      organisation.mandates = organisation.mandates?.map(mandateId => {
-        return { id: mandateId as number } as Mandate;
-      });
-      organisation.users = organisation.users?.map(userId => {
-        return { id: userId as number } as User;
-      });
-      const response = await fetch("/api/v1/organisation", {
-        method: organisation.id === 0 ? "POST" : "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(organisation),
-      });
+    organisation.mandates = organisation.mandates?.map(mandateId => {
+      return { id: mandateId as number } as Mandate;
+    });
+    organisation.users = organisation.users?.map(userId => {
+      return { id: userId as number } as User;
+    });
 
-      if (response.ok) {
-        loadOrganisations();
-      } else {
-        const errorResponse: ErrorResponse = await response.json();
-        showAlert(t("organisationSaveError", { error: errorResponse.detail }), "error");
-      }
-    } catch (error) {
-      showAlert(t("organisationSaveError", { error: error }), "error");
-    }
+    fetchApi("/api/v1/organisation", {
+      method: organisation.id === 0 ? "POST" : "PUT",
+      body: JSON.stringify(organisation),
+      errorMessageLabel: "organisationSaveError",
+    }).then(loadOrganisations);
   }
 
   async function onSave(row: DataRow) {
@@ -132,8 +88,7 @@ export const Organisations = () => {
         loadUsers();
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadMandates, loadOrganisations, loadUsers, mandates, organisations, user?.isAdmin, users]);
 
   const columns: GridColDef[] = [
     {
