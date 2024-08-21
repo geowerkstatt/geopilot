@@ -61,3 +61,7 @@ export interface User {
   organisations: Organisation[] | number[];
   deliveries: Delivery[];
 }
+
+export interface ValidationSettings {
+  allowedFileExtensions: string[];
+}
