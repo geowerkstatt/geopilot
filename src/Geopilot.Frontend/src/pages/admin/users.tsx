@@ -25,13 +25,15 @@ export const Users = () => {
 
   const loadUsers = useCallback(() => {
     fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
-  }, [fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadOrganisations = useCallback(() => {
     fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
       setOrganisations,
     );
-  }, [fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function saveUser(user: User) {
     user.organisations = user.organisations?.map(organisationId => {

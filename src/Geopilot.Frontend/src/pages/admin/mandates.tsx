@@ -28,11 +28,13 @@ export const Mandates = () => {
     fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
       setOrganisations,
     );
-  }, [fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadMandates = useCallback(() => {
     fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" }).then(setMandates);
-  }, [fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadFileExtensions = useCallback(() => {
     fetchApi<ValidationSettings>("/api/v1/validation", { errorMessageLabel: "fileTypesLoadingError" }).then(
@@ -40,7 +42,8 @@ export const Mandates = () => {
         setFileExtensions(validation?.allowedFileExtensions);
       },
     );
-  }, [fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function saveMandate(mandate: Mandate) {
     mandate.organisations = mandate.organisations?.map(organisationId => {

@@ -17,7 +17,8 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
       },
       errorMessageLabel: "userLoadingError",
     }).then(setUser);
-  }, [auth?.user?.id_token, fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth?.user?.id_token]);
 
   useEffect(() => {
     if (auth?.isAuthenticated) {

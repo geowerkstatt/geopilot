@@ -28,15 +28,18 @@ export const Organisations = () => {
     fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
       setOrganisations,
     );
-  }, [fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadMandates = useCallback(() => {
     fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" }).then(setMandates);
-  }, [fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadUsers = useCallback(() => {
     fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
-  }, [fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function saveOrganisation(organisation: Organisation) {
     organisation.mandates = organisation.mandates?.map(mandateId => {

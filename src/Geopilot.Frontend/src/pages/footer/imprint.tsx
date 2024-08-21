@@ -13,7 +13,8 @@ export const Imprint = () => {
 
   useEffect(() => {
     fetchApi<string>("imprint.md", { responseType: ContentType.Markdown }).then(setContent);
-  }, [fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <CenteredBox>

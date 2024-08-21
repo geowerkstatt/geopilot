@@ -21,7 +21,8 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
       setBackendVersion(version.split("+")[0]);
     });
     fetchApi<string>("terms-of-use.md", { responseType: ContentType.Markdown }).then(setTermsOfUse);
-  }, [fetchApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const link = document.querySelector("link[rel=icon]");
