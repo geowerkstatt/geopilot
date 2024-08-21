@@ -1,5 +1,6 @@
 ﻿using Stac;
 using Stac.Api.Interfaces;
+using Stac.Api.WebApi.Implementations.Default;
 
 namespace Geopilot.Api.StacServices;
 
@@ -24,6 +25,9 @@ public class HttpsStacApiContextFactory : IStacApiContextFactory
     public IEnumerable<T> ApplyContextPostQueryFilters<T>(IStacApiContext stacApiContext, IDataProvider<T> dataProvider, IEnumerable<T> items)
         where T : IStacObject
     {
+        // Show the number of items in the search results
+        stacApiContext.Properties[DefaultConventions.MatchedCountPropertiesKey] = items.Count();
+
         IEnumerable<T> filteredItems = items;
         foreach (IStacApiContextFilter stacApiContextFilter in stacApiContextFilterProvider.GetFilters<T>())
         {
