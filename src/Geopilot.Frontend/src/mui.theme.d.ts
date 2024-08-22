@@ -26,6 +26,7 @@ declare module "@mui/material/styles" {
       };
     };
     components: {
+      MuiTypography: object;
       MuiAvatar: object;
       MuiSelect: object;
       MuiButtonBase: object;
@@ -61,6 +62,7 @@ declare module "@mui/material/styles" {
       };
     };
     components?: {
+      MuiTypography: object;
       MuiAvatar: object;
       MuiSelect: object;
       MuiButtonBase: object;

@@ -1,31 +1,20 @@
-import { FC, useCallback, useContext, useEffect, useState } from "react";
-import { Box, IconButton, Typography } from "@mui/material";
-import { styled } from "@mui/system";
+import { CSSProperties, FC, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { IconButton, Link, Typography } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
 import { FileRejection, useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 import { geopilotTheme } from "../appTheme";
-import { FlexColumnBox, FlexRowBox } from "./styledComponents.ts";
+import { FlexRowBox } from "./styledComponents.ts";
 import { AlertContext } from "./alert/alertContext.tsx";
-
-const DropZoneBox = styled(FlexColumnBox)(({ theme }) => ({
-  width: "100%",
-  height: "120px",
-  border: `2px dashed ${theme.palette.primary.main}`,
-  borderRadius: "8px",
-  backgroundColor: theme.palette.primary.hover,
-  justifyContent: "center",
-  alignItems: "center",
-  cursor: "pointer",
-}));
 
 interface FileDropzoneProps {
   selectedFile?: File;
   setSelectedFile: (file: File | undefined) => void;
   fileExtensions?: string[];
+  disabled?: boolean;
 }
 
-export const FileDropzone: FC<FileDropzoneProps> = ({ selectedFile, setSelectedFile, fileExtensions }) => {
+export const FileDropzone: FC<FileDropzoneProps> = ({ selectedFile, setSelectedFile, fileExtensions, disabled }) => {
   const { t } = useTranslation();
   const [acceptsAllFileTypes, setAcceptsAllFileTypes] = useState<boolean>(true);
   const { showAlert } = useContext(AlertContext);
@@ -83,49 +72,69 @@ export const FileDropzone: FC<FileDropzoneProps> = ({ selectedFile, setSelectedF
       : {
           "application/x-geopilot-files": fileExtensions ?? [],
         },
+    disabled,
   });
 
   const handleRemove = () => {
-    setSelectedFile(undefined);
+    if (!disabled) {
+      setSelectedFile(undefined);
+    }
   };
 
-  return (
-    <Box {...getRootProps()}>
-      <input {...getInputProps()} />
-      <DropZoneBox>
-        {!selectedFile ? (
-          <>
-            <FlexRowBox>
-              <Typography
-                variant="body1"
-                sx={{ color: geopilotTheme.palette.primary.main, textDecoration: "underline" }}>
-                {t("clickToUpload")}
-              </Typography>
-              <Typography variant="body1">
-                &nbsp;
-                {t("or")} {t("dragAndDrop")}
-              </Typography>
-            </FlexRowBox>
+  const style = useMemo<CSSProperties>(
+    () => ({
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "120px",
+      padding: "20px",
+      border: `2px dashed`,
+      borderColor: disabled ? geopilotTheme.palette.primary.inactive : geopilotTheme.palette.primary.main,
+      borderRadius: "4px",
+      backgroundColor: geopilotTheme.palette.primary.hover,
+      outline: "none",
+      transition: "border .24s ease-in-out",
+      cursor: disabled ? "default" : "pointer",
+    }),
+    [disabled],
+  );
 
-            {fileExtensions && fileExtensions.length > 0 && (
-              <Typography variant="caption">{getAcceptedFileTypesText()}&nbsp;(max. 200 MB)</Typography>
-            )}
-          </>
-        ) : (
-          <FlexRowBox sx={{ gap: "10px" }}>
-            <Typography variant="body1" sx={{ color: geopilotTheme.palette.primary.main }}>
-              {selectedFile?.name}
+  return (
+    <div {...getRootProps({ style })}>
+      <input {...getInputProps()} />
+      {!selectedFile ? (
+        <>
+          <Typography variant="body1" className={disabled ? "Mui-disabled" : ""}>
+            <Link>{t("clickToUpload")}</Link>
+            &nbsp;
+            {t("or")} {t("dragAndDrop")}
+          </Typography>
+          {fileExtensions && fileExtensions.length > 0 && (
+            <Typography variant="caption" className={disabled ? "Mui-disabled" : ""}>
+              {getAcceptedFileTypesText()}&nbsp;(max. 200 MB)
             </Typography>
-            <IconButton
-              onClick={e => {
-                e.stopPropagation();
-                handleRemove();
-              }}>
-              <ClearIcon />
-            </IconButton>
-          </FlexRowBox>
-        )}
-      </DropZoneBox>
-    </Box>
+          )}
+        </>
+      ) : (
+        <FlexRowBox sx={{ gap: "10px" }}>
+          <Typography
+            variant="body1"
+            sx={{ color: geopilotTheme.palette.primary.main }}
+            className={disabled ? "Mui-disabled" : ""}>
+            {selectedFile?.name}
+          </Typography>
+          <IconButton
+            disabled={disabled}
+            onClick={e => {
+              e.stopPropagation();
+              handleRemove();
+            }}>
+            <ClearIcon />
+          </IconButton>
+        </FlexRowBox>
+      )}
+    </div>
   );
 };

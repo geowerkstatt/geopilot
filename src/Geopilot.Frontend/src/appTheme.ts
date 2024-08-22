@@ -86,6 +86,16 @@ export const geopilotTheme = createTheme({
     },
   },
   components: {
+    MuiTypography: {
+      styleOverrides: {
+        root: {
+          "&.Mui-disabled": {
+            opacity: "60%",
+            cursor: "default",
+          },
+        },
+      },
+    },
     MuiAvatar: {
       styleOverrides: {
         root: {
