@@ -30,9 +30,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [error, setError] = useState<string>();
   const [selectedFile, setSelectedFile] = useState<File>();
   const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
+  const [controller, setController] = useState<AbortController>();
   const { fetchApi } = useApi();
   const { enabled } = useGeopilotAuth();
-  const controller = new AbortController();
 
   const steps: DeliveryStep[] = [
     {
@@ -63,22 +63,30 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   };
 
+  const handleApiError = (error: ApiError) => {
+    if (!error.message.includes("AbortError")) {
+      setError(error.message);
+    }
+  };
+
   const uploadFile = () => {
     if (selectedFile) {
+      const abortController = new AbortController();
+      setController(abortController);
       setIsLoading(true);
       const formData = new FormData();
       formData.append("file", selectedFile, selectedFile.name);
       fetchApi<ValidationResponse>("/api/v1/validation", {
         method: "POST",
         body: formData,
-        signal: controller.signal,
+        signal: abortController.signal,
       })
         .then(response => {
           setValidationResponse(response);
           continueToNextStep();
         })
         .catch((error: ApiError) => {
-          setError(error.message);
+          handleApiError(error);
         })
         .finally(() => setIsLoading(false));
     }
@@ -89,9 +97,11 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       setIsLoading(true);
 
       const getStatus = () => {
+        const abortController = new AbortController();
+        setController(abortController);
         fetchApi<ValidationResponse>(`/api/v1/validation/${validationResponse.jobId}`, {
           method: "GET",
-          signal: controller.signal,
+          signal: abortController.signal,
         })
           .then(response => {
             setValidationResponse(response);
@@ -107,15 +117,18 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
             }
           })
           .catch((error: ApiError) => {
-            setError(error.message);
+            handleApiError(error);
           });
       };
 
       getStatus();
     }
   };
+
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);
+    const abortController = new AbortController();
+    setController(abortController);
     fetchApi<ValidationResponse>("/api/v1/delivery", {
       method: "POST",
       body: JSON.stringify({
@@ -125,16 +138,16 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         PrecursorDeliveryId: data.predecessor,
         Comment: data.comment,
       }),
-      signal: controller.signal,
+      signal: abortController.signal,
     })
       .catch((error: ApiError) => {
-        setError(error.message);
+        handleApiError(error);
       })
       .finally(() => setIsLoading(false));
   };
 
   const resetDelivery = () => {
-    controller.abort();
+    controller?.abort();
     setIsLoading(false);
     setSelectedFile(undefined);
     setError(undefined);
