@@ -6,6 +6,7 @@ import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { CenteredBox } from "../../components/styledComponents.ts";
+import { useLocation } from "react-router-dom";
 
 interface PackageList {
   [packageName: string]: PackageDetails;
@@ -33,6 +34,7 @@ export const About = () => {
   const [licenseInfoCustom, setLicenseInfoCustom] = useState<PackageList>();
   const { fetchApi } = useApi();
   const { version, clientSettings, termsOfUse } = useAppSettings();
+  const { hash } = useLocation();
 
   useEffect(() => {
     fetchApi<string>("info.md", { responseType: ContentType.Markdown }).then(setInfo);
@@ -40,15 +42,32 @@ export const About = () => {
     fetchApi<PackageList>("licenses.custom.json", { responseType: ContentType.Json }).then(setLicenseInfoCustom);
   }, [fetchApi]);
 
+  useEffect(() => {
+    const scrollToHash = () => {
+      if (hash) {
+        const id = hash.substring(1);
+        const element = document.getElementById(id);
+        if (element) window.scrollTo({ top: element.offsetTop - 64, behavior: "smooth" });
+      }
+    };
+
+    // Run after initial render
+    setTimeout(scrollToHash, 0);
+
+    scrollToHash();
+  }, [hash, info, termsOfUse, licenseInfo, licenseInfoCustom, version]);
+
   return (
     <CenteredBox>
-      {info && <MarkdownContent content={info} />}
-      {termsOfUse && <MarkdownContent content={termsOfUse} />}
-      <Typography variant="h1">{t("versionInformation")}</Typography>
+      {info && <MarkdownContent content={info} routeHash={"info"} />}
+      {termsOfUse && <MarkdownContent content={termsOfUse} routeHash={"termsofuse"} />}
+      <Typography variant="h1" id="version">
+        {t("versionInformation")}
+      </Typography>
       <p>
         <b>geopilot {clientSettings?.application?.name}</b>: {version}
       </p>
-      <Typography variant="h1">
+      <Typography variant="h1" id="development">
         {t("development")} & {t("bugTracking")}
       </Typography>
       <p>
@@ -63,7 +82,11 @@ export const About = () => {
           }}
         />
       </p>
-      {(licenseInfo || licenseInfoCustom) && <Typography variant="h1">{t("licenseInformation")}</Typography>}
+      {(licenseInfo || licenseInfoCustom) && (
+        <Typography variant="h1" id="licenses">
+          {t("licenseInformation")}
+        </Typography>
+      )}
       {licenseInfoCustom &&
         Object.keys(licenseInfoCustom).map(key => (
           <div key={key} className="about-licenses">
