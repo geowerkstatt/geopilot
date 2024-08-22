@@ -104,6 +104,24 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiFormControl: {
+      styleOverrides: {
+        root: {
+          "& .MuiFilledInput-root": {
+            backgroundColor: "rgba(0,0,0,0.04)",
+          },
+          "& .MuiFilledInput-root:hover:not(.Mui-disabled, .Mui-error):before": {
+            borderColor: "#3A6060",
+          },
+          "& .MuiFilledInput-root:not(.Mui-error):before": {
+            borderColor: "#3A6060",
+          },
+          "& .MuiFilledInput-root:not(.Mui-error):after": {
+            borderColor: "#3A6060",
+          },
+        },
+      },
+    },
     MuiSelect: {
       defaultProps: {
         IconComponent: ExpandMoreIcon,
@@ -155,6 +173,25 @@ export const geopilotTheme = createTheme({
           "& .MuiTablePagination-toolbar p": {
             margin: "auto",
           },
+        },
+      },
+    },
+    MuiStepLabel: {
+      styleOverrides: {
+        label: {
+          fontSize: "16px",
+          letterSpacing: "0.05em",
+          fontWeight: 600,
+          "&.Mui-active": {
+            fontWeight: 600,
+          },
+        },
+      },
+    },
+    MuiStepContent: {
+      styleOverrides: {
+        root: {
+          padding: "24px 0 0 40px",
         },
       },
     },

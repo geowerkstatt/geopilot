@@ -8,7 +8,3 @@ export enum Language {
 export interface TranslationFunction {
   (key: string): string;
 }
-
-export interface Validation {
-  allowedFileExtensions: string[];
-}

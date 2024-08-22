@@ -14,6 +14,7 @@ import Footer from "./pages/footer/footer";
 import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
 import { About } from "./pages/footer/about.tsx";
 import { Imprint } from "./pages/footer/imprint.tsx";
+import { DeliveryProvider } from "./pages/delivery/deliveryContext.tsx";
 
 export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
@@ -30,7 +31,14 @@ export const App: FC = () => {
         <LayoutBox>
           <PageContentBox>
             <Routes>
-              <Route path="/" element={<Delivery />} />
+              <Route
+                path="/"
+                element={
+                  <DeliveryProvider>
+                    <Delivery />
+                  </DeliveryProvider>
+                }
+              />
               {isAdmin ? (
                 <>
                   <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
