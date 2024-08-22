@@ -181,8 +181,10 @@ export const geopilotTheme = createTheme({
         label: {
           fontSize: "16px",
           letterSpacing: "0.05em",
-          fontWeight: 600,
           "&.Mui-active": {
+            fontWeight: 600,
+          },
+          "&.Mui-completed": {
             fontWeight: 600,
           },
         },
