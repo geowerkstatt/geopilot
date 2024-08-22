@@ -24,16 +24,18 @@ export const DeliverySubmit = () => {
   const { enabled, user, login } = useGeopilotAuth();
   const formMethods = useForm({ mode: "all" });
   const { fetchApi } = useApi();
-  const { jobId, isLoading, submitDelivery, resetDelivery } = useContext(DeliveryContext);
+  const { validationResponse, isLoading, submitDelivery, resetDelivery } = useContext(DeliveryContext);
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [previousDeliveries, setPreviousDeliveries] = useState<Delivery[]>([]);
 
   useEffect(() => {
-    if (jobId && user) {
-      fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ jobId: jobId })).then(setMandates);
+    if (validationResponse?.jobId && user) {
+      fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ jobId: validationResponse.jobId })).then(
+        setMandates,
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobId, user]);
+  }, [validationResponse, user]);
 
   useEffect(() => {
     const mandateId = formMethods.getValues()["mandate"];

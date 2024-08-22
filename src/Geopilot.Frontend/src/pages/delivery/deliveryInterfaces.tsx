@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { ValidatorResult } from "../../api/apiInterfaces.ts";
+import { ValidationResponse } from "../../api/apiInterfaces.ts";
 
 export interface DeliveryStep {
   label: string;
@@ -19,8 +19,7 @@ export interface DeliveryContextInterface {
   activeStep: number;
   selectedFile?: File;
   setSelectedFile: (file: File | undefined) => void;
-  jobId?: string;
-  validationResults?: Record<string, ValidatorResult>;
+  validationResponse?: ValidationResponse;
   isLoading: boolean;
   error?: string;
   uploadFile: () => void;
