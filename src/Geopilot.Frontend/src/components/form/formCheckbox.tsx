@@ -18,7 +18,7 @@ export const FormCheckbox: FC<FormCheckboxProps> = ({ fieldName, label, checked,
 
   return (
     <FormControlLabel
-      sx={{ marginTop: "10px!important", marginRight: "10px!important", ...sx }}
+      sx={{ ...sx }}
       control={
         <Checkbox
           data-cy={fieldName + "-formCheckbox"}

@@ -18,8 +18,6 @@ export const FormField = forwardRef((props: FormFieldProps, ref: ForwardedRef<HT
       sx={{
         borderRadius: "4px",
         flex: "1",
-        marginTop: "10px !important",
-        marginRight: "10px !important",
         ...props.sx,
       }}
     />

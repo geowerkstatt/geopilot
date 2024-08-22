@@ -118,7 +118,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({ selectedFile, setSelectedF
           )}
         </>
       ) : (
-        <FlexRowBox sx={{ gap: "10px" }}>
+        <FlexRowBox>
           <Typography
             variant="body1"
             sx={{ color: geopilotTheme.palette.primary.main }}

@@ -1,8 +1,12 @@
 import { Box } from "@mui/material";
 import { styled } from "@mui/system";
 
-export const FlexRowBox = styled(Box)({
+export const FlexBox = styled(Box)({
   display: "flex",
+  gap: "10px",
+});
+
+export const FlexRowBox = styled(FlexBox)({
   flexDirection: "row",
   alignItems: "center",
 });
@@ -19,8 +23,7 @@ export const FlexRowEndBox = styled(FlexRowBox)({
   justifyContent: "flex-end",
 });
 
-export const FlexColumnBox = styled(Box)({
-  display: "flex",
+export const FlexColumnBox = styled(FlexBox)({
   flexDirection: "column",
 });
 
