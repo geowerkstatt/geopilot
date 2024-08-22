@@ -38,6 +38,10 @@ export const geopilotTheme = createTheme({
     caption: {
       letterSpacing: "0.1em",
     },
+    button: {
+      fontSize: "16px",
+      letterSpacing: "0.05em",
+    },
     h1: {
       fontSize: "28px",
       fontWeight: 600,
@@ -98,6 +102,31 @@ export const geopilotTheme = createTheme({
     MuiButtonBase: {
       defaultProps: {
         disableRipple: true,
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          fontWeight: "500",
+          whiteSpace: "nowrap",
+          borderRadius: "4px",
+          boxShadow: "none",
+          "&:hover": {
+            boxShadow: "none",
+          },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          "&:hover, &.Mui-focusVisible, &:active, &:focus, &:focus-visible": {
+            backgroundColor: "rgba(0, 0, 0, 0.0)",
+          },
+          "& .MuiTouchRipple-root": {
+            display: "none",
+          },
+        },
       },
     },
     MuiAppBar: {

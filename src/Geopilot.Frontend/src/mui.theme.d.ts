@@ -29,6 +29,8 @@ declare module "@mui/material/styles" {
       MuiAvatar: object;
       MuiSelect: object;
       MuiButtonBase: object;
+      MuiButton: object;
+      MuiIconButton: object;
       MuiAppBar: object;
       MuiDataGrid: object;
     };
@@ -62,6 +64,8 @@ declare module "@mui/material/styles" {
       MuiAvatar: object;
       MuiSelect: object;
       MuiButtonBase: object;
+      MuiButton: object;
+      MuiIconButton: object;
       MuiAppBar: object;
       MuiDataGrid: object;
     };

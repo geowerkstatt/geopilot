@@ -121,12 +121,6 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 <IconButton
                   sx={{
                     padding: "0",
-                    "&:hover, &.Mui-focusVisible, &:active, &:focus, &:focus-visible": {
-                      backgroundColor: "rgba(0, 0, 0, 0.0)",
-                    },
-                    "& .MuiTouchRipple-root": {
-                      display: "none",
-                    },
                   }}
                   onClick={toggleUserMenu(true)}
                   data-cy="loggedInUser-button">
