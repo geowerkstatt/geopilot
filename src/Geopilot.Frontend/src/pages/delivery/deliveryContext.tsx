@@ -7,6 +7,7 @@ import { DeliveryValidation } from "./deliveryValidation.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
 import { DeliveryCompleted } from "./deliveryCompleted.tsx";
+import { useTranslation } from "react-i18next";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: [],
@@ -24,6 +25,7 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
 });
 
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
+  const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>();
@@ -98,16 +100,10 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
               setTimeout(getStatus, 2000);
             } else {
               setIsLoading(false);
-              switch (response.status) {
-                case ValidationStatus.Completed:
-                  continueToNextStep();
-                  break;
-                case ValidationStatus.CompletedWithErrors:
-                  setError("CompletedWithErrors");
-                  break;
-                case ValidationStatus.Failed:
-                  setError("validationFailed");
-                  break;
+              if (response.status === ValidationStatus.Completed) {
+                continueToNextStep();
+              } else {
+                setError(t(response.status));
               }
             }
           })
