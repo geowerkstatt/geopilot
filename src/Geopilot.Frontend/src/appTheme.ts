@@ -4,9 +4,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 export const geopilotTheme = createTheme({
   palette: {
     primary: {
-      main: "#3A6060",
-      inactive: "#3A606099",
-      hover: "#3A60600D",
+      main: "#124A4F",
+      inactive: "#124A4F99",
+      hover: "#124A4F0D",
       contrastText: "#ffffff",
     },
     secondary: {
@@ -99,7 +99,7 @@ export const geopilotTheme = createTheme({
     MuiAvatar: {
       styleOverrides: {
         root: {
-          backgroundColor: "#3A6060",
+          backgroundColor: "#124A4F",
           color: "#ffffff",
         },
       },
@@ -111,13 +111,13 @@ export const geopilotTheme = createTheme({
             backgroundColor: "rgba(0,0,0,0.04)",
           },
           "& .MuiFilledInput-root:hover:not(.Mui-disabled, .Mui-error):before": {
-            borderColor: "#3A6060",
+            borderColor: "#124A4F",
           },
           "& .MuiFilledInput-root:not(.Mui-error):before": {
-            borderColor: "#3A6060",
+            borderColor: "#124A4F",
           },
           "& .MuiFilledInput-root:not(.Mui-error):after": {
-            borderColor: "#3A6060",
+            borderColor: "#124A4F",
           },
         },
       },
