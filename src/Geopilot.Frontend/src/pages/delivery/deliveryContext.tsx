@@ -107,6 +107,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       .catch((error: ApiError) => {
         handleApiError(error);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validationResponse?.jobId]);
 
   const validateFile = () => {
