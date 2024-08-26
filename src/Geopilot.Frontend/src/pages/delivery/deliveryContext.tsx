@@ -1,5 +1,5 @@
 import { DeliveryContextInterface, DeliveryStep, DeliverySubmitData } from "./deliveryInterfaces.tsx";
-import { createContext, FC, PropsWithChildren, useState } from "react";
+import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { useApi } from "../../api";
 import { ApiError, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
 import { DeliveryUpload } from "./deliveryUpload.tsx";
@@ -30,7 +30,8 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [error, setError] = useState<string>();
   const [selectedFile, setSelectedFile] = useState<File>();
   const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
-  const [controller, setController] = useState<AbortController>();
+  const [isValidating, setIsValidating] = useState<boolean>(false);
+  const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useApi();
   const { enabled } = useGeopilotAuth();
 
@@ -57,11 +58,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     });
   }
 
-  const continueToNextStep = () => {
+  const continueToNextStep = useCallback(() => {
+    setAbortControllers([]);
     if (activeStep < steps.length - 1) {
       setActiveStep(activeStep + 1);
     }
-  };
+  }, [activeStep, steps]);
 
   const handleApiError = (error: ApiError) => {
     if (!error.message.includes("AbortError")) {
@@ -72,7 +74,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const uploadFile = () => {
     if (selectedFile) {
       const abortController = new AbortController();
-      setController(abortController);
+      setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
       setIsLoading(true);
       const formData = new FormData();
       formData.append("file", selectedFile, selectedFile.name);
@@ -92,43 +94,33 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   };
 
+  const getValidationStatus = useCallback(() => {
+    const abortController = new AbortController();
+    setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
+    fetchApi<ValidationResponse>(`/api/v1/validation/${validationResponse?.jobId}`, {
+      method: "GET",
+      signal: abortController.signal,
+    })
+      .then(response => {
+        setValidationResponse(response);
+      })
+      .catch((error: ApiError) => {
+        handleApiError(error);
+      });
+  }, [validationResponse?.jobId]);
+
   const validateFile = () => {
-    if (validationResponse) {
+    if (validationResponse?.status === ValidationStatus.Processing && !isLoading) {
       setIsLoading(true);
-
-      const getStatus = () => {
-        const abortController = new AbortController();
-        setController(abortController);
-        fetchApi<ValidationResponse>(`/api/v1/validation/${validationResponse.jobId}`, {
-          method: "GET",
-          signal: abortController.signal,
-        })
-          .then(response => {
-            setValidationResponse(response);
-            if (response.status === ValidationStatus.Processing) {
-              setTimeout(getStatus, 2000);
-            } else {
-              setIsLoading(false);
-              if (response.status === ValidationStatus.Completed) {
-                continueToNextStep();
-              } else {
-                setError(t(response.status));
-              }
-            }
-          })
-          .catch((error: ApiError) => {
-            handleApiError(error);
-          });
-      };
-
-      getStatus();
+      setIsValidating(true);
+      getValidationStatus();
     }
   };
 
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);
     const abortController = new AbortController();
-    setController(abortController);
+    setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
     fetchApi<ValidationResponse>("/api/v1/delivery", {
       method: "POST",
       body: JSON.stringify({
@@ -147,13 +139,31 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   };
 
   const resetDelivery = () => {
-    controller?.abort();
+    abortControllers.forEach(controller => controller.abort());
+    setAbortControllers([]);
     setIsLoading(false);
+    setIsValidating(false);
     setSelectedFile(undefined);
     setError(undefined);
     setValidationResponse(undefined);
     setActiveStep(0);
   };
+
+  useEffect(() => {
+    if (validationResponse && isValidating && abortControllers.length > 0) {
+      if (validationResponse.status === ValidationStatus.Processing) {
+        setTimeout(getValidationStatus, 2000);
+      } else {
+        setIsValidating(false);
+        setIsLoading(false);
+        if (validationResponse.status === ValidationStatus.Completed) {
+          continueToNextStep();
+        } else {
+          setError(t(validationResponse.status));
+        }
+      }
+    }
+  }, [abortControllers.length, continueToNextStep, getValidationStatus, isValidating, t, validationResponse]);
 
   return (
     <DeliveryContext.Provider
