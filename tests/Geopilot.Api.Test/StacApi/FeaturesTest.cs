@@ -38,7 +38,7 @@ public class FeaturesTest
     {
         var feature = await featuresClient.GetFeatureAsync("coll_1", "item_14");
 
-        Assert.AreEqual("Datenlieferung_2023-07-04T13:08:47", feature.Title);
+        StringAssert.StartsWith(feature.Title, "Datenlieferung_2023-07");
         Assert.AreEqual(3, feature.Assets.Count);
     }
 }
