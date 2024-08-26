@@ -15,29 +15,37 @@ const DeliveryContainer = styled(Box)(({ theme }) => ({
 
 const Delivery = () => {
   const { t } = useTranslation();
-  const { steps, activeStep, isLoading, error } = useContext(DeliveryContext);
+  const { steps, activeStep, isLoading } = useContext(DeliveryContext);
 
-  const isOpen = (step: number, keepOpen?: boolean) => activeStep === step || (activeStep >= step && keepOpen);
-  const isCompleted = (step: number) => activeStep > step;
+  const isOpen = (stepIndex: number, keepOpen?: boolean) =>
+    activeStep === stepIndex || (activeStep >= stepIndex && keepOpen);
+  const isCompleted = (stepIndex: number) => activeStep > stepIndex;
 
   return (
     <CenteredBox>
       <Typography variant="h1">{t("deliveryTitle")}</Typography>
       <DeliveryContainer>
         <Stepper activeStep={activeStep} orientation="vertical">
-          {steps.map((step, index) => (
-            <Step key={step.label} active={isOpen(index, step.keepOpen)} completed={isCompleted(index)}>
-              <StepLabel
-                error={index === activeStep && !!error}
-                StepIconComponent={props => (
-                  <StepperIcon index={index} stepIconProps={props} isLoading={index === activeStep && isLoading} />
-                )}>
-                {t(step.label)}
-                {index === activeStep && !!error && ` - ${error}`}
-              </StepLabel>
-              <StepContent>{step.content}</StepContent>
-            </Step>
-          ))}
+          {Array.from(steps.entries()).map(([key, step], index) => {
+            if (step) {
+              return (
+                <Step key={key} active={isOpen(index, step.keepOpen)} completed={isCompleted(index)}>
+                  <StepLabel
+                    error={!!step.error}
+                    StepIconComponent={props => (
+                      <StepperIcon index={index} stepIconProps={props} isLoading={index === activeStep && isLoading} />
+                    )}>
+                    {t(step.label)}
+                    {step.labelAddition && step.labelAddition.length > 0 && (
+                      <i>{` - ${t(step.labelAddition || "")}`}</i>
+                    )}{" "}
+                    {step.error && ` - ${step.error}`}
+                  </StepLabel>
+                  <StepContent>{step.content}</StepContent>
+                </Step>
+              );
+            }
+          })}
         </Stepper>
       </DeliveryContainer>
     </CenteredBox>

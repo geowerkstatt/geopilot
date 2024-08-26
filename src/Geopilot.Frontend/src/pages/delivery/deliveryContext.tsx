@@ -1,4 +1,4 @@
-import { DeliveryContextInterface, DeliveryStep, DeliverySubmitData } from "./deliveryInterfaces.tsx";
+import { DeliveryContextInterface, DeliveryStep, DeliveryStepEnum, DeliverySubmitData } from "./deliveryInterfaces.tsx";
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { useApi } from "../../api";
 import { ApiError, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
@@ -10,13 +10,12 @@ import { DeliveryCompleted } from "./deliveryCompleted.tsx";
 import { useTranslation } from "react-i18next";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
-  steps: [],
+  steps: new Map<DeliveryStepEnum, DeliveryStep>(),
   activeStep: 0,
   selectedFile: undefined,
   setSelectedFile: () => {},
   validationResponse: undefined,
   isLoading: false,
-  error: undefined,
   uploadFile: () => {},
   validateFile: () => {},
   submitDelivery: () => {},
@@ -27,47 +26,62 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>();
   const [selectedFile, setSelectedFile] = useState<File>();
   const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useApi();
   const { enabled } = useGeopilotAuth();
+  const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(
+    new Map<DeliveryStepEnum, DeliveryStep>([
+      [DeliveryStepEnum.Upload, { label: "upload", content: <DeliveryUpload /> }],
+      [
+        DeliveryStepEnum.Validate,
+        {
+          label: "validate",
+          keepOpen: true,
+          content: <DeliveryValidation />,
+        },
+      ],
+    ]),
+  );
 
-  const steps: DeliveryStep[] = [
-    {
-      label: "upload",
-      content: <DeliveryUpload />,
-    },
-    {
-      label: "validate",
-      keepOpen: true,
-      content: <DeliveryValidation />,
-    },
-  ];
-
-  if (enabled) {
-    steps.push({
-      label: "deliver",
-      content: <DeliverySubmit />,
-    });
-    steps.push({
-      label: "done",
-      content: <DeliveryCompleted />,
-    });
-  }
+  useEffect(() => {
+    if (enabled) {
+      setSteps(prevSteps => {
+        if (!prevSteps.has(DeliveryStepEnum.Submit)) {
+          prevSteps.set(DeliveryStepEnum.Submit, {
+            label: "deliver",
+            content: <DeliverySubmit />,
+          });
+        }
+        if (!prevSteps.has(DeliveryStepEnum.Done)) {
+          prevSteps.set(DeliveryStepEnum.Done, {
+            label: "done",
+            content: <DeliveryCompleted />,
+          });
+        }
+        return prevSteps;
+      });
+    }
+  }, [enabled]);
 
   const continueToNextStep = useCallback(() => {
     setAbortControllers([]);
-    if (activeStep < steps.length - 1) {
+    if (activeStep < steps.size - 1) {
       setActiveStep(activeStep + 1);
     }
   }, [activeStep, steps]);
 
-  const handleApiError = (error: ApiError) => {
-    if (!error.message.includes("AbortError")) {
-      setError(error.message);
+  const handleApiError = (error: ApiError, key: DeliveryStepEnum) => {
+    if (error?.message && !error?.message?.includes("AbortError")) {
+      setSteps(prevSteps => {
+        const step = prevSteps.get(key);
+        if (step) {
+          step.error = error.message;
+        }
+        return prevSteps;
+      });
     }
   };
 
@@ -85,10 +99,17 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       })
         .then(response => {
           setValidationResponse(response);
+          setSteps(prevSteps => {
+            const step = prevSteps.get(DeliveryStepEnum.Upload);
+            if (step) {
+              step.labelAddition = selectedFile.name;
+            }
+            return prevSteps;
+          });
           continueToNextStep();
         })
         .catch((error: ApiError) => {
-          handleApiError(error);
+          handleApiError(error, DeliveryStepEnum.Upload);
         })
         .finally(() => setIsLoading(false));
     }
@@ -105,7 +126,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         setValidationResponse(response);
       })
       .catch((error: ApiError) => {
-        handleApiError(error);
+        handleApiError(error, DeliveryStepEnum.Validate);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validationResponse?.jobId]);
@@ -134,7 +155,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       signal: abortController.signal,
     })
       .catch((error: ApiError) => {
-        handleApiError(error);
+        handleApiError(error, DeliveryStepEnum.Submit);
       })
       .finally(() => setIsLoading(false));
   };
@@ -145,9 +166,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setIsLoading(false);
     setIsValidating(false);
     setSelectedFile(undefined);
-    setError(undefined);
     setValidationResponse(undefined);
     setActiveStep(0);
+    setSteps(prevSteps => {
+      prevSteps.forEach(step => {
+        step.labelAddition = undefined;
+        step.error = undefined;
+      });
+      return prevSteps;
+    });
   };
 
   useEffect(() => {
@@ -160,7 +187,13 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         if (validationResponse.status === ValidationStatus.Completed) {
           continueToNextStep();
         } else {
-          setError(t(validationResponse.status));
+          setSteps(prevSteps => {
+            const step = prevSteps.get(DeliveryStepEnum.Validate);
+            if (step) {
+              step.error = t(validationResponse.status);
+            }
+            return prevSteps;
+          });
         }
       }
     }
@@ -175,7 +208,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         setSelectedFile,
         validationResponse,
         isLoading,
-        error,
         uploadFile,
         validateFile,
         submitDelivery,
