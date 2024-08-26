@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
   activeStep: 0,
+  isActiveStep: () => false,
   selectedFile: undefined,
   setSelectedFile: () => {},
   validationResponse: undefined,
@@ -65,6 +66,11 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
     }
   }, [enabled]);
+
+  const isActiveStep = (step: DeliveryStepEnum) => {
+    const stepKeys = Array.from(steps.keys());
+    return activeStep === stepKeys.indexOf(step);
+  };
 
   const continueToNextStep = useCallback(() => {
     setAbortControllers([]);
@@ -204,6 +210,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       value={{
         steps,
         activeStep,
+        isActiveStep,
         selectedFile,
         setSelectedFile,
         validationResponse,

@@ -1,14 +1,17 @@
 import { DeliveryContext } from "./deliveryContext.tsx";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { FlexColumnBox, FlexRowBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { Button, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
 
 export const DeliveryValidation = () => {
   const { t } = useTranslation();
-  const { validationResponse, isLoading, validateFile, resetDelivery } = useContext(DeliveryContext);
+  const { isActiveStep, validationResponse, isLoading, validateFile, resetDelivery } = useContext(DeliveryContext);
+
+  const isActive = useMemo(() => isActiveStep(DeliveryStepEnum.Validate), [isActiveStep]);
 
   useEffect(() => {
     validateFile();
@@ -67,9 +70,11 @@ export const DeliveryValidation = () => {
             ))}
         </FlexColumnBox>
       )}
-      <Button variant="outlined" startIcon={<CancelOutlinedIcon />} onClick={() => resetDelivery()}>
-        {t("cancel")}
-      </Button>
+      {isActive && (
+        <Button variant="outlined" startIcon={<CancelOutlinedIcon />} onClick={() => resetDelivery()}>
+          {t("cancel")}
+        </Button>
+      )}
     </FlexRowSpaceBetweenBox>
   );
 };

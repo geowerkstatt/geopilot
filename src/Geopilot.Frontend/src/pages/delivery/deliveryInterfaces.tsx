@@ -26,6 +26,7 @@ export interface DeliverySubmitData {
 export interface DeliveryContextInterface {
   steps: Map<DeliveryStepEnum, DeliveryStep>;
   activeStep: number;
+  isActiveStep: (step: DeliveryStepEnum) => boolean;
   selectedFile?: File;
   setSelectedFile: (file: File | undefined) => void;
   validationResponse?: ValidationResponse;
