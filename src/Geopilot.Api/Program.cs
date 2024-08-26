@@ -102,6 +102,53 @@ builder.Services.AddSwaggerGen(options =>
 
     // Workaround for STAC API having multiple actions mapped to the "search" route.
     options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+
+    var scopes = new Dictionary<string, string>
+    {
+        { "openid", "Open Id" },
+        { "email", "User Email" },
+        { "profile", "User Profile" },
+    };
+    var apiScope = builder.Configuration["Auth:ApiScope"];
+    if (apiScope != null)
+    {
+        scopes.Add(apiScope, "geopilot API (required)");
+    }
+
+    options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Scheme = JwtBearerDefaults.AuthenticationScheme,
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.OAuth2,
+        Flows = new OpenApiOAuthFlows
+        {
+            AuthorizationCode = new OpenApiOAuthFlow
+            {
+                Scopes = scopes,
+                AuthorizationUrl = new Uri(builder.Configuration["Auth:AuthorizationUrl"] !),
+                TokenUrl = new Uri(builder.Configuration["Auth:TokenUrl"] !),
+                RefreshUrl = new Uri(builder.Configuration["Auth:TokenUrl"] !),
+            },
+        },
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = JwtBearerDefaults.AuthenticationScheme,
+                },
+                Scheme = "oauth2",
+                Name = JwtBearerDefaults.AuthenticationScheme,
+                In = ParameterLocation.Header,
+            },
+            Array.Empty<string>()
+        },
+    });
 });
 
 builder.Services
@@ -189,6 +236,10 @@ app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "geopilot API v1.0");
+
+    options.OAuthClientId(builder.Configuration["Auth:ClientId"]);
+    options.OAuth2RedirectUrl($"{builder.Configuration["Auth:ApiOrigin"]}/swagger/oauth2-redirect.html");
+    options.OAuthUsePkce();
 });
 
 app.UseHttpsRedirection();
