@@ -15,6 +15,7 @@
 # Configure code analysis according to current standards by default.
 [*.cs]
 dotnet_diagnostic.CA1001.severity = none
+dotnet_diagnostic.CA1861.severity = none
 dotnet_diagnostic.SA0001.severity = none
 dotnet_diagnostic.CS8604.severity = none
 dotnet_diagnostic.CS8618.severity = none
