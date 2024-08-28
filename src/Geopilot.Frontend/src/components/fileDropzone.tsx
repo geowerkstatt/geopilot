@@ -94,12 +94,11 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
 
   const style = useMemo<CSSProperties>(
     () => ({
-      flex: 1,
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      height: "120px",
+      height: "100px",
       padding: "20px",
       border: `2px dashed`,
       borderColor: disabled
