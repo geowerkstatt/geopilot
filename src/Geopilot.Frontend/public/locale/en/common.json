@@ -45,7 +45,7 @@
   "fileDropzoneErrorChooseFile": "Please choose a valid file",
   "fileDropzoneErrorFileTooLarge": "The selected file is larger than 200MB",
   "fileDropzoneErrorNotSupported": "The file type is not supported",
-  "fileDropzoneErrorTooManyFiles": "Only one file can be checked at a time.",
+  "fileDropzoneErrorTooManyFiles": "Only one file can be checked at a time",
   "fileTypes": "Formats",
   "fileTypesLoadingError": "An error occurred while loading the formats: {{error}}",
   "help": "Help",
