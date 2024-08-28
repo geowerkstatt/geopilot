@@ -69,3 +69,44 @@ docker inspect --format='{{json .State.Health.Status}}' container_name
 ## Neue Version erstellen
 
 Ein neuer GitHub _Pre-release_ wird bei jeder Änderung auf [main](https://github.com/GeoWerkstatt/geopilot) [automatisch](./.github/workflows/pre-release.yml) erstellt. In diesem Kontext wird auch ein neues Docker Image mit dem Tag _:edge_ erstellt und in die [GitHub Container Registry (ghcr.io)](https://github.com/geowerkstatt/geopilot/pkgs/container/geopilot) gepusht. Der definitve Release erfolgt, indem die Checkbox _Set as the latest release_ eines beliebigen Pre-releases gesetzt wird. In der Folge wird das entsprechende Docker Image in der ghcr.io Registry mit den Tags (bspw.: _:v1.2.3_ und _:latest_) [ergänzt](./.github/workflows/release.yml).
+
+## Authentifizierung
+
+Fürs Login auf geopilot wird ein Identity Provider mit OpenID Connect (OIDC) vorausgesetzt.
+Der verwendete OAuth2 Flow ist _Authorization Code Flow with Proof Key for Code Exchange (PKCE)_.
+
+### Token
+
+Zur Authentifizierung aus dem Frontend wird das ID-Token und aus dem Swagger UI das Access-Token verwendet.
+Dabei wird geprüft, dass das Token von der angegebenen Authority ausgestellt wurde (`iss` Claim) und für die Client-Id gültig ist (`aud` Claim).
+Zusätzlich werden folgende Claims im Token vorausgesetzt: `sub`, `email` und `name`.
+Diese werden beispielsweise bei den OIDC Scopes `openid`, `profile` und `email` mitgeliefert.
+
+### Redirect URIs
+
+Als erlaubte Redirect URIs müssen für das Login aus dem Frontend `https://<app-domain>` und aus Swagger UI `https://<app-domain>/swagger/oauth2-redirect.html` angegeben werden.
+_([Entwicklungsumgebung](./config/realms/keycloak-geopilot.json): `https://localhost:5173` und `https://localhost:7188/swagger/oauth2-redirect.html`)_
+
+### Swagger UI
+
+Je nach Identity Provider wird die Audience automatisch gesetzt, sobald ein passender Scope verwendet wird.
+Der Wert `ApiScope` in den Appsettings kann dazu verwendet werden, um diesen im Swagger UI zur Auswahl anzuzeigen.
+
+In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) wird die Audience stattdessen mit einem Keycloak Protocol Mapper festgelegt.
+
+### Appsettings
+
+Folgende Appsettings müssen definiert sein (Beispiel aus [appsettings.Development.json](./src/Geopilot.Api/appsettings.Development.json) für die Entwicklungsumgebung):
+```json5
+"Auth": {
+    // General auth options
+    "Authority": "http://localhost:4011/realms/geopilot", // Token issuer
+    "ClientId": "geopilot-client", // Token audience
+
+    // Swagger UI auth options
+    "AuthorizationUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/auth", // OAuth2 login URL
+    "TokenUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token", // OAuth2 token URL
+    "ApiScope": "<custom app scope> (optional)",
+    "ApiOrigin": "https://localhost:7188" // Swagger UI origin
+}
+```
