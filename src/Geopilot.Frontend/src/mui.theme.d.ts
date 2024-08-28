@@ -17,12 +17,15 @@ declare module "@mui/material/styles" {
       };
       success: {
         main: string;
+        hover: string;
       };
       warning: {
         main: string;
+        hover: string;
       };
       error: {
         main: string;
+        hover: string;
       };
     };
     components: {
@@ -56,12 +59,15 @@ declare module "@mui/material/styles" {
       };
       success: {
         main: string;
+        hover: string;
       };
       warning: {
         main: string;
+        hover: string;
       };
       error: {
         main: string;
+        hover: string;
       };
     };
     components?: {

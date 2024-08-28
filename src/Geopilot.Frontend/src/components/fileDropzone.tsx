@@ -1,23 +1,34 @@
-import { CSSProperties, FC, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { CSSProperties, FC, useCallback, useEffect, useMemo, useState } from "react";
 import { IconButton, Link, Typography } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
 import { FileRejection, useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 import { geopilotTheme } from "../appTheme";
 import { FlexRowBox } from "./styledComponents.ts";
-import { AlertContext } from "./alert/alertContext.tsx";
 
 interface FileDropzoneProps {
   selectedFile?: File;
   setSelectedFile: (file: File | undefined) => void;
   fileExtensions?: string[];
   disabled?: boolean;
+  setFileError: (error: string | undefined) => void;
 }
 
-export const FileDropzone: FC<FileDropzoneProps> = ({ selectedFile, setSelectedFile, fileExtensions, disabled }) => {
+export const FileDropzone: FC<FileDropzoneProps> = ({
+  selectedFile,
+  setSelectedFile,
+  fileExtensions,
+  disabled,
+  setFileError,
+}) => {
   const { t } = useTranslation();
   const [acceptsAllFileTypes, setAcceptsAllFileTypes] = useState<boolean>(true);
-  const { showAlert } = useContext(AlertContext);
+  const [error, setError] = useState<string>();
+
+  useEffect(() => {
+    setFileError(error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
 
   useEffect(() => {
     setAcceptsAllFileTypes(!fileExtensions || fileExtensions?.includes(".*"));
@@ -33,16 +44,16 @@ export const FileDropzone: FC<FileDropzoneProps> = ({ selectedFile, setSelectedF
 
   const onDrop = useCallback(
     (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      if (error) {
+        setError(undefined);
+      }
       if (fileRejections.length > 0) {
         let errorMessage: string;
         const errorCode = fileRejections[0].errors[0].code;
-        const genericError = acceptsAllFileTypes
-          ? t("fileDropzoneErrorChooseFile")
-          : t("fileDropzoneErrorChooseFileOfType", { acceptedFileTypesText: getAcceptedFileTypesText() });
 
         switch (errorCode) {
           case "file-invalid-type":
-            errorMessage = t("fileDropzoneErrorNotSupported", { genericError: genericError });
+            errorMessage = t("fileDropzoneErrorNotSupported");
             break;
           case "too-many-files":
             errorMessage = t("fileDropzoneErrorTooManyFiles");
@@ -51,16 +62,16 @@ export const FileDropzone: FC<FileDropzoneProps> = ({ selectedFile, setSelectedF
             errorMessage = t("fileDropzoneErrorFileTooLarge");
             break;
           default:
-            errorMessage = genericError;
+            errorMessage = t("fileDropzoneErrorChooseFile");
             break;
         }
 
-        showAlert(errorMessage, "error");
+        setError(errorMessage);
       } else {
         setSelectedFile(acceptedFiles[0]);
       }
     },
-    [acceptsAllFileTypes, t, getAcceptedFileTypesText, showAlert, setSelectedFile],
+    [error, t, setSelectedFile],
   );
 
   const { getRootProps, getInputProps } = useDropzone({
@@ -91,14 +102,18 @@ export const FileDropzone: FC<FileDropzoneProps> = ({ selectedFile, setSelectedF
       height: "120px",
       padding: "20px",
       border: `2px dashed`,
-      borderColor: disabled ? geopilotTheme.palette.primary.inactive : geopilotTheme.palette.primary.main,
+      borderColor: disabled
+        ? geopilotTheme.palette.primary.inactive
+        : error
+          ? geopilotTheme.palette.error.main
+          : geopilotTheme.palette.primary.main,
       borderRadius: "4px",
-      backgroundColor: geopilotTheme.palette.primary.hover,
+      backgroundColor: error ? geopilotTheme.palette.error.hover : geopilotTheme.palette.primary.hover,
       outline: "none",
       transition: "border .24s ease-in-out",
       cursor: disabled ? "default" : "pointer",
     }),
-    [disabled],
+    [disabled, error],
   );
 
   return (

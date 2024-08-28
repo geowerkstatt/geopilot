@@ -13,6 +13,7 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
   activeStep: 0,
   isActiveStep: () => false,
+  setStepError: () => {},
   selectedFile: undefined,
   setSelectedFile: () => {},
   validationResponse: undefined,
@@ -72,6 +73,17 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     return activeStep === stepKeys.indexOf(step);
   };
 
+  const setStepError = (key: DeliveryStepEnum, error: string | undefined) => {
+    setSteps(prevSteps => {
+      const newSteps = new Map(prevSteps);
+      const step = newSteps.get(key);
+      if (step) {
+        step.error = error;
+      }
+      return newSteps;
+    });
+  };
+
   const continueToNextStep = useCallback(() => {
     setAbortControllers([]);
     if (activeStep < steps.size - 1) {
@@ -81,13 +93,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const handleApiError = (error: ApiError, key: DeliveryStepEnum) => {
     if (error?.message && !error?.message?.includes("AbortError")) {
-      setSteps(prevSteps => {
-        const step = prevSteps.get(key);
-        if (step) {
-          step.error = error.message;
-        }
-        return prevSteps;
-      });
+      setStepError(key, error.message);
     }
   };
 
@@ -106,11 +112,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         .then(response => {
           setValidationResponse(response);
           setSteps(prevSteps => {
-            const step = prevSteps.get(DeliveryStepEnum.Upload);
+            const newSteps = new Map(prevSteps);
+            const step = newSteps.get(DeliveryStepEnum.Upload);
             if (step) {
               step.labelAddition = selectedFile.name;
             }
-            return prevSteps;
+            return newSteps;
           });
           continueToNextStep();
         })
@@ -175,11 +182,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setValidationResponse(undefined);
     setActiveStep(0);
     setSteps(prevSteps => {
-      prevSteps.forEach(step => {
+      const newSteps = new Map(prevSteps);
+      newSteps.forEach(step => {
         step.labelAddition = undefined;
         step.error = undefined;
       });
-      return prevSteps;
+      return newSteps;
     });
   };
 
@@ -193,13 +201,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         if (validationResponse.status === ValidationStatus.Completed) {
           continueToNextStep();
         } else {
-          setSteps(prevSteps => {
-            const step = prevSteps.get(DeliveryStepEnum.Validate);
-            if (step) {
-              step.error = t(validationResponse.status);
-            }
-            return prevSteps;
-          });
+          setStepError(DeliveryStepEnum.Validate, t(validationResponse.status));
         }
       }
     }
@@ -211,6 +213,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         steps,
         activeStep,
         isActiveStep,
+        setStepError,
         selectedFile,
         setSelectedFile,
         validationResponse,

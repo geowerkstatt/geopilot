@@ -11,6 +11,7 @@ import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { FormCheckbox } from "../../components/form/form.ts";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { DeliveryContext } from "./deliveryContext.tsx";
+import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
 
 export const DeliveryUpload = () => {
   const { t } = useTranslation();
@@ -18,7 +19,8 @@ export const DeliveryUpload = () => {
   const { termsOfUse } = useAppSettings();
   const { fetchApi } = useApi();
   const formMethods = useForm({ mode: "all" });
-  const { selectedFile, setSelectedFile, isLoading, uploadFile, resetDelivery } = useContext(DeliveryContext);
+  const { setStepError, selectedFile, setSelectedFile, isLoading, uploadFile, resetDelivery } =
+    useContext(DeliveryContext);
 
   useEffect(() => {
     if (!validationSettings) {
@@ -40,6 +42,9 @@ export const DeliveryUpload = () => {
             setSelectedFile={setSelectedFile}
             fileExtensions={validationSettings?.allowedFileExtensions.filter(value => !value.includes("*"))}
             disabled={isLoading}
+            setFileError={error => {
+              setStepError(DeliveryStepEnum.Upload, error);
+            }}
           />
           <FlexRowSpaceBetweenBox>
             <FormCheckbox

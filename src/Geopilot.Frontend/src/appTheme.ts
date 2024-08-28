@@ -15,14 +15,17 @@ export const geopilotTheme = createTheme({
       hover: "#00ff970D",
       contrastText: "#000",
     },
+    success: {
+      main: "#4caf51",
+      hover: "#4caf510D",
+    },
     warning: {
       main: "#fd9903",
+      hover: "#fd99030D",
     },
     error: {
       main: "#e53835",
-    },
-    success: {
-      main: "#4caf51",
+      hover: "#e538350D",
     },
   },
   typography: {
