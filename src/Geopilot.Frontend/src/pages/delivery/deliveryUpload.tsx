@@ -16,7 +16,7 @@ import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
 export const DeliveryUpload = () => {
   const { t } = useTranslation();
   const [validationSettings, setValidationSettings] = useState<ValidationSettings>();
-  const { termsOfUse } = useAppSettings();
+  const { initialized, termsOfUse } = useAppSettings();
   const { fetchApi } = useApi();
   const formMethods = useForm({ mode: "all" });
   const { setStepError, selectedFile, setSelectedFile, isLoading, uploadFile, resetDelivery } =
@@ -34,50 +34,52 @@ export const DeliveryUpload = () => {
   };
 
   return (
-    <FormProvider {...formMethods}>
-      <form onSubmit={formMethods.handleSubmit(submitForm)}>
-        <FlexColumnBox>
-          <FileDropzone
-            selectedFile={selectedFile}
-            setSelectedFile={setSelectedFile}
-            fileExtensions={validationSettings?.allowedFileExtensions.filter(value => !value.includes("*"))}
-            disabled={isLoading}
-            setFileError={error => {
-              setStepError(DeliveryStepEnum.Upload, error);
-            }}
-          />
-          <FlexRowSpaceBetweenBox>
-            <FormCheckbox
-              fieldName="acceptTermsOfUse"
-              label={
-                <Trans
-                  i18nKey="termsOfUseAcceptance"
-                  components={{
-                    termsLink: <Link href="/about#termsofuse" target="_blank" />,
-                  }}
-                />
-              }
-              checked={!termsOfUse}
+    initialized && (
+      <FormProvider {...formMethods}>
+        <form onSubmit={formMethods.handleSubmit(submitForm)}>
+          <FlexColumnBox>
+            <FileDropzone
+              selectedFile={selectedFile}
+              setSelectedFile={setSelectedFile}
+              fileExtensions={validationSettings?.allowedFileExtensions.filter(value => !value.includes("*"))}
               disabled={isLoading}
-              validation={{ required: true }}
-              sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
+              setFileError={error => {
+                setStepError(DeliveryStepEnum.Upload, error);
+              }}
             />
-            {isLoading ? (
-              <Button variant="outlined" startIcon={<CancelOutlinedIcon />} onClick={() => resetDelivery()}>
-                {t("cancel")}
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                startIcon={<CloudUploadOutlinedIcon />}
-                disabled={!formMethods.formState.isValid || !selectedFile}
-                onClick={() => formMethods.handleSubmit(submitForm)()}>
-                {t("upload")}
-              </Button>
-            )}
-          </FlexRowSpaceBetweenBox>
-        </FlexColumnBox>
-      </form>
-    </FormProvider>
+            <FlexRowSpaceBetweenBox>
+              <FormCheckbox
+                fieldName="acceptTermsOfUse"
+                label={
+                  <Trans
+                    i18nKey="termsOfUseAcceptance"
+                    components={{
+                      termsLink: <Link href="/about#termsofuse" target="_blank" />,
+                    }}
+                  />
+                }
+                checked={!termsOfUse}
+                disabled={isLoading}
+                validation={{ required: true }}
+                sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
+              />
+              {isLoading ? (
+                <Button variant="outlined" startIcon={<CancelOutlinedIcon />} onClick={() => resetDelivery()}>
+                  {t("cancel")}
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  startIcon={<CloudUploadOutlinedIcon />}
+                  disabled={!formMethods.formState.isValid || !selectedFile}
+                  onClick={() => formMethods.handleSubmit(submitForm)()}>
+                  {t("upload")}
+                </Button>
+              )}
+            </FlexRowSpaceBetweenBox>
+          </FlexColumnBox>
+        </form>
+      </FormProvider>
+    )
   );
 };
