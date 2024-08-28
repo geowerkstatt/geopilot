@@ -10,7 +10,7 @@ const DeliveryContainer = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.primary.hover,
   border: `1px solid ${theme.palette.primary.main}`,
   borderRadius: "4px",
-  padding: "20px 40px",
+  padding: "40px",
 }));
 
 const Delivery = () => {
