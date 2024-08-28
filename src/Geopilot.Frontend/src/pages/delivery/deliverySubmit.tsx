@@ -43,6 +43,9 @@ export const DeliverySubmit = () => {
   }, [formMethods.getValues()["mandate"]]);
 
   const submitForm = (data: FieldValues) => {
+    if (data["predecessor"] === "") {
+      data["predecessor"] = null;
+    }
     submitDelivery(data as DeliverySubmitData);
   };
 
