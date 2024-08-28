@@ -160,7 +160,7 @@ public class StacConverterTest
         Assert.AreEqual(converter.GetCollectionId(testDelivery.Mandate), item.Collection);
         Assert.AreEqual("Datenlieferung_2023-11-06T10:45:18", item.Title);
         Assert.AreEqual(string.Empty, item.Description);
-        Assert.AreEqual(true, item.Links.Any());
+        Assert.AreNotEqual(0, item.Links.Count);
 
         Assert.AreEqual(2, item.Assets.Count);
         var stacAsset = item.Assets[testDelivery.Assets[0].OriginalFilename];

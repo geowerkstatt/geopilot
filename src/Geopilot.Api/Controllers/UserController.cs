@@ -38,7 +38,7 @@ public class UserController : ControllerBase
     /// </summary>
     [HttpGet]
     [Authorize(Policy = GeopilotPolicies.Admin)]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns list of users.", typeof(IEnumerable<User>), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns list of users.", typeof(IEnumerable<User>), "application/json")]
     public List<User> Get()
     {
         logger.LogInformation("Getting users.");
@@ -54,7 +54,7 @@ public class UserController : ControllerBase
     /// <returns>The <see cref="User"/> that is currently logged in.</returns>
     [HttpGet("self")]
     [Authorize(Policy = GeopilotPolicies.User)]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns the currently logged in user.", typeof(User), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the currently logged in user.", typeof(User), "application/json")]
     public async Task<User?> GetSelfAsync()
     {
         var user = await context.GetUserByPrincipalAsync(User);
@@ -67,7 +67,7 @@ public class UserController : ControllerBase
     /// </summary>
     [HttpGet("{id}")]
     [Authorize(Policy = GeopilotPolicies.Admin)]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns the user with the specified id.", typeof(User), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the user with the specified id.", typeof(User), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The user could not be found.")]
     public async Task<IActionResult> GetById(int id)
     {
@@ -87,7 +87,7 @@ public class UserController : ControllerBase
     /// <returns>The configured options used for authentication.</returns>
     [HttpGet("auth")]
     [AllowAnonymous]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns the auth configuration used by the server for token validation.", typeof(BrowserAuthOptions), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the auth configuration used by the server for token validation.", typeof(BrowserAuthOptions), "application/json")]
     public BrowserAuthOptions GetAuthOptions()
     {
         logger.LogInformation("Getting auth options.");
@@ -100,11 +100,11 @@ public class UserController : ControllerBase
     /// <param name="user">The user to update.</param>
     [HttpPut]
     [Authorize(Policy = GeopilotPolicies.Admin)]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns the updated user.", typeof(User), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the updated user.", typeof(User), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The user could not be found.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The user could not be updated due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to update the user.")]
-    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The user could not be updated due to an internal server error.", typeof(ProblemDetails), new[] { "application/json" })]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The user could not be updated due to an internal server error.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Edit(User user)
     {
         try

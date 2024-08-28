@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Geopilot.Api.Models;
+using Microsoft.EntityFrameworkCore;
 using Stac;
 using Stac.Api.Interfaces;
 
@@ -31,7 +32,7 @@ public class StacItemsProvider : IItemsProvider
         {
             try
             {
-                return db.MandatesWithIncludes.FirstOrDefault(m => stacConverter.GetCollectionId(m) == collection)?.Deliveries?.Any() ?? false;
+                return db.MandatesWithIncludes.FirstOrDefault(m => stacConverter.GetCollectionId(m) == collection)?.Deliveries?.Count > 0;
             }
             catch (Exception ex)
             {
@@ -72,20 +73,24 @@ public class StacItemsProvider : IItemsProvider
     }
 
     /// <inheritdoc/>
-    public Task<IEnumerable<StacItem>> GetItemsAsync(IStacApiContext stacApiContext, CancellationToken cancellationToken)
+    public async Task<IEnumerable<StacItem>> GetItemsAsync(IStacApiContext stacApiContext, CancellationToken cancellationToken)
     {
-        IEnumerable<StacItem> items = new List<StacItem>();
+        var items = new List<StacItem>();
 
         var collectionIds = stacApiContext.Collections?.ToList();
         using var db = contextFactory.CreateDbContext();
-        var mandates = db.MandatesWithIncludes.AsNoTracking().ToList();
+        IEnumerable<Mandate> mandates = await db.MandatesWithIncludes.AsNoTracking().ToListAsync(cancellationToken);
 
-        if (collectionIds?.Any() == true)
+        if (collectionIds?.Count > 0)
         {
-            mandates = mandates.FindAll(m => collectionIds.Contains(stacConverter.GetCollectionId(m)));
+            mandates = mandates.Where(m => collectionIds.Contains(stacConverter.GetCollectionId(m)));
         }
 
-        mandates.ToList().ForEach(m => items.Concat(m.Deliveries.Select(d => stacConverter.ToStacItem(d))));
-        return Task.FromResult(items);
+        foreach (var mandate in mandates)
+        {
+            items.AddRange(mandate.Deliveries.Select(stacConverter.ToStacItem));
+        }
+
+        return items;
     }
 }

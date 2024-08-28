@@ -24,6 +24,8 @@
 - Expanded API health checks.
 - Authenticated users are now registed in the database.
 - First registered user is granted administrator privileges.
+- Updated to .NET 8.0.
+- The app now runs on port 8080 inside the docker container.
 - Redesigned complete application.
 - Renamed various public files.
 
