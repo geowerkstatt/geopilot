@@ -1,9 +1,10 @@
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { useContext } from "react";
 import { FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
-import { Button, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
+import { BaseButton } from "../../components/buttons.tsx";
 
 export const DeliveryCompleted = () => {
   const { t } = useTranslation();
@@ -12,15 +13,7 @@ export const DeliveryCompleted = () => {
   return (
     <FlexRowSpaceBetweenBox>
       <Typography variant="body1">{t("deliveryCompleted")}</Typography>
-      <Button
-        variant="outlined"
-        color="primary"
-        startIcon={<AddIcon />}
-        onClick={() => {
-          resetDelivery();
-        }}>
-        {t("addAnotherDelivery")}
-      </Button>
+      <BaseButton onClick={() => resetDelivery()} icon={<AddIcon />} variant="outlined" label="addAnotherDelivery" />
     </FlexRowSpaceBetweenBox>
   );
 };

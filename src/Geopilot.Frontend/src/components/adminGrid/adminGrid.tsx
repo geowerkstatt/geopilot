@@ -1,5 +1,4 @@
 import { FC, useEffect, useState } from "react";
-import Button from "@mui/material/Button";
 import AddIcon from "@mui/icons-material/Add";
 import {
   DataGrid,
@@ -23,6 +22,7 @@ import {
   TransformToMultiSelectColumn,
 } from "../dataGrid/dataGridMultiSelectColumn";
 import { IsGridSpatialExtentColDef, TransformToSpatialExtentColumn } from "../dataGrid/dataGridSpatialExtentColumn";
+import { BaseButton } from "../buttons.tsx";
 
 export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave, onDisconnect, disableRow }) => {
   const { t } = useTranslation();
@@ -191,15 +191,14 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
   return (
     <>
       {!!addLabel && (
-        <Button
-          color="primary"
+        <BaseButton
           variant="outlined"
-          startIcon={<AddIcon />}
+          icon={<AddIcon />}
           sx={{ marginBottom: "20px" }}
           disabled={editingRow !== undefined}
-          onClick={addRow}>
-          {t(addLabel)}
-        </Button>
+          onClick={addRow}
+          label={addLabel}
+        />
       )}
       <DataGrid
         rows={rows}

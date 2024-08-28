@@ -144,6 +144,21 @@ export const geopilotTheme = createTheme({
           "&:hover": {
             boxShadow: "none",
           },
+          "&.Mui-disabled": {
+            "&.MuiButton-text": {
+              backgroundColor: "transparent",
+              color: "#124A4F99",
+            },
+            "&.MuiButton-contained": {
+              backgroundColor: "#124A4F99",
+              color: "#ffffff",
+            },
+            "&.MuiButton-outlined": {
+              backgroundColor: "transparent",
+              color: "#124A4F99",
+              borderColor: "#124A4F99",
+            },
+          },
         },
       },
     },

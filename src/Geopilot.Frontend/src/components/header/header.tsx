@@ -5,7 +5,6 @@ import {
   AppBar,
   Avatar,
   Box,
-  Button,
   Divider,
   Drawer,
   IconButton,
@@ -25,6 +24,7 @@ import { useGeopilotAuth } from "../../auth";
 import { LanguagePopup } from "./languagePopup";
 import MenuIcon from "@mui/icons-material/Menu";
 import { FlexColumnSpaceBetweenBox, FlexRowBox } from "../styledComponents.ts";
+import { BaseButton } from "../buttons.tsx";
 
 interface HeaderProps {
   openSubMenu: () => void;
@@ -128,13 +128,13 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 </IconButton>
               ) : (
                 <>
-                  <Button
+                  <BaseButton
+                    variant="text"
                     onClick={login}
-                    startIcon={<LoginIcon />}
+                    icon={<LoginIcon />}
                     sx={{ display: { xs: "none", md: "flex" } }}
-                    data-cy="login-button">
-                    {t("logIn")}
-                  </Button>
+                    label="logIn"
+                  />
                   <IconButton onClick={login} sx={{ display: { xs: "flex", md: "none" } }} color="primary">
                     <LoginIcon />
                   </IconButton>
@@ -200,14 +200,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </List>
           </Box>
-          <Button
-            variant="contained"
-            sx={{ margin: "0 20px" }}
-            onClick={logout}
-            startIcon={<LogoutIcon />}
-            data-cy="logout-button">
-            {t("logOut")}
-          </Button>
+          <BaseButton sx={{ margin: "0 20px" }} onClick={logout} icon={<LogoutIcon />} label="logOut" />
         </FlexColumnSpaceBetweenBox>
       </Drawer>
     </>

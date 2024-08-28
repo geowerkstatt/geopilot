@@ -4,17 +4,16 @@ import { ValidationSettings } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
 import { FormProvider, useForm } from "react-hook-form";
 import { FlexColumnBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
-import { Trans, useTranslation } from "react-i18next";
-import { Button, Link } from "@mui/material";
+import { Trans } from "react-i18next";
+import { Link } from "@mui/material";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { FormCheckbox } from "../../components/form/form.ts";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
+import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 
 export const DeliveryUpload = () => {
-  const { t } = useTranslation();
   const [validationSettings, setValidationSettings] = useState<ValidationSettings>();
   const { initialized, termsOfUse } = useAppSettings();
   const { fetchApi } = useApi();
@@ -64,17 +63,14 @@ export const DeliveryUpload = () => {
                 sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
               />
               {isLoading ? (
-                <Button variant="outlined" startIcon={<CancelOutlinedIcon />} onClick={() => resetDelivery()}>
-                  {t("cancel")}
-                </Button>
+                <CancelButton onClick={() => resetDelivery()} />
               ) : (
-                <Button
-                  variant="contained"
-                  startIcon={<CloudUploadOutlinedIcon />}
+                <BaseButton
                   disabled={!formMethods.formState.isValid || !selectedFile}
-                  onClick={() => formMethods.handleSubmit(submitForm)()}>
-                  {t("upload")}
-                </Button>
+                  onClick={() => formMethods.handleSubmit(submitForm)()}
+                  icon={<CloudUploadOutlinedIcon />}
+                  label="upload"
+                />
               )}
             </FlexRowSpaceBetweenBox>
           </FlexColumnBox>

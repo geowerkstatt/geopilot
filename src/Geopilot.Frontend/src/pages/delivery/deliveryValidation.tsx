@@ -1,11 +1,11 @@
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { useContext, useEffect, useMemo } from "react";
 import { FlexColumnBox, FlexRowBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
-import { Button, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
+import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 
 export const DeliveryValidation = () => {
   const { t } = useTranslation();
@@ -53,16 +53,15 @@ export const DeliveryValidation = () => {
                   <FlexRowBox>
                     {validationResponse.validatorResults[key].logFiles &&
                       Object.keys(validationResponse.validatorResults[key].logFiles).map((logFileKey, index) => (
-                        <Button
+                        <BaseButton
                           key={index}
                           variant="outlined"
-                          color="primary"
-                          startIcon={<FileDownloadIcon />}
                           onClick={() => {
                             download(validationResponse.validatorResults[key].logFiles[logFileKey]);
-                          }}>
-                          {logFileKey}
-                        </Button>
+                          }}
+                          icon={<FileDownloadIcon />}
+                          label={logFileKey}
+                        />
                       ))}
                   </FlexRowBox>
                 </FlexColumnBox>
@@ -70,11 +69,7 @@ export const DeliveryValidation = () => {
             ))}
         </FlexColumnBox>
       )}
-      {isActive && (
-        <Button variant="outlined" startIcon={<CancelOutlinedIcon />} onClick={() => resetDelivery()}>
-          {t("cancel")}
-        </Button>
-      )}
+      {isActive && <CancelButton onClick={() => resetDelivery()} />}
     </FlexRowSpaceBetweenBox>
   );
 };

@@ -1,21 +1,17 @@
-import { Button } from "@mui/material";
-
 import { DeliveryContext } from "./deliveryContext.tsx";
-import { useTranslation } from "react-i18next";
 import { useContext, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
 import LoginIcon from "@mui/icons-material/Login";
 import { FlexColumnBox, FlexRowEndBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { FormCheckbox, FormInput, FormSelect } from "../../components/form/form.ts";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import SendIcon from "@mui/icons-material/Send";
 import { Delivery, Mandate } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
 import { DeliverySubmitData } from "./deliveryInterfaces.tsx";
+import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 
 export const DeliverySubmit = () => {
-  const { t } = useTranslation();
   const { enabled, user, login } = useGeopilotAuth();
   const formMethods = useForm({ mode: "all" });
   const { fetchApi } = useApi();
@@ -75,17 +71,14 @@ export const DeliverySubmit = () => {
             <FormInput fieldName="comment" label="comment" multiline={true} rows={3} />
           </FlexRowSpaceBetweenBox>
           <FlexRowEndBox>
-            <Button variant="outlined" startIcon={<CancelOutlinedIcon />} onClick={() => resetDelivery()}>
-              {t("cancel")}
-            </Button>
+            <CancelButton onClick={() => resetDelivery()} />
             {!isLoading && (
-              <Button
-                variant="contained"
-                startIcon={<SendIcon />}
+              <BaseButton
+                icon={<SendIcon />}
+                label="createDelivery"
                 disabled={!formMethods.formState.isValid}
-                onClick={() => formMethods.handleSubmit(submitForm)()}>
-                {t("createDelivery")}
-              </Button>
+                onClick={() => formMethods.handleSubmit(submitForm)()}
+              />
             )}
           </FlexRowEndBox>
         </FlexColumnBox>
@@ -93,12 +86,8 @@ export const DeliverySubmit = () => {
     </FormProvider>
   ) : (
     <FlexRowEndBox>
-      <Button variant="outlined" startIcon={<CancelOutlinedIcon />} onClick={() => resetDelivery()}>
-        {t("cancel")}
-      </Button>
-      <Button onClick={login} startIcon={<LoginIcon />} variant="contained" data-cy="loginfordelivery-button">
-        {t("logInForDelivery")}
-      </Button>
+      <CancelButton onClick={() => resetDelivery()} />
+      <BaseButton onClick={login} icon={<LoginIcon />} label="logInForDelivery" />
     </FlexRowEndBox>
   );
 };
