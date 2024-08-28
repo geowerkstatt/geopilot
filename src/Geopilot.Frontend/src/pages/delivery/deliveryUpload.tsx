@@ -41,7 +41,7 @@ export const DeliveryUpload = () => {
             <FileDropzone
               selectedFile={selectedFile}
               setSelectedFile={setSelectedFile}
-              fileExtensions={validationSettings?.allowedFileExtensions.filter(value => !value.includes("*"))}
+              fileExtensions={validationSettings?.allowedFileExtensions}
               disabled={isLoading}
               setFileError={error => {
                 setStepError(DeliveryStepEnum.Upload, error);
