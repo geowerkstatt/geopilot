@@ -139,7 +139,6 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           fontWeight: "500",
-          whiteSpace: "nowrap",
           borderRadius: "4px",
           boxShadow: "none",
           "&:hover": {

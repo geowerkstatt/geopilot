@@ -98,7 +98,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      height: "100px",
+      minHeight: "100px",
       padding: "20px",
       border: `2px dashed`,
       borderColor: disabled

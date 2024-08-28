@@ -9,6 +9,7 @@ export const FlexBox = styled(Box)({
 export const FlexRowBox = styled(FlexBox)({
   flexDirection: "row",
   alignItems: "center",
+  flexWrap: "wrap",
 });
 
 export const FlexRowSpaceBetweenBox = styled(FlexRowBox)({
