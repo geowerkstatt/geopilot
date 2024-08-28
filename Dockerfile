@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 ARG VERSION=0.0.1
 ARG REVISION=0000000
@@ -48,7 +48,7 @@ RUN \
     --customPath license.template.json \
     --out ${PUBLISH_DIR}/wwwroot/license.json
 
-FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 ENV HOME=/app
 ENV TZ=Europe/Zurich
 ENV ASPNETCORE_ENVIRONMENT=Production
@@ -62,18 +62,16 @@ RUN \
   DEBIAN_FRONTEND=noninteractive && \
   mkdir -p /usr/share/man/man1 /usr/share/man/man2 && \
   apt-get update && \
-  apt-get install -y curl sudo vim htop libcap2-bin && \
+  apt-get install -y curl sudo vim htop && \
   rm -rf /var/lib/apt/lists/*
 
-# Add non-root user
+# Create directories
 RUN \
- useradd --uid 941 --user-group --home $HOME --shell /bin/bash abc && \
- usermod --groups users abc && \
  mkdir -p $Storage__UploadDirectory && \
  mkdir -p $Storage__AssetsDirectory && \
  mkdir -p $PublicAssetsOverride
 
-EXPOSE 80
+EXPOSE 8080
 VOLUME $Storage__UploadDirectory
 VOLUME $Storage__AssetsDirectory
 
@@ -81,12 +79,9 @@ VOLUME $Storage__AssetsDirectory
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-# Allow dotnet to bind to well known ports
-RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/share/dotnet/dotnet
-
 COPY --from=build /app/publish $HOME
 COPY docker-entrypoint.sh /entrypoint.sh
 
-HEALTHCHECK CMD curl --fail http://localhost/health || exit 1
+HEALTHCHECK CMD curl --fail http://localhost:8080/health || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]

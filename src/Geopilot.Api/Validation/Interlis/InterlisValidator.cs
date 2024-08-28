@@ -50,7 +50,7 @@ public class InterlisValidator : IValidator
     /// <inheritdoc/>
     public async Task<ValidatorResult> ExecuteAsync(ValidationJob validationJob, CancellationToken cancellationToken)
     {
-        if (validationJob == null) throw new ArgumentNullException(nameof(validationJob));
+        ArgumentNullException.ThrowIfNull(validationJob);
         if (string.IsNullOrWhiteSpace(validationJob.TempFileName)) throw new ArgumentException("Transfer file name cannot be empty.", nameof(validationJob));
 
         fileProvider.Initialize(validationJob.Id);
