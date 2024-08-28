@@ -5,12 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useContext, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
 import LoginIcon from "@mui/icons-material/Login";
-import {
-  FlexColumnBox,
-  FlexRowCenterBox,
-  FlexRowEndBox,
-  FlexRowSpaceBetweenBox,
-} from "../../components/styledComponents.ts";
+import { FlexColumnBox, FlexRowEndBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { FormCheckbox, FormInput, FormSelect } from "../../components/form/form.ts";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
@@ -94,10 +89,13 @@ export const DeliverySubmit = () => {
       </form>
     </FormProvider>
   ) : (
-    <FlexRowCenterBox>
+    <FlexRowEndBox>
+      <Button variant="outlined" startIcon={<CancelOutlinedIcon />} onClick={() => resetDelivery()}>
+        {t("cancel")}
+      </Button>
       <Button onClick={login} startIcon={<LoginIcon />} variant="contained" data-cy="loginfordelivery-button">
         {t("logInForDelivery")}
       </Button>
-    </FlexRowCenterBox>
+    </FlexRowEndBox>
   );
 };
