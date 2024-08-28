@@ -69,8 +69,14 @@ public class DeliveryController : ControllerBase
 
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
         {
-            logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate with id <{MandateId}>.", user.AuthIdentifier, declaration.MandateId);
-            return NotFound($"Mandate with id <{declaration.MandateId}> not found or user is not authorized.");
+            logger.LogTrace($"Mandate with id <{declaration.MandateId}> not found.")
+            return NotFound($"Mandate with id <{declaration.MandateId}> not found.");
+        }
+
+        if (!mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
+        {
+            logger.LogTrace($"User <{user.AuthIdentifier}> is not authorized to create a delivery for mandate with id <{declaration.MandateId}>.");
+            return Unauthorized($"User is not authorized for mandate with id <{declaration.MandateId}>");
         }
 
         var precursorDelivery = declaration.PrecursorDeliveryId.HasValue ?
