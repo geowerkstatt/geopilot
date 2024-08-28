@@ -35,7 +35,7 @@ internal static class ContextExtensions
         context.SeedMandates();
         context.SeedDeliveries();
         context.SeedAssets();
-        context.AuthorizeUsers();
+        context.AddOrganisationsToDefaultUsers();
 
         transaction.Commit();
     }
@@ -187,7 +187,7 @@ internal static class ContextExtensions
         context.SaveChanges();
     }
 
-    public static void AuthorizeUsers(this Context context)
+    public static void AddOrganisationsToDefaultUsers(this Context context)
     {
         var admin = context.Users.Single(user => user.Email == "admin@geopilot.ch");
         var adminOrganisations = context.Organisations.OrderBy(o => o.Id).Skip(1);

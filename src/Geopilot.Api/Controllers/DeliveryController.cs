@@ -69,7 +69,7 @@ public class DeliveryController : ControllerBase
 
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
         {
-            logger.LogTrace($"Mandate with id <{declaration.MandateId}> not found.")
+            logger.LogTrace($"Mandate with id <{declaration.MandateId}> not found.");
             return NotFound($"Mandate with id <{declaration.MandateId}> not found.");
         }
 
