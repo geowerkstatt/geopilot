@@ -27,8 +27,8 @@ export const ApiProvider: FC<PropsWithChildren> = ({ children }) => {
           throw new ApiError(t("invalidContentType", { contentType: responseContentType }));
         }
       } else {
-        const errorResponse = await response.json();
-        throw new ApiError(errorResponse.detail, response.status);
+        const errorResponse = await response.text();
+        throw new ApiError(errorResponse, response.status);
       }
     } catch (error) {
       if (options.errorMessageLabel) {
