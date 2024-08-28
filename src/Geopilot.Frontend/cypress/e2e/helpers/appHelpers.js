@@ -52,6 +52,14 @@ export const loginAsNewUser = () => {
   cy.visit("/");
 };
 
+export const loadWithoutAuth = () => {
+  cy.visit("/");
+  cy.intercept("/api/v1/user/auth", {
+    statusCode: 200,
+    body: { authority: "", clientId: "" },
+  });
+};
+
 export const logout = () => {
   openToolMenu();
   cy.get('[data-cy="logout-button"]').click();
