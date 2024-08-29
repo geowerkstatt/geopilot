@@ -87,7 +87,7 @@ export const loadWithoutAuth = () => {
  */
 export const logout = () => {
   openToolMenu();
-  cy.get('[data-cy="logout-button"]').click();
+  cy.get('[data-cy="logOut-button"]').click();
 };
 
 /**
