@@ -22,7 +22,6 @@ const uploadFile = () => {
       toggleCheckbox("acceptTermsOfUse");
     }
     cy.get('[data-cy="upload-button"]').click();
-    stepIsLoading("upload");
   });
 };
 
@@ -165,6 +164,7 @@ describe("Delivery tests", () => {
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_invalid.xml", true);
     uploadFile();
+    stepIsLoading("upload");
     cy.wait("@upload");
     stepIsLoading("validate", true);
     cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
@@ -203,6 +203,7 @@ describe("Delivery tests", () => {
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     uploadFile();
+    stepIsLoading("upload");
     cy.wait("@upload");
     stepIsLoading("validate", true);
     cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
@@ -367,8 +368,8 @@ describe("Delivery tests", () => {
   });
 
   it("correctly extracts error messages from the response", () => {
-    mockUploadSuccess();
-    mockValidationSuccess();
+    cy.intercept({ url: "/api/v1/validation", method: "POST" }).as("upload");
+    cy.intercept({ url: "/api/v1/validation", method: "GET" }).as("validation");
 
     let currentResponseIndex = 0;
     const responses = [
