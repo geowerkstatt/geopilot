@@ -27,7 +27,7 @@
   "deliveryOverviewDeleteError": "An error occurred while deleting the delivery: {{error}}",
   "deliveryOverviewDeleteIdError": "An error occurred while deleting the delivery with the ID {{id}}",
   "deliveryOverviewDeleteIdNotExistError": "The delivery with the ID {{id}} does not exist and therefore cannot be deleted.",
-  "deliveryOverviewLoadError": "An error occurred while loading the deliveries: {{error}}",
+  "deliveryOverviewLoadingError": "An error occurred while loading the deliveries: {{error}}",
   "deliveryTitle": "Online validation & delivery of geodata",
   "development": "Development",
   "disconnect": "Disconnect",
