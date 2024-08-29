@@ -51,19 +51,21 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   useEffect(() => {
     if (enabled) {
       setSteps(prevSteps => {
-        if (!prevSteps.has(DeliveryStepEnum.Submit)) {
-          prevSteps.set(DeliveryStepEnum.Submit, {
+        const newSteps = new Map(prevSteps);
+
+        if (!newSteps.has(DeliveryStepEnum.Submit)) {
+          newSteps.set(DeliveryStepEnum.Submit, {
             label: "deliver",
             content: <DeliverySubmit />,
           });
         }
-        if (!prevSteps.has(DeliveryStepEnum.Done)) {
-          prevSteps.set(DeliveryStepEnum.Done, {
+        if (!newSteps.has(DeliveryStepEnum.Done)) {
+          newSteps.set(DeliveryStepEnum.Done, {
             label: "done",
             content: <DeliveryCompleted />,
           });
         }
-        return prevSteps;
+        return newSteps;
       });
     }
   }, [enabled]);

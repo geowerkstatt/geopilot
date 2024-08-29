@@ -2,12 +2,6 @@ export const interceptApiCalls = () => {
   cy.intercept("/api/v1/user/auth").as("auth");
   cy.intercept("/api/v1/version").as("version");
   cy.intercept("/api/v1/user/self").as("self");
-  cy.intercept("/api/v1/validation", req => {
-    return (req.alias = `validation_${req.method.toLowerCase()}`);
-  });
-  cy.intercept("/api/v1/delivery", req => {
-    return (req.alias = `delivery_${req.method.toLowerCase()}`);
-  });
   cy.intercept("terms-of-use.md", {
     statusCode: 200,
     fixture: "../fixtures/terms-of-use.md",
@@ -57,6 +51,7 @@ export const login = user => {
 export const loginAsAdmin = () => {
   login("admin");
   cy.visit("/");
+  cy.get('[data-cy="loggedInUser-button"]').should("exist");
 };
 
 /**
@@ -65,6 +60,7 @@ export const loginAsAdmin = () => {
 export const loginAsUploader = () => {
   login("uploader");
   cy.visit("/");
+  cy.get('[data-cy="loggedInUser-button"]').should("exist");
   cy.wait("@termsOfUse");
 };
 
@@ -74,6 +70,7 @@ export const loginAsUploader = () => {
 export const loginAsNewUser = () => {
   login("newuser");
   cy.visit("/");
+  cy.get('[data-cy="loggedInUser-button"]').should("exist");
 };
 
 /**

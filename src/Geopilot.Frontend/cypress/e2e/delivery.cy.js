@@ -73,7 +73,50 @@ const stepIsCompleted = (stepName, isCompleted = true) => {
   }
 };
 
+const mockValidationSuccess = () => {
+  cy.intercept({ url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
+    req.reply({
+      statusCode: 200,
+      body: {
+        jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+        status: "completed",
+        validatorResults: {
+          ilicheck: {
+            status: "completed",
+            statusMessage: "Die Daten sind modellkonform.",
+            logFiles: {
+              Log: "log.log",
+              "Xtf-Log": "log.xtf",
+            },
+          },
+        },
+      },
+      delay: 500,
+    });
+  }).as("validation");
+};
+
 describe("Delivery tests", () => {
+  beforeEach(() => {
+    cy.intercept({ url: "/api/v1/validation", method: "POST" }, req => {
+      req.reply({
+        statusCode: 201,
+        body: {
+          jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+          status: "processing",
+          validatorResults: {
+            ilicheck: {
+              status: "processing",
+              statusMessage: "Die Datei wird validiert...",
+              logFiles: {},
+            },
+          },
+        },
+        delay: 500,
+      });
+    }).as("upload");
+  });
+
   it("shows only validation steps if auth settings could not be loaded", () => {
     loadWithoutAuth();
     cy.get('[data-cy="upload-step"]').should("exist");
@@ -99,7 +142,90 @@ describe("Delivery tests", () => {
     // Cypress doesn't support attaching large files, so we cannot test the file size validation here.
   });
 
+  it("shows validation error: invalid structure", () => {
+    cy.intercept({ url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
+      req.reply({
+        statusCode: 200,
+        body: {
+          jobId: "b058ad11-7dc2-4456-9099-e525116d7e9b",
+          status: "completedWithErrors",
+          validatorResults: {
+            ilicheck: {
+              status: "completedWithErrors",
+              statusMessage: "Die XML-Struktur der Transferdatei ist ungültig.",
+              logFiles: {},
+            },
+          },
+        },
+        delay: 500,
+      });
+    }).as("validation");
+
+    loginAsUploader();
+    addFile("deliveryFiles/ilimodels_invalid.xml", true);
+    uploadFile();
+    cy.wait("@upload");
+    stepIsLoading("validate", true);
+    cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
+    cy.wait("@validation");
+    stepIsLoading("validate", false);
+    stepHasError("validate", true, "Completed with errors");
+    cy.get('[data-cy="validate-step"]').contains("Die XML-Struktur der Transferdatei ist ungültig.");
+    cy.get('[data-cy="Log-button"').should("not.exist");
+    cy.get('[data-cy="Xtf-Log-button"').should("not.exist");
+    stepIsActive("submit", false); // Should not be active if validation has errors
+  });
+
+  it("shows validation error: not conform", () => {
+    cy.intercept({ url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
+      req.reply({
+        statusCode: 200,
+        body: {
+          jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+          status: "completedWithErrors",
+          validatorResults: {
+            ilicheck: {
+              status: "completedWithErrors",
+              statusMessage: "Die Daten sind nicht modellkonform.",
+              logFiles: {
+                Log: "log.log",
+                "Xtf-Log": "log.xtf",
+              },
+            },
+          },
+        },
+        delay: 500,
+      });
+    }).as("validation");
+
+    loginAsUploader();
+    addFile("deliveryFiles/ilimodels_not_conform.xml", true);
+    uploadFile();
+    cy.wait("@upload");
+    stepIsLoading("validate", true);
+    cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
+    cy.wait("@validation");
+    stepIsLoading("validate", false);
+    stepHasError("validate", true, "Completed with errors");
+    cy.get('[data-cy="validate-step"]').contains("Die Daten sind nicht modellkonform.");
+    cy.get('[data-cy="Log-button"').should("exist");
+    cy.get('[data-cy="Xtf-Log-button"').should("exist");
+    stepIsActive("submit", false); // Should not be active if validation has errors
+  });
+
   it("can submit a delivery", () => {
+    mockValidationSuccess();
+
+    cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
+      req.reply({
+        statusCode: 201,
+        body: {
+          id: 43,
+          jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+        },
+      });
+    }).as("submit");
+
     loginAsUploader();
     // All steps are visible
     cy.get('[data-cy="upload-step"]').should("exist");
@@ -132,7 +258,7 @@ describe("Delivery tests", () => {
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     cy.get('[data-cy="upload-button"]').should("not.be.disabled");
     uploadFile();
-    cy.wait("@validation_post");
+    cy.wait("@upload");
     stepIsLoading("upload", false);
     stepIsCompleted("upload");
     cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml");
@@ -144,42 +270,13 @@ describe("Delivery tests", () => {
     resetDelivery("validate");
     cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml").should("not.exist");
 
-    // Shows validation errors
-    addFile("deliveryFiles/ilimodels_not_conform.xml", true);
-    uploadFile();
-    cy.wait("@validation_post");
-    stepIsLoading("validate", true);
-    cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
-    cy.wait(500);
-    stepIsLoading("validate", false);
-    stepHasError("validate", true, "Completed with errors");
-    cy.get('[data-cy="validate-step"]').contains("Die XML-Struktur der Transferdatei ist ungültig.");
-    cy.get('[data-cy="Log-button"').should("not.exist");
-    cy.get('[data-cy="Xtf-Log-button"').should("not.exist");
-    stepIsActive("submit", false); // Should not be active if validation has errors
-
-    resetDelivery("validate");
-    addFile("deliveryFiles/ilimodels_invalid.xml", true);
-    uploadFile();
-    cy.wait("@validation_post");
-    stepIsLoading("validate", true);
-    cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
-    cy.wait(500);
-    stepIsLoading("validate", false);
-    stepHasError("validate", true, "Completed with errors");
-    cy.get('[data-cy="validate-step"]').contains("Die Daten sind nicht modellkonform.");
-    cy.get('[data-cy="Log-button"').should("exist");
-    cy.get('[data-cy="Xtf-Log-button"').should("exist");
-    stepIsActive("submit", false); // Should not be active if validation has errors
-
     // Submit is active if validation is successful
-    resetDelivery("validate");
     addFile("deliveryFiles/ilimodels_valid.xml", true);
     uploadFile();
-    cy.wait("@validation_post");
+    cy.wait("@upload");
     stepIsLoading("validate", true);
     cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
-    cy.wait(500);
+    cy.wait("@validation");
     stepIsLoading("validate", false);
     stepHasError("validate", false);
     cy.get('[data-cy="validate-step"]').contains("Die Daten sind modellkonform.");
@@ -192,11 +289,11 @@ describe("Delivery tests", () => {
     // Submit can be cancelled, which will return to step 1 with a reset form
     resetDelivery("submit");
 
-    // Submitting the delivery
+    // Add delivery with minimal form
     addFile("deliveryFiles/ilimodels_valid.xml", true);
     uploadFile();
-    cy.wait("@validation_post");
-    cy.wait(500);
+    cy.wait("@upload");
+    cy.wait("@validation");
     stepIsCompleted("validate");
     stepIsActive("submit");
 
@@ -214,7 +311,7 @@ describe("Delivery tests", () => {
     cy.get('[data-cy="createDelivery-button"]').click();
     stepIsLoading("submit");
 
-    cy.wait("@delivery_post");
+    cy.wait("@submit");
     stepIsCompleted("submit");
     stepIsActive("done");
     cy.get('[data-cy="done-step"]').contains("The delivery was completed successfully.");
@@ -232,10 +329,11 @@ describe("Delivery tests", () => {
     stepIsCompleted("done", false);
     cy.get('[data-cy="upload-button"]').should("be.disabled");
 
+    // Add delivery with completed form
     addFile("deliveryFiles/ilimodels_valid.xml", true);
     uploadFile();
-    cy.wait("@validation_post");
-    cy.wait(500);
+    cy.wait("@upload");
+    cy.wait("@validation");
     stepIsCompleted("validate");
     stepIsActive("submit");
 
@@ -245,13 +343,15 @@ describe("Delivery tests", () => {
     setInput("comment", "This is a test comment.");
     cy.get('[data-cy="createDelivery-button"]').click();
     stepIsLoading("submit");
-    cy.wait("@delivery_post");
+    cy.wait("@submit");
     stepIsCompleted("submit");
     stepIsActive("done");
     cy.get('[data-cy="done-step"]').contains("The delivery was completed successfully.");
   });
 
   it("can log in during the delivery process", () => {
+    mockValidationSuccess();
+
     cy.visit("/");
     cy.get('[data-cy="logIn-button"]').should("exist");
 
@@ -263,11 +363,47 @@ describe("Delivery tests", () => {
 
     addFile("deliveryFiles/ilimodels_valid.xml", true);
     uploadFile();
-    cy.wait("@validation_post");
-    cy.wait(500);
+    cy.wait("@upload").its("response.statusCode").should("eq", 201);
+    cy.wait("@validation").its("response.statusCode").should("eq", 200);
     stepIsCompleted("upload");
     stepIsCompleted("validate");
     stepIsActive("submit");
     cy.get('[data-cy="logInForDelivery-button"]').should("exist");
+  });
+
+  it("correctly extracts error messages from the response", () => {
+    mockValidationSuccess();
+
+    let currentResponseIndex = 0;
+    const responses = [
+      { statusCode: 500, body: { detail: "Internal Server Error" } },
+      { statusCode: 404, body: "Not found" },
+    ];
+
+    cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
+      const currentResponse = responses[currentResponseIndex];
+      req.reply({
+        statusCode: currentResponse.statusCode,
+        body: currentResponse.body,
+      });
+
+      currentResponseIndex = (currentResponseIndex + 1) % responses.length;
+    }).as("deliveryRequest");
+
+    loginAsUploader();
+    addFile("deliveryFiles/ilimodels_valid.xml", true);
+    uploadFile();
+    cy.wait("@upload");
+    cy.wait("@validation");
+
+    setSelect("mandate", 1);
+
+    cy.get('[data-cy="createDelivery-button"]').click();
+    cy.wait("@deliveryRequest").its("response.statusCode").should("eq", 500);
+    stepHasError("submit", true, "Internal Server Error");
+
+    cy.get('[data-cy="createDelivery-button"]').click();
+    cy.wait("@deliveryRequest").its("response.statusCode").should("eq", 404);
+    stepHasError("submit", true, "Not found");
   });
 });
