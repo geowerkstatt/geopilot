@@ -69,7 +69,7 @@
   "organisationsLoadingError": "An error occurred while loading the organisations: {{error}}",
   "predecessor": "Predecessor",
   "privacyPolicy": "Privacy policy",
-  "reset": "Reset current changes",
+  "resetCurrentChanges": "Reset current changes",
   "save": "Save",
   "spatialExtent": "Spatial extent",
   "spatialExtentIncompleteMessage": "All fields must either be empty or filled in. Would you like to reset the current changes?",

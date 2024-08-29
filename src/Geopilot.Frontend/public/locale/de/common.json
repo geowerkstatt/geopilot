@@ -69,7 +69,7 @@
   "organisationsLoadingError": "Beim Laden der Organisationen ist ein Fehler aufgetreten: {{error}}",
   "predecessor": "Vorgänger",
   "privacyPolicy": "Datenschutz",
-  "reset": "Aktuelle Änderungen zurücksetzen",
+  "resetCurrentChanges": "Aktuelle Änderungen zurücksetzen",
   "save": "Speichern",
   "spatialExtent": "Räumliche Ausdehnung",
   "spatialExtentIncompleteMessage": "Es müssen entweder alle Felder leer oder alle abgefüllt sein. Möchten Sie die aktuellen Änderungen zurücksetzen?",
