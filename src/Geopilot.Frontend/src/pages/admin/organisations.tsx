@@ -58,7 +58,7 @@ export const Organisations = () => {
   }
 
   async function onDisconnect(row: DataRow) {
-    showPrompt(t("organisationDisconnectTitle"), t("organisationDisconnectMessage"), [
+    showPrompt(t("organisationDisconnect"), [
       { label: t("cancel") },
       {
         label: t("disconnect"),

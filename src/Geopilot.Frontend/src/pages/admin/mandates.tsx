@@ -58,7 +58,7 @@ export const Mandates = () => {
   }
 
   async function onDisconnect(row: DataRow) {
-    showPrompt(t("mandateDisconnectTitle"), t("mandateDisconnectMessage"), [
+    showPrompt(t("mandateDisconnect"), [
       { label: t("cancel") },
       {
         label: t("disconnect"),
