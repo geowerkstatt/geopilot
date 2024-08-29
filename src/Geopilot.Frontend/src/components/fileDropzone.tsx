@@ -117,7 +117,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
 
   return (
     <div {...getRootProps({ style })}>
-      <input {...getInputProps()} />
+      <input {...getInputProps()} data-cy="file-dropzone" />
       {!selectedFile ? (
         <>
           <Typography variant="body1" className={disabled ? "Mui-disabled" : ""}>
@@ -140,6 +140,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
             {selectedFile?.name}
           </Typography>
           <IconButton
+            data-cy="file-remove-button"
             disabled={disabled}
             onClick={e => {
               e.stopPropagation();

@@ -19,7 +19,7 @@ export const BaseButton = forwardRef<HTMLButtonElement, ButtonProps>((props, ref
       {...props}
       variant={props.variant ?? "contained"}
       color={props.color ?? "primary"}
-      data-cy={props.label?.toLowerCase() + "-button"}
+      data-cy={props.label + "-button"}
       startIcon={props.icon}>
       {props.label && t(props.label)}
     </Button>

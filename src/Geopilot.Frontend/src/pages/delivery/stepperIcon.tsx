@@ -15,7 +15,7 @@ export const StepperIcon: FC<StepperIconProps> = ({ index, stepIconProps, isLoad
   return (
     <FlexRowCenterBox sx={{ position: "relative" }}>
       {stepIconProps.error ? (
-        <WarningIcon color="error" sx={{ fontSize: 28 }} />
+        <WarningIcon color="error" sx={{ fontSize: 28 }} data-cy="stepper-error" />
       ) : (
         <>
           <FlexRowCenterBox
@@ -30,7 +30,8 @@ export const StepperIcon: FC<StepperIconProps> = ({ index, stepIconProps, isLoad
               color: geopilotTheme.palette.primary.contrastText,
               alignItems: "center",
               fontSize: "12px",
-            }}>
+            }}
+            data-cy={`stepper-${stepIconProps.completed ? "completed" : "number"}`}>
             {stepIconProps.completed ? <CheckIcon fontSize="small" /> : index + 1}
           </FlexRowCenterBox>
           {stepIconProps.active && isLoading && (
@@ -40,6 +41,7 @@ export const StepperIcon: FC<StepperIconProps> = ({ index, stepIconProps, isLoad
               sx={{
                 position: "absolute",
               }}
+              data-cy="stepper-loading"
             />
           )}
         </>

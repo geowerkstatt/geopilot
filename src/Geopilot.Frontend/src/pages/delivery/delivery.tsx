@@ -29,7 +29,11 @@ const Delivery = () => {
           {Array.from(steps.entries()).map(([key, step], index) => {
             if (step) {
               return (
-                <Step key={key} active={isOpen(index, step.keepOpen)} completed={isCompleted(index)}>
+                <Step
+                  key={key}
+                  active={isOpen(index, step.keepOpen)}
+                  completed={isCompleted(index)}
+                  data-cy={`${key}-step`}>
                   <StepLabel
                     error={!!step.error}
                     StepIconComponent={props => (
