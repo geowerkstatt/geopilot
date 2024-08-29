@@ -154,6 +154,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);
+    if (steps.get(DeliveryStepEnum.Submit)?.error) {
+      setStepError(DeliveryStepEnum.Submit, undefined);
+    }
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
     fetchApi<ValidationResponse>("/api/v1/delivery", {
