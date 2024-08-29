@@ -80,7 +80,7 @@ Der verwendete OAuth2 Flow ist _Authorization Code Flow with Proof Key for Code 
 Zur Authentifizierung aus dem Frontend wird das ID-Token und aus dem Swagger UI das Access-Token verwendet.
 Dabei wird geprüft, dass das Token von der angegebenen Authority ausgestellt wurde (`iss` Claim) und für die Client-Id gültig ist (`aud` Claim).
 Zusätzlich werden folgende Claims im Token vorausgesetzt: `sub`, `email` und `name`.
-Diese werden beispielsweise bei den OIDC Scopes `openid`, `profile` und `email` mitgeliefert.
+Diese werden beispielsweise bei den [OIDC Scopes](https://openid.net/specs/openid-connect-core-1_0.html#ScopeClaims) `openid`, `profile` und `email` mitgeliefert.
 
 ### Redirect URIs
 
@@ -89,8 +89,9 @@ _([Entwicklungsumgebung](./config/realms/keycloak-geopilot.json): `https://local
 
 ### Swagger UI
 
-Je nach Identity Provider wird die Audience automatisch gesetzt, sobald ein passender Scope verwendet wird.
-Der Wert `ApiScope` in den Appsettings kann dazu verwendet werden, um diesen im Swagger UI zur Auswahl anzuzeigen.
+Abhängig vom Identity Provider wird die Audience (`aud` Claim) im Access-Token automatisch gesetzt, sofern ein passender Scope verwendet wird.
+Der benötigte Scope kann in den Appsettings under `ApiScope` gesetzt werden, um diesen im Swagger UI zur Auswahl anzuzeigen.
+Ohne diesem Scope wird das Access-Token möglicherweise ohne oder für eine andere Audience ausgestellt.
 
 In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) wird die Audience stattdessen mit einem Keycloak Protocol Mapper festgelegt.
 
