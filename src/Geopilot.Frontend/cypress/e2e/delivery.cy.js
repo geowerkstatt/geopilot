@@ -304,7 +304,6 @@ describe("Delivery tests", () => {
     hasError("predecessor", false);
     cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
     cy.get('[data-cy="createDelivery-button"]').click();
-    stepIsLoading("submit");
 
     cy.wait("@submit");
     stepIsCompleted("submit");
@@ -337,7 +336,6 @@ describe("Delivery tests", () => {
     toggleCheckbox("isPartial");
     setInput("comment", "This is a test comment.");
     cy.get('[data-cy="createDelivery-button"]').click();
-    stepIsLoading("submit");
     cy.wait("@submit");
     stepIsCompleted("submit");
     stepIsActive("done");
