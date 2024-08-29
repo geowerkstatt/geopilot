@@ -73,6 +73,26 @@ const stepIsCompleted = (stepName, isCompleted = true) => {
   }
 };
 
+const mockUploadSuccess = () => {
+  cy.intercept({ url: "/api/v1/validation", method: "POST" }, req => {
+    req.reply({
+      statusCode: 201,
+      body: {
+        jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+        status: "processing",
+        validatorResults: {
+          ilicheck: {
+            status: "processing",
+            statusMessage: "Die Datei wird validiert...",
+            logFiles: {},
+          },
+        },
+      },
+      delay: 500,
+    });
+  }).as("upload");
+};
+
 const mockValidationSuccess = () => {
   cy.intercept({ url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
     req.reply({
@@ -97,26 +117,6 @@ const mockValidationSuccess = () => {
 };
 
 describe("Delivery tests", () => {
-  beforeEach(() => {
-    cy.intercept({ url: "/api/v1/validation", method: "POST" }, req => {
-      req.reply({
-        statusCode: 201,
-        body: {
-          jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
-          status: "processing",
-          validatorResults: {
-            ilicheck: {
-              status: "processing",
-              statusMessage: "Die Datei wird validiert...",
-              logFiles: {},
-            },
-          },
-        },
-        delay: 500,
-      });
-    }).as("upload");
-  });
-
   it("shows only validation steps if auth settings could not be loaded", () => {
     loadWithoutAuth();
     cy.get('[data-cy="upload-step"]').should("exist");
@@ -143,6 +143,7 @@ describe("Delivery tests", () => {
   });
 
   it("shows validation error: invalid structure", () => {
+    mockUploadSuccess();
     cy.intercept({ url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
       req.reply({
         statusCode: 200,
@@ -177,6 +178,7 @@ describe("Delivery tests", () => {
   });
 
   it("shows validation error: not conform", () => {
+    mockUploadSuccess();
     cy.intercept({ url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
       req.reply({
         statusCode: 200,
@@ -214,17 +216,9 @@ describe("Delivery tests", () => {
   });
 
   it("can submit a delivery", () => {
-    mockValidationSuccess();
-
-    cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
-      req.reply({
-        statusCode: 201,
-        body: {
-          id: 43,
-          jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
-        },
-      });
-    }).as("submit");
+    cy.intercept({ url: "/api/v1/validation", method: "POST" }).as("upload");
+    cy.intercept({ url: "/api/v1/validation", method: "GET" }).as("validation");
+    cy.intercept({ url: "/api/v1/delivery", method: "POST" }).as("submit");
 
     loginAsUploader();
     // All steps are visible
@@ -255,20 +249,20 @@ describe("Delivery tests", () => {
     cy.contains("ilimodels_not_conform.xml").should("not.exist");
 
     // Validation starts automatically after a file is uploaded
-    addFile("deliveryFiles/ilimodels_not_conform.xml", true);
+    addFile("deliveryFiles/ilimodels_valid.xml", true);
     cy.get('[data-cy="upload-button"]').should("not.be.disabled");
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("upload", false);
     stepIsCompleted("upload");
-    cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml");
+    cy.get('[data-cy="upload-step"]').contains("ilimodels_valid.xml");
     stepIsActive("validate");
     stepIsLoading("validate");
     cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
 
     // Validation can be cancelled
     resetDelivery("validate");
-    cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml").should("not.exist");
+    cy.get('[data-cy="upload-step"]').contains("ilimodels_valid.xml").should("not.exist");
 
     // Submit is active if validation is successful
     addFile("deliveryFiles/ilimodels_valid.xml", true);
@@ -350,6 +344,7 @@ describe("Delivery tests", () => {
   });
 
   it("can log in during the delivery process", () => {
+    mockUploadSuccess();
     mockValidationSuccess();
 
     cy.visit("/");
@@ -372,6 +367,7 @@ describe("Delivery tests", () => {
   });
 
   it("correctly extracts error messages from the response", () => {
+    mockUploadSuccess();
     mockValidationSuccess();
 
     let currentResponseIndex = 0;
