@@ -71,15 +71,13 @@ export const DeliverySubmit = () => {
             <FormInput fieldName="comment" label="comment" multiline={true} rows={3} />
           </FlexRowSpaceBetweenBox>
           <FlexRowEndBox>
-            <CancelButton onClick={() => resetDelivery()} />
-            {!isLoading && (
-              <BaseButton
-                icon={<SendIcon />}
-                label="createDelivery"
-                disabled={!formMethods.formState.isValid}
-                onClick={() => formMethods.handleSubmit(submitForm)()}
-              />
-            )}
+            <CancelButton onClick={() => resetDelivery()} disabled={isLoading} />
+            <BaseButton
+              icon={<SendIcon />}
+              label="createDelivery"
+              disabled={!formMethods.formState.isValid || isLoading}
+              onClick={() => formMethods.handleSubmit(submitForm)()}
+            />
           </FlexRowEndBox>
         </FlexColumnBox>
       </form>
