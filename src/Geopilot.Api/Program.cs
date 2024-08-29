@@ -103,52 +103,18 @@ builder.Services.AddSwaggerGen(options =>
     // Workaround for STAC API having multiple actions mapped to the "search" route.
     options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 
-    var scopes = new Dictionary<string, string>
+    var authUrl = builder.Configuration["Auth:AuthorizationUrl"];
+    var tokenUrl = builder.Configuration["Auth:TokenUrl"];
+    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl))
     {
-        { "openid", "Open Id" },
-        { "email", "User Email" },
-        { "profile", "User Profile" },
-    };
-    var apiScope = builder.Configuration["Auth:ApiScope"];
-    if (apiScope != null)
-    {
-        scopes.Add(apiScope, "geopilot API (required)");
+        var apiScope = builder.Configuration["Auth:ApiScope"];
+        options.AddGeopilotOAuth2(authUrl, tokenUrl, apiScope);
     }
-
-    options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
+    else
     {
-        Name = "Authorization",
-        Scheme = JwtBearerDefaults.AuthenticationScheme,
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.OAuth2,
-        Flows = new OpenApiOAuthFlows
-        {
-            AuthorizationCode = new OpenApiOAuthFlow
-            {
-                Scopes = scopes,
-                AuthorizationUrl = new Uri(builder.Configuration["Auth:AuthorizationUrl"] !),
-                TokenUrl = new Uri(builder.Configuration["Auth:TokenUrl"] !),
-                RefreshUrl = new Uri(builder.Configuration["Auth:TokenUrl"] !),
-            },
-        },
-    });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = JwtBearerDefaults.AuthenticationScheme,
-                },
-                Scheme = "oauth2",
-                Name = JwtBearerDefaults.AuthenticationScheme,
-                In = ParameterLocation.Header,
-            },
-            Array.Empty<string>()
-        },
-    });
+        var authority = builder.Configuration["Auth:Authority"];
+        options.AddOpenIdConnect(authority!);
+    }
 });
 
 builder.Services

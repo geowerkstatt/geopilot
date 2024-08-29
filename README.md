@@ -96,17 +96,20 @@ In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) wird die A
 
 ### Appsettings
 
-Folgende Appsettings müssen definiert sein (Beispiel aus [appsettings.Development.json](./src/Geopilot.Api/appsettings.Development.json) für die Entwicklungsumgebung):
+Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Development.json](./src/Geopilot.Api/appsettings.Development.json) für die Entwicklungsumgebung):
+
 ```json5
 "Auth": {
     // General auth options
-    "Authority": "http://localhost:4011/realms/geopilot", // Token issuer
-    "ClientId": "geopilot-client", // Token audience
+    "Authority": "http://localhost:4011/realms/geopilot", // Token issuer (required)
+    "ClientId": "geopilot-client", // Token audience (required)
 
     // Swagger UI auth options
+    "ApiOrigin": "https://localhost:7188", // Swagger UI origin (required)
     "AuthorizationUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/auth", // OAuth2 login URL
     "TokenUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token", // OAuth2 token URL
-    "ApiScope": "<custom app scope> (optional)",
-    "ApiOrigin": "https://localhost:7188" // Swagger UI origin
+    "ApiScope": "<custom app scope>"
 }
 ```
+
+Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im Swagger UI die OpenID Konfiguration der Authority (`<authority-url>/.well-known/openid-configuration`) geladen und alle vom Identity Provider unterstützten Flows angezeigt.
