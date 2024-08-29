@@ -8,6 +8,10 @@ export const interceptApiCalls = () => {
   cy.intercept("/api/v1/delivery", req => {
     return (req.alias = `delivery_${req.method.toLowerCase()}`);
   });
+  cy.intercept("terms-of-use.md", {
+    statusCode: 200,
+    fixture: "../fixtures/terms-of-use.md",
+  }).as("termsOfUse");
 };
 
 /**
@@ -61,6 +65,7 @@ export const loginAsAdmin = () => {
 export const loginAsUploader = () => {
   login("uploader");
   cy.visit("/");
+  cy.wait("@termsOfUse");
 };
 
 /**
