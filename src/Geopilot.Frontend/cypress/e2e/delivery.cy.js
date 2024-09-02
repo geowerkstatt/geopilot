@@ -22,6 +22,7 @@ const uploadFile = () => {
       toggleCheckbox("acceptTermsOfUse");
     }
     cy.get('[data-cy="upload-button"]').click();
+    stepIsLoading("upload");
   });
 };
 
@@ -115,7 +116,34 @@ const mockValidationSuccess = () => {
   }).as("validation");
 };
 
+const mockMandates = () => {
+  cy.intercept({ url: "/api/v1/mandate?jobId=d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
+    req.reply({
+      statusCode: 200,
+      body: [
+        {
+          id: 1,
+          name: "Handmade Soft Cheese",
+        },
+        {
+          id: 5,
+          name: "Licensed Frozen Towels",
+        },
+        {
+          id: 9,
+          name: "Unbranded Wooden Pants",
+        },
+      ],
+      delay: 500,
+    });
+  }).as("mandates");
+};
+
 describe("Delivery tests", () => {
+  beforeEach(() => {
+    mockUploadSuccess();
+  });
+
   it("shows only validation steps if auth settings could not be loaded", () => {
     loadWithoutAuth();
     cy.get('[data-cy="upload-step"]').should("exist");
@@ -142,7 +170,6 @@ describe("Delivery tests", () => {
   });
 
   it("shows validation error: invalid structure", () => {
-    mockUploadSuccess();
     cy.intercept({ url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
       req.reply({
         statusCode: 200,
@@ -164,7 +191,6 @@ describe("Delivery tests", () => {
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_invalid.xml", true);
     uploadFile();
-    stepIsLoading("upload");
     cy.wait("@upload");
     stepIsLoading("validate", true);
     cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
@@ -178,7 +204,6 @@ describe("Delivery tests", () => {
   });
 
   it("shows validation error: not conform", () => {
-    mockUploadSuccess();
     cy.intercept({ url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
       req.reply({
         statusCode: 200,
@@ -203,7 +228,6 @@ describe("Delivery tests", () => {
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     uploadFile();
-    stepIsLoading("upload");
     cy.wait("@upload");
     stepIsLoading("validate", true);
     cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
@@ -217,9 +241,17 @@ describe("Delivery tests", () => {
   });
 
   it("can submit a delivery", () => {
-    cy.intercept({ url: "/api/v1/validation", method: "POST" }).as("upload");
-    cy.intercept({ url: "/api/v1/validation", method: "GET" }).as("validation");
-    cy.intercept({ url: "/api/v1/delivery", method: "POST" }).as("submit");
+    mockValidationSuccess();
+    mockMandates();
+    cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
+      req.reply({
+        statusCode: 201,
+        body: {
+          id: 43,
+          jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+        },
+      });
+    }).as("submit");
 
     loginAsUploader();
     // All steps are visible
@@ -250,20 +282,20 @@ describe("Delivery tests", () => {
     cy.contains("ilimodels_not_conform.xml").should("not.exist");
 
     // Validation starts automatically after a file is uploaded
-    addFile("deliveryFiles/ilimodels_valid.xml", true);
+    addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     cy.get('[data-cy="upload-button"]').should("not.be.disabled");
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("upload", false);
     stepIsCompleted("upload");
-    cy.get('[data-cy="upload-step"]').contains("ilimodels_valid.xml");
+    cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml");
     stepIsActive("validate");
     stepIsLoading("validate");
     cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
 
     // Validation can be cancelled
     resetDelivery("validate");
-    cy.get('[data-cy="upload-step"]').contains("ilimodels_valid.xml").should("not.exist");
+    cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml").should("not.exist");
 
     // Submit is active if validation is successful
     addFile("deliveryFiles/ilimodels_valid.xml", true);
@@ -291,6 +323,7 @@ describe("Delivery tests", () => {
     cy.wait("@validation");
     stepIsCompleted("validate");
     stepIsActive("submit");
+    cy.wait("@mandates");
 
     cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
     setSelect("mandate", 1, 4);
@@ -304,6 +337,7 @@ describe("Delivery tests", () => {
     hasError("predecessor", false);
     cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
     cy.get('[data-cy="createDelivery-button"]').click();
+    stepIsLoading("submit");
 
     cy.wait("@submit");
     stepIsCompleted("submit");
@@ -336,6 +370,7 @@ describe("Delivery tests", () => {
     toggleCheckbox("isPartial");
     setInput("comment", "This is a test comment.");
     cy.get('[data-cy="createDelivery-button"]').click();
+    stepIsLoading("submit");
     cy.wait("@submit");
     stepIsCompleted("submit");
     stepIsActive("done");
@@ -343,7 +378,6 @@ describe("Delivery tests", () => {
   });
 
   it("can log in during the delivery process", () => {
-    mockUploadSuccess();
     mockValidationSuccess();
 
     cy.visit("/");
@@ -366,8 +400,8 @@ describe("Delivery tests", () => {
   });
 
   it("correctly extracts error messages from the response", () => {
-    cy.intercept({ url: "/api/v1/validation", method: "POST" }).as("upload");
-    cy.intercept({ url: "/api/v1/validation", method: "GET" }).as("validation");
+    mockValidationSuccess();
+    mockMandates();
 
     let currentResponseIndex = 0;
     const responses = [
@@ -390,6 +424,7 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@upload");
     cy.wait("@validation");
+    cy.wait("@mandates");
 
     setSelect("mandate", 1);
 
