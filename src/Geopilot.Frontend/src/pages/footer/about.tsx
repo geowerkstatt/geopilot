@@ -1,7 +1,7 @@
 import { Trans, useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useApi } from "../../api";
-import { Typography } from "@mui/material";
+import { Link, Typography } from "@mui/material";
 import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { ContentType } from "../../api/apiInterfaces.ts";
@@ -75,10 +75,16 @@ export const About = () => {
           i18nKey="codeLicenseInfo"
           components={{
             licenseLink: (
-              <a href="https://github.com/GeoWerkstatt/geopilot/blob/main/LICENSE" target="_blank" rel="noreferrer" />
+              <Link
+                href="https://github.com/GeoWerkstatt/geopilot/blob/main/LICENSE"
+                target="_blank"
+                rel="noreferrer"
+              />
             ),
-            repositoryLink: <a href="https://github.com/GeoWerkstatt/geopilot" target="_blank" rel="noreferrer" />,
-            issuesLink: <a href="https://github.com/GeoWerkstatt/geopilot/issues/" target="_blank" rel="noreferrer" />,
+            repositoryLink: <Link href="https://github.com/GeoWerkstatt/geopilot" target="_blank" rel="noreferrer" />,
+            issuesLink: (
+              <Link href="https://github.com/GeoWerkstatt/geopilot/issues/" target="_blank" rel="noreferrer" />
+            ),
           }}
         />
       </p>
