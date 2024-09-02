@@ -101,7 +101,7 @@ export const About = () => {
               {licenseInfoCustom[key].version && ` (${t("version")} ${licenseInfoCustom[key].version})`}{" "}
             </Typography>
             <p>
-              <a href={licenseInfoCustom[key].repository}>{licenseInfoCustom[key].repository}</a>
+              <Link href={licenseInfoCustom[key].repository}>{licenseInfoCustom[key].repository}</Link>
             </p>
             <p>{licenseInfoCustom[key].description}</p>
             <p>{licenseInfoCustom[key].copyright}</p>
@@ -119,7 +119,7 @@ export const About = () => {
               {licenseInfo[key].version && ` (${t("version")} ${licenseInfo[key].version})`}{" "}
             </Typography>
             <p>
-              <a href={licenseInfo[key].repository}>{licenseInfo[key].repository}</a>
+              <Link href={licenseInfo[key].repository}>{licenseInfo[key].repository}</Link>
             </p>
             <p>{licenseInfo[key].description}</p>
             <p>{licenseInfo[key].copyright}</p>
