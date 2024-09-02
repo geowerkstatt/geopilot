@@ -33,7 +33,7 @@ export const About = () => {
   const [licenseInfo, setLicenseInfo] = useState<PackageList>();
   const [licenseInfoCustom, setLicenseInfoCustom] = useState<PackageList>();
   const { fetchApi } = useApi();
-  const { version, clientSettings, termsOfUse } = useAppSettings();
+  const { version, termsOfUse } = useAppSettings();
   const { hash } = useLocation();
 
   useEffect(() => {
@@ -62,10 +62,16 @@ export const About = () => {
       {info && <MarkdownContent content={info} routeHash={"info"} />}
       {termsOfUse && <MarkdownContent content={termsOfUse} routeHash={"termsofuse"} />}
       <Typography variant="h1" id="version">
-        {t("versionInformation")}
+        {t("api")}
       </Typography>
       <p>
-        <b>geopilot {clientSettings?.application?.name}</b>: {version}
+        <Trans
+          i18nKey="apiInformation"
+          components={{
+            apiLink: <Link href={`${window.location.origin}/swagger/index.html`} target="_blank" rel="noreferrer" />,
+          }}
+          values={{ version }}
+        />
       </p>
       <Typography variant="h1" id="development">
         {t("development")} & {t("bugTracking")}

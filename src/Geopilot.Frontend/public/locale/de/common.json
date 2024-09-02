@@ -5,6 +5,8 @@
   "addOrganisation": "Organisation hinzufügen",
   "administration": "Administration",
   "and": "und",
+  "api": "API",
+  "apiInformation": "Dieser <i>geopilot</i> verwendet die API-Version {{version}}. Weitere Informationen finden Sie in der <apiLink>Dokumentation</apiLink>.",
   "bugTracking": "Bugtracking",
   "cancel": "Abbrechen",
   "clickToUpload": "Zum Hochladen klicken",
@@ -85,6 +87,5 @@
   "usersLoadingError": "Beim Laden der Benutzer:innen ist ein Fehler aufgetreten: {{error}}",
   "validate": "Validieren",
   "validationIsRunning": "Die Datei wird gerade mit {{validators}} validiert...",
-  "version": "Version",
-  "versionInformation": "Versionsinformationen"
+  "version": "Version"
 }
