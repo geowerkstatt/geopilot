@@ -16,13 +16,13 @@ describe("Footer tests", () => {
       statusCode: 200,
       fixture: "../fixtures/info.md",
     }).as("info");
-    cy.intercept("licenses.json", {
+    cy.intercept("license.json", {
       statusCode: 200,
-      fixture: "../fixtures/licenses.json",
+      fixture: "../fixtures/license.json",
     }).as("license");
-    cy.intercept("licenses.custom.json", {
+    cy.intercept("license.custom.json", {
       statusCode: 200,
-      fixture: "../fixtures/licenses.custom.json",
+      fixture: "../fixtures/license.custom.json",
     }).as("licenseCustom");
 
     cy.visit("/");
@@ -69,10 +69,10 @@ describe("Footer tests", () => {
     cy.intercept("info.md", {
       statusCode: 500,
     }).as("info");
-    cy.intercept("licenses.json", {
+    cy.intercept("license.json", {
       statusCode: 500,
     }).as("license");
-    cy.intercept("licenses.custom.json", {
+    cy.intercept("license.custom.json", {
       statusCode: 500,
     }).as("licenseCustom");
 
