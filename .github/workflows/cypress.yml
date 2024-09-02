@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Start db and api's
-        run: docker compose up --wait --wait-timeout 60
+        run: docker compose up
 
       - name: Cypress run
         uses: cypress-io/github-action@v6
