@@ -65,9 +65,9 @@ export const AppContext = () => {
         <GlobalStyles
           styles={{
             ":root": {
-              "--bs-body-font-family": '"NeoGeo", sans-serif',
-              "--bs-body-font-size": "16px",
-              "--bs-body-letter-spacing": "0.05em",
+              "font-family": '"NeoGeo", sans-serif',
+              "font-size": "16px",
+              "letter-spacing": "0.05em",
             },
           }}
         />

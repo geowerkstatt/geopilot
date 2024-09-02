@@ -39,7 +39,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       ? ""
       : (fileExtensions?.length ?? 0) > 1
         ? `${fileExtensions!.slice(0, -1).join(", ")} ${t("or")} ${fileExtensions!.slice(-1)}`
-        : fileExtensions?.join(", ") ?? "";
+        : (fileExtensions?.join(", ") ?? "");
   }, [acceptsAllFileTypes, fileExtensions, t]);
 
   const onDrop = useCallback(
@@ -98,7 +98,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      minHeight: "100px",
+      minHeight: "56px",
       padding: "20px",
       border: `2px dashed`,
       borderColor: disabled

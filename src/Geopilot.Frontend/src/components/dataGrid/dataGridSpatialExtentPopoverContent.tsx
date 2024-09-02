@@ -61,7 +61,7 @@ export const DataGridSpatialExtentPopoverContent: FC<SpatialExtentPopoverContent
       {renderCoordinateRow(1)}
       <FlexRowEndBox>
         <Button size="small" onClick={reset}>
-          {t("reset")}
+          {t("resetCurrentChanges")}
         </Button>
       </FlexRowEndBox>
     </Box>

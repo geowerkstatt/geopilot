@@ -13,7 +13,6 @@ const Footer = () => {
   return (
     <FlexRowCenterBox
       sx={{
-        width: { xs: "100%", md: `calc(100% - ${marginLeft})` },
         flexWrap: "wrap",
         marginLeft: { xs: "0", md: marginLeft },
         padding: "0 20px 10px 20px",
