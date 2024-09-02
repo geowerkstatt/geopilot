@@ -11,6 +11,7 @@
 - Added grid to manage organisations in administration area.
 - Added grid to manage users in administration area.
 - Added local Keycloak server for development.
+- Added authentication in Swagger UI.
 
 ### Changed
 
