@@ -4,6 +4,7 @@ import { useApi } from "../../api";
 import { ContentType } from "../../api/apiInterfaces.ts";
 
 export const AppSettingsContext = createContext<AppSettingsContextInterface>({
+  initialized: false,
   version: undefined,
   clientSettings: undefined,
   termsOfUse: undefined,
@@ -11,16 +12,22 @@ export const AppSettingsContext = createContext<AppSettingsContextInterface>({
 
 export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const { fetchApi } = useApi();
-  const [clientSettings, setClientSettings] = useState<ClientSettings>();
-  const [backendVersion, setBackendVersion] = useState("");
-  const [termsOfUse, setTermsOfUse] = useState<string>();
+  const [clientSettings, setClientSettings] = useState<ClientSettings | null>();
+  const [backendVersion, setBackendVersion] = useState<string | null>();
+  const [termsOfUse, setTermsOfUse] = useState<string | null>();
 
   useEffect(() => {
-    fetchApi<ClientSettings>("client-settings.json").then(setClientSettings);
-    fetchApi<string>("/api/v1/version").then(version => {
-      setBackendVersion(version.split("+")[0]);
-    });
-    fetchApi<string>("terms-of-use.md", { responseType: ContentType.Markdown }).then(setTermsOfUse);
+    fetchApi<ClientSettings>("client-settings.json")
+      .then(setClientSettings)
+      .catch(() => setClientSettings(null));
+    fetchApi<string>("/api/v1/version")
+      .then(version => {
+        setBackendVersion(version.split("+")[0]);
+      })
+      .catch(() => setBackendVersion(null));
+    fetchApi<string>("terms-of-use.md", { responseType: ContentType.Markdown })
+      .then(setTermsOfUse)
+      .catch(() => setTermsOfUse(null));
   }, [fetchApi]);
 
   useEffect(() => {
@@ -58,6 +65,7 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   return (
     <AppSettingsContext.Provider
       value={{
+        initialized: clientSettings !== undefined && backendVersion !== undefined && termsOfUse !== undefined,
         version: backendVersion,
         clientSettings: clientSettings,
         termsOfUse: termsOfUse,

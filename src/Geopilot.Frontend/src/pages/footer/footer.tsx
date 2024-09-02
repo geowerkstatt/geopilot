@@ -1,6 +1,7 @@
-import { Box, Button } from "@mui/material";
+import { Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { FlexRowCenterBox } from "../../components/styledComponents.ts";
 
 const Footer = () => {
   const { t } = useTranslation();
@@ -10,14 +11,10 @@ const Footer = () => {
   const marginLeft = isAdminRoute ? "250px" : "0";
 
   return (
-    <Box
+    <FlexRowCenterBox
       sx={{
         width: { xs: "100%", md: `calc(100% - ${marginLeft})` },
-        display: "flex",
-        flexDirection: "row",
-        justifyContent: "center",
         flexWrap: "wrap",
-        gap: "10px",
         marginLeft: { xs: "0", md: marginLeft },
         padding: "0 20px 10px 20px",
       }}
@@ -50,7 +47,7 @@ const Footer = () => {
         }}>
         {t("about")}
       </Button>
-    </Box>
+    </FlexRowCenterBox>
   );
 };
 

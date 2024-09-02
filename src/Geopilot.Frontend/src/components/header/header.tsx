@@ -5,7 +5,6 @@ import {
   AppBar,
   Avatar,
   Box,
-  Button,
   Divider,
   Drawer,
   IconButton,
@@ -24,6 +23,8 @@ import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { useGeopilotAuth } from "../../auth";
 import { LanguagePopup } from "./languagePopup";
 import MenuIcon from "@mui/icons-material/Menu";
+import { FlexColumnSpaceBetweenBox, FlexRowBox } from "../styledComponents.ts";
+import { BaseButton } from "../buttons.tsx";
 
 interface HeaderProps {
   openSubMenu: () => void;
@@ -59,7 +60,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             flexDirection: "row",
             justifyContent: "space-between",
           }}>
-          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", padding: "5px 0" }}>
+          <FlexRowBox sx={{ padding: "5px 0" }}>
             <Box sx={{ display: { xs: "block", md: "none" }, flex: "0", marginRight: "10px" }}>
               {hasSubMenu ? (
                 <IconButton
@@ -112,20 +113,14 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 </Typography>
               )}
             </Box>
-          </Box>
-          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+          </FlexRowBox>
+          <FlexRowBox>
             <LanguagePopup />
             {enabled &&
               (user ? (
                 <IconButton
                   sx={{
                     padding: "0",
-                    "&:hover, &.Mui-focusVisible, &:active, &:focus, &:focus-visible": {
-                      backgroundColor: "rgba(0, 0, 0, 0.0)",
-                    },
-                    "& .MuiTouchRipple-root": {
-                      display: "none",
-                    },
                   }}
                   onClick={toggleUserMenu(true)}
                   data-cy="loggedInUser-button">
@@ -133,27 +128,24 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 </IconButton>
               ) : (
                 <>
-                  <Button
+                  <BaseButton
+                    variant="text"
                     onClick={login}
-                    startIcon={<LoginIcon />}
+                    icon={<LoginIcon />}
                     sx={{ display: { xs: "none", md: "flex" } }}
-                    data-cy="login-button">
-                    {t("logIn")}
-                  </Button>
+                    label="logIn"
+                  />
                   <IconButton onClick={login} sx={{ display: { xs: "flex", md: "none" } }} color="primary">
                     <LoginIcon />
                   </IconButton>
                 </>
               ))}
-          </Box>
+          </FlexRowBox>
         </Toolbar>
       </AppBar>
       <Drawer anchor={"right"} open={userMenuOpen} onClose={toggleUserMenu(false)} data-cy="tool-navigation">
-        <Box
+        <FlexColumnSpaceBetweenBox
           sx={{
-            display: "flex;",
-            flexDirection: "column",
-            justifyContent: "space-between",
             height: "100%",
             padding: "20px 0",
           }}>
@@ -208,15 +200,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </List>
           </Box>
-          <Button
-            variant="contained"
-            sx={{ margin: "0 20px" }}
-            onClick={logout}
-            startIcon={<LogoutIcon />}
-            data-cy="logout-button">
-            {t("logOut")}
-          </Button>
-        </Box>
+          <BaseButton sx={{ margin: "0 20px" }} onClick={logout} icon={<LogoutIcon />} label="logOut" />
+        </FlexColumnSpaceBetweenBox>
       </Drawer>
     </>
   );

@@ -50,7 +50,7 @@ public class MandateController : ControllerBase
         var user = await context.GetUserByPrincipalAsync(User);
         var mandates = context.MandatesWithIncludes.AsNoTracking();
 
-        if (!user.IsAdmin)
+        if (!user.IsAdmin || jobId != default)
         {
             mandates = mandates.Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
         }

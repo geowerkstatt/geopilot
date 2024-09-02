@@ -61,3 +61,26 @@ export interface User {
   organisations: Organisation[] | number[];
   deliveries: Delivery[];
 }
+
+export interface ValidationSettings {
+  allowedFileExtensions: string[];
+}
+
+export enum ValidationStatus {
+  Processing = "processing",
+  Completed = "completed",
+  CompletedWithErrors = "completedWithErrors",
+  Failed = "failed",
+}
+
+export interface ValidatorResult {
+  status: string;
+  statusMessage: string;
+  logFiles: Record<string, string>;
+}
+
+export interface ValidationResponse {
+  jobId: string;
+  status: ValidationStatus;
+  validatorResults: Record<string, ValidatorResult>;
+}

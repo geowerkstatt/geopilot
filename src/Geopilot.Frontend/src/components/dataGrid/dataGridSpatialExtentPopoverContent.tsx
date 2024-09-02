@@ -2,6 +2,7 @@ import { ChangeEvent, FC } from "react";
 import { Coordinate } from "../../api/apiInterfaces";
 import { useTranslation } from "react-i18next";
 import { Box, Button, TextField } from "@mui/material";
+import { FlexRowEndBox, FlexRowSpaceBetweenBox } from "../styledComponents.ts";
 
 interface SpatialExtentPopoverContentProps {
   spatialExtent: Coordinate[];
@@ -22,7 +23,7 @@ export const DataGridSpatialExtentPopoverContent: FC<SpatialExtentPopoverContent
   };
 
   const renderCoordinateRow = (index: number) => (
-    <Box sx={{ display: "flex", flexDirection: "row", justifyContent: "space-between", marginTop: "20px" }}>
+    <FlexRowSpaceBetweenBox sx={{ marginTop: "20px" }}>
       <Box
         sx={{
           margin: "10px 20px 10px 10px",
@@ -50,7 +51,7 @@ export const DataGridSpatialExtentPopoverContent: FC<SpatialExtentPopoverContent
         value={spatialExtent[index]?.y ?? ""}
         onChange={handleChange(index, "y")}
       />
-    </Box>
+    </FlexRowSpaceBetweenBox>
   );
 
   return (
@@ -58,11 +59,11 @@ export const DataGridSpatialExtentPopoverContent: FC<SpatialExtentPopoverContent
       <h6>{t("spatialExtent")}</h6>
       {renderCoordinateRow(0)}
       {renderCoordinateRow(1)}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <FlexRowEndBox>
         <Button size="small" onClick={reset}>
           {t("reset")}
         </Button>
-      </div>
+      </FlexRowEndBox>
     </Box>
   );
 };

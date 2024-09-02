@@ -17,9 +17,10 @@ export interface ClientSettings {
 }
 
 export interface AppSettingsContextInterface {
-  version?: string;
-  clientSettings?: ClientSettings;
-  termsOfUse?: string;
+  initialized: boolean;
+  version?: string | null;
+  clientSettings?: ClientSettings | null;
+  termsOfUse?: string | null;
 }
 
 export const useAppSettings = () => useContext(AppSettingsContext);

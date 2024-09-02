@@ -1,5 +1,6 @@
 import {
   isSelectedNavItem,
+  loadWithoutAuth,
   loginAsAdmin,
   loginAsNewUser,
   loginAsUploader,
@@ -11,12 +12,8 @@ import { selectAdminNavItem } from "./helpers/adminHelpers.js";
 
 describe("General app tests", () => {
   it("shows no login button if auth settings could not be loaded", () => {
-    cy.visit("/");
-    cy.intercept("/api/v1/user/auth", {
-      statusCode: 200,
-      body: { authority: "", clientId: "" },
-    });
-    cy.get('[data-cy="loggedInUser-button"]').should("not.exist");
+    loadWithoutAuth();
+    cy.get('[data-cy="login-button"]').should("not.exist");
   });
 
   it.skip("registers new users and logs them in", () => {
