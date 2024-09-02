@@ -73,6 +73,26 @@ const stepIsCompleted = (stepName, isCompleted = true) => {
   }
 };
 
+const mockUploadSuccess = () => {
+  cy.intercept({ url: "/api/v1/validation", method: "POST" }, req => {
+    req.reply({
+      statusCode: 201,
+      body: {
+        jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+        status: "processing",
+        validatorResults: {
+          ilicheck: {
+            status: "processing",
+            statusMessage: "Die Datei wird validiert...",
+            logFiles: {},
+          },
+        },
+      },
+      delay: 500,
+    });
+  }).as("upload");
+};
+
 const mockValidationSuccess = () => {
   cy.intercept({ url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
     req.reply({
@@ -96,25 +116,32 @@ const mockValidationSuccess = () => {
   }).as("validation");
 };
 
+const mockMandates = () => {
+  cy.intercept({ url: "/api/v1/mandate?jobId=d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
+    req.reply({
+      statusCode: 200,
+      body: [
+        {
+          id: 1,
+          name: "Handmade Soft Cheese",
+        },
+        {
+          id: 5,
+          name: "Licensed Frozen Towels",
+        },
+        {
+          id: 9,
+          name: "Unbranded Wooden Pants",
+        },
+      ],
+      delay: 500,
+    });
+  }).as("mandates");
+};
+
 describe("Delivery tests", () => {
   beforeEach(() => {
-    cy.intercept({ url: "/api/v1/validation", method: "POST" }, req => {
-      req.reply({
-        statusCode: 201,
-        body: {
-          jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
-          status: "processing",
-          validatorResults: {
-            ilicheck: {
-              status: "processing",
-              statusMessage: "Die Datei wird validiert...",
-              logFiles: {},
-            },
-          },
-        },
-        delay: 500,
-      });
-    }).as("upload");
+    mockUploadSuccess();
   });
 
   it("shows only validation steps if auth settings could not be loaded", () => {
@@ -215,7 +242,7 @@ describe("Delivery tests", () => {
 
   it("can submit a delivery", () => {
     mockValidationSuccess();
-
+    mockMandates();
     cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
       req.reply({
         statusCode: 201,
@@ -223,6 +250,7 @@ describe("Delivery tests", () => {
           id: 43,
           jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
         },
+        delay: 500,
       });
     }).as("submit");
 
@@ -296,6 +324,7 @@ describe("Delivery tests", () => {
     cy.wait("@validation");
     stepIsCompleted("validate");
     stepIsActive("submit");
+    cy.wait("@mandates");
 
     cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
     setSelect("mandate", 1, 4);
@@ -373,6 +402,7 @@ describe("Delivery tests", () => {
 
   it("correctly extracts error messages from the response", () => {
     mockValidationSuccess();
+    mockMandates();
 
     let currentResponseIndex = 0;
     const responses = [
@@ -395,6 +425,7 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@upload");
     cy.wait("@validation");
+    cy.wait("@mandates");
 
     setSelect("mandate", 1);
 

@@ -11,6 +11,7 @@ const DeliveryContainer = styled(Box)(({ theme }) => ({
   border: `1px solid ${theme.palette.primary.main}`,
   borderRadius: "4px",
   padding: "40px",
+  flex: 1,
 }));
 
 const Delivery = () => {
