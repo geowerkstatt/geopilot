@@ -250,6 +250,7 @@ describe("Delivery tests", () => {
           id: 43,
           jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
         },
+        delay: 500,
       });
     }).as("submit");
 
