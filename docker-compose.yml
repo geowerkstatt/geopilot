@@ -51,7 +51,7 @@ services:
     image: ghcr.io/geowerkstatt/interlis-check-service:latest
     restart: unless-stopped
     ports:
-      - 3080:80
+      - 3080:8080
 
   geopilot:
     build:
@@ -68,7 +68,7 @@ services:
       Auth__AuthorizationUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/auth
       Auth__TokenUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/token
       Auth__ApiOrigin: http://localhost:5173
-      Validation__InterlisCheckServiceUrl: http://interlis-check-service/
+      Validation__InterlisCheckServiceUrl: http://interlis-check-service:8080/
     volumes:
       - ./src/Geopilot.Api/Uploads:/uploads
       - ./src/Geopilot.Api/Persistent:/assets
