@@ -43,7 +43,7 @@ describe("Footer tests", () => {
     const expectedHeaders = [
       "Information about geopilot",
       "Terms of use",
-      "Version information",
+      "API",
       "Development & bug tracking",
       "License information",
     ];
@@ -91,7 +91,7 @@ describe("Footer tests", () => {
     cy.wait("@termsOfUse");
     cy.wait("@license");
     cy.wait("@licenseCustom");
-    const expectedHeaders = ["Version information", "Development & bug tracking"];
+    const expectedHeaders = ["API", "Development & bug tracking"];
     cy.get("h1")
       .should("have.length", expectedHeaders.length)
       .each(($el, index) => {

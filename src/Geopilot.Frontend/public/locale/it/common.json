@@ -5,6 +5,8 @@
   "addOrganisation": "Aggiungi organizzazione",
   "administration": "Amministrazione",
   "and": "e",
+  "api": "API",
+  "apiInformation": "Questo <i>geopilota</i> utilizza la versione dell'API {{version}}. Ulteriori informazioni sono disponibili nella <apiLink>documentazione</apiLink>.",
   "bugTracking": "Tracciamento bug",
   "cancel": "Annulla",
   "clickToUpload": "Clicca per caricare",
@@ -80,6 +82,5 @@
   "usersLoadingError": "Si è verificato un errore durante il caricamento degli utenti: {{error}}",
   "validate": "Validare",
   "validationIsRunning": "Il file è in corso di validazione con {{validators}}...",
-  "version": "Versione",
-  "versionInformation": "Informazioni sulla versione"
+  "version": "Versione"
 }
