@@ -102,6 +102,19 @@ builder.Services.AddSwaggerGen(options =>
 
     // Workaround for STAC API having multiple actions mapped to the "search" route.
     options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+
+    var authUrl = builder.Configuration["Auth:AuthorizationUrl"];
+    var tokenUrl = builder.Configuration["Auth:TokenUrl"];
+    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl))
+    {
+        var apiScope = builder.Configuration["Auth:ApiScope"];
+        options.AddGeopilotOAuth2(authUrl, tokenUrl, apiScope);
+    }
+    else
+    {
+        var authority = builder.Configuration["Auth:Authority"];
+        options.AddOpenIdConnect(authority!);
+    }
 });
 
 builder.Services
@@ -189,6 +202,10 @@ app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "geopilot API v1.0");
+
+    options.OAuthClientId(builder.Configuration["Auth:ClientId"]);
+    options.OAuth2RedirectUrl($"{builder.Configuration["Auth:ApiOrigin"]}/swagger/oauth2-redirect.html");
+    options.OAuthUsePkce();
 });
 
 app.UseHttpsRedirection();

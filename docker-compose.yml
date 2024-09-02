@@ -65,6 +65,9 @@ services:
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
       Auth__Authority: http://localhost:4011/realms/geopilot
       Auth__ClientId: geopilot-client
+      Auth__AuthorizationUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/auth
+      Auth__TokenUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/token
+      Auth__ApiOrigin: http://localhost:5173
       Validation__InterlisCheckServiceUrl: http://interlis-check-service:8080/
     volumes:
       - ./src/Geopilot.Api/Uploads:/uploads
