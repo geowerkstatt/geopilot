@@ -2,15 +2,13 @@ import { ReactNode } from "react";
 
 export interface PromptContextInterface {
   promptIsOpen: boolean;
-  title: string | undefined;
-  message: string | undefined;
-  actions: PromptAction[] | undefined;
-  showPrompt: (title: string, message: string, actions: PromptAction[]) => void;
+  message?: string;
+  actions?: PromptAction[];
+  showPrompt: (message: string, actions: PromptAction[]) => void;
   closePrompt: () => void;
 }
 
 export interface PromptOptions {
-  title: string;
   message: string;
   actions: PromptAction[];
 }

@@ -49,7 +49,7 @@ export const Users = () => {
   }
 
   async function onDisconnect(row: DataRow) {
-    showPrompt(t("userDisconnectTitle"), t("userDisconnectMessage"), [
+    showPrompt(t("userDisconnect"), [
       { label: t("cancel") },
       {
         label: t("disconnect"),

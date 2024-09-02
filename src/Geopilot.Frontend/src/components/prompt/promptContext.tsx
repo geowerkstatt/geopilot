@@ -2,7 +2,6 @@ import { createContext, FC, useState } from "react";
 import { PromptAction, PromptContextInterface, PromptOptions, PromptProviderProps } from "./promptInterfaces";
 
 export const PromptContext = createContext<PromptContextInterface>({
-  title: undefined,
   message: undefined,
   actions: [],
   promptIsOpen: false,
@@ -13,9 +12,8 @@ export const PromptContext = createContext<PromptContextInterface>({
 export const PromptProvider: FC<PromptProviderProps> = ({ children }) => {
   const [prompt, setPrompt] = useState<PromptOptions | null>(null);
 
-  const showPrompt = (title: string, message: string, actions: PromptAction[]) => {
+  const showPrompt = (message: string, actions: PromptAction[]) => {
     setPrompt({
-      title: title,
       message: message,
       actions: actions,
     });
@@ -28,8 +26,7 @@ export const PromptProvider: FC<PromptProviderProps> = ({ children }) => {
   return (
     <PromptContext.Provider
       value={{
-        promptIsOpen: prompt?.title != null,
-        title: prompt?.title,
+        promptIsOpen: prompt?.message != null,
         message: prompt?.message,
         actions: prompt?.actions,
         showPrompt,

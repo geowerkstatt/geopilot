@@ -75,7 +75,7 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
             });
             setPopoverAnchor(null);
           } else {
-            showPrompt(t("spatialExtentIncompleteTitle"), t("spatialExtentIncompleteMessage"), [
+            showPrompt(t("spatialExtentIncomplete"), [
               { label: t("cancel") },
               {
                 label: t("resetCurrentChanges"),
