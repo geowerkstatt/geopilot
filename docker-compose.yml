@@ -51,7 +51,7 @@ services:
     image: ghcr.io/geowerkstatt/interlis-check-service:latest
     restart: unless-stopped
     ports:
-      - 3080:80
+      - 3080:8080
 
   geopilot:
     build:
@@ -65,7 +65,7 @@ services:
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
       Auth__Authority: http://localhost:4011/realms/geopilot
       Auth__ClientId: geopilot-client
-      Validation__InterlisCheckServiceUrl: http://interlis-check-service/
+      Validation__InterlisCheckServiceUrl: http://interlis-check-service:8080/
     volumes:
       - ./src/Geopilot.Api/Uploads:/uploads
       - ./src/Geopilot.Api/Persistent:/assets
