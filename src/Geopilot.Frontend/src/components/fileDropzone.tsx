@@ -39,7 +39,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       ? ""
       : (fileExtensions?.length ?? 0) > 1
         ? `${fileExtensions!.slice(0, -1).join(", ")} ${t("or")} ${fileExtensions!.slice(-1)}`
-        : fileExtensions?.join(", ") ?? "";
+        : (fileExtensions?.join(", ") ?? "");
   }, [acceptsAllFileTypes, fileExtensions, t]);
 
   const onDrop = useCallback(
