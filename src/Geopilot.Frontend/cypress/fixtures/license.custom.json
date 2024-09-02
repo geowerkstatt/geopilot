@@ -1,0 +1,20 @@
+{
+  "project1": {
+    "licenses": "MIT",
+    "repository": "https://github.com/example/project1",
+    "url": "http://www.example.com/",
+    "name": "project1",
+    "description": "A project that does wonders",
+    "copyright": "Copyright (c) 2023 Example Corp",
+    "licenseText": ""
+  },
+  "project2": {
+    "licenses": "Apache-2.0",
+    "repository": "https://github.com/example/project2",
+    "url": "http://www.example.com/",
+    "name": "project2",
+    "description": "An innovative project that solves problems",
+    "copyright": "Copyright (c) 2023 Example Corp",
+    "licenseText": ""
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "projectA": {
+    "licenses": "GPL-3.0",
+    "repository": "https://github.com/example/projectA",
+    "url": "http://www.exampleA.com/",
+    "name": "projectA",
+    "description": "A groundbreaking project that changes everything",
+    "copyright": "Copyright (c) 2023 Example A Corp",
+    "licenseText": ""
+  },
+  "projectB": {
+    "licenses": "BSD-3-Clause",
+    "repository": "https://github.com/example/projectB",
+    "url": "http://www.exampleB.com/",
+    "name": "projectB",
+    "description": "A revolutionary project that innovates",
+    "copyright": "Copyright (c) 2023 Example B Corp",
+    "licenseText": ""
+  }
+}

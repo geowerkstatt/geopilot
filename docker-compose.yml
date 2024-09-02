@@ -72,8 +72,8 @@ services:
     volumes:
       - ./src/Geopilot.Api/Uploads:/uploads
       - ./src/Geopilot.Api/Persistent:/assets
-      - ./README.md:/public/info-hilfe.md
-      - ./LICENSE:/public/nutzungsbestimmungen.md
+      - ./README.md:/public/info.md
+      - ./LICENSE:/public/terms-of-use.md
     extra_hosts:
       - "localhost:host-gateway"
     depends_on:
@@ -90,4 +90,3 @@ services:
     ports:
       - "4011:8080"
     command: start-dev --import-realm
-

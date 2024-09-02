@@ -35,7 +35,7 @@ internal static class ContextExtensions
         context.SeedMandates();
         context.SeedDeliveries();
         context.SeedAssets();
-        context.AuthorizeFirstUser();
+        context.AddOrganisationsToDefaultUsers();
 
         transaction.Commit();
     }
@@ -187,15 +187,15 @@ internal static class ContextExtensions
         context.SaveChanges();
     }
 
-    public static void AuthorizeFirstUser(this Context context)
+    public static void AddOrganisationsToDefaultUsers(this Context context)
     {
-        var user = context.Users.OrderBy(u => u.Id).First();
-        var organisation = context.Organisations.OrderBy(o => o.Id).First();
-        var mandates = context.Mandates.OrderBy(m => m.Id).Skip(1);
+        var admin = context.Users.Single(user => user.Email == "admin@geopilot.ch");
+        var adminOrganisations = context.Organisations.OrderBy(o => o.Id).Skip(1);
+        admin.Organisations.AddRange(adminOrganisations);
 
-        user.IsAdmin = true;
-        user.Organisations.Add(organisation);
-        organisation.Mandates.AddRange(mandates);
+        var user = context.Users.Single(user => user.Email == "user@geopilot.ch");
+        var userOrganistions = context.Organisations.OrderBy(o => o.Id).Take(2);
+        user.Organisations.AddRange(userOrganistions);
 
         context.SaveChanges();
     }

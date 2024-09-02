@@ -27,6 +27,17 @@
 - First registered user is granted administrator privileges.
 - Updated to .NET 8.0.
 - The app now runs on port 8080 inside the docker container.
+- Redesigned complete application.
+- **BREAKING** Renamed various public files:
+  - `info-hilfe.md` -> `info.md`
+  - `impressum.md` -> `imprint.md`
+  - `datenschutz.md` -> `privacy-policy.md`
+  - `nutzungsbedingungen.md` -> `terms-of-use.md`
+- **BREAKING** Deleted _banner_ and _quickstart_ features.
+- **BREAKING** Merged `application` and `vendor` properties in Client Settings:
+  - The application name is always _geopilot_. With `name` the application name can be extended, e.g. to _geopilot Test_.
+  - There is only one `logo` which is used for the header.
+  - Optionally a separate `faviconDark` can be defined for dark mode of the browser.
 
 ## v1.0.93 - 2024-05-14
 

@@ -43,6 +43,7 @@ public class DeliveryController : ControllerBase
     [Authorize(Policy = GeopilotPolicies.User)]
     [SwaggerResponse(StatusCodes.Status201Created, "The delivery was created successfully.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "The user is not authorized.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job or mandate could not be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was an error persisting the assets.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Create(DeliveryRequest declaration)
@@ -69,8 +70,14 @@ public class DeliveryController : ControllerBase
 
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
         {
-            logger.LogTrace("User <{AuthIdentifier}> is not authorized to create a delivery for mandate with id <{MandateId}>.", user.AuthIdentifier, declaration.MandateId);
-            return NotFound($"Mandate with id <{declaration.MandateId}> not found or user is not authorized.");
+            logger.LogTrace($"Mandate with id <{declaration.MandateId}> not found.");
+            return NotFound($"Mandate with id <{declaration.MandateId}> not found.");
+        }
+
+        if (!mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
+        {
+            logger.LogTrace($"User <{user.AuthIdentifier}> is not authorized to create a delivery for mandate with id <{declaration.MandateId}>.");
+            return Unauthorized($"User is not authorized for mandate with id <{declaration.MandateId}>");
         }
 
         var precursorDelivery = declaration.PrecursorDeliveryId.HasValue ?
