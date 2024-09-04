@@ -181,6 +181,21 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task CreateMandateRequiresSpatialExtent()
+        {
+            mandateController.SetupTestUser(adminUser);
+            var mandate = new Mandate()
+            {
+                FileTypes = new string[] { ".*" },
+                Name = "ACCORDIANWALK",
+                Organisations = new List<Organisation>() { new () { Id = 1 } },
+                Coordinates = new List<Models.Coordinate>(),
+            };
+            var result = await mandateController.Create(mandate);
+            ActionResultAssert.IsBadRequest(result);
+        }
+
+        [TestMethod]
         public async Task EditMandate()
         {
             mandateController.SetupTestUser(adminUser);
@@ -238,6 +253,22 @@ namespace Geopilot.Api.Controllers
             {
                 Assert.AreEqual(mandateToUpdate.Organisations[i].Id, updatedMandate.Organisations[i].Id);
             }
+        }
+
+        [TestMethod]
+        public async Task EditMandateRequiresSpatialExtent()
+        {
+            mandateController.SetupTestUser(adminUser);
+            var mandate = new Mandate()
+            {
+                Id = xtfMandate.Id,
+                FileTypes = new string[] { ".*", ".zip" },
+                Name = "PEARLFOLLOWER",
+                Organisations = new List<Organisation>() { new () { Id = 1 } },
+                Coordinates = new List<Models.Coordinate>(),
+            };
+            var result = await mandateController.Edit(mandate);
+            ActionResultAssert.IsBadRequest(result);
         }
 
         [TestCleanup]
