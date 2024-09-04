@@ -53,23 +53,23 @@ public class Mandate
     /// <summary>
     /// Transforms the <see cref="Coordinates"/> list to a <see cref="SpatialExtent"/> polygon.
     /// </summary>
-    public void SetPolygonFromCoordinates()
+    /// <returns><c>true</c> if this mandate has 2 coordinates to create the spatial extent; otherwise, <c>false</c>.</returns>
+    public bool SetPolygonFromCoordinates()
     {
         if (Coordinates.Count != 2)
         {
-            SpatialExtent = Geometry.DefaultFactory.CreatePolygon();
+            return false;
         }
-        else
+
+        SpatialExtent = Geometry.DefaultFactory.CreatePolygon(new NetTopologySuite.Geometries.Coordinate[]
         {
-            SpatialExtent = Geometry.DefaultFactory.CreatePolygon(new NetTopologySuite.Geometries.Coordinate[]
-            {
-                new (Coordinates[0].X, Coordinates[0].Y),
-                new (Coordinates[0].X, Coordinates[1].Y),
-                new (Coordinates[1].X, Coordinates[1].Y),
-                new (Coordinates[1].X, Coordinates[0].Y),
-                new (Coordinates[0].X, Coordinates[0].Y),
-            });
-        }
+            new (Coordinates[0].X, Coordinates[0].Y),
+            new (Coordinates[0].X, Coordinates[1].Y),
+            new (Coordinates[1].X, Coordinates[1].Y),
+            new (Coordinates[1].X, Coordinates[0].Y),
+            new (Coordinates[0].X, Coordinates[0].Y),
+        });
+        return true;
     }
 
     /// <summary>

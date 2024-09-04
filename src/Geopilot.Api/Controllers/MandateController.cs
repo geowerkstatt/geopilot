@@ -94,11 +94,13 @@ public class MandateController : ControllerBase
             if (mandate == null)
                 return BadRequest();
 
+            if (!mandate.SetPolygonFromCoordinates())
+                return BadRequest("Invalid coordinates for spatial extent.");
+
             var organisationIds = mandate.Organisations.Select(o => o.Id).ToList();
             mandate.Organisations = await context.Organisations
                 .Where(o => organisationIds.Contains(o.Id))
                 .ToListAsync();
-            mandate.SetPolygonFromCoordinates();
 
             var entityEntry = await context.AddAsync(mandate).ConfigureAwait(false);
             await context.SaveChangesAsync().ConfigureAwait(false);
@@ -146,7 +148,8 @@ public class MandateController : ControllerBase
             if (existingMandate == null)
                 return NotFound();
 
-            mandate.SetPolygonFromCoordinates();
+            if (!mandate.SetPolygonFromCoordinates())
+                return BadRequest("Invalid coordinates for spatial extent.");
 
             context.Entry(existingMandate).CurrentValues.SetValues(mandate);
 
