@@ -99,7 +99,11 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
         }}>
         <>
-          <FlexRowBox sx={{ padding: "8px 16px" }}>
+          <FlexRowBox
+            sx={{ padding: "8px 16px", cursor: "pointer" }}
+            onClick={() => {
+              navigate("/");
+            }}>
             {clientSettings?.application?.logo && (
               <Box>
                 <img
@@ -111,14 +115,17 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
             )}
             <Box
               sx={{
-                marginLeft: "20px",
                 display: "flex",
-                flexDirection: { xs: "column", md: "row" },
-                alignItems: { xs: "start", md: "center" },
+                flexDirection: "column",
+                alignItems: "start",
               }}>
-              <Typography sx={{ typography: { xs: "h4", md: "h1" } }}>geopilot</Typography>
+              <Typography variant="h4" sx={{ margin: "0 !important" }}>
+                geopilot&nbsp;
+              </Typography>
               {clientSettings?.application?.name && (
-                <Typography sx={{ typography: { xs: "h6", md: "h1" } }}>{clientSettings?.application?.name}</Typography>
+                <Typography variant="h6" sx={{ margin: "0 !important" }}>
+                  {clientSettings?.application?.name}
+                </Typography>
               )}
             </Box>
           </FlexRowBox>

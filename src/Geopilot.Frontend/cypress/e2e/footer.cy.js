@@ -54,6 +54,9 @@ describe("Footer tests", () => {
       });
     cy.contains("project1");
     cy.contains("projectA");
+
+    cy.get('[data-cy="header"]').click();
+    cy.get('[data-cy="upload-step"]').should("exist");
   });
 
   it("shows and navigates correctly between footer pages without content", () => {
