@@ -59,7 +59,7 @@ export interface User {
   isAdmin: boolean;
   email: string;
   organisations: Organisation[] | number[];
-  deliveries: Delivery[];
+  deliveries?: Delivery[];
 }
 
 export interface ValidationSettings {
