@@ -41,6 +41,9 @@ export const DeliverySubmit = () => {
       fetchApi<Delivery[]>("/api/v1/delivery?" + new URLSearchParams({ mandateId: mandateId })).then(
         setPreviousDeliveries,
       );
+    } else {
+      setPreviousDeliveries([]);
+      formMethods.setValue("predecessor", undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formMethods.getValues()["mandate"]]);
@@ -61,6 +64,7 @@ export const DeliverySubmit = () => {
               fieldName="mandate"
               label="mandate"
               required={true}
+              disabled={mandates.length === 0}
               values={mandates
                 ?.sort((a, b) => a.name.localeCompare(b.name))
                 .map(mandate => ({ key: mandate.id, name: mandate.name }))}
@@ -68,6 +72,7 @@ export const DeliverySubmit = () => {
             <FormSelect
               fieldName="predecessor"
               label="predecessor"
+              disabled={previousDeliveries.length === 0}
               values={previousDeliveries.map(delivery => ({ key: delivery.id, name: delivery.date.toLocaleString() }))}
             />
           </FlexRowSpaceBetweenBox>
