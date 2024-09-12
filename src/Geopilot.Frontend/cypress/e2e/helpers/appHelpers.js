@@ -18,7 +18,7 @@ export const login = user => {
     () => {
       cy.intercept("http://localhost:4011/realms/geopilot/protocol/openid-connect/token").as("token");
       cy.visit("/");
-      cy.wait("@version");
+      cy.wait("@termsOfUse");
       cy.get('[data-cy="logIn-button"]').click();
       cy.origin("http://localhost:4011", { args: { user } }, ({ user }) => {
         cy.get("#username").type(user);
