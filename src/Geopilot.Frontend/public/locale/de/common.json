@@ -61,6 +61,7 @@
   "mandates": "Mandate",
   "mandatesLoadingError": "Beim Laden der Mandate ist ein Fehler aufgetreten: {{error}}",
   "name": "Name",
+  "noMandatesFound": "Es wurde kein passendes Mandat für Ihre Lieferung gefunden.",
   "or": "oder",
   "organisationDisconnect": "Möchten Sie die Organisation wirklich inaktiv setzen? Die Organisation wird von allen Mandaten und Benutzer:innen getrennt. Diese Aktion kann nicht rückgängig gemacht werden.",
   "organisationSaveError": "Beim Speichern der Organisation ist ein Fehler aufgetreten: {{error}}",

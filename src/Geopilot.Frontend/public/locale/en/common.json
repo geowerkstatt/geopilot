@@ -61,6 +61,7 @@
   "mandates": "Mandates",
   "mandatesLoadingError": "An error occurred while loading the mandates: {{error}}",
   "name": "Name",
+  "noMandatesFound": "No suitable mandate was found for your delivery.",
   "or": "or",
   "organisationDisconnect": "Do you really want to disconnect the organisation? This will remove all connections to mandates and users, and cannot be undone.",
   "organisationSaveError": "An error occurred while saving the organisation: {{error}}",

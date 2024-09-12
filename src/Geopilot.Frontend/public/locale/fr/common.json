@@ -61,6 +61,7 @@
   "mandates": "Mandats",
   "mandatesLoadingError": "Une erreur s'est produite lors du chargement des mandats: {{error}}",
   "name": "Nom",
+  "noMandatesFound": "Aucun mandat approprié n'a été trouvé pour leur livraison.",
   "or": "ou",
   "organisationDisconnect": "Voulez-vous vraiment déconnecter l'organisation? Cette action supprime toutes les connexions avec les mandats et les utilisateurs. Cette action ne peut pas être annulée.",
   "organisationSaveError": "Une erreur s'est produite lors de l'enregistrement de l'organisation: {{error}}",

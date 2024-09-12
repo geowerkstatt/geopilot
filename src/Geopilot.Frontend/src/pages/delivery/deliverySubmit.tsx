@@ -8,21 +8,28 @@ import { FormCheckbox, FormInput, FormSelect } from "../../components/form/form.
 import SendIcon from "@mui/icons-material/Send";
 import { Delivery, Mandate } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
-import { DeliverySubmitData } from "./deliveryInterfaces.tsx";
+import { DeliveryStepEnum, DeliverySubmitData } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
+import { useTranslation } from "react-i18next";
 
 export const DeliverySubmit = () => {
+  const { t } = useTranslation();
   const { enabled, user, login } = useGeopilotAuth();
   const formMethods = useForm({ mode: "all" });
   const { fetchApi } = useApi();
-  const { validationResponse, isLoading, submitDelivery, resetDelivery } = useContext(DeliveryContext);
+  const { setStepError, validationResponse, isLoading, submitDelivery, resetDelivery } = useContext(DeliveryContext);
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [previousDeliveries, setPreviousDeliveries] = useState<Delivery[]>([]);
 
   useEffect(() => {
     if (validationResponse?.jobId && user) {
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ jobId: validationResponse.jobId })).then(
-        setMandates,
+        mandates => {
+          if (mandates.length === 0) {
+            setStepError(DeliveryStepEnum.Submit, t("noMandatesFound"));
+          }
+          setMandates(mandates);
+        },
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

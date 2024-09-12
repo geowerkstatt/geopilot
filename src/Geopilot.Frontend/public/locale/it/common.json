@@ -61,6 +61,7 @@
   "mandates": "Mandati",
   "mandatesLoadingError": "Si è verificato un errore durante il caricamento dei mandati: {{error}}",
   "name": "Nome",
+  "noMandatesFound": "Non è stato trovato un mandato adatto per la vostra consegna.",
   "or": "o",
   "organisationDisconnect": "Volete davvero scollegare l'organizzazione?Questa operazione rimuove tutti i collegamenti ai mandati e agli utenti, e non può essere annullata.",
   "organisationSaveError": "Si è verificato un errore durante il salvataggio dell'organizzazione: {{error}}",
