@@ -74,19 +74,26 @@ export const DeliveryOverview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleDelete() {
+  function handleDelete() {
+    let completedCount = 0;
     for (const row of selectedRows) {
-      fetchApi("/api/v1/delivery/" + row, { method: "DELETE" }).catch((error: ApiError) => {
-        if (error.status === 404) {
-          showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: row }), "error");
-        } else if (error.status === 500) {
-          showAlert(t("deliveryOverviewDeleteIdError", { id: row }), "error");
-        } else {
-          showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
-        }
-      });
+      fetchApi("/api/v1/delivery/" + row, { method: "DELETE" })
+        .then(() => {
+          completedCount++;
+          if (completedCount === selectedRows.length) {
+            loadDeliveries();
+          }
+        })
+        .catch((error: ApiError) => {
+          if (error.status === 404) {
+            showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: row }), "error");
+          } else if (error.status === 500) {
+            showAlert(t("deliveryOverviewDeleteIdError", { id: row }), "error");
+          } else {
+            showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
+          }
+        });
     }
-    await loadDeliveries();
   }
 
   return (
