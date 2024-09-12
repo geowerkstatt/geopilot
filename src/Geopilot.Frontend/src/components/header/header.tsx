@@ -61,6 +61,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             justifyContent: "space-between",
           }}>
           <FlexRowBox
+            data-cy="header"
             sx={{ padding: "5px 0", cursor: "pointer" }}
             onClick={() => {
               navigate("/");
