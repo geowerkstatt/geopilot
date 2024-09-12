@@ -75,15 +75,9 @@ export const DeliveryOverview = () => {
   }, []);
 
   function handleDelete() {
-    let completedCount = 0;
-    for (const row of selectedRows) {
+    const deletePromises = selectedRows.map(row =>
       fetchApi("/api/v1/delivery/" + row, { method: "DELETE" })
-        .then(() => {
-          completedCount++;
-          if (completedCount === selectedRows.length) {
-            loadDeliveries();
-          }
-        })
+        .then(() => null)
         .catch((error: ApiError) => {
           if (error.status === 404) {
             showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: row }), "error");
@@ -92,8 +86,12 @@ export const DeliveryOverview = () => {
           } else {
             showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
           }
-        });
-    }
+        }),
+    );
+
+    Promise.all(deletePromises).then(() => {
+      loadDeliveries();
+    });
   }
 
   return (
