@@ -43,14 +43,16 @@ export const Mandates = () => {
   }, [fetchApi]);
 
   async function saveMandate(mandate: Mandate) {
-    mandate.organisations = mandate.organisations?.map(organisationId => {
-      return { id: organisationId as number } as Organisation;
-    });
+    mandate.organisations = mandate.organisations?.map(value =>
+      typeof value === "number"
+        ? ({ id: value } as Organisation)
+        : ({ id: (value as Organisation).id } as Organisation),
+    );
     fetchApi("/api/v1/mandate", {
       method: mandate.id === 0 ? "POST" : "PUT",
       body: JSON.stringify(mandate),
       errorMessageLabel: "mandateSaveError",
-    }).then(() => loadMandates);
+    }).then(loadMandates);
   }
 
   async function onSave(row: DataRow) {
