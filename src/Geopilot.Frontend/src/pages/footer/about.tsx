@@ -32,14 +32,18 @@ export const About = () => {
   const [info, setInfo] = useState<string>();
   const [licenseInfo, setLicenseInfo] = useState<PackageList>();
   const [licenseInfoCustom, setLicenseInfoCustom] = useState<PackageList>();
+  const [version, setVersion] = useState<string | null>();
   const { fetchApi } = useApi();
-  const { version, termsOfUse } = useAppSettings();
+  const { termsOfUse } = useAppSettings();
   const { hash } = useLocation();
 
   useEffect(() => {
     fetchApi<string>("info.md", { responseType: ContentType.Markdown }).then(setInfo);
     fetchApi<PackageList>("license.json", { responseType: ContentType.Json }).then(setLicenseInfo);
     fetchApi<PackageList>("license.custom.json", { responseType: ContentType.Json }).then(setLicenseInfoCustom);
+    fetchApi<string>("/api/v1/version").then(version => {
+      setVersion(version.split("+")[0]);
+    });
   }, [fetchApi]);
 
   useEffect(() => {

@@ -38,6 +38,7 @@
   - The application name is always _geopilot_. With `name` the application name can be extended, e.g. to _geopilot Test_.
   - There is only one `logo` which is used for the header.
   - Optionally a separate `faviconDark` can be defined for dark mode of the browser.
+- Removed API version from tab name.
 
 ## v1.0.93 - 2024-05-14
 
