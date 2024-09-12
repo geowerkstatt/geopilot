@@ -9,7 +9,6 @@ export interface ClientSettings {
   authScopes: string[];
   application: {
     name?: string;
-    url: string;
     logo: string;
     favicon: string;
     faviconDark?: string;

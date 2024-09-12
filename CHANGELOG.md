@@ -36,6 +36,7 @@
 - **BREAKING** Deleted _banner_ and _quickstart_ features.
 - **BREAKING** Merged `application` and `vendor` properties in Client Settings:
   - The application name is always _geopilot_. With `name` the application name can be extended, e.g. to _geopilot Test_.
+  - The url has been removed. As an alternative the link to the organisation can be added to the public files e.g. `info.md`.
   - There is only one `logo` which is used for the header.
   - Optionally a separate `faviconDark` can be defined for dark mode of the browser.
 

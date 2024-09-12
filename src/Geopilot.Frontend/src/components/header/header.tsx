@@ -60,13 +60,18 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             flexDirection: "row",
             justifyContent: "space-between",
           }}>
-          <FlexRowBox sx={{ padding: "5px 0" }}>
+          <FlexRowBox
+            sx={{ padding: "5px 0", cursor: "pointer" }}
+            onClick={() => {
+              navigate("/");
+            }}>
             <Box sx={{ display: { xs: "block", md: "none" }, flex: "0", marginRight: "10px" }}>
               {hasSubMenu ? (
                 <IconButton
                   sx={{ paddingLeft: "0" }}
                   color="inherit"
-                  onClick={() => {
+                  onClick={e => {
+                    e.stopPropagation();
                     openSubMenu();
                   }}>
                   <MenuIcon fontSize="large" />
@@ -78,9 +83,6 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                       src={clientSettings?.application?.logo}
                       alt={`Logo of ${clientSettings?.application?.name}`}
                       style={{ maxHeight: "40px", cursor: "pointer" }}
-                      onClick={() => {
-                        window.open(clientSettings?.application?.url, "_blank");
-                      }}
                     />
                   </Box>
                 )
@@ -92,9 +94,6 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                   src={clientSettings?.application?.logo}
                   alt={`Logo of ${clientSettings?.application?.name}`}
                   style={{ maxHeight: "40px", cursor: "pointer" }}
-                  onClick={() => {
-                    window.open(clientSettings?.application?.url, "_blank");
-                  }}
                 />
               </Box>
             )}
