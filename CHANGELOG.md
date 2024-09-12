@@ -39,6 +39,7 @@
   - The url has been removed. As an alternative the link to the organisation can be added to the public files e.g. `info.md`.
   - There is only one `logo` which is used for the header.
   - Optionally a separate `faviconDark` can be defined for dark mode of the browser.
+- Removed API version from tab name.
 
 ## v1.0.93 - 2024-05-14
 

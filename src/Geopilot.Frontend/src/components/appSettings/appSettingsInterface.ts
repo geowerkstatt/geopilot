@@ -17,7 +17,6 @@ export interface ClientSettings {
 
 export interface AppSettingsContextInterface {
   initialized: boolean;
-  version?: string | null;
   clientSettings?: ClientSettings | null;
   termsOfUse?: string | null;
 }
