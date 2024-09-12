@@ -34,9 +34,12 @@ export const Users = () => {
   }, [fetchApi]);
 
   async function saveUser(user: User) {
-    user.organisations = user.organisations?.map(organisationId => {
-      return { id: organisationId as number } as Organisation;
-    });
+    user.organisations = user.organisations?.map(value =>
+      typeof value === "number"
+        ? ({ id: value } as Organisation)
+        : ({ id: (value as Organisation).id } as Organisation),
+    );
+    delete user.deliveries;
     fetchApi("/api/v1/user", {
       method: "PUT",
       body: JSON.stringify(user),

@@ -39,12 +39,12 @@ export const Organisations = () => {
   }, [fetchApi]);
 
   async function saveOrganisation(organisation: Organisation) {
-    organisation.mandates = organisation.mandates?.map(mandateId => {
-      return { id: mandateId as number } as Mandate;
-    });
-    organisation.users = organisation.users?.map(userId => {
-      return { id: userId as number } as User;
-    });
+    organisation.mandates = organisation.mandates?.map(value =>
+      typeof value === "number" ? ({ id: value } as Mandate) : ({ id: (value as Mandate).id } as Mandate),
+    );
+    organisation.users = organisation.users?.map(value =>
+      typeof value === "number" ? ({ id: value } as User) : ({ id: (value as User).id } as User),
+    );
 
     fetchApi("/api/v1/organisation", {
       method: organisation.id === 0 ? "POST" : "PUT",

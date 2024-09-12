@@ -3,7 +3,7 @@ import { IconButton, Popover, Tooltip } from "@mui/material";
 import { GridBaseColDef } from "@mui/x-data-grid/internals";
 import { GridColDef } from "../adminGrid/adminGridInterfaces";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
-import { MouseEvent, useContext, useEffect, useState } from "react";
+import { MouseEvent, useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DataGridSpatialExtentPopoverContent } from "./dataGridSpatialExtentPopoverContent";
 import { Coordinate } from "../../api/apiInterfaces";
@@ -32,7 +32,7 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
   const [spatialExtent, setSpatialExtent] = useState<Coordinate[]>(params.value);
   const { showPrompt } = useContext(PromptContext);
 
-  const setDefaultSpatialExtent = () => {
+  const setDefaultSpatialExtent = useCallback(() => {
     if (params.value) {
       setSpatialExtent(params.value);
     } else {
@@ -41,7 +41,7 @@ const DataGridSpatialExtentColumn = ({ params }: DataGridSpatialExtentColumnProp
         { x: null, y: null },
       ]);
     }
-  };
+  }, [params.value]);
 
   useEffect(() => {
     setDefaultSpatialExtent();
