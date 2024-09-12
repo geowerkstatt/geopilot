@@ -52,7 +52,7 @@ export const Mandates = () => {
       method: mandate.id === 0 ? "POST" : "PUT",
       body: JSON.stringify(mandate),
       errorMessageLabel: "mandateSaveError",
-    }).then(() => loadMandates);
+    }).then(loadMandates);
   }
 
   async function onSave(row: DataRow) {
