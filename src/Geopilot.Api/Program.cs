@@ -212,6 +212,8 @@ app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.UseRouting();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseCors("All");
@@ -263,5 +265,7 @@ app.MapHealthChecks("/health")
     .AllowAnonymous();
 
 app.MapReverseProxy();
+
+app.MapFallbackToFile("index.html");
 
 app.Run();
