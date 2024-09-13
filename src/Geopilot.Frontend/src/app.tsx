@@ -15,10 +15,11 @@ import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
 import { About } from "./pages/footer/about.tsx";
 import { Imprint } from "./pages/footer/imprint.tsx";
 import { DeliveryProvider } from "./pages/delivery/deliveryContext.tsx";
+import { CircularProgress } from "@mui/material";
 
 export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
-  const { isAdmin } = useGeopilotAuth();
+  const { enabled, isAdmin } = useGeopilotAuth();
 
   return (
     <AppBox>
@@ -30,34 +31,38 @@ export const App: FC = () => {
         />
         <LayoutBox>
           <PageContentBox>
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <DeliveryProvider>
-                    <Delivery />
-                  </DeliveryProvider>
-                }
-              />
-              {isAdmin ? (
-                <>
-                  <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
-                  <Route
-                    path="admin"
-                    element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
-                    <Route path="delivery-overview" element={<DeliveryOverview />} />
-                    <Route path="users" element={<Users />} />
-                    <Route path="mandates" element={<Mandates />} />
-                    <Route path="organisations" element={<Organisations />} />
-                  </Route>
-                </>
-              ) : (
-                <Route path="admin/*" element={<Navigate to="/" replace />} />
-              )}
-              <Route path="/imprint" element={<Imprint />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/about" element={<About />} />
-            </Routes>
+            {!enabled ? (
+              <CircularProgress />
+            ) : (
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <DeliveryProvider>
+                      <Delivery />
+                    </DeliveryProvider>
+                  }
+                />
+                {isAdmin ? (
+                  <>
+                    <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
+                    <Route
+                      path="admin"
+                      element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
+                      <Route path="delivery-overview" element={<DeliveryOverview />} />
+                      <Route path="users" element={<Users />} />
+                      <Route path="mandates" element={<Mandates />} />
+                      <Route path="organisations" element={<Organisations />} />
+                    </Route>
+                  </>
+                ) : (
+                  <Route path="admin/*" element={<Navigate to="/" replace />} />
+                )}
+                <Route path="/imprint" element={<Imprint />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/about" element={<About />} />
+              </Routes>
+            )}
           </PageContentBox>
           <Footer />
         </LayoutBox>

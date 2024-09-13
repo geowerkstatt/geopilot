@@ -36,7 +36,7 @@ const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
   const auth = useAuth();
   const user = useUser();
 
-  const enabled = auth !== undefined && !auth.isLoading;
+  const enabled = user !== undefined;
   const getLoginFunction = () => {
     if (!auth) return () => {};
     if (window.Cypress) {

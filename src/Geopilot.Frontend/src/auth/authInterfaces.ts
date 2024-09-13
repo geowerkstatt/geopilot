@@ -3,7 +3,7 @@ import { User } from "../api/apiInterfaces.ts";
 
 export interface GeopilotAuthContextInterface {
   enabled: boolean;
-  user: User | undefined;
+  user: User | null | undefined;
   isAdmin: boolean;
   login: () => void;
   logout: () => void;
