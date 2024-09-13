@@ -16,6 +16,21 @@ export const hasError = (fieldName, hasError = true, parent) => {
 };
 
 /**
+ * Checks if a form element is disabled.
+ * @param {string} fieldName The name of the form element.
+ * @param {boolean} isDisabled The expected disabled state.
+ * @param {string} parent  (optional) The parent of the form element.
+ */
+export const isDisabled = (fieldName, isDisabled = true, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy^="${fieldName}-form"] .Mui-disabled`;
+  if (isDisabled) {
+    cy.get(selector).should("exist");
+  } else {
+    cy.get(selector).should("not.exist");
+  }
+};
+
+/**
  * Sets the value for an input form element.
  * @param {string} fieldName The name of the input field.
  * @param {string} value The text to type into the input field.
@@ -73,6 +88,21 @@ export const setSelect = (fieldName, index, expected, parent) => {
     evaluateDropdownOptionsLength(expected);
   }
   selectDropdownOption(index);
+};
+
+/**
+ * Evaluates the state of a select form element.
+ * @param {string} fieldName The name of the select field.
+ * @param {string} expectedValue The expected value of the select.
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const evaluateSelect = (fieldName, expectedValue, parent) => {
+  var selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formSelect"] input`;
+  cy.get(selector)
+    .filter((k, input) => {
+      return input.value === expectedValue;
+    })
+    .should("have.length", 1);
 };
 
 /**

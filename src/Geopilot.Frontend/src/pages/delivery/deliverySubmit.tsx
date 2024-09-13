@@ -8,21 +8,28 @@ import { FormCheckbox, FormInput, FormSelect } from "../../components/form/form.
 import SendIcon from "@mui/icons-material/Send";
 import { Delivery, Mandate } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
-import { DeliverySubmitData } from "./deliveryInterfaces.tsx";
+import { DeliveryStepEnum, DeliverySubmitData } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
+import { useTranslation } from "react-i18next";
 
 export const DeliverySubmit = () => {
+  const { t } = useTranslation();
   const { enabled, user, login } = useGeopilotAuth();
   const formMethods = useForm({ mode: "all" });
   const { fetchApi } = useApi();
-  const { validationResponse, isLoading, submitDelivery, resetDelivery } = useContext(DeliveryContext);
+  const { setStepError, validationResponse, isLoading, submitDelivery, resetDelivery } = useContext(DeliveryContext);
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [previousDeliveries, setPreviousDeliveries] = useState<Delivery[]>([]);
 
   useEffect(() => {
     if (validationResponse?.jobId && user) {
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ jobId: validationResponse.jobId })).then(
-        setMandates,
+        mandates => {
+          if (mandates.length === 0) {
+            setStepError(DeliveryStepEnum.Submit, t("noMandatesFound"));
+          }
+          setMandates(mandates);
+        },
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -34,6 +41,9 @@ export const DeliverySubmit = () => {
       fetchApi<Delivery[]>("/api/v1/delivery?" + new URLSearchParams({ mandateId: mandateId })).then(
         setPreviousDeliveries,
       );
+    } else {
+      setPreviousDeliveries([]);
+      formMethods.setValue("predecessor", undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formMethods.getValues()["mandate"]]);
@@ -54,6 +64,7 @@ export const DeliverySubmit = () => {
               fieldName="mandate"
               label="mandate"
               required={true}
+              disabled={mandates.length === 0}
               values={mandates
                 ?.sort((a, b) => a.name.localeCompare(b.name))
                 .map(mandate => ({ key: mandate.id, name: mandate.name }))}
@@ -61,6 +72,7 @@ export const DeliverySubmit = () => {
             <FormSelect
               fieldName="predecessor"
               label="predecessor"
+              disabled={previousDeliveries.length === 0}
               values={previousDeliveries.map(delivery => ({ key: delivery.id, name: delivery.date.toLocaleString() }))}
             />
           </FlexRowSpaceBetweenBox>

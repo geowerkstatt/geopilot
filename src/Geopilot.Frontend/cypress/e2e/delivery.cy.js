@@ -1,6 +1,6 @@
 import { loadWithoutAuth, loginAsUploader } from "./helpers/appHelpers.js";
 import { clickCancel } from "./helpers/buttonHelpers.js";
-import { hasError, setInput, setSelect, toggleCheckbox } from "./helpers/formHelpers.js";
+import { evaluateSelect, hasError, isDisabled, setInput, setSelect, toggleCheckbox } from "./helpers/formHelpers.js";
 
 const fileNameExists = (filePath, success) => {
   const fileName = filePath.split("/").pop();
@@ -243,6 +243,7 @@ describe("Delivery tests", () => {
   it("can submit a delivery", () => {
     mockValidationSuccess();
     mockMandates();
+    cy.intercept({ url: "/api/v1/delivery?mandateId=*", method: "GET" }).as("predecessors");
     cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
       req.reply({
         statusCode: 201,
@@ -325,14 +326,23 @@ describe("Delivery tests", () => {
     stepIsCompleted("validate");
     stepIsActive("submit");
     cy.wait("@mandates");
+    cy.wait(500); // Wait for the select to be populated and enabled
 
     cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
+    isDisabled("mandate", false);
+    isDisabled("predecessor", true);
     setSelect("mandate", 1, 4);
+    cy.wait("@predecessors");
+    isDisabled("predecessor", false);
     cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
+    setSelect("predecessor", 1);
     setSelect("mandate", 0);
+    isDisabled("predecessor", true);
     cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
     hasError("mandate");
     setSelect("mandate", 2);
+    cy.wait("@predecessors");
+    evaluateSelect("predecessor", "");
     setSelect("predecessor", 2);
     setSelect("predecessor", 0);
     hasError("predecessor", false);
@@ -365,8 +375,11 @@ describe("Delivery tests", () => {
     cy.wait("@validation");
     stepIsCompleted("validate");
     stepIsActive("submit");
+    cy.wait("@mandates");
+    cy.wait(1000); // Wait for the select to be populated and enabled
 
     setSelect("mandate", 1);
+    cy.wait("@predecessors");
     setSelect("predecessor", 1);
     toggleCheckbox("isPartial");
     setInput("comment", "This is a test comment.");
@@ -436,5 +449,27 @@ describe("Delivery tests", () => {
     cy.get('[data-cy="createDelivery-button"]').click();
     cy.wait("@deliveryRequest").its("response.statusCode").should("eq", 404);
     stepHasError("submit", true, "Not found");
+  });
+
+  it("displays error if no mandates were found", () => {
+    mockValidationSuccess();
+    cy.intercept({ url: "/api/v1/mandate?jobId=d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
+      req.reply({
+        statusCode: 200,
+        body: [],
+        delay: 500,
+      });
+    }).as("mandates");
+
+    loginAsUploader();
+    addFile("deliveryFiles/ilimodels_valid.xml", true);
+    uploadFile();
+    cy.wait("@upload");
+    cy.wait("@validation");
+    cy.wait("@mandates");
+
+    stepHasError("submit", true, "No suitable mandate was found for your delivery");
+    isDisabled("mandate", true);
+    resetDelivery("submit");
   });
 });
