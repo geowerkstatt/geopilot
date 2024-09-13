@@ -243,6 +243,7 @@ describe("Delivery tests", () => {
   it("can submit a delivery", () => {
     mockValidationSuccess();
     mockMandates();
+    cy.intercept({ url: "/api/v1/delivery?mandateId=*", method: "GET" }).as("predecessors");
     cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
       req.reply({
         statusCode: 201,
@@ -325,10 +326,13 @@ describe("Delivery tests", () => {
     stepIsCompleted("validate");
     stepIsActive("submit");
     cy.wait("@mandates");
+    cy.wait(500); // Wait for the select to be populated and enabled
 
     cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
+    isDisabled("mandate", false);
     isDisabled("predecessor", true);
     setSelect("mandate", 1, 4);
+    cy.wait("@predecessors");
     isDisabled("predecessor", false);
     cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
     setSelect("predecessor", 1);
@@ -337,6 +341,7 @@ describe("Delivery tests", () => {
     cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
     hasError("mandate");
     setSelect("mandate", 2);
+    cy.wait("@predecessors");
     evaluateSelect("predecessor", "");
     setSelect("predecessor", 2);
     setSelect("predecessor", 0);
@@ -370,8 +375,11 @@ describe("Delivery tests", () => {
     cy.wait("@validation");
     stepIsCompleted("validate");
     stepIsActive("submit");
+    cy.wait("@mandates");
+    cy.wait(1000); // Wait for the select to be populated and enabled
 
     setSelect("mandate", 1);
+    cy.wait("@predecessors");
     setSelect("predecessor", 1);
     toggleCheckbox("isPartial");
     setInput("comment", "This is a test comment.");
