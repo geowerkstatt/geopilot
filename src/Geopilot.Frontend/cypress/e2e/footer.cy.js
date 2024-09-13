@@ -100,5 +100,19 @@ describe("Footer tests", () => {
       .each(($el, index) => {
         cy.wrap($el).should("contain.text", expectedHeaders[index]);
       });
+
+    cy.reload();
+    cy.location().should(location => {
+      expect(location.pathname).to.eq("/about");
+    });
+    cy.wait("@info");
+    cy.wait("@termsOfUse");
+    cy.wait("@license");
+    cy.wait("@licenseCustom");
+    cy.get("h1")
+      .should("have.length", expectedHeaders.length)
+      .each(($el, index) => {
+        cy.wrap($el).should("contain.text", expectedHeaders[index]);
+      });
   });
 });
