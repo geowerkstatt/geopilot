@@ -15,10 +15,10 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const [termsOfUse, setTermsOfUse] = useState<string | null>();
 
   useEffect(() => {
-    fetchApi<ClientSettings>("client-settings.json")
+    fetchApi<ClientSettings>("/client-settings.json", { responseType: ContentType.Json })
       .then(setClientSettings)
       .catch(() => setClientSettings(null));
-    fetchApi<string>("terms-of-use.md", { responseType: ContentType.Markdown })
+    fetchApi<string>("/terms-of-use.md", { responseType: ContentType.Markdown })
       .then(setTermsOfUse)
       .catch(() => setTermsOfUse(null));
   }, [fetchApi]);
