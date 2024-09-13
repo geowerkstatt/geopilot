@@ -19,7 +19,7 @@ import { CircularProgress } from "@mui/material";
 
 export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
-  const { enabled, isAdmin } = useGeopilotAuth();
+  const { isLoading, isAdmin } = useGeopilotAuth();
 
   return (
     <AppBox>
@@ -31,7 +31,7 @@ export const App: FC = () => {
         />
         <LayoutBox>
           <PageContentBox>
-            {!enabled ? (
+            {isLoading ? (
               <CircularProgress />
             ) : (
               <Routes>

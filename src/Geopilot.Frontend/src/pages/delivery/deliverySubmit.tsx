@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 
 export const DeliverySubmit = () => {
   const { t } = useTranslation();
-  const { enabled, user, login } = useGeopilotAuth();
+  const { authEnabled, user, login } = useGeopilotAuth();
   const formMethods = useForm({ mode: "all" });
   const { fetchApi } = useApi();
   const { setStepError, validationResponse, isLoading, submitDelivery, resetDelivery } = useContext(DeliveryContext);
@@ -55,7 +55,7 @@ export const DeliverySubmit = () => {
     submitDelivery(data as DeliverySubmitData);
   };
 
-  return enabled && user ? (
+  return authEnabled && user ? (
     <FormProvider {...formMethods}>
       <form onSubmit={formMethods.handleSubmit(submitForm)}>
         <FlexColumnBox>

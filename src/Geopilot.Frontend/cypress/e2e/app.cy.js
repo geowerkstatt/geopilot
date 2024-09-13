@@ -14,6 +14,7 @@ describe("General app tests", () => {
   it("shows no login button if auth settings could not be loaded", () => {
     loadWithoutAuth();
     cy.get('[data-cy="login-button"]').should("not.exist");
+    cy.get('[data-cy="delivery"]').should("exist");
   });
 
   it.skip("registers new users and logs them in", () => {

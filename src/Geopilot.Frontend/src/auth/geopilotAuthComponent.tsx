@@ -3,12 +3,13 @@ import { ApiAuthConfigurationProvider } from "./apiAuthConfigurationContext";
 import { GeopilotAuthContextInterface } from "./authInterfaces";
 import { OidcContainerProvider } from "./oidcContainerContext";
 import { UserProvider } from "./userContext";
-import { useUser } from ".";
+import { useApiAuthConfiguration, useUser } from ".";
 import { useAuth } from "react-oidc-context";
 import { CookieSynchronizer } from "./cookieSynchronizer";
 
 export const GeopilotAuthContext = createContext<GeopilotAuthContextInterface>({
-  enabled: false,
+  authEnabled: false,
+  isLoading: false,
   user: undefined,
   isAdmin: false,
   login: () => {
@@ -35,8 +36,11 @@ export const GeopilotAuthProvider: FC<PropsWithChildren> = ({ children }) => {
 const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
   const auth = useAuth();
   const user = useUser();
+  const apiSetting = useApiAuthConfiguration();
 
-  const enabled = user !== undefined;
+  const authEnabled = !!(apiSetting && apiSetting.clientId && apiSetting.authority);
+  const isLoading = !((!!apiSetting && !authEnabled) || user !== undefined);
+
   const getLoginFunction = () => {
     if (!auth) return () => {};
     if (window.Cypress) {
@@ -49,9 +53,10 @@ const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
   return (
     <GeopilotAuthContext.Provider
       value={{
-        enabled: enabled,
+        authEnabled: authEnabled,
+        isLoading: isLoading,
         user: user,
-        isAdmin: enabled && !!user?.isAdmin,
+        isAdmin: !!user?.isAdmin,
         login: getLoginFunction(),
         logout: auth !== undefined ? auth.signoutRedirect : () => {},
       }}>
