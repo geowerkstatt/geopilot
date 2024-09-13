@@ -53,6 +53,11 @@ describe("General app tests", () => {
     selectAdminNavItem("mandates");
     selectAdminNavItem("organisations");
     selectAdminNavItem("delivery-overview");
+    cy.reload();
+    isSelectedNavItem("admin-delivery-overview-nav", "admin-navigation");
+    cy.location().should(location => {
+      expect(location.pathname).to.eq("/admin/delivery-overview");
+    });
   });
 
   it("updates the language when the user selects a different language", () => {
