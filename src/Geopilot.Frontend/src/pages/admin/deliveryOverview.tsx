@@ -74,8 +74,8 @@ export const DeliveryOverview = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleDelete() {
-    for (const row of selectedRows) {
+  function handleDelete() {
+    const deletePromises = selectedRows.map(row =>
       fetchApi("/api/v1/delivery/" + row, { method: "DELETE" }).catch((error: ApiError) => {
         if (error.status === 404) {
           showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: row }), "error");
@@ -84,9 +84,12 @@ export const DeliveryOverview = () => {
         } else {
           showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
         }
-      });
-    }
-    await loadDeliveries();
+      }),
+    );
+
+    Promise.all(deletePromises).then(() => {
+      loadDeliveries();
+    });
   }
 
   return (
