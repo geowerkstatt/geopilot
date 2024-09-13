@@ -35,7 +35,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { clientSettings } = useAppSettings();
-  const { user, enabled, isAdmin, login, logout } = useGeopilotAuth();
+  const { user, authEnabled, isAdmin, login, logout } = useGeopilotAuth();
 
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
 
@@ -116,7 +116,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
           </FlexRowBox>
           <FlexRowBox>
             <LanguagePopup />
-            {enabled &&
+            {authEnabled &&
               (user ? (
                 <IconButton
                   sx={{

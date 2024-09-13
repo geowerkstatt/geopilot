@@ -33,7 +33,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useApi();
-  const { enabled } = useGeopilotAuth();
+  const { authEnabled } = useGeopilotAuth();
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(
     new Map<DeliveryStepEnum, DeliveryStep>([
       [DeliveryStepEnum.Upload, { label: "upload", content: <DeliveryUpload /> }],
@@ -49,7 +49,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   );
 
   useEffect(() => {
-    if (enabled) {
+    if (authEnabled) {
       setSteps(prevSteps => {
         const newSteps = new Map(prevSteps);
 
@@ -68,7 +68,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         return newSteps;
       });
     }
-  }, [enabled]);
+  }, [authEnabled]);
 
   const isActiveStep = (step: DeliveryStepEnum) => {
     const stepKeys = Array.from(steps.keys());

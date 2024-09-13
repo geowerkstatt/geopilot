@@ -23,7 +23,7 @@ const Delivery = () => {
   const isCompleted = (stepIndex: number) => activeStep > stepIndex;
 
   return (
-    <CenteredBox>
+    <CenteredBox data-cy="delivery">
       <Typography variant="h1">{t("deliveryTitle")}</Typography>
       <DeliveryContainer>
         <Stepper activeStep={activeStep} orientation="vertical">

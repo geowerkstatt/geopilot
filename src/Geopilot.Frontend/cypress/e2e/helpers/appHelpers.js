@@ -119,9 +119,12 @@ export const createBaseSelector = parent => {
  * Opens the tool navigation. Requires the user to be logged in.
  */
 export const openToolMenu = () => {
-  if (!cy.get('[data-cy="tool-navigation"]').should("be.visible")) {
-    cy.get('[data-cy="loggedInUser-button"]').click();
-  }
+  cy.get("body").then($body => {
+    const elementExists = $body.find('[data-cy="tool-navigation"]').length > 0;
+    if (!elementExists) {
+      cy.get('[data-cy="loggedInUser-button"]').click();
+    }
+  });
 };
 
 /**

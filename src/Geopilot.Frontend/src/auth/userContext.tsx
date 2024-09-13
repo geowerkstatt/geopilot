@@ -3,10 +3,10 @@ import { User } from "../api/apiInterfaces";
 import { useAuth } from "react-oidc-context";
 import { useApi } from "../api";
 
-export const UserContext = createContext<User | undefined>(undefined);
+export const UserContext = createContext<User | null | undefined>(undefined);
 
 export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
-  const [user, setUser] = useState<User>();
+  const [user, setUser] = useState<User | null>();
   const auth = useAuth();
   const { fetchApi } = useApi();
 
@@ -22,10 +22,10 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
   useEffect(() => {
     if (auth?.isAuthenticated) {
       fetchUserInfo();
-    } else if (!auth?.isLoading) {
-      setUser(undefined);
+    } else if (!!auth && !auth?.isLoading) {
+      setUser(null);
     }
-  }, [auth?.isAuthenticated, auth?.isLoading, fetchUserInfo]);
+  }, [auth, auth?.isAuthenticated, auth?.isLoading, fetchUserInfo]);
 
   return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
 };

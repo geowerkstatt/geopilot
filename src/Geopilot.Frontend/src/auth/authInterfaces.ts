@@ -2,8 +2,9 @@ import { PropsWithChildren } from "react";
 import { User } from "../api/apiInterfaces.ts";
 
 export interface GeopilotAuthContextInterface {
-  enabled: boolean;
-  user: User | undefined;
+  authEnabled: boolean;
+  isLoading: boolean;
+  user: User | null | undefined;
   isAdmin: boolean;
   login: () => void;
   logout: () => void;

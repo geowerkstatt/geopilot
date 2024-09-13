@@ -12,7 +12,7 @@ export const Imprint = () => {
   const { fetchApi } = useApi();
 
   useEffect(() => {
-    fetchApi<string>("imprint.md", { responseType: ContentType.Markdown }).then(setContent);
+    fetchApi<string>("/imprint.md", { responseType: ContentType.Markdown }).then(setContent);
   }, [fetchApi]);
 
   return (

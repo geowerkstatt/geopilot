@@ -12,7 +12,7 @@ export const PrivacyPolicy = () => {
   const { fetchApi } = useApi();
 
   useEffect(() => {
-    fetchApi<string>("privacy-policy.md", { responseType: ContentType.Markdown }).then(setContent);
+    fetchApi<string>("/privacy-policy.md", { responseType: ContentType.Markdown }).then(setContent);
   }, [fetchApi]);
 
   return (

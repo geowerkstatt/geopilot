@@ -14,6 +14,7 @@ describe("General app tests", () => {
   it("shows no login button if auth settings could not be loaded", () => {
     loadWithoutAuth();
     cy.get('[data-cy="login-button"]').should("not.exist");
+    cy.get('[data-cy="delivery"]').should("exist");
   });
 
   it.skip("registers new users and logs them in", () => {
@@ -52,23 +53,30 @@ describe("General app tests", () => {
     selectAdminNavItem("mandates");
     selectAdminNavItem("organisations");
     selectAdminNavItem("delivery-overview");
+    cy.reload();
+    isSelectedNavItem("admin-delivery-overview-nav", "admin-navigation");
+    cy.location().should(location => {
+      expect(location.pathname).to.eq("/admin/delivery-overview");
+    });
   });
 
   it("updates the language when the user selects a different language", () => {
-    cy.visit("/");
+    loginAsAdmin();
+    openTool("admin");
+
     cy.contains("EN");
-    cy.contains("Log In");
+    cy.contains("Rows per page");
 
     selectLanguage("de");
     cy.contains("DE");
-    cy.contains("Anmelden");
+    cy.contains("Zeilen pro Seite");
 
     selectLanguage("fr");
     cy.contains("FR");
-    cy.contains("Se connecter");
+    cy.contains("Lignes par page");
 
     selectLanguage("it");
     cy.contains("IT");
-    cy.contains("Accedi");
+    cy.contains("Righe per pagina");
   });
 });
