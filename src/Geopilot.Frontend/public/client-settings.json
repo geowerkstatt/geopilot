@@ -1,7 +1,6 @@
 {
   "application": {
     "name": "geowerkstatt",
-    "url": "https://github.com/GeoWerkstatt/geopilot",
     "logo": "/logo.png",
     "favicon": "/logo.png",
     "faviconDark": "/logo-dark.png"
