@@ -76,17 +76,15 @@ export const DeliveryOverview = () => {
 
   function handleDelete() {
     const deletePromises = selectedRows.map(row =>
-      fetchApi("/api/v1/delivery/" + row, { method: "DELETE" })
-        .then(() => null)
-        .catch((error: ApiError) => {
-          if (error.status === 404) {
-            showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: row }), "error");
-          } else if (error.status === 500) {
-            showAlert(t("deliveryOverviewDeleteIdError", { id: row }), "error");
-          } else {
-            showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
-          }
-        }),
+      fetchApi("/api/v1/delivery/" + row, { method: "DELETE" }).catch((error: ApiError) => {
+        if (error.status === 404) {
+          showAlert(t("deliveryOverviewDeleteIdNotExistError", { id: row }), "error");
+        } else if (error.status === 500) {
+          showAlert(t("deliveryOverviewDeleteIdError", { id: row }), "error");
+        } else {
+          showAlert(t("deliveryOverviewDeleteError", { error: error }), "error");
+        }
+      }),
     );
 
     Promise.all(deletePromises).then(() => {
