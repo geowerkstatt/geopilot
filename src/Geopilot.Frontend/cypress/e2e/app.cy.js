@@ -56,20 +56,22 @@ describe("General app tests", () => {
   });
 
   it("updates the language when the user selects a different language", () => {
-    cy.visit("/");
+    loginAsAdmin();
+    openTool("admin");
+
     cy.contains("EN");
-    cy.contains("Log In");
+    cy.contains("Rows per page");
 
     selectLanguage("de");
     cy.contains("DE");
-    cy.contains("Anmelden");
+    cy.contains("Zeilen pro Seite");
 
     selectLanguage("fr");
     cy.contains("FR");
-    cy.contains("Se connecter");
+    cy.contains("Lignes par page");
 
     selectLanguage("it");
     cy.contains("IT");
-    cy.contains("Accedi");
+    cy.contains("Righe per pagina");
   });
 });
