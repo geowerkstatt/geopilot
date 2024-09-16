@@ -42,6 +42,17 @@ export const DeliverySubmit = () => {
     submitDelivery(data as DeliverySubmitData);
   };
 
+  const handleMandateChange = (mandateId: number) => {
+    formMethods.setValue("predecessor", undefined);
+    if (mandateId) {
+      fetchApi<Delivery[]>("/api/v1/delivery?" + new URLSearchParams({ mandateId: mandateId.toString() })).then(
+        setPreviousDeliveries,
+      );
+    } else {
+      setPreviousDeliveries([]);
+    }
+  };
+
   return authEnabled && user ? (
     <FormProvider {...formMethods}>
       <form onSubmit={formMethods.handleSubmit(submitForm)}>
@@ -55,16 +66,7 @@ export const DeliverySubmit = () => {
               values={mandates
                 ?.sort((a, b) => a.name.localeCompare(b.name))
                 .map(mandate => ({ key: mandate.id, name: mandate.name }))}
-              onUpdate={mandateId => {
-                formMethods.setValue("predecessor", undefined);
-                if (mandateId) {
-                  fetchApi<Delivery[]>(
-                    "/api/v1/delivery?" + new URLSearchParams({ mandateId: mandateId.toString() }),
-                  ).then(setPreviousDeliveries);
-                } else {
-                  setPreviousDeliveries([]);
-                }
-              }}
+              onUpdate={handleMandateChange}
             />
             <FormSelect
               fieldName="predecessor"
