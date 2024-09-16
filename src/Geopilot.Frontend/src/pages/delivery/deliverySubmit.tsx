@@ -35,24 +35,22 @@ export const DeliverySubmit = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validationResponse, user]);
 
-  useEffect(() => {
-    const mandateId = formMethods.getValues()["mandate"];
-    if (mandateId) {
-      fetchApi<Delivery[]>("/api/v1/delivery?" + new URLSearchParams({ mandateId: mandateId })).then(
-        setPreviousDeliveries,
-      );
-    } else {
-      setPreviousDeliveries([]);
-      formMethods.setValue("predecessor", undefined);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formMethods.getValues()["mandate"]]);
-
   const submitForm = (data: FieldValues) => {
     if (data["predecessor"] === "") {
       data["predecessor"] = null;
     }
     submitDelivery(data as DeliverySubmitData);
+  };
+
+  const handleMandateChange = (mandateId: number) => {
+    formMethods.setValue("predecessor", undefined);
+    if (mandateId) {
+      fetchApi<Delivery[]>("/api/v1/delivery?" + new URLSearchParams({ mandateId: mandateId.toString() })).then(
+        setPreviousDeliveries,
+      );
+    } else {
+      setPreviousDeliveries([]);
+    }
   };
 
   return authEnabled && user ? (
@@ -68,6 +66,7 @@ export const DeliverySubmit = () => {
               values={mandates
                 ?.sort((a, b) => a.name.localeCompare(b.name))
                 .map(mandate => ({ key: mandate.id, name: mandate.name }))}
+              onUpdate={handleMandateChange}
             />
             <FormSelect
               fieldName="predecessor"
