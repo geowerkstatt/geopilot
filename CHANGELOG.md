@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## v1.1.143 - 2024-09-30
+
 ### Added
 
 - Add Cypress test support.
