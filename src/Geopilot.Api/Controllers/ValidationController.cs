@@ -92,7 +92,8 @@ public class ValidationController : ControllerBase
     [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(ValidationJobStatus), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status413PayloadTooLarge, "The file is too large. Max allowed request body size is 200 MB.")]
-    [SwaggerResponse(StatusCodes.Status500InternalServerError,
+    [SwaggerResponse(
+        StatusCodes.Status500InternalServerError,
         "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely the file could not be written or the file extension is not supported.",
         typeof(ProblemDetails),
         "application/json")]

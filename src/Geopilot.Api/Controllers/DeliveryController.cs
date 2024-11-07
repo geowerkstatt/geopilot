@@ -141,7 +141,8 @@ public class DeliveryController : ControllerBase
     {
         var user = await context.GetUserByPrincipalAsync(User);
 
-        logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>",
+        logger.LogInformation(
+            "User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>",
             user.AuthIdentifier,
             mandateId?.ToString(CultureInfo.InvariantCulture).ReplaceLineEndings(string.Empty));
 

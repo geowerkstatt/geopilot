@@ -108,15 +108,16 @@ public class StacLinker : IStacLinker
     /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
     protected StacApiLink GetSelfLink(StacCollection collection, IStacApiContext stacApiContext)
     {
-        var link = new StacApiLink(GetUriByAction(
-            stacApiContext,
-            "GetCollections",
-            "Collections",
-            new
-            {
-                collectionId = collection.Id,
-            },
-            null),
+        var link = new StacApiLink(
+            GetUriByAction(
+                stacApiContext,
+                "GetCollections",
+                "Collections",
+                new
+                {
+                    collectionId = collection.Id,
+                },
+                null),
             "self",
             collection.Title,
             collection.MediaType.ToString());
