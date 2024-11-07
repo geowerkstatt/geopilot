@@ -25,6 +25,8 @@ public class StacRoutingConvention : IActionModelConvention
     /// <inheritdoc/>
     public void Apply(ActionModel action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         var controller = action.Controller;
 
         var controllerFullName = controller.ControllerType.FullName;

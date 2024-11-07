@@ -100,6 +100,8 @@ public class ValidationController : ControllerBase
     [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1629:DocumentationTextMustEndWithAPeriod", Justification = "Not applicable for code examples.")]
     public async Task<IActionResult> UploadAsync(ApiVersion version, IFormFile file)
     {
+        ArgumentNullException.ThrowIfNull(version);
+
         logger.LogInformation("File upload started.");
         if (file == null)
         {

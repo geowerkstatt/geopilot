@@ -49,6 +49,8 @@ public class StacCollectionsProvider : ICollectionsProvider
     /// <inheritdoc/>
     public Task<IEnumerable<StacCollection>> GetCollectionsAsync(IStacApiContext stacApiContext, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(stacApiContext);
+
         using var db = contextFactory.CreateDbContext();
         var collections = db.MandatesWithIncludes
             .AsNoTracking()

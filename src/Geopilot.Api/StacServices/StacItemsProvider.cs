@@ -27,6 +27,8 @@ public class StacItemsProvider : IItemsProvider
     /// <inheritdoc/>
     public bool AnyItemsExist(IEnumerable<StacItem> items, IStacApiContext stacApiContext)
     {
+        ArgumentNullException.ThrowIfNull(stacApiContext);
+
         using var db = contextFactory.CreateDbContext();
         foreach (var collection in stacApiContext.Collections)
         {
@@ -75,6 +77,8 @@ public class StacItemsProvider : IItemsProvider
     /// <inheritdoc/>
     public async Task<IEnumerable<StacItem>> GetItemsAsync(IStacApiContext stacApiContext, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(stacApiContext);
+
         var items = new List<StacItem>();
 
         var collectionIds = stacApiContext.Collections?.ToList();

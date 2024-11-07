@@ -18,6 +18,8 @@ public static class StacWebApiExtensions
     /// </summary>
     public static IServiceCollection AddStacData(this IServiceCollection services, Action<IStacWebApiBuilder> configure)
     {
+        ArgumentNullException.ThrowIfNull(configure);
+
         services.AddStacWebApi();
 
         // Add the Http Stac Api context factory

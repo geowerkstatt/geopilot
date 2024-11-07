@@ -13,6 +13,8 @@ public class SystemTextJsonBodyModelBinder : IModelBinder
     /// <inheritdoc/>
     public async Task BindModelAsync(ModelBindingContext bindingContext)
     {
+        ArgumentNullException.ThrowIfNull(bindingContext);
+
         try
         {
             var request = bindingContext.HttpContext.Request;

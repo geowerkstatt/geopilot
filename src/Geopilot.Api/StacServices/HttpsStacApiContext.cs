@@ -42,6 +42,8 @@ public class HttpsStacApiContext : IStacApiContext, IStacPropertiesContainer
     /// </summary>
     public static HttpsStacApiContext Create(HttpContext httpContext)
     {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
         return new HttpsStacApiContext
         {
             BaseUri = new Uri("https://" + httpContext.Request.Host),
