@@ -27,6 +27,9 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
     /// <inheritdoc/>
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, GeopilotUserRequirement requirement)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(requirement);
+
         if (context.User.Identity?.IsAuthenticated != true)
             return;
 

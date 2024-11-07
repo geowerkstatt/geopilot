@@ -28,6 +28,8 @@ public class UserController : ControllerBase
     /// <param name="authOptions">The browser auth options.</param>
     public UserController(ILogger<UserController> logger, Context context, IOptions<BrowserAuthOptions> authOptions)
     {
+        ArgumentNullException.ThrowIfNull(authOptions);
+
         this.logger = logger;
         this.context = context;
         this.authOptions = authOptions.Value;

@@ -1,6 +1,5 @@
 ﻿using Geopilot.Api.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 
 namespace Geopilot.Api;
 
@@ -102,6 +101,8 @@ public class Context : DbContext
     /// <inheritdoc/>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        ArgumentNullException.ThrowIfNull(modelBuilder);
+
         modelBuilder.Entity<Delivery>().HasQueryFilter(d => !d.Deleted);
     }
 }

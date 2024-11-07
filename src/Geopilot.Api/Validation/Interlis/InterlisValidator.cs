@@ -30,6 +30,8 @@ public class InterlisValidator : IValidator
     /// </summary>
     public InterlisValidator(ILogger<InterlisValidator> logger, IFileProvider fileProvider, HttpClient httpClient, IOptions<JsonOptions> jsonOptions)
     {
+        ArgumentNullException.ThrowIfNull(jsonOptions);
+
         this.logger = logger;
         this.fileProvider = fileProvider;
         this.httpClient = httpClient;

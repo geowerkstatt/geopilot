@@ -19,6 +19,8 @@ public static class IContentTypeProviderExtensions
     /// <returns>The <see cref="ContentType"/>.</returns>
     public static ContentType GetContentType(this IContentTypeProvider contentTypeProvider, Asset asset)
     {
+        ArgumentNullException.ThrowIfNull(asset);
+
         return contentTypeProvider.GetContentType(asset.OriginalFilename);
     }
 
@@ -41,6 +43,8 @@ public static class IContentTypeProviderExtensions
     /// <returns>The content type as string.</returns>
     public static string GetContentTypeAsString(this IContentTypeProvider contentTypeProvider, string fileName)
     {
+        ArgumentNullException.ThrowIfNull(contentTypeProvider);
+
         if (!contentTypeProvider.TryGetContentType(fileName, out var contentType))
         {
             contentType = DefaultContentType;

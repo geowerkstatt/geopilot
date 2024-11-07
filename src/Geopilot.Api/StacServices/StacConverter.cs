@@ -36,14 +36,24 @@ public class StacConverter
     /// </summary>
     /// <param name="mandate">The <see cref="Mandate"/>.</param>
     /// <returns>Collection id.</returns>
-    public string GetCollectionId(Mandate mandate) => "coll_" + mandate.Id;
+    public string GetCollectionId(Mandate mandate)
+    {
+        ArgumentNullException.ThrowIfNull(mandate);
+
+        return "coll_" + mandate.Id;
+    }
 
     /// <summary>
     /// Returns the item id for the specified <see cref="Delivery"/>.
     /// </summary>
     /// <param name="delivery">The <see cref="Delivery"/>.</param>
     /// <returns>Item id.</returns>
-    public string GetItemId(Delivery delivery) => "item_" + delivery.Id;
+    public string GetItemId(Delivery delivery)
+    {
+        ArgumentNullException.ThrowIfNull(delivery);
+
+        return "item_" + delivery.Id;
+    }
 
     /// <summary>
     /// Converts a <see cref="Mandate"/> to a <see cref="StacCollection"/>.
@@ -52,6 +62,8 @@ public class StacConverter
     /// <returns>A STAC collection.</returns>
     public StacCollection ToStacCollection(Mandate mandate)
     {
+        ArgumentNullException.ThrowIfNull(mandate);
+
         var collectionId = GetCollectionId(mandate);
         var items = mandate.Deliveries
             .Select(ToStacItem)
@@ -81,6 +93,8 @@ public class StacConverter
     /// <returns>The STAC item.</returns>
     public StacItem ToStacItem(Delivery delivery)
     {
+        ArgumentNullException.ThrowIfNull(delivery);
+
         if (delivery.Mandate == null)
         {
             throw new InvalidOperationException("Mandate is null for delivery " + delivery.Id);
@@ -120,6 +134,8 @@ public class StacConverter
     /// <returns>The STAC asset.</returns>
     public StacAsset ToStacAsset(Asset asset, IStacObject parent, Uri baseUri)
     {
+        ArgumentNullException.ThrowIfNull(asset);
+
         var downloadLink = new Uri(baseUri, "api/v1/delivery/assets/" + asset.Id);
         return new StacAsset(parent, downloadLink, new List<string>() { asset.AssetType.ToString() }, asset.OriginalFilename, FileContentTypeProvider.GetContentType(asset));
     }
@@ -131,6 +147,8 @@ public class StacConverter
     /// <returns>The <see cref="GeoJSON.Net.Geometry.Polygon"/>.</returns>
     public GeoJSON.Net.Geometry.Polygon ToGeoJsonPolygon(Geometry geometry)
     {
+        ArgumentNullException.ThrowIfNull(geometry);
+
         var (longMin, latMin, longMax, latMax) = GetCoordinatesBounds(geometry);
         return new GeoJSON.Net.Geometry.Polygon(new List<GeoJSON.Net.Geometry.LineString>()
         {
@@ -152,6 +170,8 @@ public class StacConverter
     /// <returns>The <see cref="StacSpatialExtent"/>.</returns>
     public StacSpatialExtent ToStacSpatialExtent(Geometry geometry)
     {
+        ArgumentNullException.ThrowIfNull(geometry);
+
         var (longMin, latMin, longMax, latMax) = GetCoordinatesBounds(geometry);
         return new StacSpatialExtent(longMin, latMin, longMax, latMax);
     }

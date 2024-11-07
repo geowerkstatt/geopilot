@@ -25,13 +25,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors(options =>
 {
     // DotNetStac.Api uses the "All" policy for access in the STAC browser.
-    options.AddPolicy("All",
-            policy =>
-            {
-                policy.AllowAnyOrigin()
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-            });
+    options.AddPolicy(
+        "All", policy =>
+        {
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        });
 });
 
 builder.Services

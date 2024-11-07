@@ -25,6 +25,8 @@ public class HttpsStacApiContextFactory : IStacApiContextFactory
     public IEnumerable<T> ApplyContextPostQueryFilters<T>(IStacApiContext stacApiContext, IDataProvider<T> dataProvider, IEnumerable<T> items)
         where T : IStacObject
     {
+        ArgumentNullException.ThrowIfNull(stacApiContext);
+
         // Show the number of items in the search results
         stacApiContext.Properties[DefaultConventions.MatchedCountPropertiesKey] = items.Count();
 

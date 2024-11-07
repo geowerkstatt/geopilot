@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using Geopilot.Api.Authorization;
+﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
@@ -8,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Globalization;
 
 namespace Geopilot.Api.Controllers;
 
@@ -48,6 +48,8 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was an error persisting the assets.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Create(DeliveryRequest declaration)
     {
+        ArgumentNullException.ThrowIfNull(declaration);
+
         logger.LogInformation("Declaration for job with id <{JobId}> requested.", declaration.JobId);
 
         var jobStatus = validatorService.GetJobStatus(declaration.JobId);
@@ -141,7 +143,8 @@ public class DeliveryController : ControllerBase
     {
         var user = await context.GetUserByPrincipalAsync(User);
 
-        logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>",
+        logger.LogInformation(
+            "User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>",
             user.AuthIdentifier,
             mandateId?.ToString(CultureInfo.InvariantCulture).ReplaceLineEndings(string.Empty));
 

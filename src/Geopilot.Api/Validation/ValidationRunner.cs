@@ -50,6 +50,9 @@ public class ValidationRunner : BackgroundService, IValidationRunner
     /// <inheritdoc/>
     public async Task EnqueueJobAsync(ValidationJob validationJob, IEnumerable<IValidator> validators)
     {
+        ArgumentNullException.ThrowIfNull(validationJob);
+        ArgumentNullException.ThrowIfNull(validators);
+
         var status = new ValidationJobStatus(validationJob.Id);
         jobs[validationJob.Id] = (validationJob, status);
         foreach (var validator in validators)

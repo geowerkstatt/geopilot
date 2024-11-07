@@ -1,13 +1,13 @@
-﻿using System.Collections.Specialized;
-using System.Runtime.CompilerServices;
-using System.Web;
-using Microsoft.Extensions.Primitives;
+﻿using Microsoft.Extensions.Primitives;
 using Stac;
 using Stac.Api.Clients.Collections;
 using Stac.Api.Interfaces;
 using Stac.Api.Models;
 using Stac.Api.Models.Core;
 using Stac.Api.WebApi.Services;
+using System.Collections.Specialized;
+using System.Runtime.CompilerServices;
+using System.Web;
 
 namespace Geopilot.Api.StacServices;
 
@@ -20,6 +20,9 @@ public class StacLinker : IStacLinker
     /// <inheritdoc/>
     public void Link(LandingPage landingPage, IStacApiContext stacApiContext)
     {
+        ArgumentNullException.ThrowIfNull(landingPage);
+        ArgumentNullException.ThrowIfNull(stacApiContext);
+
         var uri = stacApiContext.LinkGenerator.GetUriByAction(stacApiContext.HttpContext, "GetLandingPage", "Core");
         if (uri == null) throw new InvalidOperationException("Could not generate URL for action GetLandingPage on controller Core.");
         landingPage.Links.Add(StacLink.CreateSelfLink(new Uri(uri), "application/json"));
@@ -29,6 +32,8 @@ public class StacLinker : IStacLinker
     /// <inheritdoc/>
     public void Link(StacCollection collection, IStacApiContext stacApiContext)
     {
+        ArgumentNullException.ThrowIfNull(collection);
+
         collection.Links.Add(GetSelfLink(collection, stacApiContext));
         collection.Links.Add(GetRootLink(stacApiContext));
     }
@@ -36,6 +41,8 @@ public class StacLinker : IStacLinker
     /// <inheritdoc/>
     public void Link(StacCollections collections, IStacApiContext stacApiContext)
     {
+        ArgumentNullException.ThrowIfNull(collections);
+
         collections.Links.Add(GetSelfLink(collections, stacApiContext));
         collections.Links.Add(GetRootLink(stacApiContext));
         foreach (StacCollection collection in collections.Collections)
@@ -47,6 +54,8 @@ public class StacLinker : IStacLinker
     /// <inheritdoc/>
     public void Link(Stac.StacItem item, IStacApiContext stacApiContext)
     {
+        ArgumentNullException.ThrowIfNull(item);
+
         item.Links.Add(GetSelfLink(item, stacApiContext));
         item.Links.Add(GetRootLink(stacApiContext));
     }
@@ -54,6 +63,8 @@ public class StacLinker : IStacLinker
     /// <inheritdoc/>
     public void Link(StacFeatureCollection collection, IStacApiContext stacApiContext)
     {
+        ArgumentNullException.ThrowIfNull(collection);
+
         collection.Links.Add(GetSelfLink(collection, stacApiContext));
         collection.Links.Add(GetRootLink(stacApiContext));
         collection.Links.Add(GetParentLink(collection, stacApiContext));
@@ -73,6 +84,8 @@ public class StacLinker : IStacLinker
     /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
     protected StacApiLink GetSelfLink(StacCollections stacCollections, IStacApiContext stacApiContext)
     {
+        ArgumentNullException.ThrowIfNull(stacApiContext);
+
         return new StacApiLink(GetUriByAction(stacApiContext, "GetCollections", "Collections", new { }, null), "self", "Collections", "application/json");
     }
 
@@ -84,6 +97,9 @@ public class StacLinker : IStacLinker
     /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
     protected StacApiLink GetSelfLink(Stac.StacItem stacItem, IStacApiContext stacApiContext)
     {
+        ArgumentNullException.ThrowIfNull(stacItem);
+        ArgumentNullException.ThrowIfNull(stacApiContext);
+
         return new StacApiLink(
             GetUriByAction(
                 stacApiContext,
@@ -108,15 +124,19 @@ public class StacLinker : IStacLinker
     /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
     protected StacApiLink GetSelfLink(StacCollection collection, IStacApiContext stacApiContext)
     {
-        var link = new StacApiLink(GetUriByAction(
-            stacApiContext,
-            "GetCollections",
-            "Collections",
-            new
-            {
-                collectionId = collection.Id,
-            },
-            null),
+        ArgumentNullException.ThrowIfNull(collection);
+        ArgumentNullException.ThrowIfNull(stacApiContext);
+
+        var link = new StacApiLink(
+            GetUriByAction(
+                stacApiContext,
+                "GetCollections",
+                "Collections",
+                new
+                {
+                    collectionId = collection.Id,
+                },
+                null),
             "self",
             collection.Title,
             collection.MediaType.ToString());
@@ -132,6 +152,8 @@ public class StacLinker : IStacLinker
     /// <returns>A <see cref="StacApiLink"/> with relationshipType 'self'.</returns>
     protected StacApiLink GetSelfLink(StacFeatureCollection collection, IStacApiContext stacApiContext)
     {
+        ArgumentNullException.ThrowIfNull(stacApiContext);
+
         var uri = stacApiContext.LinkGenerator.GetUriByRouteValues(stacApiContext.HttpContext, null, stacApiContext.HttpContext.Request.Query.ToDictionary((KeyValuePair<string, StringValues> x) => x.Key, (KeyValuePair<string, StringValues> x) => x.Value.ToString()));
         if (uri == null) throw new InvalidOperationException("Could not generate URL for action GetFeatureCollection on controller Features.");
         return new StacApiLink(new Uri(uri), "self", null, "application/geo+json");
@@ -219,6 +241,8 @@ public class StacLinker : IStacLinker
     /// <exception cref="InvalidOperationException">Exception if self link cannot be retrieved.</exception>
     public StacApiLink GetSelfLink(IStacObject stacObject, IStacApiContext stacApiContext)
     {
+        ArgumentNullException.ThrowIfNull(stacObject);
+
         Stac.StacItem? stacItem = stacObject as Stac.StacItem;
         if (stacItem != null)
         {

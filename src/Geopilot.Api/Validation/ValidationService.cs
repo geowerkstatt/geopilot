@@ -38,6 +38,8 @@ public class ValidationService : IValidationService
     /// <inheritdoc/>
     public async Task<ValidationJobStatus> StartValidationJobAsync(ValidationJob validationJob)
     {
+        ArgumentNullException.ThrowIfNull(validationJob);
+
         var fileExtension = Path.GetExtension(validationJob.TempFileName);
         var supportedValidators = new List<IValidator>();
         foreach (var validator in validators)
