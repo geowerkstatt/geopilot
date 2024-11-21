@@ -6,7 +6,7 @@
   "administration": "Amministrazione",
   "and": "e",
   "api": "API",
-  "apiInformation": "Questo <i>geopilota</i> utilizza la versione dell'API {{version}}. Ulteriori informazioni sono disponibili nella <apiLink>documentazione</apiLink>.",
+  "apiInformation": "Questo <i>geopilota</i> utilizza la versione dell'API {{version}}. Ulteriori informazioni sono disponibili nella <apiLink>API documentazione</apiLink>.",
   "bugTracking": "Tracciamento bug",
   "cancel": "Annulla",
   "clickToUpload": "Clicca per caricare",
