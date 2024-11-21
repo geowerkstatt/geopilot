@@ -6,7 +6,7 @@
   "administration": "Administration",
   "and": "und",
   "api": "API",
-  "apiInformation": "Dieser <i>geopilot</i> verwendet die API-Version {{version}}. Weitere Informationen finden Sie in der <apiLink>Dokumentation</apiLink>.",
+  "apiInformation": "Dieser <i>geopilot</i> verwendet die API-Version {{version}}. Weitere Informationen finden Sie in der <apiLink>API-Dokumentation</apiLink>.",
   "bugTracking": "Bugtracking",
   "cancel": "Abbrechen",
   "clickToUpload": "Zum Hochladen klicken",
