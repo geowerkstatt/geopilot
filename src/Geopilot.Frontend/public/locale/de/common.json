@@ -10,7 +10,7 @@
   "bugTracking": "Bugtracking",
   "cancel": "Abbrechen",
   "clickToUpload": "Zum Hochladen klicken",
-  "codeLicenseInfo": "Der Code steht unter der <licenseLink>MIT Lizenz</licenseLink> im <repositoryLink>Github Repository</repositoryLink> zur Verfügung. Falls Ihnen Bugs begegnen, können Sie dort einen <issuesLink>Issue</issuesLink> eröffnen.",
+  "codeLicenseInfo": "Der Code steht unter der <licenseLink>GNU Affero General Public License v3.0 Lizenz</licenseLink> im <repositoryLink>Github Repository</repositoryLink> zur Verfügung. Falls Ihnen Bugs begegnen, können Sie dort einen <issuesLink>Issue</issuesLink> eröffnen.",
   "comment": "Kommentar",
   "completedWithErrors": "Mit Fehlern abgeschlossen",
   "contentNotFound": "Ups, nichts gefunden!",

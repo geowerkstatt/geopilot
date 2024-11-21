@@ -10,7 +10,7 @@
   "bugTracking": "Tracciamento bug",
   "cancel": "Annulla",
   "clickToUpload": "Clicca per caricare",
-  "codeLicenseInfo": "Il codice è disponibile sotto la licenza <licenseLink>MIT</licenseLink> nel <repositoryLink>repository di GitHub</repositoryLink>. Se trovi dei bug, puoi aprire un <issuesLink>Issue</issuesLink> lì.",
+  "codeLicenseInfo": "Il codice è disponibile sotto la <licenseLink>licenza GNU Affero General Public License v3.0</licenseLink> nel <repositoryLink>repository di GitHub</repositoryLink>. Se trovi dei bug, puoi aprire un <issuesLink>Issue</issuesLink> lì.",
   "comment": "Commento",
   "completedWithErrors": "Completato con errori",
   "contentNotFound": "Ops, non è stato trovato nulla!",
