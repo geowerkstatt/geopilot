@@ -14,21 +14,21 @@ public class StacConverterTest
 {
     private static readonly double[] mandateExtent = new double[] { 7.536621, 46.521076, 9.398804, 47.476376 };
 
-    private static readonly Mandate mandate = new ()
+    private static readonly Mandate mandate = new()
     {
         Id = 1,
         Name = "Test Mandate",
         SpatialExtent = new Polygon(new LinearRing(new NetTopologySuite.Geometries.Coordinate[]
         {
-                new (mandateExtent[1], mandateExtent[0]),
-                new (mandateExtent[3], mandateExtent[0]),
-                new (mandateExtent[3], mandateExtent[2]),
-                new (mandateExtent[1], mandateExtent[2]),
-                new (mandateExtent[1], mandateExtent[0]),
+                new(mandateExtent[1], mandateExtent[0]),
+                new(mandateExtent[3], mandateExtent[0]),
+                new(mandateExtent[3], mandateExtent[2]),
+                new(mandateExtent[1], mandateExtent[2]),
+                new(mandateExtent[1], mandateExtent[0]),
         })),
     };
 
-    private static readonly Delivery testDelivery = new ()
+    private static readonly Delivery testDelivery = new()
     {
         Id = 1,
         Date = new DateTime(2023, 11, 6, 10, 45, 18),

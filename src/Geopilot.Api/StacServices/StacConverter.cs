@@ -154,13 +154,13 @@ public class StacConverter
         var (longMin, latMin, longMax, latMax) = GetCoordinatesBounds(geometry);
         return new GeoJSON.Net.Geometry.Polygon(new List<GeoJSON.Net.Geometry.LineString>()
         {
-            new (new List<GeoJSON.Net.Geometry.Position>()
+            new(new List<GeoJSON.Net.Geometry.Position>
             {
-                new (latMin, longMin),
-                new (latMin, longMax),
-                new (latMax, longMax),
-                new (latMax, longMin),
-                new (latMin, longMin),
+                new(latMin, longMin),
+                new(latMin, longMax),
+                new(latMax, longMax),
+                new(latMax, longMin),
+                new(latMin, longMin),
             }),
         });
     }
@@ -178,7 +178,7 @@ public class StacConverter
         return new StacSpatialExtent(longMin, latMin, longMax, latMax);
     }
 
-    private (double longMin, double latMin, double longMax, double latMax) GetCoordinatesBounds(Geometry geometry)
+    private (double LongMin, double LatMin, double LongMax, double LatMax) GetCoordinatesBounds(Geometry geometry)
     {
         var coordinates = geometry.Coordinates;
         var longMin = coordinates.Min((NetTopologySuite.Geometries.Coordinate c) => c.X);

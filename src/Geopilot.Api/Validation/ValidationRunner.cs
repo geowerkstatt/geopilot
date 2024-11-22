@@ -10,7 +10,7 @@ public class ValidationRunner : BackgroundService, IValidationRunner
 {
     private readonly ILogger<ValidationRunner> logger;
     private readonly Channel<(ValidationJob Job, IValidator Validator)> queue;
-    private readonly ConcurrentDictionary<Guid, (ValidationJob Job, ValidationJobStatus JobStatus)> jobs = new ();
+    private readonly ConcurrentDictionary<Guid, (ValidationJob Job, ValidationJobStatus JobStatus)> jobs = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationRunner"/> class.
