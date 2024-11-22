@@ -63,11 +63,11 @@ public class Mandate
 
         SpatialExtent = Geometry.DefaultFactory.CreatePolygon(new NetTopologySuite.Geometries.Coordinate[]
         {
-            new (Coordinates[0].X, Coordinates[0].Y),
-            new (Coordinates[0].X, Coordinates[1].Y),
-            new (Coordinates[1].X, Coordinates[1].Y),
-            new (Coordinates[1].X, Coordinates[0].Y),
-            new (Coordinates[0].X, Coordinates[0].Y),
+            new(Coordinates[0].X, Coordinates[0].Y),
+            new(Coordinates[0].X, Coordinates[1].Y),
+            new(Coordinates[1].X, Coordinates[1].Y),
+            new(Coordinates[1].X, Coordinates[0].Y),
+            new(Coordinates[0].X, Coordinates[0].Y),
         });
         return true;
     }

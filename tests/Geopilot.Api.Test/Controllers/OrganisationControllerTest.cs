@@ -65,8 +65,8 @@ namespace Geopilot.Api.Controllers
             var organisation = new Organisation
             {
                 Name = "NewOrg",
-                Users = new List<User> { new () { Id = editUser.Id } },
-                Mandates = new List<Mandate> { new () { Id = unrestrictedMandate.Id } },
+                Users = new List<User> { new() { Id = editUser.Id } },
+                Mandates = new List<Mandate> { new() { Id = unrestrictedMandate.Id } },
             };
             var result = await organisationController.Create(organisation);
             ActionResultAssert.IsCreated(result);
@@ -86,16 +86,16 @@ namespace Geopilot.Api.Controllers
             var organisation = new Organisation
             {
                 Name = "NewOrg",
-                Users = new List<User> { new () { Id = editUser.Id } },
-                Mandates = new List<Mandate> { new () { Id = unrestrictedMandate.Id }, new () { Id = xtfMandate.Id } },
+                Users = new List<User> { new() { Id = editUser.Id } },
+                Mandates = new List<Mandate> { new() { Id = unrestrictedMandate.Id }, new() { Id = xtfMandate.Id } },
             };
             var result = await organisationController.Create(organisation) as CreatedResult;
 
             var organisationToUpdate = result?.Value as Organisation;
             Assert.IsNotNull(organisationToUpdate);
             organisationToUpdate.Name = "UpdatedOrg";
-            organisationToUpdate.Users = new List<User> { new () { Id = adminUser.Id } };
-            organisationToUpdate.Mandates = new List<Mandate> { new () { Id = xtfMandate.Id }, new () { Id = unassociatedMandate.Id } };
+            organisationToUpdate.Users = new List<User> { new() { Id = adminUser.Id } };
+            organisationToUpdate.Mandates = new List<Mandate> { new() { Id = xtfMandate.Id }, new() { Id = unassociatedMandate.Id } };
 
             var updateResult = await organisationController.Edit(organisationToUpdate);
             ActionResultAssert.IsOk(updateResult);

@@ -133,7 +133,7 @@ public class UserControllerTest
         Assert.IsNotNull(user);
         user.FullName = "FLEA XI Updated";
         user.IsAdmin = true;
-        user.Organisations = new List<Organisation> { new () { Id = 1 }, new () { Id = 2 } };
+        user.Organisations = new List<Organisation> { new() { Id = 1 }, new() { Id = 2 } };
 
         var result = await userController.Edit(user);
         var resultValue = ActionResultAssert.IsOkObjectResult<User>(result);
@@ -146,7 +146,7 @@ public class UserControllerTest
             Assert.AreEqual(testUser.Organisations[i].Id, resultValue.Organisations[i].Id);
         }
 
-        testUser.Organisations = new List<Organisation> { new () { Id = 2 }, new () { Id = 3 } };
+        testUser.Organisations = new List<Organisation> { new() { Id = 2 }, new() { Id = 3 } };
         result = await userController.Edit(testUser);
         resultValue = ActionResultAssert.IsOkObjectResult<User>(result);
         Assert.IsNotNull(resultValue);
