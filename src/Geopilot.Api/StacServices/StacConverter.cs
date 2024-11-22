@@ -16,7 +16,9 @@ namespace Geopilot.Api.StacServices;
 public class StacConverter
 {
     private IStacLinker StacLinker { get; }
+
     private IContentTypeProvider FileContentTypeProvider { get; }
+
     private IStacApiContextFactory StacApiContextFactory { get; }
 
     private const string DeliveryNamePrefix = "Datenlieferung_";
