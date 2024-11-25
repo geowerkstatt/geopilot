@@ -101,11 +101,11 @@ internal static class ContextExtensions
 
         return GeometryFactory.Default.CreatePolygon(new NetTopologySuite.Geometries.Coordinate[]
         {
-            new (longMin, latMin),
-            new (longMax, latMin),
-            new (longMax, latMax),
-            new (longMin, latMax),
-            new (longMin, latMin),
+            new(longMin, latMin),
+            new(longMax, latMin),
+            new(longMax, latMax),
+            new(longMin, latMax),
+            new(longMin, latMin),
         });
     }
 

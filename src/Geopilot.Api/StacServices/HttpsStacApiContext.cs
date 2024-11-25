@@ -47,7 +47,7 @@ public class HttpsStacApiContext : IStacApiContext, IStacPropertiesContainer
         return new HttpsStacApiContext
         {
             BaseUri = new Uri("https://" + httpContext.Request.Host),
-            LinkGenerator = new HttpsLinkGenerator((httpContext.RequestServices.GetService(typeof(LinkGenerator)) as LinkGenerator) !),
+            LinkGenerator = new HttpsLinkGenerator((httpContext.RequestServices.GetService(typeof(LinkGenerator)) as LinkGenerator)!),
             HttpContext = httpContext,
         };
     }

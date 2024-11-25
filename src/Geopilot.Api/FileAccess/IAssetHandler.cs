@@ -26,6 +26,6 @@ namespace Geopilot.Api.FileAccess
         /// <param name="jobId">The given job id.</param>
         /// <param name="assetName">The sanitized file name.</param>
         /// <returns>The asset as a <see cref="File"/>.</returns>
-        Task<(byte[], string)> DownloadAssetAsync(Guid jobId, string assetName);
+        Task<(byte[] FileStream, string ContentType)> DownloadAssetAsync(Guid jobId, string assetName);
     }
 }

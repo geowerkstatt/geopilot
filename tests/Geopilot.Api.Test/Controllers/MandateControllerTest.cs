@@ -38,11 +38,11 @@ namespace Geopilot.Api.Controllers
                 Name = nameof(xtfMandate),
                 SpatialExtent = Geometry.DefaultFactory.CreatePolygon(new NetTopologySuite.Geometries.Coordinate[]
                 {
-                    new (8.046284, 47.392423),
-                    new (8.057055, 47.392423),
-                    new (8.057055, 47.388181),
-                    new (8.046284, 47.388181),
-                    new (8.046284, 47.392423),
+                    new(8.046284, 47.392423),
+                    new(8.057055, 47.392423),
+                    new(8.057055, 47.388181),
+                    new(8.046284, 47.388181),
+                    new(8.046284, 47.392423),
                 }),
             };
             unassociatedMandate = new Mandate { FileTypes = new string[] { "*.itf" }, Name = nameof(unassociatedMandate) };
@@ -165,9 +165,10 @@ namespace Geopilot.Api.Controllers
             {
                 FileTypes = new string[] { ".*" },
                 Name = "ACCORDIANWALK",
-                Organisations = new List<Organisation>() { new () { Id = 1 } },
-                Coordinates = new List<Models.Coordinate>() { new () { X = 7.93770851245525, Y = 46.706944924654366 }, new () { X = 8.865921640681403, Y = 47.02476048042957 } },
+                Organisations = new List<Organisation> { new() { Id = 1 } },
+                Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
             };
+
             var result = await mandateController.Create(mandate);
             ActionResultAssert.IsCreated(result);
             var resultValue = (result as CreatedResult)?.Value as Mandate;
@@ -188,9 +189,10 @@ namespace Geopilot.Api.Controllers
             {
                 FileTypes = new string[] { ".*" },
                 Name = "ACCORDIANWALK",
-                Organisations = new List<Organisation>() { new () { Id = 1 } },
+                Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate>(),
             };
+
             var result = await mandateController.Create(mandate);
             ActionResultAssert.IsBadRequest(result);
         }
@@ -203,9 +205,10 @@ namespace Geopilot.Api.Controllers
             {
                 FileTypes = new string[] { ".*", ".zip" },
                 Name = "PEARLFOLLOWER",
-                Organisations = new List<Organisation>() { new () { Id = 1 }, new () { Id = organisation.Id } },
-                Coordinates = new List<Models.Coordinate> { new () { X = 7.93770851245525, Y = 46.706944924654366 }, new () { X = 8.865921640681403, Y = 47.02476048042957 } },
+                Organisations = new List<Organisation> { new() { Id = 1 }, new() { Id = organisation.Id } },
+                Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
             };
+
             var mandateToUpdateResult = await mandateController.Create(mandate) as CreatedResult;
             var mandateToUpdate = mandateToUpdateResult?.Value as Mandate;
             Assert.IsNotNull(mandateToUpdate);
@@ -235,8 +238,8 @@ namespace Geopilot.Api.Controllers
 
             mandateToUpdate.Name = "ARKMUTANT";
             mandateToUpdate.FileTypes = new string[] { ".zip", ".gpkg" };
-            mandateToUpdate.Organisations = new List<Organisation>() { new () { Id = 3 }, new () { Id = organisation.Id } };
-            mandateToUpdate.Coordinates = new List<Models.Coordinate> { new () { X = 7.93, Y = 46.70 }, new () { X = 8.86, Y = 47.02 } };
+            mandateToUpdate.Organisations = new List<Organisation> { new() { Id = 3 }, new() { Id = organisation.Id } };
+            mandateToUpdate.Coordinates = new List<Models.Coordinate> { new() { X = 7.93, Y = 46.70 }, new() { X = 8.86, Y = 47.02 } };
             mandateToUpdate.Deliveries = new List<Delivery>();
 
             var updateResult = await mandateController.Edit(mandateToUpdate);
@@ -264,7 +267,7 @@ namespace Geopilot.Api.Controllers
                 Id = xtfMandate.Id,
                 FileTypes = new string[] { ".*", ".zip" },
                 Name = "PEARLFOLLOWER",
-                Organisations = new List<Organisation>() { new () { Id = 1 } },
+                Organisations = new List<Organisation>() { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate>(),
             };
             var result = await mandateController.Edit(mandate);

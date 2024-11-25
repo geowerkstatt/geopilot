@@ -10,7 +10,7 @@ public class StacRoutingConvention : IActionModelConvention
 {
     private const string BaseNamespace = nameof(Stac);
     private const string Template = "/api/stac";
-    private readonly AttributeRouteModel routePrefix = new () { Template = Template };
+    private readonly AttributeRouteModel routePrefix = new() { Template = Template };
     private readonly AuthorizeFilter authorizeFilter;
 
     /// <summary>
