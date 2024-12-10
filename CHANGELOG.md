@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- The code for this application is now available under the AGPL 3.0 licence.
+
 ## v1.1.143 - 2024-09-30
 
 ### Added
