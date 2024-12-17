@@ -1,13 +1,13 @@
-import { GridRenderEditCellParams, useGridApiContext } from "@mui/x-data-grid";
-import { IconButton, Popover, Tooltip } from "@mui/material";
-import { GridBaseColDef } from "@mui/x-data-grid/internals";
-import { GridColDef } from "../adminGrid/adminGridInterfaces";
-import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import { MouseEvent, useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { DataGridSpatialExtentPopoverContent } from "./dataGridSpatialExtentPopoverContent";
+import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
+import { IconButton, Popover, Tooltip } from "@mui/material";
+import { GridRenderEditCellParams, useGridApiContext } from "@mui/x-data-grid";
+import { GridBaseColDef } from "@mui/x-data-grid/internals";
 import { Coordinate } from "../../api/apiInterfaces";
+import { GridColDef } from "../adminGrid/adminGridInterfaces";
 import { PromptContext } from "../prompt/promptContext";
+import { DataGridSpatialExtentPopoverContent } from "./dataGridSpatialExtentPopoverContent";
 
 export const IsGridSpatialExtentColDef = (columnDef: GridColDef) =>
   columnDef.type === "custom" && columnDef.field === "coordinates";

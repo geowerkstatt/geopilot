@@ -1,7 +1,7 @@
-import { ApiContextInterface, ApiError, FetchParams } from "./apiInterfaces.ts";
 import { createContext, FC, PropsWithChildren, useContext } from "react";
-import { AlertContext } from "../components/alert/alertContext.tsx";
 import { useTranslation } from "react-i18next";
+import { AlertContext } from "../components/alert/alertContext.tsx";
+import { ApiContextInterface, ApiError, FetchParams } from "./apiInterfaces.ts";
 
 export const ApiContext = createContext<ApiContextInterface>({
   fetchApi: () => {

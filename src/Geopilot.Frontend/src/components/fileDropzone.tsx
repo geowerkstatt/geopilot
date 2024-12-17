@@ -1,8 +1,8 @@
 import { CSSProperties, FC, useCallback, useEffect, useMemo, useState } from "react";
-import { IconButton, Link, Typography } from "@mui/material";
-import ClearIcon from "@mui/icons-material/Clear";
 import { FileRejection, useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
+import ClearIcon from "@mui/icons-material/Clear";
+import { IconButton, Link, Typography } from "@mui/material";
 import { geopilotTheme } from "../appTheme";
 import { FlexRowBox } from "./styledComponents.ts";
 

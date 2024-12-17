@@ -1,3 +1,4 @@
+import { selectAdminNavItem } from "./helpers/adminHelpers.js";
 import {
   isSelectedNavItem,
   loadWithoutAuth,
@@ -8,7 +9,6 @@ import {
   openTool,
   selectLanguage,
 } from "./helpers/appHelpers.js";
-import { selectAdminNavItem } from "./helpers/adminHelpers.js";
 
 describe("General app tests", () => {
   it("shows no login button if auth settings could not be loaded", () => {

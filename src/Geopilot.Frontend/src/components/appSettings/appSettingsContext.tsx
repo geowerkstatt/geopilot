@@ -1,7 +1,7 @@
 import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
-import { AppSettingsContextInterface, ClientSettings } from "./appSettingsInterface";
 import { useApi } from "../../api";
 import { ContentType } from "../../api/apiInterfaces.ts";
+import { AppSettingsContextInterface, ClientSettings } from "./appSettingsInterface";
 
 export const AppSettingsContext = createContext<AppSettingsContextInterface>({
   initialized: false,

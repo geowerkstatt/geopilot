@@ -1,11 +1,11 @@
-import { Button, List, ListItem, ListItemIcon, ListItemText, Popover } from "@mui/material";
 import { MouseEvent, useEffect, useState } from "react";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import i18n from "../../i18n";
+import { Button, List, ListItem, ListItemIcon, ListItemText, Popover } from "@mui/material";
 import { Language } from "../../appInterfaces";
 import { geopilotTheme } from "../../appTheme.ts";
+import i18n from "../../i18n";
 
 const defaultLanguage = Language.DE;
 

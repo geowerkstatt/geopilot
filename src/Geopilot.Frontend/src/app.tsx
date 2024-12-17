@@ -1,21 +1,21 @@
 import { FC, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./app.css";
-import { AppBox, LayoutBox, PageContentBox } from "./components/styledComponents";
-import Header from "./components/header/header";
+import { CircularProgress } from "@mui/material";
 import { useGeopilotAuth } from "./auth";
-import Delivery from "./pages/delivery/delivery";
+import Header from "./components/header/header";
+import { AppBox, LayoutBox, PageContentBox } from "./components/styledComponents";
 import Admin from "./pages/admin/admin";
 import DeliveryOverview from "./pages/admin/deliveryOverview";
-import Users from "./pages/admin/users";
 import Mandates from "./pages/admin/mandates";
 import Organisations from "./pages/admin/organisations";
-import Footer from "./pages/footer/footer";
-import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
-import { About } from "./pages/footer/about.tsx";
-import { Imprint } from "./pages/footer/imprint.tsx";
+import Users from "./pages/admin/users";
+import Delivery from "./pages/delivery/delivery";
 import { DeliveryProvider } from "./pages/delivery/deliveryContext.tsx";
-import { CircularProgress } from "@mui/material";
+import { About } from "./pages/footer/about.tsx";
+import Footer from "./pages/footer/footer";
+import { Imprint } from "./pages/footer/imprint.tsx";
+import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
 
 export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);

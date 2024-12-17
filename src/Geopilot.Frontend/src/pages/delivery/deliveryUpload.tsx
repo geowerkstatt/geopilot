@@ -1,17 +1,17 @@
-import { FileDropzone } from "../../components/fileDropzone.tsx";
 import { useContext, useEffect, useState } from "react";
-import { ValidationSettings } from "../../api/apiInterfaces.ts";
-import { useApi } from "../../api";
 import { FormProvider, useForm } from "react-hook-form";
-import { FlexColumnBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { Trans } from "react-i18next";
-import { Link } from "@mui/material";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
-import { FormCheckbox } from "../../components/form/form.ts";
+import { Link } from "@mui/material";
+import { useApi } from "../../api";
+import { ValidationSettings } from "../../api/apiInterfaces.ts";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
+import { BaseButton, CancelButton } from "../../components/buttons.tsx";
+import { FileDropzone } from "../../components/fileDropzone.tsx";
+import { FormCheckbox } from "../../components/form/form.ts";
+import { FlexColumnBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
-import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 
 export const DeliveryUpload = () => {
   const [validationSettings, setValidationSettings] = useState<ValidationSettings>();

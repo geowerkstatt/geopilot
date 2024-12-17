@@ -1,6 +1,10 @@
-import { useTranslation } from "react-i18next";
 import { FC, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import LoginIcon from "@mui/icons-material/Login";
+import LogoutIcon from "@mui/icons-material/Logout";
+import MenuIcon from "@mui/icons-material/Menu";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
   AppBar,
   Avatar,
@@ -16,15 +20,11 @@ import {
   Toolbar,
   Typography,
 } from "@mui/material";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import LoginIcon from "@mui/icons-material/Login";
-import LogoutIcon from "@mui/icons-material/Logout";
-import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { useGeopilotAuth } from "../../auth";
-import { LanguagePopup } from "./languagePopup";
-import MenuIcon from "@mui/icons-material/Menu";
-import { FlexColumnSpaceBetweenBox, FlexRowBox } from "../styledComponents.ts";
+import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { BaseButton } from "../buttons.tsx";
+import { FlexColumnSpaceBetweenBox, FlexRowBox } from "../styledComponents.ts";
+import { LanguagePopup } from "./languagePopup";
 
 interface HeaderProps {
   openSubMenu: () => void;

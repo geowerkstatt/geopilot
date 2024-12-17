@@ -1,23 +1,23 @@
-import { I18nextProvider } from "react-i18next";
-import i18n from "./i18n";
-import { GlobalStyles, ThemeProvider } from "@mui/material";
-import { PromptProvider } from "./components/prompt/promptContext.tsx";
-import { Prompt } from "./components/prompt/prompt.tsx";
-import { AlertProvider } from "./components/alert/alertContext.tsx";
-import { AlertBanner } from "./components/alert/alertBanner.tsx";
-import { ApiProvider } from "./api/apiContext.tsx";
-import { AppSettingsProvider } from "./components/appSettings/appSettingsContext.tsx";
-import { GeopilotAuthProvider } from "./auth/geopilotAuthComponent.tsx";
-import App from "./app.tsx";
 import { useEffect, useState } from "react";
-import { Language } from "./appInterfaces.ts";
-import { geopilotTheme } from "./appTheme.ts";
+import { I18nextProvider } from "react-i18next";
+import { GlobalStyles, ThemeProvider } from "@mui/material";
 import { deDE as coreDe, enUS as coreEn, frFR as coreFr, itIT as coreIt } from "@mui/material/locale";
-import { enUS as gridEn } from "@mui/x-data-grid/locales/enUS";
+import { createTheme, CustomTheme } from "@mui/material/styles";
 import { deDE as gridDe } from "@mui/x-data-grid/locales/deDE";
+import { enUS as gridEn } from "@mui/x-data-grid/locales/enUS";
 import { frFR as gridFr } from "@mui/x-data-grid/locales/frFR";
 import { itIT as gridIt } from "@mui/x-data-grid/locales/itIT";
-import { createTheme, CustomTheme } from "@mui/material/styles";
+import { ApiProvider } from "./api/apiContext.tsx";
+import App from "./app.tsx";
+import { Language } from "./appInterfaces.ts";
+import { geopilotTheme } from "./appTheme.ts";
+import { GeopilotAuthProvider } from "./auth/geopilotAuthComponent.tsx";
+import { AlertBanner } from "./components/alert/alertBanner.tsx";
+import { AlertProvider } from "./components/alert/alertContext.tsx";
+import { AppSettingsProvider } from "./components/appSettings/appSettingsContext.tsx";
+import { Prompt } from "./components/prompt/prompt.tsx";
+import { PromptProvider } from "./components/prompt/promptContext.tsx";
+import i18n from "./i18n";
 
 export const AppContext = () => {
   const [language, setLanguage] = useState<Language>(Language.EN);

@@ -1,12 +1,12 @@
-import { Trans, useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
-import { useApi } from "../../api";
-import { Link, Typography } from "@mui/material";
-import { MarkdownContent } from "../../components/markdownContent.tsx";
-import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
-import { ContentType } from "../../api/apiInterfaces.ts";
-import { CenteredBox } from "../../components/styledComponents.ts";
+import { Trans, useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
+import { Link, Typography } from "@mui/material";
+import { useApi } from "../../api";
+import { ContentType } from "../../api/apiInterfaces.ts";
+import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
+import { MarkdownContent } from "../../components/markdownContent.tsx";
+import { CenteredBox } from "../../components/styledComponents.ts";
 
 interface PackageList {
   [packageName: string]: PackageDetails;

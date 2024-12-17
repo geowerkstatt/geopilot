@@ -1,12 +1,12 @@
-import { useTranslation } from "react-i18next";
 import { useCallback, useContext, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { CircularProgress, Stack } from "@mui/material";
+import { useApi } from "../../api";
 import { Mandate, Organisation, ValidationSettings } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
 import { PromptContext } from "../../components/prompt/promptContext";
-import { CircularProgress, Stack } from "@mui/material";
-import { useApi } from "../../api";
 
 export const Mandates = () => {
   const { t } = useTranslation();

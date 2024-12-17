@@ -1,7 +1,7 @@
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
-import { User } from "../api/apiInterfaces";
 import { useAuth } from "react-oidc-context";
 import { useApi } from "../api";
+import { User } from "../api/apiInterfaces";
 
 export const UserContext = createContext<User | null | undefined>(undefined);
 

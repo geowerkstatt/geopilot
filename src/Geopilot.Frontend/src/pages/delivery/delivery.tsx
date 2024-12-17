@@ -1,10 +1,10 @@
-import { Box, Step, StepContent, StepLabel, Stepper, Typography } from "@mui/material";
-import { useTranslation } from "react-i18next";
-import { CenteredBox } from "../../components/styledComponents.ts";
-import { StepperIcon } from "./stepperIcon.tsx";
-import { styled } from "@mui/system";
-import { DeliveryContext } from "./deliveryContext.tsx";
 import { useContext } from "react";
+import { useTranslation } from "react-i18next";
+import { Box, Step, StepContent, StepLabel, Stepper, Typography } from "@mui/material";
+import { styled } from "@mui/system";
+import { CenteredBox } from "../../components/styledComponents.ts";
+import { DeliveryContext } from "./deliveryContext.tsx";
+import { StepperIcon } from "./stepperIcon.tsx";
 
 const DeliveryContainer = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.primary.hover,

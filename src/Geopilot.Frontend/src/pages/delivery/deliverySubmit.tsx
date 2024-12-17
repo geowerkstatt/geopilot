@@ -1,16 +1,16 @@
-import { DeliveryContext } from "./deliveryContext.tsx";
 import { useContext, useEffect, useState } from "react";
-import { useGeopilotAuth } from "../../auth";
-import LoginIcon from "@mui/icons-material/Login";
-import { FlexColumnBox, FlexRowEndBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
-import { FormCheckbox, FormInput, FormSelect } from "../../components/form/form.ts";
-import SendIcon from "@mui/icons-material/Send";
-import { Delivery, Mandate } from "../../api/apiInterfaces.ts";
-import { useApi } from "../../api";
-import { DeliveryStepEnum, DeliverySubmitData } from "./deliveryInterfaces.tsx";
-import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 import { useTranslation } from "react-i18next";
+import LoginIcon from "@mui/icons-material/Login";
+import SendIcon from "@mui/icons-material/Send";
+import { useApi } from "../../api";
+import { Delivery, Mandate } from "../../api/apiInterfaces.ts";
+import { useGeopilotAuth } from "../../auth";
+import { BaseButton, CancelButton } from "../../components/buttons.tsx";
+import { FormCheckbox, FormInput, FormSelect } from "../../components/form/form.ts";
+import { FlexColumnBox, FlexRowEndBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
+import { DeliveryContext } from "./deliveryContext.tsx";
+import { DeliveryStepEnum, DeliverySubmitData } from "./deliveryInterfaces.tsx";
 
 export const DeliverySubmit = () => {
   const { t } = useTranslation();

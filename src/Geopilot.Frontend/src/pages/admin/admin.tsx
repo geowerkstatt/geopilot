@@ -1,7 +1,7 @@
-import { useTranslation } from "react-i18next";
-import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Typography } from "@mui/material";
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { Outlet, useNavigate } from "react-router-dom";
+import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Typography } from "@mui/material";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { FlexRowBox } from "../../components/styledComponents.ts";
 

@@ -1,6 +1,6 @@
 import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
-import { AuthSettings } from "./authInterfaces";
 import { useApi } from "../api";
+import { AuthSettings } from "./authInterfaces";
 
 export const ApiAuthConfigurationContext = createContext<AuthSettings | undefined>(undefined);
 

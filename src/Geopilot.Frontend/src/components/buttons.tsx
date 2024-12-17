@@ -1,9 +1,9 @@
-import { ButtonProps as MuiButtonProps } from "@mui/material/Button";
 import * as React from "react";
 import { forwardRef } from "react";
-import { Button } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import { Button } from "@mui/material";
+import { ButtonProps as MuiButtonProps } from "@mui/material/Button";
 
 export interface ButtonProps extends MuiButtonProps {
   onClick: () => void;

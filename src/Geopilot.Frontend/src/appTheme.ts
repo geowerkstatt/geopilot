@@ -1,5 +1,5 @@
-import { createTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { createTheme } from "@mui/material/styles";
 
 export const geopilotTheme = createTheme({
   palette: {

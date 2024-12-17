@@ -1,7 +1,7 @@
 import { FC, PropsWithChildren } from "react";
+import { AuthProvider, AuthProviderProps } from "react-oidc-context";
 import { User, WebStorageStateStore } from "oidc-client-ts";
 import { useApiAuthConfiguration } from ".";
-import { AuthProvider, AuthProviderProps } from "react-oidc-context";
 import { useAppSettings } from "../components/appSettings/appSettingsInterface";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

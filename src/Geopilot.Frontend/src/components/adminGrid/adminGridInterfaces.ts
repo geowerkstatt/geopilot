@@ -1,6 +1,6 @@
-import { GridMultiSelectColDef } from "../dataGrid/dataGridMultiSelectColumn";
 import { GridActionsColDef, GridSingleSelectColDef, GridValidRowModel } from "@mui/x-data-grid";
 import { GridBaseColDef } from "@mui/x-data-grid/internals";
+import { GridMultiSelectColDef } from "../dataGrid/dataGridMultiSelectColumn";
 
 export interface AdminGridProps {
   addLabel?: string;

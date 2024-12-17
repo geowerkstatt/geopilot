@@ -1,9 +1,9 @@
-import { CircularProgress, StepIconProps } from "@mui/material";
 import { FC } from "react";
-import { FlexRowCenterBox } from "../../components/styledComponents.ts";
-import WarningIcon from "@mui/icons-material/Warning";
-import { geopilotTheme } from "../../appTheme.ts";
 import CheckIcon from "@mui/icons-material/Check";
+import WarningIcon from "@mui/icons-material/Warning";
+import { CircularProgress, StepIconProps } from "@mui/material";
+import { geopilotTheme } from "../../appTheme.ts";
+import { FlexRowCenterBox } from "../../components/styledComponents.ts";
 
 interface StepperIconProps {
   index: number;

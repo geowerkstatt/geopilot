@@ -1,5 +1,11 @@
 import { FC, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import { Tooltip } from "@mui/material";
 import {
   DataGrid,
   GridActionsCellItem,
@@ -9,20 +15,14 @@ import {
   GridRowModes,
   GridRowModesModel,
 } from "@mui/x-data-grid";
-import { Tooltip } from "@mui/material";
-import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import LinkOffIcon from "@mui/icons-material/LinkOff";
-import { useTranslation } from "react-i18next";
-import { AdminGridProps, DataRow, GridColDef } from "./adminGridInterfaces";
+import { BaseButton } from "../buttons.tsx";
 import {
   GridMultiSelectColDef,
   IsGridMultiSelectColDef,
   TransformToMultiSelectColumn,
 } from "../dataGrid/dataGridMultiSelectColumn";
 import { IsGridSpatialExtentColDef, TransformToSpatialExtentColumn } from "../dataGrid/dataGridSpatialExtentColumn";
-import { BaseButton } from "../buttons.tsx";
+import { AdminGridProps, DataRow, GridColDef } from "./adminGridInterfaces";
 
 export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave, onDisconnect, disableRow }) => {
   const { t } = useTranslation();

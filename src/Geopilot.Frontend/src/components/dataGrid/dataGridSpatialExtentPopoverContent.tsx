@@ -1,7 +1,7 @@
 import { ChangeEvent, FC } from "react";
-import { Coordinate } from "../../api/apiInterfaces";
 import { useTranslation } from "react-i18next";
 import { Box, Button, TextField } from "@mui/material";
+import { Coordinate } from "../../api/apiInterfaces";
 import { FlexRowEndBox, FlexRowSpaceBetweenBox } from "../styledComponents.ts";
 
 interface SpatialExtentPopoverContentProps {

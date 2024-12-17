@@ -1,10 +1,10 @@
-import { DeliveryContext } from "./deliveryContext.tsx";
 import { useContext } from "react";
-import { FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
-import { Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
+import { Typography } from "@mui/material";
 import { BaseButton } from "../../components/buttons.tsx";
+import { FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
+import { DeliveryContext } from "./deliveryContext.tsx";
 
 export const DeliveryCompleted = () => {
   const { t } = useTranslation();

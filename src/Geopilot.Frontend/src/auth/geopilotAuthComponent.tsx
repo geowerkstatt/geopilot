@@ -1,11 +1,11 @@
 import { createContext, FC, PropsWithChildren } from "react";
+import { useAuth } from "react-oidc-context";
+import { useApiAuthConfiguration, useUser } from ".";
 import { ApiAuthConfigurationProvider } from "./apiAuthConfigurationContext";
 import { GeopilotAuthContextInterface } from "./authInterfaces";
+import { CookieSynchronizer } from "./cookieSynchronizer";
 import { OidcContainerProvider } from "./oidcContainerContext";
 import { UserProvider } from "./userContext";
-import { useApiAuthConfiguration, useUser } from ".";
-import { useAuth } from "react-oidc-context";
-import { CookieSynchronizer } from "./cookieSynchronizer";
 
 export const GeopilotAuthContext = createContext<GeopilotAuthContextInterface>({
   authEnabled: false,

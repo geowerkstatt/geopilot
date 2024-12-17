@@ -1,9 +1,9 @@
-import { Typography } from "@mui/material";
-import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Typography } from "@mui/material";
 import { useApi } from "../../api";
-import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { ContentType } from "../../api/apiInterfaces.ts";
+import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { CenteredBox } from "../../components/styledComponents.ts";
 
 export const Imprint = () => {

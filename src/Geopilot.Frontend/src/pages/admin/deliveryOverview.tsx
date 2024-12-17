@@ -1,14 +1,14 @@
 import { useContext, useEffect, useState } from "react";
-import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
-import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { Button } from "@mui/material";
-import { useGeopilotAuth } from "../../auth";
-import { PromptContext } from "../../components/prompt/promptContext";
-import { AlertContext } from "../../components/alert/alertContext";
+import { DataGrid, GridRowSelectionModel } from "@mui/x-data-grid";
+import { useApi } from "../../api";
 import { ApiError, Delivery } from "../../api/apiInterfaces";
 import { TranslationFunction } from "../../appInterfaces";
-import { useApi } from "../../api";
+import { useGeopilotAuth } from "../../auth";
+import { AlertContext } from "../../components/alert/alertContext";
+import { PromptContext } from "../../components/prompt/promptContext";
 import { FlexRowCenterBox } from "../../components/styledComponents.ts";
 
 const useTranslatedColumns = (t: TranslationFunction) => {
