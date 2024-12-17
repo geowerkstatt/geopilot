@@ -8,6 +8,7 @@ export const ApiAuthConfigurationProvider: FC<PropsWithChildren> = ({ children }
   const [apiAuthSettings, setApiAuthSettings] = useState<AuthSettings>();
   const { fetchApi } = useApi();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadAuthSettings = () => {
     fetchApi<AuthSettings>("/api/v1/user/auth").then(setApiAuthSettings);
   };
