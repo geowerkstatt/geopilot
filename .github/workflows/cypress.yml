@@ -44,3 +44,4 @@ jobs:
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/geopilot.crt
