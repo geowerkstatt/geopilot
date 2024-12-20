@@ -20,7 +20,7 @@ Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Optio
 
 - Vor dem ersten Start oder bei Änderungen in den Packages muss in _Geopilot.Frontend_ manuell `npm install` ausgeführt werden.
 
-- Damit die Applikation mit https funktioniert, muss ein lokales dev-cert erstellt werden. Dieses wird durch das npm Script `predev` vor dem start automatisch erstellt. Sollte dies nicht funktionieren, kann mit folgendem Befehl ein Zertifikat manuell erstellt und vertraut werden: `dotnet dev-certs https --trust`. Https muss verwendet werden, damit die STAC-Urls korrekt funktionieren & so der STAC-Browser wie in Produktion verwendet werden kann.
+- Damit die Applikation mit HTTPS funktioniert, muss ein lokales dev-cert erstellt werden. Dieses wird durch das npm Script `predev` vor dem Start automatisch erstellt. Sollte dies nicht funktionieren, kann mit folgendem Befehl ein Zertifikat manuell erstellt und vertraut werden: `dotnet dev-certs https --trust`. HTTPS muss verwendet werden, damit die STAC-Urls korrekt funktionieren und so der STAC-Browser wie in einer produktiven Umgebung verwendet werden kann.
 
 - Über _Start_ > _Configure Startup Projects_ > _Common Properties_ > _Startup Projects_ müssen _Multiple startup projects_ definiert werden.
 
@@ -33,7 +33,7 @@ Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Optio
 
 ### Starten der Applikation (Docker Compose) 🐳
 
-Das Projekt unterstützt das Starten der Applikation mit Docker Compose um einer Prod Umgebung möglichst nahe zu kommen. Um https zu unterstützten, benötigt es ein vertrautes dev-cert sowie ein export dessen im PEM format. Diese werden im docker-compose.yml korrekt geladen. Setup wie folgend beschrieben. Die Applikation ist danach unter [https://localhost:5173](https://localhost:5173) erreichbar.
+Das Projekt unterstützt das Starten der Applikation mit Docker Compose, um einer produktiven Umgebung möglichst nahe zu kommen. Um HTTPS zu unterstützen, benötigt es ein vertrautes dev-cert sowie ein Export dessen im PEM-Format. Diese werden im [docker-compose.yml](./docker-compose.yml) korrekt geladen. Setup ist nachfolgend beschrieben. Die Applikation ist danach unter [https://localhost:5173](https://localhost:5173) erreichbar.
 
 ```bash
 dotnet dev-certs https --trust

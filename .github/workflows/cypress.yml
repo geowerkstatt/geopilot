@@ -14,6 +14,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set environment variables
+        run: |
+          echo PEM_CERT_PATH=$(pwd)/certs/geopilot.pem >> $GITHUB_ENV
+          echo UBUNTU_TRUSTED_CERT_PATH=/usr/local/share/ca-certificates/geopilot.crt >> $GITHUB_ENV
+
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
@@ -22,13 +27,13 @@ jobs:
       - name: Create dev-certs
         run: |
           mkdir ./certs
-          dotnet dev-certs https --export-path ./certs/geopilot.pem --no-password --format PEM
+          dotnet dev-certs https --export-path ${{ env.PEM_CERT_PATH }} --no-password --format PEM
           chmod -R 664 ./certs/*
 
       - name: Trust dev-certs
         run: |
           sudo apt-get install -y ca-certificates
-          sudo cp ./certs/geopilot.pem /usr/local/share/ca-certificates/geopilot.crt
+          sudo cp ${{ env.PEM_CERT_PATH }} ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
           sudo update-ca-certificates
 
       - name: Start db and api's
@@ -44,4 +49,4 @@ jobs:
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/geopilot.crt
+          NODE_EXTRA_CA_CERTS: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
