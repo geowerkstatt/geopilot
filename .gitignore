@@ -405,3 +405,6 @@ src/Geopilot.Frontend/cypress/screenshot
 src/Geopilot.Frontend/cypress/downloads
 src/Geopilot.Frontend/cypress/videos
 src/Geopilot.Frontend/cypress/screenshots
+
+# Local dev-certs output
+certs/
