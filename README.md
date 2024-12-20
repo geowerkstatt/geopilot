@@ -14,33 +14,47 @@ Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
 
 Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Options/Text Editor/Javascript/Linting/General` _Enable ESLint_ auf `true` setzen, resp. im VS Code die _ESLint_-Extension installieren.
 
-Damit die Launch Settings für _docker-compose_ korrekt geladen werden, mit Rechtsklick auf dem Projekt _Manage Docker Compose Launch Settings_ öffnen, warten bis alle Services geladen sind und dann speichern.
+⚠️ Damit die Launch Settings für _docker-compose_ korrekt geladen werden, mit Rechtsklick auf dem Projekt _Manage Docker Compose Launch Settings_ öffnen, warten bis alle Services geladen sind und dann speichern.
 
-### Starten der Applikation 🚀
+### Starten der Applikation (Lokal) 🚀
 
-Vor dem ersten Start oder bei Änderungen in den Packages muss in _Geopilot.Frontend_ manuell `npm install` ausgeführt werden.
+- Vor dem ersten Start oder bei Änderungen in den Packages muss in _Geopilot.Frontend_ manuell `npm install` ausgeführt werden.
 
-Über _Start_ > _Configure Startup Projects_ > _Common Properties_ > _Startup Projects_ müssen _Multiple starup projects_ definiert werden.
-| Project | Action |
-|-----------------|-------------------------|
-| docker-compose | Start without debugging |
-| Geopilot.Api | Start |
-| Geopilot.Api.Test | None |
-| Geopilot.Frontend | Start |
+- Damit die Applikation mit https funktioniert, muss ein lokales dev-cert erstellt werden. Dieses wird durch das npm Script `predev` vor dem start automatisch erstellt. Sollte dies nicht funktionieren, kann mit folgendem Befehl ein Zertifikat manuell erstellt und vertraut werden: `dotnet dev-certs https --trust`. Https muss verwendet werden, damit die STAC-Urls korrekt funktionieren & so der STAC-Browser wie in Produktion verwendet werden kann.
+
+- Über _Start_ > _Configure Startup Projects_ > _Common Properties_ > _Startup Projects_ müssen _Multiple startup projects_ definiert werden.
+
+| Project           | Action                  |
+| ----------------- | ----------------------- |
+| docker-compose    | Start without debugging |
+| Geopilot.Api      | Start                   |
+| Geopilot.Api.Test | None                    |
+| Geopilot.Frontend | Start                   |
+
+### Starten der Applikation (Docker Compose) 🐳
+
+Das Projekt unterstützt das Starten der Applikation mit Docker Compose um einer Prod Umgebung möglichst nahe zu kommen. Um https zu unterstützten, benötigt es ein vertrautes dev-cert sowie ein export dessen im PEM format. Diese werden im docker-compose.yml korrekt geladen. Setup wie folgend beschrieben. Die Applikation ist danach unter [https://localhost:5173](https://localhost:5173) erreichbar.
+
+```bash
+dotnet dev-certs https --trust
+dotnet dev-certs https --export-path ".\certs\geopilot.pem" --no-password --format PEM
+docker-compose up
+```
 
 ### URLs Entwicklungsumgebung 🔗
 
-| URL                    | Project                                    | Reverse Proxy                                                             |
-| ---------------------- | ------------------------------------------ | ------------------------------------------------------------------------- |
-| https://localhost:5173 | Geopilot.Frontend                          | `/api` und `/browser` zu https://localhost:7188                           |
-| https://localhost:7188 | Geopilot.Api                               | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
-| http://localhost:8080  | stac-browser (in docker-compose)           | -                                                                         |
-| http://localhost:3001  | PgAdmin (in docker-compose)                | -                                                                         |
-| http://localhost:3080  | interlis-check-service (in docker-compose) | -                                                                         |
-| http://localhost:4011  | Keycloak Server Administration             | -                                                                         |
+| URL                    | Project                                       | Reverse Proxy                                                             |
+| ---------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
+| https://localhost:5173 | Geopilot.Frontend                             | `/api` und `/browser` zu https://localhost:7188                           |
+| https://localhost:7188 | Geopilot.Api                                  | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
+| https://localhost:5173 | Geopilot.Api (in docker-compose mit Frontend) | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
+| http://localhost:8080  | stac-browser (in docker-compose)              | -                                                                         |
+| http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
+| http://localhost:3080  | interlis-check-service (in docker-compose)    | -                                                                         |
+| http://localhost:4011  | Keycloak Server Administration                | -                                                                         |
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
-Der STAC Browser ist auch über https://localhost:5173/browser erreichbar und das Cookie kann somit auch da zur Authentifizierung verwendet werden.
+Der STAC Browser ist über https://localhost:5173/browser erreichbar und das Cookie kann somit auch da zur Authentifizierung verwendet werden.
 
 ### Debugging 🪲
 
