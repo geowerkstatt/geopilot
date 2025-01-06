@@ -4,6 +4,7 @@
 
 ### Changed
 - The code for this application is now available under the AGPL 3.0 licence.
+- **BREAKING** The application updated to STAC-Browser version 3.2.0 and changed how /browser requests are proxied.
 
 ## v1.1.143 - 2024-09-30
 
