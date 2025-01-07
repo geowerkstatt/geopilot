@@ -9,7 +9,7 @@
   "apiInformation": "Dieser <i>geopilot</i> verwendet die API-Version {{version}}. Weitere Informationen finden Sie in der <apiLink>API-Dokumentation</apiLink>.",
   "bugTracking": "Bugtracking",
   "cancel": "Abbrechen",
-  "clickToUpload": "Zum Hochladen klicken",
+  "clickToSelect": "Zum Auswählen klicken",
   "codeLicenseInfo": "Der Code steht unter der <licenseLink>GNU Affero General Public License v3.0 Lizenz</licenseLink> im <repositoryLink>Github Repository</repositoryLink> zur Verfügung. Falls Ihnen Bugs begegnen, können Sie dort einen <issuesLink>Issue</issuesLink> eröffnen.",
   "comment": "Kommentar",
   "completedWithErrors": "Mit Fehlern abgeschlossen",

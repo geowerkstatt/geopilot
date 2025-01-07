@@ -121,7 +121,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       {!selectedFile ? (
         <>
           <Typography variant="body1" className={disabled ? "Mui-disabled" : ""}>
-            <Link>{t("clickToUpload")}</Link>
+            <Link>{t("clickToSelect")}</Link>
             &nbsp;
             {t("or")} {t("dragAndDrop")}
           </Typography>
