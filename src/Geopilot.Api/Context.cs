@@ -104,5 +104,8 @@ public class Context : DbContext
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
         modelBuilder.Entity<Delivery>().HasQueryFilter(d => !d.Deleted);
+        modelBuilder.Entity<Asset>()
+            .HasQueryFilter(a => !a.Delivery.Deleted)
+            .HasQueryFilter(a => !a.Deleted);
     }
 }
