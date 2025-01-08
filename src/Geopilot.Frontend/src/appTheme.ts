@@ -214,5 +214,18 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiListItemText: {
+      styleOverrides: {
+        root: {
+          overflow: "hidden",
+        },
+        primary: {
+          overflowWrap: "break-word",
+        },
+        secondary: {
+          overflowWrap: "break-word",
+        },
+      },
+    },
   },
 });
