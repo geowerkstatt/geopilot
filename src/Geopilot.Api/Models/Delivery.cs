@@ -23,12 +23,12 @@ public class Delivery
     /// <summary>
     /// The user that declared the delivery.
     /// </summary>
-    public User DeclaringUser { get; set; } = new User();
+    public User DeclaringUser { get; set; } = null!;
 
     /// <summary>
     /// The mandate the delivery fulfills.
     /// </summary>
-    public Mandate Mandate { get; set; } = new Mandate();
+    public Mandate Mandate { get; set; } = null!;
 
     /// <summary>
     /// Assets delivered or created by the validation and delivery process.
