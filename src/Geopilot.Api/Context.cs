@@ -89,6 +89,8 @@ public class Context : DbContext
                 .Include(m => m.Organisations)
                 .ThenInclude(o => o.Users)
                 .Include(m => m.Deliveries)
+                .ThenInclude(d => d.DeclaringUser)
+                .Include(m => m.Deliveries)
                 .ThenInclude(d => d.Assets);
         }
     }
