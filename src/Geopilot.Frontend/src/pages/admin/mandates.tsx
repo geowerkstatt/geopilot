@@ -43,6 +43,7 @@ export const Mandates = () => {
   }, [fetchApi]);
 
   async function saveMandate(mandate: Mandate) {
+    mandate.deliveries = [];
     mandate.organisations = mandate.organisations?.map(value =>
       typeof value === "number"
         ? ({ id: value } as Organisation)
