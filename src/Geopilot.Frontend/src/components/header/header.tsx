@@ -150,7 +150,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             padding: "20px 0",
           }}>
           <Box
-            sx={{ width: 250 }}
+            sx={{ width: 300 }}
             role="presentation"
             onClick={toggleUserMenu(false)}
             onKeyDown={toggleUserMenu(false)}>
