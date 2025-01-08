@@ -165,7 +165,7 @@ public class DeliveryControllerTest
     public void Delete()
     {
         var guid = Guid.NewGuid();
-        var delivery = new Delivery { JobId = guid };
+        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = context.Users.First() };
         delivery.Assets.Add(new Asset());
         context.Deliveries.Add(delivery);
         context.SaveChanges();
@@ -196,7 +196,7 @@ public class DeliveryControllerTest
     {
         assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));
         var guid = Guid.NewGuid();
-        var delivery = new Delivery { JobId = guid };
+        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = context.Users.First() };
         delivery.Assets.Add(new Asset() { OriginalFilename = "Test.xml", SanitizedFilename = "xyz.xml" });
         context.Deliveries.Add(delivery);
         context.SaveChanges();
