@@ -9,7 +9,7 @@
   "apiInformation": "Questo <i>geopilota</i> utilizza la versione dell'API {{version}}. Ulteriori informazioni sono disponibili nella <apiLink>API documentazione</apiLink>.",
   "bugTracking": "Tracciamento bug",
   "cancel": "Annulla",
-  "clickToUpload": "Clicca per caricare",
+  "clickToSelect": "Clicca per selezionare",
   "codeLicenseInfo": "Il codice è disponibile sotto la <licenseLink>licenza GNU Affero General Public License v3.0</licenseLink> nel <repositoryLink>repository di GitHub</repositoryLink>. Se trovi dei bug, puoi aprire un <issuesLink>Issue</issuesLink> lì.",
   "comment": "Commento",
   "completedWithErrors": "Completato con errori",
