@@ -114,10 +114,12 @@ internal static class ContextExtensions
         var knownFileFormats = new string[] { ".xtf", ".gpkg", ".*", ".itf", ".xml", ".zip", ".csv" };
         var mandateFaker = new Faker<Mandate>()
             .UseDateTimeReference(referenceDateTime)
+            .StrictMode(true)
             .RuleFor(o => o.Id, f => 0)
             .RuleFor(o => o.Name, f => f.Commerce.ProductName())
             .RuleFor(o => o.FileTypes, f => f.PickRandom(knownFileFormats, 4).Distinct().ToArray())
             .RuleFor(o => o.SpatialExtent, f => GetExtent())
+            .Ignore(o => o.Coordinates)
             .RuleFor(o => o.Organisations, f => f.PickRandom(context.Organisations.ToList(), 1).ToList())
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>());
 

@@ -89,6 +89,8 @@ public class Context : DbContext
                 .Include(m => m.Organisations)
                 .ThenInclude(o => o.Users)
                 .Include(m => m.Deliveries)
+                .ThenInclude(d => d.DeclaringUser)
+                .Include(m => m.Deliveries)
                 .ThenInclude(d => d.Assets);
         }
     }
@@ -104,5 +106,8 @@ public class Context : DbContext
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
         modelBuilder.Entity<Delivery>().HasQueryFilter(d => !d.Deleted);
+        modelBuilder.Entity<Asset>()
+            .HasQueryFilter(a => !a.Delivery.Deleted)
+            .HasQueryFilter(a => !a.Deleted);
     }
 }
