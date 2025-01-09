@@ -40,6 +40,7 @@ declare module "@mui/material/styles" {
       MuiDataGrid: object;
       MuiStepLabel: object;
       MuiStepContent: object;
+      MuiListItemText: object;
     };
   }
   // allow configuration using `createTheme`
@@ -82,6 +83,7 @@ declare module "@mui/material/styles" {
       MuiDataGrid: object;
       MuiStepLabel: object;
       MuiStepContent: object;
+      MuiListItemText: object;
     };
   }
   export function createTheme(options?: CustomThemeOptions): CustomTheme;
