@@ -40,14 +40,6 @@ namespace Geopilot.Api.Migrations
                 oldClrType: typeof(bool),
                 oldType: "boolean");
 
-            migrationBuilder.AlterColumn<string>(
-                name: "Comment",
-                table: "Deliveries",
-                type: "text",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "text");
-
             migrationBuilder.UpdateData(
                 table: "Mandates",
                 keyColumn: "EvaluateComment",
@@ -94,16 +86,6 @@ namespace Geopilot.Api.Migrations
                 defaultValue: false,
                 oldClrType: typeof(bool),
                 oldType: "boolean",
-                oldNullable: true);
-
-            migrationBuilder.AlterColumn<string>(
-                name: "Comment",
-                table: "Deliveries",
-                type: "text",
-                nullable: false,
-                defaultValue: "",
-                oldClrType: typeof(string),
-                oldType: "text",
                 oldNullable: true);
         }
     }
