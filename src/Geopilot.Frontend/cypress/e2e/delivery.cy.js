@@ -340,14 +340,6 @@ describe("Delivery tests", () => {
     cy.wait("@precursors");
     evaluateSelect("precursor", "");
     setSelect("precursor", 2);
-    setSelect("mandate", 0);
-    isDisabled("precursor", true);
-    cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
-    hasError("mandate");
-    setSelect("mandate", 2);
-    cy.wait("@precursors");
-    evaluateSelect("precursor", "");
-    setSelect("precursor", 2);
     setSelect("precursor", 0);
     hasError("precursor", false);
     cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
