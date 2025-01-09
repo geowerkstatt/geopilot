@@ -67,7 +67,7 @@
   "organisationSaveError": "An error occurred while saving the organisation: {{error}}",
   "organisations": "Organisations",
   "organisationsLoadingError": "An error occurred while loading the organisations: {{error}}",
-  "predecessor": "Predecessor",
+  "precursor": "Precursor",
   "privacyPolicy": "Privacy policy",
   "resetCurrentChanges": "Reset current changes",
   "save": "Save",

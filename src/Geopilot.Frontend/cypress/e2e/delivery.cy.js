@@ -243,7 +243,7 @@ describe("Delivery tests", () => {
   it("can submit a delivery", () => {
     mockValidationSuccess();
     mockMandates();
-    cy.intercept({ url: "/api/v1/delivery?mandateId=*", method: "GET" }).as("predecessors");
+    cy.intercept({ url: "/api/v1/delivery?mandateId=*", method: "GET" }).as("precursors");
     cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
       req.reply({
         statusCode: 201,
@@ -330,26 +330,26 @@ describe("Delivery tests", () => {
 
     cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
     isDisabled("mandate", false);
-    isDisabled("predecessor", true);
+    isDisabled("precursor", true);
     setSelect("mandate", 1, 4);
-    cy.wait("@predecessors");
-    isDisabled("predecessor", false);
+    cy.wait("@precursors");
+    isDisabled("precursor", false);
     cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
-    setSelect("predecessor", 1);
+    setSelect("precursor", 1);
     setSelect("mandate", 2);
-    cy.wait("@predecessors");
-    evaluateSelect("predecessor", "");
-    setSelect("predecessor", 2);
+    cy.wait("@precursors");
+    evaluateSelect("precursor", "");
+    setSelect("precursor", 2);
     setSelect("mandate", 0);
-    isDisabled("predecessor", true);
+    isDisabled("precursor", true);
     cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
     hasError("mandate");
     setSelect("mandate", 2);
-    cy.wait("@predecessors");
-    evaluateSelect("predecessor", "");
-    setSelect("predecessor", 2);
-    setSelect("predecessor", 0);
-    hasError("predecessor", false);
+    cy.wait("@precursors");
+    evaluateSelect("precursor", "");
+    setSelect("precursor", 2);
+    setSelect("precursor", 0);
+    hasError("precursor", false);
     cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
     cy.get('[data-cy="createDelivery-button"]').click();
     stepIsLoading("submit");
@@ -383,8 +383,8 @@ describe("Delivery tests", () => {
     cy.wait(1000); // Wait for the select to be populated and enabled
 
     setSelect("mandate", 1);
-    cy.wait("@predecessors");
-    setSelect("predecessor", 1);
+    cy.wait("@precursors");
+    setSelect("precursor", 1);
     toggleCheckbox("isPartial");
     setInput("comment", "This is a test comment.");
     cy.get('[data-cy="createDelivery-button"]').click();

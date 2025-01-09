@@ -36,14 +36,14 @@ export const DeliverySubmit = () => {
   }, [validationResponse, user]);
 
   const submitForm = (data: FieldValues) => {
-    if (data["predecessor"] === "") {
-      data["predecessor"] = null;
+    if (data["precursor"] === "") {
+      data["precursor"] = null;
     }
     submitDelivery(data as DeliverySubmitData);
   };
 
   const handleMandateChange = (mandateId: number) => {
-    formMethods.setValue("predecessor", undefined);
+    formMethods.setValue("precursor", undefined);
     if (mandateId) {
       fetchApi<Delivery[]>("/api/v1/delivery?" + new URLSearchParams({ mandateId: mandateId.toString() })).then(
         setPreviousDeliveries,

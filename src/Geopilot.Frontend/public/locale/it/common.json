@@ -67,7 +67,7 @@
   "organisationSaveError": "Si è verificato un errore durante il salvataggio dell'organizzazione: {{error}}",
   "organisations": "Organizzazioni",
   "organisationsLoadingError": "Si è verificato un errore durante il caricamento delle organizzazioni: {{error}}",
-  "predecessor": "Predecessore",
+  "precursor": "Precursore",
   "privacyPolicy": "Informativa sulla privacy",
   "resetCurrentChanges": "Ripristino delle modifiche correnti",
   "save": "Salvare",

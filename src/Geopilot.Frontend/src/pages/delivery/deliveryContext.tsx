@@ -167,7 +167,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         JobId: validationResponse?.jobId,
         MandateId: data.mandate,
         PartialDelivery: data.isPartial,
-        PrecursorDeliveryId: data.predecessor,
+        PrecursorDeliveryId: data.precursor,
         Comment: data.comment,
       }),
       signal: abortController.signal,
