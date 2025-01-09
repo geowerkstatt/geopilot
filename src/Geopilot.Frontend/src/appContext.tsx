@@ -17,11 +17,11 @@ import { enUS as gridEn } from "@mui/x-data-grid/locales/enUS";
 import { deDE as gridDe } from "@mui/x-data-grid/locales/deDE";
 import { frFR as gridFr } from "@mui/x-data-grid/locales/frFR";
 import { itIT as gridIt } from "@mui/x-data-grid/locales/itIT";
-import { createTheme, CustomTheme } from "@mui/material/styles";
+import { AppTheme, createTheme } from "@mui/material/styles";
 
 export const AppContext = () => {
   const [language, setLanguage] = useState<Language>(Language.EN);
-  const [theme, setTheme] = useState<CustomTheme>(geopilotTheme);
+  const [theme, setTheme] = useState<AppTheme>(geopilotTheme);
 
   useEffect(() => {
     let coreLng = coreEn;
@@ -44,7 +44,7 @@ export const AppContext = () => {
         gridLng = gridEn;
         break;
     }
-    setTheme(createTheme(geopilotTheme, gridLng, coreLng) as unknown as CustomTheme);
+    setTheme(createTheme(geopilotTheme, gridLng, coreLng) as unknown as AppTheme);
   }, [language]);
 
   useEffect(() => {

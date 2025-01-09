@@ -42,7 +42,9 @@ export const FormSelect: FC<FormSelectProps> = ({
   const { control } = useFormContext();
 
   const menuItems: FormSelectMenuItem[] = [];
-  menuItems.push({ key: 0, value: undefined, label: t("reset"), italic: true });
+  if (!required) {
+    menuItems.push({ key: 0, value: undefined, label: t("reset"), italic: true });
+  }
 
   if (values) {
     values.forEach(value => {

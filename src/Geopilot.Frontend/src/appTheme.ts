@@ -1,33 +1,42 @@
-import { createTheme } from "@mui/material/styles";
+import { AppThemePalette, createTheme, Shadows } from "@mui/material/styles";
+import { Spacing } from "@mui/system";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-export const geopilotTheme = createTheme({
-  palette: {
-    primary: {
-      main: "#124A4F",
-      inactive: "#124A4F99",
-      hover: "#124A4F0D",
-      contrastText: "#ffffff",
-    },
-    secondary: {
-      main: "#00ff97",
-      inactive: "#00ff9799",
-      hover: "#00ff970D",
-      contrastText: "#000",
-    },
-    success: {
-      main: "#4caf51",
-      hover: "#4caf510D",
-    },
-    warning: {
-      main: "#fd9903",
-      hover: "#fd99030D",
-    },
-    error: {
-      main: "#e53835",
-      hover: "#e538350D",
-    },
+const defaultTheme = createTheme();
+
+const themePalette: AppThemePalette = {
+  primary: {
+    main: "#124A4F",
+    inactive: "#124A4F99",
+    hover: "#124A4F0D",
+    contrastText: "#ffffff",
   },
+  secondary: {
+    main: "#00ff97",
+    inactive: "#00ff9799",
+    hover: "#00ff970D",
+    contrastText: "#000",
+  },
+  success: {
+    main: "#4caf51",
+    hover: "#4caf510D",
+  },
+  warning: {
+    main: "#fd9903",
+    hover: "#fd99030D",
+  },
+  error: {
+    main: "#e53835",
+    hover: "#e538350D",
+  },
+};
+const themeShadows: Shadows = [...defaultTheme.shadows];
+const themeSpacing: Spacing = defaultTheme.spacing;
+
+export const geopilotTheme = createTheme({
+  palette: themePalette,
+  shadows: themeShadows,
+  spacing: themeSpacing,
   typography: {
     fontFamily: "NeoGeo, sans-serif",
     body1: {
@@ -224,6 +233,44 @@ export const geopilotTheme = createTheme({
         },
         secondary: {
           overflowWrap: "break-word",
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          padding: themeSpacing(2),
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          fontSize: "24px",
+          fontWeight: 600,
+          letterSpacing: "0.05em",
+          padding: "0",
+          paddingBottom: themeSpacing(1),
+          margin: "0",
+        },
+      },
+    },
+    MuiDialogContent: {
+      styleOverrides: {
+        root: {
+          padding: "0",
+          paddingBottom: themeSpacing(1),
+        },
+      },
+    },
+    MuiDialogActions: {
+      styleOverrides: {
+        root: {
+          padding: "0",
+          paddingTop: themeSpacing(1),
+          "& > :not(:first-child)": {
+            marginLeft: themeSpacing(2),
+          },
         },
       },
     },
