@@ -35,6 +35,10 @@ jobs:
         working-directory: ./src/Geopilot.Frontend
         run: npm run lint
 
+      - name: Check migration history
+        working-directory: ./src/Geopilot.Api
+        run: dotnet ef migrations has-pending-model-changes
+
       - name: Start test db
         run: docker compose up -d --wait --wait-timeout 30 db
 
