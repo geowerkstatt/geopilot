@@ -39,7 +39,7 @@ export const FormContainer = styled(FlexBox)(({ theme }) => ({
 
 export const FormContainerHalfWidth = styled(FormContainer)(({ theme }) => ({
   [theme.breakpoints.up("md")]: {
-    width: `calc(50% - ${theme.spacing(0.5)})`,
+    width: `calc(50% - ${theme.spacing(1)})`,
   },
 }));
 
