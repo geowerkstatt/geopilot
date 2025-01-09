@@ -43,19 +43,19 @@ public class Mandate
     /// <summary>
     /// Defines how <see cref="Delivery.PrecursorDelivery"/> is evaluated.
     /// </summary>
-    [Column(TypeName = "varchar(24)")]
+    [Column(TypeName = "varchar(12)")]
     public FieldEvaluationType EvaluatePrecursorDelivery { get; set; }
 
     /// <summary>
     /// Defines how <see cref="Delivery.Partial"/> is evaluated.
     /// </summary>
-    [Column(TypeName = "varchar(24)")]
+    [Column(TypeName = "varchar(12)")]
     public FieldEvaluationType EvaluatePartial { get; set; }
 
     /// <summary>
     /// Defines how <see cref="Delivery.Comment"/> is evaluated.
     /// </summary>
-    [Column(TypeName = "varchar(24)")]
+    [Column(TypeName = "varchar(12)")]
     public FieldEvaluationType EvaluateComment { get; set; }
 
     /// <summary>

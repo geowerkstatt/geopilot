@@ -14,21 +14,21 @@ namespace Geopilot.Api.Migrations
             migrationBuilder.AddColumn<string>(
                 name: "EvaluateComment",
                 table: "Mandates",
-                type: "varchar(24)",
+                type: "varchar(12)",
                 nullable: false,
                 defaultValue: "");
 
             migrationBuilder.AddColumn<string>(
                 name: "EvaluatePartial",
                 table: "Mandates",
-                type: "varchar(24)",
+                type: "varchar(12)",
                 nullable: false,
                 defaultValue: "");
 
             migrationBuilder.AddColumn<string>(
                 name: "EvaluatePrecursorDelivery",
                 table: "Mandates",
-                type: "varchar(24)",
+                type: "varchar(12)",
                 nullable: false,
                 defaultValue: "");
 
