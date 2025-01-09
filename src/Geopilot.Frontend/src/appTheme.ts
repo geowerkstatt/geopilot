@@ -116,6 +116,22 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiTextField: {
+      defaultProps: {
+        size: "small",
+        variant: "filled",
+      },
+      styleOverrides: {
+        root: {
+          borderRadius: themeSpacing(0.5),
+          flex: "1",
+
+          "&.readonly": {
+            pointerEvents: "none",
+          },
+        },
+      },
+    },
     MuiFormControl: {
       styleOverrides: {
         root: {

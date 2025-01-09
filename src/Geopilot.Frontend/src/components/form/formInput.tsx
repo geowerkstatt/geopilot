@@ -1,9 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { useFormContext } from "react-hook-form";
 import { FormValueType, getFormFieldError } from "./form";
-import { FormField } from "./formField";
 import { FC } from "react";
-import { InputProps, SxProps } from "@mui/material";
+import { InputProps, SxProps, TextField } from "@mui/material";
 import { isValid } from "date-fns";
 
 export interface FormInputProps {
@@ -48,7 +47,7 @@ export const FormInput: FC<FormInputProps> = ({
   };
 
   return (
-    <FormField
+    <TextField
       required={required || false}
       error={getFormFieldError(fieldName, formState.errors)}
       sx={{ ...sx }}

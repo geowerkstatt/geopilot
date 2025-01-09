@@ -33,6 +33,7 @@ declare module "@mui/material/styles" {
   interface AppThemeComponents extends Components {
     MuiTypography: object;
     MuiAvatar: object;
+    MuiTextField: object;
     MuiFormControl: object;
     MuiSelect: object;
     MuiButtonBase: object;
@@ -52,6 +53,7 @@ declare module "@mui/material/styles" {
   interface AppThemeComponentsOptions extends ComponentsOptions {
     MuiTypography: object;
     MuiAvatar: object;
+    MuiTextField: object;
     MuiFormControl: object;
     MuiSelect: object;
     MuiButtonBase: object;
