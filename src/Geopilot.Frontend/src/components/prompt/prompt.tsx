@@ -17,6 +17,7 @@ export const Prompt = () => {
               !!action.action && action.action();
               closePrompt();
             }}
+            startIcon={action.icon}
             color={action.color ? action.color : "inherit"}
             variant={action.variant ? action.variant : "outlined"}
             disabled={action.disabled === true}

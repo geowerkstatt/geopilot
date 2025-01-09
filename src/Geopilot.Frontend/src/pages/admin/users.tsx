@@ -7,6 +7,8 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { useApi } from "../../api";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
 
 export const Users = () => {
   const { t } = useTranslation();
@@ -53,9 +55,10 @@ export const Users = () => {
 
   async function onDisconnect(row: DataRow) {
     showPrompt(t("userDisconnect"), [
-      { label: t("cancel") },
+      { label: t("cancel"), icon: <CancelOutlinedIcon /> },
       {
         label: t("disconnect"),
+        icon: <LinkOffIcon />,
         action: () => {
           const user = row as unknown as User;
           user.organisations = [];
