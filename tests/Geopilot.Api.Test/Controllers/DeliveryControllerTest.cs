@@ -44,11 +44,7 @@ public class DeliveryControllerTest
     [DataRow(Status.Failed, StatusCodes.Status400BadRequest)]
     public async Task CreateFailsJobNotCompleted(Status status, int resultCode)
     {
-        var guid = Guid.NewGuid();
-        validationServiceMock
-            .Setup(s => s.GetJobStatus(guid))
-            .Returns(new ValidationJobStatus(guid) { Status = status });
-
+        var guid = SetupValidationJob(status);
         var deliveriesCount = context.Deliveries.Count();
         var mandateId = context.Mandates.First().Id;
 
@@ -84,10 +80,7 @@ public class DeliveryControllerTest
     [TestMethod]
     public async Task CreateFailsUnauthorizedUser()
     {
-        var guid = Guid.NewGuid();
-        validationServiceMock
-            .Setup(s => s.GetJobStatus(guid))
-            .Returns(new ValidationJobStatus(guid) { Status = Status.Completed });
+        var guid = SetupValidationJob();
 
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
         var addedMandate = context.Mandates.Add(new Mandate());
@@ -105,14 +98,11 @@ public class DeliveryControllerTest
     [TestMethod]
     [DataRow(true)]
     [DataRow(false)]
-    public async Task Create(bool setOptionals)
+    public async Task CreateHandlesMinimalDelivery(bool setOptionals)
     {
-        var guid = Guid.NewGuid();
-        validationServiceMock
-            .Setup(s => s.GetJobStatus(guid))
-            .Returns(new ValidationJobStatus(guid) { JobId = guid, Status = Status.Completed });
+        Guid jobId = SetupValidationJob();
         assetHandlerMock
-            .Setup(p => p.PersistJobAssets(guid))
+            .Setup(p => p.PersistJobAssets(jobId))
             .Returns(new List<Asset> { new Asset(), new Asset() });
         var startTime = DateTime.Now;
 
@@ -124,13 +114,14 @@ public class DeliveryControllerTest
 
         deliveryController.SetupTestUser(testUserWithMandate);
 
+        var mandate2 = new Mandate { EvaluateComment = FieldEvaluationType.NotEvaluated, };
         var mandate = testUserWithMandate.Organisations.First().Mandates.First();
         var mandateId = mandate.Id;
         var predecessorDeliveryId = mandate.Deliveries.Last().Id;
 
         var request = new DeliveryRequest
         {
-            JobId = guid,
+            JobId = jobId,
             MandateId = mandateId,
             Comment = setOptionals ? "Some test comment   " : null,
             PartialDelivery = setOptionals,
@@ -154,11 +145,20 @@ public class DeliveryControllerTest
         Assert.IsNotNull(dbDelivery);
         Assert.AreEqual(DateTimeKind.Utc, dbDelivery.Date.Kind);
         Assert.IsTrue(dbDelivery.Date > startTime.ToUniversalTime() && dbDelivery.Date < DateTime.UtcNow);
-        Assert.AreEqual(guid, dbDelivery.JobId);
+        Assert.AreEqual(jobId, dbDelivery.JobId);
         Assert.AreEqual(request.MandateId, dbDelivery.Mandate?.Id);
         Assert.AreEqual(request.Comment?.Trim() ?? string.Empty, dbDelivery.Comment);
         Assert.AreEqual(request.PartialDelivery, dbDelivery.Partial);
         Assert.AreEqual(request.PrecursorDeliveryId, dbDelivery.PrecursorDelivery?.Id);
+    }
+
+    private Guid SetupValidationJob(Status jobStatus = Status.Completed)
+    {
+        var guid = Guid.NewGuid();
+        validationServiceMock
+            .Setup(s => s.GetJobStatus(guid))
+            .Returns(new ValidationJobStatus(guid) { JobId = guid, Status = jobStatus });
+        return guid;
     }
 
     [TestMethod]
