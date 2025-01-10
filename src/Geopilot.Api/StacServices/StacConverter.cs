@@ -112,7 +112,11 @@ public class StacConverter
             DateTime = new TimeBlock(delivery.Date),
         };
 
-        item.Properties.Add("Teillieferung", delivery.Partial ? "Ja" : "Nein");
+        if (delivery.Partial.HasValue)
+        {
+            item.Properties.Add("Teillieferung", delivery.Partial.Value ? "Ja" : "Nein");
+        }
+
         item.Properties.Add("Abgegeben durch", delivery.DeclaringUser.FullName);
         if (delivery.PrecursorDelivery != null)
         {

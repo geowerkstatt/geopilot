@@ -38,7 +38,7 @@ public class Delivery
     /// <summary>
     /// Indicate whether the delivery contains partial data.
     /// </summary>
-    public bool Partial { get; set; }
+    public bool? Partial { get; set; }
 
     /// <summary>
     /// The previous delivery on the same <see cref="Mandate"/>.

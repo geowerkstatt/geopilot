@@ -18,6 +18,9 @@ jobs:
         with:
           dotnet-version: "8.0"
 
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef
+
       - name: Install dependencies
         run: dotnet restore Geopilot.sln
 
@@ -34,6 +37,10 @@ jobs:
       - name: Lint frontend
         working-directory: ./src/Geopilot.Frontend
         run: npm run lint
+
+      - name: Check migration history
+        working-directory: ./src/Geopilot.Api
+        run: dotnet ef migrations has-pending-model-changes
 
       - name: Start test db
         run: docker compose up -d --wait --wait-timeout 30 db

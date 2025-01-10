@@ -41,6 +41,24 @@ public class Mandate
     public List<Coordinate> Coordinates { get; set; } = new List<Coordinate>();
 
     /// <summary>
+    /// Defines how <see cref="Delivery.PrecursorDelivery"/> is evaluated.
+    /// </summary>
+    [Column(TypeName = "varchar(12)")]
+    public FieldEvaluationType EvaluatePrecursorDelivery { get; set; }
+
+    /// <summary>
+    /// Defines how <see cref="Delivery.Partial"/> is evaluated.
+    /// </summary>
+    [Column(TypeName = "varchar(12)")]
+    public FieldEvaluationType EvaluatePartial { get; set; }
+
+    /// <summary>
+    /// Defines how <see cref="Delivery.Comment"/> is evaluated.
+    /// </summary>
+    [Column(TypeName = "varchar(12)")]
+    public FieldEvaluationType EvaluateComment { get; set; }
+
+    /// <summary>
     /// Organisations allowed to deliver data fulfilling the mandate.
     /// </summary>
     public List<Organisation> Organisations { get; set; } = new List<Organisation>();
