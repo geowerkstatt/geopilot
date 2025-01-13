@@ -84,7 +84,7 @@ public class MandateController : ControllerBase
     [HttpGet("{id}")]
     [Authorize(Policy = GeopilotPolicies.Admin)]
     [SwaggerResponse(StatusCodes.Status200OK, "Returns the mandate", typeof(Mandate), "application/json")]
-    [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to get this mandate.")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to get individual mandates.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The mandate could not be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> GetById(int id)
