@@ -7,6 +7,8 @@ import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { CircularProgress, Stack } from "@mui/material";
 import { useApi } from "../../api";
+import LinkOffIcon from "@mui/icons-material/LinkOff";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 
 export const Organisations = () => {
   const { t } = useTranslation();
@@ -59,9 +61,10 @@ export const Organisations = () => {
 
   async function onDisconnect(row: DataRow) {
     showPrompt(t("organisationDisconnect"), [
-      { label: t("cancel") },
+      { label: t("cancel"), icon: <CancelOutlinedIcon /> },
       {
         label: t("disconnect"),
+        icon: <LinkOffIcon />,
         action: () => {
           const organisation = row as unknown as Organisation;
           organisation.mandates = [];

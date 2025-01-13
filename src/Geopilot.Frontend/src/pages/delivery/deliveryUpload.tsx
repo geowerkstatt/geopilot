@@ -3,7 +3,7 @@ import { useContext, useEffect, useState } from "react";
 import { ValidationSettings } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
 import { FormProvider, useForm } from "react-hook-form";
-import { FlexColumnBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
+import { FlexBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { Trans } from "react-i18next";
 import { Link } from "@mui/material";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
@@ -36,7 +36,7 @@ export const DeliveryUpload = () => {
     initialized && (
       <FormProvider {...formMethods}>
         <form onSubmit={formMethods.handleSubmit(submitForm)}>
-          <FlexColumnBox>
+          <FlexBox>
             <FileDropzone
               selectedFile={selectedFile}
               setSelectedFile={setSelectedFile}
@@ -73,7 +73,7 @@ export const DeliveryUpload = () => {
                 />
               )}
             </FlexRowSpaceBetweenBox>
-          </FlexColumnBox>
+          </FlexBox>
         </form>
       </FormProvider>
     )
