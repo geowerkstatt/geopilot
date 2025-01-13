@@ -170,6 +170,13 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task GetByIdNotFoundAsync()
+        {
+            var response = await mandateController.GetById(987654321);
+            ActionResultAssert.IsNotFound(response);
+        }
+
+        [TestMethod]
         public async Task CreateMandate()
         {
             mandateController.SetupTestUser(adminUser);
