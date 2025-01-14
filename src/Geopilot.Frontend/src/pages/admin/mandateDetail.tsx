@@ -223,6 +223,13 @@ export const MandateDetail = () => {
               </GeopilotBox>
               <FlexRowEndBox>
                 <BaseButton
+                  icon={<UndoOutlined />}
+                  variant={"outlined"}
+                  disabled={!formMethods.formState.isDirty}
+                  onClick={() => formMethods.reset()}
+                  label={"reset"}
+                />
+                <BaseButton
                   icon={<SaveOutlinedIcon />}
                   disabled={!formMethods.formState.isValid}
                   onClick={() => formMethods.handleSubmit(submitForm)()}
