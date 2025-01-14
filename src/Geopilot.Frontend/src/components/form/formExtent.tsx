@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Controller, useFormContext } from "react-hook-form";
 import { FormContainer, FormValueType, getFormFieldError } from "./form";
-import { FC } from "react";
+import { ChangeEvent, FC } from "react";
 import { FormLabel, Stack, SxProps, TextField } from "@mui/material";
 import { FlexBox } from "../styledComponents.ts";
 import { Coordinate } from "../../api/apiInterfaces.ts";
@@ -18,6 +18,15 @@ export interface FormExtentProps {
 export const FormExtent: FC<FormExtentProps> = ({ fieldName, label, required, disabled, value, sx }) => {
   const { t } = useTranslation();
   const { control, setValue } = useFormContext();
+
+  const handleChange = (index: number, key: "x" | "y", e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const newValue = parseFloat(e.target.value);
+    setValue(
+      fieldName,
+      value?.map((coord, i) => (i === index ? { ...coord, [key]: isNaN(newValue) ? undefined : newValue } : coord)),
+      { shouldValidate: true },
+    );
+  };
 
   return (
     <Controller
@@ -47,76 +56,40 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, label, required, di
               <TextField
                 label={t("bottomLeft") + " - " + t("longitude")}
                 error={getFormFieldError(fieldName, formState.errors)}
-                value={field.value?.[0]?.x}
+                value={field.value?.[0]?.x ?? ""}
                 disabled={disabled ?? false}
                 type={FormValueType.Number}
                 sx={{ ...sx }}
-                onChange={e => {
-                  setValue(
-                    fieldName,
-                    [
-                      { x: parseFloat(e.target.value), y: field.value?.[0]?.y },
-                      { x: field.value?.[1]?.x, y: field.value?.[1]?.y },
-                    ],
-                    { shouldValidate: true },
-                  );
-                }}
+                onChange={e => handleChange(0, "x", e)}
               />
               <TextField
                 label={t("bottomLeft") + " - " + t("latitude")}
                 error={getFormFieldError(fieldName, formState.errors)}
-                value={field.value?.[0]?.y}
+                value={field.value?.[0]?.y ?? ""}
                 disabled={disabled ?? false}
                 type={FormValueType.Number}
                 sx={{ ...sx }}
-                onChange={e => {
-                  setValue(
-                    fieldName,
-                    [
-                      { x: field.value?.[0]?.x, y: parseFloat(e.target.value) },
-                      { x: field.value?.[1]?.x, y: field.value?.[1]?.y },
-                    ],
-                    { shouldValidate: true },
-                  );
-                }}
+                onChange={e => handleChange(0, "y", e)}
               />
             </FormContainer>
             <FormContainer>
               <TextField
                 label={t("upperRight") + " - " + t("longitude")}
                 error={getFormFieldError(fieldName, formState.errors)}
-                value={field.value?.[1]?.x}
+                value={field.value?.[1]?.x ?? ""}
                 disabled={disabled ?? false}
                 type={FormValueType.Number}
                 sx={{ ...sx }}
-                onChange={e => {
-                  setValue(
-                    fieldName,
-                    [
-                      { x: field.value?.[0]?.x, y: field.value?.[0]?.y },
-                      { x: parseFloat(e.target.value), y: field.value?.[1]?.y },
-                    ],
-                    { shouldValidate: true },
-                  );
-                }}
+                onChange={e => handleChange(1, "x", e)}
               />
               <TextField
                 label={t("upperRight") + " - " + t("latitude")}
                 error={getFormFieldError(fieldName, formState.errors)}
-                value={field.value?.[1]?.y}
+                value={field.value?.[1]?.y ?? ""}
                 disabled={disabled ?? false}
                 type={FormValueType.Number}
                 sx={{ ...sx }}
-                onChange={e => {
-                  setValue(
-                    fieldName,
-                    [
-                      { x: field.value?.[0]?.x, y: field.value?.[0]?.y },
-                      { x: field.value?.[1]?.x, y: parseFloat(e.target.value) },
-                    ],
-                    { shouldValidate: true },
-                  );
-                }}
+                onChange={e => handleChange(1, "y", e)}
               />
             </FormContainer>
           </FlexBox>
