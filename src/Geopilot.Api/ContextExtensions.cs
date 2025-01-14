@@ -119,7 +119,7 @@ internal static class ContextExtensions
             .RuleFor(o => o.Name, f => f.Commerce.ProductName())
             .RuleFor(o => o.FileTypes, f => f.PickRandom(knownFileFormats, 4).Distinct().ToArray())
             .RuleFor(o => o.EvaluatePrecursorDelivery, f => f.PickRandom<FieldEvaluationType>())
-            .RuleFor(o => o.EvaluatePartial, f => f.PickRandom<FieldEvaluationType>())
+            .RuleFor(o => o.EvaluatePartial, f => f.PickRandom(FieldEvaluationType.NotEvaluated, FieldEvaluationType.Required))
             .RuleFor(o => o.EvaluateComment, f => f.PickRandom<FieldEvaluationType>())
             .RuleFor(o => o.SpatialExtent, f => GetExtent())
             .Ignore(o => o.Coordinates)
