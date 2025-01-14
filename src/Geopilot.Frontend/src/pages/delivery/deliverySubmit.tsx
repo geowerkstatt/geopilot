@@ -44,7 +44,8 @@ export const DeliverySubmit = () => {
   };
 
   const handleMandateChange = (mandateId: number) => {
-    formMethods.setValue("precursor", undefined);
+    formMethods.reset();
+    formMethods.setValue("mandate", mandateId);
     if (mandateId) {
       fetchApi<Delivery[]>("/api/v1/delivery?" + new URLSearchParams({ mandateId: mandateId.toString() })).then(
         setPreviousDeliveries,
