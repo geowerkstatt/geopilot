@@ -48,7 +48,7 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
       });
     }
     return selected as FormAutocompleteValue[];
-  }, [selected]);
+  }, [convertedValues, selected]);
 
   return (
     <Controller
