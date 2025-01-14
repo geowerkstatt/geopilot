@@ -1,6 +1,6 @@
 import { Autocomplete, SxProps, TextField } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { FC, SyntheticEvent } from "react";
 import { getFormFieldError } from "./form.ts";
 
@@ -31,33 +31,42 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
   sx,
 }) => {
   const { t } = useTranslation();
-  const { formState, register, setValue } = useFormContext();
+  const { control, setValue } = useFormContext();
 
   return (
-    <Autocomplete
-      sx={{ width: "100%", ...sx }}
-      multiple
-      size="small"
-      {...register(fieldName, {
-        required: required || false,
-      })}
-      onChange={(event: SyntheticEvent, newValue: FormAutocompleteValue[]) => {
-        setValue(fieldName, newValue, { shouldValidate: true });
+    <Controller
+      name={fieldName}
+      control={control}
+      defaultValue={selected ?? []}
+      rules={{
+        required: required ?? false,
       }}
-      disabled={disabled || false}
-      options={values || []}
-      getOptionLabel={(option: FormAutocompleteValue) => option.name}
-      defaultValue={selected || []}
-      renderInput={params => (
-        <TextField
-          {...params}
-          label={t(label)}
-          placeholder={placeholder ? t(placeholder) : undefined}
-          required={required ?? false}
-          error={getFormFieldError(fieldName, formState.errors)}
+      render={({ field, formState }) => (
+        <Autocomplete
+          sx={{ ...sx }}
+          fullWidth={true}
+          size={"small"}
+          multiple
+          disabled={disabled ?? false}
+          onChange={(event: SyntheticEvent, newValue: FormAutocompleteValue[]) => {
+            setValue(fieldName, newValue, { shouldValidate: true });
+          }}
+          renderInput={params => (
+            <TextField
+              {...params}
+              label={t(label)}
+              placeholder={placeholder ? t(placeholder) : undefined}
+              required={required ?? false}
+              error={getFormFieldError(fieldName, formState.errors)}
+            />
+          )}
+          options={values || []}
+          getOptionLabel={(option: FormAutocompleteValue) => option.name}
+          isOptionEqualToValue={(option, value) => option.key === value.key}
+          value={field.value}
+          data-cy={fieldName + "-formAutocomplete"}
         />
       )}
-      data-cy={fieldName + "-formAutocomplete"}
     />
   );
 };
