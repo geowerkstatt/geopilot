@@ -7,7 +7,7 @@ export const FlexBox = styled(Stack)(({ theme }) => ({
 
 export const FlexRowBox = styled(FlexBox)({
   flexDirection: "row",
-  alignItems: "center",
+  alignItems: "flex-start",
   flexWrap: "wrap",
 });
 

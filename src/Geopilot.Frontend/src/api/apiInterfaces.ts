@@ -24,9 +24,15 @@ export interface ApiContextInterface {
   fetchApi: <T>(url: string, options?: Partial<FetchParams>) => Promise<T>;
 }
 
+export enum FieldEvaluationType {
+  NotEvaluated = "notEvaluated",
+  Optional = "optional",
+  Required = "required",
+}
+
 export interface Coordinate {
-  x: number | null;
-  y: number | null;
+  x: number | undefined;
+  y: number | undefined;
 }
 
 export interface Mandate {
@@ -36,6 +42,9 @@ export interface Mandate {
   coordinates: Coordinate[];
   organisations: Organisation[] | number[];
   deliveries: Delivery[];
+  evaluatePrecursorDelivery?: FieldEvaluationType;
+  evaluatePartial?: FieldEvaluationType;
+  evaluateComment?: FieldEvaluationType;
 }
 
 export interface Organisation {
