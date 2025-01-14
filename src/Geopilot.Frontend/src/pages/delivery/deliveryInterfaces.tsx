@@ -19,7 +19,7 @@ export interface DeliveryStep {
 export interface DeliverySubmitData {
   mandate: number;
   isPartial: boolean;
-  predecessor: number;
+  precursor: number;
   comment: string;
 }
 

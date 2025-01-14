@@ -2,9 +2,9 @@ import { DeliveryContext } from "./deliveryContext.tsx";
 import { useContext, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
 import LoginIcon from "@mui/icons-material/Login";
-import { FlexColumnBox, FlexRowEndBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
+import { FlexBox, FlexRowEndBox } from "../../components/styledComponents.ts";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
-import { FormCheckbox, FormInput, FormSelect } from "../../components/form/form.ts";
+import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
 import SendIcon from "@mui/icons-material/Send";
 import { Delivery, Mandate } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
@@ -36,14 +36,14 @@ export const DeliverySubmit = () => {
   }, [validationResponse, user]);
 
   const submitForm = (data: FieldValues) => {
-    if (data["predecessor"] === "") {
-      data["predecessor"] = null;
+    if (data["precursor"] === "") {
+      data["precursor"] = null;
     }
     submitDelivery(data as DeliverySubmitData);
   };
 
   const handleMandateChange = (mandateId: number) => {
-    formMethods.setValue("predecessor", undefined);
+    formMethods.setValue("precursor", undefined);
     if (mandateId) {
       fetchApi<Delivery[]>("/api/v1/delivery?" + new URLSearchParams({ mandateId: mandateId.toString() })).then(
         setPreviousDeliveries,
@@ -56,8 +56,8 @@ export const DeliverySubmit = () => {
   return authEnabled && user ? (
     <FormProvider {...formMethods}>
       <form onSubmit={formMethods.handleSubmit(submitForm)}>
-        <FlexColumnBox>
-          <FlexRowSpaceBetweenBox>
+        <FlexBox>
+          <FormContainer>
             <FormSelect
               fieldName="mandate"
               label="mandate"
@@ -69,18 +69,18 @@ export const DeliverySubmit = () => {
               onUpdate={handleMandateChange}
             />
             <FormSelect
-              fieldName="predecessor"
-              label="predecessor"
+              fieldName="precursor"
+              label="precursor"
               disabled={previousDeliveries.length === 0}
               values={previousDeliveries.map(delivery => ({ key: delivery.id, name: delivery.date.toLocaleString() }))}
             />
-          </FlexRowSpaceBetweenBox>
-          <FlexRowSpaceBetweenBox>
+          </FormContainer>
+          <FormContainer>
             <FormCheckbox fieldName="isPartial" label="isPartialDelivery" checked={false} />
-          </FlexRowSpaceBetweenBox>
-          <FlexRowSpaceBetweenBox>
+          </FormContainer>
+          <FormContainer>
             <FormInput fieldName="comment" label="comment" multiline={true} rows={3} />
-          </FlexRowSpaceBetweenBox>
+          </FormContainer>
           <FlexRowEndBox>
             <CancelButton onClick={() => resetDelivery()} disabled={isLoading} />
             <BaseButton
@@ -90,7 +90,7 @@ export const DeliverySubmit = () => {
               onClick={() => formMethods.handleSubmit(submitForm)()}
             />
           </FlexRowEndBox>
-        </FlexColumnBox>
+        </FlexBox>
       </form>
     </FormProvider>
   ) : (

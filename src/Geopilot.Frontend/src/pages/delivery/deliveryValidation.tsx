@@ -1,6 +1,6 @@
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { useContext, useEffect, useMemo } from "react";
-import { FlexColumnBox, FlexRowBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
+import { FlexBox, FlexRowBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
@@ -41,14 +41,14 @@ export const DeliveryValidation = () => {
       {isLoading ? (
         <Typography variant="body1">{t("validationIsRunning", { validators: getValidationKeysString() })}</Typography>
       ) : (
-        <FlexColumnBox>
+        <FlexBox>
           {validationResponse?.validatorResults &&
             Object.keys(validationResponse.validatorResults).map(key => (
               <FlexRowBox key={key} sx={{ alignItems: "start" }}>
                 <Typography variant="h5" sx={{ fontStyle: "italic", margin: "0 20px 0 0" }}>
                   {key}
                 </Typography>
-                <FlexColumnBox>
+                <FlexBox>
                   <Typography variant="body1">{validationResponse.validatorResults[key].statusMessage}</Typography>
                   <FlexRowBox>
                     {validationResponse.validatorResults[key].logFiles &&
@@ -64,10 +64,10 @@ export const DeliveryValidation = () => {
                         />
                       ))}
                   </FlexRowBox>
-                </FlexColumnBox>
+                </FlexBox>
               </FlexRowBox>
             ))}
-        </FlexColumnBox>
+        </FlexBox>
       )}
       {isActive && <CancelButton onClick={() => resetDelivery()} />}
     </FlexRowSpaceBetweenBox>

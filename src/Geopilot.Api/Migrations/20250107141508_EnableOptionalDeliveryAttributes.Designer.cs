@@ -118,15 +118,15 @@ namespace Geopilot.Api.Migrations
 
                     b.Property<string>("EvaluateComment")
                         .IsRequired()
-                        .HasColumnType("varchar(24)");
+                        .HasColumnType("varchar(12)");
 
                     b.Property<string>("EvaluatePartial")
                         .IsRequired()
-                        .HasColumnType("varchar(24)");
+                        .HasColumnType("varchar(12)");
 
                     b.Property<string>("EvaluatePrecursorDelivery")
                         .IsRequired()
-                        .HasColumnType("varchar(24)");
+                        .HasColumnType("varchar(12)");
 
                     b.Property<string[]>("FileTypes")
                         .IsRequired()

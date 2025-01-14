@@ -23,7 +23,7 @@ import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { useGeopilotAuth } from "../../auth";
 import { LanguagePopup } from "./languagePopup";
 import MenuIcon from "@mui/icons-material/Menu";
-import { FlexColumnSpaceBetweenBox, FlexRowBox } from "../styledComponents.ts";
+import { FlexRowBox, FlexSpaceBetweenBox } from "../styledComponents.ts";
 import { BaseButton } from "../buttons.tsx";
 
 interface HeaderProps {
@@ -144,7 +144,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
         </Toolbar>
       </AppBar>
       <Drawer anchor={"right"} open={userMenuOpen} onClose={toggleUserMenu(false)} data-cy="tool-navigation">
-        <FlexColumnSpaceBetweenBox
+        <FlexSpaceBetweenBox
           sx={{
             height: "100%",
             padding: "20px 0",
@@ -201,7 +201,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             </List>
           </Box>
           <BaseButton sx={{ margin: "0 20px" }} onClick={logout} icon={<LogoutIcon />} label="logOut" />
-        </FlexColumnSpaceBetweenBox>
+        </FlexSpaceBetweenBox>
       </Drawer>
     </>
   );
