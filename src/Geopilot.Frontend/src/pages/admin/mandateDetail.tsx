@@ -113,6 +113,7 @@ export const MandateDetail = () => {
         {
           label: t("save"),
           icon: <SaveOutlinedIcon />,
+          variant: "contained",
           action: () => {
             saveMandate(formMethods.getValues() as Mandate, true).then(() => navigate(`/admin/mandates`));
           },
