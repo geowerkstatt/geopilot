@@ -44,7 +44,7 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status201Created, "The delivery was created successfully.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The user is not authorized.")]
-    [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job or mandate could not be found.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job could not be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was an error persisting the assets.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Create(DeliveryRequest declaration)
     {
@@ -68,6 +68,7 @@ public class DeliveryController : ControllerBase
         var mandate = context.Mandates
             .Include(m => m.Organisations)
             .ThenInclude(o => o.Users)
+            .Include(m => m.Deliveries)
             .FirstOrDefault(m => m.Id == declaration.MandateId);
 
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
@@ -76,22 +77,42 @@ public class DeliveryController : ControllerBase
             return NotFound($"Mandate with id <{declaration.MandateId}> not found.");
         }
 
-        if (!mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
+        if (mandate.EvaluatePrecursorDelivery == FieldEvaluationType.NotEvaluated && declaration.PrecursorDeliveryId.HasValue)
         {
-            logger.LogTrace($"User <{user.AuthIdentifier}> is not authorized to create a delivery for mandate with id <{declaration.MandateId}>.");
-            return Unauthorized($"User is not authorized for mandate with id <{declaration.MandateId}>");
+            ModelState.AddModelError(nameof(declaration.PrecursorDeliveryId), "Precursor delivery is not allowed for this mandate.");
+        }
+        else if (mandate.EvaluatePrecursorDelivery == FieldEvaluationType.Required && !declaration.PrecursorDeliveryId.HasValue)
+        {
+            ModelState.AddModelError(nameof(declaration.PrecursorDeliveryId), "Precursor delivery is required for this mandate.");
         }
 
-        var precursorDelivery = declaration.PrecursorDeliveryId.HasValue ?
-            context.Deliveries
-            .Include(d => d.Mandate)
-            .Where(d => d.Mandate!.Id == mandate.Id)
-            .FirstOrDefault(d => d.Id == declaration.PrecursorDeliveryId) : null;
-
+        var precursorDelivery = mandate.Deliveries.FirstOrDefault(d => d.Id == declaration.PrecursorDeliveryId);
         if (declaration.PrecursorDeliveryId.HasValue && precursorDelivery is null)
         {
-            logger.LogTrace("Precursor delivery with id <{DeliveryId}> was not found or user <{AuthIdentifier}> is not authorized.", declaration.PrecursorDeliveryId.Value, user.AuthIdentifier);
-            return NotFound($"Precursor delivery with id {declaration.PrecursorDeliveryId} not found or user is not authorized.");
+            ModelState.AddModelError(nameof(declaration.PrecursorDeliveryId), "Precursor delivery not found.");
+        }
+
+        if (mandate.EvaluatePartial == FieldEvaluationType.NotEvaluated && declaration.PartialDelivery.HasValue)
+        {
+            ModelState.AddModelError(nameof(declaration.PartialDelivery), "Partial delivery is not allowed for this mandate.");
+        }
+        else if (mandate.EvaluatePartial == FieldEvaluationType.Required && !declaration.PartialDelivery.HasValue)
+        {
+            ModelState.AddModelError(nameof(declaration.PartialDelivery), "Partial delivery is required for this mandate.");
+        }
+
+        if (mandate.EvaluateComment == FieldEvaluationType.NotEvaluated && !string.IsNullOrWhiteSpace(declaration.Comment))
+        {
+            ModelState.AddModelError(nameof(declaration.Comment), "Comment is not allowed for this mandate.");
+        }
+        else if (mandate.EvaluateComment == FieldEvaluationType.Required && string.IsNullOrWhiteSpace(declaration.Comment))
+        {
+            ModelState.AddModelError(nameof(declaration.Comment), "Comment is required for this mandate.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
         }
 
         var delivery = new Delivery
