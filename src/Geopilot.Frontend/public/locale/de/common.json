@@ -81,7 +81,6 @@
   "resetCurrentChanges": "Aktuelle Änderungen zurücksetzen",
   "save": "Speichern",
   "spatialExtent": "Räumliche Ausdehnung",
-  "spatialExtentIncomplete": "Es müssen entweder alle Felder leer oder alle abgefüllt sein.",
   "stacBrowser": "STAC Browser",
   "termsOfUseAcceptance": "Ich akzeptiere die <termsLink>Nutzungsbestimmungen</termsLink>.",
   "unsavedChanges": "Sie haben ungespeicherte Änderungen. Wie möchten Sie fortfahren?",

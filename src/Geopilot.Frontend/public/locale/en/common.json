@@ -81,7 +81,6 @@
   "resetCurrentChanges": "Reset current changes",
   "save": "Save",
   "spatialExtent": "Spatial extent",
-  "spatialExtentIncomplete": "All fields must either be empty or filled in.",
   "stacBrowser": "STAC Browser",
   "termsOfUseAcceptance": "I accept the <termsLink>terms of use</termsLink>.",
   "unsavedChanges": "You have unsaved changes. How would you like to proceed?",

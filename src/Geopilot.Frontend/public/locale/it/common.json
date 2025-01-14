@@ -81,7 +81,6 @@
   "resetCurrentChanges": "Ripristino delle modifiche correnti",
   "save": "Salvare",
   "spatialExtent": "Misura spaziale",
-  "spatialExtentIncomplete": "Tutti i campi devono essere vuoti o compilati.",
   "stacBrowser": "Browser STAC",
   "termsOfUseAcceptance": "Accetto i <termsLink>Termini di utilizzo</termsLink>.",
   "unsavedChanges": "Le modifiche non sono state salvate. Come si desidera procedere?",

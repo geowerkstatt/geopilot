@@ -81,7 +81,6 @@
   "resetCurrentChanges": "Réinitialiser les modifications en cours",
   "save": "Sauver",
   "spatialExtent": "Étendue spatiale",
-  "spatialExtentIncomplete": "Tous les champs doivent être soit vides, soit tous remplis.",
   "stacBrowser": "Navigateur STAC",
   "termsOfUseAcceptance": "J'accepte les <termsLink>conditions d'utilisation</termsLink>.",
   "unsavedChanges": "Vous avez des modifications non enregistrées. Comment souhaitez-vous continuer?",
