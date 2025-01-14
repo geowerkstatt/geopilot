@@ -284,7 +284,7 @@ export const geopilotTheme = createTheme({
         root: {
           padding: "0",
           paddingTop: themeSpacing(1),
-          "& > :not(:first-child)": {
+          "& > :not(:first-of-type)": {
             marginLeft: themeSpacing(2),
           },
         },
