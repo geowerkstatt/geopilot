@@ -148,16 +148,16 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    [DataRow(FieldEvaluationType.NotEvaluated, null, StatusCodes.Status201Created, "")]
-    [DataRow(FieldEvaluationType.NotEvaluated, "", StatusCodes.Status201Created, "")]
-    [DataRow(FieldEvaluationType.NotEvaluated, "Test", StatusCodes.Status201Created, "")]
-    [DataRow(FieldEvaluationType.Optional, null, StatusCodes.Status201Created, "")]
-    [DataRow(FieldEvaluationType.Optional, "", StatusCodes.Status201Created, "")]
-    [DataRow(FieldEvaluationType.Optional, "Lorem Ipsum", StatusCodes.Status201Created, "Lorem Ipsum")]
-    [DataRow(FieldEvaluationType.Required, null, StatusCodes.Status400BadRequest, null)]
-    [DataRow(FieldEvaluationType.Required, "", StatusCodes.Status400BadRequest, null)]
-    [DataRow(FieldEvaluationType.Required, "Lorem Ipsum", StatusCodes.Status201Created, "Lorem Ipsum")]
-    public async Task CreateValidatesComment(FieldEvaluationType evaluaton, string comment, int responseCode, string dbValue)
+    [DataRow(FieldEvaluationType.NotEvaluated, null, typeof(Delivery), "")]
+    [DataRow(FieldEvaluationType.NotEvaluated, "", typeof(Delivery), "")]
+    [DataRow(FieldEvaluationType.NotEvaluated, "Test", typeof(ValidationProblemDetails), "")]
+    [DataRow(FieldEvaluationType.Optional, null, typeof(Delivery), "")]
+    [DataRow(FieldEvaluationType.Optional, "", typeof(Delivery), "")]
+    [DataRow(FieldEvaluationType.Optional, "Lorem Ipsum", typeof(Delivery), "Lorem Ipsum")]
+    [DataRow(FieldEvaluationType.Required, null, typeof(ValidationProblemDetails), null)]
+    [DataRow(FieldEvaluationType.Required, "", typeof(ValidationProblemDetails), null)]
+    [DataRow(FieldEvaluationType.Required, "Lorem Ipsum", typeof(Delivery), "Lorem Ipsum")]
+    public async Task CreateValidatesComment(FieldEvaluationType evaluaton, string comment, Type responseValueType, string dbValue)
     {
         Guid jobId = SetupValidationJob();
         SetupJobPersistence(jobId);
@@ -175,11 +175,11 @@ public class DeliveryControllerTest
             Comment = comment,
         };
 
-        var result = (await deliveryController.Create(request)) as IStatusCodeActionResult;
+        var result = await deliveryController.Create(request);
         Assert.IsNotNull(result);
-        Assert.AreEqual(responseCode, result.StatusCode);
+        AssertResponseValueType(responseValueType, result);
 
-        if (responseCode == StatusCodes.Status201Created)
+        if (responseValueType == typeof(Delivery))
         {
             var id = ((result as ObjectResult)?.Value as Delivery)?.Id;
             var dbDelivery = context.Deliveries.Find(id);
@@ -189,13 +189,13 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    [DataRow(FieldEvaluationType.NotEvaluated, null, StatusCodes.Status201Created, null)]
-    [DataRow(FieldEvaluationType.NotEvaluated, true, StatusCodes.Status400BadRequest, null)]
-    [DataRow(FieldEvaluationType.NotEvaluated, false, StatusCodes.Status400BadRequest, null)]
-    [DataRow(FieldEvaluationType.Required, null, StatusCodes.Status400BadRequest, null)]
-    [DataRow(FieldEvaluationType.Required, true, StatusCodes.Status201Created, true)]
-    [DataRow(FieldEvaluationType.Required, false, StatusCodes.Status201Created, false)]
-    public async Task CreateValidatesPartalDelivery(FieldEvaluationType evaluaton, bool? partialDelivery, int responseCode, bool? dbValue)
+    [DataRow(FieldEvaluationType.NotEvaluated, null, typeof(Delivery), null)]
+    [DataRow(FieldEvaluationType.NotEvaluated, true, typeof(ValidationProblemDetails), null)]
+    [DataRow(FieldEvaluationType.NotEvaluated, false, typeof(ValidationProblemDetails), null)]
+    [DataRow(FieldEvaluationType.Required, null, typeof(ValidationProblemDetails), null)]
+    [DataRow(FieldEvaluationType.Required, true, typeof(Delivery), true)]
+    [DataRow(FieldEvaluationType.Required, false, typeof(Delivery), false)]
+    public async Task CreateValidatesPartalDelivery(FieldEvaluationType evaluaton, bool? partialDelivery, Type responseValueType, bool? dbValue)
     {
         Guid jobId = SetupValidationJob();
         SetupJobPersistence(jobId);
@@ -213,11 +213,11 @@ public class DeliveryControllerTest
             PartialDelivery = partialDelivery,
         };
 
-        var result = (await deliveryController.Create(request)) as IStatusCodeActionResult;
+        var result = await deliveryController.Create(request);
         Assert.IsNotNull(result);
-        Assert.AreEqual(responseCode, result.StatusCode);
+        AssertResponseValueType(responseValueType, result);
 
-        if (responseCode == StatusCodes.Status201Created)
+        if (responseValueType == typeof(Delivery))
         {
             var id = ((result as ObjectResult)?.Value as Delivery)?.Id;
             var dbDelivery = context.Deliveries.Find(id);
@@ -227,16 +227,18 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    [DataRow(FieldEvaluationType.NotEvaluated, true, StatusCodes.Status400BadRequest)]
-    [DataRow(FieldEvaluationType.NotEvaluated, false, StatusCodes.Status201Created)]
-    [DataRow(FieldEvaluationType.Optional, true, StatusCodes.Status201Created)]
-    [DataRow(FieldEvaluationType.Optional, false, StatusCodes.Status201Created)]
-    [DataRow(FieldEvaluationType.Required, true, StatusCodes.Status201Created)]
-    [DataRow(FieldEvaluationType.Required, false, StatusCodes.Status400BadRequest)]
-    public async Task CreateValidatesPrecursorDelivery(FieldEvaluationType evaluaton, bool setPrecursor, int responseCode)
+    [DataRow(FieldEvaluationType.NotEvaluated, true, typeof(ValidationProblemDetails))]
+    [DataRow(FieldEvaluationType.NotEvaluated, false, typeof(Delivery))]
+    [DataRow(FieldEvaluationType.Optional, true, typeof(Delivery))]
+    [DataRow(FieldEvaluationType.Optional, false, typeof(Delivery))]
+    [DataRow(FieldEvaluationType.Required, true, typeof(Delivery))]
+    [DataRow(FieldEvaluationType.Required, false, typeof(ValidationProblemDetails))]
+    public async Task CreateValidatesPrecursorDelivery(FieldEvaluationType evaluaton, bool setPrecursor, Type responseValueType)
     {
         Guid jobId = SetupValidationJob();
-        SetupJobPersistence(jobId);
+        if (responseValueType == typeof(Delivery))
+            SetupJobPersistence(jobId);
+
         var (user, mandate) = AddMandateForAuthorizedUser(
             new Mandate
             {
@@ -244,9 +246,10 @@ public class DeliveryControllerTest
                 EvaluatePrecursorDelivery = evaluaton,
             });
         var precursorDelivery = new Delivery() { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = user };
+        context.Deliveries.Add(precursorDelivery);
         context.SaveChanges();
 
-        int? precursorId = setPrecursor ? mandate.Deliveries.First().Id : null;
+        int? precursorId = setPrecursor ? precursorDelivery.Id : null;
 
         var request = new DeliveryRequest
         {
@@ -255,9 +258,9 @@ public class DeliveryControllerTest
             PrecursorDeliveryId = precursorId,
         };
 
-        var result = (await deliveryController.Create(request)) as IStatusCodeActionResult;
-        Assert.IsNotNull(result);
-        Assert.AreEqual(responseCode, result.StatusCode);
+        var response = await deliveryController.Create(request);
+        Assert.IsNotNull(response);
+        AssertResponseValueType(responseValueType, response);
     }
 
     [TestMethod]
@@ -289,9 +292,9 @@ public class DeliveryControllerTest
             PrecursorDeliveryId = precursorDelivery.Id,
         };
 
-        var result = (await deliveryController.Create(request)) as IStatusCodeActionResult;
+        var result = await deliveryController.Create(request);
         Assert.IsNotNull(result);
-        Assert.AreEqual(StatusCodes.Status400BadRequest, result.StatusCode);
+        AssertResponseValueType(typeof(ValidationProblemDetails), result);
     }
 
     [TestMethod]
@@ -309,9 +312,9 @@ public class DeliveryControllerTest
             MandateId = mandate.Id,
             PrecursorDeliveryId = unknownDeliveryId,
         };
-        var result = (await deliveryController.Create(request)) as IStatusCodeActionResult;
+        var result = await deliveryController.Create(request);
         Assert.IsNotNull(result);
-        Assert.AreEqual(StatusCodes.Status400BadRequest, result.StatusCode);
+        AssertResponseValueType(typeof(ValidationProblemDetails), result);
     }
 
     private (User User, Mandate Mandate) AddMandateForAuthorizedUser(Mandate mandate)
