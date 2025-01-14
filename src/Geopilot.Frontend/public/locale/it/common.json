@@ -76,7 +76,7 @@
   "organisations": "Organizzazioni",
   "organisationsLoadingError": "Si è verificato un errore durante il caricamento delle organizzazioni: {{error}}",
   "partialDelivery": "Consegna parziale",
-  "predecessor": "Predecessore",
+  "precursor": "Precursore",
   "privacyPolicy": "Informativa sulla privacy",
   "resetCurrentChanges": "Ripristino delle modifiche correnti",
   "save": "Salvare",

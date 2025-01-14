@@ -76,7 +76,7 @@
   "organisations": "Organisationen",
   "organisationsLoadingError": "Beim Laden der Organisationen ist ein Fehler aufgetreten: {{error}}",
   "partialDelivery": "Teillieferung",
-  "predecessor": "Vorgänger",
+  "precursor": "Vorgänger",
   "privacyPolicy": "Datenschutz",
   "resetCurrentChanges": "Aktuelle Änderungen zurücksetzen",
   "save": "Speichern",
