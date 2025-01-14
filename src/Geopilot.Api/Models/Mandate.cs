@@ -1,4 +1,5 @@
 ﻿using NetTopologySuite.Geometries;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
@@ -50,6 +51,7 @@ public class Mandate
     /// Defines how <see cref="Delivery.Partial"/> is evaluated.
     /// </summary>
     [Column(TypeName = "varchar(12)")]
+    [AllowedValues(FieldEvaluationType.NotEvaluated, FieldEvaluationType.Required)]
     public FieldEvaluationType EvaluatePartial { get; set; }
 
     /// <summary>
