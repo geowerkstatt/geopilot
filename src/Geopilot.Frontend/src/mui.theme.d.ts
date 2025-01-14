@@ -1,6 +1,7 @@
 import { Typography } from "@mui/material";
-import { ThemeOptions } from "@mui/material/styles";
+import { Shadows, ThemeOptions } from "@mui/material/styles";
 import { TypographyOptions } from "@mui/material/styles/createTypography";
+import { Spacing } from "@mui/system";
 
 declare module "@mui/material/styles" {
   export interface AppThemePalette {
@@ -73,12 +74,16 @@ declare module "@mui/material/styles" {
   }
 
   interface AppTheme extends Theme {
+    spacing: Spacing;
+    shadows: Shadows;
     palette: AppThemePalette;
     typography: Typography;
     components: AppThemeComponents;
   }
 
   interface AppThemeOptions extends ThemeOptions {
+    spacing: Spacing;
+    shadows: Shadows;
     palette: AppThemePalette;
     typography: TypographyOptions;
     components: AppThemeComponentsOptions;
