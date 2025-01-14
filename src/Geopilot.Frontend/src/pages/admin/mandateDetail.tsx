@@ -20,6 +20,7 @@ import {
 import { FieldEvaluationType, Mandate, Organisation, ValidationSettings } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
 import { useGeopilotAuth } from "../../auth";
+import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 
 export const MandateDetail = () => {
   const { t } = useTranslation();
@@ -72,18 +73,30 @@ export const MandateDetail = () => {
     }
   }, [fileExtensions, loadFileExtensions, loadMandate, loadOrganisations, mandate, organisations, user?.isAdmin]);
 
-  async function saveMandate(mandate: Mandate) {
-    mandate.deliveries = [];
-    mandate.organisations = mandate.organisations?.map(value =>
-      typeof value === "number"
-        ? ({ id: value } as Organisation)
-        : ({ id: (value as Organisation).id } as Organisation),
-    );
-    await fetchApi("/api/v1/mandate", {
-      method: mandate.id === 0 ? "POST" : "PUT",
-      body: JSON.stringify(mandate),
-      errorMessageLabel: "mandateSaveError",
-    });
+  async function saveMandate(data: FieldValues, closeAfterSave = false) {
+    if (id !== undefined) {
+      const mandate = data as Mandate;
+      mandate.deliveries = [];
+      mandate.organisations = data["organisations"]?.map(
+        (value: FormAutocompleteValue) => ({ id: value.key }) as Organisation,
+      );
+      mandate.fileTypes = data["fileTypes"]?.map((value: FormAutocompleteValue) => value.name as string);
+      mandate.id = parseInt(id);
+      await fetchApi("/api/v1/mandate", {
+        method: mandate.id === 0 ? "POST" : "PUT",
+        body: JSON.stringify(mandate),
+        errorMessageLabel: "mandateSaveError",
+      }).then(response => {
+        const mandateResponse = response as Mandate;
+        if (!closeAfterSave) {
+          if (id === "0") {
+            navigate(`/admin/mandates/${mandateResponse.id}`);
+          } else {
+            loadMandate();
+          }
+        }
+      });
+    }
   }
 
   const checkChangesBeforeNavigate = () => {
@@ -101,7 +114,7 @@ export const MandateDetail = () => {
           label: t("save"),
           icon: <SaveOutlinedIcon />,
           action: () => {
-            saveMandate(formMethods.getValues() as Mandate).then(() => navigate(`/admin/mandates`));
+            saveMandate(formMethods.getValues() as Mandate, true).then(() => navigate(`/admin/mandates`));
           },
         },
       ]);
@@ -111,8 +124,7 @@ export const MandateDetail = () => {
   };
 
   const submitForm = (data: FieldValues) => {
-    console.log("submitForm", data);
-    //saveMandate(data as Mandate);
+    saveMandate(data);
   };
 
   // trigger form validation on mount
@@ -145,7 +157,7 @@ export const MandateDetail = () => {
                 </FormContainer>
                 <FormContainer>
                   <FormAutocomplete
-                    fieldName={"eligibleOrganisations"}
+                    fieldName={"organisations"}
                     label={"eligibleOrganisations"}
                     required={false}
                     values={organisations?.map(organisation => ({ key: organisation.id, name: organisation.name }))}
@@ -165,7 +177,7 @@ export const MandateDetail = () => {
                   />
                 </FormContainer>
                 <FormContainer>
-                  <FormExtent fieldName={"spatialExtent"} label={"spatialExtent"} value={mandate?.coordinates} />
+                  <FormExtent fieldName={"coordinates"} label={"spatialExtent"} value={mandate?.coordinates} />
                 </FormContainer>
               </GeopilotBox>
               <GeopilotBox>
