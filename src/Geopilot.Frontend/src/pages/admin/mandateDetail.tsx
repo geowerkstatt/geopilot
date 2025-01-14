@@ -168,12 +168,7 @@ export const MandateDetail = () => {
                   />
                 </FormContainer>
                 <FormContainer>
-                  <FormExtent
-                    fieldName={"spatialExtent"}
-                    label={"spatialExtent"}
-                    value={mandate?.coordinates}
-                    required={true}
-                  />
+                  <FormExtent fieldName={"spatialExtent"} label={"spatialExtent"} value={mandate?.coordinates} />
                 </FormContainer>
               </GeopilotBox>
               <GeopilotBox>
