@@ -17,13 +17,16 @@ export interface FormExtentProps {
 
 export const FormExtent: FC<FormExtentProps> = ({ fieldName, label, required, disabled, value, sx }) => {
   const { t } = useTranslation();
-  const { control, setValue } = useFormContext();
+  const { control, getValues, setValue } = useFormContext();
 
   const handleChange = (index: number, key: "x" | "y", e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const newValue = parseFloat(e.target.value);
+    const existingValue = getValues(fieldName);
     setValue(
       fieldName,
-      value?.map((coord, i) => (i === index ? { ...coord, [key]: isNaN(newValue) ? undefined : newValue } : coord)),
+      existingValue?.map((coord: Coordinate, i: number) =>
+        i === index ? { ...coord, [key]: isNaN(newValue) ? undefined : newValue } : coord,
+      ),
       { shouldValidate: true },
     );
   };
