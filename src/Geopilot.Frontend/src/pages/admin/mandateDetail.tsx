@@ -160,11 +160,8 @@ export const MandateDetail = () => {
                     fieldName={"fileTypes"}
                     label={"fileTypes"}
                     required={false}
-                    values={fileExtensions?.map((value, index) => ({ key: index, name: value }))}
-                    selected={mandate?.fileTypes?.map((value, index) => ({
-                      key: index,
-                      name: value,
-                    }))}
+                    values={fileExtensions}
+                    selected={mandate?.fileTypes}
                   />
                 </FormContainer>
                 <FormContainer>
