@@ -1,5 +1,5 @@
 import { Typography } from "@mui/material";
-import { Theme, ThemeOptions } from "@mui/material/styles";
+import { ThemeOptions } from "@mui/material/styles";
 import { TypographyOptions } from "@mui/material/styles/createTypography";
 
 declare module "@mui/material/styles" {
@@ -48,6 +48,7 @@ declare module "@mui/material/styles" {
     MuiDialogTitle: object;
     MuiDialogContent: object;
     MuiDialogActions: object;
+    MuiChip: object;
   }
 
   interface AppThemeComponentsOptions extends ComponentsOptions {
@@ -68,6 +69,7 @@ declare module "@mui/material/styles" {
     MuiDialogTitle: object;
     MuiDialogContent: object;
     MuiDialogActions: object;
+    MuiChip: object;
   }
 
   interface AppTheme extends Theme {
