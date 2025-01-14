@@ -65,14 +65,12 @@ export const Mandates = () => {
       cellClassName: "actions",
       getActions: ({ id }) => [
         <Tooltip title={t("edit")} key={`edit-${id}`}>
-          <span>
-            <GridActionsCellItem
-              icon={<EditOutlinedIcon />}
-              label={t("edit")}
-              onClick={() => startEditing(id)}
-              color="inherit"
-            />
-          </span>
+          <GridActionsCellItem
+            icon={<EditOutlinedIcon />}
+            label={t("edit")}
+            onClick={() => startEditing(id)}
+            color="inherit"
+          />
         </Tooltip>,
       ],
     },
