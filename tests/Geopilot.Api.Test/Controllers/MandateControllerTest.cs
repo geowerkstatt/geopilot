@@ -248,7 +248,6 @@ namespace Geopilot.Api.Controllers
             {
                 JobId = guid,
                 MandateId = mandateToUpdate.Id,
-                PartialDelivery = false,
             };
 
             var result = await deliveryController.Create(request);

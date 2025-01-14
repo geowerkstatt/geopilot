@@ -22,8 +22,7 @@ public class DeliveryRequest
     /// <summary>
     /// Indicate whether the delivery contains partial data.
     /// </summary>
-    [Required]
-    public bool PartialDelivery { get; set; }
+    public bool? PartialDelivery { get; set; }
 
     /// <summary>
     /// Optional. The id of a previous delivery on the same Mandate.
