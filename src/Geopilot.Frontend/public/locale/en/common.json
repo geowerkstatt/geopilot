@@ -93,7 +93,6 @@
   "users": "Users",
   "usersLoadingError": "An error occurred while loading the users: {{error}}",
   "validate": "Validate",
-  "validation": "Validation",
   "validationIsRunning": "The file is currently being validated with {{validators}}...",
   "version": "Version"
 }

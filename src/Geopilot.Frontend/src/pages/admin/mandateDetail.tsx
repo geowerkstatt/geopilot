@@ -156,6 +156,18 @@ export const MandateDetail = () => {
                   />
                 </FormContainer>
                 <FormContainer>
+                  <FormAutocomplete
+                    fieldName={"fileTypes"}
+                    label={"fileTypes"}
+                    required={false}
+                    values={fileExtensions?.map((value, index) => ({ key: index, name: value }))}
+                    selected={mandate?.fileTypes?.map((value, index) => ({
+                      key: index,
+                      name: value,
+                    }))}
+                  />
+                </FormContainer>
+                <FormContainer>
                   <FormExtent
                     fieldName={"spatialExtent"}
                     label={"spatialExtent"}
@@ -163,11 +175,6 @@ export const MandateDetail = () => {
                     required={true}
                   />
                 </FormContainer>
-              </GeopilotBox>
-              <GeopilotBox>
-                <Typography variant={"h3"} margin={0}>
-                  {t("validation")}
-                </Typography>
               </GeopilotBox>
               <GeopilotBox>
                 <Typography variant={"h3"} margin={0}>

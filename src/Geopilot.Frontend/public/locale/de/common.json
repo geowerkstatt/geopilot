@@ -93,7 +93,6 @@
   "users": "Benutzer:innen",
   "usersLoadingError": "Beim Laden der Benutzer:innen ist ein Fehler aufgetreten: {{error}}",
   "validate": "Validieren",
-  "validation": "Validierung",
   "validationIsRunning": "Die Datei wird gerade mit {{validators}} validiert...",
   "version": "Version"
 }

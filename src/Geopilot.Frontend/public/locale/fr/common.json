@@ -93,7 +93,6 @@
   "users": "Utilisateurs",
   "usersLoadingError": "Une erreur s'est produite lors du chargement des utilisateurs: {{error}}",
   "validate": "Valider",
-  "validation": "Validation",
   "validationIsRunning": "Le fichier est en cours de validation avec {{validators}}...",
   "version": "Version"
 }
