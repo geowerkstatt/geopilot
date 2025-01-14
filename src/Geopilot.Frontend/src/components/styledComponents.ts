@@ -51,7 +51,6 @@ export const CenteredBox = styled(FlexBox)({
 });
 
 export const GeopilotBox = styled(FlexBox)(({ theme }) => ({
-  backgroundColor: theme.palette.primary.hover,
   border: `1px solid ${theme.palette.primary.main}`,
   borderRadius: "4px",
   padding: "16px",
