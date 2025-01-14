@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Controller, useFormContext } from "react-hook-form";
 import { FC, SyntheticEvent, useMemo } from "react";
 import { getFormFieldError } from "./form.ts";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 export interface FormAutocompleteProps {
   fieldName: string;
@@ -63,6 +64,7 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
           sx={{ ...sx }}
           fullWidth={true}
           size={"small"}
+          popupIcon={<ExpandMoreIcon />}
           multiple
           disabled={disabled ?? false}
           onChange={(event: SyntheticEvent, newValue: FormAutocompleteValue[]) => {
