@@ -69,7 +69,7 @@ public class DeliveryController : ControllerBase
             .Include(m => m.Organisations)
             .ThenInclude(o => o.Users)
             .Include(m => m.Deliveries)
-            .FirstOrDefault(m => m.Id == declaration.MandateId);
+            .SingleOrDefault(m => m.Id == declaration.MandateId);
 
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
         {
@@ -86,7 +86,7 @@ public class DeliveryController : ControllerBase
             ModelState.AddModelError(nameof(declaration.PrecursorDeliveryId), "Precursor delivery is required for this mandate.");
         }
 
-        var precursorDelivery = mandate.Deliveries.FirstOrDefault(d => d.Id == declaration.PrecursorDeliveryId);
+        var precursorDelivery = mandate.Deliveries.SingleOrDefault(d => d.Id == declaration.PrecursorDeliveryId);
         if (declaration.PrecursorDeliveryId.HasValue && precursorDelivery is null)
         {
             ModelState.AddModelError(nameof(declaration.PrecursorDeliveryId), "Precursor delivery not found.");
@@ -141,7 +141,7 @@ public class DeliveryController : ControllerBase
 
         var resultDelivery = context.Deliveries
             .AsNoTracking()
-            .FirstOrDefault(d => d.Id == entityEntry.Entity.Id);
+            .Single(d => d.Id == entityEntry.Entity.Id);
 
         var location = new Uri(
             string.Format(CultureInfo.InvariantCulture, "/api/v1/delivery/{0}", entityEntry.Entity.Id),
@@ -204,7 +204,7 @@ public class DeliveryController : ControllerBase
         logger.LogInformation("Deleting of delivery with id <{DeliveryId}> started.", deliveryId);
         try
         {
-            var delivery = context.Deliveries.Include(d => d.Assets).FirstOrDefault(d => d.Id == deliveryId);
+            var delivery = context.Deliveries.Include(d => d.Assets).SingleOrDefault(d => d.Id == deliveryId);
             if (delivery == default)
             {
                 logger.LogTrace("No delivery with id <{DeliveryId}> found.", deliveryId);
@@ -242,7 +242,7 @@ public class DeliveryController : ControllerBase
         logger.LogInformation("Downloading asset with id <{AssetId}> started.", assetId);
         try
         {
-            var asset = context.Assets.Include(a => a.Delivery).FirstOrDefault(a => a.Id == assetId && !a.Deleted);
+            var asset = context.Assets.Include(a => a.Delivery).SingleOrDefault(a => a.Id == assetId && !a.Deleted);
             if (asset == default)
             {
                 logger.LogTrace("No delivery with id <{AssetId}> found.", assetId);
