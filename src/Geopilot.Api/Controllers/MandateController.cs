@@ -102,6 +102,31 @@ public class MandateController : ControllerBase
     }
 
     /// <summary>
+    /// Gets the mandate with the specified <paramref name="id"/>.
+    /// </summary>
+    /// <returns>The mandate.</returns>
+    [HttpGet("{id}")]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the mandate", typeof(Mandate), "application/json")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to get individual mandates.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The mandate could not be found.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), "application/json")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        logger.LogInformation($"Getting mandate with id <{id}>.");
+
+        var mandate = await context.MandatesWithIncludes.AsNoTracking().SingleOrDefaultAsync(m => m.Id == id).ConfigureAwait(false);
+
+        if (mandate == null)
+        {
+            return NotFound();
+        }
+
+        mandate.SetCoordinateListFromPolygon();
+        return Ok(mandate);
+    }
+
+    /// <summary>
     /// Asynchronously creates the <paramref name="mandate"/> specified.
     /// </summary>
     /// <param name="mandate">The mandate to create.</param>
