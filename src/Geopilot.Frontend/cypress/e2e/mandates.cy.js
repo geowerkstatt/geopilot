@@ -197,4 +197,40 @@ describe("Mandate tests", () => {
     cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
     cy.contains(randomMandateName);
   });
+
+  // Skip until fieldEvaluationType works https://github.com/GeoWerkstatt/geopilot/issues/362
+  it.skip("can edit existing mandate", () => {
+    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').first().click();
+    cy.location().should(location => {
+      expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
+    });
+
+    cy.get('[data-cy="reset-button"]').should("be.disabled");
+    cy.get('[data-cy="save-button"]').should("be.disabled");
+    setAutocomplete("organisations", "Brown and Sons");
+    evaluateAutocomplete("organisations", ["Schumm, Runte and Macejkovic", "Brown and Sons"]);
+    cy.get('[data-cy="reset-button"]').should("be.enabled");
+    cy.get('[data-cy="save-button"]').should("be.enabled");
+
+    setInput("extent-bottom-left-latitude", "");
+    hasError("extent-bottom-left-longitude", true);
+    hasError("extent-bottom-left-latitude", true);
+    hasError("extent-upper-right-longitude", true);
+    hasError("extent-upper-right-latitude", true);
+    cy.get('[data-cy="reset-button"]').should("be.enabled");
+    cy.get('[data-cy="save-button"]').should("be.disabled");
+
+    setInput("extent-bottom-left-latitude", "47.23");
+    hasError("extent-bottom-left-longitude", false);
+    hasError("extent-bottom-left-latitude", false);
+    hasError("extent-upper-right-longitude", false);
+    hasError("extent-upper-right-latitude", false);
+    cy.get('[data-cy="reset-button"]').should("be.enabled");
+    cy.get('[data-cy="save-button"]').should("be.enabled");
+
+    setSelect("partialDelivery", 0, 2);
+
+    cy.get('[data-cy="save-button"]').click();
+    // TODO: Check if the changes are saved.
+  });
 });
