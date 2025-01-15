@@ -86,6 +86,7 @@ export const Mandates = () => {
         label={"addMandate"}
       />
       <DataGrid
+        data-cy="mandates-grid"
         loading={!mandates?.length}
         rows={mandates as unknown as DataRow[]}
         columns={columns}
