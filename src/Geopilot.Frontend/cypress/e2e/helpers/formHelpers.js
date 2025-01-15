@@ -31,6 +31,25 @@ export const isDisabled = (fieldName, isDisabled = true, parent) => {
 };
 
 /**
+ * Gets a from element.
+ * @param {any} fieldName The name of the form element.
+ * @param {any} parent (optional) The parent of the form element.
+ * @returns
+ */
+export const getFormField = (fieldName, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy^="${fieldName}-form"]`;
+  return cy.get(selector);
+};
+
+/**
+ * Gets a from element's input field.
+ * @param {any} fieldName The name of the form element.
+ * @param {any} parent (optional) The parent of the form element.
+ * @returns
+ */
+export const getFormInput = (fieldName, parent) => getFormField(fieldName, parent).find(`[name=${fieldName}]`);
+
+/**
  * Sets the value for an input form element.
  * @param {string} fieldName The name of the input field.
  * @param {string} value The text to type into the input field.
@@ -42,9 +61,11 @@ export const setInput = (fieldName, value, parent) => {
     .click()
     .then(() => {
       cy.focused().clear();
-      cy.get(selector).type(value, {
-        delay: 10,
-      });
+      if (value.length > 0) {
+        cy.get(selector).type(value, {
+          delay: 10,
+        });
+      }
     });
 };
 

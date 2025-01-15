@@ -1,6 +1,15 @@
 import { loadWithoutAuth, loginAsUploader } from "./helpers/appHelpers.js";
 import { clickCancel } from "./helpers/buttonHelpers.js";
-import { evaluateSelect, hasError, isDisabled, setInput, setSelect, toggleCheckbox } from "./helpers/formHelpers.js";
+import {
+  evaluateSelect,
+  getFormField,
+  getFormInput,
+  hasError,
+  isDisabled,
+  setInput,
+  setSelect,
+  toggleCheckbox,
+} from "./helpers/formHelpers.js";
 
 const fileNameExists = (filePath, success) => {
   const fileName = filePath.split("/").pop();
@@ -124,14 +133,23 @@ const mockMandates = () => {
         {
           id: 1,
           name: "Handmade Soft Cheese",
+          evaluatePrecursorDelivery: "notEvaluated",
+          evaluatePartial: "notEvaluated",
+          evaluateComment: "notEvaluated",
         },
         {
           id: 5,
           name: "Licensed Frozen Towels",
+          evaluatePrecursorDelivery: "optional",
+          evaluatePartial: "notEvaluated",
+          evaluateComment: "optional",
         },
         {
           id: 9,
           name: "Unbranded Wooden Pants",
+          evaluatePrecursorDelivery: "required",
+          evaluatePartial: "required",
+          evaluateComment: "required",
         },
       ],
       delay: 500,
@@ -240,9 +258,10 @@ describe("Delivery tests", () => {
     stepIsActive("submit", false); // Should not be active if validation has errors
   });
 
-  it("can submit a delivery", () => {
+  it("can cancel at any step", () => {
     mockValidationSuccess();
     mockMandates();
+    mockUploadSuccess();
     cy.intercept({ url: "/api/v1/delivery?mandateId=*", method: "GET" }).as("precursors");
     cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
       req.reply({
@@ -256,6 +275,7 @@ describe("Delivery tests", () => {
     }).as("submit");
 
     loginAsUploader();
+
     // All steps are visible
     cy.get('[data-cy="upload-step"]').should("exist");
     cy.get('[data-cy="validate-step"]').should("exist");
@@ -264,24 +284,35 @@ describe("Delivery tests", () => {
     stepIsActive("upload");
 
     // All file types are allowed
-    addFile("deliveryFiles/invalid-type.png", true);
+    addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     stepHasError("upload", false);
 
     // Selected file can be removed
     cy.get('[data-cy="file-remove-button"]').click();
     cy.contains("invalid-type.png").should("not.exist");
-
-    // Can upload a file once the terms of use are accepted and the file is valid
-    cy.get('[data-cy="upload-button"]').should("be.disabled");
-    addFile("deliveryFiles/ilimodels_not_conform.xml", true);
-    cy.get('[data-cy="upload-button"]').should("be.disabled");
-    toggleCheckbox("acceptTermsOfUse");
-    cy.get('[data-cy="upload-button"]').should("not.be.disabled");
-    uploadFile();
+    stepIsActive("upload");
 
     // Can cancel the upload which will reset the form
+    addFile("deliveryFiles/ilimodels_not_conform.xml", true);
+    uploadFile();
     resetDelivery("upload");
     cy.contains("ilimodels_not_conform.xml").should("not.exist");
+
+    // Validation starts automatically after a file is uploaded
+    addFile("deliveryFiles/ilimodels_not_conform.xml", true);
+    cy.get('[data-cy="upload-button"]').should("not.be.disabled");
+    uploadFile();
+    cy.wait("@upload");
+    stepIsLoading("upload", false);
+    stepIsCompleted("upload");
+    cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml");
+    stepIsActive("validate");
+    stepIsLoading("validate");
+    cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
+
+    // Validation can be cancelled
+    resetDelivery("validate");
+    cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml").should("not.exist");
 
     // Validation starts automatically after a file is uploaded
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
@@ -317,6 +348,55 @@ describe("Delivery tests", () => {
 
     // Submit can be cancelled, which will return to step 1 with a reset form
     resetDelivery("submit");
+  });
+
+  it("can upload any filetype", () => {
+    mockValidationSuccess();
+
+    loginAsUploader();
+    stepIsActive("upload");
+
+    // All file types are allowed
+    addFile("deliveryFiles/invalid-type.png", true);
+    stepHasError("upload", false);
+    uploadFile();
+
+    stepIsCompleted("upload");
+  });
+
+  it("checks if terms of use are accepted", () => {
+    loginAsUploader();
+    mockUploadSuccess();
+    addFile("deliveryFiles/ilimodels_valid.xml", true);
+
+    // Can upload a file once the terms of use are accepted and the file is valid
+    cy.get('[data-cy="upload-button"]').should("be.disabled");
+    addFile("deliveryFiles/ilimodels_not_conform.xml", true);
+    cy.get('[data-cy="upload-button"]').should("be.disabled");
+    toggleCheckbox("acceptTermsOfUse");
+    cy.get('[data-cy="upload-button"]').should("not.be.disabled");
+    uploadFile();
+
+    cy.wait("@upload");
+    stepIsCompleted("upload");
+  });
+
+  it("can submit delivery", () => {
+    mockValidationSuccess();
+    mockMandates();
+    cy.intercept({ url: "/api/v1/delivery?mandateId=*", method: "GET" }).as("precursors");
+    cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
+      req.reply({
+        statusCode: 201,
+        body: {
+          id: 43,
+          jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+        },
+        delay: 500,
+      });
+    }).as("submit");
+
+    loginAsUploader();
 
     // Add delivery with minimal form
     addFile("deliveryFiles/ilimodels_valid.xml", true);
@@ -330,18 +410,70 @@ describe("Delivery tests", () => {
 
     cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
     isDisabled("mandate", false);
-    isDisabled("precursor", true);
+
+    getFormField("precursor").should("not.exist");
+    getFormField("isPartial").should("not.exist");
+    getFormField("comment").should("not.exist");
+
+    // NotEvaluated mandate does not show input fields;
+    setSelect("mandate", 0, 3);
+    cy.wait("@precursors");
+    getFormField("precursor").should("not.exist");
+    getFormField("isPartial").should("not.exist");
+    getFormField("comment").should("not.exist");
+    cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
+
+    // Optional mandate does show optional input fields
     setSelect("mandate", 1, 3);
     cy.wait("@precursors");
-    isDisabled("precursor", false);
-    cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
-    setSelect("precursor", 1);
-    setSelect("mandate", 2);
-    cy.wait("@precursors");
+    getFormField("precursor").should("exist");
+    getFormField("isPartial").should("not.exist");
+    getFormField("comment").should("exist");
+    setSelect("precursor", 0); // reset
+    setInput("comment", "");
     evaluateSelect("precursor", "");
-    setSelect("precursor", 2);
-    setSelect("precursor", 0);
     hasError("precursor", false);
+    hasError("isPartial", false);
+    hasError("comment", false);
+    cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
+
+    // Required mandate does show all input fields
+    setSelect("mandate", 2, 3);
+    cy.wait("@precursors");
+    getFormField("precursor").should("exist");
+    getFormField("isPartial").should("exist");
+    getFormField("comment").should("exist");
+    cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
+    hasError("precursor", false);
+    hasError("isPartial", false);
+    hasError("comment", false);
+
+    // Touch fields
+    getFormInput("precursor").focus();
+    getFormInput("comment").focus();
+    cy.get('[data-cy="createDelivery-button"]').focus();
+    hasError("precursor", false);
+    hasError("comment", false);
+
+    // Set valid values
+    setSelect("precursor", 1);
+    toggleCheckbox("isPartial");
+    setInput("comment", "This is a test comment.");
+    hasError("precursor", false);
+    hasError("isPartial", false);
+    hasError("comment", false);
+    cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
+
+    // Change of mandate clears inputs & errors
+    setSelect("mandate", 0, 3);
+    setSelect("mandate", 2, 3);
+    getFormInput("precursor").should("not.contain.value");
+    getFormInput("comment").should("not.contain.value");
+    cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
+
+    // Submit minimal delivery
+    setSelect("mandate", 1, 3);
+    cy.wait("@precursors");
     cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
     cy.get('[data-cy="createDelivery-button"]').click();
     stepIsLoading("submit");
@@ -364,7 +496,7 @@ describe("Delivery tests", () => {
     stepIsCompleted("done", false);
     cy.get('[data-cy="upload-button"]').should("be.disabled");
 
-    // Add delivery with completed form
+    // Add delivery with previously completed form
     addFile("deliveryFiles/ilimodels_valid.xml", true);
     uploadFile();
     cy.wait("@upload");
@@ -376,9 +508,6 @@ describe("Delivery tests", () => {
 
     setSelect("mandate", 1);
     cy.wait("@precursors");
-    setSelect("precursor", 1);
-    toggleCheckbox("isPartial");
-    setInput("comment", "This is a test comment.");
     cy.get('[data-cy="createDelivery-button"]').click();
     stepIsLoading("submit");
     cy.wait("@submit");
