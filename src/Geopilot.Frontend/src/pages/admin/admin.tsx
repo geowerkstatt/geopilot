@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Typography } from "@mui/material";
 import { FC } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { FlexRowBox } from "../../components/styledComponents.ts";
+import { useControlledNavigate } from "../../components/controlledNavigate";
 
 interface AdminProps {
   isSubMenuOpen: boolean;
@@ -12,15 +13,15 @@ interface AdminProps {
 
 const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { navigateTo } = useControlledNavigate();
   const { clientSettings } = useAppSettings();
 
   const handleDrawerClose = () => {
     setIsSubMenuOpen(false);
   };
 
-  const navigateTo = (path: string) => {
-    navigate(path);
+  const navigate = (path: string) => {
+    navigateTo(path);
     if (isSubMenuOpen) {
       handleDrawerClose();
     }
@@ -42,7 +43,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
             <ListItemButton
               selected={isActive("delivery-overview")}
               onClick={() => {
-                navigateTo("delivery-overview");
+                navigate("/admin/delivery-overview");
               }}
               data-cy="admin-delivery-overview-nav">
               <ListItemText primary={t("deliveryOverview").toUpperCase()} />
@@ -56,7 +57,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
               <ListItemButton
                 selected={isActive(link)}
                 onClick={() => {
-                  navigateTo(link);
+                  navigate("/admin/" + link);
                 }}
                 data-cy={`admin-${link}-nav`}>
                 <ListItemText primary={t(link).toUpperCase()} />

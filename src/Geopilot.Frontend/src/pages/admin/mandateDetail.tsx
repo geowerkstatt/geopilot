@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { PromptContext } from "../../components/prompt/promptContext.tsx";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { ChevronLeft, UndoOutlined } from "@mui/icons-material";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   FormAutocomplete,
   FormContainer,
@@ -21,6 +21,7 @@ import { FieldEvaluationType, Mandate, Organisation, ValidationSettings } from "
 import { useApi } from "../../api";
 import { useGeopilotAuth } from "../../auth";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
+import { useControlledNavigate } from "../../components/controlledNavigate";
 
 export const MandateDetail = () => {
   const { t } = useTranslation();
@@ -28,7 +29,8 @@ export const MandateDetail = () => {
   const formMethods = useForm({ mode: "all" });
   const { showPrompt } = useContext(PromptContext);
   const { fetchApi } = useApi();
-  const navigate = useNavigate();
+  const { registerCheckIsDirty, unregisterCheckIsDirty, checkIsDirty, leaveEditingPage, navigateTo } =
+    useControlledNavigate();
   const { id } = useParams<{
     id: string;
   }>();
@@ -36,6 +38,41 @@ export const MandateDetail = () => {
   const [mandate, setMandate] = useState<Mandate>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [fileExtensions, setFileExtensions] = useState<string[]>();
+
+  useEffect(() => {
+    registerCheckIsDirty(`/admin/mandates/${id}`);
+
+    return () => {
+      unregisterCheckIsDirty(`/admin/mandates/${id}`);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (checkIsDirty) {
+      if (formMethods.formState.isDirty) {
+        showPrompt(t("unsavedChanges"), [
+          { label: t("cancel"), icon: <CancelOutlinedIcon />, action: () => leaveEditingPage(false) },
+          {
+            label: t("reset"),
+            icon: <UndoOutlined />,
+            action: () => leaveEditingPage(true),
+          },
+          {
+            label: t("save"),
+            icon: <SaveOutlinedIcon />,
+            variant: "contained",
+            action: () => {
+              saveMandate(formMethods.getValues() as Mandate, false).then(() => leaveEditingPage(true));
+            },
+          },
+        ]);
+      } else {
+        leaveEditingPage(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkIsDirty]);
 
   const loadMandate = useCallback(() => {
     if (id !== "0") {
@@ -73,7 +110,7 @@ export const MandateDetail = () => {
     }
   }, [fileExtensions, loadFileExtensions, loadMandate, loadOrganisations, mandate, organisations, user?.isAdmin]);
 
-  async function saveMandate(data: FieldValues, closeAfterSave = false) {
+  async function saveMandate(data: FieldValues, reloadAfterSave = true) {
     if (id !== undefined) {
       const mandate = data as Mandate;
       mandate.deliveries = [];
@@ -88,9 +125,9 @@ export const MandateDetail = () => {
         errorMessageLabel: "mandateSaveError",
       }).then(response => {
         const mandateResponse = response as Mandate;
-        if (!closeAfterSave) {
+        if (reloadAfterSave) {
           if (id === "0") {
-            navigate(`/admin/mandates/${mandateResponse.id}`);
+            navigateTo(`/admin/mandates/${mandateResponse.id}`);
           } else {
             loadMandate();
           }
@@ -99,33 +136,8 @@ export const MandateDetail = () => {
     }
   }
 
-  const checkChangesBeforeNavigate = () => {
-    if (formMethods.formState.isDirty) {
-      showPrompt(t("unsavedChanges"), [
-        { label: t("cancel"), icon: <CancelOutlinedIcon /> },
-        {
-          label: t("reset"),
-          icon: <UndoOutlined />,
-          action: () => {
-            navigate(`/admin/mandates`);
-          },
-        },
-        {
-          label: t("save"),
-          icon: <SaveOutlinedIcon />,
-          variant: "contained",
-          action: () => {
-            saveMandate(formMethods.getValues() as Mandate, true).then(() => navigate(`/admin/mandates`));
-          },
-        },
-      ]);
-    } else {
-      navigate(`/admin/mandates`);
-    }
-  };
-
   const submitForm = (data: FieldValues) => {
-    saveMandate(data);
+    saveMandate(data, true);
   };
 
   // trigger form validation on mount
@@ -140,7 +152,9 @@ export const MandateDetail = () => {
         <BaseButton
           variant={"text"}
           icon={<ChevronLeft />}
-          onClick={checkChangesBeforeNavigate}
+          onClick={() => {
+            navigateTo("/admin/mandates");
+          }}
           label={"backToMandates"}
         />
         {id !== "0" && <Typography variant={"body2"}>{t("id") + ": " + id}</Typography>}
