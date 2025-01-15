@@ -64,6 +64,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, label, required, di
                 type={FormValueType.Number}
                 sx={{ ...sx }}
                 onChange={e => handleChange(0, "x", e)}
+                data-cy="extent-bottom-left-longitude-formInput"
               />
               <TextField
                 label={t("bottomLeft") + " - " + t("latitude")}
@@ -73,6 +74,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, label, required, di
                 type={FormValueType.Number}
                 sx={{ ...sx }}
                 onChange={e => handleChange(0, "y", e)}
+                data-cy="extent-bottom-left-latitude-formInput"
               />
             </FormContainer>
             <FormContainer>
@@ -84,6 +86,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, label, required, di
                 type={FormValueType.Number}
                 sx={{ ...sx }}
                 onChange={e => handleChange(1, "x", e)}
+                data-cy="extent-upper-right-longitude-formInput"
               />
               <TextField
                 label={t("upperRight") + " - " + t("latitude")}
@@ -93,6 +96,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, label, required, di
                 type={FormValueType.Number}
                 sx={{ ...sx }}
                 onChange={e => handleChange(1, "y", e)}
+                data-cy="extent-upper-right-latitude-formInput"
               />
             </FormContainer>
           </FlexBox>
