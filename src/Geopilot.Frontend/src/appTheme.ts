@@ -296,7 +296,11 @@ export const geopilotTheme = createTheme({
           backgroundColor: "#124A4F33",
 
           "& .MuiChip-deleteIcon": {
-            color: "#124A4F80",
+            color: "#124A4F66",
+
+            "&:hover": {
+              color: "#124A4F99",
+            },
           },
         },
       },
