@@ -82,7 +82,17 @@ export const MandateDetail = () => {
     if (id !== "0") {
       fetchApi<Mandate>(`/api/v1/mandate/${id}`, { errorMessageLabel: "mandateLoadingError" }).then(setMandate);
     } else {
-      setMandate({ id: 0, name: "", organisations: [], fileTypes: [], coordinates: [], deliveries: [] });
+      setMandate({
+        id: 0,
+        name: "",
+        organisations: [],
+        fileTypes: [],
+        coordinates: [
+          { x: undefined, y: undefined },
+          { x: undefined, y: undefined },
+        ],
+        deliveries: [],
+      });
     }
   }, [fetchApi, id]);
 
