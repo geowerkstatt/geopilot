@@ -1,6 +1,6 @@
 /**
  * Checks if a prompt is visible.
- * @param visible
+ * @param {boolean} visible The expected visibility state.
  */
 export const isPromptVisible = (visible = true) => {
   if (visible) {
@@ -12,7 +12,7 @@ export const isPromptVisible = (visible = true) => {
 
 /**
  * Checks if a prompt is visible and contains the expected action buttons.
- * @param actions An array of action button labels.
+ * @param {string[]} actions An array of action button labels.
  */
 export const checkPromptActions = actions => {
   isPromptVisible();
@@ -26,8 +26,8 @@ export const checkPromptActions = actions => {
 
 /**
  * Handles a prompt by clicking the action button.
- * @param message Name of the prompt message label.
- * @param action Name of the action button label.
+ * @param {string} message Name of the prompt message label.
+ * @param {string} action Name of the action button label.
  */
 export const handlePrompt = (message, action) => {
   isPromptVisible();

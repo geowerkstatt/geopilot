@@ -157,9 +157,11 @@ export const MandateDetail = () => {
 
   // trigger form validation on mount
   useEffect(() => {
-    formMethods.trigger();
+    if (mandate) {
+      formMethods.trigger();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formMethods.trigger]);
+  }, [mandate, formMethods.trigger]);
 
   return (
     <FlexBox>

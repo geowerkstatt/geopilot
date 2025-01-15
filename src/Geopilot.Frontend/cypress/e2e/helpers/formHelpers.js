@@ -49,6 +49,21 @@ export const setInput = (fieldName, value, parent) => {
 };
 
 /**
+ * Evaluates the state of an input form element
+ * @param {string} fieldName The name of the input field.
+ * @param {number} expectedValue The expected value.
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const evaluateInput = (fieldName, expectedValue, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formInput"] input`;
+  cy.get(selector)
+    .filter((k, input) => {
+      return input.value === expectedValue;
+    })
+    .should("have.length", 1);
+};
+
+/**
  * Opens the dropdown for a select form element.
  * @param {string} selector The selector for the form element.
  */
@@ -113,4 +128,37 @@ export const evaluateSelect = (fieldName, expectedValue, parent) => {
 export const toggleCheckbox = (fieldName, parent) => {
   const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formCheckbox"]`;
   cy.get(selector).click();
+};
+
+/**
+ * Sets the value for an autocomplete form element.
+ * @param {string} fieldName The name of the autocomplete field.
+ * @param {string} value The text to type into the input field.
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const setAutocomplete = (fieldName, value, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
+  cy.get(selector)
+    .click()
+    .then(() => {
+      cy.get(selector).type(value, {
+        delay: 10,
+      });
+      cy.get('.MuiPaper-elevation [role="listbox"]').find('[role="option"]').first().click();
+    });
+};
+
+/**
+ * Evaluates the state of an autocomplete form element.
+ * @param {string} fieldName The name of the autocomplete field.
+ * @param {string[]} expectedValues An array of expected values.
+ * @param {string} parent (optional) The parent of the form element. */
+export const evaluateAutocomplete = (fieldName, expectedValues, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
+  cy.get(selector).within(() => {
+    cy.get(".MuiChip-root").should("have.length", expectedValues.length);
+    expectedValues.forEach(value => {
+      cy.get(".MuiChip-root span").contains(value);
+    });
+  });
 };
