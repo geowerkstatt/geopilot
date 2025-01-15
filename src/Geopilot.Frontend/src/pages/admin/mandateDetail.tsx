@@ -22,6 +22,7 @@ import { useApi } from "../../api";
 import { useGeopilotAuth } from "../../auth";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 import { useControlledNavigate } from "../../components/controlledNavigate";
+import { PromptAction } from "../../components/prompt/promptInterfaces.ts";
 
 export const MandateDetail = () => {
   const { t } = useTranslation();
@@ -51,22 +52,25 @@ export const MandateDetail = () => {
   useEffect(() => {
     if (checkIsDirty) {
       if (formMethods.formState.isDirty) {
-        showPrompt(t("unsavedChanges"), [
-          { label: t("cancel"), icon: <CancelOutlinedIcon />, action: () => leaveEditingPage(false) },
+        const promptActions: PromptAction[] = [
+          { label: "cancel", icon: <CancelOutlinedIcon />, action: () => leaveEditingPage(false) },
           {
-            label: t("reset"),
+            label: "reset",
             icon: <UndoOutlined />,
             action: () => leaveEditingPage(true),
           },
-          {
-            label: t("save"),
+        ];
+        if (formMethods.formState.isValid) {
+          promptActions.push({
+            label: "save",
             icon: <SaveOutlinedIcon />,
             variant: "contained",
             action: () => {
               saveMandate(formMethods.getValues() as Mandate, false).then(() => leaveEditingPage(true));
             },
-          },
-        ]);
+          });
+        }
+        showPrompt("unsavedChanges", promptActions);
       } else {
         leaveEditingPage(true);
       }
