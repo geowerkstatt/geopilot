@@ -35,7 +35,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   };
 
   const drawerWidth = "250px";
-  const drawerContent = (
+  const drawerContent = (isPermanent: boolean) => (
     <div>
       <Box sx={{ overflow: "auto" }}>
         <List>
@@ -45,7 +45,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
               onClick={() => {
                 navigate("/admin/delivery-overview");
               }}
-              data-cy="admin-delivery-overview-nav">
+              data-cy={isPermanent ? "admin-delivery-overview-nav" : undefined}>
               <ListItemText primary={t("deliveryOverview").toUpperCase()} />
             </ListItemButton>
           </ListItem>
@@ -59,7 +59,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
                 onClick={() => {
                   navigate("/admin/" + link);
                 }}
-                data-cy={`admin-${link}-nav`}>
+                data-cy={isPermanent ? `admin-${link}-nav` : undefined}>
                 <ListItemText primary={t(link).toUpperCase()} />
               </ListItemButton>
             </ListItem>
@@ -84,7 +84,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           {" "}
           <Box sx={{ height: "60px" }} />
           <Divider />
-          {drawerContent}
+          {drawerContent(true)}
         </>
       </Drawer>
       <Drawer
@@ -130,7 +130,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
               )}
             </Box>
           </FlexRowBox>
-          {drawerContent}
+          {drawerContent(false)}
         </>
       </Drawer>
       <Box
