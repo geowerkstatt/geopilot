@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { PromptContext } from "../../components/prompt/promptContext.tsx";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { ChevronLeft, UndoOutlined } from "@mui/icons-material";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   FormAutocomplete,
   FormContainer,
@@ -32,6 +32,7 @@ export const MandateDetail = () => {
   const { fetchApi } = useApi();
   const { registerCheckIsDirty, unregisterCheckIsDirty, checkIsDirty, leaveEditingPage, navigateTo } =
     useControlledNavigate();
+  const navigate = useNavigate();
   const { id } = useParams<{
     id: string;
   }>();
@@ -141,7 +142,7 @@ export const MandateDetail = () => {
         const mandateResponse = response as Mandate;
         if (reloadAfterSave) {
           if (id === "0") {
-            navigateTo(`/admin/mandates/${mandateResponse.id}`);
+            navigate(`/admin/mandates/${mandateResponse.id}`, { replace: true });
           } else {
             loadMandate();
           }
