@@ -161,4 +161,64 @@ public class StacConverterTest
         Assert.AreEqual("PrimaryData", stacAsset.Roles.First());
         Assert.AreEqual("mocked/contenttype", stacAsset.MediaType.MediaType);
     }
+
+    [TestMethod]
+    [DataRow("", "")]
+    [DataRow("Lorem Ipsum", "Lorem Ipsum")]
+    public void ConvertToStacItemHandelsComment(string comment, string expectedDescription)
+    {
+        SetupContextMocks();
+        testDelivery.Comment = comment;
+        var item = converter.ToStacItem(testDelivery);
+        Assert.IsNotNull(item, "StacItem should not be null.");
+        Assert.AreEqual(expectedDescription, item.Description);
+    }
+
+    [TestMethod]
+    [DataRow(true, "Ja")]
+    [DataRow(false, "Nein")]
+    public void ConvertToStacItemHandlesPartialValues(bool isPartial, string? expectedPartialAttribute)
+    {
+        SetupContextMocks();
+        testDelivery.Partial = isPartial;
+        var item = converter.ToStacItem(testDelivery);
+        Assert.IsNotNull(item, "StacItem should not be null.");
+        var property = item.GetProperty<string>("Teillieferung");
+        Assert.AreEqual(expectedPartialAttribute, property);
+    }
+
+    [TestMethod]
+    public void ConvertToStacItemHandlesPartialNull()
+    {
+        SetupContextMocks();
+        testDelivery.Partial = null;
+        var item = converter.ToStacItem(testDelivery);
+        Assert.IsNotNull(item, "StacItem should not be null.");
+        var property = item.GetProperty<string>("Teillieferung");
+        Assert.IsNull(property, "Found unexpected property Teillieferung.");
+    }
+
+    [TestMethod]
+    public void ConvertToStacItemHandlesPrecusorDelivery()
+    {
+        SetupContextMocks();
+        testDelivery.PrecursorDelivery =
+            new Delivery() { Id = 25, Date = new DateTime(10, 11, 12, 13, 14, 16) };
+        var item = converter.ToStacItem(testDelivery);
+        Assert.IsNotNull(item, "StacItem should not be null.");
+        var property = item.GetProperty<string>("Vorgängerversion");
+        Assert.IsNotNull(property, "Expected property Vorgängerversion not found.");
+        Assert.AreEqual("12.11.0010, 13:14:16 UTC", property);
+    }
+
+    [TestMethod]
+    public void ConvertToStacItemHandlesPrecusorDeliveryNull()
+    {
+        SetupContextMocks();
+        testDelivery.PrecursorDelivery = null;
+        var item = converter.ToStacItem(testDelivery);
+        Assert.IsNotNull(item, "StacItem should not be null.");
+        var property = item.GetProperty<string>("Vorgängerversion");
+        Assert.IsNull(property, "Found unexpected property Vorgängerversion.");
+    }
 }
