@@ -178,7 +178,7 @@ describe("Delivery tests", () => {
     cy.wait("@fileExtensions");
     cy.contains(".csv, .gpkg, .itf, .xml, .xtf or .zip (max. 200 MB)");
 
-    addFile("deliveryFiles/invalid-type.png", false);
+    addFile("deliveryFiles/picture-type.png", false);
     stepHasError("upload", true, "The file type is not supported");
 
     addFile(["deliveryFiles/ilimodels_invalid.xml", "deliveryFiles/ilimodels_valid.xml"], false);
@@ -357,7 +357,7 @@ describe("Delivery tests", () => {
     stepIsActive("upload");
 
     // All file types are allowed
-    addFile("deliveryFiles/invalid-type.png", true);
+    addFile("deliveryFiles/picture-type.png", true);
     stepHasError("upload", false);
     uploadFile();
 
