@@ -31,7 +31,7 @@ export const isDisabled = (fieldName, isDisabled = true, parent) => {
 };
 
 /**
- * Gets a from element.
+ * Gets a form element.
  * @param {any} fieldName The name of the form element.
  * @param {any} parent (optional) The parent of the form element.
  * @returns
@@ -42,7 +42,7 @@ export const getFormField = (fieldName, parent) => {
 };
 
 /**
- * Gets a from element's input field.
+ * Gets a form element's input field.
  * @param {any} fieldName The name of the form element.
  * @param {any} parent (optional) The parent of the form element.
  * @returns
