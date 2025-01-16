@@ -283,13 +283,11 @@ describe("Delivery tests", () => {
     cy.get('[data-cy="done-step"]').should("exist");
     stepIsActive("upload");
 
-    // All file types are allowed
+    // Selected file can be removed
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     stepHasError("upload", false);
-
-    // Selected file can be removed
     cy.get('[data-cy="file-remove-button"]').click();
-    cy.contains("invalid-type.png").should("not.exist");
+    cy.contains("ilimodels_not_conform").should("not.exist");
     stepIsActive("upload");
 
     // Can cancel the upload which will reset the form
