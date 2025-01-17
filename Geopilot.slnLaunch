@@ -1,0 +1,22 @@
+[
+  {
+    "Name": "Local-Development",
+    "Projects": [
+      {
+        "Path": "src\\Geopilot.Frontend\\Geopilot.Frontend.esproj",
+        "Action": "Start",
+        "DebugTarget": "localhost (Edge)"
+      },
+      {
+        "Path": "src\\Geopilot.Api\\Geopilot.Api.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "docker-compose.dcproj",
+        "Action": "Start",
+        "DebugTarget": "Docker Compose"
+      }
+    ]
+  }
+]

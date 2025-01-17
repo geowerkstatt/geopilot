@@ -223,7 +223,7 @@ export const MandateDetail = () => {
                 </Typography>
                 <FormContainer>
                   <FormSelect
-                    fieldName={"precursor"}
+                    fieldName={"evaluatePrecursorDelivery"}
                     label={"precursor"}
                     required={true}
                     selected={mandate?.evaluatePrecursorDelivery ? [mandate.evaluatePrecursorDelivery] : []}
@@ -234,7 +234,7 @@ export const MandateDetail = () => {
                     ]}
                   />
                   <FormSelect
-                    fieldName={"partialDelivery"}
+                    fieldName={"evaluatePartial"}
                     label={"partialDelivery"}
                     required={true}
                     selected={mandate?.evaluatePartial ? [mandate.evaluatePartial] : []}
@@ -246,7 +246,7 @@ export const MandateDetail = () => {
                 </FormContainer>
                 <FormContainerHalfWidth>
                   <FormSelect
-                    fieldName={"comment"}
+                    fieldName={"evaluateComment"}
                     label={"comment"}
                     required={true}
                     selected={mandate?.evaluateComment ? [mandate.evaluateComment] : []}
