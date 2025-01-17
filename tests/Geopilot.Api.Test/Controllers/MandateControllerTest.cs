@@ -158,6 +158,25 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task GetByIdAsync()
+        {
+            var mandateId = context.Mandates.First().Id;
+
+            var response = await mandateController.GetById(mandateId);
+            ActionResultAssert.IsOk(response);
+            var mandate = (response as OkObjectResult)?.Value as Mandate;
+            Assert.IsNotNull(mandate);
+            Assert.AreEqual(mandateId, mandate.Id);
+        }
+
+        [TestMethod]
+        public async Task GetByIdNotFoundAsync()
+        {
+            var response = await mandateController.GetById(987654321);
+            ActionResultAssert.IsNotFound(response);
+        }
+
+        [TestMethod]
         public async Task CreateMandate()
         {
             mandateController.SetupTestUser(adminUser);
@@ -229,7 +248,6 @@ namespace Geopilot.Api.Controllers
             {
                 JobId = guid,
                 MandateId = mandateToUpdate.Id,
-                PartialDelivery = false,
             };
 
             var result = await deliveryController.Create(request);

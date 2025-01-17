@@ -45,7 +45,7 @@ namespace Geopilot.Api.Migrations
                 keyColumn: "EvaluateComment",
                 keyValue: string.Empty,
                 column: "EvaluateComment",
-                value: FieldEvaluationType.Required.ToString());
+                value: FieldEvaluationType.Optional.ToString());
 
             migrationBuilder.UpdateData(
                 table: "Mandates",
@@ -59,7 +59,7 @@ namespace Geopilot.Api.Migrations
                 keyColumn: "EvaluatePrecursorDelivery",
                 keyValue: string.Empty,
                 column: "EvaluatePrecursorDelivery",
-                value: FieldEvaluationType.Required.ToString());
+                value: FieldEvaluationType.Optional.ToString());
 
         }
 

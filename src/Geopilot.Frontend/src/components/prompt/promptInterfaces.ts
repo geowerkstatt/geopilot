@@ -15,6 +15,7 @@ export interface PromptOptions {
 
 export interface PromptAction {
   label: string;
+  icon?: ReactNode;
   action?: () => void | Promise<void>;
   color?: PromptActionColor;
   variant?: PromptActionVariant;

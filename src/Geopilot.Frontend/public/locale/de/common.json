@@ -67,7 +67,7 @@
   "organisationSaveError": "Beim Speichern der Organisation ist ein Fehler aufgetreten: {{error}}",
   "organisations": "Organisationen",
   "organisationsLoadingError": "Beim Laden der Organisationen ist ein Fehler aufgetreten: {{error}}",
-  "predecessor": "Vorgänger",
+  "precursor": "Vorgänger",
   "privacyPolicy": "Datenschutz",
   "resetCurrentChanges": "Aktuelle Änderungen zurücksetzen",
   "save": "Speichern",

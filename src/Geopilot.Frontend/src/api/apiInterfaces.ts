@@ -36,6 +36,9 @@ export interface Mandate {
   coordinates: Coordinate[];
   organisations: Organisation[] | number[];
   deliveries: Delivery[];
+  evaluatePrecursorDelivery: FieldEvaluationType;
+  evaluatePartial: FieldEvaluationType;
+  evaluateComment: FieldEvaluationType;
 }
 
 export interface Organisation {
@@ -83,4 +86,10 @@ export interface ValidationResponse {
   jobId: string;
   status: ValidationStatus;
   validatorResults: Record<string, ValidatorResult>;
+}
+
+export enum FieldEvaluationType {
+  NotEvaluated = "notEvaluated",
+  Optional = "optional",
+  Required = "required",
 }

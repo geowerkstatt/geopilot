@@ -1,8 +1,7 @@
-import { MenuItem, SxProps } from "@mui/material";
+import { MenuItem, SxProps, TextField } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { Controller, useFormContext } from "react-hook-form";
 import { getFormFieldError } from "./form";
-import { FormField } from "./formField";
 import { FC } from "react";
 
 export interface FormSelectProps {
@@ -42,7 +41,9 @@ export const FormSelect: FC<FormSelectProps> = ({
   const { control } = useFormContext();
 
   const menuItems: FormSelectMenuItem[] = [];
-  menuItems.push({ key: 0, value: undefined, label: t("reset"), italic: true });
+  if (!required) {
+    menuItems.push({ key: 0, value: undefined, label: t("reset"), italic: true });
+  }
 
   if (values) {
     values.forEach(value => {
@@ -68,7 +69,7 @@ export const FormSelect: FC<FormSelectProps> = ({
         },
       }}
       render={({ field, formState }) => (
-        <FormField
+        <TextField
           select
           required={required ?? false}
           error={getFormFieldError(fieldName, formState.errors)}
@@ -87,7 +88,7 @@ export const FormSelect: FC<FormSelectProps> = ({
               {item.italic ? <em>{item.label}</em> : item.label}
             </MenuItem>
           ))}
-        </FormField>
+        </TextField>
       )}
     />
   );
