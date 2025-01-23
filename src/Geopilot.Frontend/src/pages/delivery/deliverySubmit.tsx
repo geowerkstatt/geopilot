@@ -6,7 +6,7 @@ import { FlexBox, FlexRowEndBox } from "../../components/styledComponents.ts";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
 import SendIcon from "@mui/icons-material/Send";
-import { Delivery, Mandate } from "../../api/apiInterfaces.ts";
+import { Delivery, FieldEvaluationType, Mandate } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
 import { DeliveryStepEnum, DeliverySubmitData } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
@@ -19,6 +19,7 @@ export const DeliverySubmit = () => {
   const { fetchApi } = useApi();
   const { setStepError, validationResponse, isLoading, submitDelivery, resetDelivery } = useContext(DeliveryContext);
   const [mandates, setMandates] = useState<Mandate[]>([]);
+  const [selectedMandate, setSelectedMandate] = useState<Mandate>();
   const [previousDeliveries, setPreviousDeliveries] = useState<Delivery[]>([]);
 
   useEffect(() => {
@@ -43,12 +44,16 @@ export const DeliverySubmit = () => {
   };
 
   const handleMandateChange = (mandateId: number) => {
-    formMethods.setValue("precursor", undefined);
+    formMethods.reset();
+    formMethods.setValue("mandate", mandateId);
     if (mandateId) {
       fetchApi<Delivery[]>("/api/v1/delivery?" + new URLSearchParams({ mandateId: mandateId.toString() })).then(
         setPreviousDeliveries,
       );
+      const mandate = mandates.find(mandate => mandate.id === mandateId);
+      setSelectedMandate(mandate);
     } else {
+      setSelectedMandate(undefined);
       setPreviousDeliveries([]);
     }
   };
@@ -68,19 +73,35 @@ export const DeliverySubmit = () => {
                 .map(mandate => ({ key: mandate.id, name: mandate.name }))}
               onUpdate={handleMandateChange}
             />
-            <FormSelect
-              fieldName="precursor"
-              label="precursor"
-              disabled={previousDeliveries.length === 0}
-              values={previousDeliveries.map(delivery => ({ key: delivery.id, name: delivery.date.toLocaleString() }))}
-            />
+            {selectedMandate && selectedMandate.evaluatePrecursorDelivery !== FieldEvaluationType.NotEvaluated ? (
+              <FormSelect
+                fieldName="precursor"
+                label="precursor"
+                required={selectedMandate.evaluatePrecursorDelivery === FieldEvaluationType.Required}
+                disabled={previousDeliveries.length === 0}
+                values={previousDeliveries.map(delivery => ({
+                  key: delivery.id,
+                  name: delivery.date.toLocaleString(),
+                }))}
+              />
+            ) : null}
           </FormContainer>
-          <FormContainer>
-            <FormCheckbox fieldName="isPartial" label="isPartialDelivery" checked={false} />
-          </FormContainer>
-          <FormContainer>
-            <FormInput fieldName="comment" label="comment" multiline={true} rows={3} />
-          </FormContainer>
+          {selectedMandate && selectedMandate.evaluatePartial === FieldEvaluationType.Required ? (
+            <FormContainer>
+              <FormCheckbox fieldName="isPartial" label="isPartialDelivery" checked={false} />
+            </FormContainer>
+          ) : null}
+          {selectedMandate && selectedMandate.evaluateComment !== FieldEvaluationType.NotEvaluated ? (
+            <FormContainer>
+              <FormInput
+                fieldName="comment"
+                label="comment"
+                required={selectedMandate.evaluateComment === FieldEvaluationType.Required}
+                multiline={true}
+                rows={3}
+              />
+            </FormContainer>
+          ) : null}
           <FlexRowEndBox>
             <CancelButton onClick={() => resetDelivery()} disabled={isLoading} />
             <BaseButton
