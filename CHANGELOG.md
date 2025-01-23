@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+- Added the option to control how attributes for deliveries are requested from the user for each mandate.
+    - All deliveries are migrated to match current behaviour.
+
+
 ### Changed
 - The code for this application is now available under the AGPL 3.0 licence.
 - **BREAKING** The application updated to STAC-Browser version 3.2.0 and changed how /browser requests are proxied.
