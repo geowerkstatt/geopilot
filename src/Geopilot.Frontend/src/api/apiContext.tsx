@@ -31,7 +31,11 @@ export const ApiProvider: FC<PropsWithChildren> = ({ children }) => {
         const clonedResponse = response.clone();
         try {
           const errorObject = await clonedResponse.json();
-          errorResponse = errorObject.detail;
+          if (errorObject.detail) {
+            errorResponse = errorObject.detail;
+          } else {
+            errorResponse = errorObject.title;
+          }
         } catch (e) {
           errorResponse = await response.text();
         }
