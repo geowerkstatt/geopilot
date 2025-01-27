@@ -141,7 +141,7 @@ export const MandateDetail = () => {
         const mandateResponse = response as Mandate;
         if (reloadAfterSave) {
           setMandate(mandateResponse);
-          formMethods.reset();
+          formMethods.reset(mandateResponse);
           if (id === "0") {
             navigate(`/admin/mandates/${mandateResponse.id}`, { replace: true });
           }
