@@ -267,7 +267,7 @@ export const MandateDetail = () => {
                 />
                 <BaseButton
                   icon={<SaveOutlinedIcon />}
-                  disabled={!formMethods.formState.isValid}
+                  disabled={!formMethods.formState.isValid || !formMethods.formState.isDirty}
                   onClick={() => formMethods.handleSubmit(submitForm)()}
                   label={"save"}
                 />
