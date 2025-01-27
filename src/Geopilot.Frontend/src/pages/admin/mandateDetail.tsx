@@ -159,8 +159,7 @@ export const MandateDetail = () => {
     if (mandate) {
       formMethods.trigger();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mandate, formMethods.trigger]);
+  }, [mandate, formMethods, formMethods.trigger]);
 
   return (
     <FlexBox>
