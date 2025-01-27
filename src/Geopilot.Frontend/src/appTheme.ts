@@ -284,8 +284,19 @@ export const geopilotTheme = createTheme({
         root: {
           padding: "0",
           paddingTop: themeSpacing(1),
-          "& > :not(:first-child)": {
+          "& > :not(:first-of-type)": {
             marginLeft: themeSpacing(2),
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#124A4F33",
+
+          "& .MuiChip-deleteIcon": {
+            color: "#124A4F80",
           },
         },
       },

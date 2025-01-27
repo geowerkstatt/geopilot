@@ -46,3 +46,5 @@ export const FormContainerHalfWidth = styled(FormContainer)(({ theme }) => ({
 export { FormInput } from "./formInput";
 export { FormSelect } from "./formSelect";
 export { FormCheckbox } from "./formCheckbox";
+export { FormAutocomplete } from "./formAutocomplete";
+export { FormExtent } from "./formExtent";

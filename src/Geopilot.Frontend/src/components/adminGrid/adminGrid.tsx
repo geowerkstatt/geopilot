@@ -21,7 +21,6 @@ import {
   IsGridMultiSelectColDef,
   TransformToMultiSelectColumn,
 } from "../dataGrid/dataGridMultiSelectColumn";
-import { IsGridSpatialExtentColDef, TransformToSpatialExtentColumn } from "../dataGrid/dataGridSpatialExtentColumn";
 import { BaseButton } from "../buttons.tsx";
 
 export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave, onDisconnect, disableRow }) => {
@@ -111,9 +110,6 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
     defaultRow[column.field] = undefined;
     if (IsGridMultiSelectColDef(column)) {
       TransformToMultiSelectColumn(column as GridMultiSelectColDef);
-    }
-    if (IsGridSpatialExtentColDef(column)) {
-      TransformToSpatialExtentColumn(column);
     }
   });
   const adminGridColumns: GridColDef[] = columns.concat(actionColumn);
