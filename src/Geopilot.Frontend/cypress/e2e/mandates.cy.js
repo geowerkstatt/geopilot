@@ -249,6 +249,6 @@ describe("Mandate tests", () => {
     isPromptVisible(false);
     cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row')
       .first()
-      .contains("Schumm, Runte and Macejkovic", "Brown and Sons");
+      .contains("Schumm, Runte and Macejkovic, Brown and Sons");
   });
 });
