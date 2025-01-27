@@ -199,9 +199,8 @@ describe("Mandate tests", () => {
     cy.contains("Description").click();
     cy.wait(500);
     cy.get('[data-cy="reset-button"]').should("be.enabled");
-
+    cy.get('[data-cy="reset-button"]').click();
     cy.get('[data-cy="backToMandates-button"]').click();
-    handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
     cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
     cy.contains(randomMandateName);
   });
