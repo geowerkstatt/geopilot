@@ -133,11 +133,12 @@ export const MandateDetail = () => {
         (value: FormAutocompleteValue) => ({ id: value.key }) as Organisation,
       );
       mandate.id = parseInt(id);
-      fetchApi("/api/v1/mandate", {
-        method: mandate.id === 0 ? "POST" : "PUT",
-        body: JSON.stringify(mandate),
-        errorMessageLabel: "mandateSaveError",
-      }).then(response => {
+      try {
+        const response = await fetchApi("/api/v1/mandate", {
+          method: mandate.id === 0 ? "POST" : "PUT",
+          body: JSON.stringify(mandate),
+          errorMessageLabel: "mandateSaveError",
+        });
         const mandateResponse = response as Mandate;
         if (reloadAfterSave) {
           setMandate(mandateResponse);
@@ -146,7 +147,9 @@ export const MandateDetail = () => {
             navigate(`/admin/mandates/${mandateResponse.id}`, { replace: true });
           }
         }
-      });
+      } catch (error) {
+        console.error("Error saving mandate:", error);
+      }
     }
   };
 
