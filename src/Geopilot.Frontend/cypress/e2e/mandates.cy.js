@@ -96,7 +96,7 @@ describe("Mandate tests", () => {
     cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').first().contains(randomMandateName);
   });
 
-  it("adds new mandate", () => {
+  it("can create mandate", () => {
     const randomMandateName = getRandomManadateName();
     cy.intercept({ url: "/api/v1/mandate", method: "POST" }).as("saveNew");
 
@@ -187,19 +187,28 @@ describe("Mandate tests", () => {
 
     cy.get('[data-cy="save-button"]').click();
     cy.wait("@saveNew");
+    cy.wait(500); // Wait for the form to reset.
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
     });
 
-    // TODO: Check if the new mandate can be edited right away.
+    cy.get('[data-cy="reset-button"]').should("be.disabled");
+    cy.get('[data-cy="save-button"]').should("be.disabled");
+
+    setAutocomplete("fileTypes", ".xml");
+    cy.contains("Description").click();
+    cy.wait(500);
+    cy.get('[data-cy="reset-button"]').should("be.enabled");
 
     cy.get('[data-cy="backToMandates-button"]').click();
+    handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
     cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
     cy.contains(randomMandateName);
   });
 
-  // Skip until fieldEvaluationType works https://github.com/GeoWerkstatt/geopilot/issues/362
-  it.skip("can edit existing mandate", () => {
+  it("can edit existing mandate", () => {
+    cy.intercept({ url: "/api/v1/mandate", method: "PUT" }).as("updateMandate");
+
     cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').first().click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
@@ -231,6 +240,15 @@ describe("Mandate tests", () => {
     setSelect("evaluatePartial", 0, 2);
 
     cy.get('[data-cy="save-button"]').click();
-    // TODO: Check if the changes are saved.
+    cy.wait("@updateMandate");
+    cy.wait(500); // Wait for the form to reset.
+    cy.get('[data-cy="reset-button"]').should("be.disabled");
+    cy.get('[data-cy="save-button"]').should("be.disabled");
+
+    cy.get('[data-cy="backToMandates-button"]').click();
+    isPromptVisible(false);
+    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row')
+      .first()
+      .contains("Schumm, Runte and Macejkovic", "Brown and Sons");
   });
 });
