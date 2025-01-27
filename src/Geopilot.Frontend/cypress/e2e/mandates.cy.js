@@ -80,9 +80,9 @@ describe("Mandate tests", () => {
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
     setInput("extent-upper-right-latitude", "47.46");
-    setSelect("precursor", 0, 3);
-    setSelect("partialDelivery", 1, 2);
-    setSelect("comment", 1, 3);
+    setSelect("evaluatePrecursorDelivery", 0, 3);
+    setSelect("evaluatePartial", 1, 2);
+    setSelect("evaluateComment", 1, 3);
     cy.get('[data-cy="save-button"]').should("be.enabled");
     openTool("delivery");
     checkPromptActions(["cancel", "reset", "save"]);
@@ -113,9 +113,9 @@ describe("Mandate tests", () => {
     hasError("extent-bottom-left-latitude", true);
     hasError("extent-upper-right-longitude", true);
     hasError("extent-upper-right-latitude", true);
-    hasError("precursor", true);
-    hasError("partialDelivery", true);
-    hasError("comment", true);
+    hasError("evaluatePrecursorDelivery", true);
+    hasError("evaluatePartial", true);
+    hasError("evaluateComment", true);
 
     setInput("name", randomMandateName);
     hasError("name", false);
@@ -141,12 +141,12 @@ describe("Mandate tests", () => {
     hasError("extent-bottom-left-latitude", false);
     hasError("extent-upper-right-longitude", false);
     hasError("extent-upper-right-latitude", false);
-    setSelect("precursor", 0, 3);
-    hasError("precursor", false);
-    setSelect("partialDelivery", 1, 2);
-    hasError("partialDelivery", false);
-    setSelect("comment", 1, 3);
-    hasError("comment", false);
+    setSelect("evaluatePrecursorDelivery", 0, 3);
+    hasError("evaluatePrecursorDelivery", false);
+    setSelect("evaluatePartial", 1, 2);
+    hasError("evaluatePartial", false);
+    setSelect("evaluateComment", 1, 3);
+    hasError("evaluateComment", false);
 
     hasError("extent-bottom-left-longitude", false);
     hasError("extent-bottom-left-latitude", false);
@@ -169,9 +169,9 @@ describe("Mandate tests", () => {
     evaluateInput("extent-bottom-left-latitude", "");
     evaluateInput("extent-upper-right-longitude", "");
     evaluateInput("extent-upper-right-latitude", "");
-    evaluateSelect("precursor", "");
-    evaluateSelect("partialDelivery", "");
-    evaluateSelect("comment", "");
+    evaluateSelect("evaluatePrecursorDelivery", "");
+    evaluateSelect("evaluatePartial", "");
+    evaluateSelect("evaluateComment", "");
 
     setInput("name", randomMandateName);
     setAutocomplete("organisations", "Brown and Sons");
@@ -181,9 +181,9 @@ describe("Mandate tests", () => {
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
     setInput("extent-upper-right-latitude", "47.46");
-    setSelect("precursor", 0, 3);
-    setSelect("partialDelivery", 1, 2);
-    setSelect("comment", 1, 3);
+    setSelect("evaluatePrecursorDelivery", 0, 3);
+    setSelect("evaluatePartial", 1, 2);
+    setSelect("evaluateComment", 1, 3);
 
     cy.get('[data-cy="save-button"]').click();
     cy.wait("@saveNew");
@@ -228,7 +228,7 @@ describe("Mandate tests", () => {
     cy.get('[data-cy="reset-button"]').should("be.enabled");
     cy.get('[data-cy="save-button"]').should("be.enabled");
 
-    setSelect("partialDelivery", 0, 2);
+    setSelect("evaluatePartial", 0, 2);
 
     cy.get('[data-cy="save-button"]').click();
     // TODO: Check if the changes are saved.
