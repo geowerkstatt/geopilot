@@ -20,9 +20,9 @@ import {
 import { FieldEvaluationType, Mandate, Organisation, ValidationSettings } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
 import { useGeopilotAuth } from "../../auth";
-import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 import { useControlledNavigate } from "../../components/controlledNavigate";
 import { PromptAction } from "../../components/prompt/promptInterfaces.ts";
+import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 
 export const MandateDetail = () => {
   const { t } = useTranslation();
@@ -132,7 +132,6 @@ export const MandateDetail = () => {
       mandate.organisations = data["organisations"]?.map(
         (value: FormAutocompleteValue) => ({ id: value.key }) as Organisation,
       );
-      mandate.fileTypes = data["fileTypes"]?.map((value: FormAutocompleteValue) => value.name as string);
       mandate.id = parseInt(id);
       fetchApi("/api/v1/mandate", {
         method: mandate.id === 0 ? "POST" : "PUT",
