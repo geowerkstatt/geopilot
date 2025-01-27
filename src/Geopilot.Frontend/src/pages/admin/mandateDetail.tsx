@@ -148,7 +148,7 @@ export const MandateDetail = () => {
           }
         }
       } catch (error) {
-        console.error("Error saving mandate:", error);
+        console.error(t("mandateSaveError", { error: (error as Error)?.message }), error);
       }
     }
   };
