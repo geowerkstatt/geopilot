@@ -68,7 +68,7 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
           multiple
           disabled={disabled ?? false}
           onChange={(event: SyntheticEvent, newValue: FormAutocompleteValue[]) => {
-            setValue(fieldName, newValue, { shouldValidate: true });
+            setValue(fieldName, newValue, { shouldValidate: true, shouldDirty: true });
           }}
           renderInput={params => (
             <TextField
