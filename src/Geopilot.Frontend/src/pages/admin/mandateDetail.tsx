@@ -125,7 +125,7 @@ export const MandateDetail = () => {
     }
   }, [fileExtensions, loadFileExtensions, loadMandate, loadOrganisations, mandate, organisations, user?.isAdmin]);
 
-  async function saveMandate(data: FieldValues, reloadAfterSave = true) {
+  const saveMandate = async (data: FieldValues, reloadAfterSave = true) => {
     if (id !== undefined) {
       const mandate = data as Mandate;
       mandate.deliveries = [];
@@ -134,22 +134,22 @@ export const MandateDetail = () => {
       );
       mandate.fileTypes = data["fileTypes"]?.map((value: FormAutocompleteValue) => value.name as string);
       mandate.id = parseInt(id);
-      await fetchApi("/api/v1/mandate", {
+      fetchApi("/api/v1/mandate", {
         method: mandate.id === 0 ? "POST" : "PUT",
         body: JSON.stringify(mandate),
         errorMessageLabel: "mandateSaveError",
       }).then(response => {
         const mandateResponse = response as Mandate;
         if (reloadAfterSave) {
+          setMandate(mandateResponse);
+          formMethods.reset();
           if (id === "0") {
             navigate(`/admin/mandates/${mandateResponse.id}`, { replace: true });
-          } else {
-            loadMandate();
           }
         }
       });
     }
-  }
+  };
 
   const submitForm = (data: FieldValues) => {
     saveMandate(data, true);
@@ -226,7 +226,7 @@ export const MandateDetail = () => {
                     fieldName={"evaluatePrecursorDelivery"}
                     label={"precursor"}
                     required={true}
-                    selected={mandate?.evaluatePrecursorDelivery ? [mandate.evaluatePrecursorDelivery] : []}
+                    selected={mandate?.evaluatePrecursorDelivery}
                     values={[
                       { key: 0, value: FieldEvaluationType.NotEvaluated, name: t("fieldNotEvaluated") },
                       { key: 1, value: FieldEvaluationType.Optional, name: t("fieldOptional") },
@@ -237,7 +237,7 @@ export const MandateDetail = () => {
                     fieldName={"evaluatePartial"}
                     label={"partialDelivery"}
                     required={true}
-                    selected={mandate?.evaluatePartial ? [mandate.evaluatePartial] : []}
+                    selected={mandate?.evaluatePartial}
                     values={[
                       { key: 0, value: FieldEvaluationType.NotEvaluated, name: t("fieldNotEvaluated") },
                       { key: 1, value: FieldEvaluationType.Required, name: t("fieldRequired") },
@@ -249,7 +249,7 @@ export const MandateDetail = () => {
                     fieldName={"evaluateComment"}
                     label={"comment"}
                     required={true}
-                    selected={mandate?.evaluateComment ? [mandate.evaluateComment] : []}
+                    selected={mandate?.evaluateComment}
                     values={[
                       { key: 0, value: FieldEvaluationType.NotEvaluated, name: t("fieldNotEvaluated") },
                       { key: 1, value: FieldEvaluationType.Optional, name: t("fieldOptional") },
