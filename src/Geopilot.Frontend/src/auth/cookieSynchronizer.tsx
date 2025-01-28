@@ -18,7 +18,7 @@ export const CookieSynchronizer: FC = () => {
     } else {
       clearCookie();
     }
-  }, [auth, auth?.isAuthenticated]);
+  }, [auth, auth?.isAuthenticated, auth?.user?.id_token]);
 
   return <></>;
 };
