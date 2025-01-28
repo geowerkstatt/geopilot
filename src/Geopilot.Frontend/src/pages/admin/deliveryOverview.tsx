@@ -119,9 +119,9 @@ export const DeliveryOverview = () => {
             variant="contained"
             startIcon={<DeleteOutlinedIcon />}
             onClick={() => {
-              showPrompt(t("deleteDeliveryConfirmation"), [
-                { label: t("cancel") },
-                { label: t("delete"), action: handleDelete, color: "error", variant: "contained" },
+              showPrompt("deleteDeliveryConfirmation", [
+                { label: "cancel" },
+                { label: "delete", action: handleDelete, color: "error", variant: "contained" },
               ]);
             }}>
             <div>{t("deleteDelivery", { count: selectedRows.length })}</div>

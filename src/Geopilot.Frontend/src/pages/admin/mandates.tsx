@@ -9,12 +9,12 @@ import { Tooltip } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import { BaseButton } from "../../components/buttons.tsx";
-import { useNavigate } from "react-router-dom";
+import { useControlledNavigate } from "../../components/controlledNavigate";
 
 export const Mandates = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
-  const navigate = useNavigate();
+  const { navigateTo } = useControlledNavigate();
   const [mandates, setMandates] = useState<Mandate[]>();
   const { fetchApi } = useApi();
 
@@ -23,7 +23,7 @@ export const Mandates = () => {
   }, [fetchApi]);
 
   const startEditing = (id: GridRowId) => {
-    navigate(`${id}`);
+    navigateTo(`/admin/mandates/${id}`);
   };
 
   useEffect(() => {
@@ -86,6 +86,7 @@ export const Mandates = () => {
         label={"addMandate"}
       />
       <DataGrid
+        data-cy="mandates-grid"
         loading={!mandates?.length}
         rows={mandates as unknown as DataRow[]}
         columns={columns}

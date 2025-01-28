@@ -60,10 +60,10 @@ export const Organisations = () => {
   }
 
   async function onDisconnect(row: DataRow) {
-    showPrompt(t("organisationDisconnect"), [
-      { label: t("cancel"), icon: <CancelOutlinedIcon /> },
+    showPrompt("organisationDisconnect", [
+      { label: "cancel", icon: <CancelOutlinedIcon /> },
       {
-        label: t("disconnect"),
+        label: "disconnect",
         icon: <LinkOffIcon />,
         action: () => {
           const organisation = row as unknown as Organisation;

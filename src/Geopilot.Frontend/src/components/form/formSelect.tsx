@@ -9,7 +9,7 @@ export interface FormSelectProps {
   label: string;
   required?: boolean;
   disabled?: boolean;
-  selected?: number[] | string[];
+  selected?: number | string;
   values?: FormSelectValue[];
   sx?: SxProps;
   onUpdate?: (value: number) => void;
