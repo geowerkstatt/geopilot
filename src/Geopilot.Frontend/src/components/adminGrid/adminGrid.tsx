@@ -21,7 +21,6 @@ import {
   IsGridMultiSelectColDef,
   TransformToMultiSelectColumn,
 } from "../dataGrid/dataGridMultiSelectColumn";
-import { IsGridSpatialExtentColDef, TransformToSpatialExtentColumn } from "../dataGrid/dataGridSpatialExtentColumn";
 import { BaseButton } from "../buttons.tsx";
 
 export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave, onDisconnect, disableRow }) => {
@@ -60,49 +59,41 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
       if (isInEditMode) {
         return [
           <Tooltip title={t("save")} key={`save-${id}`}>
-            <span>
-              <GridActionsCellItem
-                icon={<SaveOutlinedIcon />}
-                label={t("save")}
-                onClick={handleSaveClick(id)}
-                color="inherit"
-              />
-            </span>
+            <GridActionsCellItem
+              icon={<SaveOutlinedIcon />}
+              label={t("save")}
+              onClick={handleSaveClick(id)}
+              color="inherit"
+            />
           </Tooltip>,
           <Tooltip title={t("cancel")} key={`cancel-${id}`}>
-            <span>
-              <GridActionsCellItem
-                icon={<CancelOutlinedIcon />}
-                label={t("cancel")}
-                onClick={handleCancelClick(id)}
-                color="inherit"
-              />
-            </span>
+            <GridActionsCellItem
+              icon={<CancelOutlinedIcon />}
+              label={t("cancel")}
+              onClick={handleCancelClick(id)}
+              color="inherit"
+            />
           </Tooltip>,
         ];
       }
 
       return [
         <Tooltip title={t("edit")} key={`edit-${id}`}>
-          <span>
-            <GridActionsCellItem
-              icon={<EditOutlinedIcon />}
-              label={t("edit")}
-              onClick={handleEditClick(id)}
-              color="inherit"
-              disabled={editingRow !== undefined}
-            />
-          </span>
+          <GridActionsCellItem
+            icon={<EditOutlinedIcon />}
+            label={t("edit")}
+            onClick={handleEditClick(id)}
+            color="inherit"
+            disabled={editingRow !== undefined}
+          />
         </Tooltip>,
         <Tooltip title={t("disconnect")} key={`disconnect-${id}`}>
-          <span>
-            <GridActionsCellItem
-              icon={<LinkOffIcon />}
-              label={t("disconnect")}
-              onClick={handleDisconnectClick(id)}
-              color="error"
-            />
-          </span>
+          <GridActionsCellItem
+            icon={<LinkOffIcon />}
+            label={t("disconnect")}
+            onClick={handleDisconnectClick(id)}
+            color="error"
+          />
         </Tooltip>,
       ];
     },
@@ -111,9 +102,6 @@ export const AdminGrid: FC<AdminGridProps> = ({ addLabel, data, columns, onSave,
     defaultRow[column.field] = undefined;
     if (IsGridMultiSelectColDef(column)) {
       TransformToMultiSelectColumn(column as GridMultiSelectColDef);
-    }
-    if (IsGridSpatialExtentColDef(column)) {
-      TransformToSpatialExtentColumn(column);
     }
   });
   const adminGridColumns: GridColDef[] = columns.concat(actionColumn);

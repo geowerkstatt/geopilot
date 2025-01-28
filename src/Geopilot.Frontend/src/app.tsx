@@ -16,6 +16,8 @@ import { About } from "./pages/footer/about.tsx";
 import { Imprint } from "./pages/footer/imprint.tsx";
 import { DeliveryProvider } from "./pages/delivery/deliveryContext.tsx";
 import { CircularProgress } from "@mui/material";
+import MandateDetail from "./pages/admin/mandateDetail.tsx";
+import { ControlledNavigateProvider } from "./components/controlledNavigate/controlledNavigateProvider.tsx";
 
 export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
@@ -24,48 +26,51 @@ export const App: FC = () => {
   return (
     <AppBox>
       <BrowserRouter>
-        <Header
-          openSubMenu={() => {
-            setIsSubMenuOpen(true);
-          }}
-        />
-        <LayoutBox>
-          <PageContentBox>
-            {isLoading ? (
-              <CircularProgress />
-            ) : (
-              <Routes>
-                <Route
-                  path="/"
-                  element={
-                    <DeliveryProvider>
-                      <Delivery />
-                    </DeliveryProvider>
-                  }
-                />
-                {isAdmin ? (
-                  <>
-                    <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
-                    <Route
-                      path="admin"
-                      element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
-                      <Route path="delivery-overview" element={<DeliveryOverview />} />
-                      <Route path="users" element={<Users />} />
-                      <Route path="mandates" element={<Mandates />} />
-                      <Route path="organisations" element={<Organisations />} />
-                    </Route>
-                  </>
-                ) : (
-                  <Route path="admin/*" element={<Navigate to="/" replace />} />
-                )}
-                <Route path="/imprint" element={<Imprint />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/about" element={<About />} />
-              </Routes>
-            )}
-          </PageContentBox>
-          <Footer />
-        </LayoutBox>
+        <ControlledNavigateProvider>
+          <Header
+            openSubMenu={() => {
+              setIsSubMenuOpen(true);
+            }}
+          />
+          <LayoutBox>
+            <PageContentBox>
+              {isLoading ? (
+                <CircularProgress />
+              ) : (
+                <Routes>
+                  <Route
+                    path="/"
+                    element={
+                      <DeliveryProvider>
+                        <Delivery />
+                      </DeliveryProvider>
+                    }
+                  />
+                  {isAdmin ? (
+                    <>
+                      <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
+                      <Route
+                        path="admin"
+                        element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
+                        <Route path="delivery-overview" element={<DeliveryOverview />} />
+                        <Route path="users" element={<Users />} />
+                        <Route path="mandates" element={<Mandates />} />
+                        <Route path="mandates/:id" element={<MandateDetail />} />
+                        <Route path="organisations" element={<Organisations />} />
+                      </Route>
+                    </>
+                  ) : (
+                    <Route path="admin/*" element={<Navigate to="/" replace />} />
+                  )}
+                  <Route path="/imprint" element={<Imprint />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/about" element={<About />} />
+                </Routes>
+              )}
+            </PageContentBox>
+            <Footer />
+          </LayoutBox>
+        </ControlledNavigateProvider>
       </BrowserRouter>
     </AppBox>
   );

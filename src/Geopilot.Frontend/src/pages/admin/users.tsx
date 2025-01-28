@@ -54,10 +54,10 @@ export const Users = () => {
   }
 
   async function onDisconnect(row: DataRow) {
-    showPrompt(t("userDisconnect"), [
-      { label: t("cancel"), icon: <CancelOutlinedIcon /> },
+    showPrompt("userDisconnect", [
+      { label: "cancel", icon: <CancelOutlinedIcon /> },
       {
-        label: t("disconnect"),
+        label: "disconnect",
         icon: <LinkOffIcon />,
         action: () => {
           const user = row as unknown as User;

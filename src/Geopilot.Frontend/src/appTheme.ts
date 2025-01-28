@@ -111,8 +111,8 @@ export const geopilotTheme = createTheme({
     MuiAvatar: {
       styleOverrides: {
         root: {
-          backgroundColor: "#124A4F",
-          color: "#ffffff",
+          backgroundColor: themePalette.primary.main,
+          color: themePalette.primary.contrastText,
         },
       },
     },
@@ -139,13 +139,13 @@ export const geopilotTheme = createTheme({
             backgroundColor: "rgba(0,0,0,0.04)",
           },
           "& .MuiFilledInput-root:hover:not(.Mui-disabled, .Mui-error):before": {
-            borderColor: "#124A4F",
+            borderColor: themePalette.primary.main,
           },
           "& .MuiFilledInput-root:not(.Mui-error):before": {
-            borderColor: "#124A4F",
+            borderColor: themePalette.primary.main,
           },
           "& .MuiFilledInput-root:not(.Mui-error):after": {
-            borderColor: "#124A4F",
+            borderColor: themePalette.primary.main,
           },
         },
       },
@@ -172,16 +172,16 @@ export const geopilotTheme = createTheme({
           "&.Mui-disabled": {
             "&.MuiButton-text": {
               backgroundColor: "transparent",
-              color: "#124A4F99",
+              color: themePalette.primary.inactive,
             },
             "&.MuiButton-contained": {
-              backgroundColor: "#124A4F99",
-              color: "#ffffff",
+              backgroundColor: themePalette.primary.inactive,
+              color: themePalette.primary.contrastText,
             },
             "&.MuiButton-outlined": {
               backgroundColor: "transparent",
-              color: "#124A4F99",
-              borderColor: "#124A4F99",
+              color: themePalette.primary.inactive,
+              borderColor: themePalette.primary.inactive,
             },
           },
         },
@@ -284,8 +284,23 @@ export const geopilotTheme = createTheme({
         root: {
           padding: "0",
           paddingTop: themeSpacing(1),
-          "& > :not(:first-child)": {
+          "& > :not(:first-of-type)": {
             marginLeft: themeSpacing(2),
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#124A4F33",
+
+          "& .MuiChip-deleteIcon": {
+            color: "#124A4F66",
+
+            "&:hover": {
+              color: "#124A4F99",
+            },
           },
         },
       },

@@ -9,7 +9,7 @@ export interface FormSelectProps {
   label: string;
   required?: boolean;
   disabled?: boolean;
-  selected?: number[];
+  selected?: number | string;
   values?: FormSelectValue[];
   sx?: SxProps;
   onUpdate?: (value: number) => void;
@@ -17,12 +17,13 @@ export interface FormSelectProps {
 
 export interface FormSelectValue {
   key: number;
+  value?: number | string;
   name: string;
 }
 
 export interface FormSelectMenuItem {
   key: number;
-  value?: number;
+  value?: number | string;
   label: string;
   italic?: boolean;
 }
@@ -49,7 +50,7 @@ export const FormSelect: FC<FormSelectProps> = ({
     values.forEach(value => {
       menuItems.push({
         key: value.key,
-        value: value.key,
+        value: value.value ?? value.key,
         label: value.name,
       });
     });

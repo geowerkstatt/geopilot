@@ -98,6 +98,7 @@ public class MandateController : ControllerBase
             return NotFound();
         }
 
+        mandate.SetCoordinateListFromPolygon();
         return Ok(mandate);
     }
 

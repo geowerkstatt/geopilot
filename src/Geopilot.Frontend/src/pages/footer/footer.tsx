@@ -1,11 +1,11 @@
 import { Button } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { FlexRowCenterBox } from "../../components/styledComponents.ts";
+import { useControlledNavigate } from "../../components/controlledNavigate";
 
 const Footer = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { navigateTo } = useControlledNavigate();
 
   const isAdminRoute = location.pathname.startsWith("/admin");
   const marginLeft = isAdminRoute ? "250px" : "0";
@@ -21,28 +21,28 @@ const Footer = () => {
       <Button
         data-cy="home-nav"
         onClick={() => {
-          navigate("/");
+          navigateTo("/");
         }}>
         geopilot
       </Button>
       <Button
         data-cy="privacy-policy-nav"
         onClick={() => {
-          navigate("/privacy-policy");
+          navigateTo("/privacy-policy");
         }}>
         {t("privacyPolicy")}
       </Button>
       <Button
         data-cy="imprint-nav"
         onClick={() => {
-          navigate("/imprint");
+          navigateTo("/imprint");
         }}>
         {t("imprint")}
       </Button>
       <Button
         data-cy="about-nav"
         onClick={() => {
-          navigate("/about");
+          navigateTo("/about");
         }}>
         {t("about")}
       </Button>

@@ -6,10 +6,11 @@ import { styled } from "@mui/system";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { useContext } from "react";
 
-const DeliveryContainer = styled(GeopilotBox)({
+export const DeliveryContainer = styled(GeopilotBox)(({ theme }) => ({
+  backgroundColor: theme.palette.primary.hover,
   padding: "40px",
   flex: 1,
-});
+}));
 
 const Delivery = () => {
   const { t } = useTranslation();

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { FC, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   AppBar,
   Avatar,
@@ -25,6 +25,7 @@ import { LanguagePopup } from "./languagePopup";
 import MenuIcon from "@mui/icons-material/Menu";
 import { FlexRowBox, FlexSpaceBetweenBox } from "../styledComponents.ts";
 import { BaseButton } from "../buttons.tsx";
+import { useControlledNavigate } from "../controlledNavigate";
 
 interface HeaderProps {
   openSubMenu: () => void;
@@ -32,7 +33,7 @@ interface HeaderProps {
 
 const Header: FC<HeaderProps> = ({ openSubMenu }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { navigateTo } = useControlledNavigate();
   const location = useLocation();
   const { clientSettings } = useAppSettings();
   const { user, authEnabled, isAdmin, login, logout } = useGeopilotAuth();
@@ -64,7 +65,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             data-cy="header"
             sx={{ padding: "5px 0", cursor: "pointer" }}
             onClick={() => {
-              navigate("/");
+              navigateTo("/");
             }}>
             <Box sx={{ display: { xs: "block", md: "none" }, flex: "0", marginRight: "10px" }}>
               {hasSubMenu ? (
@@ -165,7 +166,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 <ListItemButton
                   selected={isActive("")}
                   onClick={() => {
-                    navigate("/");
+                    navigateTo("/");
                   }}
                   data-cy="delivery-nav">
                   <ListItemText primary={t("delivery").toUpperCase()} />
@@ -177,7 +178,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                     <ListItemButton
                       selected={isActive("admin")}
                       onClick={() => {
-                        navigate("/admin");
+                        navigateTo("/admin");
                       }}
                       data-cy="admin-nav">
                       <ListItemText primary={t("administration").toUpperCase()} />
