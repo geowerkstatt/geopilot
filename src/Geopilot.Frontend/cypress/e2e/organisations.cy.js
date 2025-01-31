@@ -201,7 +201,9 @@ describe("Organisations tests", () => {
 
     cy.get('[data-cy="backToOrganisations-button"]').click();
     cy.get('[data-cy="organisations-grid"]').last().contains(randomOrganisationName);
-    cy.get('[data-cy="organisations-grid"]').last().contains("Fantastic Fresh Tuna, Incredible Plastic Ball");
+    // Check mandates separately because they're not always in the same order
+    cy.get('[data-cy="organisations-grid"]').last().contains("Fantastic Fresh Tuna");
+    cy.get('[data-cy="organisations-grid"]').last().contains("Incredible Plastic Ball");
     cy.get('[data-cy="organisations-grid"]').last().contains("Regina Streich");
 
     cy.get('[data-cy="admin-mandates-nav"]').click();
