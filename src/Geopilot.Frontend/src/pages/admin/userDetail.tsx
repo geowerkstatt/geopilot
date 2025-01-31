@@ -174,7 +174,7 @@ export const UserDetail = () => {
                     fieldName={"isAdmin"}
                     label={"isAdmin"}
                     checked={editableUser?.isAdmin}
-                    disabled={user.id === editableUser.id}
+                    disabled={!user || user?.id === editableUser?.id}
                   />
                 </FormContainerHalfWidth>
                 <FormContainer>
