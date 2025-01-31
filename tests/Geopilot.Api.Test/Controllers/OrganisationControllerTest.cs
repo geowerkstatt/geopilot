@@ -73,7 +73,7 @@ namespace Geopilot.Api.Controllers
         [TestMethod]
         public async Task GetByIdNotFoundAsync()
         {
-            var response = await organisationController.GetById(987654321);
+            var response = await organisationController.GetById(int.MaxValue);
             ActionResultAssert.IsNotFound(response);
         }
 
