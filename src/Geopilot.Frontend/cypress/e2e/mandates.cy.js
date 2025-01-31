@@ -187,7 +187,6 @@ describe("Mandate tests", () => {
 
     cy.get('[data-cy="save-button"]').click();
     cy.wait("@saveNew");
-    cy.wait(500); // Wait for the form to reset.
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
     });
@@ -196,19 +195,39 @@ describe("Mandate tests", () => {
     cy.get('[data-cy="save-button"]').should("be.disabled");
 
     setAutocomplete("fileTypes", ".xml");
-    cy.contains("Description").click();
     cy.wait(500);
     cy.get('[data-cy="reset-button"]').should("be.enabled");
-    cy.get('[data-cy="reset-button"]').click();
     cy.get('[data-cy="backToMandates-button"]').click();
+    handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
     cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
     cy.contains(randomMandateName);
   });
 
   it("can edit existing mandate", () => {
+    const randomMandateName = getRandomManadateName();
+    cy.intercept({ url: "/api/v1/mandate", method: "POST" }).as("saveNew");
     cy.intercept({ url: "/api/v1/mandate", method: "PUT" }).as("updateMandate");
 
-    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').first().click();
+    // Create new mandate for testing
+    cy.get('[data-cy="addMandate-button"]').click();
+    setInput("name", randomMandateName);
+    setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
+    setAutocomplete("fileTypes", ".csv");
+    setAutocomplete("fileTypes", ".xtf");
+    setInput("extent-bottom-left-longitude", "7.3");
+    setInput("extent-bottom-left-latitude", "47.13");
+    setInput("extent-upper-right-longitude", "8.052");
+    setInput("extent-upper-right-latitude", "47.46");
+    setSelect("evaluatePrecursorDelivery", 1, 3);
+    setSelect("evaluatePartial", 1, 2);
+    setSelect("evaluateComment", 0, 3);
+    cy.get('[data-cy="backToMandates-button"]').click();
+    handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
+    cy.wait("@saveNew");
+
+    // Test editing the mandate
+    cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
+    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').contains(randomMandateName).click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
     });
@@ -246,8 +265,8 @@ describe("Mandate tests", () => {
 
     cy.get('[data-cy="backToMandates-button"]').click();
     isPromptVisible(false);
-    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row')
-      .first()
-      .contains("Schumm, Runte and Macejkovic, Brown and Sons");
+    cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
+    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').last().contains("Schumm, Runte and Macejkovic");
+    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').last().contains("Brown and Sons");
   });
 });
