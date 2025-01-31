@@ -60,7 +60,7 @@ export const OrganisationDetail = () => {
             icon: <SaveOutlinedIcon />,
             variant: "contained",
             action: () => {
-              saveOrganisation(formMethods.getValues() as Mandate, false).then(() => leaveEditingPage(true));
+              saveOrganisation(formMethods.getValues() as Organisation, false).then(() => leaveEditingPage(true));
             },
           });
         }
