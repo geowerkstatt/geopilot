@@ -68,6 +68,9 @@ namespace Geopilot.Api.Controllers
             var organisation = (response as OkObjectResult)?.Value as Organisation;
             Assert.IsNotNull(organisation);
             Assert.AreEqual(organisationId, organisation.Id);
+            Assert.AreEqual("Schumm, Runte and Macejkovic", organisation.Name);
+            Assert.AreEqual(4, organisation.Mandates.Count);
+            Assert.AreEqual(2, organisation.Users.Count);
         }
 
         [TestMethod]
