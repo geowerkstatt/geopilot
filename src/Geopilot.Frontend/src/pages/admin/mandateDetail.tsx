@@ -3,7 +3,7 @@ import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { CircularProgress, Stack, Typography } from "@mui/material";
 import { FlexBox, FlexRowEndBox, FlexRowSpaceBetweenBox, GeopilotBox } from "../../components/styledComponents.ts";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PromptContext } from "../../components/prompt/promptContext.tsx";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
@@ -160,6 +160,14 @@ export const MandateDetail = () => {
     }
   }, [mandate, formMethods, formMethods.trigger]);
 
+  const availableOrganisations = useMemo(() => {
+    return organisations?.map(o => ({ key: o.id, name: o.name }));
+  }, [organisations]);
+
+  const selectedOrganisations = useMemo(() => {
+    return mandate?.organisations?.map(o => ({ key: o.id, name: o.name }));
+  }, [mandate?.organisations]);
+
   return (
     <FlexBox>
       <FlexRowSpaceBetweenBox>
@@ -189,11 +197,8 @@ export const MandateDetail = () => {
                     fieldName={"organisations"}
                     label={"eligibleOrganisations"}
                     required={false}
-                    values={organisations?.map(organisation => ({ key: organisation.id, name: organisation.name }))}
-                    selected={mandate?.organisations?.map(organisation => ({
-                      key: (organisation as Organisation).id,
-                      name: (organisation as Organisation).name,
-                    }))}
+                    values={availableOrganisations}
+                    selected={selectedOrganisations}
                   />
                 </FormContainer>
                 <FormContainer>

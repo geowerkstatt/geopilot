@@ -3,7 +3,7 @@ import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { CircularProgress, Stack, Typography } from "@mui/material";
 import { FlexBox, FlexRowEndBox, FlexRowSpaceBetweenBox, GeopilotBox } from "../../components/styledComponents.ts";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PromptContext } from "../../components/prompt/promptContext.tsx";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
@@ -143,6 +143,22 @@ export const OrganisationDetail = () => {
     }
   }, [organisation, formMethods, formMethods.trigger]);
 
+  const availableMandates = useMemo(() => {
+    return mandates?.map(mandate => ({ key: mandate.id, name: mandate.name }));
+  }, [mandates]);
+
+  const selectedMandates = useMemo(() => {
+    return organisation?.mandates?.map(mandate => ({ key: mandate.id, name: mandate.name }));
+  }, [organisation?.mandates]);
+
+  const availableUsers = useMemo(() => {
+    return users?.map(user => ({ key: user.id, name: user.fullName }));
+  }, [users]);
+
+  const selectedUsers = useMemo(() => {
+    return organisation?.users?.map(user => ({ key: user.id, name: user.fullName }));
+  }, [organisation?.users]);
+
   return (
     <FlexBox>
       <FlexRowSpaceBetweenBox>
@@ -172,11 +188,8 @@ export const OrganisationDetail = () => {
                     fieldName={"mandates"}
                     label={"mandates"}
                     required={false}
-                    values={mandates?.map(mandate => ({ key: mandate.id, name: mandate.name }))}
-                    selected={organisation?.mandates?.map(mandate => ({
-                      key: (mandate as Mandate).id,
-                      name: (mandate as Mandate).name,
-                    }))}
+                    values={availableMandates}
+                    selected={selectedMandates}
                   />
                 </FormContainer>
                 <FormContainer>
@@ -184,11 +197,8 @@ export const OrganisationDetail = () => {
                     fieldName={"users"}
                     label={"users"}
                     required={false}
-                    values={users?.map(user => ({ key: user.id, name: user.fullName }))}
-                    selected={organisation?.users?.map(user => ({
-                      key: (user as User).id,
-                      name: (user as User).fullName,
-                    }))}
+                    values={availableUsers}
+                    selected={selectedUsers}
                   />
                 </FormContainer>
               </GeopilotBox>
