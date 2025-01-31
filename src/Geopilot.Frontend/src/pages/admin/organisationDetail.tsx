@@ -121,7 +121,6 @@ export const OrganisationDetail = () => {
         errorMessageLabel: "organisationSaveError",
       });
       const organisationResponse = response as Organisation;
-      console.log("organisationResponse", organisationResponse);
       if (reloadAfterSave) {
         setOrganisation(organisationResponse);
         formMethods.reset(organisationResponse);
