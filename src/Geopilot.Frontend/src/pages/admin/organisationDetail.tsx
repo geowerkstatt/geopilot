@@ -60,7 +60,7 @@ export const OrganisationDetail = () => {
             icon: <SaveOutlinedIcon />,
             variant: "contained",
             action: () => {
-              saveOrganisation(formMethods.getValues() as Mandate, false).then(() => leaveEditingPage(true));
+              saveOrganisation(formMethods.getValues() as Organisation, false).then(() => leaveEditingPage(true));
             },
           });
         }
@@ -121,7 +121,6 @@ export const OrganisationDetail = () => {
         errorMessageLabel: "organisationSaveError",
       });
       const organisationResponse = response as Organisation;
-      console.log("organisationResponse", organisationResponse);
       if (reloadAfterSave) {
         setOrganisation(organisationResponse);
         formMethods.reset(organisationResponse);

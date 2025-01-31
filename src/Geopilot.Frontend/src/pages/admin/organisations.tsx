@@ -41,24 +41,21 @@ export const Organisations = () => {
       field: "name",
       headerName: t("name"),
       type: "string",
-      editable: true,
       flex: 0.5,
       minWidth: 200,
     },
     {
       field: "mandates",
       headerName: t("mandates"),
-      editable: true,
       flex: 1,
       minWidth: 400,
       valueFormatter: (mandates: Mandate[]) => {
-        return mandates?.map(o => o.name).join(", ");
+        return mandates?.map(m => m.name).join(", ");
       },
     },
     {
       field: "users",
       headerName: t("users"),
-      editable: true,
       flex: 1,
       minWidth: 400,
       valueFormatter: (users: User[]) => {
