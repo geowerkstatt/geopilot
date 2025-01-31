@@ -57,20 +57,16 @@ export const getFormInput = (fieldName, parent) => getFormField(fieldName, paren
  */
 export const setInput = (fieldName, value, parent) => {
   const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formInput"]`;
-  if (value.length > 0) {
-    cy.get(selector)
-      .click()
-      .then(() => {
-        cy.focused().clear();
+  cy.get(selector)
+    .click()
+    .then(() => {
+      cy.focused().clear();
+      if (value.length > 0) {
         cy.get(selector).type(value, {
           delay: 10,
         });
-      });
-  } else {
-    cy.get(selector + " .MuiInputBase-input")
-      .click()
-      .clear();
-  }
+      }
+    });
 };
 
 /**
