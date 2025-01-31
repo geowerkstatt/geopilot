@@ -379,7 +379,7 @@ describe("Delivery tests", () => {
     stepIsCompleted("upload");
   });
 
-  it.only("can submit delivery", () => {
+  it("can submit delivery", () => {
     mockValidationSuccess();
     mockMandates();
     cy.intercept({ url: "/api/v1/delivery?mandateId=*", method: "GET" }).as("precursors");
