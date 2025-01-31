@@ -144,6 +144,8 @@ export const MandateDetail = () => {
         formMethods.reset(mandateResponse);
         if (id === "0") {
           navigate(`/admin/mandates/${mandateResponse.id}`, { replace: true });
+          unregisterCheckIsDirty(`/admin/mandates/0`);
+          registerCheckIsDirty(`/admin/mandates/${mandateResponse.id}`);
         }
       }
     }

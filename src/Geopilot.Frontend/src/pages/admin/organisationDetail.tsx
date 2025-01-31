@@ -127,6 +127,8 @@ export const OrganisationDetail = () => {
         formMethods.reset(organisationResponse);
         if (id === "0") {
           navigate(`/admin/organisations/${organisationResponse.id}`, { replace: true });
+          unregisterCheckIsDirty(`/admin/organisations/0`);
+          registerCheckIsDirty(`/admin/organisations/${organisationResponse.id}`);
         }
       }
     }
