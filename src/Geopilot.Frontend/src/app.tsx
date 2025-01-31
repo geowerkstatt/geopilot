@@ -18,6 +18,7 @@ import { DeliveryProvider } from "./pages/delivery/deliveryContext.tsx";
 import { CircularProgress } from "@mui/material";
 import MandateDetail from "./pages/admin/mandateDetail.tsx";
 import { ControlledNavigateProvider } from "./components/controlledNavigate/controlledNavigateProvider.tsx";
+import { OrganisationDetail } from "./pages/admin/organisationDetail.tsx";
 
 export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
@@ -57,6 +58,7 @@ export const App: FC = () => {
                         <Route path="mandates" element={<Mandates />} />
                         <Route path="mandates/:id" element={<MandateDetail />} />
                         <Route path="organisations" element={<Organisations />} />
+                        <Route path="organisations/:id" element={<OrganisationDetail />} />
                       </Route>
                     </>
                   ) : (
