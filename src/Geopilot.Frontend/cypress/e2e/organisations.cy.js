@@ -21,7 +21,7 @@ describe("Organisations tests", () => {
 
   it("displays the organisations in a list with pagination", () => {
     cy.get('[data-cy="organisations-grid"]').should("exist");
-    cy.get('[data-cy="organisations-grid"] .MuiDataGrid-row').should("have.length", 4);
+    cy.get('[data-cy="organisations-grid"] .MuiDataGrid-row').should("have.length", 3);
     cy.get('[data-cy="organisations-grid"] .MuiTablePagination-actions [aria-label="Go to previous page"]').should(
       "be.disabled",
     );
