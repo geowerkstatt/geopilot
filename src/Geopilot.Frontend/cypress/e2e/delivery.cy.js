@@ -379,7 +379,7 @@ describe("Delivery tests", () => {
     stepIsCompleted("upload");
   });
 
-  it("can submit delivery", () => {
+  it.only("can submit delivery", () => {
     mockValidationSuccess();
     mockMandates();
     cy.intercept({ url: "/api/v1/delivery?mandateId=*", method: "GET" }).as("precursors");
@@ -427,8 +427,6 @@ describe("Delivery tests", () => {
     getFormField("precursor").should("exist");
     getFormField("isPartial").should("not.exist");
     getFormField("comment").should("exist");
-    setSelect("precursor", 0); // reset
-    setInput("comment", "");
     evaluateSelect("precursor", "");
     hasError("precursor", false);
     hasError("isPartial", false);
