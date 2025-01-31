@@ -19,7 +19,7 @@ export const login = user => {
       cy.intercept("http://localhost:4011/realms/geopilot/protocol/openid-connect/token").as("token");
       cy.visit("/");
       cy.wait("@termsOfUse");
-      cy.get('[data-cy="logIn-button"]').click();
+      cy.dataCy("logIn-button").click();
       cy.origin("http://localhost:4011", { args: { user } }, ({ user }) => {
         cy.get("#username").type(user);
         cy.get("#password").type("geopilot_password");
@@ -51,7 +51,7 @@ export const login = user => {
 export const loginAsAdmin = () => {
   login("admin");
   cy.visit("/");
-  cy.get('[data-cy="loggedInUser-button"]').should("exist");
+  cy.dataCy("loggedInUser-button").should("exist");
 };
 
 /**
@@ -60,7 +60,7 @@ export const loginAsAdmin = () => {
 export const loginAsUploader = () => {
   login("uploader");
   cy.visit("/");
-  cy.get('[data-cy="loggedInUser-button"]').should("exist");
+  cy.dataCy("loggedInUser-button").should("exist");
   cy.wait("@termsOfUse");
 };
 
@@ -70,7 +70,7 @@ export const loginAsUploader = () => {
 export const loginAsNewUser = () => {
   login("newuser");
   cy.visit("/");
-  cy.get('[data-cy="loggedInUser-button"]').should("exist");
+  cy.dataCy("loggedInUser-button").should("exist");
 };
 
 /**
@@ -89,7 +89,7 @@ export const loadWithoutAuth = () => {
  */
 export const logout = () => {
   openToolMenu();
-  cy.get('[data-cy="logOut-button"]').click();
+  cy.dataCy("logOut-button").click();
 };
 
 /**
@@ -97,8 +97,8 @@ export const logout = () => {
  * @param language The language to select (de, fr, it, en).
  */
 export const selectLanguage = language => {
-  cy.get('[data-cy="language-selector"]').click({ force: true });
-  cy.get(`[data-cy="language-${language.toLowerCase()}"]`).click({ force: true });
+  cy.dataCy("language-selector").click({ force: true });
+  cy.dataCy(`language-${language.toLowerCase()}`).click({ force: true });
   cy.wait(1000);
 };
 
@@ -122,7 +122,7 @@ export const openToolMenu = () => {
   cy.get("body").then($body => {
     const elementExists = $body.find('[data-cy="tool-navigation"]').length > 0;
     if (!elementExists) {
-      cy.get('[data-cy="loggedInUser-button"]').click();
+      cy.dataCy("loggedInUser-button").click();
     }
   });
 };
@@ -133,7 +133,7 @@ export const openToolMenu = () => {
  */
 export const openTool = tool => {
   openToolMenu();
-  cy.get(`[data-cy="${tool}-nav"]`).click();
+  cy.dataCy(`${tool}-nav`).click();
 };
 
 /**

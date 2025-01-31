@@ -20,62 +20,62 @@ describe("Organisations tests", () => {
   });
 
   it("displays the organisations in a list with pagination", () => {
-    cy.get('[data-cy="organisations-grid"]').should("exist");
-    cy.get('[data-cy="organisations-grid"] .MuiDataGrid-row').should("have.length", 3);
-    cy.get('[data-cy="organisations-grid"] .MuiTablePagination-actions [aria-label="Go to previous page"]').should(
-      "be.disabled",
-    );
-    cy.get('[data-cy="organisations-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').should(
-      "be.disabled",
-    );
-    cy.get('[data-cy="organisations-grid"] .MuiDataGrid-row').first().contains("Schumm, Runte and Macejkovic");
+    cy.dataCy("organisations-grid").should("exist");
+    cy.dataCy("organisations-grid").find(".MuiDataGrid-row").should("have.length", 3);
+    cy.dataCy("organisations-grid")
+      .find(".MuiTablePagination-actions [aria-label='Go to previous page']")
+      .should("be.disabled");
+    cy.dataCy("organisations-grid")
+      .find(".MuiTablePagination-actions [aria-label='Go to next page']")
+      .should("be.disabled");
+    cy.dataCy("organisations-grid").find(".MuiDataGrid-row").first().contains("Schumm, Runte and Macejkovic");
   });
 
   it("checks for unsaved changes when navigating", () => {
     const randomOrganisationName = getRandomOrganisationName();
 
-    cy.get('[data-cy="addOrganisation-button"]').click();
+    cy.dataCy("addOrganisation-button").click();
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/organisations/0`);
     });
-    cy.get('[data-cy="backToOrganisations-button"]').should("exist");
-    cy.get('[data-cy="reset-button"]').should("exist");
-    cy.get('[data-cy="reset-button"]').should("be.disabled");
-    cy.get('[data-cy="save-button"]').should("exist");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("backToOrganisations-button").should("exist");
+    cy.dataCy("reset-button").should("exist");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("exist");
+    cy.dataCy("save-button").should("be.disabled");
     hasError("name", true);
 
-    cy.get('[data-cy="backToOrganisations-button"]').click();
+    cy.dataCy("backToOrganisations-button").click();
     isPromptVisible(false);
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/organisations`);
     });
-    cy.get('[data-cy="organisations-grid"]').should("exist");
-    cy.get('[data-cy="addOrganisation-button"]').click();
+    cy.dataCy("organisations-grid").should("exist");
+    cy.dataCy("addOrganisation-button").click();
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/organisations/0`);
     });
     setAutocomplete("users", "Kelvin Spencer");
     cy.wait(500);
-    cy.get('[data-cy="save-button"]').should("be.disabled");
-    cy.get('[data-cy="admin-users-nav"]').click();
+    cy.dataCy("save-button").should("be.disabled");
+    cy.dataCy("admin-users-nav").click();
     checkPromptActions(["cancel", "reset"]);
     handlePrompt("You have unsaved changes. How would you like to proceed?", "cancel");
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/organisations/0`);
     });
-    cy.get('[data-cy="admin-organisations-nav"]').click();
+    cy.dataCy("admin-organisations-nav").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/organisations`);
     });
-    cy.get('[data-cy="organisations-grid"]').should("exist");
-    cy.get('[data-cy="addOrganisation-button"]').click();
+    cy.dataCy("organisations-grid").should("exist");
+    cy.dataCy("addOrganisation-button").click();
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/organisations/0`);
     });
     setInput("name", randomOrganisationName);
-    cy.get('[data-cy="save-button"]').should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
     openTool("delivery");
     checkPromptActions(["cancel", "reset", "save"]);
     handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
@@ -83,34 +83,34 @@ describe("Organisations tests", () => {
       expect(location.pathname).to.eq(`/`);
     });
     cy.visit("/admin/organisations");
-    cy.get('[data-cy="organisations-grid"] .MuiDataGrid-row').last().contains(randomOrganisationName);
+    cy.dataCy("organisations-grid").find(".MuiDataGrid-row").last().contains(randomOrganisationName);
   });
 
   it("can create organisation", () => {
     const randomOrganisationName = getRandomOrganisationName();
     cy.intercept({ url: "/api/v1/organisation", method: "POST" }).as("saveNew");
 
-    cy.get('[data-cy="addOrganisation-button"]').click();
+    cy.dataCy("addOrganisation-button").click();
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/organisations/0`);
     });
 
-    cy.get('[data-cy="reset-button"]').should("be.disabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
 
     hasError("name", true);
     hasError("mandates", false);
     hasError("users", false);
 
     setAutocomplete("users", "Kelvin Spencer");
-    cy.get('[data-cy="reset-button"]').should("be.enabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.disabled");
 
     setInput("name", randomOrganisationName);
-    cy.get('[data-cy="reset-button"]').should("be.enabled");
-    cy.get('[data-cy="save-button"]').should("be.enabled");
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
 
-    cy.get('[data-cy="reset-button"]').click();
+    cy.dataCy("reset-button").click();
     evaluateInput("name", "");
     evaluateAutocomplete("mandates", []);
     evaluateAutocomplete("users", []);
@@ -119,23 +119,23 @@ describe("Organisations tests", () => {
     setAutocomplete("mandates", "Fantastic Fresh Tuna");
     setAutocomplete("users", "Nick Purdy");
 
-    cy.get('[data-cy="save-button"]').click();
+    cy.dataCy("save-button").click();
     cy.wait("@saveNew");
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/organisations\/[1-9]\d*/);
     });
-    cy.get('[data-cy="reset-button"]').should("be.disabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
 
     setAutocomplete("users", "Kelvin Spencer");
     cy.wait(500);
-    cy.get('[data-cy="reset-button"]').should("be.enabled");
-    cy.get('[data-cy="backToOrganisations-button"]').click();
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("backToOrganisations-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
-    cy.get('[data-cy="organisations-grid"]').last().contains(randomOrganisationName);
-    cy.get('[data-cy="organisations-grid"]').last().contains("Fantastic Fresh Tuna");
-    cy.get('[data-cy="organisations-grid"]').last().contains("Nick Purdy");
-    cy.get('[data-cy="organisations-grid"]').last().contains("Kevin Spencer").should("not.exist");
+    cy.dataCy("organisations-grid").last().contains(randomOrganisationName);
+    cy.dataCy("organisations-grid").last().contains("Fantastic Fresh Tuna");
+    cy.dataCy("organisations-grid").last().contains("Nick Purdy");
+    cy.dataCy("organisations-grid").last().contains("Kevin Spencer").should("not.exist");
   });
 
   it("can edit existing organisation", () => {
@@ -144,22 +144,22 @@ describe("Organisations tests", () => {
     cy.intercept({ url: "/api/v1/organisation", method: "PUT" }).as("updateOrganisation");
 
     // Create new organisation for testing
-    cy.get('[data-cy="addOrganisation-button"]').click();
+    cy.dataCy("addOrganisation-button").click();
     setInput("name", randomOrganisationName);
     setAutocomplete("mandates", "Fantastic Fresh Tuna");
     setAutocomplete("users", "Nick Purdy");
-    cy.get('[data-cy="backToOrganisations-button"]').click();
+    cy.dataCy("backToOrganisations-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
     cy.wait("@saveNew");
 
     // Test editing the organisation
-    cy.get('[data-cy="organisations-grid"] .MuiDataGrid-row').contains(randomOrganisationName).click();
+    cy.dataCy("organisations-grid").find(".MuiDataGrid-row").contains(randomOrganisationName).click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/organisations\/[1-9]\d*/);
     });
 
-    cy.get('[data-cy="reset-button"]').should("be.disabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
 
     evaluateInput("name", randomOrganisationName);
     evaluateAutocomplete("mandates", ["Fantastic Fresh Tuna"]);
@@ -170,10 +170,10 @@ describe("Organisations tests", () => {
 
     setInput("name", "");
     hasError("name", true);
-    cy.get('[data-cy="reset-button"]').should("be.enabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.disabled");
 
-    cy.get('[data-cy="reset-button"]').click();
+    cy.dataCy("reset-button").click();
     cy.wait(500);
     evaluateInput("name", randomOrganisationName);
     evaluateAutocomplete("mandates", ["Fantastic Fresh Tuna"]);
@@ -191,23 +191,23 @@ describe("Organisations tests", () => {
     removeAutocompleteValue("users", "Nick Purdy");
     evaluateAutocomplete("users", ["Regina Streich"]);
 
-    cy.get('[data-cy="save-button"]').click();
+    cy.dataCy("save-button").click();
     cy.wait("@updateOrganisation");
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/organisations\/[1-9]\d*/);
     });
-    cy.get('[data-cy="reset-button"]').should("be.disabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
 
-    cy.get('[data-cy="backToOrganisations-button"]').click();
-    cy.get('[data-cy="organisations-grid"]').last().contains(randomOrganisationName);
+    cy.dataCy("backToOrganisations-button").click();
+    cy.dataCy("organisations-grid").last().contains(randomOrganisationName);
     // Check mandates separately because they're not always in the same order
-    cy.get('[data-cy="organisations-grid"]').last().contains("Fantastic Fresh Tuna");
-    cy.get('[data-cy="organisations-grid"]').last().contains("Incredible Plastic Ball");
-    cy.get('[data-cy="organisations-grid"]').last().contains("Regina Streich");
+    cy.dataCy("organisations-grid").last().contains("Fantastic Fresh Tuna");
+    cy.dataCy("organisations-grid").last().contains("Incredible Plastic Ball");
+    cy.dataCy("organisations-grid").last().contains("Regina Streich");
 
-    cy.get('[data-cy="admin-mandates-nav"]').click();
-    cy.get('[data-cy="mandates-grid"]').contains("Fantastic Fresh Tuna").click();
+    cy.dataCy("admin-mandates-nav").click();
+    cy.dataCy("mandates-grid").contains("Fantastic Fresh Tuna").click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
     });

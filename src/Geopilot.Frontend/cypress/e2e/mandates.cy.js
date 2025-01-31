@@ -20,58 +20,58 @@ describe("Mandate tests", () => {
   });
 
   it("displays the mandates in a list with pagination", () => {
-    cy.get('[data-cy="mandates-grid"]').should("exist");
-    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').should("have.length", 10);
+    cy.dataCy("mandates-grid").should("exist");
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").should("have.length", 10);
     cy.get(".MuiTablePagination-select").click();
     cy.get("li.MuiTablePagination-menuItem").contains("5").click();
-    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').should("have.length", 5);
-    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').first().contains("Handmade Soft Cheese");
-    cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
-    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').first().contains("Incredible Plastic Ball");
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").should("have.length", 5);
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains("Handmade Soft Cheese");
+    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains("Incredible Plastic Ball");
   });
 
   it("checks for unsaved changes when navigating", () => {
     const randomMandateName = getRandomManadateName();
 
-    cy.get('[data-cy="addMandate-button"]').click();
+    cy.dataCy("addMandate-button").click();
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/mandates/0`);
     });
-    cy.get('[data-cy="backToMandates-button"]').should("exist");
-    cy.get('[data-cy="reset-button"]').should("exist");
-    cy.get('[data-cy="reset-button"]').should("be.disabled");
-    cy.get('[data-cy="save-button"]').should("exist");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("backToMandates-button").should("exist");
+    cy.dataCy("reset-button").should("exist");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("exist");
+    cy.dataCy("save-button").should("be.disabled");
 
-    cy.get('[data-cy="backToMandates-button"]').click();
+    cy.dataCy("backToMandates-button").click();
     isPromptVisible(false);
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/mandates`);
     });
-    cy.get('[data-cy="mandates-grid"]').should("exist");
+    cy.dataCy("mandates-grid").should("exist");
 
-    cy.get('[data-cy="addMandate-button"]').click();
+    cy.dataCy("addMandate-button").click();
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/mandates/0`);
     });
     setInput("name", randomMandateName);
     cy.contains("Description").click();
     cy.wait(500); // Click outside the input field and wait to trigger the validation.
-    cy.get('[data-cy="save-button"]').should("be.disabled");
-    cy.get('[data-cy="admin-users-nav"]').click();
+    cy.dataCy("save-button").should("be.disabled");
+    cy.dataCy("admin-users-nav").click();
     checkPromptActions(["cancel", "reset"]);
     handlePrompt("You have unsaved changes. How would you like to proceed?", "cancel");
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/mandates/0`);
     });
-    cy.get('[data-cy="admin-mandates-nav"]').click();
+    cy.dataCy("admin-mandates-nav").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/mandates`);
     });
-    cy.get('[data-cy="mandates-grid"]').should("exist");
+    cy.dataCy("mandates-grid").should("exist");
 
-    cy.get('[data-cy="addMandate-button"]').click();
+    cy.dataCy("addMandate-button").click();
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/mandates/0`);
     });
@@ -83,7 +83,7 @@ describe("Mandate tests", () => {
     setSelect("evaluatePrecursorDelivery", 0, 3);
     setSelect("evaluatePartial", 1, 2);
     setSelect("evaluateComment", 1, 3);
-    cy.get('[data-cy="save-button"]').should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
     openTool("delivery");
     checkPromptActions(["cancel", "reset", "save"]);
     handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
@@ -92,21 +92,21 @@ describe("Mandate tests", () => {
     });
 
     cy.visit("/admin/mandates");
-    cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
-    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').first().contains(randomMandateName);
+    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains(randomMandateName);
   });
 
   it("can create mandate", () => {
     const randomMandateName = getRandomManadateName();
     cy.intercept({ url: "/api/v1/mandate", method: "POST" }).as("saveNew");
 
-    cy.get('[data-cy="addMandate-button"]').click();
+    cy.dataCy("addMandate-button").click();
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/mandates/0`);
     });
 
-    cy.get('[data-cy="reset-button"]').should("be.disabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
 
     hasError("name", true);
     hasError("extent-bottom-left-longitude", true);
@@ -119,7 +119,7 @@ describe("Mandate tests", () => {
 
     setInput("name", randomMandateName);
     hasError("name", false);
-    cy.get('[data-cy="reset-button"]').should("be.enabled");
+    cy.dataCy("reset-button").should("be.enabled");
 
     setInput("extent-bottom-left-longitude", "7.3");
     hasError("extent-bottom-left-longitude", true);
@@ -153,7 +153,7 @@ describe("Mandate tests", () => {
     hasError("extent-upper-right-longitude", false);
     hasError("extent-upper-right-latitude", false);
 
-    cy.get('[data-cy="save-button"]').should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
 
     setAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Brown and Sons"]);
@@ -161,7 +161,7 @@ describe("Mandate tests", () => {
     setAutocomplete("fileTypes", ".xtf");
     evaluateAutocomplete("fileTypes", [".csv", ".xtf"]);
 
-    cy.get('[data-cy="reset-button"]').click();
+    cy.dataCy("reset-button").click();
     evaluateInput("name", "");
     evaluateAutocomplete("organisations", []);
     evaluateAutocomplete("fileTypes", []);
@@ -185,21 +185,21 @@ describe("Mandate tests", () => {
     setSelect("evaluatePartial", 1, 2);
     setSelect("evaluateComment", 1, 3);
 
-    cy.get('[data-cy="save-button"]').click();
+    cy.dataCy("save-button").click();
     cy.wait("@saveNew");
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
     });
 
-    cy.get('[data-cy="reset-button"]').should("be.disabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
 
     setAutocomplete("fileTypes", ".xml");
     cy.wait(500);
-    cy.get('[data-cy="reset-button"]').should("be.enabled");
-    cy.get('[data-cy="backToMandates-button"]').click();
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("backToMandates-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
-    cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
+    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
     cy.contains(randomMandateName);
   });
 
@@ -209,7 +209,7 @@ describe("Mandate tests", () => {
     cy.intercept({ url: "/api/v1/mandate", method: "PUT" }).as("updateMandate");
 
     // Create new mandate for testing
-    cy.get('[data-cy="addMandate-button"]').click();
+    cy.dataCy("addMandate-button").click();
     setInput("name", randomMandateName);
     setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
     setAutocomplete("fileTypes", ".csv");
@@ -221,52 +221,52 @@ describe("Mandate tests", () => {
     setSelect("evaluatePrecursorDelivery", 1, 3);
     setSelect("evaluatePartial", 1, 2);
     setSelect("evaluateComment", 0, 3);
-    cy.get('[data-cy="backToMandates-button"]').click();
+    cy.dataCy("backToMandates-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
     cy.wait("@saveNew");
 
     // Test editing the mandate
-    cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
-    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').contains(randomMandateName).click();
+    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").contains(randomMandateName).click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
     });
 
-    cy.get('[data-cy="reset-button"]').should("be.disabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
     setAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Schumm, Runte and Macejkovic", "Brown and Sons"]);
-    cy.get('[data-cy="reset-button"]').should("be.enabled");
-    cy.get('[data-cy="save-button"]').should("be.enabled");
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
 
     setInput("extent-bottom-left-latitude", "");
     hasError("extent-bottom-left-longitude", true);
     hasError("extent-bottom-left-latitude", true);
     hasError("extent-upper-right-longitude", true);
     hasError("extent-upper-right-latitude", true);
-    cy.get('[data-cy="reset-button"]').should("be.enabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.disabled");
 
     setInput("extent-bottom-left-latitude", "47.23");
     hasError("extent-bottom-left-longitude", false);
     hasError("extent-bottom-left-latitude", false);
     hasError("extent-upper-right-longitude", false);
     hasError("extent-upper-right-latitude", false);
-    cy.get('[data-cy="reset-button"]').should("be.enabled");
-    cy.get('[data-cy="save-button"]').should("be.enabled");
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
 
     setSelect("evaluatePartial", 0, 2);
 
-    cy.get('[data-cy="save-button"]').click();
+    cy.dataCy("save-button").click();
     cy.wait("@updateMandate");
     cy.wait(500); // Wait for the form to reset.
-    cy.get('[data-cy="reset-button"]').should("be.disabled");
-    cy.get('[data-cy="save-button"]').should("be.disabled");
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
 
-    cy.get('[data-cy="backToMandates-button"]').click();
+    cy.dataCy("backToMandates-button").click();
     isPromptVisible(false);
-    cy.get('[data-cy="mandates-grid"] .MuiTablePagination-actions [aria-label="Go to next page"]').click();
-    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').last().contains("Schumm, Runte and Macejkovic");
-    cy.get('[data-cy="mandates-grid"] .MuiDataGrid-row').last().contains("Brown and Sons");
+    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Schumm, Runte and Macejkovic");
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");
   });
 });
