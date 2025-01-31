@@ -49,25 +49,25 @@ export const stepIsActive = (stepName, isActive = true) => {
 
 export const stepIsLoading = (stepName, isLoading = true) => {
   if (isLoading) {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-loading"]`).should("exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-loading").should("exist");
   } else {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-loading"]`).should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-loading").should("not.exist");
   }
 };
 
 export const stepHasError = (stepName, hasError, errorText) => {
   if (hasError) {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-error"]`).should("exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-error").should("exist");
     cy.dataCy(`${stepName}-step`).contains(errorText);
   } else {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-error"]`).should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-error").should("not.exist");
   }
 };
 
 export const stepIsCompleted = (stepName, isCompleted = true) => {
   if (isCompleted) {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-completed"]`).should("exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-completed").should("exist");
   } else {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-completed"]`).should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-completed").should("not.exist");
   }
 };

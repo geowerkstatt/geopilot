@@ -32,5 +32,5 @@ export const checkPromptActions = actions => {
 export const handlePrompt = (message, action) => {
   isPromptVisible();
   cy.contains(message);
-  cy.dataCy("prompt").find(`[data-cy="prompt-button-${action.toLowerCase()}"]`).click();
+  cy.dataCy("prompt").dataCy(`prompt-button-${action.toLowerCase()}`).click();
 };

@@ -277,7 +277,7 @@ describe("Delivery tests", () => {
     cy.dataCy("validate-step").contains("Die Daten sind modellkonform.");
     cy.dataCy("Log-button").should("exist");
     cy.dataCy("Xtf-Log-button").should("exist");
-    cy.get('[data-cy="validate-step"] [data-cy="cancel-button"]').should("not.exist");
+    cy.dataCy("validate-step").dataCy("cancel-button").should("not.exist");
     stepIsCompleted("validate");
     stepIsActive("submit");
 
