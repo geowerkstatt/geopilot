@@ -167,12 +167,20 @@ namespace Geopilot.Api.Controllers
             var mandate = (response as OkObjectResult)?.Value as Mandate;
             Assert.IsNotNull(mandate);
             Assert.AreEqual(mandateId, mandate.Id);
+            Assert.AreEqual("Handmade Soft Cheese", mandate.Name);
+            Assert.AreEqual(2, mandate.Coordinates.Count);
+            Assert.AreEqual(2, mandate.Deliveries.Count);
+            Assert.AreEqual(FieldEvaluationType.Optional, mandate.EvaluatePrecursorDelivery);
+            Assert.AreEqual(FieldEvaluationType.Required, mandate.EvaluatePartial);
+            Assert.AreEqual(FieldEvaluationType.NotEvaluated, mandate.EvaluateComment);
+            Assert.AreEqual(4, mandate.FileTypes.Length);
+            Assert.AreEqual(1, mandate.Organisations.Count);
         }
 
         [TestMethod]
         public async Task GetByIdNotFoundAsync()
         {
-            var response = await mandateController.GetById(987654321);
+            var response = await mandateController.GetById(int.MaxValue);
             ActionResultAssert.IsNotFound(response);
         }
 

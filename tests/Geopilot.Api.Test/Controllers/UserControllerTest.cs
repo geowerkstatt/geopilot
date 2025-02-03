@@ -89,7 +89,7 @@ public class UserControllerTest
     [TestMethod]
     public async Task GetUserByIdNotFound()
     {
-        var userResult = await userController.GetById(0);
+        var userResult = await userController.GetById(int.MaxValue);
         ActionResultAssert.IsNotFound(userResult);
         Assert.IsNotNull(userResult);
     }
