@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { PromptContext } from "../../components/prompt/promptContext.tsx";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { ChevronLeft, UndoOutlined } from "@mui/icons-material";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   FormAutocomplete,
   FormCheckbox,
@@ -31,7 +31,6 @@ export const UserDetail = () => {
   const { fetchApi } = useApi();
   const { registerCheckIsDirty, unregisterCheckIsDirty, checkIsDirty, leaveEditingPage, navigateTo } =
     useControlledNavigate();
-  const navigate = useNavigate();
   const { id } = useParams<{
     id: string;
   }>();
@@ -78,9 +77,7 @@ export const UserDetail = () => {
   }, [checkIsDirty]);
 
   const loadUser = useCallback(() => {
-    if (id !== "0") {
-      fetchApi<User>(`/api/v1/user/${id}`, { errorMessageLabel: "userLoadingError" }).then(setEditableUser);
-    }
+    fetchApi<User>(`/api/v1/user/${id}`, { errorMessageLabel: "userLoadingError" }).then(setEditableUser);
   }, [fetchApi, id]);
 
   const loadOrganisations = useCallback(() => {
@@ -108,7 +105,7 @@ export const UserDetail = () => {
       );
       user.id = parseInt(id);
       const response = await fetchApi("/api/v1/user", {
-        method: user.id === 0 ? "POST" : "PUT",
+        method: "PUT",
         body: JSON.stringify(user),
         errorMessageLabel: "userSaveError",
       });
@@ -116,11 +113,6 @@ export const UserDetail = () => {
       if (reloadAfterSave) {
         setEditableUser(userResponse);
         formMethods.reset(userResponse);
-        if (id === "0") {
-          navigate(`/admin/users/${userResponse.id}`, { replace: true });
-          unregisterCheckIsDirty(`/admin/users/0`);
-          registerCheckIsDirty(`/admin/users/${userResponse.id}`);
-        }
       }
     }
   };
@@ -155,7 +147,7 @@ export const UserDetail = () => {
           }}
           label={"backToUsers"}
         />
-        {id !== "0" && <Typography variant={"body2"}>{t("id") + ": " + id}</Typography>}
+        <Typography variant={"body2"}>{t("id") + ": " + id}</Typography>
       </FlexRowSpaceBetweenBox>
       {editableUser ? (
         <FormProvider {...formMethods}>
