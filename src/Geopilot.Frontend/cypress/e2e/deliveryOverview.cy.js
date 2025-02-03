@@ -33,22 +33,23 @@ describe("Delivery Overview tests", () => {
     // Delete delivery
     cy.visit("/admin/delivery-overview");
     cy.wait("@deliveries");
-    cy.dataCy("delete-delivery-button").should("not.exist");
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").should("have.length", 10);
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Laurence Rosenbaum");
+    // Sort to get newest delivery first
     cy.dataCy("deliveryOverview-grid").contains("Delivery date").click();
     cy.dataCy("deliveryOverview-grid").contains("Delivery date").click();
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Andreas Admin").click();
-    cy.dataCy("delete-delivery-button").should("exist");
-    cy.dataCy("delete-delivery-button").contains("Delete 1 delivery");
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").last().click();
-    cy.dataCy("delete-delivery-button").contains("Delete 2 deliveries");
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").last().click();
-    cy.dataCy("delete-delivery-button").contains("Delete 1 delivery");
-    cy.dataCy("delete-delivery-button").click();
+    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Andreas Admin");
+    cy.dataCy("deliveryOverview-grid")
+      .find(".MuiDataGrid-row")
+      .first()
+      .find('[data-testid="DeleteOutlinedIcon"]')
+      .click();
     handlePrompt("Do you really want to delete the delivery data? This action cannot be undone.", "cancel");
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Andreas Admin");
-    cy.dataCy("delete-delivery-button").click();
+    cy.dataCy("deliveryOverview-grid")
+      .find(".MuiDataGrid-row")
+      .first()
+      .find('[data-testid="DeleteOutlinedIcon"]')
+      .click();
     handlePrompt("Do you really want to delete the delivery data? This action cannot be undone.", "delete");
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Andreas Admin").should("not.exist");
   });
