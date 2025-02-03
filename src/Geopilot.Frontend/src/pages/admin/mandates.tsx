@@ -2,14 +2,12 @@ import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useState } from "react";
 import { Mandate, Organisation } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
-import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
 import { useApi } from "../../api";
-import { DataGrid, GridActionsCellItem, GridRowId } from "@mui/x-data-grid";
+import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { Tooltip } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import AddIcon from "@mui/icons-material/Add";
-import { BaseButton } from "../../components/buttons.tsx";
 import { useControlledNavigate } from "../../components/controlledNavigate";
+import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
 
 export const Mandates = () => {
   const { t } = useTranslation();
@@ -77,31 +75,14 @@ export const Mandates = () => {
   ];
 
   return (
-    <>
-      <BaseButton
-        variant="outlined"
-        icon={<AddIcon />}
-        sx={{ marginBottom: "20px" }}
-        onClick={() => startEditing(0)}
-        label={"addMandate"}
-      />
-      <DataGrid
-        data-cy="mandates-grid"
-        loading={!mandates?.length}
-        rows={mandates as unknown as DataRow[]}
-        columns={columns}
-        disableColumnSelector
-        hideFooterSelectedRowCount
-        pagination
-        pageSizeOptions={[5, 10, 25]}
-        initialState={{
-          pagination: { paginationModel: { pageSize: 10 } },
-        }}
-        onRowSelectionModelChange={newRowSelectionModel => {
-          startEditing(newRowSelectionModel[0]);
-        }}
-      />
-    </>
+    <GeopilotDataGrid
+      name="mandates"
+      addLabel="addMandate"
+      loading={!mandates?.length}
+      rows={mandates}
+      columns={columns}
+      onSelect={startEditing}
+    />
   );
 };
 

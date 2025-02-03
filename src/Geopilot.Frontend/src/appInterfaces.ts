@@ -4,7 +4,3 @@ export enum Language {
   FR = "fr",
   IT = "it",
 }
-
-export interface TranslationFunction {
-  (key: string): string;
-}

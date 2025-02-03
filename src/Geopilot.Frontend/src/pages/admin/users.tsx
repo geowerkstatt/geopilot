@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "@mui/material";
-import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
 import { Organisation, User } from "../../api/apiInterfaces";
 import { useCallback, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
 import { useApi } from "../../api";
-import { DataGrid, GridActionsCellItem, GridRowId } from "@mui/x-data-grid";
+import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useControlledNavigate } from "../../components/controlledNavigate";
+import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
 
 export const Users = () => {
   const { t } = useTranslation();
@@ -84,22 +84,7 @@ export const Users = () => {
 
   return (
     <>
-      <DataGrid
-        data-cy="users-grid"
-        loading={!users?.length}
-        rows={users as unknown as DataRow[]}
-        columns={columns}
-        disableColumnSelector
-        hideFooterSelectedRowCount
-        pagination
-        pageSizeOptions={[5, 10, 25]}
-        initialState={{
-          pagination: { paginationModel: { pageSize: 10 } },
-        }}
-        onRowSelectionModelChange={newRowSelectionModel => {
-          startEditing(newRowSelectionModel[0]);
-        }}
-      />
+      <GeopilotDataGrid name="users" loading={!users?.length} rows={users} columns={columns} onSelect={startEditing} />
     </>
   );
 };

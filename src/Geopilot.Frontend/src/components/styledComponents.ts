@@ -33,13 +33,12 @@ export const AppBox = styled(FlexBox)({
 
 export const LayoutBox = styled(FlexBox)({
   marginTop: "60px",
-  flex: "1 1 100%",
-  minHeight: "calc(100vh - 60px)",
+  flex: "1",
 });
 
 export const PageContentBox = styled(FlexBox)({
   padding: "20px",
-  flex: "1 1 100%",
+  flex: "1",
   alignItems: "center",
 });
 
