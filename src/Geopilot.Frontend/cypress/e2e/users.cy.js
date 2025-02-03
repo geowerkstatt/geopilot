@@ -1,4 +1,4 @@
-import { isSelectedNavItem, loginAsAdmin } from "./helpers/appHelpers.js";
+import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin } from "./helpers/appHelpers.js";
 import {
   evaluateCheckbox,
   getFormField,
@@ -18,20 +18,19 @@ describe("Users tests", () => {
 
   it("displays the users in a list with pagination", () => {
     cy.dataCy("users-grid").should("exist");
-    cy.dataCy("users-grid").find(".MuiDataGrid-row").should("have.length", 10);
+    cy.dataCy("users-grid").find(".MuiDataGrid-row").should("have.length", 12);
     cy.dataCy("users-grid").find(".MuiDataGrid-row").first().contains("Jaime Pagac");
-    cy.dataCy("users-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
-    cy.dataCy("users-grid").find(".MuiDataGrid-row").first().contains("Andreas Admin");
+    cy.dataCy("users-grid")
+      .find(".MuiTablePagination-actions [aria-label='Go to previous page']")
+      .should("be.disabled");
+    cy.dataCy("users-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").should("be.disabled");
   });
 
   it("checks for unsaved changes when navigating and allows editing users", () => {
-    cy.dataCy("users-grid").find(".MuiDataGrid-row").last().contains("Bobbie Waelchi");
-    cy.dataCy("users-grid")
-      .find(".MuiDataGrid-row")
-      .last()
+    getGridRowThatContains("users-grid", "Bobbie Waelchi")
       .find('[data-field="isAdmin"] [data-value="false"]')
       .should("exist");
-    cy.dataCy("users-grid").find(".MuiDataGrid-row").contains("Bobbie Waelchi").click();
+    getGridRowThatContains("users-grid", "Bobbie Waelchi").click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/users\/(?!0\b)\d+/);
     });
@@ -50,7 +49,7 @@ describe("Users tests", () => {
     cy.dataCy("backToUsers-button").click();
     isPromptVisible(false);
 
-    cy.dataCy("users-grid").find(".MuiDataGrid-row").contains("Bobbie Waelchi").click();
+    getGridRowThatContains("users-grid", "Bobbie Waelchi").click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/users\/(?!0\b)\d+/);
     });
@@ -63,8 +62,8 @@ describe("Users tests", () => {
     checkPromptActions(["cancel", "reset", "save"]);
     handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
 
-    cy.dataCy("users-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons").should("not.exist");
-    cy.dataCy("users-grid").find(".MuiDataGrid-row").last().contains("Bobbie Waelchi").click();
+    getGridRowThatContains("users-grid", "Bobbie Waelchi").contains("Brown and Sons").should("not.exist");
+    getGridRowThatContains("users-grid", "Bobbie Waelchi").click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/users\/(?!0\b)\d+/);
     });
@@ -75,20 +74,17 @@ describe("Users tests", () => {
     cy.dataCy("save-button").should("be.disabled");
     cy.dataCy("backToUsers-button").click();
     isPromptVisible(false);
-    cy.dataCy("users-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");
-    cy.dataCy("users-grid")
-      .find(".MuiDataGrid-row")
-      .last()
+    getGridRowThatContains("users-grid", "Bobbie Waelchi").contains("Brown and Sons");
+    getGridRowThatContains("users-grid", "Bobbie Waelchi")
       .find('[data-field="isAdmin"] [data-value="true"]')
       .should("exist");
     cy.dataCy("admin-organisations-nav").click();
-    cy.dataCy("organisations-grid").find(".MuiDataGrid-row").contains("Brown and Sons").click();
+    getGridRowThatContains("organisations-grid", "Brown and Sons").click();
     getFormField("users").contains("Bobbie Waelchi");
   });
 
   it("cannot change admin state for own user", () => {
-    cy.dataCy("users-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
-    cy.dataCy("users-grid").find(".MuiDataGrid-row").first().contains("Andreas Admin").click();
+    getGridRowThatContains("users-grid", "Andreas Admin").click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/users\/(?!0\b)\d+/);
     });

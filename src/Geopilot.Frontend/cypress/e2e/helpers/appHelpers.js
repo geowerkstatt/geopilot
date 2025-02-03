@@ -145,3 +145,7 @@ export const isSelectedNavItem = (item, parent) => {
   const selector = createBaseSelector(parent) + `[data-cy="${item}"]`;
   cy.get(selector).should("have.class", "Mui-selected");
 };
+
+export const getGridRowThatContains = (grid, text) => {
+  return cy.dataCy(grid).find(".MuiDataGrid-row").contains(text).parents(".MuiDataGrid-row");
+};

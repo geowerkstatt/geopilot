@@ -22,12 +22,11 @@ describe("Mandate tests", () => {
   it("displays the mandates in a list with pagination", () => {
     cy.dataCy("mandates-grid").should("exist");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").should("have.length", 10);
-    cy.get(".MuiTablePagination-select").click();
-    cy.get("li.MuiTablePagination-menuItem").contains("5").click();
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").should("have.length", 5);
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains("Handmade Soft Cheese");
-    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains("Incredible Plastic Ball");
+    cy.dataCy("mandates-grid")
+      .find(".MuiTablePagination-actions [aria-label='Go to previous page']")
+      .should("be.disabled");
+    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").should("be.disabled");
   });
 
   it("checks for unsaved changes when navigating", () => {
@@ -92,8 +91,7 @@ describe("Mandate tests", () => {
     });
 
     cy.visit("/admin/mandates");
-    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains(randomMandateName);
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains(randomMandateName);
   });
 
   it("can create mandate", () => {
