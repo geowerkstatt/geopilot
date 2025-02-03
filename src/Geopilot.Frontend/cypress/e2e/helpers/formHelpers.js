@@ -16,7 +16,7 @@ export const hasError = (fieldName, hasError = true, parent) => {
 };
 
 /**
- * Checks if a form element is disabled.
+ * Checks if a form element (except formCheckbox) is disabled.
  * @param {string} fieldName The name of the form element.
  * @param {boolean} isDisabled The expected disabled state.
  * @param {string} parent  (optional) The parent of the form element.
@@ -149,6 +149,32 @@ export const evaluateSelect = (fieldName, expectedValue, parent) => {
 export const toggleCheckbox = (fieldName, parent) => {
   const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formCheckbox"]`;
   cy.get(selector).click();
+};
+
+/**
+ * Evaluates the state of a checkbox form element.
+ * @param {string} fieldName The name of the checkbox field.
+ * @param {boolean} expectedValue The expected value of the checkbox (true for checked, false for unchecked).
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const evaluateCheckbox = (fieldName, expectedValue, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formCheckbox"] input[type="checkbox"]`;
+  cy.get(selector).should("have.prop", "checked", expectedValue);
+};
+
+/**
+ * Checks if a formCheckbox is disabled.
+ * @param {string} fieldName The name of the form element.
+ * @param {boolean} isDisabled The expected disabled state.
+ * @param {string} parent  (optional) The parent of the form element.
+ */
+export const isCheckboxDisabled = (fieldName, isDisabled = true, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy^="${fieldName}-form"].Mui-disabled`;
+  if (isDisabled) {
+    cy.get(selector).should("exist");
+  } else {
+    cy.get(selector).should("not.exist");
+  }
 };
 
 /**

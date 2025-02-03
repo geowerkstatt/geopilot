@@ -9,6 +9,7 @@
   "apiInformation": "Ce <i>geopilot</i> utilise la version {{version}} de l'API. Pour plus d'informations, consultez la <apiLink>API documentation</apiLink>.",
   "backToMandates": "Retour aux mandats",
   "backToOrganisations": "Retour aux organisations",
+  "backToUsers": "Retour aux utilisateurs",
   "bottomLeft": "En bas à gauche",
   "bugTracking": "Suivi des bugs",
   "cancel": "Annuler",
