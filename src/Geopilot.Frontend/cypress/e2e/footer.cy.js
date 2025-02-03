@@ -27,15 +27,15 @@ describe("Footer tests", () => {
 
     cy.visit("/");
 
-    cy.get('[data-cy="privacy-policy-nav"]').click();
+    cy.dataCy("privacy-policy-nav").click();
     cy.wait("@privacyPolicy");
     cy.contains("Your privacy is important to us");
 
-    cy.get('[data-cy="imprint-nav"]').click();
+    cy.dataCy("imprint-nav").click();
     cy.wait("@imprint");
     cy.contains("Test imprint");
 
-    cy.get('[data-cy="about-nav"]').click();
+    cy.dataCy("about-nav").click();
     cy.wait("@info");
     cy.wait("@termsOfUse");
     cy.wait("@license");
@@ -55,8 +55,8 @@ describe("Footer tests", () => {
     cy.contains("project1");
     cy.contains("projectA");
 
-    cy.get('[data-cy="header"]').click();
-    cy.get('[data-cy="upload-step"]').should("exist");
+    cy.dataCy("header").click();
+    cy.dataCy("upload-step").should("exist");
   });
 
   it("shows and navigates correctly between footer pages without content", () => {
@@ -81,15 +81,15 @@ describe("Footer tests", () => {
 
     cy.visit("/");
 
-    cy.get('[data-cy="privacy-policy-nav"]').click();
+    cy.dataCy("privacy-policy-nav").click();
     cy.wait("@privacyPolicy");
     cy.contains("Oops, nothing found!");
 
-    cy.get('[data-cy="imprint-nav"]').click();
+    cy.dataCy("imprint-nav").click();
     cy.wait("@imprint");
     cy.contains("Oops, nothing found!");
 
-    cy.get('[data-cy="about-nav"]').click();
+    cy.dataCy("about-nav").click();
     cy.wait("@info");
     cy.wait("@termsOfUse");
     cy.wait("@license");

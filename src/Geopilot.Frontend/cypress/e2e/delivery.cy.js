@@ -101,10 +101,10 @@ describe("Delivery tests", () => {
 
   it("shows only validation steps if auth settings could not be loaded", () => {
     loadWithoutAuth();
-    cy.get('[data-cy="upload-step"]').should("exist");
-    cy.get('[data-cy="validate-step"]').should("exist");
-    cy.get('[data-cy="submit-step"]').should("not.exist");
-    cy.get('[data-cy="done-step"]').should("not.exist");
+    cy.dataCy("upload-step").should("exist");
+    cy.dataCy("validate-step").should("exist");
+    cy.dataCy("submit-step").should("not.exist");
+    cy.dataCy("done-step").should("not.exist");
     stepIsActive("upload");
 
     // Limit the file types to a few extensions
@@ -148,13 +148,13 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("validate", true);
-    cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with ilicheck...");
     cy.wait("@validation");
     stepIsLoading("validate", false);
     stepHasError("validate", true, "Completed with errors");
-    cy.get('[data-cy="validate-step"]').contains("Die XML-Struktur der Transferdatei ist ungültig.");
-    cy.get('[data-cy="Log-button"').should("not.exist");
-    cy.get('[data-cy="Xtf-Log-button"').should("not.exist");
+    cy.dataCy("validate-step").contains("Die XML-Struktur der Transferdatei ist ungültig.");
+    cy.dataCy("Log-button").should("not.exist");
+    cy.dataCy("Xtf-Log-button").should("not.exist");
     stepIsActive("submit", false); // Should not be active if validation has errors
   });
 
@@ -185,13 +185,13 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("validate", true);
-    cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with ilicheck...");
     cy.wait("@validation");
     stepIsLoading("validate", false);
     stepHasError("validate", true, "Completed with errors");
-    cy.get('[data-cy="validate-step"]').contains("Die Daten sind nicht modellkonform.");
-    cy.get('[data-cy="Log-button"').should("exist");
-    cy.get('[data-cy="Xtf-Log-button"').should("exist");
+    cy.dataCy("validate-step").contains("Die Daten sind nicht modellkonform.");
+    cy.dataCy("Log-button").should("exist");
+    cy.dataCy("Xtf-Log-button").should("exist");
     stepIsActive("submit", false); // Should not be active if validation has errors
   });
 
@@ -214,16 +214,16 @@ describe("Delivery tests", () => {
     loginAsUploader();
 
     // All steps are visible
-    cy.get('[data-cy="upload-step"]').should("exist");
-    cy.get('[data-cy="validate-step"]').should("exist");
-    cy.get('[data-cy="submit-step"]').should("exist");
-    cy.get('[data-cy="done-step"]').should("exist");
+    cy.dataCy("upload-step").should("exist");
+    cy.dataCy("validate-step").should("exist");
+    cy.dataCy("submit-step").should("exist");
+    cy.dataCy("done-step").should("exist");
     stepIsActive("upload");
 
     // Selected file can be removed
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     stepHasError("upload", false);
-    cy.get('[data-cy="file-remove-button"]').click();
+    cy.dataCy("file-remove-button").click();
     cy.contains("ilimodels_not_conform").should("not.exist");
     stepIsActive("upload");
 
@@ -235,49 +235,49 @@ describe("Delivery tests", () => {
 
     // Validation starts automatically after a file is uploaded
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
-    cy.get('[data-cy="upload-button"]').should("not.be.disabled");
+    cy.dataCy("upload-button").should("not.be.disabled");
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("upload", false);
     stepIsCompleted("upload");
-    cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml");
+    cy.dataCy("upload-step").contains("ilimodels_not_conform.xml");
     stepIsActive("validate");
     stepIsLoading("validate");
-    cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with ilicheck...");
 
     // Validation can be cancelled
     resetDelivery("validate");
-    cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml").should("not.exist");
+    cy.dataCy("upload-step").contains("ilimodels_not_conform.xml").should("not.exist");
 
     // Validation starts automatically after a file is uploaded
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
-    cy.get('[data-cy="upload-button"]').should("not.be.disabled");
+    cy.dataCy("upload-button").should("not.be.disabled");
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("upload", false);
     stepIsCompleted("upload");
-    cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml");
+    cy.dataCy("upload-step").contains("ilimodels_not_conform.xml");
     stepIsActive("validate");
     stepIsLoading("validate");
-    cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with ilicheck...");
 
     // Validation can be cancelled
     resetDelivery("validate");
-    cy.get('[data-cy="upload-step"]').contains("ilimodels_not_conform.xml").should("not.exist");
+    cy.dataCy("upload-step").contains("ilimodels_not_conform.xml").should("not.exist");
 
     // Submit is active if validation is successful
     addFile("deliveryFiles/ilimodels_valid.xml", true);
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("validate", true);
-    cy.get('[data-cy="validate-step"]').contains("The file is currently being validated with ilicheck...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with ilicheck...");
     cy.wait("@validation");
     stepIsLoading("validate", false);
     stepHasError("validate", false);
-    cy.get('[data-cy="validate-step"]').contains("Die Daten sind modellkonform.");
-    cy.get('[data-cy="Log-button"').should("exist");
-    cy.get('[data-cy="Xtf-Log-button"').should("exist");
-    cy.get('[data-cy="validate-step"] [data-cy="cancel-button"]').should("not.exist");
+    cy.dataCy("validate-step").contains("Die Daten sind modellkonform.");
+    cy.dataCy("Log-button").should("exist");
+    cy.dataCy("Xtf-Log-button").should("exist");
+    cy.dataCy("validate-step").dataCy("cancel-button").should("not.exist");
     stepIsCompleted("validate");
     stepIsActive("submit");
 
@@ -305,11 +305,11 @@ describe("Delivery tests", () => {
     addFile("deliveryFiles/ilimodels_valid.xml", true);
 
     // Can upload a file once the terms of use are accepted and the file is valid
-    cy.get('[data-cy="upload-button"]').should("be.disabled");
+    cy.dataCy("upload-button").should("be.disabled");
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
-    cy.get('[data-cy="upload-button"]').should("be.disabled");
+    cy.dataCy("upload-button").should("be.disabled");
     toggleCheckbox("acceptTermsOfUse");
-    cy.get('[data-cy="upload-button"]').should("not.be.disabled");
+    cy.dataCy("upload-button").should("not.be.disabled");
     uploadFile();
 
     cy.wait("@upload");
@@ -343,7 +343,7 @@ describe("Delivery tests", () => {
     cy.wait("@mandates");
     cy.wait(500); // Wait for the select to be populated and enabled
 
-    cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
+    cy.dataCy("createDelivery-button").should("be.disabled");
     isDisabled("mandate", false);
 
     getFormField("precursor").should("not.exist");
@@ -356,7 +356,7 @@ describe("Delivery tests", () => {
     getFormField("precursor").should("not.exist");
     getFormField("isPartial").should("not.exist");
     getFormField("comment").should("not.exist");
-    cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
+    cy.dataCy("createDelivery-button").should("be.enabled");
 
     // Optional mandate does show optional input fields
     setSelect("mandate", 1, 3);
@@ -372,7 +372,7 @@ describe("Delivery tests", () => {
     hasError("precursor", false);
     hasError("isPartial", false);
     hasError("comment", false);
-    cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
+    cy.dataCy("createDelivery-button").should("be.enabled");
 
     // Required mandate does show all input fields
     setSelect("mandate", 2, 3);
@@ -380,7 +380,7 @@ describe("Delivery tests", () => {
     getFormField("precursor").should("exist");
     getFormField("isPartial").should("exist");
     getFormField("comment").should("exist");
-    cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
+    cy.dataCy("createDelivery-button").should("be.disabled");
     hasError("precursor", false);
     hasError("isPartial", false);
     hasError("comment", false);
@@ -388,7 +388,7 @@ describe("Delivery tests", () => {
     // Touch fields
     getFormInput("precursor").focus();
     getFormInput("comment").focus();
-    cy.get('[data-cy="createDelivery-button"]').focus();
+    cy.dataCy("createDelivery-button").focus();
     hasError("precursor", false);
     hasError("comment", false);
 
@@ -399,30 +399,30 @@ describe("Delivery tests", () => {
     hasError("precursor", false);
     hasError("isPartial", false);
     hasError("comment", false);
-    cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
+    cy.dataCy("createDelivery-button").should("be.enabled");
 
     // Change of mandate clears inputs & errors
     setSelect("mandate", 0, 3);
     setSelect("mandate", 2, 3);
     getFormInput("precursor").should("not.contain.value");
     getFormInput("comment").should("not.contain.value");
-    cy.get('[data-cy="createDelivery-button"]').should("be.disabled");
+    cy.dataCy("createDelivery-button").should("be.disabled");
 
     // Submit minimal delivery
     setSelect("mandate", 1, 3);
     cy.wait("@precursors");
-    cy.get('[data-cy="createDelivery-button"]').should("be.enabled");
-    cy.get('[data-cy="createDelivery-button"]').click();
+    cy.dataCy("createDelivery-button").should("be.enabled");
+    cy.dataCy("createDelivery-button").click();
     stepIsLoading("submit");
 
     cy.wait("@submit");
     stepIsCompleted("submit");
     stepIsActive("done");
-    cy.get('[data-cy="done-step"]').contains("The delivery was completed successfully.");
+    cy.dataCy("done-step").contains("The delivery was completed successfully.");
 
     // Can restart the delivery process after submitting was successful
-    cy.get('[data-cy="addAnotherDelivery-button"]').should("exist");
-    cy.get('[data-cy="addAnotherDelivery-button"]').click();
+    cy.dataCy("addAnotherDelivery-button").should("exist");
+    cy.dataCy("addAnotherDelivery-button").click();
     stepIsActive("upload");
     stepIsCompleted("upload", false);
     stepIsActive("validate", false);
@@ -431,7 +431,7 @@ describe("Delivery tests", () => {
     stepIsCompleted("submit", false);
     stepIsActive("done", false);
     stepIsCompleted("done", false);
-    cy.get('[data-cy="upload-button"]').should("be.disabled");
+    cy.dataCy("upload-button").should("be.disabled");
 
     // Add delivery with previously completed form
     addFile("deliveryFiles/ilimodels_valid.xml", true);
@@ -445,24 +445,24 @@ describe("Delivery tests", () => {
 
     setSelect("mandate", 1);
     cy.wait("@precursors");
-    cy.get('[data-cy="createDelivery-button"]').click();
+    cy.dataCy("createDelivery-button").click();
     stepIsLoading("submit");
     cy.wait("@submit");
     stepIsCompleted("submit");
     stepIsActive("done");
-    cy.get('[data-cy="done-step"]').contains("The delivery was completed successfully.");
+    cy.dataCy("done-step").contains("The delivery was completed successfully.");
   });
 
   it("can log in during the delivery process", () => {
     mockValidationSuccess();
 
     cy.visit("/");
-    cy.get('[data-cy="logIn-button"]').should("exist");
+    cy.dataCy("logIn-button").should("exist");
 
-    cy.get('[data-cy="upload-step"]').should("exist");
-    cy.get('[data-cy="validate-step"]').should("exist");
-    cy.get('[data-cy="submit-step"]').should("exist");
-    cy.get('[data-cy="done-step"]').should("exist");
+    cy.dataCy("upload-step").should("exist");
+    cy.dataCy("validate-step").should("exist");
+    cy.dataCy("submit-step").should("exist");
+    cy.dataCy("done-step").should("exist");
     stepIsActive("upload");
 
     addFile("deliveryFiles/ilimodels_valid.xml", true);
@@ -472,7 +472,7 @@ describe("Delivery tests", () => {
     stepIsCompleted("upload");
     stepIsCompleted("validate");
     stepIsActive("submit");
-    cy.get('[data-cy="logInForDelivery-button"]').should("exist");
+    cy.dataCy("logInForDelivery-button").should("exist");
   });
 
   it("correctly extracts error messages from the response", () => {
@@ -504,11 +504,11 @@ describe("Delivery tests", () => {
 
     setSelect("mandate", 1);
 
-    cy.get('[data-cy="createDelivery-button"]').click();
+    cy.dataCy("createDelivery-button").click();
     cy.wait("@deliveryRequest").its("response.statusCode").should("eq", 500);
     stepHasError("submit", true, "Internal Server Error");
 
-    cy.get('[data-cy="createDelivery-button"]').click();
+    cy.dataCy("createDelivery-button").click();
     cy.wait("@deliveryRequest").its("response.statusCode").should("eq", 404);
     stepHasError("submit", true, "Not found");
   });

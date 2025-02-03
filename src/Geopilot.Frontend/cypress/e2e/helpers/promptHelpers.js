@@ -4,9 +4,9 @@
  */
 export const isPromptVisible = (visible = true) => {
   if (visible) {
-    cy.get('[data-cy="prompt"]').should("be.visible");
+    cy.dataCy("prompt").should("be.visible");
   } else {
-    cy.get('[data-cy="prompt"]').should("not.exist");
+    cy.dataCy("prompt").should("not.exist");
   }
 };
 
@@ -16,10 +16,10 @@ export const isPromptVisible = (visible = true) => {
  */
 export const checkPromptActions = actions => {
   isPromptVisible();
-  cy.get('[data-cy="prompt"]').within(() => {
+  cy.dataCy("prompt").within(() => {
     cy.get("button").should("have.length", actions.length);
     actions.forEach(action => {
-      cy.get(`[data-cy="prompt-button-${action.toLowerCase()}"]`).should("exist");
+      cy.dataCy(`prompt-button-${action.toLowerCase()}`).should("exist");
     });
   });
 };
@@ -32,5 +32,5 @@ export const checkPromptActions = actions => {
 export const handlePrompt = (message, action) => {
   isPromptVisible();
   cy.contains(message);
-  cy.get('[data-cy="prompt"]').find(`[data-cy="prompt-button-${action.toLowerCase()}"]`).click();
+  cy.dataCy("prompt").dataCy(`prompt-button-${action.toLowerCase()}`).click();
 };

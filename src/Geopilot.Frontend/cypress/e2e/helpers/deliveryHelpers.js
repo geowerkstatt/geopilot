@@ -11,22 +11,22 @@ export const fileNameExists = (filePath, success) => {
 };
 
 export const addFile = (filePath, success) => {
-  cy.get('[data-cy="file-dropzone"]').attachFile(filePath, { subjectType: "drag-n-drop" });
+  cy.dataCy("file-dropzone").attachFile(filePath, { subjectType: "drag-n-drop" });
   Array.isArray(filePath) ? filePath.forEach(file => fileNameExists(file, success)) : fileNameExists(filePath, success);
 };
 
 export const uploadFile = () => {
-  cy.get('[data-cy="acceptTermsOfUse-formCheckbox"]').then($checkbox => {
+  cy.dataCy("acceptTermsOfUse-formCheckbox").then($checkbox => {
     if (!$checkbox.hasClass("Mui-checked")) {
       toggleCheckbox("acceptTermsOfUse");
     }
-    cy.get('[data-cy="upload-button"]').click();
+    cy.dataCy("upload-button").click();
     stepIsLoading("upload");
   });
 };
 
 export const resetDelivery = activeStep => {
-  cy.get(`[data-cy="${activeStep}-step"] [data-cy="cancel-button"]`).should("exist");
+  cy.dataCy(`${activeStep}-step`).dataCy("cancel-button").should("exist");
   clickCancel(`${activeStep}-step`);
   stepIsActive("upload");
   stepIsCompleted("upload", false);
@@ -36,38 +36,38 @@ export const resetDelivery = activeStep => {
   stepIsCompleted("submit", false);
   stepIsActive("done", false);
   stepIsCompleted("done", false);
-  cy.get('[data-cy="upload-button"]').should("be.disabled");
+  cy.dataCy("upload-button").should("be.disabled");
 };
 
 export const stepIsActive = (stepName, isActive = true) => {
   if (isActive) {
-    cy.get(`[data-cy="${stepName}-step"] .MuiStepLabel-iconContainer.Mui-active`).should("exist");
+    cy.dataCy(`${stepName}-step`).find(".MuiStepLabel-iconContainer.Mui-active").should("exist");
   } else {
-    cy.get(`[data-cy="${stepName}-step"] .MuiStepLabel-iconContainer.Mui-active`).should("not.exist");
+    cy.dataCy(`${stepName}-step`).find(".MuiStepLabel-iconContainer.Mui-active").should("not.exist");
   }
 };
 
 export const stepIsLoading = (stepName, isLoading = true) => {
   if (isLoading) {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-loading"]`).should("exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-loading").should("exist");
   } else {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-loading"]`).should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-loading").should("not.exist");
   }
 };
 
 export const stepHasError = (stepName, hasError, errorText) => {
   if (hasError) {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-error"]`).should("exist");
-    cy.get(`[data-cy="${stepName}-step"]`).contains(errorText);
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-error").should("exist");
+    cy.dataCy(`${stepName}-step`).contains(errorText);
   } else {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-error"]`).should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-error").should("not.exist");
   }
 };
 
 export const stepIsCompleted = (stepName, isCompleted = true) => {
   if (isCompleted) {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-completed"]`).should("exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-completed").should("exist");
   } else {
-    cy.get(`[data-cy="${stepName}-step"] [data-cy="stepper-completed"]`).should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-completed").should("not.exist");
   }
 };

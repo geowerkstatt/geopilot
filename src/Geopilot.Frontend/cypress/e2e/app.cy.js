@@ -13,31 +13,31 @@ import { selectAdminNavItem } from "./helpers/adminHelpers.js";
 describe("General app tests", () => {
   it("shows no login button if auth settings could not be loaded", () => {
     loadWithoutAuth();
-    cy.get('[data-cy="login-button"]').should("not.exist");
-    cy.get('[data-cy="delivery"]').should("exist");
+    cy.dataCy("login-button").should("not.exist");
+    cy.dataCy("delivery").should("exist");
   });
 
   it.skip("registers new users and logs them in", () => {
     loginAsNewUser();
-    cy.get('[data-cy="loggedInUser-button"]').should("exist");
-    cy.get('[data-cy="loggedInUser-button"]').click();
+    cy.dataCy("loggedInUser-button").should("exist");
+    cy.dataCy("loggedInUser-button").click();
     cy.contains("Norbert Newuser");
   });
 
   it("shows admin tools only for admin users", () => {
     loginAsUploader();
-    cy.get('[data-cy="loggedInUser-button"]').click();
-    cy.get('[data-cy="delivery-nav"]').should("exist");
-    cy.get('[data-cy="admin-nav"]').should("not.exist");
-    cy.get('[data-cy="stacBrowser-nav"]').should("not.exist");
+    cy.dataCy("loggedInUser-button").click();
+    cy.dataCy("delivery-nav").should("exist");
+    cy.dataCy("admin-nav").should("not.exist");
+    cy.dataCy("stacBrowser-nav").should("not.exist");
     logout();
 
     loginAsAdmin();
-    cy.get('[data-cy="loggedInUser-button"]').click();
-    cy.get('[data-cy="delivery-nav"]').should("exist");
+    cy.dataCy("loggedInUser-button").click();
+    cy.dataCy("delivery-nav").should("exist");
     isSelectedNavItem("delivery-nav", "tool-navigation");
-    cy.get('[data-cy="admin-nav"]').should("exist");
-    cy.get('[data-cy="stacBrowser-nav"]').should("exist");
+    cy.dataCy("admin-nav").should("exist");
+    cy.dataCy("stacBrowser-nav").should("exist");
 
     openTool("admin");
     cy.location().should(location => {
@@ -45,9 +45,9 @@ describe("General app tests", () => {
     });
     isSelectedNavItem("admin-delivery-overview-nav", "admin-navigation");
 
-    cy.get('[data-cy="loggedInUser-button"]').click();
+    cy.dataCy("loggedInUser-button").click();
     isSelectedNavItem("admin-nav", "tool-navigation");
-    cy.get('[data-cy="admin-nav"]').click();
+    cy.dataCy("admin-nav").click();
 
     selectAdminNavItem("users");
     selectAdminNavItem("mandates");
