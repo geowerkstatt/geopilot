@@ -95,6 +95,7 @@ export const DeliveryOverview = () => {
   return (
     <>
       <DataGrid
+        data-cy="deliveryOverview-grid"
         loading={isLoading}
         pagination
         rows={deliveries}
@@ -115,6 +116,7 @@ export const DeliveryOverview = () => {
       {selectedRows.length > 0 && (
         <FlexRowCenterBox sx={{ marginTop: "20px" }}>
           <Button
+            data-cy={"delete-delivery-button"}
             color="error"
             variant="contained"
             startIcon={<DeleteOutlinedIcon />}
