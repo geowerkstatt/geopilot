@@ -170,6 +170,17 @@ export const setAutocomplete = (fieldName, value, parent) => {
 };
 
 /**
+ * Removes a selected value from an autocomplete form element.
+ * @param {string} fieldName The name of the autocomplete field.
+ * @param {string} value The value to be deleted.
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const removeAutocompleteValue = (fieldName, value, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
+  cy.get(selector).contains(value).parent().find(".MuiChip-deleteIcon").click();
+};
+
+/**
  * Evaluates the state of an autocomplete form element.
  * @param {string} fieldName The name of the autocomplete field.
  * @param {string[]} expectedValues An array of expected values.

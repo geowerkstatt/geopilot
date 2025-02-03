@@ -1,30 +1,22 @@
 import { useTranslation } from "react-i18next";
-import { AdminGrid } from "../../components/adminGrid/adminGrid";
 import { DataRow, GridColDef } from "../../components/adminGrid/adminGridInterfaces";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Mandate, Organisation, User } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
-import { PromptContext } from "../../components/prompt/promptContext";
-import { CircularProgress, Stack } from "@mui/material";
+import { Tooltip } from "@mui/material";
 import { useApi } from "../../api";
-import LinkOffIcon from "@mui/icons-material/LinkOff";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import { BaseButton } from "../../components/buttons.tsx";
+import AddIcon from "@mui/icons-material/Add";
+import { DataGrid, GridActionsCellItem, GridRowId } from "@mui/x-data-grid";
+import { useControlledNavigate } from "../../components/controlledNavigate";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
 export const Organisations = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
+  const { navigateTo } = useControlledNavigate();
   const [organisations, setOrganisations] = useState<Organisation[]>();
-  const [mandates, setMandates] = useState<Mandate[]>();
-  const [users, setUsers] = useState<User[]>();
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { showPrompt } = useContext(PromptContext);
   const { fetchApi } = useApi();
-
-  useEffect(() => {
-    if (organisations && mandates && users) {
-      setIsLoading(false);
-    }
-  }, [organisations, mandates, users]);
 
   const loadOrganisations = useCallback(() => {
     fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
@@ -32,112 +24,90 @@ export const Organisations = () => {
     );
   }, [fetchApi]);
 
-  const loadMandates = useCallback(() => {
-    fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" }).then(setMandates);
-  }, [fetchApi]);
-
-  const loadUsers = useCallback(() => {
-    fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
-  }, [fetchApi]);
-
-  async function saveOrganisation(organisation: Organisation) {
-    organisation.mandates = organisation.mandates?.map(value =>
-      typeof value === "number" ? ({ id: value } as Mandate) : ({ id: (value as Mandate).id } as Mandate),
-    );
-    organisation.users = organisation.users?.map(value =>
-      typeof value === "number" ? ({ id: value } as User) : ({ id: (value as User).id } as User),
-    );
-
-    fetchApi("/api/v1/organisation", {
-      method: organisation.id === 0 ? "POST" : "PUT",
-      body: JSON.stringify(organisation),
-      errorMessageLabel: "organisationSaveError",
-    }).then(loadOrganisations);
-  }
-
-  async function onSave(row: DataRow) {
-    await saveOrganisation(row as Organisation);
-  }
-
-  async function onDisconnect(row: DataRow) {
-    showPrompt("organisationDisconnect", [
-      { label: "cancel", icon: <CancelOutlinedIcon /> },
-      {
-        label: "disconnect",
-        icon: <LinkOffIcon />,
-        action: () => {
-          const organisation = row as unknown as Organisation;
-          organisation.mandates = [];
-          organisation.users = [];
-          saveOrganisation(organisation);
-        },
-        color: "error",
-        variant: "contained",
-      },
-    ]);
-  }
+  const startEditing = (id: GridRowId) => {
+    navigateTo(`/admin/organisations/${id}`);
+  };
 
   useEffect(() => {
     if (user?.isAdmin) {
       if (organisations === undefined) {
         loadOrganisations();
       }
-
-      if (mandates === undefined) {
-        loadMandates();
-      }
-
-      if (users === undefined) {
-        loadUsers();
-      }
     }
-  }, [loadMandates, loadOrganisations, loadUsers, mandates, organisations, user?.isAdmin, users]);
+  }, [loadOrganisations, organisations, user?.isAdmin]);
 
   const columns: GridColDef[] = [
     {
       field: "name",
       headerName: t("name"),
       type: "string",
-      editable: true,
       flex: 0.5,
       minWidth: 200,
     },
     {
       field: "mandates",
       headerName: t("mandates"),
-      editable: true,
       flex: 1,
       minWidth: 400,
-      type: "custom",
-      valueOptions: mandates,
-      getOptionLabel: (value: DataRow | string) => (value as Mandate).name,
-      getOptionValue: (value: DataRow | string) => (value as Mandate).id,
+      valueFormatter: (mandates: Mandate[]) => {
+        return mandates?.map(m => m.name).join(", ");
+      },
     },
     {
       field: "users",
       headerName: t("users"),
-      editable: true,
       flex: 1,
       minWidth: 400,
-      type: "custom",
-      valueOptions: users,
-      getOptionLabel: (value: DataRow | string) => (value as User).fullName,
-      getOptionValue: (value: DataRow | string) => (value as User).id,
+      valueFormatter: (users: User[]) => {
+        return users?.map(u => u.fullName).join(", ");
+      },
+    },
+    {
+      field: "actions",
+      type: "actions",
+      headerName: "",
+      flex: 0,
+      resizable: false,
+      cellClassName: "actions",
+      getActions: ({ id }) => [
+        <Tooltip title={t("edit")} key={`edit-${id}`}>
+          <GridActionsCellItem
+            icon={<EditOutlinedIcon />}
+            label={t("edit")}
+            onClick={() => startEditing(id)}
+            color="inherit"
+          />
+        </Tooltip>,
+      ],
     },
   ];
 
-  return isLoading ? (
-    <Stack sx={{ flex: "1 0 0", justifyContent: "center", alignItems: "center", height: "100%" }}>
-      <CircularProgress />
-    </Stack>
-  ) : (
-    <AdminGrid
-      addLabel="addOrganisation"
-      data={organisations as unknown as DataRow[]}
-      columns={columns}
-      onSave={onSave}
-      onDisconnect={onDisconnect}
-    />
+  return (
+    <>
+      <BaseButton
+        variant="outlined"
+        icon={<AddIcon />}
+        sx={{ marginBottom: "20px" }}
+        onClick={() => startEditing(0)}
+        label={"addOrganisation"}
+      />
+      <DataGrid
+        data-cy="organisations-grid"
+        loading={!organisations?.length}
+        rows={organisations as unknown as DataRow[]}
+        columns={columns}
+        disableColumnSelector
+        hideFooterSelectedRowCount
+        pagination
+        pageSizeOptions={[5, 10, 25]}
+        initialState={{
+          pagination: { paginationModel: { pageSize: 10 } },
+        }}
+        onRowSelectionModelChange={newRowSelectionModel => {
+          startEditing(newRowSelectionModel[0]);
+        }}
+      />
+    </>
   );
 };
 

@@ -45,6 +45,30 @@ public class OrganisationController : ControllerBase
     }
 
     /// <summary>
+    /// Gets the organisation with the specified <paramref name="id"/>.
+    /// </summary>
+    /// <returns>The organisation.</returns>
+    [HttpGet("{id}")]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns the organisation", typeof(Organisation), "application/json")]
+    [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to get individual organisations.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The organisation could not be found.")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), "application/json")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        logger.LogInformation($"Getting organisation with id <{id}>.");
+
+        var organisation = await context.OrganisationsWithIncludes.AsNoTracking().SingleOrDefaultAsync(m => m.Id == id).ConfigureAwait(false);
+
+        if (organisation == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(organisation);
+    }
+
+    /// <summary>
     /// Asynchronously creates the <paramref name="organisation"/> specified.
     /// </summary>
     /// <param name="organisation">The organisation to create.</param>
@@ -148,7 +172,7 @@ public class OrganisationController : ControllerBase
             if (result == default)
                 return Problem("Unable to retrieve updated organisation.");
 
-            return Ok(organisation);
+            return Ok(result);
         }
         catch (Exception e)
         {

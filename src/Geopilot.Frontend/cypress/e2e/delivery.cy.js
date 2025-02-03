@@ -427,7 +427,9 @@ describe("Delivery tests", () => {
     getFormField("precursor").should("exist");
     getFormField("isPartial").should("not.exist");
     getFormField("comment").should("exist");
-    setSelect("precursor", 0); // reset
+    setSelect("precursor", 1);
+    setInput("comment", "Temporary comment");
+    setSelect("precursor", 0);
     setInput("comment", "");
     evaluateSelect("precursor", "");
     hasError("precursor", false);

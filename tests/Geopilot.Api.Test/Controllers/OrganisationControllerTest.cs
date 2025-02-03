@@ -59,6 +59,28 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task GetByIdAsync()
+        {
+            var organisationId = context.Organisations.First().Id;
+
+            var response = await organisationController.GetById(organisationId);
+            ActionResultAssert.IsOk(response);
+            var organisation = (response as OkObjectResult)?.Value as Organisation;
+            Assert.IsNotNull(organisation);
+            Assert.AreEqual(organisationId, organisation.Id);
+            Assert.AreEqual("Schumm, Runte and Macejkovic", organisation.Name);
+            Assert.AreEqual(4, organisation.Mandates.Count);
+            Assert.AreEqual(2, organisation.Users.Count);
+        }
+
+        [TestMethod]
+        public async Task GetByIdNotFoundAsync()
+        {
+            var response = await organisationController.GetById(int.MaxValue);
+            ActionResultAssert.IsNotFound(response);
+        }
+
+        [TestMethod]
         public async Task CreateOrganisation()
         {
             organisationController.SetupTestUser(adminUser);

@@ -40,7 +40,7 @@ export interface Mandate {
   name: string;
   fileTypes: string[];
   coordinates: Coordinate[];
-  organisations: Organisation[] | number[];
+  organisations: Organisation[];
   deliveries: Delivery[];
   evaluatePrecursorDelivery?: FieldEvaluationType;
   evaluatePartial?: FieldEvaluationType;
@@ -50,8 +50,8 @@ export interface Mandate {
 export interface Organisation {
   id: number;
   name: string;
-  mandates: Mandate[] | number[];
-  users: User[] | number[];
+  mandates: Mandate[];
+  users: User[];
 }
 
 export interface Delivery {
