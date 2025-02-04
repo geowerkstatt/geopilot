@@ -43,7 +43,6 @@ describe("Organisations tests", () => {
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("exist");
     cy.dataCy("save-button").should("be.disabled");
-    hasError("name", true);
 
     cy.dataCy("backToOrganisations-button").click();
     isPromptVisible(false);

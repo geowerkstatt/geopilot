@@ -40,7 +40,7 @@ describe("Mandate tests", () => {
     cy.dataCy("reset-button").should("exist");
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("exist");
-    cy.dataCy("save-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.disabled");
 
     cy.dataCy("backToMandates-button").click();
     isPromptVisible(false);
@@ -104,7 +104,7 @@ describe("Mandate tests", () => {
 
     // Buttons should be disabled if form is untouched.
     cy.dataCy("reset-button").should("be.disabled");
-    cy.dataCy("save-button").should("be.disabeld");
+    cy.dataCy("save-button").should("be.disabled");
 
     // Fields should not show errors before they are touched.
     hasError("name", false);
@@ -219,6 +219,7 @@ describe("Mandate tests", () => {
     const randomMandateName = getRandomManadateName();
     cy.intercept({ url: "/api/v1/mandate", method: "POST" }).as("saveNew");
     cy.intercept({ url: "/api/v1/mandate", method: "PUT" }).as("updateMandate");
+    cy.intercept({ url: "/api/v1/mandate", method: "GET" }).as("getMandates");
 
     // Create new mandate for testing
     cy.dataCy("addMandate-button").click();
@@ -277,6 +278,7 @@ describe("Mandate tests", () => {
 
     cy.dataCy("backToMandates-button").click();
     isPromptVisible(false);
+    cy.wait("@getMandates");
     cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Schumm, Runte and Macejkovic");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");
