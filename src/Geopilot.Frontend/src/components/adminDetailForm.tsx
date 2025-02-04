@@ -148,6 +148,10 @@ const AdminDetailForm = <T extends { id: number }>({
                 />
                 <BaseButton
                   icon={<SaveOutlinedIcon />}
+                  disabled={
+                    !formMethods.formState.isDirty ||
+                    (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
+                  }
                   onClick={() => formMethods.handleSubmit(submitForm)()}
                   label={"save"}
                 />
