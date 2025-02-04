@@ -209,6 +209,7 @@ export const OrganisationDetail = () => {
                 />
                 <BaseButton
                   icon={<SaveOutlinedIcon />}
+                  disabled={!formMethods.formState.isValid || !formMethods.formState.isDirty}
                   onClick={() => formMethods.handleSubmit(submitForm)()}
                   label={"save"}
                 />
