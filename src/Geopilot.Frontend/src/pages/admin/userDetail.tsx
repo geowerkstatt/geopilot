@@ -87,15 +87,13 @@ export const UserDetail = () => {
   }, [fetchApi]);
 
   useEffect(() => {
-    if (user?.isAdmin) {
-      if (editableUser === undefined) {
-        loadUser();
-      }
-      if (organisations === undefined) {
-        loadOrganisations();
-      }
+    if (editableUser === undefined) {
+      loadUser();
     }
-  }, [editableUser, organisations, user?.isAdmin, loadUser, loadOrganisations]);
+    if (organisations === undefined) {
+      loadOrganisations();
+    }
+  }, [editableUser, organisations, loadUser, loadOrganisations]);
 
   const saveUser = async (data: FieldValues, reloadAfterSave = true) => {
     if (id !== undefined) {

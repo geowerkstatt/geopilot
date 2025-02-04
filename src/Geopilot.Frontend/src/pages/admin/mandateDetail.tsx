@@ -19,14 +19,12 @@ import {
 } from "../../components/form/form.ts";
 import { FieldEvaluationType, Mandate, Organisation, ValidationSettings } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
-import { useGeopilotAuth } from "../../auth";
 import { useControlledNavigate } from "../../components/controlledNavigate";
 import { PromptAction } from "../../components/prompt/promptInterfaces.ts";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 
 export const MandateDetail = () => {
   const { t } = useTranslation();
-  const { user } = useGeopilotAuth();
   const formMethods = useForm({ mode: "all" });
   const { showPrompt } = useContext(PromptContext);
   const { fetchApi } = useApi();
@@ -112,18 +110,16 @@ export const MandateDetail = () => {
   }, [fetchApi]);
 
   useEffect(() => {
-    if (user?.isAdmin) {
-      if (mandate === undefined) {
-        loadMandate();
-      }
-      if (organisations === undefined) {
-        loadOrganisations();
-      }
-      if (fileExtensions === undefined) {
-        loadFileExtensions();
-      }
+    if (mandate === undefined) {
+      loadMandate();
     }
-  }, [fileExtensions, loadFileExtensions, loadMandate, loadOrganisations, mandate, organisations, user?.isAdmin]);
+    if (organisations === undefined) {
+      loadOrganisations();
+    }
+    if (fileExtensions === undefined) {
+      loadFileExtensions();
+    }
+  }, [fileExtensions, loadFileExtensions, loadMandate, loadOrganisations, mandate, organisations]);
 
   const saveMandate = async (data: FieldValues, reloadAfterSave = true) => {
     if (id !== undefined) {

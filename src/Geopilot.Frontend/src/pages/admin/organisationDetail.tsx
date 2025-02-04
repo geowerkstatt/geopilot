@@ -12,14 +12,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { FormAutocomplete, FormContainer, FormInput } from "../../components/form/form.ts";
 import { Mandate, Organisation, User } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
-import { useGeopilotAuth } from "../../auth";
 import { useControlledNavigate } from "../../components/controlledNavigate";
 import { PromptAction } from "../../components/prompt/promptInterfaces.ts";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 
 export const OrganisationDetail = () => {
   const { t } = useTranslation();
-  const { user } = useGeopilotAuth();
   const formMethods = useForm({ mode: "all" });
   const { showPrompt } = useContext(PromptContext);
   const { fetchApi } = useApi();
@@ -96,18 +94,16 @@ export const OrganisationDetail = () => {
   }, [fetchApi]);
 
   useEffect(() => {
-    if (user?.isAdmin) {
-      if (organisation === undefined) {
-        loadOrganisation();
-      }
-      if (mandates === undefined) {
-        loadMandates();
-      }
-      if (users === undefined) {
-        loadUsers();
-      }
+    if (organisation === undefined) {
+      loadOrganisation();
     }
-  }, [organisation, mandates, user?.isAdmin, users, loadOrganisation, loadMandates, loadUsers]);
+    if (mandates === undefined) {
+      loadMandates();
+    }
+    if (users === undefined) {
+      loadUsers();
+    }
+  }, [organisation, mandates, users, loadOrganisation, loadMandates, loadUsers]);
 
   const saveOrganisation = async (data: FieldValues, reloadAfterSave = true) => {
     if (id !== undefined) {
@@ -213,7 +209,6 @@ export const OrganisationDetail = () => {
                 />
                 <BaseButton
                   icon={<SaveOutlinedIcon />}
-                  disabled={!formMethods.formState.isValid || !formMethods.formState.isDirty}
                   onClick={() => formMethods.handleSubmit(submitForm)()}
                   label={"save"}
                 />
