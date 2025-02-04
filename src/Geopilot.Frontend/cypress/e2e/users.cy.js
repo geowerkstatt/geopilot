@@ -1,5 +1,6 @@
 import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin } from "./helpers/appHelpers.js";
 import {
+  evaluateAutocomplete,
   evaluateCheckbox,
   getFormField,
   isCheckboxDisabled,
@@ -55,6 +56,7 @@ describe("Users tests", () => {
     });
 
     setAutocomplete("organisations", "Brown and Sons");
+    evaluateAutocomplete("organisations", ["Brown and Sons"]);
     cy.wait(500);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.enabled");

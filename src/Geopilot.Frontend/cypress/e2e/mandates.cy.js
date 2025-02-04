@@ -40,7 +40,7 @@ describe("Mandate tests", () => {
     cy.dataCy("reset-button").should("exist");
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("exist");
-    cy.dataCy("save-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.enabled");
 
     cy.dataCy("backToMandates-button").click();
     isPromptVisible(false);
@@ -56,7 +56,7 @@ describe("Mandate tests", () => {
     setInput("name", randomMandateName);
     cy.contains("Description").click();
     cy.wait(500); // Click outside the input field and wait to trigger the validation.
-    cy.dataCy("save-button").should("be.disabled");
+    cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("admin-users-nav").click();
     checkPromptActions(["cancel", "reset"]);
     handlePrompt("You have unsaved changes. How would you like to proceed?", "cancel");
@@ -82,7 +82,6 @@ describe("Mandate tests", () => {
     setSelect("evaluatePrecursorDelivery", 0, 3);
     setSelect("evaluatePartial", 1, 2);
     setSelect("evaluateComment", 1, 3);
-    cy.dataCy("save-button").should("be.enabled");
     openTool("delivery");
     checkPromptActions(["cancel", "reset", "save"]);
     handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
@@ -103,22 +102,26 @@ describe("Mandate tests", () => {
       expect(location.pathname).to.eq(`/admin/mandates/0`);
     });
 
+    // Buttons should be disabled if form is untouched.
     cy.dataCy("reset-button").should("be.disabled");
-    cy.dataCy("save-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabeld");
 
-    hasError("name", true);
-    hasError("extent-bottom-left-longitude", true);
-    hasError("extent-bottom-left-latitude", true);
-    hasError("extent-upper-right-longitude", true);
-    hasError("extent-upper-right-latitude", true);
-    hasError("evaluatePrecursorDelivery", true);
-    hasError("evaluatePartial", true);
-    hasError("evaluateComment", true);
-
-    setInput("name", randomMandateName);
+    // Fields should not show errors before they are touched.
     hasError("name", false);
-    cy.dataCy("reset-button").should("be.enabled");
+    hasError("extent-bottom-left-longitude", false);
+    hasError("extent-bottom-left-latitude", false);
+    hasError("extent-upper-right-longitude", false);
+    hasError("extent-upper-right-latitude", false);
+    hasError("evaluatePrecursorDelivery", false);
+    hasError("evaluatePartial", false);
+    hasError("evaluateComment", false);
 
+    // Buttons should be enabled if form is touched.
+    setInput("name", randomMandateName);
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
+
+    // Extent fields should show errors when one is touched.
     setInput("extent-bottom-left-longitude", "7.3");
     hasError("extent-bottom-left-longitude", true);
     hasError("extent-bottom-left-latitude", true);
@@ -139,18 +142,20 @@ describe("Mandate tests", () => {
     hasError("extent-bottom-left-latitude", false);
     hasError("extent-upper-right-longitude", false);
     hasError("extent-upper-right-latitude", false);
+
+    // Save should trigger validation and show errors if fields are not valid.
+    cy.dataCy("save-button").click();
+    cy.dataCy("save-button").should("be.disabled");
+    hasError("evaluatePrecursorDelivery", true);
+    hasError("evaluatePartial", true);
+    hasError("evaluateComment", true);
+
     setSelect("evaluatePrecursorDelivery", 0, 3);
     hasError("evaluatePrecursorDelivery", false);
     setSelect("evaluatePartial", 1, 2);
     hasError("evaluatePartial", false);
     setSelect("evaluateComment", 1, 3);
     hasError("evaluateComment", false);
-
-    hasError("extent-bottom-left-longitude", false);
-    hasError("extent-bottom-left-latitude", false);
-    hasError("extent-upper-right-longitude", false);
-    hasError("extent-upper-right-latitude", false);
-
     cy.dataCy("save-button").should("be.enabled");
 
     setAutocomplete("organisations", "Brown and Sons");
@@ -159,7 +164,16 @@ describe("Mandate tests", () => {
     setAutocomplete("fileTypes", ".xtf");
     evaluateAutocomplete("fileTypes", [".csv", ".xtf"]);
 
+    // Resets all fields and validations.
     cy.dataCy("reset-button").click();
+    hasError("name", false);
+    hasError("extent-bottom-left-longitude", false);
+    hasError("extent-bottom-left-latitude", false);
+    hasError("extent-upper-right-longitude", false);
+    hasError("extent-upper-right-latitude", false);
+    hasError("evaluatePrecursorDelivery", false);
+    hasError("evaluatePartial", false);
+    hasError("evaluateComment", false);
     evaluateInput("name", "");
     evaluateAutocomplete("organisations", []);
     evaluateAutocomplete("fileTypes", []);
