@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents.ts";
 import { FormAutocomplete, FormContainer, FormInput } from "../../components/form/form.ts";
@@ -56,43 +56,11 @@ export const OrganisationDetail = () => {
 
   const prepareOrganisationForSave = (formData: FieldValues): Organisation => {
     const organisation = formData as Organisation;
-    organisation.mandates = formData["mandates"]?.map((value: FormAutocompleteValue) => ({ id: value.key }) as Mandate);
-    organisation.users = formData["users"]?.map((value: FormAutocompleteValue) => ({ id: value.key }) as User);
+    organisation.mandates = formData["mandates"]?.map((value: FormAutocompleteValue) => ({ id: value.id }) as Mandate);
+    organisation.users = formData["users"]?.map((value: FormAutocompleteValue) => ({ id: value.id }) as User);
     organisation.id = parseInt(id);
     return organisation;
   };
-
-  const availableMandates = useMemo(() => {
-    if (mandates) {
-      return mandates?.map(mandate => ({ key: mandate.id, name: mandate.name }));
-    } else {
-      return [];
-    }
-  }, [mandates]);
-
-  const selectedMandates = useMemo(() => {
-    if (organisation?.mandates) {
-      return organisation?.mandates?.map(mandate => ({ key: mandate.id, name: mandate.name }));
-    } else {
-      return [];
-    }
-  }, [organisation]);
-
-  const availableUsers = useMemo(() => {
-    if (users) {
-      return users?.map(user => ({ key: user.id, name: user.fullName }));
-    } else {
-      return [];
-    }
-  }, [users]);
-
-  const selectedUsers = useMemo(() => {
-    if (organisation?.users) {
-      return organisation?.users?.map(user => ({ key: user.id, name: user.fullName }));
-    } else {
-      return [];
-    }
-  }, [organisation]);
 
   return (
     <AdminDetailForm<Organisation>
@@ -115,8 +83,8 @@ export const OrganisationDetail = () => {
             fieldName={"mandates"}
             label={"mandates"}
             required={false}
-            values={availableMandates}
-            selected={selectedMandates}
+            values={mandates}
+            selected={organisation?.mandates}
           />
         </FormContainer>
         <FormContainer>
@@ -124,8 +92,8 @@ export const OrganisationDetail = () => {
             fieldName={"users"}
             label={"users"}
             required={false}
-            values={availableUsers}
-            selected={selectedUsers}
+            values={users}
+            selected={organisation?.users}
           />
         </FormContainer>
       </GeopilotBox>

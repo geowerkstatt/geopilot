@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents.ts";
@@ -58,19 +58,11 @@ export const UserDetail = () => {
   const prepareUserForSave = (formData: FieldValues): User => {
     const user = formData as User;
     user.organisations = formData["organisations"]?.map(
-      (value: FormAutocompleteValue) => ({ id: value.key }) as Organisation,
+      (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
     user.id = parseInt(id);
     return user;
   };
-
-  const availableOrganisations = useMemo(() => {
-    return organisations?.map(o => ({ key: o.id, name: o.name }));
-  }, [organisations]);
-
-  const selectedOrganisations = useMemo(() => {
-    return editableUser?.organisations?.map(o => ({ key: o.id, name: o.name }));
-  }, [editableUser?.organisations]);
 
   return (
     id !== "0" && (
@@ -103,8 +95,8 @@ export const UserDetail = () => {
               fieldName={"organisations"}
               label={"organisations"}
               required={false}
-              values={availableOrganisations}
-              selected={selectedOrganisations}
+              values={organisations}
+              selected={editableUser?.organisations}
             />
           </FormContainer>
         </GeopilotBox>

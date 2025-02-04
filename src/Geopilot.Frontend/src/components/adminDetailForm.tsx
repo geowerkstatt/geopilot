@@ -138,7 +138,7 @@ const AdminDetailForm = <T extends { id: number }>({
                   icon={<UndoOutlined />}
                   variant={"outlined"}
                   disabled={!formMethods.formState.isDirty}
-                  onClick={() => formMethods.reset(undefined, { keepDirty: false })}
+                  onClick={() => formMethods.reset(data)}
                   label={"reset"}
                 />
                 <BaseButton

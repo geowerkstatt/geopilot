@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents.ts";
 import {
@@ -74,19 +74,11 @@ export const MandateDetail = () => {
     const mandate = formData as Mandate;
     mandate.deliveries = [];
     mandate.organisations = formData["organisations"]?.map(
-      (value: FormAutocompleteValue) => ({ id: value.key }) as Organisation,
+      (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
     mandate.id = parseInt(id);
     return mandate;
   };
-
-  const availableOrganisations = useMemo(() => {
-    return organisations?.map(o => ({ key: o.id, name: o.name }));
-  }, [organisations]);
-
-  const selectedOrganisations = useMemo(() => {
-    return mandate?.organisations?.map(o => ({ key: o.id, name: o.name }));
-  }, [mandate?.organisations]);
 
   return (
     <AdminDetailForm<Mandate>
@@ -109,8 +101,8 @@ export const MandateDetail = () => {
             fieldName={"organisations"}
             label={"eligibleOrganisations"}
             required={false}
-            values={availableOrganisations}
-            selected={selectedOrganisations}
+            values={organisations}
+            selected={mandate?.organisations}
           />
         </FormContainer>
         <FormContainer>

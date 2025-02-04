@@ -2,7 +2,7 @@ import { Autocomplete, SxProps, TextField } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { Controller, useFormContext } from "react-hook-form";
 import { FC, SyntheticEvent } from "react";
-import { getFormFieldError } from "./form.ts";
+import { getFormFieldError } from "./form";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 export interface FormAutocompleteProps {
@@ -12,13 +12,14 @@ export interface FormAutocompleteProps {
   required?: boolean;
   disabled?: boolean;
   selected?: FormAutocompleteValue[] | string[];
-  values: FormAutocompleteValue[] | string[];
+  values?: FormAutocompleteValue[] | string[];
   sx?: SxProps;
 }
 
 export interface FormAutocompleteValue {
-  key: number;
-  name: string;
+  id: number;
+  name?: string;
+  fullName?: string;
 }
 
 export const FormAutocomplete: FC<FormAutocompleteProps> = ({
@@ -64,10 +65,12 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
           )}
           options={values || []}
           getOptionLabel={(option: FormAutocompleteValue | string) =>
-            typeof option === "string" ? option : (option as FormAutocompleteValue).name
+            typeof option === "string"
+              ? option
+              : (option as FormAutocompleteValue).name || (option as FormAutocompleteValue).fullName || ""
           }
           isOptionEqualToValue={(option, value) =>
-            typeof option === "string" ? option === value : option.key === (value as FormAutocompleteValue).key
+            typeof option === "string" ? option === value : option.id === (value as FormAutocompleteValue).id
           }
           value={field.value}
           data-cy={fieldName + "-formAutocomplete"}
