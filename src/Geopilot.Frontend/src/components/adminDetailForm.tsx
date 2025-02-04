@@ -55,29 +55,31 @@ const AdminDetailForm = <T extends { id: number }>({
 
   useEffect(() => {
     if (checkIsDirty) {
-      if (!formMethods.formState.isDirty) {
-        leaveEditingPage(true);
-      } else {
-        const promptActions: PromptAction[] = [
-          { label: "cancel", icon: <CancelOutlinedIcon />, action: () => leaveEditingPage(false) },
-          {
-            label: "reset",
-            icon: <UndoOutlined />,
-            action: () => leaveEditingPage(true),
-          },
-        ];
-        if (formMethods.formState.isValid) {
-          promptActions.push({
-            label: "save",
-            icon: <SaveOutlinedIcon />,
-            variant: "contained",
-            action: () => {
-              saveData(formMethods.getValues(), false).then(() => leaveEditingPage(true));
+      formMethods.trigger().then(() => {
+        if (!formMethods.formState.isDirty) {
+          leaveEditingPage(true);
+        } else {
+          const promptActions: PromptAction[] = [
+            { label: "cancel", icon: <CancelOutlinedIcon />, action: () => leaveEditingPage(false) },
+            {
+              label: "reset",
+              icon: <UndoOutlined />,
+              action: () => leaveEditingPage(true),
             },
-          });
+          ];
+          if (formMethods.formState.isValid) {
+            promptActions.push({
+              label: "save",
+              icon: <SaveOutlinedIcon />,
+              variant: "contained",
+              action: () => {
+                saveData(formMethods.getValues(), false).then(() => leaveEditingPage(true));
+              },
+            });
+          }
+          showPrompt("unsavedChanges", promptActions);
         }
-        showPrompt("unsavedChanges", promptActions);
-      }
+      });
     }
     // We only want to run this effect when checkIsDirty changes. If we add all dependencies, the prompt will be shown multiple times.
     // eslint-disable-next-line react-hooks/exhaustive-deps
