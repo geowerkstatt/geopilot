@@ -1,4 +1,4 @@
-import { isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
+import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
 import {
   evaluateAutocomplete,
   evaluateInput,
@@ -211,8 +211,7 @@ describe("Mandate tests", () => {
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("backToMandates-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
-    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
-    cy.contains(randomMandateName);
+    getGridRowThatContains("mandates-grid", randomMandateName).contains(".xml").should("not.exist");
   });
 
   it("can edit existing mandate", () => {
