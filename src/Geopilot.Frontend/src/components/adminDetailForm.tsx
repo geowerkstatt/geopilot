@@ -14,7 +14,6 @@ import { useApi } from "../api";
 import { useNavigate } from "react-router-dom";
 
 interface AdminDetailFormProps<T> {
-  id: string;
   basePath: string;
   backLabel: string;
   data: T | undefined;
@@ -26,7 +25,6 @@ interface AdminDetailFormProps<T> {
 }
 
 const AdminDetailForm = <T extends { id: number }>({
-  id: stringId,
   basePath,
   backLabel,
   data,
@@ -88,9 +86,9 @@ const AdminDetailForm = <T extends { id: number }>({
   }, [checkIsDirty]);
 
   const saveData = async (formData: FieldValues, reloadAfterSave = true) => {
-    const id = parseInt(stringId);
+    const id = data?.id || 0;
     const dataToSave = prepareDataForSave(formData);
-
+    dataToSave.id = id;
     const response = await fetchApi(apiEndpoint, {
       method: id === 0 ? "POST" : "PUT",
       body: JSON.stringify(dataToSave),
@@ -103,7 +101,7 @@ const AdminDetailForm = <T extends { id: number }>({
       onSaveSuccess?.(savedData);
       formMethods.reset(savedData);
 
-      if (stringId === "0") {
+      if (id === 0) {
         const newPath = `${basePath}/${savedData.id}`;
         navigate(newPath, { replace: true });
         unregisterCheckIsDirty(`${basePath}/0`);
@@ -131,7 +129,7 @@ const AdminDetailForm = <T extends { id: number }>({
           onClick={() => formMethods.trigger().then(() => navigateTo(basePath))}
           label={backLabel}
         />
-        {stringId !== "0" && <Typography variant={"body2"}>{t("id") + ": " + stringId}</Typography>}
+        {data && data.id !== 0 && <Typography variant={"body2"}>{t("id") + ": " + data?.id}</Typography>}
       </FlexRowSpaceBetweenBox>
       {!data ? (
         <Stack sx={{ flex: "1 0 0", justifyContent: "center", alignItems: "center", height: "100%" }}>

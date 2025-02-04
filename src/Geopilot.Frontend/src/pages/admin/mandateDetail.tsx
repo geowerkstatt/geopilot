@@ -76,13 +76,11 @@ export const MandateDetail = () => {
     mandate.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
-    mandate.id = parseInt(id);
     return mandate;
   };
 
   return (
     <AdminDetailForm<Mandate>
-      id={id}
       basePath="/admin/mandates"
       backLabel="backToMandates"
       data={mandate}

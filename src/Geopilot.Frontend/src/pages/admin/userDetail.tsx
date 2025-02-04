@@ -21,22 +21,14 @@ export const UserDetail = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const { fetchApi } = useApi();
-  const { id = "0" } = useParams<{ id: string }>();
+  const { id } = useParams<{ id: string }>();
 
   const [editableUser, setEditableUser] = useState<User>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
 
   const loadUser = useCallback(() => {
-    if (id !== "0") {
+    if (id) {
       fetchApi<User>(`/api/v1/user/${id}`, { errorMessageLabel: "userLoadingError" }).then(setEditableUser);
-    } else {
-      setEditableUser({
-        id: 0,
-        fullName: "",
-        email: "",
-        isAdmin: false,
-        organisations: [],
-      });
     }
   }, [fetchApi, id]);
 
@@ -60,14 +52,12 @@ export const UserDetail = () => {
     user.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
-    user.id = parseInt(id);
     return user;
   };
 
   return (
-    id !== "0" && (
+    id && (
       <AdminDetailForm<User>
-        id={id}
         basePath="/admin/users"
         backLabel="backToUsers"
         data={editableUser}

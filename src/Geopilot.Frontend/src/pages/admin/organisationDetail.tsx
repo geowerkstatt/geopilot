@@ -58,13 +58,11 @@ export const OrganisationDetail = () => {
     const organisation = formData as Organisation;
     organisation.mandates = formData["mandates"]?.map((value: FormAutocompleteValue) => ({ id: value.id }) as Mandate);
     organisation.users = formData["users"]?.map((value: FormAutocompleteValue) => ({ id: value.id }) as User);
-    organisation.id = parseInt(id);
     return organisation;
   };
 
   return (
     <AdminDetailForm<Organisation>
-      id={id}
       basePath="/admin/organisations"
       backLabel="backToOrganisations"
       data={organisation}
