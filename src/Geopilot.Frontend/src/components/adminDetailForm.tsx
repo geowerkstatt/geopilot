@@ -19,6 +19,7 @@ interface AdminDetailFormProps<T> {
   backLabel: string;
   data: T | undefined;
   apiEndpoint: string;
+  saveErrorLabel: string;
   prepareDataForSave: (data: FieldValues) => T;
   onSaveSuccess: (savedData: T) => void;
   children: ReactNode;
@@ -30,6 +31,7 @@ const AdminDetailForm = <T extends { id: number }>({
   backLabel,
   data,
   apiEndpoint,
+  saveErrorLabel,
   prepareDataForSave,
   onSaveSuccess,
   children,
@@ -92,7 +94,7 @@ const AdminDetailForm = <T extends { id: number }>({
     const response = await fetchApi(apiEndpoint, {
       method: id === 0 ? "POST" : "PUT",
       body: JSON.stringify(dataToSave),
-      errorMessageLabel: "saveError",
+      errorMessageLabel: saveErrorLabel,
     });
 
     const savedData = response as T;

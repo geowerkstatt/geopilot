@@ -72,6 +72,7 @@ export const UserDetail = () => {
         backLabel="backToUsers"
         data={editableUser}
         apiEndpoint="/api/v1/user"
+        saveErrorLabel="userSaveError"
         prepareDataForSave={prepareUserForSave}
         onSaveSuccess={setEditableUser}>
         <GeopilotBox>

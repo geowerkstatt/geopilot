@@ -87,6 +87,7 @@ export const MandateDetail = () => {
       backLabel="backToMandates"
       data={mandate}
       apiEndpoint="/api/v1/mandate"
+      saveErrorLabel="mandateSaveError"
       prepareDataForSave={prepareMandateForSave}
       onSaveSuccess={setMandate}>
       <GeopilotBox>

@@ -69,6 +69,7 @@ export const OrganisationDetail = () => {
       backLabel="backToOrganisations"
       data={organisation}
       apiEndpoint="/api/v1/organisation"
+      saveErrorLabel="organisationSaveError"
       prepareDataForSave={prepareOrganisationForSave}
       onSaveSuccess={setOrganisation}>
       <GeopilotBox>
