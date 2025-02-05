@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents.ts";
@@ -17,7 +17,7 @@ import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
-export const UserDetail = () => {
+const UserDetail = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const { fetchApi } = useApi();
@@ -26,26 +26,28 @@ export const UserDetail = () => {
   const [editableUser, setEditableUser] = useState<User>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
 
-  const loadUser = useCallback(() => {
-    if (id) {
-      fetchApi<User>(`/api/v1/user/${id}`, { errorMessageLabel: "userLoadingError" }).then(setEditableUser);
-    }
-  }, [fetchApi, id]);
+  const loadUser = async (id: string) => {
+    const user = await fetchApi<User>(`/api/v1/user/${id}`, { errorMessageLabel: "userLoadingError" });
+    setEditableUser(user);
+  };
 
-  const loadOrganisations = useCallback(() => {
-    fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
-      setOrganisations,
-    );
-  }, [fetchApi]);
+  const loadOrganisations = async () => {
+    const organisations = await fetchApi<Organisation[]>("/api/v1/organisation", {
+      errorMessageLabel: "organisationsLoadingError",
+    });
+    setOrganisations(organisations);
+  };
 
   useEffect(() => {
-    if (editableUser === undefined) {
-      loadUser();
+    if (editableUser === undefined && id) {
+      loadUser(id);
     }
     if (organisations === undefined) {
       loadOrganisations();
     }
-  }, [editableUser, organisations, loadUser, loadOrganisations]);
+    // We only want to run this once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const prepareUserForSave = (formData: FieldValues): User => {
     const user = formData as User;

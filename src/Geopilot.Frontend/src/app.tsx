@@ -18,7 +18,7 @@ import { DeliveryProvider } from "./pages/delivery/deliveryContext.tsx";
 import { CircularProgress } from "@mui/material";
 import MandateDetail from "./pages/admin/mandateDetail.tsx";
 import { ControlledNavigateProvider } from "./components/controlledNavigate/controlledNavigateProvider.tsx";
-import { OrganisationDetail } from "./pages/admin/organisationDetail.tsx";
+import OrganisationDetail from "./pages/admin/organisationDetail.tsx";
 import UserDetail from "./pages/admin/userDetail.tsx";
 
 export const App: FC = () => {

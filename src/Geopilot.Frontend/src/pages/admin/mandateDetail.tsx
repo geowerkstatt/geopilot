@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents.ts";
 import {
@@ -17,7 +17,7 @@ import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
-export const MandateDetail = () => {
+const MandateDetail = () => {
   const { t } = useTranslation();
   const { fetchApi } = useApi();
   const { id = "0" } = useParams<{ id: string }>();
@@ -26,41 +26,42 @@ export const MandateDetail = () => {
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [fileExtensions, setFileExtensions] = useState<string[]>();
 
-  const loadMandate = useCallback(() => {
-    if (id !== "0") {
-      fetchApi<Mandate>(`/api/v1/mandate/${id}`, { errorMessageLabel: "mandateLoadingError" }).then(setMandate);
-    } else {
-      setMandate({
-        id: 0,
-        name: "",
-        organisations: [],
-        fileTypes: [],
-        coordinates: [
-          { x: undefined, y: undefined },
-          { x: undefined, y: undefined },
-        ],
-        deliveries: [],
-      });
-    }
-  }, [fetchApi, id]);
+  const loadMandate = async (id: string) => {
+    const mandate = await fetchApi<Mandate>(`/api/v1/mandate/${id}`, { errorMessageLabel: "mandateLoadingError" });
+    setMandate(mandate);
+  };
 
-  const loadOrganisations = useCallback(() => {
-    fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
-      setOrganisations,
-    );
-  }, [fetchApi]);
+  const loadOrganisations = async () => {
+    const organisations = await fetchApi<Organisation[]>("/api/v1/organisation", {
+      errorMessageLabel: "organisationsLoadingError",
+    });
+    setOrganisations(organisations);
+  };
 
-  const loadFileExtensions = useCallback(() => {
-    fetchApi<ValidationSettings>("/api/v1/validation", { errorMessageLabel: "fileTypesLoadingError" }).then(
-      validation => {
-        setFileExtensions(validation?.allowedFileExtensions);
-      },
-    );
-  }, [fetchApi]);
+  const loadFileExtensions = async () => {
+    const validation = await fetchApi<ValidationSettings>("/api/v1/validation", {
+      errorMessageLabel: "fileTypesLoadingError",
+    });
+    setFileExtensions(validation?.allowedFileExtensions);
+  };
 
   useEffect(() => {
     if (mandate === undefined) {
-      loadMandate();
+      if (id !== "0") {
+        loadMandate(id);
+      } else {
+        setMandate({
+          id: 0,
+          name: "",
+          organisations: [],
+          fileTypes: [],
+          coordinates: [
+            { x: undefined, y: undefined },
+            { x: undefined, y: undefined },
+          ],
+          deliveries: [],
+        });
+      }
     }
     if (organisations === undefined) {
       loadOrganisations();
@@ -68,7 +69,9 @@ export const MandateDetail = () => {
     if (fileExtensions === undefined) {
       loadFileExtensions();
     }
-  }, [mandate, organisations, fileExtensions, loadMandate, loadOrganisations, loadFileExtensions]);
+    // We only want to run this once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const prepareMandateForSave = (formData: FieldValues): Mandate => {
     const mandate = formData as Mandate;
