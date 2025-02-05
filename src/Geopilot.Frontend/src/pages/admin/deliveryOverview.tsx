@@ -67,6 +67,13 @@ export const DeliveryOverview = () => {
       .finally(() => loadDeliveries());
   };
 
+  const confirmDelete = (id: GridRowId) => {
+    showPrompt("deleteDeliveryConfirmation", [
+      { label: "cancel" },
+      { label: "delete", action: () => handleDelete(id), color: "error", variant: "contained" },
+    ]);
+  };
+
   const columns: GridColDef[] = [
     { field: "id", headerName: t("id"), width: 60 },
     {
@@ -93,12 +100,7 @@ export const DeliveryOverview = () => {
           <GridActionsCellItem
             icon={<DeleteOutlinedIcon />}
             label={t("delete")}
-            onClick={() =>
-              showPrompt("deleteDeliveryConfirmation", [
-                { label: "cancel" },
-                { label: "delete", action: () => handleDelete(id), color: "error", variant: "contained" },
-              ])
-            }
+            onClick={() => confirmDelete(id)}
             color="error"
           />
         </Tooltip>,
