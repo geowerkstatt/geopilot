@@ -42,10 +42,6 @@ const AdminDetailForm = <T extends { id: number }>({
   const navigate = useNavigate();
   const { showPrompt } = useContext(PromptContext);
 
-  // Sometimes the formState is invalid but contains no errors. In this case, we still want to allow the user to save the form
-  // because the invalid state is caused by some fields not being dirty.
-  const formIsValid = !(formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0);
-
   useEffect(() => {
     const path = window.location.pathname;
     registerCheckIsDirty(path);
@@ -59,10 +55,10 @@ const AdminDetailForm = <T extends { id: number }>({
 
   useEffect(() => {
     if (checkIsDirty) {
-      formMethods.trigger().then(() => {
-        if (!formMethods.formState.isDirty) {
-          leaveEditingPage(true);
-        } else {
+      if (!formMethods.formState.isDirty) {
+        leaveEditingPage(true);
+      } else {
+        formMethods.trigger().then(isValid => {
           const promptActions: PromptAction[] = [
             { label: "cancel", icon: <CancelOutlinedIcon />, action: () => leaveEditingPage(false) },
             {
@@ -71,7 +67,7 @@ const AdminDetailForm = <T extends { id: number }>({
               action: () => leaveEditingPage(true),
             },
           ];
-          if (formIsValid) {
+          if (isValid) {
             promptActions.push({
               label: "save",
               icon: <SaveOutlinedIcon />,
@@ -82,8 +78,8 @@ const AdminDetailForm = <T extends { id: number }>({
             });
           }
           showPrompt("unsavedChanges", promptActions);
-        }
-      });
+        });
+      }
     }
     // We only want to run this effect when checkIsDirty changes. If we add all dependencies, the prompt will be shown multiple times.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,7 +145,10 @@ const AdminDetailForm = <T extends { id: number }>({
                 />
                 <BaseButton
                   icon={<SaveOutlinedIcon />}
-                  disabled={!(formMethods.formState.isDirty && formIsValid)}
+                  disabled={
+                    !formMethods.formState.isDirty ||
+                    (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
+                  }
                   onClick={() => formMethods.handleSubmit(submitForm)()}
                   label={"save"}
                 />
