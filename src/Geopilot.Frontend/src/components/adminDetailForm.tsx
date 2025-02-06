@@ -42,6 +42,10 @@ const AdminDetailForm = <T extends { id: number }>({
   const navigate = useNavigate();
   const { showPrompt } = useContext(PromptContext);
 
+  // Sometimes the formState is invalid but contains no errors. In this case, we still want to allow the user to save the form
+  // because the invalid state is caused by some fields not being dirty.
+  const formIsValid = !(formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0);
+
   useEffect(() => {
     const path = window.location.pathname;
     registerCheckIsDirty(path);
@@ -67,7 +71,7 @@ const AdminDetailForm = <T extends { id: number }>({
               action: () => leaveEditingPage(true),
             },
           ];
-          if (formMethods.formState.isValid) {
+          if (formIsValid) {
             promptActions.push({
               label: "save",
               icon: <SaveOutlinedIcon />,
@@ -150,10 +154,7 @@ const AdminDetailForm = <T extends { id: number }>({
                 />
                 <BaseButton
                   icon={<SaveOutlinedIcon />}
-                  disabled={
-                    !formMethods.formState.isDirty ||
-                    (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
-                  }
+                  disabled={!(formMethods.formState.isDirty && formIsValid)}
                   onClick={() => formMethods.handleSubmit(submitForm)()}
                   label={"save"}
                 />
