@@ -43,7 +43,6 @@ describe("Organisations tests", () => {
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("exist");
     cy.dataCy("save-button").should("be.disabled");
-    hasError("name", true);
 
     cy.dataCy("backToOrganisations-button").click();
     isPromptVisible(false);
@@ -57,7 +56,7 @@ describe("Organisations tests", () => {
     });
     setAutocomplete("users", "Kelvin Spencer");
     cy.wait(500);
-    cy.dataCy("save-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("admin-users-nav").click();
     checkPromptActions(["cancel", "reset"]);
     handlePrompt("You have unsaved changes. How would you like to proceed?", "cancel");
@@ -98,27 +97,42 @@ describe("Organisations tests", () => {
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
-    hasError("name", true);
+    hasError("name", false);
     hasError("mandates", false);
     hasError("users", false);
 
     setAutocomplete("users", "Kelvin Spencer");
     cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
+
+    cy.dataCy("save-button").click();
+    hasError("name", true);
     cy.dataCy("save-button").should("be.disabled");
 
     setInput("name", randomOrganisationName);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.enabled");
+    setInput("name", "");
+    hasError("name", true);
+    cy.dataCy("save-button").should("be.disabled");
 
     cy.dataCy("reset-button").click();
+    // TODO: https://github.com/GeoWerkstatt/geopilot/issues/382
+    // In the cypress test the field still shows an error after the reset, but in the app it doesn't
+    // hasError("name", false);
+    hasError("mandates", false);
+    hasError("users", false);
     evaluateInput("name", "");
     evaluateAutocomplete("mandates", []);
     evaluateAutocomplete("users", []);
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
 
     setInput("name", randomOrganisationName);
     setAutocomplete("mandates", "Fantastic Fresh Tuna");
     setAutocomplete("users", "Nick Purdy");
 
+    cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("save-button").click();
     cy.wait("@saveNew");
     cy.location().should(location => {
@@ -130,6 +144,7 @@ describe("Organisations tests", () => {
     setAutocomplete("users", "Kelvin Spencer");
     cy.wait(500);
     cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("backToOrganisations-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
     cy.dataCy("organisations-grid").last().contains(randomOrganisationName);
@@ -178,12 +193,15 @@ describe("Organisations tests", () => {
     evaluateInput("name", randomOrganisationName);
     evaluateAutocomplete("mandates", ["Fantastic Fresh Tuna"]);
     evaluateAutocomplete("users", ["Nick Purdy"]);
-    // TODO: Fix this. Seams to be a timing issue because it works fine in the browser.
-    // hasError("name", false);
+    hasError("name", false);
     hasError("mandates", false);
     hasError("users", false);
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
 
     setInput("name", randomOrganisationName + " updated");
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
     setAutocomplete("mandates", "Incredible Plastic Ball");
     evaluateAutocomplete("mandates", ["Fantastic Fresh Tuna", "Incredible Plastic Ball"]);
     setAutocomplete("users", "Regina Streich");

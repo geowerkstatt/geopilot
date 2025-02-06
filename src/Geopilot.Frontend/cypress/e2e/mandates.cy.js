@@ -1,4 +1,4 @@
-import { isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
+import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
 import {
   evaluateAutocomplete,
   evaluateInput,
@@ -22,12 +22,11 @@ describe("Mandate tests", () => {
   it("displays the mandates in a list with pagination", () => {
     cy.dataCy("mandates-grid").should("exist");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").should("have.length", 10);
-    cy.get(".MuiTablePagination-select").click();
-    cy.get("li.MuiTablePagination-menuItem").contains("5").click();
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").should("have.length", 5);
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains("Handmade Soft Cheese");
-    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains("Incredible Plastic Ball");
+    cy.dataCy("mandates-grid")
+      .find(".MuiTablePagination-actions [aria-label='Go to previous page']")
+      .should("be.disabled");
+    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").should("be.disabled");
   });
 
   it("checks for unsaved changes when navigating", () => {
@@ -57,7 +56,7 @@ describe("Mandate tests", () => {
     setInput("name", randomMandateName);
     cy.contains("Description").click();
     cy.wait(500); // Click outside the input field and wait to trigger the validation.
-    cy.dataCy("save-button").should("be.disabled");
+    cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("admin-users-nav").click();
     checkPromptActions(["cancel", "reset"]);
     handlePrompt("You have unsaved changes. How would you like to proceed?", "cancel");
@@ -83,7 +82,6 @@ describe("Mandate tests", () => {
     setSelect("evaluatePrecursorDelivery", 0, 3);
     setSelect("evaluatePartial", 1, 2);
     setSelect("evaluateComment", 1, 3);
-    cy.dataCy("save-button").should("be.enabled");
     openTool("delivery");
     checkPromptActions(["cancel", "reset", "save"]);
     handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
@@ -92,8 +90,7 @@ describe("Mandate tests", () => {
     });
 
     cy.visit("/admin/mandates");
-    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains(randomMandateName);
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains(randomMandateName);
   });
 
   it("can create mandate", () => {
@@ -105,22 +102,26 @@ describe("Mandate tests", () => {
       expect(location.pathname).to.eq(`/admin/mandates/0`);
     });
 
+    // Buttons should be disabled if form is untouched.
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
-    hasError("name", true);
-    hasError("extent-bottom-left-longitude", true);
-    hasError("extent-bottom-left-latitude", true);
-    hasError("extent-upper-right-longitude", true);
-    hasError("extent-upper-right-latitude", true);
-    hasError("evaluatePrecursorDelivery", true);
-    hasError("evaluatePartial", true);
-    hasError("evaluateComment", true);
-
-    setInput("name", randomMandateName);
+    // Fields should not show errors before they are touched.
     hasError("name", false);
-    cy.dataCy("reset-button").should("be.enabled");
+    hasError("extent-bottom-left-longitude", false);
+    hasError("extent-bottom-left-latitude", false);
+    hasError("extent-upper-right-longitude", false);
+    hasError("extent-upper-right-latitude", false);
+    hasError("evaluatePrecursorDelivery", false);
+    hasError("evaluatePartial", false);
+    hasError("evaluateComment", false);
 
+    // Buttons should be enabled if form is touched.
+    setInput("name", randomMandateName);
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
+
+    // Extent fields should show errors when one is touched.
     setInput("extent-bottom-left-longitude", "7.3");
     hasError("extent-bottom-left-longitude", true);
     hasError("extent-bottom-left-latitude", true);
@@ -141,18 +142,20 @@ describe("Mandate tests", () => {
     hasError("extent-bottom-left-latitude", false);
     hasError("extent-upper-right-longitude", false);
     hasError("extent-upper-right-latitude", false);
+
+    // Save should trigger validation and show errors if fields are not valid.
+    cy.dataCy("save-button").click();
+    cy.dataCy("save-button").should("be.disabled");
+    hasError("evaluatePrecursorDelivery", true);
+    hasError("evaluatePartial", true);
+    hasError("evaluateComment", true);
+
     setSelect("evaluatePrecursorDelivery", 0, 3);
     hasError("evaluatePrecursorDelivery", false);
     setSelect("evaluatePartial", 1, 2);
     hasError("evaluatePartial", false);
     setSelect("evaluateComment", 1, 3);
     hasError("evaluateComment", false);
-
-    hasError("extent-bottom-left-longitude", false);
-    hasError("extent-bottom-left-latitude", false);
-    hasError("extent-upper-right-longitude", false);
-    hasError("extent-upper-right-latitude", false);
-
     cy.dataCy("save-button").should("be.enabled");
 
     setAutocomplete("organisations", "Brown and Sons");
@@ -161,7 +164,16 @@ describe("Mandate tests", () => {
     setAutocomplete("fileTypes", ".xtf");
     evaluateAutocomplete("fileTypes", [".csv", ".xtf"]);
 
+    // Resets all fields and validations.
     cy.dataCy("reset-button").click();
+    hasError("name", false);
+    hasError("extent-bottom-left-longitude", false);
+    hasError("extent-bottom-left-latitude", false);
+    hasError("extent-upper-right-longitude", false);
+    hasError("extent-upper-right-latitude", false);
+    hasError("evaluatePrecursorDelivery", false);
+    hasError("evaluatePartial", false);
+    hasError("evaluateComment", false);
     evaluateInput("name", "");
     evaluateAutocomplete("organisations", []);
     evaluateAutocomplete("fileTypes", []);
@@ -199,14 +211,14 @@ describe("Mandate tests", () => {
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("backToMandates-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
-    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
-    cy.contains(randomMandateName);
+    getGridRowThatContains("mandates-grid", randomMandateName).contains(".xml").should("not.exist");
   });
 
   it("can edit existing mandate", () => {
     const randomMandateName = getRandomManadateName();
     cy.intercept({ url: "/api/v1/mandate", method: "POST" }).as("saveNew");
     cy.intercept({ url: "/api/v1/mandate", method: "PUT" }).as("updateMandate");
+    cy.intercept({ url: "/api/v1/mandate", method: "GET" }).as("getMandates");
 
     // Create new mandate for testing
     cy.dataCy("addMandate-button").click();
@@ -265,6 +277,7 @@ describe("Mandate tests", () => {
 
     cy.dataCy("backToMandates-button").click();
     isPromptVisible(false);
+    cy.wait("@getMandates");
     cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Schumm, Runte and Macejkovic");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");

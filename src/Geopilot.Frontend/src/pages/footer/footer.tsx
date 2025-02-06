@@ -1,4 +1,4 @@
-import { Button } from "@mui/material";
+import { Button, useMediaQuery, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { FlexRowCenterBox } from "../../components/styledComponents.ts";
 import { useControlledNavigate } from "../../components/controlledNavigate";
@@ -6,6 +6,8 @@ import { useControlledNavigate } from "../../components/controlledNavigate";
 const Footer = () => {
   const { t } = useTranslation();
   const { navigateTo } = useControlledNavigate();
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
   const isAdminRoute = location.pathname.startsWith("/admin");
   const marginLeft = isAdminRoute ? "250px" : "0";
@@ -19,6 +21,7 @@ const Footer = () => {
       }}
       className="footer">
       <Button
+        size={isXs ? "small" : "medium"}
         data-cy="home-nav"
         onClick={() => {
           navigateTo("/");
@@ -26,6 +29,7 @@ const Footer = () => {
         geopilot
       </Button>
       <Button
+        size={isXs ? "small" : "medium"}
         data-cy="privacy-policy-nav"
         onClick={() => {
           navigateTo("/privacy-policy");
@@ -33,6 +37,7 @@ const Footer = () => {
         {t("privacyPolicy")}
       </Button>
       <Button
+        size={isXs ? "small" : "medium"}
         data-cy="imprint-nav"
         onClick={() => {
           navigateTo("/imprint");
@@ -40,6 +45,7 @@ const Footer = () => {
         {t("imprint")}
       </Button>
       <Button
+        size={isXs ? "small" : "medium"}
         data-cy="about-nav"
         onClick={() => {
           navigateTo("/about");
