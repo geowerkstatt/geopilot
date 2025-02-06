@@ -44,7 +44,7 @@
   "eligibleOrganisations": "Organizzazioni autorizzate a fornire",
   "email": "E-mail",
   "failed": "Fallito",
-  "fieldNotRecorded": "Non è registrato",
+  "fieldNotEvaluated": "Non è registrato",
   "fieldOptional": "È facoltativo",
   "fieldRequired": "È richiesto",
   "fileDropzoneErrorChooseFile": "Seleziona un file valido",
