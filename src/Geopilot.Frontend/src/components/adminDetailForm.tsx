@@ -127,12 +127,7 @@ const AdminDetailForm = <T extends { id: number }>({
   return (
     <FlexBox>
       <FlexRowSpaceBetweenBox>
-        <BaseButton
-          variant={"text"}
-          icon={<ChevronLeft />}
-          onClick={() => formMethods.trigger().then(() => navigateTo(basePath))}
-          label={backLabel}
-        />
+        <BaseButton variant={"text"} icon={<ChevronLeft />} onClick={() => navigateTo(basePath)} label={backLabel} />
         {data && data.id !== 0 && <Typography variant={"body2"}>{t("id") + ": " + data?.id}</Typography>}
       </FlexRowSpaceBetweenBox>
       {!data ? (
