@@ -115,11 +115,11 @@ describe("Organisations tests", () => {
     setInput("name", "");
     hasError("name", true);
     cy.dataCy("save-button").should("be.disabled");
+    // We have to click away to move the focus away from the error field. Else the error won't be cleared.
+    cy.contains("Description").click();
 
     cy.dataCy("reset-button").click();
-    // TODO: https://github.com/GeoWerkstatt/geopilot/issues/382
-    // In the cypress test the field still shows an error after the reset, but in the app it doesn't
-    // hasError("name", false);
+    hasError("name", false);
     hasError("mandates", false);
     hasError("users", false);
     evaluateInput("name", "");
