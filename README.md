@@ -14,22 +14,13 @@ Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
 
 Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Options/Text Editor/Javascript/Linting/General` _Enable ESLint_ auf `true` setzen, resp. im VS Code die _ESLint_-Extension installieren.
 
-⚠️ Damit die Launch Settings für _docker-compose_ korrekt geladen werden, mit Rechtsklick auf dem Projekt _Manage Docker Compose Launch Settings_ öffnen, warten bis alle Services geladen sind und dann speichern.
-
 ### Starten der Applikation (Lokal) 🚀
 
 - Vor dem ersten Start oder bei Änderungen in den Packages muss in _Geopilot.Frontend_ manuell `npm install` ausgeführt werden.
 
 - Damit die Applikation mit HTTPS funktioniert, muss ein lokales dev-cert erstellt werden. Dieses wird durch das npm Script `predev` vor dem Start automatisch erstellt. Sollte dies nicht funktionieren, kann mit folgendem Befehl ein Zertifikat manuell erstellt und vertraut werden: `dotnet dev-certs https --trust`. HTTPS muss verwendet werden, damit die STAC-Urls korrekt funktionieren und so der STAC-Browser wie in einer produktiven Umgebung verwendet werden kann.
 
-- Über _Start_ > _Configure Startup Projects_ > _Common Properties_ > _Startup Projects_ müssen _Multiple startup projects_ definiert werden.
-
-| Project           | Action                  |
-| ----------------- | ----------------------- |
-| docker-compose    | Start without debugging |
-| Geopilot.Api      | Start                   |
-| Geopilot.Api.Test | None                    |
-| Geopilot.Frontend | Start                   |
+- Das Projekt kann mit dem Launch Profile "Development" gestartet werden.
 
 ### Starten der Applikation (Docker Compose) 🐳
 
