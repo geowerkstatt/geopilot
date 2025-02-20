@@ -54,6 +54,7 @@ const UserDetail = () => {
     user.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
+    delete user.deliveries;
     return user;
   };
 

@@ -98,7 +98,7 @@ const AdminDetailForm = <T extends { id: number }>({
     const savedData = response as T;
 
     if (reloadAfterSave) {
-      onSaveSuccess?.(savedData);
+      onSaveSuccess(savedData);
       formMethods.reset(savedData);
 
       if (id === 0) {
