@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## v2.0.180 - 2025-02-20
+
 ### Added
 - Added the option to control how attributes for deliveries are requested from the user for each mandate.
     - All deliveries are migrated to match current behaviour.
