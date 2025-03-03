@@ -1,0 +1,87 @@
+name: ZAP Scan
+
+on: [push]
+
+jobs:
+  zap-full-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        run: |
+          echo PEM_CERT_PATH=$(pwd)/certs/geopilot.pem >> $GITHUB_ENV
+          echo UBUNTU_TRUSTED_CERT_PATH=/usr/local/share/ca-certificates/geopilot.crt >> $GITHUB_ENV
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0"
+
+      - name: Create dev-certs
+        run: |
+          mkdir ./certs
+          dotnet dev-certs https --export-path ${{ env.PEM_CERT_PATH }} --no-password --format PEM
+          chmod -R 664 ./certs/*
+
+      - name: Trust dev-certs
+        run: |
+          sudo apt-get install -y ca-certificates
+          sudo cp ${{ env.PEM_CERT_PATH }} ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
+          sudo update-ca-certificates
+
+      - name: Start db and api's
+        run: docker compose up --wait
+
+      - name: ZAP full scan
+        uses: zaproxy/action-full-scan@v0.12.0
+        with:
+          target: "https://localhost:5173"
+          rules_file_name: "./config/zap-full-scan-rules.tsv"
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: "zap-full-scan-report"
+
+  zap-api-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set environment variables
+        run: |
+          echo PEM_CERT_PATH=$(pwd)/certs/geopilot.pem >> $GITHUB_ENV
+          echo UBUNTU_TRUSTED_CERT_PATH=/usr/local/share/ca-certificates/geopilot.crt >> $GITHUB_ENV
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0"
+
+      - name: Create dev-certs
+        run: |
+          mkdir ./certs
+          dotnet dev-certs https --export-path ${{ env.PEM_CERT_PATH }} --no-password --format PEM
+          chmod -R 664 ./certs/*
+
+      - name: Trust dev-certs
+        run: |
+          sudo apt-get install -y ca-certificates
+          sudo cp ${{ env.PEM_CERT_PATH }} ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
+          sudo update-ca-certificates
+
+      - name: Start db and api's
+        run: docker compose up --wait
+
+      - name: ZAP api scan
+        uses: zaproxy/action-api-scan@v0.9.0
+        with:
+          target: "https://localhost:5173/swagger/v1/swagger.json"
+          rules_file_name: "./config/zap-api-scan-rules.tsv"
+          format: openapi
+          fail_action: true
+          allow_issue_writing: false
+          artifact_name: "zap-api-scan-report"
