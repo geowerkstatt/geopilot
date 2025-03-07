@@ -77,11 +77,11 @@ export const loginAsNewUser = () => {
  * Loads the application without authentication so that no login is available.
  */
 export const loadWithoutAuth = () => {
-  cy.visit("/");
   cy.intercept("/api/v1/user/auth", {
     statusCode: 200,
     body: { authority: "", clientId: "" },
   });
+  cy.visit("/");
 };
 
 /**
