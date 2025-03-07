@@ -184,8 +184,8 @@ builder.Services
     .AddCheck<ValidationServiceHealthCheck>("Validators")
     .AddCheck<StorageHealthCheck>("Storage");
 
-// Set the maximum request body size to 200MB
-const int MaxRequestBodySize = 209715200;
+// Set the maximum request body size to 100MB
+const int MaxRequestBodySize = 104857600;
 builder.Services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = MaxRequestBodySize);
 builder.Services.Configure<KestrelServerOptions>(options => options.Limits.MaxRequestBodySize = MaxRequestBodySize);
 

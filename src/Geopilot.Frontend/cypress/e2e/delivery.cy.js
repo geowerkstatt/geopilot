@@ -100,6 +100,12 @@ describe("Delivery tests", () => {
   });
 
   it("shows only validation steps if auth settings could not be loaded", () => {
+    // Limit the file types to a few extensions
+    cy.intercept("/api/v1/validation", {
+      statusCode: 200,
+      body: { allowedFileExtensions: [".csv", ".gpkg", ".itf", ".xml", ".xtf", ".zip"] },
+    }).as("fileExtensions");
+
     loadWithoutAuth();
     cy.dataCy("upload-step").should("exist");
     cy.dataCy("validate-step").should("exist");
@@ -107,13 +113,8 @@ describe("Delivery tests", () => {
     cy.dataCy("done-step").should("not.exist");
     stepIsActive("upload");
 
-    // Limit the file types to a few extensions
-    cy.intercept("/api/v1/validation", {
-      statusCode: 200,
-      body: { allowedFileExtensions: [".csv", ".gpkg", ".itf", ".xml", ".xtf", ".zip"] },
-    }).as("fileExtensions");
     cy.wait("@fileExtensions");
-    cy.contains(".csv, .gpkg, .itf, .xml, .xtf or .zip (max. 200 MB)");
+    cy.contains(".csv, .gpkg, .itf, .xml, .xtf or .zip (max. 100 MB)");
 
     addFile("deliveryFiles/picture-type.png", false);
     stepHasError("upload", true, "The file type is not supported");
