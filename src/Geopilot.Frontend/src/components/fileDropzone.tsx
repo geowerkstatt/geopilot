@@ -77,7 +77,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
     maxFiles: 1,
-    maxSize: 209715200,
+    maxSize: 104857600,
     accept: acceptsAllFileTypes
       ? undefined
       : {
@@ -127,7 +127,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
           </Typography>
           {fileExtensions && fileExtensions.length > 0 && (
             <Typography variant="caption" className={disabled ? "Mui-disabled" : ""}>
-              {getAcceptedFileTypesText()}&nbsp;(max. 200 MB)
+              {getAcceptedFileTypesText()}&nbsp;(max. 100 MB)
             </Typography>
           )}
         </>

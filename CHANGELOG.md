@@ -5,6 +5,7 @@
 ### Changed
 
 - File extensions of uploaded files are now checked case-insensitive.
+- File size limit lowered to 100 MB to adhere to hosting provider restrictions (Cloudflare)
 
 ## v2.0.180 - 2025-02-20
 
