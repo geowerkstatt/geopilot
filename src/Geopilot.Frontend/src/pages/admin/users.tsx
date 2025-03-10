@@ -4,7 +4,7 @@ import { Organisation, User } from "../../api/apiInterfaces";
 import { useCallback, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
 import { useApi } from "../../api";
-import { GridActionsCellItem, GridColDef, GridFilterInputValue, GridRowId } from "@mui/x-data-grid";
+import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useControlledNavigate } from "../../components/controlledNavigate";
 import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
