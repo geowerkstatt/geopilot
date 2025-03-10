@@ -6,21 +6,16 @@ import { ContentType } from "../../api/apiInterfaces.ts";
 export const AppSettingsContext = createContext<AppSettingsContextInterface>({
   initialized: false,
   clientSettings: undefined,
-  termsOfUse: undefined,
 });
 
 export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const { fetchApi } = useApi();
   const [clientSettings, setClientSettings] = useState<ClientSettings | null>();
-  const [termsOfUse, setTermsOfUse] = useState<string | null>();
 
   useEffect(() => {
     fetchApi<ClientSettings>("/client-settings.json", { responseType: ContentType.Json })
       .then(setClientSettings)
       .catch(() => setClientSettings(null));
-    fetchApi<string>("/terms-of-use.md", { responseType: ContentType.Markdown })
-      .then(setTermsOfUse)
-      .catch(() => setTermsOfUse(null));
   }, [fetchApi]);
 
   useEffect(() => {
@@ -60,9 +55,8 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   return (
     <AppSettingsContext.Provider
       value={{
-        initialized: clientSettings !== undefined && termsOfUse !== undefined,
+        initialized: clientSettings !== undefined,
         clientSettings: clientSettings,
-        termsOfUse: termsOfUse,
       }}>
       {children}
     </AppSettingsContext.Provider>
