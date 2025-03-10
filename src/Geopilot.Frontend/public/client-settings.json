@@ -1,6 +1,12 @@
 {
   "application": {
     "name": "geowerkstatt",
+    "localName": {
+      "de": "geowerkstatt",
+      "en": "geowerkstatt",
+      "fr": "geowerkstatt",
+      "it": "geowerkstatt"
+    }
     "logo": "/logo.png",
     "favicon": "/logo.png",
     "faviconDark": "/logo-dark.png"
