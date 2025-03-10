@@ -18,9 +18,8 @@ export interface FormAutocompleteProps {
 
 export interface FormAutocompleteValue {
   id: number;
-  name?: string;
-  fullName?: string;
-  email?: string;
+  displayText: string;
+  fullDisplayText?: string;
 }
 
 export const FormAutocomplete: FC<FormAutocompleteProps> = ({
@@ -41,12 +40,12 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
       return option;
     }
 
-    if (option.name) {
-      return `${option.name} (ID: ${option.id})`;
+    if (option.displayText) {
+      return `${option.displayText} (ID: ${option.id})`;
     }
 
-    if (option.fullName) {
-      return `${option.fullName} (${option.email})`;
+    if (option.fullDisplayText) {
+      return `${option.fullDisplayText} (${option.email})`;
     }
 
     return "";
@@ -73,7 +72,7 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
           }
           renderTags={(tagValue, getTagProps) =>
             tagValue.map((option, index) => {
-              const label = typeof option === "string" ? option : option.name || option.fullName || "";
+              const label = typeof option === "string" ? option : option.displayText || option.fullDisplayText || "";
               const key = typeof option === "string" ? option : option.id;
 
               return <Chip {...getTagProps({ index })} key={key} label={label} />;
