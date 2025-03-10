@@ -35,22 +35,6 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
   const { t } = useTranslation();
   const { control, setValue } = useFormContext();
 
-  const formatOptionLabel = (option: FormAutocompleteValue | string): string => {
-    if (typeof option === "string") {
-      return option;
-    }
-
-    if (option.displayText) {
-      return `${option.displayText} (ID: ${option.id})`;
-    }
-
-    if (option.fullDisplayText) {
-      return `${option.fullDisplayText} (${option.email})`;
-    }
-
-    return "";
-  };
-
   return (
     <Controller
       name={fieldName}
