@@ -6,6 +6,10 @@
 
 - File size limit lowered to 100 MB to adhere to hosting provider restrictions (Cloudflare)
 
+### Fixed
+
+- Made sorting and filtering work consistently across all admin tables
+
 ## v2.0.180 - 2025-02-20
 
 ### Added
