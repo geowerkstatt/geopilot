@@ -102,6 +102,25 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task GetWithJobIdIncludesMatchingMandatesIgnoresCase()
+        {
+            var jobId = Guid.NewGuid();
+            mandateController.SetupTestUser(editUser);
+            validationServiceMock
+                .Setup(m => m.GetJob(jobId))
+                .Returns(new ValidationJob(jobId, "Original.XTF", "tmp.XTF"));
+            xtfMandate.SetCoordinateListFromPolygon();
+
+            var result = (await mandateController.Get(jobId)) as OkObjectResult;
+            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+
+            Assert.IsNotNull(mandates);
+            ContainsMandate(mandates, unrestrictedMandate);
+            ContainsMandate(mandates, xtfMandate);
+            DoesNotContainMandate(mandates, unassociatedMandate);
+        }
+
+        [TestMethod]
         public async Task GetWithJobIdExcludesNonMatchinMandates()
         {
             var jobId = Guid.NewGuid();
