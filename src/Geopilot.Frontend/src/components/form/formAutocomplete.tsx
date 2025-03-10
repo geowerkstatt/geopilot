@@ -73,9 +73,13 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
           )}
           options={values || []}
           getOptionKey={(option: string | FormAutocompleteValue) =>
-            typeof option === "string" ? option : String(option.id)
+            typeof option === "string" ? `${option}-${Math.random()}` : String(option.id)
           }
-          getOptionLabel={formatOptionLabel}
+          getOptionLabel={(option: string | FormAutocompleteValue) =>
+            typeof option === "string"
+              ? option
+              : (option as FormAutocompleteValue).fullDisplayText || (option as FormAutocompleteValue).displayText
+          }
           isOptionEqualToValue={(option, value) =>
             typeof option === "string" ? option === value : option.id === (value as FormAutocompleteValue).id
           }
