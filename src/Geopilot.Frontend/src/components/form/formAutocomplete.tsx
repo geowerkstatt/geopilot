@@ -72,17 +72,12 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
             setValue(fieldName, newValue, { shouldValidate: true, shouldDirty: true, shouldTouch: true })
           }
           renderTags={(tagValue, getTagProps) =>
-            tagValue.map((option, index) => (
-              // eslint-disable-next-line react/jsx-key
-              <Chip
-                {...getTagProps({ index })}
-                label={
-                  typeof option === "string"
-                    ? option
-                    : (option as FormAutocompleteValue).name || (option as FormAutocompleteValue).fullName || ""
-                }
-              />
-            ))
+            tagValue.map((option, index) => {
+              const label = typeof option === "string" ? option : option.name || option.fullName || "";
+              const key = typeof option === "string" ? option : option.id;
+
+              return <Chip {...getTagProps({ index })} key={key} label={label} />;
+            })
           }
           renderInput={params => (
             <TextField
