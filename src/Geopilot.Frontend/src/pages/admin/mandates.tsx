@@ -44,14 +44,19 @@ export const Mandates = () => {
       headerName: t("fileTypes"),
       flex: 1,
       minWidth: 200,
+      valueGetter: (fileTypes: string[]) => {
+        const sortedNames = fileTypes.sort();
+        return sortedNames.join(", ");
+      },
     },
     {
       field: "organisations",
       headerName: t("organisations"),
       flex: 1,
       minWidth: 400,
-      valueFormatter: (organisations: Organisation[]) => {
-        return organisations?.map(o => o.name).join(", ");
+      valueGetter: (organisations: Organisation[]) => {
+        const sortedNames = [...organisations.map(o => o.name)].sort();
+        return sortedNames.join(", ");
       },
     },
     {
