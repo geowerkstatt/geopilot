@@ -20,6 +20,7 @@ export interface FormAutocompleteValue {
   id: number;
   name?: string;
   fullName?: string;
+  email?: string;
 }
 
 export const FormAutocomplete: FC<FormAutocompleteProps> = ({
