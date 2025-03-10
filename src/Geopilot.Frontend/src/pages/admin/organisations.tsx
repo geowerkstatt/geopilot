@@ -47,8 +47,9 @@ export const Organisations = () => {
       headerName: t("mandates"),
       flex: 1,
       minWidth: 400,
-      valueFormatter: (mandates: Mandate[]) => {
-        return mandates?.map(m => m.name).join(", ");
+      valueGetter: (mandates: Mandate[]) => {
+        const sortedNames = [...mandates].map(m => m.name).sort();
+        return sortedNames.join(" • ");
       },
     },
     {
@@ -56,8 +57,9 @@ export const Organisations = () => {
       headerName: t("users"),
       flex: 1,
       minWidth: 400,
-      valueFormatter: (users: User[]) => {
-        return users?.map(u => u.fullName).join(", ");
+      valueGetter: (users: User[]) => {
+        const sortedNames = [...users].map(u => u.fullName).sort();
+        return sortedNames.join(" • ");
       },
     },
     {
