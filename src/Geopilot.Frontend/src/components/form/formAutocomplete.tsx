@@ -1,4 +1,4 @@
-import { Autocomplete, SxProps, TextField } from "@mui/material";
+import { Autocomplete, Chip, SxProps, TextField } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { Controller, useFormContext } from "react-hook-form";
 import { FC, SyntheticEvent } from "react";
@@ -70,6 +70,19 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
           disabled={disabled ?? false}
           onChange={(event: SyntheticEvent, newValue: (string | FormAutocompleteValue)[]) =>
             setValue(fieldName, newValue, { shouldValidate: true, shouldDirty: true, shouldTouch: true })
+          }
+          renderTags={(tagValue, getTagProps) =>
+            tagValue.map((option, index) => (
+              // eslint-disable-next-line react/jsx-key
+              <Chip
+                {...getTagProps({ index })}
+                label={
+                  typeof option === "string"
+                    ? option
+                    : (option as FormAutocompleteValue).name || (option as FormAutocompleteValue).fullName || ""
+                }
+              />
+            ))
           }
           renderInput={params => (
             <TextField
