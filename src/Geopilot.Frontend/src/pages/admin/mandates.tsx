@@ -44,6 +44,10 @@ export const Mandates = () => {
       headerName: t("fileTypes"),
       flex: 1,
       minWidth: 200,
+      valueGetter: (fileTypes: string[]) => {
+        const sortedNames = fileTypes.sort();
+        return sortedNames.join(", ");
+      },
     },
     {
       field: "organisations",
