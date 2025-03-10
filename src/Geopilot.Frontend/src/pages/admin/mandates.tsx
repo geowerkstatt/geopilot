@@ -56,7 +56,7 @@ export const Mandates = () => {
       minWidth: 400,
       valueGetter: (organisations: Organisation[]) => {
         const sortedNames = [...organisations.map(o => o.name)].sort();
-        return sortedNames.join(" · ");
+        return sortedNames.join(", ");
       },
     },
     {

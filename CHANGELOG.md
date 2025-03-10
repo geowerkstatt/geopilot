@@ -8,7 +8,7 @@
 
 ### Fixed
 
-- Made sorting and filtering work consistently across all admin tables
+- Sorting and filtering now works consistently across all admin tables.
 - File extensions of uploaded files are now checked case-insensitive.
 
 ## v2.0.180 - 2025-02-20

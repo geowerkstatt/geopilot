@@ -49,7 +49,7 @@ export const Organisations = () => {
       minWidth: 400,
       valueGetter: (mandates: Mandate[]) => {
         const sortedNames = [...mandates].map(m => m.name).sort();
-        return sortedNames.join(" · ");
+        return sortedNames.join(", ");
       },
     },
     {
@@ -59,7 +59,7 @@ export const Organisations = () => {
       minWidth: 400,
       valueGetter: (users: User[]) => {
         const sortedNames = [...users].map(u => u.fullName).sort();
-        return sortedNames.join(" · ");
+        return sortedNames.join(", ");
       },
     },
     {
