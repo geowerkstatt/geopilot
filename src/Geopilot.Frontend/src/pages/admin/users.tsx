@@ -56,7 +56,6 @@ export const Users = () => {
     {
       field: "organisations",
       headerName: t("organisations"),
-      type: "string",
       flex: 1,
       minWidth: 400,
       valueGetter: (organisations: Organisation[]) => {
