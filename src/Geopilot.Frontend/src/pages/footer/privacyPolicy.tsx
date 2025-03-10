@@ -7,13 +7,23 @@ import { ContentType } from "../../api/apiInterfaces.ts";
 import { CenteredBox } from "../../components/styledComponents.ts";
 
 export const PrivacyPolicy = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [content, setContent] = useState<string>();
   const { fetchApi } = useApi();
 
   useEffect(() => {
-    fetchApi<string>("/privacy-policy.md", { responseType: ContentType.Markdown }).then(setContent);
-  }, [fetchApi]);
+    fetchApi<string>(`/privacy-policy.${i18n.language}.md`, { responseType: ContentType.Markdown })
+      .then(response => {
+        if (response) {
+          setContent(response);
+        } else {
+          throw new Error("Language-specific policy not found");
+        }
+      })
+      .catch(() => {
+        fetchApi<string>("/privacy-policy.md", { responseType: ContentType.Markdown }).then(setContent);
+      });
+  }, [fetchApi, i18n.language]);
 
   return (
     <CenteredBox>
