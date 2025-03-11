@@ -56,7 +56,7 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
           }
           renderTags={(tagValue, getTagProps) =>
             tagValue.map((option, index) => {
-              const label = typeof option === "string" ? option : option.displayText || option.fullDisplayText || "";
+              const label = typeof option === "string" ? option : option.displayText || "";
               const key = typeof option === "string" ? option : option.id;
 
               return <Chip {...getTagProps({ index })} key={key} label={label} />;
