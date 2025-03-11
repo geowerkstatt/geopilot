@@ -107,12 +107,12 @@ const MandateDetail = () => {
             values={mapToFormAutocompleteValue(
               organisations,
               o => o.name,
-              o => `${o.name} (ID ${o.id})`,
+              o => `${o.name} (ID: ${o.id})`,
             )}
             selected={mapToFormAutocompleteValue(
               mandate?.organisations,
               o => o.name,
-              o => `${o.name} (ID ${o.id})`,
+              o => `${o.name} (ID: ${o.id})`,
             )}
           />
         </FormContainer>

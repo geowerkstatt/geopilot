@@ -16,6 +16,7 @@ import { FormAutocompleteValue } from "../../components/form/formAutocomplete.ts
 import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { mapToFormAutocompleteValue } from "../../components/form/formAutocompleteUtils.ts";
 
 const UserDetail = () => {
   const { t } = useTranslation();
@@ -89,8 +90,16 @@ const UserDetail = () => {
               fieldName={"organisations"}
               label={"organisations"}
               required={false}
-              values={organisations}
-              selected={editableUser?.organisations}
+              values={mapToFormAutocompleteValue(
+                organisations,
+                o => o.name,
+                o => `${o.name} (ID: ${o.id})`,
+              )}
+              selected={mapToFormAutocompleteValue(
+                editableUser?.organisations,
+                o => o.name,
+                o => `${o.name} (ID: ${o.id})`,
+              )}
             />
           </FormContainer>
         </GeopilotBox>
