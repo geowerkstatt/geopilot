@@ -35,7 +35,7 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
   const { t } = useTranslation();
   const { control, setValue } = useFormContext();
 
-  const mapToFormAutocompleteValue = <T extends { id: number }>(
+  export const mapToFormAutocompleteValue = <T extends { id: number }>(
     items: T[] | undefined,
     getDisplayText: (item: T) => string,
     getFullDisplayText: (item: T) => string,
