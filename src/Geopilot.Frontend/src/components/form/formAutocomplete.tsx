@@ -92,10 +92,10 @@ export const FormAutocomplete = <T,>({
           )}
           options={values || []}
           getOptionKey={(option: T) => (values as T[]).indexOf(option)}
-          getOptionLabel={(option: string | FormAutocompleteValue) =>
+          getOptionLabel={(option: T) =>
             typeof option === "string"
               ? option
-              : (option as FormAutocompleteValue).fullDisplayText || (option as FormAutocompleteValue).displayText
+              : safeValueFormatter(option as T).fullDisplayText || safeValueFormatter(option as T).displayText
           }
           isOptionEqualToValue={(option, value) =>
             typeof option === "string" ? option === value : option.id === (value as FormAutocompleteValue).id
