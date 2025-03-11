@@ -16,7 +16,6 @@ import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { mapToFormAutocompleteValue } from "../../components/form/formAutocompleteUtils.ts";
 
 const MandateDetail = () => {
   const { t } = useTranslation();
@@ -100,24 +99,21 @@ const MandateDetail = () => {
           <FormInput fieldName={"name"} label={"name"} value={mandate?.name} required={true} />
         </FormContainer>
         <FormContainer>
-          <FormAutocomplete
+          <FormAutocomplete<Organisation>
             fieldName={"organisations"}
             label={"eligibleOrganisations"}
             required={false}
-            values={mapToFormAutocompleteValue(
-              organisations,
-              o => o.name,
-              o => `${o.name} (ID: ${o.id})`,
-            )}
-            selected={mapToFormAutocompleteValue(
-              mandate?.organisations,
-              o => o.name,
-              o => `${o.name} (ID: ${o.id})`,
-            )}
+            values={organisations}
+            selected={mandate?.organisations}
+            valueFormatter={org => ({
+              id: org.id,
+              displayText: org.name,
+              fullDisplayText: `${org.name} (ID: ${org.id})`,
+            })}
           />
         </FormContainer>
         <FormContainer>
-          <FormAutocomplete
+          <FormAutocomplete<string>
             fieldName={"fileTypes"}
             label={"fileTypes"}
             required={false}
