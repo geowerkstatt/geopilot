@@ -1,7 +1,7 @@
 import { Autocomplete, Chip, SxProps, TextField } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { Controller, useFormContext } from "react-hook-form";
-import { FC, SyntheticEvent } from "react";
+import { SyntheticEvent } from "react";
 import { getFormFieldError } from "./form";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
@@ -44,7 +44,7 @@ export const FormAutocomplete = <T,>({
     const formatted = valueFormatter(option);
 
     if (formatted.id === undefined || formatted.id === null) {
-      throw new Error(`Missing ID for formatted option in ${fieldName}`);
+      throw new Error(`Missing mandatory ID property for non-string option in ${fieldName}`);
     }
 
     return formatted;
