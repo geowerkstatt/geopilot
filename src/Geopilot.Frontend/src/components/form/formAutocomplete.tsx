@@ -1,7 +1,7 @@
 import { Autocomplete, Chip, SxProps, TextField } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { Controller, useFormContext } from "react-hook-form";
-import { SyntheticEvent } from "react";
+import { SyntheticEvent, useMemo } from "react";
 import { getFormFieldError } from "./form";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
@@ -37,18 +37,22 @@ export const FormAutocomplete = <T,>({
   const { t } = useTranslation();
   const { control, setValue } = useFormContext();
 
-  const safeValueFormatter = (option: T): FormAutocompleteValue => {
-    if (!valueFormatter) {
-      throw new Error(`Missing valueFormatter for non-string option in FormAutocomplete "${fieldName}"`);
-    }
-    const formatted = valueFormatter(option);
+  const safeValueFormatter = useMemo(
+    () =>
+      (option: T): FormAutocompleteValue => {
+        if (!valueFormatter) {
+          throw new Error(`Missing valueFormatter for non-string option in FormAutocomplete "${fieldName}"`);
+        }
+        const formatted = valueFormatter(option);
 
-    if (formatted.id === undefined || formatted.id === null) {
-      throw new Error(`Missing mandatory ID property for non-strings in FormAutocomplete  "${fieldName}"`);
-    }
+        if (formatted.id === undefined || formatted.id === null) {
+          throw new Error(`Missing mandatory ID property for non-strings in FormAutocomplete  "${fieldName}"`);
+        }
 
-    return formatted;
-  };
+        return formatted;
+      },
+    [fieldName, valueFormatter],
+  );
 
   return (
     <Controller
