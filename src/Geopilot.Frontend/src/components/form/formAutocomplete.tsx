@@ -69,12 +69,16 @@ export const FormAutocomplete = <T,>({
           onChange={(event: SyntheticEvent, newValue: T[]) =>
             setValue(fieldName, newValue, { shouldValidate: true, shouldDirty: true, shouldTouch: true })
           }
-          renderTags={(tagValue, getTagProps) =>
-            tagValue.map((option, index) => {
-              const label = typeof option === "string" ? option : option.displayText || "";
-              const key = typeof option === "string" ? option : option.id;
-
-              return <Chip {...getTagProps({ index })} key={key} label={label} />;
+          renderTags={(value, getTagProps) =>
+            value.map((option, index) => {
+              const isStr = typeof option === "string";
+              return (
+                <Chip
+                  {...getTagProps({ index: index })}
+                  key={isStr ? option : safeValueFormatter(option as T).id}
+                  label={isStr ? option : safeValueFormatter(option as T).displayText}
+                />
+              );
             })
           }
           renderInput={params => (
