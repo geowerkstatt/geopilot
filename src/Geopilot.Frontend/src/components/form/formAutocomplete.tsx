@@ -31,10 +31,24 @@ export const FormAutocomplete = <T,>({
   disabled,
   selected,
   values,
+  valueFormatter,
   sx,
 }: FormAutocompleteProps<T>) => {
   const { t } = useTranslation();
   const { control, setValue } = useFormContext();
+
+  const safeValueFormatter = (option: T): FormAutocompleteValue => {
+    if (!valueFormatter) {
+      throw new Error(`Missing valueFormatter for non-string option in ${fieldName}`);
+    }
+    const formatted = valueFormatter(option);
+
+    if (formatted.id === undefined || formatted.id === null) {
+      throw new Error(`Missing ID for formatted option in ${fieldName}`);
+    }
+
+    return formatted;
+  };
 
   return (
     <Controller
@@ -52,7 +66,7 @@ export const FormAutocomplete = <T,>({
           popupIcon={<ExpandMoreIcon />}
           multiple
           disabled={disabled ?? false}
-          onChange={(event: SyntheticEvent, newValue: (string | FormAutocompleteValue)[]) =>
+          onChange={(event: SyntheticEvent, newValue: T[]) =>
             setValue(fieldName, newValue, { shouldValidate: true, shouldDirty: true, shouldTouch: true })
           }
           renderTags={(tagValue, getTagProps) =>
