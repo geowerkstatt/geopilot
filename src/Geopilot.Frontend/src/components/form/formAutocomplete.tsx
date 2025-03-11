@@ -39,12 +39,12 @@ export const FormAutocomplete = <T,>({
 
   const safeValueFormatter = (option: T): FormAutocompleteValue => {
     if (!valueFormatter) {
-      throw new Error(`Missing valueFormatter for non-string option in ${fieldName}`);
+      throw new Error(`Missing valueFormatter for non-string option in FormAutocomplete "${fieldName}"`);
     }
     const formatted = valueFormatter(option);
 
     if (formatted.id === undefined || formatted.id === null) {
-      throw new Error(`Missing mandatory ID property for non-string option in ${fieldName}`);
+      throw new Error(`Missing mandatory ID property for non-strings in FormAutocomplete  "${fieldName}"`);
     }
 
     return formatted;
