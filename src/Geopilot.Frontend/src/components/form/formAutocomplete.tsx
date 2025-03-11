@@ -91,7 +91,7 @@ export const FormAutocomplete = <T,>({
             />
           )}
           options={values || []}
-          getOptionKey={(option: T) => (values as T[]).indexOf(option)}
+          getOptionKey={(option: T) => `${fieldName}-${(values as T[]).indexOf(option)}`}
           getOptionLabel={(option: T) =>
             typeof option === "string"
               ? option
