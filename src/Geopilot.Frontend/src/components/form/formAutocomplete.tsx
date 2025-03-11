@@ -5,14 +5,15 @@ import { FC, SyntheticEvent } from "react";
 import { getFormFieldError } from "./form";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-export interface FormAutocompleteProps {
+export interface FormAutocompleteProps<T> {
   fieldName: string;
   label: string;
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
-  selected?: FormAutocompleteValue[] | string[];
-  values?: FormAutocompleteValue[] | string[];
+  selected?: T[];
+  values?: T[];
+  valueFormatter?: (value: T) => FormAutocompleteValue;
   sx?: SxProps;
 }
 
