@@ -98,7 +98,9 @@ export const FormAutocomplete = <T,>({
               : safeValueFormatter(option as T).fullDisplayText || safeValueFormatter(option as T).displayText
           }
           isOptionEqualToValue={(option, value) =>
-            typeof option === "string" ? option === value : option.id === (value as FormAutocompleteValue).id
+            typeof option === "string"
+              ? (option as string) === (value as string)
+              : safeValueFormatter(option as T).id === safeValueFormatter(value as T).id
           }
           value={field.value}
           data-cy={fieldName + "-formAutocomplete"}
