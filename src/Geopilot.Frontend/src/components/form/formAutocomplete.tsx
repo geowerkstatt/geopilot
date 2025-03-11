@@ -23,7 +23,7 @@ export interface FormAutocompleteValue {
   fullDisplayText?: string;
 }
 
-export const FormAutocomplete: FC<FormAutocompleteProps> = ({
+export const FormAutocomplete = <T,>({
   fieldName,
   label,
   placeholder,
@@ -32,7 +32,7 @@ export const FormAutocomplete: FC<FormAutocompleteProps> = ({
   selected,
   values,
   sx,
-}) => {
+}: FormAutocompleteProps<T>) => {
   const { t } = useTranslation();
   const { control, setValue } = useFormContext();
 
