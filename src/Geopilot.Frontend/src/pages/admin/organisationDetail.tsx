@@ -9,6 +9,7 @@ import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
+import { mapToFormAutocompleteValue } from "../../components/form/formAutocompleteUtils.ts";
 
 const OrganisationDetail = () => {
   const { t } = useTranslation();
@@ -87,8 +88,16 @@ const OrganisationDetail = () => {
             fieldName={"mandates"}
             label={"mandates"}
             required={false}
-            values={mandates}
-            selected={organisation?.mandates}
+            values={mapToFormAutocompleteValue(
+              mandates,
+              m => m.name,
+              m => `${m.name} (ID: ${m.id})`,
+            )}
+            selected={mapToFormAutocompleteValue(
+              organisation?.mandates,
+              m => m.name,
+              m => `${m.name} (ID: ${m.id})`,
+            )}
           />
         </FormContainer>
         <FormContainer>
@@ -96,8 +105,16 @@ const OrganisationDetail = () => {
             fieldName={"users"}
             label={"users"}
             required={false}
-            values={users}
-            selected={organisation?.users}
+            values={mapToFormAutocompleteValue(
+              users,
+              u => u.fullName,
+              u => `${u.fullName} (${u.email})`,
+            )}
+            selected={mapToFormAutocompleteValue(
+              organisation?.users,
+              u => u.fullName,
+              u => `${u.fullName} (${u.email})`,
+            )}
           />
         </FormContainer>
       </GeopilotBox>
