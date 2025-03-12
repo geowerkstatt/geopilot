@@ -8,7 +8,6 @@ import {
   removeAutocompleteValue,
   setAutocomplete,
   setInput,
-  setSelect,
 } from "./helpers/formHelpers.js";
 
 const getRandomOrganisationName = () => `Organisation-${Math.random().toString(36).substring(2, 15)}`;
