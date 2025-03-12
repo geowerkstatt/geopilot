@@ -35,15 +35,25 @@ export default defineConfig({
     {
       name: "md-assets",
       apply: "serve",
-      configureServer: server =>
+      configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          if (!req.url.endsWith(".md")) return next();
+          try {
+            if (!req?.url || !req.url.endsWith(".md")) return next();
 
-          const mdPath = path.resolve(process.cwd(), "src/assets/docs", req.url.split("/").pop());
-          if (!fs.existsSync(mdPath)) return next();
+            const fileName = req.url.split("/").pop();
+            const mdPath = path.resolve(process.cwd(), "src/assets/docs", fileName);
 
-          res.end(fs.readFileSync(mdPath, "utf-8"));
-        }),
+            if (fileName && fs.existsSync(mdPath)) {
+              res.setHeader("Content-Type", "text/markdown");
+              res.end(fs.readFileSync(mdPath, "utf-8"));
+            } else {
+              next();
+            }
+          } catch (e) {
+            next();
+          }
+        });
+      },
     },
   ],
   resolve: {
