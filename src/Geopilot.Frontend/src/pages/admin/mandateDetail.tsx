@@ -99,16 +99,21 @@ const MandateDetail = () => {
           <FormInput fieldName={"name"} label={"name"} value={mandate?.name} required={true} />
         </FormContainer>
         <FormContainer>
-          <FormAutocomplete
+          <FormAutocomplete<Organisation>
             fieldName={"organisations"}
             label={"eligibleOrganisations"}
             required={false}
             values={organisations}
             selected={mandate?.organisations}
+            valueFormatter={org => ({
+              id: org.id,
+              primaryText: org.name,
+              detailText: `${org.name} (ID: ${org.id})`,
+            })}
           />
         </FormContainer>
         <FormContainer>
-          <FormAutocomplete
+          <FormAutocomplete<string>
             fieldName={"fileTypes"}
             label={"fileTypes"}
             required={false}
