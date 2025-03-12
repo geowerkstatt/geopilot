@@ -4,7 +4,7 @@
 
 ### Changed
 
-- File size limit lowered to 100 MB to adhere to hosting provider restrictions (Cloudflare)
+- File size limit lowered to 100 MB to adhere to hosting provider restrictions (Cloudflare).
 
 ### Fixed
 
