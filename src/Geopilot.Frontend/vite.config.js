@@ -28,7 +28,24 @@ const keyFilePath = path.join(baseFolder, `${certificateName}.key`);
 // https://vitejs.dev/config/
 // noinspection JSUnusedGlobalSymbols
 export default defineConfig({
-  plugins: [react(), viteTsconfigPaths()],
+  plugins: [
+    react(),
+    viteTsconfigPaths(),
+    // Simple middleware to serve markdown files from src/assets/docs
+    {
+      name: "md-assets",
+      apply: "serve",
+      configureServer: server =>
+        server.middlewares.use((req, res, next) => {
+          if (!req.url.endsWith(".md")) return next();
+
+          const mdPath = path.resolve(process.cwd(), "src/assets/docs", req.url.split("/").pop());
+          if (!fs.existsSync(mdPath)) return next();
+
+          res.end(fs.readFileSync(mdPath, "utf-8"));
+        }),
+    },
+  ],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
