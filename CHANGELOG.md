@@ -5,6 +5,7 @@
 ### Changed
 
 - File size limit lowered to 100 MB to adhere to hosting provider restrictions (Cloudflare)
+- Added localisation support for footer pages (Impressum, Privacy Policy etc.), which allows to provide different versions of these pages in different languages.
 
 ### Fixed
 
