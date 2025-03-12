@@ -231,4 +231,72 @@ describe("Organisations tests", () => {
     });
     getFormField("organisations").contains(randomOrganisationName);
   });
+
+  it("should maintain chip values in autocomplete fields after reset", () => {
+    // Navigate to an existing organization
+    cy.dataCy("organisations-grid").find(".MuiDataGrid-row").first().click();
+    cy.location().should(location => {
+      expect(location.pathname).to.match(/\/admin\/organisations\/[1-9]\d*/);
+    });
+
+    // Record initial chip values before any changes
+    let initialChips = [];
+
+    // Capture all existing user chips before changes
+    cy.dataCy("users-formAutocomplete")
+      .find(".MuiChip-label")
+      .each($chip => {
+        cy.wrap($chip)
+          .invoke("text")
+          .then(text => {
+            initialChips.push({ field: "users", value: text });
+          });
+      });
+
+    // Capture all existing mandate chips before changes
+    cy.dataCy("mandates-formAutocomplete")
+      .find(".MuiChip-label")
+      .each($chip => {
+        cy.wrap($chip)
+          .invoke("text")
+          .then(text => {
+            initialChips.push({ field: "mandates", value: text });
+          });
+      });
+
+    // Add a new user to trigger a change
+    cy.dataCy("users-formAutocomplete").click();
+    cy.get(".MuiAutocomplete-popper").should("be.visible");
+
+    // Find and click on "Jaime Pagac" user in dropdown
+    cy.get(".MuiAutocomplete-option").contains("Jaime Pagac").click();
+
+    // Verify reset button is enabled after changes
+    cy.dataCy("reset-button").should("be.enabled");
+
+    // Click reset button
+    cy.dataCy("reset-button").click();
+    cy.wait(500); // Wait for reset to complete
+
+    // Verify all initial chips are still present with correct values
+    cy.wrap(initialChips).each(chip => {
+      cy.dataCy(`${chip.field}-formAutocomplete`).find(".MuiChip-label").contains(chip.value).should("exist");
+    });
+
+    // Verify Jaime Pagac is not present in the users chips after reset
+    cy.dataCy("users-formAutocomplete").find(".MuiChip-label").contains("Jaime Pagac").should("not.exist");
+
+    // Verify no empty string chips exist (the key bug you're testing for)
+    cy.dataCy("users-formAutocomplete")
+      .find(".MuiChip-label")
+      .each($chip => {
+        cy.wrap($chip).invoke("text").should("not.be.empty");
+      });
+
+    cy.dataCy("mandates-formAutocomplete")
+      .find(".MuiChip-label")
+      .each($chip => {
+        cy.wrap($chip).invoke("text").should("not.be.empty");
+      });
+  });
 });
