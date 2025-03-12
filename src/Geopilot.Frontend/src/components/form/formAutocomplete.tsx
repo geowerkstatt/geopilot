@@ -17,7 +17,7 @@ export interface FormAutocompleteProps<T> {
    * Method that formats non-string values to a format that can be displayed in the autocomplete.
    * This method is mandatory for non-string values, the application will crash if it is not provided.
    *
-   * // Usage example:
+   * Usage:
    * valueFormatter={(value) => ({
    *   id: value.id,
    *   primaryText: value.name,
