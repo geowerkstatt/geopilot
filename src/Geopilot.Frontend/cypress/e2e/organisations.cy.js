@@ -8,6 +8,7 @@ import {
   removeAutocompleteValue,
   setAutocomplete,
   setInput,
+  setSelect,
 } from "./helpers/formHelpers.js";
 
 const getRandomOrganisationName = () => `Organisation-${Math.random().toString(36).substring(2, 15)}`;
@@ -297,6 +298,86 @@ describe("Organisations tests", () => {
       .find(".MuiChip-label")
       .each($chip => {
         cy.wrap($chip).invoke("text").should("not.be.empty");
+      });
+  });
+
+  it("should not duplicate mandates in autocomplete when typing and clearing multiple times", () => {
+    // Intercept the mandates API call with the correct URL pattern
+    cy.intercept("GET", "**/api/v1/mandate*", req => {
+      req.continue(res => {
+        // Make a copy of the first mandate and add it to the response
+        if (res.body && Array.isArray(res.body)) {
+          const firstMandate = { ...res.body[0] };
+          // Modify the ID to avoid conflicts but keep the name the same
+          res.body.push(firstMandate);
+        } else if (res.body && res.body.data && Array.isArray(res.body.data)) {
+          const firstMandate = { ...res.body.data[0] };
+          res.body.data.push(firstMandate);
+        }
+        // Log the modified response to debug
+        console.log("Modified mandate response:", res.body);
+      });
+    }).as("mandatesRequest");
+
+    // Visit the organisations page
+    cy.visit("/admin/organisations");
+
+    // Create a new organisation
+    cy.dataCy("addOrganisation-button").click();
+    setInput("name", getRandomOrganisationName());
+
+    // Get the initial count of mandate options
+    let initialOptionCount;
+
+    // Click on the mandate autocomplete field
+    cy.dataCy("mandates-formAutocomplete").click();
+
+    // No need to wait for mandatesRequest here since it's already happened
+    // Just directly check the autocomplete options
+    cy.get(".MuiAutocomplete-popper").should("be.visible");
+
+    // Count the initial number of options
+    cy.get(".MuiAutocomplete-popper .MuiAutocomplete-option")
+      .its("length")
+      .then(count => {
+        initialOptionCount = count;
+        cy.log(`Initial mandate options count: ${initialOptionCount}`);
+
+        // Close the dropdown by clicking elsewhere
+        cy.get("body").click({ force: true });
+
+        // Function to perform type-delete cycle and verify count
+        const performTypingCycle = cycleNumber => {
+          // Open the autocomplete again
+          cy.dataCy("mandates-formAutocomplete").click();
+          cy.get(".MuiAutocomplete-popper").should("be.visible");
+
+          // Type some text
+          cy.dataCy("mandates-formAutocomplete").find("input").type(`test-cycle-${cycleNumber}`);
+          cy.wait(500); // Wait for filtering
+
+          // Delete the text
+          cy.dataCy("mandates-formAutocomplete").find("input").clear();
+          cy.wait(500); // Wait for options to reset
+
+          // Check if the number of options remains the same
+          cy.get(".MuiAutocomplete-popper .MuiAutocomplete-option")
+            .its("length")
+            .then(newCount => {
+              // Log the counts outside the assertion
+              cy.log(`Cycle ${cycleNumber}: Option count is ${newCount}, should be ${initialOptionCount}`);
+              // Then make the assertion
+              expect(newCount).to.equal(initialOptionCount);
+            });
+
+          // Close the dropdown
+          cy.get("body").click({ force: true });
+        };
+
+        // Perform the typing cycle 3 times
+        performTypingCycle(1);
+        performTypingCycle(2);
+        performTypingCycle(3);
       });
   });
 });
