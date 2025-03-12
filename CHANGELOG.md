@@ -10,6 +10,7 @@
 
 - Sorting and filtering now works consistently across all admin tables.
 - File extensions of uploaded files are now checked case-insensitive.
+- Fixed an issue where autocomplete dropdown items would duplicate repeatedly when typing in certain conditions
 
 ## v2.0.180 - 2025-02-20
 
