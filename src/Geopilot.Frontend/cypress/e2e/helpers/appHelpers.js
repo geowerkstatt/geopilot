@@ -25,15 +25,10 @@ export const login = user => {
         cy.get("#password").type("geopilot_password");
         cy.get("[type=submit]").click({ force: true });
       });
-      cy.wait("@token")
-        .then(interception => interception.response.body.id_token)
-        .then(token => window.localStorage.setItem("id_token", token));
+      cy.wait("@token");
     },
     {
       validate() {
-        cy.window()
-          .then(win => win.localStorage.getItem("id_token"))
-          .as("id_token");
         cy.request({
           url: "/api/v1/user/self",
           failOnStatusCode: false,

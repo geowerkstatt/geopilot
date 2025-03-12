@@ -83,21 +83,31 @@ const OrganisationDetail = () => {
           <FormInput fieldName={"name"} label={"name"} value={organisation?.name} required={true} />
         </FormContainer>
         <FormContainer>
-          <FormAutocomplete
+          <FormAutocomplete<Mandate>
             fieldName={"mandates"}
             label={"mandates"}
             required={false}
             values={mandates}
             selected={organisation?.mandates}
+            valueFormatter={man => ({
+              id: man.id,
+              primaryText: man.name,
+              detailText: `${man.name} (ID: ${man.id})`,
+            })}
           />
         </FormContainer>
         <FormContainer>
-          <FormAutocomplete
+          <FormAutocomplete<User>
             fieldName={"users"}
             label={"users"}
             required={false}
             values={users}
             selected={organisation?.users}
+            valueFormatter={user => ({
+              id: user.id,
+              primaryText: user.fullName,
+              detailText: `${user.fullName} (${user.email})`,
+            })}
           />
         </FormContainer>
       </GeopilotBox>

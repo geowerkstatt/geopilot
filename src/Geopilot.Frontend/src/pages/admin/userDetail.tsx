@@ -85,12 +85,17 @@ const UserDetail = () => {
             />
           </FormContainerHalfWidth>
           <FormContainer>
-            <FormAutocomplete
+            <FormAutocomplete<Organisation>
               fieldName={"organisations"}
               label={"organisations"}
               required={false}
               values={organisations}
               selected={editableUser?.organisations}
+              valueFormatter={org => ({
+                id: org.id,
+                primaryText: org.name,
+                detailText: `${org.name} (ID: ${org.id})`,
+              })}
             />
           </FormContainer>
         </GeopilotBox>
