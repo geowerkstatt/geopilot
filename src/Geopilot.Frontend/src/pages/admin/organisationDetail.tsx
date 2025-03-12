@@ -91,8 +91,8 @@ const OrganisationDetail = () => {
             selected={organisation?.mandates}
             valueFormatter={man => ({
               id: man.id,
-              displayText: man.name,
-              fullDisplayText: `${man.name} (ID: ${man.id})`,
+              primaryText: man.name,
+              detailText: `${man.name} (ID: ${man.id})`,
             })}
           />
         </FormContainer>
@@ -105,8 +105,8 @@ const OrganisationDetail = () => {
             selected={organisation?.users}
             valueFormatter={user => ({
               id: user.id,
-              displayText: user.fullName,
-              fullDisplayText: `${user.fullName} (${user.email})`,
+              primaryText: user.fullName,
+              detailText: `${user.fullName} (${user.email})`,
             })}
           />
         </FormContainer>

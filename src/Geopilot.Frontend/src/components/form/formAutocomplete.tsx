@@ -19,8 +19,16 @@ export interface FormAutocompleteProps<T> {
 
 export interface FormAutocompleteValue {
   id: number;
-  displayText: string;
-  fullDisplayText?: string;
+  /**
+   * Primary text displayed in both the chip and dropdown.
+   */
+  primaryText: string;
+  /**
+   * Extended text displayed only in the dropdown for additional context.
+   * When provided, this will be shown in the dropdown instead of primaryText.
+   * If not provided, primaryText will be used in the dropdown as well.
+   */
+  detailText?: string;
 }
 
 export const FormAutocomplete = <T,>({
@@ -80,7 +88,7 @@ export const FormAutocomplete = <T,>({
                 <Chip
                   {...getTagProps({ index: index })}
                   key={isStr ? option : safeValueFormatter(option as T).id}
-                  label={isStr ? option : safeValueFormatter(option as T).displayText}
+                  label={isStr ? option : safeValueFormatter(option as T).primaryText}
                 />
               );
             })
@@ -99,7 +107,7 @@ export const FormAutocomplete = <T,>({
           getOptionLabel={(option: T) =>
             typeof option === "string"
               ? option
-              : safeValueFormatter(option as T).fullDisplayText || safeValueFormatter(option as T).displayText
+              : safeValueFormatter(option as T).detailText || safeValueFormatter(option as T).primaryText
           }
           isOptionEqualToValue={(option, value) =>
             typeof option === "string"

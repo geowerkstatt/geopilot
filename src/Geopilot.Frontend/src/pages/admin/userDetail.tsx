@@ -93,8 +93,8 @@ const UserDetail = () => {
               selected={editableUser?.organisations}
               valueFormatter={org => ({
                 id: org.id,
-                displayText: org.name,
-                fullDisplayText: `${org.name} (ID: ${org.id})`,
+                primaryText: org.name,
+                detailText: `${org.name} (ID: ${org.id})`,
               })}
             />
           </FormContainer>
