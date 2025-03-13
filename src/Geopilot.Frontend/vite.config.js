@@ -33,22 +33,44 @@ export default defineConfig({
     viteTsconfigPaths(),
     // Simple middleware to serve markdown files from src/assets/docs
     {
-      name: "md-assets",
+      name: "devPublic",
       apply: "serve",
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
+          if (!req?.url) {
+            return next();
+          }
+
+          // Get clean path without query params
+          const urlPath = req.url.split("?")[0];
+          const relativePath = urlPath.startsWith("/") ? urlPath.substring(1) : urlPath;
+          const filePath = path.resolve(process.cwd(), "devPublic", relativePath);
+
           try {
-            if (!req?.url || !req.url.endsWith(".md")) return next();
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+              // Basic content type mapping for common file types
+              const ext = path.extname(filePath).toLowerCase();
+              const contentTypes = {
+                ".html": "text/html",
+                ".css": "text/css",
+                ".js": "application/javascript",
+                ".json": "application/json",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".svg": "image/svg+xml",
+                ".md": "text/markdown",
+                ".txt": "text/plain",
+                ".pdf": "application/pdf",
+              };
 
-            const fileName = req.url.split("/").pop();
-            const mdPath = path.resolve(process.cwd(), "src/assets/docs", fileName);
+              res.setHeader("Content-Type", contentTypes[ext] || "application/octet-stream");
 
-            if (fileName && fs.existsSync(mdPath)) {
-              res.setHeader("Content-Type", "text/markdown");
-              res.end(fs.readFileSync(mdPath, "utf-8"));
+              const isText = [".html", ".css", ".js", ".json", ".md", ".txt", ".svg"].includes(ext);
+              res.end(fs.readFileSync(filePath, isText ? "utf-8" : undefined));
             } else {
-              res.statusCode = 404;
-              res.end(`File not found: ${req.url}`);
+              next();
             }
           } catch (e) {
             next();
