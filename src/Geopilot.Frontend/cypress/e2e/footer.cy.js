@@ -2,116 +2,125 @@ import { selectLanguage } from "./helpers/appHelpers.js";
 
 describe("Footer tests", () => {
   const checkMarkdownLoading = (pagePath, markdownName, language) => {
-    // Log test start with identifiable information
-    cy.log(`======= STARTING TEST =======`);
-    cy.log(`Page: ${pagePath}, File: ${markdownName}, Language: ${language}`);
+    let debugInfo = {
+      page: pagePath,
+      file: markdownName,
+      language: language,
+      allMarkdownRequests: [],
+      localizedRequests: [],
+      fallbackRequests: [],
+      languageSelectorInfo: "Not collected yet",
+      pageContent: "Not collected yet",
+    };
 
-    // Intercept ALL markdown requests to see what's happening
+    // Intercept ALL markdown requests
     cy.intercept("**/*.md*").as("allMarkdowns");
 
     // Specific intercepts for the test
     cy.intercept(`**/${markdownName}.${language}.md`).as("localizedMd");
     cy.intercept(`**/${markdownName}.md`).as("fallbackMd");
 
-    // Log navigation start
-    cy.log(`Navigating to ${pagePath}`);
+    // Visit page
     cy.visit(pagePath);
-    cy.log(`Page loaded, waiting 2s`);
     cy.wait(2000);
 
-    // Log language selection
-    cy.log(`Selecting language: ${language}`);
-
-    // Verbose logging for language selector
+    // Collect language selector info
     cy.get("[data-cy=language-selector]").then($selector => {
-      cy.log(`Language selector found: ${$selector.length > 0}`);
-      cy.log(`Language selector text: ${$selector.text()}`);
+      debugInfo.languageSelectorInfo = {
+        exists: $selector.length > 0,
+        text: $selector.text(),
+      };
     });
 
+    // Select language
     selectLanguage(language);
-    cy.log(`Language selected, waiting 1s`);
-    cy.wait(1000);
+    cy.wait(2000);
 
-    // Log ALL intercepted markdown requests for debugging
+    // Collect page content info to include in the debug
+    cy.get("body").then($body => {
+      const contentElements = $body.find(".markdown-content, article, [data-markdown], .md-content");
+      debugInfo.pageContent = {
+        hasContentElements: contentElements.length > 0,
+        contentElementCount: contentElements.length,
+        pageTextLength: $body.text().length,
+        pageHtmlSnippet: $body.html().substring(0, 200) + "...",
+      };
+    });
+
+    // Collect ALL markdown requests
     cy.get("@allMarkdowns.all", { timeout: 5000 }).then(allRequests => {
-      cy.log(`======= ALL MARKDOWN REQUESTS (${allRequests.length}) =======`);
       allRequests.forEach((req, i) => {
         const status = req.response ? req.response.statusCode : "No response";
-        cy.log(`[${i + 1}] URL: ${req.request.url}, Status: ${status}`);
+        debugInfo.allMarkdownRequests.push({
+          index: i + 1,
+          url: req.request.url,
+          status: status,
+        });
       });
     });
 
-    // Check for our specific localized markdown
-    cy.log(`Checking for localized markdown: ${markdownName}.${language}.md`);
+    // Collect localized markdown requests
     cy.get("@localizedMd.all", { timeout: 5000 }).then(interceptions => {
-      cy.log(`Localized intercepts: ${interceptions.length}`);
-
-      // Log details of each localized intercept
       interceptions.forEach((intercept, i) => {
-        cy.log(`Localized intercept ${i + 1}:`);
-        cy.log(`URL: ${intercept.request.url}`);
-        cy.log(`Method: ${intercept.request.method}`);
-        cy.log(`Has response: ${!!intercept.response}`);
-
-        if (intercept.response) {
-          cy.log(`Status: ${intercept.response.statusCode}`);
-          cy.log(`Headers: ${JSON.stringify(intercept.response.headers)}`);
-        }
+        debugInfo.localizedRequests.push({
+          index: i + 1,
+          url: intercept.request.url,
+          method: intercept.request.method,
+          hasResponse: !!intercept.response,
+          status: intercept.response ? intercept.response.statusCode : "N/A",
+        });
       });
 
-      // First check if localized version was loaded
+      // Check if localized version was loaded
       const localizedLoaded = interceptions.some(i => i.response && i.response.statusCode === 200);
 
       if (localizedLoaded) {
-        cy.log(`✅ Successfully loaded localized: ${markdownName}.${language}.md`);
         expect(localizedLoaded).to.be.true;
       } else {
-        cy.log(`❌ Localized version not loaded, checking fallback`);
-
-        // Check for fallback markdown
+        // Collect fallback markdown requests
         cy.get("@fallbackMd.all", { timeout: 5000 }).then(fallbackInterceptions => {
-          cy.log(`Fallback intercepts: ${fallbackInterceptions.length}`);
-
-          // Log details of each fallback intercept
           fallbackInterceptions.forEach((intercept, i) => {
-            cy.log(`Fallback intercept ${i + 1}:`);
-            cy.log(`URL: ${intercept.request.url}`);
-            cy.log(`Method: ${intercept.request.method}`);
-            cy.log(`Has response: ${!!intercept.response}`);
-
-            if (intercept.response) {
-              cy.log(`Status: ${intercept.response.statusCode}`);
-              cy.log(`Headers: ${JSON.stringify(intercept.response.headers)}`);
-            }
+            debugInfo.fallbackRequests.push({
+              index: i + 1,
+              url: intercept.request.url,
+              method: intercept.request.method,
+              hasResponse: !!intercept.response,
+              status: intercept.response ? intercept.response.statusCode : "N/A",
+            });
           });
 
           const fallbackLoaded = fallbackInterceptions.some(i => i.response && i.response.statusCode === 200);
 
-          cy.log(
-            fallbackLoaded
-              ? `✅ Successfully loaded fallback: ${markdownName}.md`
-              : `❌ FAILED: No markdown loaded for ${markdownName}`,
-          );
+          // Include ALL the debug info in the assertion message
+          const detailedMessage = `
+DETAILED DEBUG INFO for ${markdownName}.${language}.md:
+-------------------------------------------------
+Page: ${debugInfo.page}
+File: ${debugInfo.file}
+Language: ${debugInfo.language}
 
-          // Also check if any content rendered on the page
-          cy.log(`Checking for visible markdown content on page`);
-          cy.get("body").then($body => {
-            // Look for common markdown rendering elements
-            const hasContent = $body.find(".markdown-content, article, [data-markdown], .md-content").length > 0;
-            cy.log(`Page has markdown content elements: ${hasContent}`);
-            cy.log(`Page text length: ${$body.text().length}`);
-            cy.log(`Page HTML snippet: ${$body.html().substring(0, 200)}...`);
-          });
+Language Selector: ${JSON.stringify(debugInfo.languageSelectorInfo)}
 
-          expect(
-            fallbackLoaded,
-            `Either ${markdownName}.${language}.md or ${markdownName}.md should load with 200 status`,
-          ).to.be.true;
+ALL MD Requests (${debugInfo.allMarkdownRequests.length}): 
+${JSON.stringify(debugInfo.allMarkdownRequests, null, 2)}
+
+Localized Requests (${debugInfo.localizedRequests.length}): 
+${JSON.stringify(debugInfo.localizedRequests, null, 2)}
+
+Fallback Requests (${debugInfo.fallbackRequests.length}): 
+${JSON.stringify(debugInfo.fallbackRequests, null, 2)}
+
+Page Content Info: 
+${JSON.stringify(debugInfo.pageContent, null, 2)}
+-------------------------------------------------
+
+Either ${markdownName}.${language}.md or ${markdownName}.md should load with 200 status
+`;
+
+          expect(fallbackLoaded, detailedMessage).to.be.true;
         });
       }
     });
-
-    cy.log(`======= TEST COMPLETED =======`);
   };
 
   it("shows and navigates correctly between footer pages with content", () => {
