@@ -151,4 +151,32 @@ describe("Footer tests", () => {
         cy.wrap($el).should("contain.text", expectedHeaders[index]);
       });
   });
+
+  it("checks privacy policy page loads correct markdown in all languages", () => {
+    const languages = ["en", "de", "fr", "it"];
+
+    languages.forEach(language => {
+      checkMarkdownLoading("/privacy-policy", "privacy-policy", language);
+    });
+  });
+
+  it("checks imprint page loads correct markdown in all languages", () => {
+    const languages = ["en", "de", "fr", "it"];
+
+    languages.forEach(language => {
+      checkMarkdownLoading("/imprint", "imprint", language);
+    });
+  });
+
+  it("checks about page loads both required markdown files in all languages", () => {
+    const languages = ["en", "de", "fr", "it"];
+
+    languages.forEach(language => {
+      // Check terms-of-use markdown (don't visit page again)
+      checkMarkdownLoading("/about", "terms-of-use", language, false);
+
+      // Check info markdown (don't visit page again)
+      checkMarkdownLoading("/about", "info", language, false);
+    });
+  });
 });
