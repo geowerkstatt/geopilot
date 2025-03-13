@@ -7,6 +7,7 @@ describe("Footer tests", () => {
     cy.intercept(`**/${markdownName}.md`).as("fallbackMd");
 
     cy.visit(pagePath);
+    cy.wait(500);
     selectLanguage(language);
 
     // Check if either markdown loads successfully
