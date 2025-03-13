@@ -47,7 +47,8 @@ export default defineConfig({
               res.setHeader("Content-Type", "text/markdown");
               res.end(fs.readFileSync(mdPath, "utf-8"));
             } else {
-              next();
+              res.statusCode = 404;
+              res.end(`File not found: ${req.url}`);
             }
           } catch (e) {
             next();
