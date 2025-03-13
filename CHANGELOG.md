@@ -5,6 +5,7 @@
 ### Added
 
 - Localisation support for footer pages (Impressum, Privacy Policy etc.), which allows to provide different versions of these pages in different languages.
+- Localisation support for application name.
 
 ### Changed
 
