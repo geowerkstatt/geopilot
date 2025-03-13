@@ -7,8 +7,11 @@ describe("Footer tests", () => {
     cy.intercept(`**/${markdownName}.md`).as("fallbackMd");
 
     cy.visit(pagePath);
-    cy.wait(500);
+    cy.wait(2000); // Longer wait after page load
+
+    // Select language and wait again
     selectLanguage(language);
+    cy.wait(1000); // Wait after language change
 
     // Check if either markdown loads successfully
     cy.get("@localizedMd.all", { timeout: 5000 }).then(interceptions => {
