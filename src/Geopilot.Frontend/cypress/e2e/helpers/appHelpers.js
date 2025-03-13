@@ -92,9 +92,10 @@ export const logout = () => {
  * @param language The language to select (de, fr, it, en).
  */
 export const selectLanguage = language => {
+  cy.wait(200);
   cy.dataCy("language-selector").click({ force: true });
-  cy.dataCy(`language-${language.toLowerCase()}`).click({ force: true });
-  cy.wait(1000);
+  cy.dataCy(`language-${language.toLowerCase()}`).click();
+  cy.wait(200);
 };
 
 /**
