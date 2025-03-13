@@ -72,6 +72,7 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
     <AppSettingsContext.Provider
       value={{
         initialized: clientSettings !== undefined && termsOfUse !== undefined,
+        termsOfUse: termsOfUse,
         clientSettings: clientSettings,
       }}>
       {children}
