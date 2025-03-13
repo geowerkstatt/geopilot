@@ -75,8 +75,7 @@ services:
     volumes:
       - ./src/Geopilot.Api/Uploads:/uploads
       - ./src/Geopilot.Api/Persistent:/assets
-      - ./README.md:/public/info.md
-      - ./LICENSE:/public/terms-of-use.md
+      - ./src/Geopilot.Frontend/devPublic:/public
       - ./certs:/https:ro
     extra_hosts:
       - "localhost:host-gateway"
