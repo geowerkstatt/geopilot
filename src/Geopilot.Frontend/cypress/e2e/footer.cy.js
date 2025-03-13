@@ -173,10 +173,10 @@ describe("Footer tests", () => {
 
     languages.forEach(language => {
       // Check terms-of-use markdown (don't visit page again)
-      checkMarkdownLoading("/about", "terms-of-use", language, false);
+      checkMarkdownLoading("/about", "terms-of-use", language);
 
       // Check info markdown (don't visit page again)
-      checkMarkdownLoading("/about", "info", language, false);
+      checkMarkdownLoading("/about", "info", language);
     });
   });
 });
