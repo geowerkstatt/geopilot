@@ -2,122 +2,34 @@ import { selectLanguage } from "./helpers/appHelpers.js";
 
 describe("Footer tests", () => {
   const checkMarkdownLoading = (pagePath, markdownName, language) => {
-    let debugInfo = {
-      page: pagePath,
-      file: markdownName,
-      language: language,
-      allMarkdownRequests: [],
-      localizedRequests: [],
-      fallbackRequests: [],
-      languageSelectorInfo: "Not collected yet",
-      pageContent: "Not collected yet",
-    };
-
-    // Intercept ALL markdown requests
-    cy.intercept("**/*.md*").as("allMarkdowns");
-
-    // Specific intercepts for the test
+    // Intercept both localized and fallback markdown requests
     cy.intercept(`**/${markdownName}.${language}.md`).as("localizedMd");
     cy.intercept(`**/${markdownName}.md`).as("fallbackMd");
 
-    // Visit page
     cy.visit(pagePath);
-    cy.wait(2000);
-
-    // Collect language selector info
-    cy.get("[data-cy=language-selector]").then($selector => {
-      debugInfo.languageSelectorInfo = {
-        exists: $selector.length > 0,
-        text: $selector.text(),
-      };
-    });
-
-    // Select language
     selectLanguage(language);
-    cy.wait(2000);
 
-    // Collect page content info to include in the debug
-    cy.get("body").then($body => {
-      const contentElements = $body.find(".markdown-content, article, [data-markdown], .md-content");
-      debugInfo.pageContent = {
-        hasContentElements: contentElements.length > 0,
-        contentElementCount: contentElements.length,
-        pageTextLength: $body.text().length,
-        pageHtmlSnippet: $body.html().substring(0, 200) + "...",
-      };
-    });
-
-    // Collect ALL markdown requests
-    cy.get("@allMarkdowns.all", { timeout: 5000 }).then(allRequests => {
-      allRequests.forEach((req, i) => {
-        const status = req.response ? req.response.statusCode : "No response";
-        debugInfo.allMarkdownRequests.push({
-          index: i + 1,
-          url: req.request.url,
-          status: status,
-        });
-      });
-    });
-
-    // Collect localized markdown requests
+    // Check if either markdown loads successfully
     cy.get("@localizedMd.all", { timeout: 5000 }).then(interceptions => {
-      interceptions.forEach((intercept, i) => {
-        debugInfo.localizedRequests.push({
-          index: i + 1,
-          url: intercept.request.url,
-          method: intercept.request.method,
-          hasResponse: !!intercept.response,
-          status: intercept.response ? intercept.response.statusCode : "N/A",
-        });
-      });
-
-      // Check if localized version was loaded
+      // First check if localized version was loaded
       const localizedLoaded = interceptions.some(i => i.response && i.response.statusCode === 200);
 
       if (localizedLoaded) {
+        cy.log(`Successfully loaded localized: ${markdownName}.${language}.md`);
         expect(localizedLoaded).to.be.true;
       } else {
-        // Collect fallback markdown requests
+        // If localized version wasn't loaded, check fallback
         cy.get("@fallbackMd.all", { timeout: 5000 }).then(fallbackInterceptions => {
-          fallbackInterceptions.forEach((intercept, i) => {
-            debugInfo.fallbackRequests.push({
-              index: i + 1,
-              url: intercept.request.url,
-              method: intercept.request.method,
-              hasResponse: !!intercept.response,
-              status: intercept.response ? intercept.response.statusCode : "N/A",
-            });
-          });
-
           const fallbackLoaded = fallbackInterceptions.some(i => i.response && i.response.statusCode === 200);
-
-          // Include ALL the debug info in the assertion message
-          const detailedMessage = `
-DETAILED DEBUG INFO for ${markdownName}.${language}.md:
--------------------------------------------------
-Page: ${debugInfo.page}
-File: ${debugInfo.file}
-Language: ${debugInfo.language}
-
-Language Selector: ${JSON.stringify(debugInfo.languageSelectorInfo)}
-
-ALL MD Requests (${debugInfo.allMarkdownRequests.length}): 
-${JSON.stringify(debugInfo.allMarkdownRequests, null, 2)}
-
-Localized Requests (${debugInfo.localizedRequests.length}): 
-${JSON.stringify(debugInfo.localizedRequests, null, 2)}
-
-Fallback Requests (${debugInfo.fallbackRequests.length}): 
-${JSON.stringify(debugInfo.fallbackRequests, null, 2)}
-
-Page Content Info: 
-${JSON.stringify(debugInfo.pageContent, null, 2)}
--------------------------------------------------
-
-Either ${markdownName}.${language}.md or ${markdownName}.md should load with 200 status
-`;
-
-          expect(fallbackLoaded, detailedMessage).to.be.true;
+          cy.log(
+            fallbackLoaded
+              ? `Successfully loaded fallback: ${markdownName}.md`
+              : `Failed to load both ${markdownName}.${language}.md and ${markdownName}.md`,
+          );
+          expect(
+            fallbackLoaded,
+            `Either ${markdownName}.${language}.md or ${markdownName}.md should load with 200 status`,
+          ).to.be.true;
         });
       }
     });
