@@ -75,4 +75,38 @@ describe("General app tests", () => {
     selectLanguage("it");
     cy.contains("Clicca per selezionare");
   });
+
+  it("displays correct localized application name when language changes", () => {
+    // Intercept the client-settings.json request to dynamically extract the values
+    cy.intercept("**/client-settings.json").as("clientSettings");
+
+    // Visit the home page
+    cy.visit("/");
+
+    // Wait for client settings to load and extract the localNames
+    cy.wait("@clientSettings").then(interception => {
+      // Extract the application settings from the intercepted response
+      const settings = interception.response.body;
+      const localNames = settings.application.localName;
+
+      // Wait for the language selector to load
+      cy.wait(500);
+
+      // Test each available language
+      Object.entries(localNames).forEach(([language, expectedName]) => {
+        // Skip languages that aren't supported in your language selector
+        if (!["en", "de", "fr", "it"].includes(language)) return;
+
+        // Switch to this language
+        selectLanguage(language);
+
+        // Verify the localized application name appears on the page
+        // Note: You may need to adjust this selector to match where the app name appears
+        cy.contains(expectedName).should("be.visible");
+
+        // Log success
+        cy.log(`Successfully verified ${language.toUpperCase()} localized name: ${expectedName}`);
+      });
+    });
+  });
 });
