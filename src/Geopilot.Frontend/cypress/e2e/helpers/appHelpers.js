@@ -2,7 +2,7 @@ export const interceptApiCalls = () => {
   cy.intercept("/api/v1/user/auth").as("auth");
   cy.intercept("/api/v1/version").as("version");
   cy.intercept("/api/v1/user/self").as("self");
-  cy.intercept("terms-of-use.md", {
+  cy.intercept("terms-of-use*.md", {
     statusCode: 200,
     fixture: "../fixtures/terms-of-use.md",
   }).as("termsOfUse");
