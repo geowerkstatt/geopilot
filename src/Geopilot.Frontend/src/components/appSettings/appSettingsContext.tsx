@@ -2,21 +2,37 @@ import { createContext, FC, PropsWithChildren, useEffect, useState } from "react
 import { AppSettingsContextInterface, ClientSettings } from "./appSettingsInterface";
 import { useApi } from "../../api";
 import { ContentType } from "../../api/apiInterfaces.ts";
+import { useTranslation } from "react-i18next";
 
 export const AppSettingsContext = createContext<AppSettingsContextInterface>({
   initialized: false,
   clientSettings: undefined,
+  termsOfUse: undefined,
 });
 
 export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
+  const { i18n } = useTranslation();
   const { fetchApi } = useApi();
   const [clientSettings, setClientSettings] = useState<ClientSettings | null>();
+  const [termsOfUse, setTermsOfUse] = useState<string | null>();
 
   useEffect(() => {
     fetchApi<ClientSettings>("/client-settings.json", { responseType: ContentType.Json })
       .then(setClientSettings)
       .catch(() => setClientSettings(null));
-  }, [fetchApi]);
+
+    fetchApi<string>(`/terms-of-use.${i18n.language}.md`, { responseType: ContentType.Markdown })
+      .then(response => {
+        if (response) {
+          setTermsOfUse(response);
+        } else {
+          throw new Error("Language-specific terms of use not found");
+        }
+      })
+      .catch(() => {
+        fetchApi<string>("/terms-of-use.md", { responseType: ContentType.Markdown }).then(setTermsOfUse);
+      });
+  }, [fetchApi, i18n.language]);
 
   useEffect(() => {
     if (clientSettings) {
@@ -55,7 +71,7 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   return (
     <AppSettingsContext.Provider
       value={{
-        initialized: clientSettings !== undefined,
+        initialized: clientSettings !== undefined && termsOfUse !== undefined,
         clientSettings: clientSettings,
       }}>
       {children}

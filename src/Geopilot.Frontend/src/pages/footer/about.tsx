@@ -6,6 +6,7 @@ import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { CenteredBox } from "../../components/styledComponents.ts";
 import { useLocation } from "react-router-dom";
+import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 
 interface PackageList {
   [packageName: string]: PackageDetails;
@@ -32,22 +33,11 @@ export const About = () => {
   const [licenseInfo, setLicenseInfo] = useState<PackageList>();
   const [licenseInfoCustom, setLicenseInfoCustom] = useState<PackageList>();
   const [version, setVersion] = useState<string | null>();
-  const [termsOfUse, setTermsOfUse] = useState<string | null>();
+  const { termsOfUse } = useAppSettings();
   const { fetchApi } = useApi();
   const { hash } = useLocation();
 
   useEffect(() => {
-    fetchApi<string>(`/terms-of-use.${i18n.language}.md`, { responseType: ContentType.Markdown })
-      .then(response => {
-        if (response) {
-          setTermsOfUse(response);
-        } else {
-          throw new Error("Language-specific terms of use not found");
-        }
-      })
-      .catch(() => {
-        fetchApi<string>("/terms-of-use.md", { responseType: ContentType.Markdown }).then(setTermsOfUse);
-      });
     fetchApi<string>(`/info.${i18n.language}.md`, { responseType: ContentType.Markdown })
       .then(response => {
         if (response) {
