@@ -9,12 +9,13 @@
 
 ### Changed
 
-- File size limit lowered to 100 MB to adhere to hosting provider restrictions (Cloudflare)
+- File size limit lowered to 100 MB to adhere to hosting provider restrictions (Cloudflare).
 
 ### Fixed
 
 - Sorting and filtering now works consistently across all admin tables.
 - File extensions of uploaded files are now checked case-insensitive.
+- Fixed an issue where autocomplete dropdown items would duplicate under certain conditions.
 
 ## v2.0.180 - 2025-02-20
 
