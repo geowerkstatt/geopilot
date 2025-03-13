@@ -1,18 +1,54 @@
+import { selectLanguage } from "./helpers/appHelpers.js";
+
 describe("Footer tests", () => {
+  const checkMarkdownLoading = (pagePath, markdownName, language) => {
+    // Intercept both localized and fallback markdown requests
+    cy.intercept(`**/${markdownName}.${language}.md`).as("localizedMd");
+    cy.intercept(`**/${markdownName}.md`).as("fallbackMd");
+
+    cy.visit(pagePath);
+    selectLanguage(language);
+
+    // Check if either markdown loads successfully
+    cy.get("@localizedMd.all", { timeout: 5000 }).then(interceptions => {
+      // First check if localized version was loaded
+      const localizedLoaded = interceptions.some(i => i.response && i.response.statusCode === 200);
+
+      if (localizedLoaded) {
+        cy.log(`Successfully loaded localized: ${markdownName}.${language}.md`);
+        expect(localizedLoaded).to.be.true;
+      } else {
+        // If localized version wasn't loaded, check fallback
+        cy.get("@fallbackMd.all", { timeout: 5000 }).then(fallbackInterceptions => {
+          const fallbackLoaded = fallbackInterceptions.some(i => i.response && i.response.statusCode === 200);
+          cy.log(
+            fallbackLoaded
+              ? `Successfully loaded fallback: ${markdownName}.md`
+              : `Failed to load both ${markdownName}.${language}.md and ${markdownName}.md`,
+          );
+          expect(
+            fallbackLoaded,
+            `Either ${markdownName}.${language}.md or ${markdownName}.md should load with 200 status`,
+          ).to.be.true;
+        });
+      }
+    });
+  };
+
   it("shows and navigates correctly between footer pages with content", () => {
-    cy.intercept("privacy-policy.md", {
+    cy.intercept("privacy-policy*.md", {
       statusCode: 200,
       fixture: "../fixtures/privacy-policy.md",
     }).as("privacyPolicy");
-    cy.intercept("imprint.md", {
+    cy.intercept("imprint*.md", {
       statusCode: 200,
       fixture: "../fixtures/imprint.md",
     }).as("imprint");
-    cy.intercept("terms-of-use.md", {
+    cy.intercept("terms-of-use*.md", {
       statusCode: 200,
       fixture: "../fixtures/terms-of-use.md",
     }).as("termsOfUse");
-    cy.intercept("info.md", {
+    cy.intercept("info*.md", {
       statusCode: 200,
       fixture: "../fixtures/info.md",
     }).as("info");
@@ -60,16 +96,16 @@ describe("Footer tests", () => {
   });
 
   it("shows and navigates correctly between footer pages without content", () => {
-    cy.intercept("privacy-policy.md", {
+    cy.intercept("privacy-policy*.md", {
       statusCode: 500,
     }).as("privacyPolicy");
-    cy.intercept("imprint.md", {
+    cy.intercept("imprint*.md", {
       statusCode: 500,
     }).as("imprint");
-    cy.intercept("terms-of-use.md", {
+    cy.intercept("terms-of-use*.md", {
       statusCode: 500,
     }).as("termsOfUse");
-    cy.intercept("info.md", {
+    cy.intercept("info*.md", {
       statusCode: 500,
     }).as("info");
     cy.intercept("license.json", {
