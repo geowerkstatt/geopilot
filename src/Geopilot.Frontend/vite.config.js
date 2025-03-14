@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 import viteTsconfigPaths from "vite-tsconfig-paths";
 import fs from "fs";
 import path from "path";
+import mime from "mime-types";
 
 const baseFolder =
   process.env.APPDATA !== undefined && process.env.APPDATA !== ""
@@ -48,26 +49,18 @@ export default defineConfig({
 
           try {
             if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-              // Basic content type mapping for common file types
-              const ext = path.extname(filePath).toLowerCase();
-              const contentTypes = {
-                ".html": "text/html",
-                ".css": "text/css",
-                ".js": "application/javascript",
-                ".json": "application/json",
-                ".png": "image/png",
-                ".jpg": "image/jpeg",
-                ".jpeg": "image/jpeg",
-                ".gif": "image/gif",
-                ".svg": "image/svg+xml",
-                ".md": "text/markdown",
-                ".txt": "text/plain",
-                ".pdf": "application/pdf",
-              };
+              // Use mime-types to determine content type
+              const contentType = mime.lookup(filePath) || "application/octet-stream";
+              res.setHeader("Content-Type", contentType);
 
-              res.setHeader("Content-Type", contentTypes[ext] || "application/octet-stream");
+              // Determine if it's a text-based format
+              const isText =
+                contentType.startsWith("text/") ||
+                contentType === "application/javascript" ||
+                contentType === "application/json" ||
+                contentType === "image/svg+xml";
 
-              const isText = [".html", ".css", ".js", ".json", ".md", ".txt", ".svg"].includes(ext);
+              // Read and serve the file
               res.end(fs.readFileSync(filePath, isText ? "utf-8" : undefined));
             } else {
               next();
