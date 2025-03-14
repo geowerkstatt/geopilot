@@ -109,4 +109,28 @@ describe("General app tests", () => {
       });
     });
   });
+
+  it("falls back to default application name when localNames are not available", () => {
+    // Intercept and modify the client-settings response to remove localName
+    cy.intercept("**/client-settings.json", req => {
+      req.continue(res => {
+        const modifiedBody = { ...res.body };
+        delete modifiedBody.application.localName;
+        res.send({ body: modifiedBody });
+      });
+    }).as("settings");
+
+    cy.visit("/");
+
+    cy.wait("@settings").then(({ response }) => {
+      const defaultName = response.body.application.name;
+
+      // Test each language
+      ["en", "de", "fr", "it"].forEach(language => {
+        selectLanguage(language);
+        cy.contains(defaultName).should("be.visible");
+        cy.log(`Verified fallback in ${language}: ${defaultName}`);
+      });
+    });
+  });
 });
