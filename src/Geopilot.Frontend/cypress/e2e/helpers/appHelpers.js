@@ -89,10 +89,13 @@ export const logout = () => {
  * @param language The language to select (de, fr, it, en).
  */
 export const selectLanguage = language => {
+  // IMPORTANT: This wait is necessary due to React component initialization timing
+  // issues (suspicion being languagePopup.tsx useEffect). We've tried multiple
+  // alternatives but only this approach works reliably.
   cy.wait(200);
-  cy.dataCy("language-selector").should("be.visible").click();
+
+  cy.dataCy("language-selector").click();
   cy.dataCy(`language-${language.toLowerCase()}`).should("be.visible").click();
-  cy.wait(200);
 };
 
 /**
