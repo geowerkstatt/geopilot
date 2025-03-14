@@ -191,31 +191,22 @@ describe("Footer tests", () => {
       });
   });
 
-  it("checks privacy policy page loads correct markdown in all languages", () => {
-    const languages = ["en", "de", "fr", "it"];
-
+  it("checks privacy policy page displays correct localized content", () => {
     languages.forEach(language => {
-      checkMarkdownLoading("/privacy-policy", "privacy-policy", language);
+      testLocalizedMarkdown("/privacy-policy", "privacy-policy", language);
     });
   });
 
-  it("checks imprint page loads correct markdown in all languages", () => {
-    const languages = ["en", "de", "fr", "it"];
-
+  it("checks imprint page displays correct localized content", () => {
     languages.forEach(language => {
-      checkMarkdownLoading("/imprint", "imprint", language);
+      testLocalizedMarkdown("/imprint", "imprint", language);
     });
   });
 
-  it("checks about page loads both required markdown files in all languages", () => {
-    const languages = ["en", "de", "fr", "it"];
-
+  it("checks about page displays correct localized content for both markdown files", () => {
     languages.forEach(language => {
-      // Check terms-of-use markdown (don't visit page again)
-      checkMarkdownLoading("/about", "terms-of-use", language);
-
-      // Check info markdown (don't visit page again)
-      checkMarkdownLoading("/about", "info", language);
+      testLocalizedMarkdown("/about", "terms-of-use", language);
+      testLocalizedMarkdown("/about", "info", language);
     });
   });
 });
