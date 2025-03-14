@@ -1,6 +1,7 @@
 import { selectLanguage } from "./helpers/appHelpers.js";
 
 describe("Footer tests", () => {
+  const languages = ["en", "de", "fr", "it"];
   const checkMarkdownLoading = (pagePath, markdownName, language) => {
     // Intercept both localized and fallback markdown requests
     cy.intercept(`**/${markdownName}.${language}.md`).as("localizedMd");
