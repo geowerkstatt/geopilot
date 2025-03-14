@@ -12,7 +12,7 @@ export const AppSettingsContext = createContext<AppSettingsContextInterface>({
 
 export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const { i18n } = useTranslation();
-  const { fetchApi } = useApi();
+  const { fetchApi, fetchLocalizedMarkdown } = useApi();
   const [clientSettings, setClientSettings] = useState<ClientSettings | null>();
   const [termsOfUse, setTermsOfUse] = useState<string | null>();
 
@@ -21,18 +21,8 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
       .then(setClientSettings)
       .catch(() => setClientSettings(null));
 
-    fetchApi<string>(`/terms-of-use.${i18n.language}.md`, { responseType: ContentType.Markdown })
-      .then(response => {
-        if (response) {
-          setTermsOfUse(response);
-        } else {
-          throw new Error("Language-specific terms of use not found");
-        }
-      })
-      .catch(() => {
-        fetchApi<string>("/terms-of-use.md", { responseType: ContentType.Markdown }).then(setTermsOfUse);
-      });
-  }, [fetchApi, i18n.language]);
+    fetchLocalizedMarkdown("terms-of-use", i18n.language).then(setTermsOfUse);
+  }, [fetchApi, fetchLocalizedMarkdown, i18n.language]);
 
   useEffect(() => {
     if (clientSettings) {
