@@ -209,4 +209,23 @@ describe("Footer tests", () => {
       testLocalizedMarkdown("/about", "info", language);
     });
   });
+
+  it("checks privacy policy page uses fallback when localized content is not available", () => {
+    languages.forEach(language => {
+      testFallbackMarkdown("/privacy-policy", "privacy-policy", language);
+    });
+  });
+
+  it("checks imprint page uses fallback when localized content is not available", () => {
+    languages.forEach(language => {
+      testFallbackMarkdown("/imprint", "imprint", language);
+    });
+  });
+
+  it("checks about page uses fallback for both markdown files when localized content is not available", () => {
+    languages.forEach(language => {
+      testFallbackMarkdown("/about", "terms-of-use", language);
+      testFallbackMarkdown("/about", "info", language);
+    });
+  });
 });
