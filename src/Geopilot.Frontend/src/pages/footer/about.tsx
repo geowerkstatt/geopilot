@@ -38,7 +38,7 @@ export const About = () => {
   const { hash } = useLocation();
 
   useEffect(() => {
-    fetchLocalizedMarkdown("about", i18n.language).then(setInfo);
+    fetchLocalizedMarkdown("info", i18n.language).then(setInfo);
     fetchApi<PackageList>("/license.json", { responseType: ContentType.Json }).then(setLicenseInfo);
     fetchApi<PackageList>("/license.custom.json", { responseType: ContentType.Json }).then(setLicenseInfoCustom);
     fetchApi<string>("/api/v1/version").then(version => {
