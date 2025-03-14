@@ -89,9 +89,6 @@ describe("General app tests", () => {
       const settings = interception.response.body;
       const localNames = settings.application.localName;
 
-      // Wait for the language selector to load
-      cy.wait(500);
-
       // Test each available language
       Object.entries(localNames).forEach(([language, expectedName]) => {
         // Skip languages that aren't supported in your language selector
