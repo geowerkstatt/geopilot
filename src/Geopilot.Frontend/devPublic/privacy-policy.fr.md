@@ -1,18 +1,8 @@
-# Politique de confidentialité
+<!---
+⚠️ DANGER: DO NOT EDIT! ⚠️
+Changes to this file WILL BREAK Cypress tests in footer.cy.js
+If you must modify, update tests first.
+-->
+# privacy-policy.fr.md
 
-**Collecte de données**  
-Nous pouvons recueillir des informations personnelles comme nom, e-mail, ou activités de navigation pour améliorer votre expérience.
-
-**Utilisation des informations**  
-Les données collectées sont utilisées uniquement pour fournir et améliorer nos services. Nous ne les transmettons pas à des tiers.
-
-**Utilisation des informations**  
-Notre site utilise vos informations uniquement pour améliorer nos services et ne les partage pas avec des tiers.
-
-**Cookies**  
-Nous utilisons des cookies afin d'améliorer votre navigation et analyser l'utilisation du site.
-
-**Vos droits**  
-Vous pouvez demander l'accès, la modification ou la suppression de vos données personnelles.
-
-_Dernière mise à jour : 12 mars 2025_
+privacy-policy.fr.md

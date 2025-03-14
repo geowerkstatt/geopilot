@@ -1,15 +1,8 @@
-# Datenschutzerklärung
+<!---
+⚠️ DANGER: DO NOT EDIT! ⚠️
+Changes to this file WILL BREAK Cypress tests in footer.cy.js
+If you must modify, update tests first.
+-->
+# privacy-policy.de.md
 
-**Datenerhebung**  
-Wir erheben persönliche Daten wie Name, E-Mail oder Surfverhalten, um die Nutzererfahrung zu verbessern.
-
-**Verwendung der Daten**  
-Daten werden ausschließlich verwendet, um unsere Dienste bereitzustellen und zu verbessern. Wir geben sie nicht weiter.
-
-**Verwendung von Cookies**  
-Unsere Website nutzt Cookies, um Ihr Nutzererlebnis zu optimieren und die Seitennutzung zu analysieren.
-
-**Ihre Rechte**  
-Sie haben das Recht, Ihre persönlichen Daten auf Anfrage einzusehen, zu ändern oder zu löschen.
-
-_Letzte Aktualisierung: 12. März 2025_
+privacy-policy.de.md

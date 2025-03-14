@@ -1,18 +1,8 @@
-# Nutzungsbedingungen
+<!---
+⚠️ DANGER: DO NOT EDIT! ⚠️
+Changes to this file WILL BREAK Cypress tests in footer.cy.js
+If you must modify, update tests first.
+-->
+# terms-of-use.de.md
 
-**Zustimmung zu den Bedingungen**  
-Mit Zugriff auf diese Webseite stimmen Sie den Nutzungsbedingungen zu. Wenn Sie nicht einverstanden sind, nutzen Sie diese Seite nicht.
-
-**Nutzung der Webseite**  
-Sie verpflichten sich, diese Webseite rechtmäßig und ethisch zu nutzen. Missbrauch und Störung sind verboten.
-
-**Inhaltseigentum**  
-Alle Inhalte gehören der Example Company LLC. Die Nutzung ohne ausdrückliche Erlaubnis ist untersagt.
-
-**Haftungsausschluss**  
-Diese Webseite wird „wie sie ist“ angeboten. Wir übernehmen keine Gewähr für Genauigkeit oder Verfügbarkeit.
-
-**Geltendes Recht**  
-Diese Bedingungen unterliegen dem Recht des Gerichtsstands Musterstadt.
-
-_Letzte Aktualisierung: 12. März 2025_
+terms-of-use.de.md
