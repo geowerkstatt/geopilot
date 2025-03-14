@@ -2,10 +2,10 @@
   "application": {
     "name": "geowerkstatt - dev",
     "localName": {
-      "de": "geowerkstatt",
-      "en": "geowerkstate",
-      "fr": "geowerkstatteaué",
-      "it": "geowerkstattiano"
+      "de": "geowerkstatt GmbH",
+      "en": "geowerkstatt Llc",
+      "fr": "geowerkstatt Sàrl",
+      "it": "geowerkstatt Sagl"
     },
     "logo": "/logo.png",
     "favicon": "/logo.png",
