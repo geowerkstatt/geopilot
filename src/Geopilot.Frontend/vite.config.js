@@ -54,13 +54,8 @@ export default defineConfig({
               res.setHeader("Content-Type", contentType);
 
               // Determine if it's a text-based format
-              const isText =
-                contentType.startsWith("text/") ||
-                contentType === "application/javascript" ||
-                contentType === "application/json" ||
-                contentType === "image/svg+xml";
+              const isText = Boolean(mime.charset(contentType));
 
-              // Read and serve the file
               res.end(fs.readFileSync(filePath, isText ? "utf-8" : undefined));
             } else {
               next();
