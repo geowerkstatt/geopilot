@@ -3,17 +3,16 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useApi } from "../../api";
 import { MarkdownContent } from "../../components/markdownContent.tsx";
-import { ContentType } from "../../api/apiInterfaces.ts";
 import { CenteredBox } from "../../components/styledComponents.ts";
 
 export const PrivacyPolicy = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [content, setContent] = useState<string>();
-  const { fetchApi } = useApi();
+  const { fetchLocalizedMarkdown } = useApi();
 
   useEffect(() => {
-    fetchApi<string>("/privacy-policy.md", { responseType: ContentType.Markdown }).then(setContent);
-  }, [fetchApi]);
+    fetchLocalizedMarkdown("privacy-policy", i18n.language).then(setContent);
+  }, [fetchLocalizedMarkdown, i18n.language]);
 
   return (
     <CenteredBox>

@@ -3,10 +3,10 @@ import { useEffect, useState } from "react";
 import { useApi } from "../../api";
 import { Link, Typography } from "@mui/material";
 import { MarkdownContent } from "../../components/markdownContent.tsx";
-import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { CenteredBox } from "../../components/styledComponents.ts";
 import { useLocation } from "react-router-dom";
+import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 
 interface PackageList {
   [packageName: string]: PackageDetails;
@@ -28,23 +28,23 @@ interface PackageDetails {
 }
 
 export const About = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [info, setInfo] = useState<string>();
   const [licenseInfo, setLicenseInfo] = useState<PackageList>();
   const [licenseInfoCustom, setLicenseInfoCustom] = useState<PackageList>();
   const [version, setVersion] = useState<string | null>();
-  const { fetchApi } = useApi();
   const { termsOfUse } = useAppSettings();
+  const { fetchApi, fetchLocalizedMarkdown } = useApi();
   const { hash } = useLocation();
 
   useEffect(() => {
-    fetchApi<string>("/info.md", { responseType: ContentType.Markdown }).then(setInfo);
+    fetchLocalizedMarkdown("info", i18n.language).then(setInfo);
     fetchApi<PackageList>("/license.json", { responseType: ContentType.Json }).then(setLicenseInfo);
     fetchApi<PackageList>("/license.custom.json", { responseType: ContentType.Json }).then(setLicenseInfoCustom);
     fetchApi<string>("/api/v1/version").then(version => {
       setVersion(version.split("+")[0]);
     });
-  }, [fetchApi]);
+  }, [fetchApi, fetchLocalizedMarkdown, i18n.language]);
 
   useEffect(() => {
     const scrollToHash = () => {

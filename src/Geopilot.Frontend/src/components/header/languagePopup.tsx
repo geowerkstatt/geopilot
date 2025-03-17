@@ -1,5 +1,5 @@
 import { Button, List, ListItem, ListItemIcon, ListItemText, Popover } from "@mui/material";
-import { MouseEvent, useEffect, useState } from "react";
+import { MouseEvent, useCallback, useEffect, useState } from "react";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -8,20 +8,19 @@ import { Language } from "../../appInterfaces";
 import { geopilotTheme } from "../../appTheme.ts";
 
 const defaultLanguage = Language.DE;
+const languages: string[] = Object.values(Language);
 
 export function LanguagePopup() {
-  const [selectedLanguage, setSelectedLanguage] = useState(defaultLanguage);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>(defaultLanguage);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement>();
-  const isOpen = Boolean(anchorEl);
-  const languages: string[] = Object.values(Language);
 
-  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+  const handleClick = useCallback((event: MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setAnchorEl(undefined);
-  };
+  }, []);
 
   useEffect(() => {
     const handleLanguageChange = () => {
@@ -39,13 +38,15 @@ export function LanguagePopup() {
     return () => {
       i18n.off("languageChanged", handleLanguageChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onLanguageChanged = (language: string) => {
-    i18n.changeLanguage(language);
-    handleClose();
-  };
+  const onLanguageChanged = useCallback(
+    (language: string) => {
+      i18n.changeLanguage(language);
+      handleClose();
+    },
+    [handleClose],
+  );
 
   return (
     <>
@@ -54,14 +55,14 @@ export function LanguagePopup() {
         endIcon={anchorEl ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         sx={{
           marginRight: "10px",
-          ...(isOpen && { backgroundColor: geopilotTheme.palette.primary.hover }),
+          ...(anchorEl && { backgroundColor: geopilotTheme.palette.primary.hover }),
         }}
         data-cy="language-selector">
         {selectedLanguage.toUpperCase()}
       </Button>
       <Popover
         anchorEl={anchorEl}
-        open={isOpen}
+        open={Boolean(anchorEl)}
         onClose={handleClose}
         sx={{ marginTop: "5px" }}
         anchorOrigin={{

@@ -9,6 +9,9 @@ export interface ClientSettings {
   authScopes: string[];
   application: {
     name?: string;
+    localName?: {
+      [languageCode: string]: string;
+    };
     logo: string;
     favicon: string;
     faviconDark?: string;

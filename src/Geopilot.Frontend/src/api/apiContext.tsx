@@ -1,4 +1,4 @@
-import { ApiContextInterface, ApiError, FetchParams } from "./apiInterfaces.ts";
+import { ApiContextInterface, ApiError, ContentType, FetchParams } from "./apiInterfaces.ts";
 import { createContext, FC, PropsWithChildren, useContext } from "react";
 import { AlertContext } from "../components/alert/alertContext.tsx";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,9 @@ import { useTranslation } from "react-i18next";
 export const ApiContext = createContext<ApiContextInterface>({
   fetchApi: () => {
     throw new Error("fetchApi not implemented");
+  },
+  fetchLocalizedMarkdown: () => {
+    throw new Error("fetchLocalizedMarkdown not implemented");
   },
 });
 
@@ -53,5 +56,17 @@ export const ApiProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   }
 
-  return <ApiContext.Provider value={{ fetchApi }}>{children}</ApiContext.Provider>;
+  const fetchLocalizedMarkdown = (markdown: string, language: string): Promise<string> => {
+    return fetchApi<string>(`/${markdown}.${language}.md`, { responseType: ContentType.Markdown })
+      .then(response => {
+        if (response) {
+          return response;
+        } else {
+          throw new Error("Language-specific markdown not found");
+        }
+      })
+      .catch(() => fetchApi<string>(`/${markdown}.md`, { responseType: ContentType.Markdown }));
+  };
+
+  return <ApiContext.Provider value={{ fetchApi, fetchLocalizedMarkdown }}>{children}</ApiContext.Provider>;
 };

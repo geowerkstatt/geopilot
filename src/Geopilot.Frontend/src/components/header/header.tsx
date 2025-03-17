@@ -32,7 +32,7 @@ interface HeaderProps {
 }
 
 const Header: FC<HeaderProps> = ({ openSubMenu }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { navigateTo } = useControlledNavigate();
   const location = useLocation();
   const { clientSettings } = useAppSettings();
@@ -110,7 +110,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               </Typography>
               {clientSettings?.application?.name && (
                 <Typography sx={{ typography: { xs: "h6", md: "h1" }, margin: "0 !important" }}>
-                  {clientSettings?.application?.name}
+                  {clientSettings?.application?.localName?.[i18n.language] || clientSettings?.application?.name}
                 </Typography>
               )}
             </Box>

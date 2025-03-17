@@ -2,10 +2,7 @@ export const interceptApiCalls = () => {
   cy.intercept("/api/v1/user/auth").as("auth");
   cy.intercept("/api/v1/version").as("version");
   cy.intercept("/api/v1/user/self").as("self");
-  cy.intercept("terms-of-use.md", {
-    statusCode: 200,
-    fixture: "../fixtures/terms-of-use.md",
-  }).as("termsOfUse");
+  cy.intercept("terms-of-use*.md").as("termsOfUse");
 };
 
 /**
@@ -92,9 +89,13 @@ export const logout = () => {
  * @param language The language to select (de, fr, it, en).
  */
 export const selectLanguage = language => {
-  cy.dataCy("language-selector").click({ force: true });
-  cy.dataCy(`language-${language.toLowerCase()}`).click({ force: true });
-  cy.wait(1000);
+  // IMPORTANT: This wait is necessary due to React component initialization timing
+  // issues (suspicion being languagePopup.tsx useEffect). We've tried multiple
+  // alternatives but only this approach works reliably.
+  cy.wait(200);
+
+  cy.dataCy("language-selector").click();
+  cy.dataCy(`language-${language.toLowerCase()}`).should("be.visible").click();
 };
 
 /**

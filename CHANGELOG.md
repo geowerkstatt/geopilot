@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Localisation support for configurable markdown content (Impressum, Privacy Policy etc.), which allows to provide different versions for different languages.
+- Localisation support for application name.
+
 ### Changed
 
 - File size limit lowered to 100 MB to adhere to hosting provider restrictions (Cloudflare).

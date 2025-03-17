@@ -75,4 +75,59 @@ describe("General app tests", () => {
     selectLanguage("it");
     cy.contains("Clicca per selezionare");
   });
+
+  it("displays correct localized application name when language changes", () => {
+    // Intercept the client-settings.json request to dynamically extract the values
+    cy.intercept("**/client-settings.json").as("clientSettings");
+
+    // Visit the home page
+    cy.visit("/");
+
+    // Wait for client settings to load and extract the localNames
+    cy.wait("@clientSettings").then(interception => {
+      // Extract the application settings from the intercepted response
+      const settings = interception.response.body;
+      const localNames = settings.application.localName;
+
+      // Test each available language
+      Object.entries(localNames).forEach(([language, expectedName]) => {
+        // Skip languages that aren't supported in your language selector
+        if (!["en", "de", "fr", "it"].includes(language)) return;
+
+        // Switch to this language
+        selectLanguage(language);
+
+        // Verify the localized application name appears on the page
+        // Note: You may need to adjust this selector to match where the app name appears
+        cy.contains(expectedName).should("be.visible");
+
+        // Log success
+        cy.log(`Successfully verified ${language.toUpperCase()} localized name: ${expectedName}`);
+      });
+    });
+  });
+
+  it("falls back to default application name when localNames are not available", () => {
+    // Intercept and modify the client-settings response to remove localName
+    cy.intercept("**/client-settings.json", req => {
+      req.continue(res => {
+        const modifiedBody = { ...res.body };
+        delete modifiedBody.application.localName;
+        res.send({ body: modifiedBody });
+      });
+    }).as("settings");
+
+    cy.visit("/");
+
+    cy.wait("@settings").then(({ response }) => {
+      const defaultName = response.body.application.name;
+
+      // Test each language
+      ["en", "de", "fr", "it"].forEach(language => {
+        selectLanguage(language);
+        cy.contains(defaultName).should("be.visible");
+        cy.log(`Verified fallback in ${language}: ${defaultName}`);
+      });
+    });
+  });
 });
