@@ -29,6 +29,39 @@ export const Licenses = () => {
   const { fetchApi } = useApi();
   const { hash } = useLocation();
 
+  const addPackageToGroup = (groups: PackageGroup[], packageName: string, details: PackageDetails): void => {
+    const groupName = details.publisher || packageName.split("/")[0];
+    const existingGroup = groups.find(group => group.groupName === groupName);
+
+    if (existingGroup) {
+      existingGroup.packages.push(details);
+    } else {
+      groups.push({
+        groupName,
+        packages: [details],
+      });
+    }
+  };
+
+  const licenseGroups = useMemo(() => {
+    const groups: PackageGroup[] = [];
+
+    if (licenseInfoCustom) {
+      Object.entries(licenseInfoCustom).forEach(([packageName, details]) => {
+        addPackageToGroup(groups, packageName, details);
+      });
+    }
+
+    if (licenseInfo) {
+      Object.entries(licenseInfo).forEach(([packageName, details]) => {
+        addPackageToGroup(groups, packageName, details);
+      });
+    }
+
+    // Sort groups alphabetically
+    return groups.sort((a, b) => a.groupName.localeCompare(b.groupName));
+  }, [licenseInfo, licenseInfoCustom]);
+
   useEffect(() => {
     fetchApi<PackageList>("/license.json", { responseType: ContentType.Json }).then(setLicenseInfo);
     fetchApi<PackageList>("/license.custom.json", { responseType: ContentType.Json }).then(setLicenseInfoCustom);
