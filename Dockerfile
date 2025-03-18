@@ -17,6 +17,14 @@ RUN apt-get update && \
   apt-get install nodejs -y && \
   rm -rf /var/lib/apt/lists/*
 
+# Install gosu, a tool to run commands as a specific user
+RUN set -eux; \
+	apt-get update; \
+	apt-get install -y gosu; \
+	rm -rf /var/lib/apt/lists/*; \
+# verify that the binary works
+	gosu nobody true
+
 # Restore dependencies and tools
 COPY src/Geopilot.Api/Geopilot.Api.csproj Geopilot.Api/
 COPY src/Geopilot.Frontend/nuget.config Geopilot.Frontend/
