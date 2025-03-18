@@ -10,6 +10,11 @@ echo -n "Fix permissions for mounted volumes ..." && \
   chown -R app:app $Storage__UploadDirectory && \
   chown -R app:app $Storage__AssetsDirectory && \
   chown -R app:app $PublicAssetsOverride && \
+
+  # Sets group permission and sticky bit at the end, which makes all children inherit group ownership
+  chmod -R g+rwXs $Storage__UploadDirectory && \
+  chmod -R g+rwXs $Storage__AssetsDirectory && \
+  chmod -R g+rwXs $PublicAssetsOverride && \
   echo "done!"
 
 # Override public assets in app's public directory.
