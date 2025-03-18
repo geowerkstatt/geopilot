@@ -5,6 +5,10 @@ set -e
 # will have the group write permission set. With the default 0022, groups that own these directories won't be able to edit them.
 umask 0002
 
+# Use default user:group if no $PUID and/or $PGID is provided.
+groupmod -o -g ${PGID:-1654} app && \
+  usermod -o -u ${PUID:-1654} app &> /dev/null
+
 # Change owner for our uploads folder
 echo -n "Fix permissions for mounted volumes ..." && \
   chown -R app:app $Storage__UploadDirectory && \
