@@ -17,6 +17,11 @@ interface PackageDetails {
   licenseFile?: string;
 }
 
+interface PackageGroup {
+  groupName: string;
+  packages: PackageDetails[];
+}
+
 export const Licenses = () => {
   const { t } = useTranslation();
   const [licenseInfo, setLicenseInfo] = useState<PackageList>();
