@@ -83,14 +83,57 @@ export const Licenses = () => {
 
   return (
     <CenteredBox>
-
+      <FlexRowSpaceBetweenBox>
+        <BaseButton
+          variant={"text"}
+          color="primary"
+          icon={<ChevronLeft />}
+          onClick={() => history.back()}
+          label="back"
+        />
       </FlexRowSpaceBetweenBox>
       {(licenseInfo || licenseInfoCustom) && (
         <Typography variant="h1" id="licenses">
           {t("licenseInformation")}
         </Typography>
       )}
-      
+      <>
+        {licenseGroups.map(group => (
+          <Accordion key={group.groupName}>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Grid container spacing={1}>
+                <Grid item xs={12}>
+                  <Typography variant="h2">{group.groupName}</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography>
+                    {group.packages.length > 1 ? `${group.packages.length} ${t("licenses")}` : ""}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </AccordionSummary>
+            <AccordionDetails>
+              {group.packages.map(pkg => (
+                <Box key={pkg.name} sx={{ py: 4 }}>
+                  <Typography variant="h3">
+                    {pkg.name}
+                    {pkg.version && ` (${t("version")} ${pkg.version})`}{" "}
+                  </Typography>
+                  <p>
+                    <Link href={pkg.repository}>{pkg.repository}</Link>
+                  </p>
+                  <p>{pkg.description}</p>
+                  <p>{pkg.copyright}</p>
+                  <p>
+                    {t("licenses")}: {pkg.licenses}
+                  </p>
+                  <p>{pkg.licenseText}</p>
+                </Box>
+              ))}
+            </AccordionDetails>
+          </Accordion>
+        ))}
+      </>
     </CenteredBox>
   );
 };
