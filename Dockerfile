@@ -87,6 +87,8 @@ VOLUME $Storage__AssetsDirectory
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
+# Copy gosu binaries to the image
+COPY --from=build /usr/sbin/gosu /usr/local/bin
 COPY --from=build /app/publish $HOME
 COPY docker-entrypoint.sh /entrypoint.sh
 
