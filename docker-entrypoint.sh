@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Sets the umask from the docker default 0022, to 0002. This has the effect that newly created files and directories
+# will have the group write permission set. With the default 0022, groups that own these directories won't be able to edit them.
+umask 0002
+
 # Change owner for our uploads folder
 echo -n "Fix permissions for mounted volumes ..." && \
   chown -R app:app $Storage__UploadDirectory && \
