@@ -95,6 +95,7 @@ export const Licenses = () => {
     <CenteredBox>
       <FlexRowSpaceBetweenBox>
         <BaseButton
+          id="backButton"
           variant={"text"}
           color="primary"
           icon={<ChevronLeft />}
