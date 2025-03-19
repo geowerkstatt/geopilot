@@ -20,6 +20,7 @@ import MandateDetail from "./pages/admin/mandateDetail.tsx";
 import { ControlledNavigateProvider } from "./components/controlledNavigate/controlledNavigateProvider.tsx";
 import OrganisationDetail from "./pages/admin/organisationDetail.tsx";
 import UserDetail from "./pages/admin/userDetail.tsx";
+import { Licenses } from "./pages/footer/licenses.tsx";
 
 export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
@@ -69,6 +70,7 @@ export const App: FC = () => {
                   <Route path="/imprint" element={<Imprint />} />
                   <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                   <Route path="/about" element={<About />} />
+                  <Route path="/licenses" element={<Licenses />} />
                 </Routes>
               )}
             </PageContentBox>

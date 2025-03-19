@@ -86,14 +86,6 @@ describe("Footer tests", () => {
     cy.intercept("imprint*.md").as("imprint");
     cy.intercept("terms-of-use*.md").as("termsOfUse");
     cy.intercept("info*.md").as("info");
-    cy.intercept("license.json", {
-      statusCode: 200,
-      fixture: "../fixtures/license.json",
-    }).as("license");
-    cy.intercept("license.custom.json", {
-      statusCode: 200,
-      fixture: "../fixtures/license.custom.json",
-    }).as("licenseCustom");
 
     // Start navigation from home page
     cy.visit("/");
@@ -116,8 +108,6 @@ describe("Footer tests", () => {
     cy.dataCy("about-nav").click();
     cy.wait("@info");
     cy.wait("@termsOfUse");
-    cy.wait("@license");
-    cy.wait("@licenseCustom");
 
     // First check total number of headers
     cy.get("h1").should("have.length", 5);
@@ -127,8 +117,6 @@ describe("Footer tests", () => {
     cy.get("h1").contains("Development & bug tracking").should("exist");
     cy.get("h1").contains("License information").should("exist");
 
-    cy.contains("project1");
-    cy.contains("projectA");
     // Return to home page
     cy.dataCy("header").click();
     cy.dataCy("upload-step").should("exist");
@@ -147,12 +135,6 @@ describe("Footer tests", () => {
     cy.intercept("info*.md", {
       statusCode: 500,
     }).as("info");
-    cy.intercept("license.json", {
-      statusCode: 500,
-    }).as("license");
-    cy.intercept("license.custom.json", {
-      statusCode: 500,
-    }).as("licenseCustom");
 
     cy.visit("/");
 
@@ -167,9 +149,7 @@ describe("Footer tests", () => {
     cy.dataCy("about-nav").click();
     cy.wait("@info");
     cy.wait("@termsOfUse");
-    cy.wait("@license");
-    cy.wait("@licenseCustom");
-    const expectedHeaders = ["API", "Development & bug tracking"];
+    const expectedHeaders = ["API", "Development & bug tracking", "License information"];
     cy.get("h1")
       .should("have.length", expectedHeaders.length)
       .each(($el, index) => {
@@ -182,8 +162,6 @@ describe("Footer tests", () => {
     });
     cy.wait("@info");
     cy.wait("@termsOfUse");
-    cy.wait("@license");
-    cy.wait("@licenseCustom");
     cy.get("h1")
       .should("have.length", expectedHeaders.length)
       .each(($el, index) => {
