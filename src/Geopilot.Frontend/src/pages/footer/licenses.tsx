@@ -89,7 +89,6 @@ export const Licenses = () => {
 
     // Run after initial render
     setTimeout(scrollToHash, 0);
-    scrollToHash();
   }, [hash, licenseInfo, licenseInfoCustom]);
 
   return (
