@@ -4,7 +4,7 @@ import { useApi } from "../../api";
 import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Typography } from "@mui/material";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { CenteredBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ExpandMore } from "@mui/icons-material";
 import { BaseButton } from "../../components/buttons.tsx";
 
@@ -38,6 +38,7 @@ export const Licenses = () => {
   const [licenseInfoCustom, setLicenseInfoCustom] = useState<PackageList>();
   const { fetchApi } = useApi();
   const { hash } = useLocation();
+  const navigate = useNavigate();
 
   const addPackageToGroup = (groups: PackageGroup[], packageName: string, details: PackageDetails): void => {
     const groupName = details.publisher || packageName.split("/")[0];
@@ -99,7 +100,7 @@ export const Licenses = () => {
           variant={"text"}
           color="primary"
           icon={<ChevronLeft />}
-          onClick={() => history.back()}
+          onClick={() => navigate(-1)}
           label="back"
         />
       </FlexRowSpaceBetweenBox>
@@ -110,7 +111,7 @@ export const Licenses = () => {
       )}
       <>
         {licenseGroups.map(group => (
-          <Accordion key={group.groupName}>
+          <Accordion key={group.groupName} slotProps={{ transition: { timeout: 200 } }}>
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Grid container spacing={1}>
                 <Grid item xs={12}>
