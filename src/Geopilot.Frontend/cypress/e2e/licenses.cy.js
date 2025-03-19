@@ -107,8 +107,8 @@ describe("Licenses Component", () => {
           cy.wrap($pkgName).then(() => {
             expect(
               packageFullName.startsWith(groupName) ||
-              groupName === "projectA" || // Handling our fixture specifically
-              groupName === "projectB",
+                groupName === "projectA" || // Handling our fixture specifically
+                groupName === "projectB",
             ).to.be.true;
           });
         });
