@@ -17,14 +17,14 @@ RUN apt-get update && \
   apt-get install nodejs -y && \
   rm -rf /var/lib/apt/lists/*
 
-# Restore dependencies and tools
-COPY src/Geopilot.Api/Geopilot.Api.csproj Geopilot.Api/
 COPY src/Geopilot.Frontend/nuget.config Geopilot.Frontend/
 COPY src/Geopilot.Frontend/package* Geopilot.Frontend/
-COPY src/Geopilot.Frontend/Geopilot.Frontend.esproj Geopilot.Frontend/
-
-RUN dotnet restore "Geopilot.Api/Geopilot.Api.csproj"
 RUN npm install -C Geopilot.Frontend
+
+# Restore dependencies and tools
+COPY src/Geopilot.Api/Geopilot.Api.csproj Geopilot.Api/
+COPY src/Geopilot.Frontend/Geopilot.Frontend.esproj Geopilot.Frontend/
+RUN dotnet restore "Geopilot.Api/Geopilot.Api.csproj"
 
 # Set environment variables
 ENV PUBLISH_DIR=/app/publish
