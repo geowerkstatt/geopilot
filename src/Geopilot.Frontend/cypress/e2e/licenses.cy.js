@@ -41,4 +41,42 @@ describe("Licenses Component", () => {
       cy.contains("Copyright (c) 2023 Example A Corp").should("be.visible");
     });
   });
+
+  it("should expand and collapse accordion sections", () => {
+    // Navigate to licenses page
+    cy.get("#licenses-text").find("a").click();
+
+    // Wait for API response
+    cy.wait("@getLicenses").as("licenses");
+    cy.wait("@getCustomLicenses");
+
+    // Get data from the fixture
+    cy.get("@licenses")
+      .its("response.body")
+      .then(licenses => {
+        const projectA = licenses.projectA;
+
+        // Verify the project name is visible in the accordion summary
+        cy.contains(".MuiAccordionSummary-root", projectA.name).should("be.visible");
+
+        // But description should be hidden initially
+        cy.contains(projectA.description).should("not.be.visible");
+
+        // Expand the accordion for projectA
+        cy.contains(".MuiAccordion-root", projectA.name).within(() => {
+          cy.get(".MuiAccordionSummary-root").click();
+        });
+
+        // Now the description should be visible
+        cy.contains(projectA.description).should("be.visible");
+
+        // Collapse accordion again
+        cy.contains(".MuiAccordion-root", projectA.name).within(() => {
+          cy.get(".MuiAccordionSummary-root").click();
+        });
+
+        // Description should be hidden again
+        cy.contains(projectA.description).should("not.be.visible");
+      });
+  });
 });
