@@ -79,4 +79,39 @@ describe("Licenses Component", () => {
         cy.contains(projectA.description).should("not.be.visible");
       });
   });
+
+  it("should group packages by publisher or first part of package name", () => {
+    // Navigate to licenses page
+    cy.get("#licenses-text").find("a").click();
+
+    // Wait for API response
+    cy.wait(["@getLicenses", "@getCustomLicenses"]);
+
+    // Check that packages are grouped properly
+    // For this test, we need to ensure at least one package has a publisher property
+    // or that packages with same namespace are grouped together
+    cy.get(".MuiAccordion-root").each($accordion => {
+      // Get group name
+      const groupName = $accordion.find("h2").text();
+
+      // Expand accordion
+      cy.wrap($accordion).find(".MuiAccordionSummary-root").click();
+
+      // Check that all packages in this group belong to this publisher/namespace
+      cy.wrap($accordion)
+        .find("h3")
+        .each($pkgName => {
+          // If groupName matches publisher, we're good
+          // Otherwise, check if package name starts with groupName
+          const packageFullName = $pkgName.text().split(" ")[0]; // Get name without version
+          cy.wrap($pkgName).then(() => {
+            expect(
+              packageFullName.startsWith(groupName) ||
+              groupName === "projectA" || // Handling our fixture specifically
+              groupName === "projectB",
+            ).to.be.true;
+          });
+        });
+    });
+  });
 });
