@@ -10,7 +10,7 @@
 ### Changed
 
 - File size limit lowered to 100 MB to adhere to hosting provider restrictions (Cloudflare).
-- Moved licenses to seperate page and improved layout for a better UX.
+- Moved licenses to separate page and improved layout for a better UX.
 
 ### Fixed
 
