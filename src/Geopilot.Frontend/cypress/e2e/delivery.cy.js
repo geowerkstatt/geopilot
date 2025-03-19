@@ -601,4 +601,78 @@ describe("Delivery tests", () => {
     });
   });
 
+  describe("Validation step errors", () => {
+    beforeEach(() => {
+      // Mock successful upload to reach validation step
+      cy.intercept(
+        { url: "/api/v1/validation", method: "POST" },
+        {
+          statusCode: 201,
+          body: {
+            jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+            status: "processing",
+            validatorResults: {
+              ilicheck: {
+                status: "processing",
+                statusMessage: "Die Datei wird validiert...",
+                logFiles: {},
+              },
+            },
+          },
+          delay: 500,
+        },
+      ).as("upload");
+    });
+
+    it("displays request malformed error (400)", () => {
+      cy.intercept("POST", "**/upload-endpoint", req => {
+        // Delay the response by 1000ms (1 second)
+        req.on("response", res => {
+          res.setDelay(1000);
+        });
+      }).as("uploadRequest");
+
+      cy.intercept(
+        { url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" },
+        {
+          statusCode: 400,
+          body: {
+            detail: "Bad Request",
+          },
+          delay: 500,
+        },
+      ).as("validationError400");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@upload");
+      cy.wait("@validationError400");
+
+      stepHasError("validate", true, "Invalid or corrupted request to the validation server");
+      cy.dataCy("validate-step").contains("Error 400");
+    });
+
+    it("displays validation not found error (404)", () => {
+      cy.intercept(
+        { url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" },
+        {
+          statusCode: 404,
+          body: {
+            detail: "Not Found",
+          },
+          delay: 500,
+        },
+      ).as("validationError404");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@upload");
+      cy.wait("@validationError404");
+
+      stepHasError("validate", true, "Validation process not found");
+      cy.dataCy("validate-step").contains("Error 404");
+    });
+  });
 });
