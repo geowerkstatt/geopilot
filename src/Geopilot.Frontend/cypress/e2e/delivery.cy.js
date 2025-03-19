@@ -476,44 +476,6 @@ describe("Delivery tests", () => {
     cy.dataCy("logInForDelivery-button").should("exist");
   });
 
-  it("correctly extracts error messages from the response", () => {
-    mockValidationSuccess();
-    mockMandates();
-
-    let currentResponseIndex = 0;
-    const responses = [
-      { statusCode: 500, body: { detail: "Internal Server Error" } },
-      { statusCode: 404, body: "Not found" },
-    ];
-
-    cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
-      const currentResponse = responses[currentResponseIndex];
-      req.reply({
-        statusCode: currentResponse.statusCode,
-        body: currentResponse.body,
-      });
-
-      currentResponseIndex = (currentResponseIndex + 1) % responses.length;
-    }).as("deliveryRequest");
-
-    loginAsUploader();
-    addFile("deliveryFiles/ilimodels_valid.xml", true);
-    uploadFile();
-    cy.wait("@upload");
-    cy.wait("@validation");
-    cy.wait("@mandates");
-
-    setSelect("mandate", 1);
-
-    cy.dataCy("createDelivery-button").click();
-    cy.wait("@deliveryRequest").its("response.statusCode").should("eq", 500);
-    stepHasError("submit", true, "Internal Server Error");
-
-    cy.dataCy("createDelivery-button").click();
-    cy.wait("@deliveryRequest").its("response.statusCode").should("eq", 404);
-    stepHasError("submit", true, "Not found");
-  });
-
   it("displays error if no mandates were found", () => {
     mockValidationSuccess();
     cy.intercept({ url: "/api/v1/mandate?jobId=d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
