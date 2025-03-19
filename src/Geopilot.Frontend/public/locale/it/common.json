@@ -100,7 +100,7 @@
   "users": "Utenti",
   "usersLoadingError": "Si è verificato un errore durante il caricamento degli utenti: {{error}}",
   "validate": "Validare",
-  "validationErrorCannotFind": "Processo di convalida non trovato. (Errore 404)",
+  "validationErrorCannotFind": "Impossibile assegnare il processo di convalida. (Errore 404)",
   "validationErrorFileTooLarge": "Dimensione massima del file superata. (Errore 413)",
   "validationErrorFileMalformed": "Formato file non valido o file danneggiato. (Errore 400)",
   "validationErrorRequestMalformed": "Richiesta non valida o danneggiata al server di convalida. (Errore 400)",

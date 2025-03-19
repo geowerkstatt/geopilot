@@ -100,7 +100,7 @@
   "users": "Utilisateurs",
   "usersLoadingError": "Une erreur s'est produite lors du chargement des utilisateurs: {{error}}",
   "validate": "Valider",
-  "validationErrorCannotFind": "Processus de validation introuvable. (Erreur 404)",
+  "validationErrorCannotFind": "Impossible d'attribuer le processus de validation. (Erreur 404)",
   "validationErrorFileTooLarge": "Taille maximale du fichier dépassée. (Erreur 413)",
   "validationErrorFileMalformed": "Format de fichier invalide ou fichier corrompu. (Erreur 400)",
   "validationErrorRequestMalformed": "Requête invalide ou corrompue au serveur de validation. (Erreur 400)",

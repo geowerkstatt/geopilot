@@ -100,7 +100,7 @@
   "users": "Users",
   "usersLoadingError": "An error occurred while loading the users: {{error}}",
   "validate": "Validate",
-  "validationErrorCannotFind": "Validation process not found. (Error 404)",
+  "validationErrorCannotFind": "Could not assign the validation process. (Error 404)",
   "validationErrorFileTooLarge": "Maximum file size exceeded. (Error 413)",
   "validationErrorFileMalformed": "Invalid file format or corrupted file. (Error 400)",
   "validationErrorRequestMalformed": "Invalid or corrupted request to the validation server. (Error 400)",

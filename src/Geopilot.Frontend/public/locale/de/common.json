@@ -100,7 +100,7 @@
   "users": "Benutzer:innen",
   "usersLoadingError": "Beim Laden der Benutzer:innen ist ein Fehler aufgetreten: {{error}}",
   "validate": "Validieren",
-  "validationErrorCannotFind": "Validierungsprozess nicht gefunden. (Fehler 404)",
+  "validationErrorCannotFind": "Validierungsprozess konnte nicht zugewiesen werden. (Fehler 404)",
   "validationErrorFileTooLarge": "Maximale Dateigrösse überschritten. (Fehler 413)",
   "validationErrorFileMalformed": "Ungültiges Dateiformat oder beschädigte Datei. (Fehler 400)",
   "validationErrorRequestMalformed": "Ungültige oder beschädigte Anfrage an den Validierunsserver. (Fehler 400)",
