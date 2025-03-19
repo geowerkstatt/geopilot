@@ -114,4 +114,15 @@ describe("Licenses Component", () => {
         });
     });
   });
+
+  it("should navigate back when back button is clicked", () => {
+    // Navigate to licenses page
+    cy.get("#licenses-text").find("a").click();
+
+    // Click back button using id selector
+    cy.get("#backButton").click();
+
+    // Verify we went back to about page
+    cy.url().should("include", "/about");
+  });
 });
