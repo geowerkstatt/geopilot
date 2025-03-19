@@ -536,6 +536,27 @@ describe("Delivery tests", () => {
     resetDelivery("submit");
   });
 
+  it("displays custom error messages when they don't match predefined errors", () => {
+    cy.intercept(
+      { url: "/api/v1/validation", method: "POST" },
+      {
+        statusCode: 418, // I'm a teapot
+        body: {
+          detail: "I'm a teapot",
+        },
+        delay: 500, // Added 500ms delay
+      },
+    ).as("customError");
+
+    loginAsUploader();
+    addFile("deliveryFiles/ilimodels_valid.xml", true);
+    uploadFile();
+    cy.wait("@customError");
+
+    // Should display the actual error message since there's no mapping for 418
+    stepHasError("upload", true, "I'm a teapot");
+  });
+
   describe("Upload step errors", () => {
     it("displays file malformed error (400)", () => {
       cy.intercept(
