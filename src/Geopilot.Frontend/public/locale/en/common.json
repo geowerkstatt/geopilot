@@ -29,6 +29,10 @@
   "deliveryCompleted": "The delivery was completed successfully.",
   "deliveryDate": "Delivery date",
   "deliveryForm": "Delivery form",
+  "deliveryErrorMalformedRequest": "Invalid or corrupted delivery request. (Error 400)",
+  "deliveryErrorNoValidationFound": "Validation results could not be found. (Error 404)",
+  "deliveryErrorUnauthorized": "User is not authorized to make deliveries. (Error 401)",
+  "deliveryErrorUnexpected": "An unexpected error occurred during delivery. (Error 500)",
   "deliveryOverview": "Delivery overview",
   "deliveryOverviewDeleteError": "An error occurred while deleting the delivery: {{error}}",
   "deliveryOverviewDeleteIdError": "An error occurred while deleting the delivery with the ID {{id}}",
@@ -96,6 +100,11 @@
   "users": "Users",
   "usersLoadingError": "An error occurred while loading the users: {{error}}",
   "validate": "Validate",
+  "validationErrorCannotFind": "Validation process not found. (Error 404)",
+  "validationErrorFileTooLarge": "Maximum file size exceeded. (Error 413)",
+  "validationErrorFileMalformed": "Invalid file format or corrupted file. (Error 400)",
+  "validationErrorRequestMalformed": "Invalid or corrupted request to the validation server. (Error 400)",
+  "validationErrorUnexpected": "Unexpected server error during processing. (Error 500)",
   "validationIsRunning": "The file is currently being validated with {{validators}}...",
   "version": "Version"
 }

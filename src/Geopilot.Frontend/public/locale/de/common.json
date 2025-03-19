@@ -29,6 +29,10 @@
   "deliveryCompleted": "Die Lieferung wurde erfolgreich abgeschlossen.",
   "deliveryDate": "Lieferdatum",
   "deliveryForm": "Lieferformular",
+  "deliveryErrorMalformedRequest": "Ungültige oder beschädigte Anfrage für Auslieferung. (Fehler 400)",
+  "deliveryErrorNoValidationFound": "Validierungsresultate konnten nicht gefunden werden. (Fehler 404)",
+  "deliveryErrorUnauthorized": "Benutzer nicht berechtigt Auslieferungen zu tätigen. (Fehler 401)",
+  "deliveryErrorUnexpected": "Beim Ausliefern ist ein unerwarteter Fehler aufgetreten. (Fehler 500)",
   "deliveryOverview": "Lieferübersicht",
   "deliveryOverviewDeleteError": "Beim Löschen ist ein Fehler aufgetreten: {{error}}",
   "deliveryOverviewDeleteIdError": "Beim Löschen der Lieferung mit ID {{id}} ist ein Fehler aufgetreten.",
@@ -96,6 +100,11 @@
   "users": "Benutzer:innen",
   "usersLoadingError": "Beim Laden der Benutzer:innen ist ein Fehler aufgetreten: {{error}}",
   "validate": "Validieren",
+  "validationErrorCannotFind": "Validierungsprozess nicht gefunden. (Fehler 404)",
+  "validationErrorFileTooLarge": "Maximale Dateigrösse überschritten. (Fehler 413)",
+  "validationErrorFileMalformed": "Ungültiges Dateiformat oder beschädigte Datei. (Fehler 400)",
+  "validationErrorRequestMalformed": "Ungültige oder beschädigte Anfrage an den Validierunsserver. (Fehler 400)",
+  "validationErrorUnexpected": "Unerwarteter Serverfehler beim Verarbeiten. (Fehler 500)",
   "validationIsRunning": "Die Datei wird gerade mit {{validators}} validiert...",
   "version": "Version"
 }
