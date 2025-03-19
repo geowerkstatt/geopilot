@@ -1,6 +1,7 @@
 import { Trans, useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useApi } from "../../api";
+import { Link as RouterLink } from "react-router-dom";
 import { Link, Typography } from "@mui/material";
 import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { CenteredBox } from "../../components/styledComponents.ts";
@@ -81,7 +82,7 @@ export const About = () => {
         <Trans
           i18nKey="licenseInformationDescription"
           components={{
-            licenseLink: <Link href="/licenses" target="_self" rel="noreferrer" />,
+            licenseLink: <Link component={RouterLink} to="/licenses" />,
           }}
         />
       </Typography>
