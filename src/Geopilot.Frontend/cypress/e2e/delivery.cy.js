@@ -535,4 +535,70 @@ describe("Delivery tests", () => {
     isDisabled("mandate", true);
     resetDelivery("submit");
   });
+
+  describe("Upload step errors", () => {
+    it("displays file malformed error (400)", () => {
+      cy.intercept(
+        { url: "/api/v1/validation", method: "POST" },
+        {
+          statusCode: 400,
+          body: {
+            detail: "Bad Request",
+          },
+          delay: 500,
+        },
+      ).as("uploadError400");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@uploadError400");
+
+      stepHasError("upload", true, "Invalid file format or corrupted file");
+      cy.dataCy("upload-step").contains("Error 400");
+    });
+
+    it("displays file too large error (413)", () => {
+      cy.intercept(
+        { url: "/api/v1/validation", method: "POST" },
+        {
+          statusCode: 413,
+          body: {
+            detail: "Request Entity Too Large",
+          },
+          delay: 500,
+        },
+      ).as("uploadError413");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@uploadError413");
+
+      stepHasError("upload", true, "Maximum file size exceeded");
+      cy.dataCy("upload-step").contains("Error 413");
+    });
+
+    it("displays unexpected server error (500)", () => {
+      cy.intercept(
+        { url: "/api/v1/validation", method: "POST" },
+        {
+          statusCode: 500,
+          body: {
+            detail: "Internal Server Error",
+          },
+          delay: 500,
+        },
+      ).as("uploadError500");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@uploadError500");
+
+      stepHasError("upload", true, "Unexpected server error during processing");
+      cy.dataCy("upload-step").contains("Error 500");
+    });
+  });
+
 });
