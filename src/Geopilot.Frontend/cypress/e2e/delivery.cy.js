@@ -654,7 +654,7 @@ describe("Delivery tests", () => {
       cy.wait("@upload");
       cy.wait("@validationError404");
 
-      stepHasError("validate", true, "Validation process not found");
+      stepHasError("validate", true, "Could not assign the validation process.");
       cy.dataCy("validate-step").contains("Error 404");
     });
   });
