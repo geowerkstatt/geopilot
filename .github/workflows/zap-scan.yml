@@ -23,8 +23,8 @@ jobs:
       - name: Setup dev-certs
         uses: ./.github/actions/setup-dev-certs
         with:
-          pem-cert-path: ${{ env.PEM_CERT_PATH }}
-          ubuntu-trusted-cert-path: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
+          export-path: ${{ env.PEM_CERT_PATH }}
+          trusted-cert-path: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
 
       - name: Start db and api's
         run: docker compose up --wait
@@ -58,8 +58,8 @@ jobs:
       - name: Setup dev-certs
         uses: ./.github/actions/setup-dev-certs
         with:
-          pem-cert-path: ${{ env.PEM_CERT_PATH }}
-          ubuntu-trusted-cert-path: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
+          export-path: ${{ env.PEM_CERT_PATH }}
+          trusted-cert-path: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
 
       - name: Start db and api's
         run: docker compose up --wait
