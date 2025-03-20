@@ -25,5 +25,5 @@ runs:
         shell: bash
         run: |
           sudo apt-get install -y ca-certificates
-          sudo cp ${{ inputs.export-path }} ${{ inputs.ubuntu-export-path }}
+          sudo cp ${{ inputs.export-path }} ${{ inputs.trusted-cert-path }}
           sudo update-ca-certificates
