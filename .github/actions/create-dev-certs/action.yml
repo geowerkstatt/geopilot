@@ -1,0 +1,29 @@
+name: 'Setup Dev Certificates'
+description: 'Creates and trusts development certificates'
+
+inputs:
+  export-path:
+    description: 'Path to export the certificate to'
+    required: true
+    default: './certs/geopilot.pem'
+  ubuntu-export-path:
+    description: 'Path to export the certificate to on Ubuntu'
+    required: true
+    default: '/usr/local/share/ca-certificates/geopilot.crt'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Create dev-certs
+      shell: bash
+      run: |
+        mkdir -p ./certs
+        dotnet dev-certs https --export-path ${{ inputs.cert-path }} --no-password --format PEM
+        chmod -R 664 ./certs/*
+        
+    - name: Trust dev-certs
+      shell: bash
+      run: |
+        sudo apt-get install -y ca-certificates
+        sudo cp ${{ inputs.cert-path }} ${{ inputs.trusted-cert-path }}
+        sudo update-ca-certificates
