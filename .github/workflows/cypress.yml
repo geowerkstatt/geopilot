@@ -21,9 +21,6 @@ jobs:
 
       - name: Setup dev-certs
         uses: ./.github/actions/setup-dev-certs
-        with:
-          cert-filename: geopilot.pem
-          trusted-cert-filename: geopilot.crt
 
       - name: Start db and api's
         run: docker compose up --wait
