@@ -29,10 +29,10 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
   useEffect(() => {
     if (auth?.isAuthenticated) {
       fetchUserInfo();
-    } else if (!!auth && !auth?.isLoading) {
+    } else if (!auth?.isLoading) {
       setUser(null);
     }
-  }, [auth, auth?.isAuthenticated, auth?.isLoading, fetchUserInfo]);
+  }, [auth?.isAuthenticated, auth?.isLoading, fetchUserInfo]);
 
   return <UserContext.Provider value={user}>{children}</UserContext.Provider>;
 };
