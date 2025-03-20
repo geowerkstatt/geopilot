@@ -62,8 +62,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTPS_PORTS: 8443
-      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/geopilot.pem
-      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /https/geopilot.key
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/cert.pem
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /https/cert.key
       ConnectionStrings__Context: Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
       Auth__Authority: http://localhost:4011/realms/geopilot
