@@ -2,28 +2,34 @@ name: 'Setup Dev Certificates'
 description: 'Creates and trusts development certificates'
 
 inputs:
-  export-path:
-    description: 'Path to export the certificate to'
-    required: true
-    default: './certs/geopilot.pem'
-  trusted-cert-path:
-    description: 'Path to the trusted certificate location on Ubuntu'
-    required: true
-    default: '/usr/local/share/ca-certificates/geopilot.crt'
+  cert-filename:
+    description: 'Certificate filename'
+    required: false
+    default: 'geopilot.pem'
+  trusted-cert-filename:
+    description: 'Trusted certificate filename'
+    required: false
+    default: 'geopilot.crt'
 
 runs:
   using: 'composite'
   steps:
+      - name: Set certificate paths
+        shell: bash
+        run: |
+          echo "PEM_CERT_PATH=$(pwd)/certs/${{ inputs.cert-filename }}" >> $GITHUB_ENV
+          echo "UBUNTU_TRUSTED_CERT_PATH=/usr/local/share/ca-certificates/${{ inputs.trusted-cert-filename }}" >> $GITHUB_ENV
+      
       - name: Create dev-certs
         shell: bash
         run: |
-          mkdir -p $(dirname ${{ inputs.export-path }})
-          dotnet dev-certs https --export-path ${{ inputs.export-path }} --no-password --format PEM
-          chmod -R 664 ${{ inputs.export-path }}
-
+          mkdir -p ./certs
+          dotnet dev-certs https --export-path ${{ env.PEM_CERT_PATH }} --no-password --format PEM
+          chmod -R 664 ./certs/*
+      
       - name: Trust dev-certs
         shell: bash
         run: |
           sudo apt-get install -y ca-certificates
-          sudo cp ${{ inputs.export-path }} ${{ inputs.trusted-cert-path }}
+          sudo cp ${{ env.PEM_CERT_PATH }} ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
           sudo update-ca-certificates
