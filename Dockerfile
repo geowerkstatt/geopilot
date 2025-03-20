@@ -17,14 +17,6 @@ RUN apt-get update && \
   apt-get install nodejs -y && \
   rm -rf /var/lib/apt/lists/*
 
-# Install gosu, a tool to run commands as a specific user
-RUN set -eux; \
-	apt-get update; \
-	apt-get install -y gosu; \
-	rm -rf /var/lib/apt/lists/*; \
-# verify that the binary works
-	gosu nobody true
-
 # Restore dependencies and tools
 COPY src/Geopilot.Api/Geopilot.Api.csproj Geopilot.Api/
 COPY src/Geopilot.Frontend/nuget.config Geopilot.Frontend/
@@ -70,7 +62,7 @@ RUN \
   DEBIAN_FRONTEND=noninteractive && \
   mkdir -p /usr/share/man/man1 /usr/share/man/man2 && \
   apt-get update && \
-  apt-get install -y curl sudo vim htop && \
+  apt-get install -y curl sudo vim htop gosu && \
   rm -rf /var/lib/apt/lists/*
 
 # Create directories
@@ -88,7 +80,6 @@ ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
 # Copy gosu binaries to the image
-COPY --from=build /usr/sbin/gosu /usr/local/bin
 COPY --from=build /app/publish $HOME
 COPY docker-entrypoint.sh /entrypoint.sh
 
