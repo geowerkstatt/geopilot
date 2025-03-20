@@ -56,16 +56,24 @@ export const ApiProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   }
 
-  const fetchLocalizedMarkdown = (markdown: string, language: string): Promise<string> => {
-    return fetchApi<string>(`/${markdown}.${language}.md`, { responseType: ContentType.Markdown })
-      .then(response => {
-        if (response) {
-          return response;
-        } else {
-          throw new Error("Language-specific markdown not found");
-        }
-      })
-      .catch(() => fetchApi<string>(`/${markdown}.md`, { responseType: ContentType.Markdown }));
+  const fetchLocalizedMarkdown = async (markdown: string, language: string): Promise<string> => {
+    try {
+      if (!language) {
+        throw new Error("Language undefined");
+      }
+      const response = await fetchApi<string>(`/${markdown}.${language}.md`, { responseType: ContentType.Markdown });
+      if (response) {
+        return response;
+      }
+      throw new Error("Language-specific markdown not found");
+    } catch (error) {
+      try {
+        return await fetchApi<string>(`/${markdown}.md`, { responseType: ContentType.Markdown });
+      } catch (fallbackError) {
+        console.error("Failed to fetch markdown:", fallbackError);
+        return "";
+      }
+    }
   };
 
   return <ApiContext.Provider value={{ fetchApi, fetchLocalizedMarkdown }}>{children}</ApiContext.Provider>;

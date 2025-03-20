@@ -21,9 +21,6 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
       .then(setClientSettings)
       .catch(() => setClientSettings(null));
 
-    if (!i18n.language) {
-      return;
-    }
     fetchLocalizedMarkdown("terms-of-use", i18n.language).then(setTermsOfUse);
   }, [fetchApi, fetchLocalizedMarkdown, i18n.language]);
 
