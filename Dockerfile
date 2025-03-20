@@ -62,7 +62,7 @@ RUN \
   DEBIAN_FRONTEND=noninteractive && \
   mkdir -p /usr/share/man/man1 /usr/share/man/man2 && \
   apt-get update && \
-  apt-get install -y curl sudo vim htop && \
+  apt-get install -y curl sudo vim htop gosu && \
   rm -rf /var/lib/apt/lists/*
 
 # Create directories
@@ -79,6 +79,7 @@ VOLUME $Storage__AssetsDirectory
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
+# Copy gosu binaries to the image
 COPY --from=build /app/publish $HOME
 COPY docker-entrypoint.sh /entrypoint.sh
 
