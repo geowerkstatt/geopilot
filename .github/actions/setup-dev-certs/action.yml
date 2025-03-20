@@ -1,31 +1,22 @@
 name: 'Setup Dev Certificates'
 description: 'Creates and trusts development certificates'
 
-inputs:
-  cert-filename:
-    description: 'Certificate filename'
-    required: false
-    default: 'cert.pem'
-  trusted-cert-filename:
-    description: 'Trusted certificate filename'
-    required: false
-    default: 'trusted-cert.crt'
-
 runs:
   using: 'composite'
   steps:
       - name: Set certificate paths
         shell: bash
         run: |
-          echo "PEM_CERT_PATH=$(pwd)/certs/${{ inputs.cert-filename }}" >> $GITHUB_ENV
-          echo "UBUNTU_TRUSTED_CERT_PATH=/usr/local/share/ca-certificates/${{ inputs.trusted-cert-filename }}" >> $GITHUB_ENV
+          echo "CERT_DIR=./certs" >> $GITHUB_ENV
+          echo "PEM_CERT_PATH=./certs/cert.pem" >> $GITHUB_ENV
+          echo "UBUNTU_TRUSTED_CERT_PATH=/usr/local/share/ca-certificates/trusted-cert.crt" >> $GITHUB_ENV
       
       - name: Create dev-certs
         shell: bash
         run: |
-          mkdir -p ./certs
+          mkdir -p ${{ env.CERT_DIR }}
           dotnet dev-certs https --export-path ${{ env.PEM_CERT_PATH }} --no-password --format PEM
-          chmod -R 664 ./certs/*
+          chmod -R 664 ${{ env.CERT_DIR }}/*
       
       - name: Trust dev-certs
         shell: bash
