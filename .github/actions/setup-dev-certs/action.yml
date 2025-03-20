@@ -19,7 +19,7 @@ runs:
         run: |
           mkdir -p $(dirname ${{ inputs.export-path }})
           dotnet dev-certs https --export-path ${{ inputs.export-path }} --no-password --format PEM
-          chmod 664 ${{ inputs.export-path }}
+          chmod -R 664 ${{ inputs.export-path }}
 
       - name: Trust dev-certs
         shell: bash
