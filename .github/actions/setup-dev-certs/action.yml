@@ -18,12 +18,12 @@ runs:
         shell: bash
         run: |
           mkdir ./certs
-          dotnet dev-certs https --export-path ${{ input.export-path }} --no-password --format PEM
+          dotnet dev-certs https --export-path ${{ inputs.export-path }} --no-password --format PEM
           chmod -R 664 ./certs/*
 
       - name: Trust dev-certs
         shell: bash
         run: |
           sudo apt-get install -y ca-certificates
-          sudo cp ${{ input.export-path }} ${{ input.ubuntu-export-path }}
+          sudo cp ${{ inputs.export-path }} ${{ inputs.ubuntu-export-path }}
           sudo update-ca-certificates
