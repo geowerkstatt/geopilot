@@ -6,8 +6,8 @@ inputs:
     description: 'Path to export the certificate to'
     required: true
     default: './certs/geopilot.pem'
-  ubuntu-export-path:
-    description: 'Path to export the certificate to on Ubuntu'
+  trusted-cert-path:
+    description: 'Path to the trusted certificate location on Ubuntu'
     required: true
     default: '/usr/local/share/ca-certificates/geopilot.crt'
 
@@ -17,9 +17,9 @@ runs:
       - name: Create dev-certs
         shell: bash
         run: |
-          mkdir ./certs
+          mkdir -p $(dirname ${{ inputs.export-path }})
           dotnet dev-certs https --export-path ${{ inputs.export-path }} --no-password --format PEM
-          chmod -R 664 ./certs/*
+          chmod 664 ${{ inputs.export-path }}
 
       - name: Trust dev-certs
         shell: bash
