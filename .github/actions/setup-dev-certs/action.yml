@@ -5,11 +5,11 @@ inputs:
   cert-filename:
     description: 'Certificate filename'
     required: false
-    default: 'geopilot.pem'
+    default: 'cert.pem'
   trusted-cert-filename:
     description: 'Trusted certificate filename'
     required: false
-    default: 'geopilot.crt'
+    default: 'trusted-cert.crt'
 
 runs:
   using: 'composite'
