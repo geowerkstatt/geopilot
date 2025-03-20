@@ -10,11 +10,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set environment variables
-        run: |
-          echo PEM_CERT_PATH=$(pwd)/certs/geopilot.pem >> $GITHUB_ENV
-          echo UBUNTU_TRUSTED_CERT_PATH=/usr/local/share/ca-certificates/geopilot.crt >> $GITHUB_ENV
-
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
@@ -23,8 +18,8 @@ jobs:
       - name: Setup dev-certs
         uses: ./.github/actions/setup-dev-certs
         with:
-          export-path: ${{ env.PEM_CERT_PATH }}
-          trusted-cert-path: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
+          export-path: geopilot.pem
+          trusted-cert-path: geopilot.crt
 
       - name: Start db and api's
         run: docker compose up --wait
@@ -45,11 +40,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set environment variables
-        run: |
-          echo PEM_CERT_PATH=$(pwd)/certs/geopilot.pem >> $GITHUB_ENV
-          echo UBUNTU_TRUSTED_CERT_PATH=/usr/local/share/ca-certificates/geopilot.crt >> $GITHUB_ENV
-
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
@@ -58,8 +48,8 @@ jobs:
       - name: Setup dev-certs
         uses: ./.github/actions/setup-dev-certs
         with:
-          export-path: ${{ env.PEM_CERT_PATH }}
-          trusted-cert-path: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
+          export-path: geopilot.pem
+          trusted-cert-path: geopilot.crt
 
       - name: Start db and api's
         run: docker compose up --wait
