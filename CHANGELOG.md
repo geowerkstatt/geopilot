@@ -6,6 +6,7 @@
 
 - Localisation support for configurable markdown content (Impressum, Privacy Policy etc.), which allows to provide different versions for different languages.
 - Localisation support for application name.
+- Added new optional `PUID` and `PGID` environment variables to avoid permissions issues between the host OS and the container when using shared directories.
 
 ### Changed
 
@@ -15,6 +16,7 @@
 
 ### Fixed
 
+- Fixed permission issues on shared volumes.
 - Sorting and filtering now works consistently across all admin tables.
 - File extensions of uploaded files are now checked case-insensitive.
 - Fixed an issue where autocomplete dropdown items would duplicate under certain conditions.
