@@ -1,5 +1,5 @@
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
-import { User } from "../api/apiInterfaces";
+import { ApiError, User } from "../api/apiInterfaces";
 import { useAuth } from "react-oidc-context";
 import { useApi } from "../api";
 
@@ -16,8 +16,15 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
         Authorization: `Bearer ${auth.user?.id_token}`,
       },
       errorMessageLabel: "userLoadingError",
-    }).then(setUser);
-  }, [auth?.user?.id_token, fetchApi]);
+    })
+      .then(setUser)
+      .catch(error => {
+        if (error instanceof ApiError && error.status === 401) {
+          auth.removeUser();
+          setUser(null);
+        }
+      });
+  }, [auth, fetchApi]);
 
   useEffect(() => {
     if (auth?.isAuthenticated) {
