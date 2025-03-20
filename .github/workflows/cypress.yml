@@ -25,7 +25,7 @@ jobs:
           dotnet-version: "8.0"
 
       - name: Setup dev-certs
-        uses: ./.github/actions/setup-dev-certs
+        uses: geowerkstatt/geopilot/setup-dev-certs@v1
         with:
           pem-cert-path: ${{ env.PEM_CERT_PATH }}
           ubuntu-trusted-cert-path: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
