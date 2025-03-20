@@ -42,7 +42,7 @@ const Delivery = () => {
                     {step.labelAddition && step.labelAddition.length > 0 && (
                       <i>{` - ${t(step.labelAddition || "")}`}</i>
                     )}{" "}
-                    {step.error && ` - ${step.error}`}
+                    {step.error && ` - ${t(step.error)}`}
                   </StepLabel>
                   <StepContent>{step.content}</StepContent>
                 </Step>

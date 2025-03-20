@@ -29,6 +29,7 @@ export const DeliveryUpload = () => {
   }, [validationSettings]);
 
   const submitForm = () => {
+    setStepError(DeliveryStepEnum.Upload, undefined);
     uploadFile();
   };
 

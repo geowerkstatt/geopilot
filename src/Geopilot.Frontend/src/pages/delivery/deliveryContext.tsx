@@ -1,4 +1,10 @@
-import { DeliveryContextInterface, DeliveryStep, DeliveryStepEnum, DeliverySubmitData } from "./deliveryInterfaces.tsx";
+import {
+  DeliveryContextInterface,
+  DeliveryStep,
+  DeliveryStepEnum,
+  DeliveryStepError,
+  DeliverySubmitData,
+} from "./deliveryInterfaces.tsx";
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { useApi } from "../../api";
 import { ApiError, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
@@ -47,6 +53,24 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       ],
     ]),
   );
+  const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = {
+    [DeliveryStepEnum.Upload]: [
+      { status: 400, errorKey: "validationErrorFileMalformed" },
+      { status: 413, errorKey: "validationErrorFileTooLarge" },
+      { status: 500, errorKey: "validationErrorUnexpected" },
+    ],
+    [DeliveryStepEnum.Validate]: [
+      { status: 400, errorKey: "validationErrorRequestMalformed" },
+      { status: 404, errorKey: "validationErrorCannotFind" },
+    ],
+    [DeliveryStepEnum.Submit]: [
+      { status: 400, errorKey: "deliveryErrorMalformedRequest" },
+      { status: 401, errorKey: "deliveryErrorUnauthorized" },
+      { status: 404, errorKey: "deliveryErrorNoValidationFound" },
+      { status: 500, errorKey: "deliveryErrorUnexpected" },
+    ],
+    [DeliveryStepEnum.Done]: [],
+  };
 
   useEffect(() => {
     if (authEnabled) {
@@ -94,8 +118,11 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [activeStep, steps]);
 
   const handleApiError = (error: ApiError, key: DeliveryStepEnum) => {
-    if (error?.message && !error?.message?.includes("AbortError")) {
-      setStepError(key, error.message);
+    if (error && error.message && !error.message.includes("AbortError")) {
+      setStepError(
+        key,
+        deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey || error.message,
+      );
     }
   };
 

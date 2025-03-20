@@ -476,44 +476,6 @@ describe("Delivery tests", () => {
     cy.dataCy("logInForDelivery-button").should("exist");
   });
 
-  it("correctly extracts error messages from the response", () => {
-    mockValidationSuccess();
-    mockMandates();
-
-    let currentResponseIndex = 0;
-    const responses = [
-      { statusCode: 500, body: { detail: "Internal Server Error" } },
-      { statusCode: 404, body: "Not found" },
-    ];
-
-    cy.intercept({ url: "/api/v1/delivery", method: "POST" }, req => {
-      const currentResponse = responses[currentResponseIndex];
-      req.reply({
-        statusCode: currentResponse.statusCode,
-        body: currentResponse.body,
-      });
-
-      currentResponseIndex = (currentResponseIndex + 1) % responses.length;
-    }).as("deliveryRequest");
-
-    loginAsUploader();
-    addFile("deliveryFiles/ilimodels_valid.xml", true);
-    uploadFile();
-    cy.wait("@upload");
-    cy.wait("@validation");
-    cy.wait("@mandates");
-
-    setSelect("mandate", 1);
-
-    cy.dataCy("createDelivery-button").click();
-    cy.wait("@deliveryRequest").its("response.statusCode").should("eq", 500);
-    stepHasError("submit", true, "Internal Server Error");
-
-    cy.dataCy("createDelivery-button").click();
-    cy.wait("@deliveryRequest").its("response.statusCode").should("eq", 404);
-    stepHasError("submit", true, "Not found");
-  });
-
   it("displays error if no mandates were found", () => {
     mockValidationSuccess();
     cy.intercept({ url: "/api/v1/mandate?jobId=d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" }, req => {
@@ -534,5 +496,347 @@ describe("Delivery tests", () => {
     stepHasError("submit", true, "No suitable mandate was found for your delivery");
     isDisabled("mandate", true);
     resetDelivery("submit");
+  });
+
+  it("displays custom error messages when they don't match predefined errors", () => {
+    cy.intercept(
+      { url: "/api/v1/validation", method: "POST" },
+      {
+        statusCode: 418, // I'm a teapot
+        body: {
+          detail: "I'm a teapot",
+        },
+        delay: 500, // Added 500ms delay
+      },
+    ).as("customError");
+
+    loginAsUploader();
+    addFile("deliveryFiles/ilimodels_valid.xml", true);
+    uploadFile();
+    cy.wait("@customError");
+
+    // Should display the actual error message since there's no mapping for 418
+    stepHasError("upload", true, "I'm a teapot");
+  });
+
+  describe("Upload step errors", () => {
+    it("displays file malformed error (400)", () => {
+      cy.intercept(
+        { url: "/api/v1/validation", method: "POST" },
+        {
+          statusCode: 400,
+          body: {
+            detail: "Bad Request",
+          },
+          delay: 500,
+        },
+      ).as("uploadError400");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@uploadError400");
+
+      stepHasError("upload", true, "Invalid file format or corrupted file");
+      cy.dataCy("upload-step").contains("Error 400");
+    });
+
+    it("displays file too large error (413)", () => {
+      cy.intercept(
+        { url: "/api/v1/validation", method: "POST" },
+        {
+          statusCode: 413,
+          body: {
+            detail: "Request Entity Too Large",
+          },
+          delay: 500,
+        },
+      ).as("uploadError413");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@uploadError413");
+
+      stepHasError("upload", true, "Maximum file size exceeded");
+      cy.dataCy("upload-step").contains("Error 413");
+    });
+
+    it("displays unexpected server error (500)", () => {
+      cy.intercept(
+        { url: "/api/v1/validation", method: "POST" },
+        {
+          statusCode: 500,
+          body: {
+            detail: "Internal Server Error",
+          },
+          delay: 500,
+        },
+      ).as("uploadError500");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@uploadError500");
+
+      stepHasError("upload", true, "Unexpected server error during processing");
+      cy.dataCy("upload-step").contains("Error 500");
+    });
+  });
+
+  describe("Validation step errors", () => {
+    beforeEach(() => {
+      // Mock successful upload to reach validation step
+      cy.intercept(
+        { url: "/api/v1/validation", method: "POST" },
+        {
+          statusCode: 201,
+          body: {
+            jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+            status: "processing",
+            validatorResults: {
+              ilicheck: {
+                status: "processing",
+                statusMessage: "Die Datei wird validiert...",
+                logFiles: {},
+              },
+            },
+          },
+          delay: 500,
+        },
+      ).as("upload");
+    });
+
+    it("displays request malformed error (400)", () => {
+      cy.intercept("POST", "**/upload-endpoint", req => {
+        // Delay the response by 1000ms (1 second)
+        req.on("response", res => {
+          res.setDelay(1000);
+        });
+      }).as("uploadRequest");
+
+      cy.intercept(
+        { url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" },
+        {
+          statusCode: 400,
+          body: {
+            detail: "Bad Request",
+          },
+          delay: 500,
+        },
+      ).as("validationError400");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@upload");
+      cy.wait("@validationError400");
+
+      stepHasError("validate", true, "Invalid or corrupted request to the validation server");
+      cy.dataCy("validate-step").contains("Error 400");
+    });
+
+    it("displays validation not found error (404)", () => {
+      cy.intercept(
+        { url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" },
+        {
+          statusCode: 404,
+          body: {
+            detail: "Not Found",
+          },
+          delay: 500,
+        },
+      ).as("validationError404");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@upload");
+      cy.wait("@validationError404");
+
+      stepHasError("validate", true, "Could not assign the validation process.");
+      cy.dataCy("validate-step").contains("Error 404");
+    });
+  });
+
+  describe("Submit step errors", () => {
+    beforeEach(() => {
+      // Mock successful upload and validation to reach submit step
+      cy.intercept(
+        { url: "/api/v1/validation", method: "POST" },
+        {
+          statusCode: 201,
+          body: {
+            jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+            status: "processing",
+            validatorResults: {
+              ilicheck: {
+                status: "processing",
+                statusMessage: "Die Datei wird validiert...",
+                logFiles: {},
+              },
+            },
+          },
+          delay: 500,
+        },
+      ).as("upload");
+
+      cy.intercept(
+        { url: "/api/v1/validation/d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" },
+        {
+          statusCode: 200,
+          body: {
+            jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
+            status: "completed",
+            validatorResults: {
+              ilicheck: {
+                status: "completed",
+                statusMessage: "Die Daten sind modellkonform.",
+                logFiles: {
+                  Log: "log.log",
+                  "Xtf-Log": "log.xtf",
+                },
+              },
+            },
+          },
+          delay: 500,
+        },
+      ).as("validation");
+
+      cy.intercept(
+        { url: "/api/v1/mandate?jobId=d49ba857-5db5-45a0-b838-9d41cc7d8d64", method: "GET" },
+        {
+          statusCode: 200,
+          body: [
+            {
+              id: 5,
+              name: "Test Mandate",
+              evaluatePrecursorDelivery: "optional",
+              evaluatePartial: "notEvaluated",
+              evaluateComment: "optional",
+            },
+          ],
+          delay: 500,
+        },
+      ).as("mandates");
+
+      cy.intercept({ url: "/api/v1/delivery?mandateId=*", method: "GET" }).as("precursors");
+    });
+
+    it("displays malformed request error (400)", () => {
+      cy.intercept(
+        { url: "/api/v1/delivery", method: "POST" },
+        {
+          statusCode: 400,
+          body: {
+            detail: "Bad Request",
+          },
+          delay: 500,
+        },
+      ).as("deliveryError400");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@upload");
+      cy.wait("@validation");
+      cy.wait("@mandates");
+
+      setSelect("mandate", 0);
+      cy.wait("@precursors");
+
+      cy.dataCy("createDelivery-button").click();
+      cy.wait("@deliveryError400");
+
+      stepHasError("submit", true, "Invalid or corrupted delivery request");
+      cy.dataCy("submit-step").contains("Error 400");
+    });
+
+    it("displays unauthorized error (401)", () => {
+      cy.intercept(
+        { url: "/api/v1/delivery", method: "POST" },
+        {
+          statusCode: 401,
+          body: {
+            detail: "Unauthorized",
+          },
+          delay: 500,
+        },
+      ).as("deliveryError401");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@upload");
+      cy.wait("@validation");
+      cy.wait("@mandates");
+
+      setSelect("mandate", 0);
+      cy.wait("@precursors");
+
+      cy.dataCy("createDelivery-button").click();
+      cy.wait("@deliveryError401");
+
+      stepHasError("submit", true, "User is not authorized to make deliveries");
+      cy.dataCy("submit-step").contains("Error 401");
+    });
+
+    it("displays validation not found error (404)", () => {
+      cy.intercept(
+        { url: "/api/v1/delivery", method: "POST" },
+        {
+          statusCode: 404,
+          body: {
+            detail: "Not Found",
+          },
+          delay: 500,
+        },
+      ).as("deliveryError404");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@upload");
+      cy.wait("@validation");
+      cy.wait("@mandates");
+
+      setSelect("mandate", 0);
+      cy.wait("@precursors");
+
+      cy.dataCy("createDelivery-button").click();
+      cy.wait("@deliveryError404");
+
+      stepHasError("submit", true, "Validation results could not be found");
+      cy.dataCy("submit-step").contains("Error 404");
+    });
+
+    it("displays unexpected error (500)", () => {
+      cy.intercept(
+        { url: "/api/v1/delivery", method: "POST" },
+        {
+          statusCode: 500,
+          body: {
+            detail: "Internal Server Error",
+          },
+          delay: 500,
+        },
+      ).as("deliveryError500");
+
+      loginAsUploader();
+      addFile("deliveryFiles/ilimodels_valid.xml", true);
+      uploadFile();
+      cy.wait("@upload");
+      cy.wait("@validation");
+      cy.wait("@mandates");
+
+      setSelect("mandate", 0);
+      cy.wait("@precursors");
+
+      cy.dataCy("createDelivery-button").click();
+      cy.wait("@deliveryError500");
+
+      stepHasError("submit", true, "An unexpected error occurred during delivery");
+      cy.dataCy("submit-step").contains("Error 500");
+    });
   });
 });

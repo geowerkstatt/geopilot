@@ -23,6 +23,11 @@ export interface DeliverySubmitData {
   comment: string;
 }
 
+export interface DeliveryStepError {
+  status: number;
+  errorKey: string;
+}
+
 export interface DeliveryContextInterface {
   steps: Map<DeliveryStepEnum, DeliveryStep>;
   activeStep: number;
