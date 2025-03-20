@@ -29,6 +29,10 @@
   "delivery": "Livraison",
   "deliveryCompleted": "La livraison a été effectuée avec succès.",
   "deliveryDate": "Date de livraison",
+  "deliveryErrorMalformedRequest": "Requête de livraison invalide ou corrompue. (Erreur 400)",
+  "deliveryErrorNoValidationFound": "Les résultats de validation n'ont pas été trouvés. (Erreur 404)",
+  "deliveryErrorUnauthorized": "L'utilisateur n'est pas autorisé à effectuer des livraisons. (Erreur 401)",
+  "deliveryErrorUnexpected": "Une erreur inattendue s'est produite lors de la livraison. (Erreur 500)",
   "deliveryForm": "Formulaire de livraison",
   "deliveryOverview": "Aperçu des livraisons",
   "deliveryOverviewDeleteError": "Une erreur s'est produite lors de la suppression: {{error}}",
@@ -98,6 +102,11 @@
   "users": "Utilisateurs",
   "usersLoadingError": "Une erreur s'est produite lors du chargement des utilisateurs: {{error}}",
   "validate": "Valider",
+  "validationErrorCannotFind": "Impossible d'attribuer le processus de validation. (Erreur 404)",
+  "validationErrorFileMalformed": "Format de fichier invalide ou fichier corrompu. (Erreur 400)",
+  "validationErrorFileTooLarge": "Taille maximale du fichier dépassée. (Erreur 413)",
+  "validationErrorRequestMalformed": "Requête invalide ou corrompue au serveur de validation. (Erreur 400)",
+  "validationErrorUnexpected": "Erreur inattendue du serveur lors du traitement. (Erreur 500)",
   "validationIsRunning": "Le fichier est en cours de validation avec {{validators}}...",
   "version": "Version"
 }
