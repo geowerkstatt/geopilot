@@ -14,16 +14,16 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Create dev-certs
-      shell: bash
-      run: |
-        mkdir -p ./certs
-        dotnet dev-certs https --export-path ${{ inputs.cert-path }} --no-password --format PEM
-        chmod -R 664 ./certs/*
-        
-    - name: Trust dev-certs
-      shell: bash
-      run: |
-        sudo apt-get install -y ca-certificates
-        sudo cp ${{ inputs.cert-path }} ${{ inputs.trusted-cert-path }}
-        sudo update-ca-certificates
+      - name: Create dev-certs
+        shell: bash
+        run: |
+          mkdir ./certs
+          dotnet dev-certs https --export-path ${{ input.export-path }} --no-password --format PEM
+          chmod -R 664 ./certs/*
+
+      - name: Trust dev-certs
+        shell: bash
+        run: |
+          sudo apt-get install -y ca-certificates
+          sudo cp ${{ input.export-path }} ${{ input.ubuntu-export-path }}
+          sudo update-ca-certificates
