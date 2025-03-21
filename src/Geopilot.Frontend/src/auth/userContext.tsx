@@ -10,7 +10,7 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
   const auth = useAuth();
   const { fetchApi } = useApi();
 
-  const fetchUserInfo = useCallback(async () => {
+  const fetchUserInfo = useCallback(() => {
     fetchApi<User>("/api/v1/user/self", {
       headers: {
         Authorization: `Bearer ${auth.user?.id_token}`,
