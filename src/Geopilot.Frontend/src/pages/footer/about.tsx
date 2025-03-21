@@ -10,7 +10,7 @@ import { useAppSettings } from "../../components/appSettings/appSettingsInterfac
 
 export const About = () => {
   const { t, i18n } = useTranslation();
-  const [info, setInfo] = useState<string>();
+  const [info, setInfo] = useState<string | undefined>();
   const [version, setVersion] = useState<string | null>();
   const { termsOfUse } = useAppSettings();
   const { fetchApi, fetchLocalizedMarkdown } = useApi();
