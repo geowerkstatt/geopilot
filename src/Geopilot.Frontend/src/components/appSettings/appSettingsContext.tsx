@@ -14,7 +14,7 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const { i18n } = useTranslation();
   const { fetchApi, fetchLocalizedMarkdown } = useApi();
   const [clientSettings, setClientSettings] = useState<ClientSettings | null>();
-  const [termsOfUse, setTermsOfUse] = useState<string | null>();
+  const [termsOfUse, setTermsOfUse] = useState<string | undefined>();
 
   useEffect(() => {
     fetchApi<ClientSettings>("/client-settings.json", { responseType: ContentType.Json })
