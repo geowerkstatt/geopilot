@@ -23,7 +23,7 @@ public class InterlisValidator : IValidator
     private ICollection<string>? supportedFileExtensions;
 
     /// <inheritdoc/>
-    public string Name => "ilicheck";
+    public string Name => "INTERLIS";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InterlisValidator"/> class.
