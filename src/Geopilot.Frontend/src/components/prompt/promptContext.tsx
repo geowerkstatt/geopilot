@@ -1,4 +1,4 @@
-import { createContext, FC, useState } from "react";
+import { createContext, FC, useCallback, useState } from "react";
 import { PromptAction, PromptContextInterface, PromptOptions, PromptProviderProps } from "./promptInterfaces";
 
 export const PromptContext = createContext<PromptContextInterface>({
@@ -12,16 +12,16 @@ export const PromptContext = createContext<PromptContextInterface>({
 export const PromptProvider: FC<PromptProviderProps> = ({ children }) => {
   const [prompt, setPrompt] = useState<PromptOptions | null>(null);
 
-  const showPrompt = (message: string, actions: PromptAction[]) => {
+  const showPrompt = useCallback((message: string, actions: PromptAction[]) => {
     setPrompt({
       message: message,
       actions: actions,
     });
-  };
+  }, []);
 
-  const closePrompt = () => {
+  const closePrompt = useCallback(() => {
     setPrompt(null);
-  };
+  }, []);
 
   return (
     <PromptContext.Provider
