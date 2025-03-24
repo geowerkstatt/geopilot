@@ -18,7 +18,7 @@ export const ControlledNavigateContext = createContext<ControlledNavigateContext
 });
 
 export const ControlledNavigateProvider: FC<PropsWithChildren> = ({ children }) => {
-  const [path, setPath] = useState<string>();
+  const pathRef = useRef<string | undefined>(undefined);
   const [registeredEditPages, setRegisteredEditPages] = useState<string[]>([]);
   const [checkIsDirty, setCheckIsDirty] = useState<boolean>(false);
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export const ControlledNavigateProvider: FC<PropsWithChildren> = ({ children }) 
           return window.location.pathname.includes(value);
         })
       ) {
-        setPath(path);
+        pathRef.current = path;
         setCheckIsDirty(true);
       } else {
         navigate(path);
@@ -56,13 +56,13 @@ export const ControlledNavigateProvider: FC<PropsWithChildren> = ({ children }) 
 
   const leaveEditingPage = useCallback(
     (canLeave: boolean) => {
-      if (canLeave && path) {
-        navigate(path);
+      if (canLeave && pathRef.current) {
+        navigate(pathRef.current);
       }
       setCheckIsDirty(false);
-      setPath(undefined);
+      pathRef.current = undefined;
     },
-    [navigate, path],
+    [navigate],
   );
 
   return (
