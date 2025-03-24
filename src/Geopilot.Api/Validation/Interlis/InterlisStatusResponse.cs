@@ -5,7 +5,7 @@ namespace Geopilot.Api.Validation.Interlis;
 /// <summary>
 /// Result of a status query of interlis-check-service at /api/v1/status/{jobId}.
 /// </summary>
-public class IliCheckStatusResponse
+public class InterlisStatusResponse
 {
     /// <summary>
     /// The job identification.
