@@ -49,9 +49,7 @@ const AdminDetailForm = <T extends { id: number }>({
     return () => {
       unregisterCheckIsDirty(path);
     };
-    // We only want to run this effect once on mount and on unmount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [registerCheckIsDirty, unregisterCheckIsDirty]);
 
   useEffect(() => {
     if (checkIsDirty) {
