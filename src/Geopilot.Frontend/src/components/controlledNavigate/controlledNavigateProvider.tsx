@@ -1,5 +1,6 @@
-import { createContext, FC, PropsWithChildren, useState } from "react";
+import { createContext, FC, PropsWithChildren, useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 interface ControlledNavigateContextValue {
   navigateTo: (path: string) => void;
   checkIsDirty: boolean;
@@ -22,36 +23,47 @@ export const ControlledNavigateProvider: FC<PropsWithChildren> = ({ children }) 
   const [checkIsDirty, setCheckIsDirty] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  const registerCheckIsDirty = (path: string) => {
-    if (!registeredEditPages.includes(path)) {
-      setRegisteredEditPages([...registeredEditPages, path]);
-    }
-  };
+  const registerCheckIsDirty = useCallback((path: string) => {
+    setRegisteredEditPages(prevPages => {
+      if (!prevPages.includes(path)) {
+        return [...prevPages, path];
+      }
+      return prevPages;
+    });
+  }, []);
 
-  const unregisterCheckIsDirty = (path: string) => {
-    setRegisteredEditPages(registeredEditPages.filter(value => value !== path));
-  };
+  const unregisterCheckIsDirty = useCallback((path: string) => {
+    setRegisteredEditPages(prevPages => {
+      return prevPages.filter(value => value !== path);
+    });
+  }, []);
 
-  const navigateTo = (path: string) => {
-    if (
-      registeredEditPages.find(value => {
-        return window.location.pathname.includes(value);
-      })
-    ) {
-      setPath(path);
-      setCheckIsDirty(true);
-    } else {
-      navigate(path);
-    }
-  };
+  const navigateTo = useCallback(
+    (path: string) => {
+      if (
+        registeredEditPages.find(value => {
+          return window.location.pathname.includes(value);
+        })
+      ) {
+        setPath(path);
+        setCheckIsDirty(true);
+      } else {
+        navigate(path);
+      }
+    },
+    [navigate, registeredEditPages],
+  );
 
-  const leaveEditingPage = (canLeave: boolean) => {
-    if (canLeave && path) {
-      navigate(path);
-    }
-    setCheckIsDirty(false);
-    setPath(undefined);
-  };
+  const leaveEditingPage = useCallback(
+    (canLeave: boolean) => {
+      if (canLeave && path) {
+        navigate(path);
+      }
+      setCheckIsDirty(false);
+      setPath(undefined);
+    },
+    [navigate, path],
+  );
 
   return (
     <ControlledNavigateContext.Provider
