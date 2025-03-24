@@ -149,7 +149,7 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("validate", true);
-    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with interlis...");
     cy.wait("@validation");
     stepIsLoading("validate", false);
     stepHasError("validate", true, "Completed with errors");
@@ -186,7 +186,7 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("validate", true);
-    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with interlis...");
     cy.wait("@validation");
     stepIsLoading("validate", false);
     stepHasError("validate", true, "Completed with errors");
@@ -244,7 +244,7 @@ describe("Delivery tests", () => {
     cy.dataCy("upload-step").contains("ilimodels_not_conform.xml");
     stepIsActive("validate");
     stepIsLoading("validate");
-    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with interlis...");
 
     // Validation can be cancelled
     resetDelivery("validate");
@@ -260,7 +260,7 @@ describe("Delivery tests", () => {
     cy.dataCy("upload-step").contains("ilimodels_not_conform.xml");
     stepIsActive("validate");
     stepIsLoading("validate");
-    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with interlis...");
 
     // Validation can be cancelled
     resetDelivery("validate");
@@ -271,7 +271,7 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("validate", true);
-    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with interlis...");
     cy.wait("@validation");
     stepIsLoading("validate", false);
     stepHasError("validate", false);
