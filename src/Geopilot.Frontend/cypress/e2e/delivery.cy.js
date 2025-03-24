@@ -27,7 +27,7 @@ const mockUploadSuccess = () => {
         jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
         status: "processing",
         validatorResults: {
-          ilicheck: {
+          interlis: {
             status: "processing",
             statusMessage: "Die Datei wird validiert...",
             logFiles: {},
@@ -47,7 +47,7 @@ const mockValidationSuccess = () => {
         jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
         status: "completed",
         validatorResults: {
-          ilicheck: {
+          interlis: {
             status: "completed",
             statusMessage: "Die Daten sind modellkonform.",
             logFiles: {
@@ -133,7 +133,7 @@ describe("Delivery tests", () => {
           jobId: "b058ad11-7dc2-4456-9099-e525116d7e9b",
           status: "completedWithErrors",
           validatorResults: {
-            ilicheck: {
+            interlis: {
               status: "completedWithErrors",
               statusMessage: "Die XML-Struktur der Transferdatei ist ungültig.",
               logFiles: {},
@@ -149,7 +149,7 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("validate", true);
-    cy.dataCy("validate-step").contains("The file is currently being validated with ilicheck...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
     cy.wait("@validation");
     stepIsLoading("validate", false);
     stepHasError("validate", true, "Completed with errors");
@@ -167,7 +167,7 @@ describe("Delivery tests", () => {
           jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
           status: "completedWithErrors",
           validatorResults: {
-            ilicheck: {
+            interlis: {
               status: "completedWithErrors",
               statusMessage: "Die Daten sind nicht modellkonform.",
               logFiles: {
@@ -186,7 +186,7 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("validate", true);
-    cy.dataCy("validate-step").contains("The file is currently being validated with ilicheck...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
     cy.wait("@validation");
     stepIsLoading("validate", false);
     stepHasError("validate", true, "Completed with errors");
@@ -244,7 +244,7 @@ describe("Delivery tests", () => {
     cy.dataCy("upload-step").contains("ilimodels_not_conform.xml");
     stepIsActive("validate");
     stepIsLoading("validate");
-    cy.dataCy("validate-step").contains("The file is currently being validated with ilicheck...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
 
     // Validation can be cancelled
     resetDelivery("validate");
@@ -260,7 +260,7 @@ describe("Delivery tests", () => {
     cy.dataCy("upload-step").contains("ilimodels_not_conform.xml");
     stepIsActive("validate");
     stepIsLoading("validate");
-    cy.dataCy("validate-step").contains("The file is currently being validated with ilicheck...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
 
     // Validation can be cancelled
     resetDelivery("validate");
@@ -271,7 +271,7 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@upload");
     stepIsLoading("validate", true);
-    cy.dataCy("validate-step").contains("The file is currently being validated with ilicheck...");
+    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
     cy.wait("@validation");
     stepIsLoading("validate", false);
     stepHasError("validate", false);
@@ -595,7 +595,7 @@ describe("Delivery tests", () => {
             jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
             status: "processing",
             validatorResults: {
-              ilicheck: {
+              interlis: {
                 status: "processing",
                 statusMessage: "Die Datei wird validiert...",
                 logFiles: {},
@@ -670,7 +670,7 @@ describe("Delivery tests", () => {
             jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
             status: "processing",
             validatorResults: {
-              ilicheck: {
+              interlis: {
                 status: "processing",
                 statusMessage: "Die Datei wird validiert...",
                 logFiles: {},
@@ -689,7 +689,7 @@ describe("Delivery tests", () => {
             jobId: "d49ba857-5db5-45a0-b838-9d41cc7d8d64",
             status: "completed",
             validatorResults: {
-              ilicheck: {
+              interlis: {
                 status: "completed",
                 statusMessage: "Die Daten sind modellkonform.",
                 logFiles: {
