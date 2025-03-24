@@ -1,16 +1,19 @@
 import { createContext, FC, PropsWithChildren, useState } from "react";
 import { useNavigate } from "react-router-dom";
+interface ControlledNavigateContextValue {
+  navigateTo: (path: string) => void;
+  checkIsDirty: boolean;
+  registerCheckIsDirty: (path: string) => void;
+  unregisterCheckIsDirty: (path: string) => void;
+  leaveEditingPage: (canLeave: boolean) => void;
+}
 
-export const ControlledNavigateContext = createContext({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  navigateTo: (path: string) => {},
+export const ControlledNavigateContext = createContext<ControlledNavigateContextValue>({
+  navigateTo: () => {},
   checkIsDirty: false,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  registerCheckIsDirty: (path: string) => {},
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  unregisterCheckIsDirty: (path: string) => {},
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  leaveEditingPage: (canLeave: boolean) => {},
+  registerCheckIsDirty: () => {},
+  unregisterCheckIsDirty: () => {},
+  leaveEditingPage: () => {},
 });
 
 export const ControlledNavigateProvider: FC<PropsWithChildren> = ({ children }) => {
