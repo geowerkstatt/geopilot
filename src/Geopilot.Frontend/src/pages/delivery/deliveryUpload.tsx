@@ -25,8 +25,7 @@ export const DeliveryUpload = () => {
     if (!validationSettings) {
       fetchApi<ValidationSettings>("/api/v1/validation").then(setValidationSettings);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validationSettings]);
+  }, [fetchApi, validationSettings]);
 
   const submitForm = () => {
     setStepError(DeliveryStepEnum.Upload, undefined);
