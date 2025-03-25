@@ -3,7 +3,7 @@ import { BaseButton } from "./buttons.tsx";
 import { ChevronLeft, UndoOutlined } from "@mui/icons-material";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
-import { ReactNode, useContext, useEffect } from "react";
+import { ReactNode, useCallback, useContext, useEffect, useRef } from "react";
 import { PromptAction } from "./prompt/promptInterfaces.ts";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { useControlledNavigate } from "./controlledNavigate";
@@ -42,6 +42,56 @@ const AdminDetailForm = <T extends { id: number }>({
   const navigate = useNavigate();
   const { showPrompt } = useContext(PromptContext);
 
+  const saveData = useCallback(
+    async (formData: FieldValues, reloadAfterSave = true) => {
+      const id = data?.id || 0;
+      const dataToSave = prepareDataForSave(formData);
+      dataToSave.id = id;
+      const response = await fetchApi(apiEndpoint, {
+        method: id === 0 ? "POST" : "PUT",
+        body: JSON.stringify(dataToSave),
+        errorMessageLabel: saveErrorLabel,
+      });
+
+      const savedData = response as T;
+
+      if (reloadAfterSave) {
+        onSaveSuccess(savedData);
+        formMethods.reset(savedData);
+
+        if (id === 0) {
+          const newPath = `${basePath}/${savedData.id}`;
+          navigate(newPath, { replace: true });
+          unregisterCheckIsDirty(`${basePath}/0`);
+          registerCheckIsDirty(newPath);
+        }
+      }
+
+      return savedData;
+    },
+    [
+      apiEndpoint,
+      data?.id,
+      basePath,
+      fetchApi,
+      formMethods,
+      navigate,
+      onSaveSuccess,
+      prepareDataForSave,
+      registerCheckIsDirty,
+      saveErrorLabel,
+      unregisterCheckIsDirty,
+    ],
+  );
+
+  const submitForm = (data: FieldValues) => {
+    formMethods.trigger().then(isValid => {
+      if (isValid) {
+        saveData(data, true);
+      }
+    });
+  };
+
   useEffect(() => {
     const path = window.location.pathname;
     registerCheckIsDirty(path);
@@ -79,44 +129,7 @@ const AdminDetailForm = <T extends { id: number }>({
         });
       }
     }
-    // We only want to run this effect when checkIsDirty changes. If we add all dependencies, the prompt will be shown multiple times.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkIsDirty]);
-
-  const saveData = async (formData: FieldValues, reloadAfterSave = true) => {
-    const id = data?.id || 0;
-    const dataToSave = prepareDataForSave(formData);
-    dataToSave.id = id;
-    const response = await fetchApi(apiEndpoint, {
-      method: id === 0 ? "POST" : "PUT",
-      body: JSON.stringify(dataToSave),
-      errorMessageLabel: saveErrorLabel,
-    });
-
-    const savedData = response as T;
-
-    if (reloadAfterSave) {
-      onSaveSuccess(savedData);
-      formMethods.reset(savedData);
-
-      if (id === 0) {
-        const newPath = `${basePath}/${savedData.id}`;
-        navigate(newPath, { replace: true });
-        unregisterCheckIsDirty(`${basePath}/0`);
-        registerCheckIsDirty(newPath);
-      }
-    }
-
-    return savedData;
-  };
-
-  const submitForm = (data: FieldValues) => {
-    formMethods.trigger().then(isValid => {
-      if (isValid) {
-        saveData(data, true);
-      }
-    });
-  };
 
   return (
     <FlexBox>
