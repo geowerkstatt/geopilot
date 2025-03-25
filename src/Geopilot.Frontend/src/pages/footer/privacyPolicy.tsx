@@ -3,12 +3,12 @@ import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { CenteredBox } from "../../components/styledComponents.ts";
-import useApiFetch from "../../hooks/useApiFetch.ts";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const PrivacyPolicy = () => {
   const { t, i18n } = useTranslation();
   const [content, setContent] = useState<string>();
-  const { fetchLocalizedMarkdown } = useApiFetch();
+  const { fetchLocalizedMarkdown } = useFetch();
 
   useEffect(() => {
     fetchLocalizedMarkdown("privacy-policy", i18n.language).then(setContent);

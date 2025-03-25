@@ -6,14 +6,14 @@ import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { CenteredBox } from "../../components/styledComponents.ts";
 import { useLocation } from "react-router-dom";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
-import useApiFetch from "../../hooks/useApiFetch.ts";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const About = () => {
   const { t, i18n } = useTranslation();
   const [info, setInfo] = useState<string>();
   const [version, setVersion] = useState<string | null>();
   const { termsOfUse } = useAppSettings();
-  const { fetchApi, fetchLocalizedMarkdown } = useApiFetch();
+  const { fetchApi, fetchLocalizedMarkdown } = useFetch();
   const { hash } = useLocation();
 
   useEffect(() => {

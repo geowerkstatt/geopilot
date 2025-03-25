@@ -6,7 +6,7 @@ import { CenteredBox, FlexRowSpaceBetweenBox } from "../../components/styledComp
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ExpandMore } from "@mui/icons-material";
 import { BaseButton } from "../../components/buttons.tsx";
-import useApiFetch from "../../hooks/useApiFetch.ts";
+import useFetch from "../../hooks/useFetch.ts";
 
 interface PackageList {
   [packageName: string]: PackageDetails;
@@ -36,7 +36,7 @@ export const Licenses = () => {
   const { t } = useTranslation();
   const [licenseInfo, setLicenseInfo] = useState<PackageList>();
   const [licenseInfoCustom, setLicenseInfoCustom] = useState<PackageList>();
-  const { fetchApi } = useApiFetch();
+  const { fetchApi } = useFetch();
   const { hash } = useLocation();
   const navigate = useNavigate();
 

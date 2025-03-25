@@ -7,14 +7,14 @@ import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useControlledNavigate } from "../../components/controlledNavigate";
 import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
-import useApiFetch from "../../hooks/useApiFetch.ts";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const Users = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [users, setUsers] = useState<User[]>();
-  const { fetchApi } = useApiFetch();
+  const { fetchApi } = useFetch();
 
   const loadUsers = useCallback(() => {
     fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);

@@ -11,7 +11,7 @@ import { PromptContext } from "./prompt/promptContext.tsx";
 import { CircularProgress, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import useApiFetch from "../hooks/useApiFetch.ts";
+import useFetch from "../hooks/useFetch.ts";
 
 interface AdminDetailFormProps<T> {
   basePath: string;
@@ -35,7 +35,7 @@ const AdminDetailForm = <T extends { id: number }>({
   children,
 }: AdminDetailFormProps<T>) => {
   const { t } = useTranslation();
-  const { fetchApi } = useApiFetch();
+  const { fetchApi } = useFetch();
   const formMethods = useForm({ mode: "all" });
   const { registerCheckIsDirty, unregisterCheckIsDirty, checkIsDirty, leaveEditingPage, navigateTo } =
     useControlledNavigate();

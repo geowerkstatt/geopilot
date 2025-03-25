@@ -10,13 +10,13 @@ import { Delivery, FieldEvaluationType, Mandate } from "../../api/apiInterfaces.
 import { DeliveryStepEnum, DeliverySubmitData } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 import { useTranslation } from "react-i18next";
-import useApiFetch from "../../hooks/useApiFetch.ts";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const DeliverySubmit = () => {
   const { t } = useTranslation();
   const { authEnabled, user, login } = useGeopilotAuth();
   const formMethods = useForm({ mode: "all" });
-  const { fetchApi } = useApiFetch();
+  const { fetchApi } = useFetch();
   const { setStepError, validationResponse, isLoading, submitDelivery, resetDelivery } = useContext(DeliveryContext);
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [selectedMandate, setSelectedMandate] = useState<Mandate>();

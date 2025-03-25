@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { FetchParams, ApiError, ContentType } from "../api/apiInterfaces";
 import { AlertContext } from "../components/alert/alertContext";
 
-const useApiFetch = () => {
+const useFetch = () => {
   const { t } = useTranslation();
   const { showAlert } = useContext(AlertContext);
 
@@ -67,4 +67,4 @@ const useApiFetch = () => {
   return { fetchApi, fetchLocalizedMarkdown };
 };
 
-export default useApiFetch;
+export default useFetch;

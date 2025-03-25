@@ -2,7 +2,7 @@ import { createContext, FC, PropsWithChildren, useEffect, useState } from "react
 import { AppSettingsContextInterface, ClientSettings } from "./appSettingsInterface";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { useTranslation } from "react-i18next";
-import useApiFetch from "../../hooks/useApiFetch.ts";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const AppSettingsContext = createContext<AppSettingsContextInterface>({
   initialized: false,
@@ -12,7 +12,7 @@ export const AppSettingsContext = createContext<AppSettingsContextInterface>({
 
 export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const { i18n } = useTranslation();
-  const { fetchApi, fetchLocalizedMarkdown } = useApiFetch();
+  const { fetchApi, fetchLocalizedMarkdown } = useFetch();
   const [clientSettings, setClientSettings] = useState<ClientSettings | null>();
   const [termsOfUse, setTermsOfUse] = useState<string | null>();
 

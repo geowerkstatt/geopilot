@@ -15,12 +15,12 @@ import { FormAutocompleteValue } from "../../components/form/formAutocomplete.ts
 import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import useApiFetch from "../../hooks/useApiFetch.ts";
+import useFetch from "../../hooks/useFetch.ts";
 
 const UserDetail = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
-  const { fetchApi } = useApiFetch();
+  const { fetchApi } = useFetch();
   const { id } = useParams<{ id: string }>();
 
   const [editableUser, setEditableUser] = useState<User>();

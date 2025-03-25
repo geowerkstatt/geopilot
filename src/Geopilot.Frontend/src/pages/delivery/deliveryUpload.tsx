@@ -11,12 +11,12 @@ import { useAppSettings } from "../../components/appSettings/appSettingsInterfac
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
-import useApiFetch from "../../hooks/useApiFetch.ts";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const DeliveryUpload = () => {
   const [validationSettings, setValidationSettings] = useState<ValidationSettings>();
   const { initialized, termsOfUse } = useAppSettings();
-  const { fetchApi } = useApiFetch();
+  const { fetchApi } = useFetch();
   const formMethods = useForm({ mode: "all" });
   const { setStepError, selectedFile, setSelectedFile, isLoading, uploadFile, resetDelivery } =
     useContext(DeliveryContext);

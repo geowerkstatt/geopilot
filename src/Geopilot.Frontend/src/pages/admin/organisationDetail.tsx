@@ -8,11 +8,11 @@ import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
-import useApiFetch from "../../hooks/useApiFetch.ts";
+import useFetch from "../../hooks/useFetch.ts";
 
 const OrganisationDetail = () => {
   const { t } = useTranslation();
-  const { fetchApi } = useApiFetch();
+  const { fetchApi } = useFetch();
   const { id = "0" } = useParams<{ id: string }>();
 
   const [organisation, setOrganisation] = useState<Organisation>();
