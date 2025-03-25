@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents.ts";
 import {
@@ -26,52 +26,47 @@ const MandateDetail = () => {
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [fileExtensions, setFileExtensions] = useState<string[]>();
 
-  const loadMandate = async (id: string) => {
-    const mandate = await fetchApi<Mandate>(`/api/v1/mandate/${id}`, { errorMessageLabel: "mandateLoadingError" });
-    setMandate(mandate);
-  };
+  const loadMandate = useCallback(
+    async (id: string) => {
+      const mandate = await fetchApi<Mandate>(`/api/v1/mandate/${id}`, { errorMessageLabel: "mandateLoadingError" });
+      setMandate(mandate);
+    },
+    [fetchApi],
+  );
 
-  const loadOrganisations = async () => {
+  const loadOrganisations = useCallback(async () => {
     const organisations = await fetchApi<Organisation[]>("/api/v1/organisation", {
       errorMessageLabel: "organisationsLoadingError",
     });
     setOrganisations(organisations);
-  };
+  }, [fetchApi]);
 
-  const loadFileExtensions = async () => {
+  const loadFileExtensions = useCallback(async () => {
     const validation = await fetchApi<ValidationSettings>("/api/v1/validation", {
       errorMessageLabel: "fileTypesLoadingError",
     });
     setFileExtensions(validation?.allowedFileExtensions);
-  };
+  }, [fetchApi]);
 
   useEffect(() => {
-    if (mandate === undefined) {
-      if (id !== "0") {
-        loadMandate(id);
-      } else {
-        setMandate({
-          id: 0,
-          name: "",
-          organisations: [],
-          fileTypes: [],
-          coordinates: [
-            { x: undefined, y: undefined },
-            { x: undefined, y: undefined },
-          ],
-          deliveries: [],
-        });
-      }
+    if (id !== "0") {
+      loadMandate(id);
+    } else {
+      setMandate({
+        id: 0,
+        name: "",
+        organisations: [],
+        fileTypes: [],
+        coordinates: [
+          { x: undefined, y: undefined },
+          { x: undefined, y: undefined },
+        ],
+        deliveries: [],
+      });
     }
-    if (organisations === undefined) {
-      loadOrganisations();
-    }
-    if (fileExtensions === undefined) {
-      loadFileExtensions();
-    }
-    // We only want to run this once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    loadOrganisations();
+    loadFileExtensions();
+  }, [id, loadFileExtensions, loadMandate, loadOrganisations]);
 
   const prepareMandateForSave = (formData: FieldValues): Mandate => {
     const mandate = formData as Mandate;
