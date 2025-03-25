@@ -3,16 +3,16 @@ import { Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents.ts";
 import { FormAutocomplete, FormContainer, FormInput } from "../../components/form/form.ts";
 import { Mandate, Organisation, User } from "../../api/apiInterfaces.ts";
-import { useApi } from "../../api";
 import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
+import useApiFetch from "../../hooks/useApiFetch.ts";
 
 const OrganisationDetail = () => {
   const { t } = useTranslation();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
   const { id = "0" } = useParams<{ id: string }>();
 
   const [organisation, setOrganisation] = useState<Organisation>();

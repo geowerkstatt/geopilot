@@ -6,7 +6,6 @@ import {
   DeliverySubmitData,
 } from "./deliveryInterfaces.tsx";
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useMemo, useState } from "react";
-import { useApi } from "../../api";
 import { ApiError, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
 import { DeliveryUpload } from "./deliveryUpload.tsx";
 import { DeliveryValidation } from "./deliveryValidation.tsx";
@@ -14,6 +13,7 @@ import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
 import { DeliveryCompleted } from "./deliveryCompleted.tsx";
 import { useTranslation } from "react-i18next";
+import useApiFetch from "../../hooks/useApiFetch.ts";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
@@ -38,7 +38,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
   const { authEnabled } = useGeopilotAuth();
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(
     new Map<DeliveryStepEnum, DeliveryStep>([

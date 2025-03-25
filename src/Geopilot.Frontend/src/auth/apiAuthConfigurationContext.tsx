@@ -1,12 +1,12 @@
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { AuthSettings } from "./authInterfaces";
-import { useApi } from "../api";
+import useApiFetch from "../hooks/useApiFetch";
 
 export const ApiAuthConfigurationContext = createContext<AuthSettings | undefined>(undefined);
 
 export const ApiAuthConfigurationProvider: FC<PropsWithChildren> = ({ children }) => {
   const [apiAuthSettings, setApiAuthSettings] = useState<AuthSettings>();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
 
   const loadAuthSettings = useCallback(() => {
     fetchApi<AuthSettings>("/api/v1/user/auth").then(setApiAuthSettings);

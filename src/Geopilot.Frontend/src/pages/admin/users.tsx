@@ -3,18 +3,18 @@ import { Tooltip } from "@mui/material";
 import { Organisation, User } from "../../api/apiInterfaces";
 import { useCallback, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
-import { useApi } from "../../api";
 import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useControlledNavigate } from "../../components/controlledNavigate";
 import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
+import useApiFetch from "../../hooks/useApiFetch.ts";
 
 export const Users = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [users, setUsers] = useState<User[]>();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
 
   const loadUsers = useCallback(() => {
     fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);

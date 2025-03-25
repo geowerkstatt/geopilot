@@ -7,8 +7,8 @@ import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { AlertContext } from "../../components/alert/alertContext";
 import { ApiError, Delivery } from "../../api/apiInterfaces";
-import { useApi } from "../../api";
 import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
+import useApiFetch from "../../hooks/useApiFetch.ts";
 
 interface DeliveryMandate {
   id: number;
@@ -25,7 +25,7 @@ export const DeliveryOverview = () => {
   const { showPrompt } = useContext(PromptContext);
   const { showAlert } = useContext(AlertContext);
   const { user } = useGeopilotAuth();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
 
   const loadDeliveries = useCallback(async () => {
     setIsLoading(true);

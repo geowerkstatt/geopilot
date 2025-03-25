@@ -10,16 +10,16 @@ import {
   FormSelect,
 } from "../../components/form/form.ts";
 import { FieldEvaluationType, Mandate, Organisation, ValidationSettings } from "../../api/apiInterfaces.ts";
-import { useApi } from "../../api";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
+import useApiFetch from "../../hooks/useApiFetch.ts";
 
 const MandateDetail = () => {
   const { t } = useTranslation();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
   const { id = "0" } = useParams<{ id: string }>();
 
   const [mandate, setMandate] = useState<Mandate>();

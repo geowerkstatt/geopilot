@@ -5,7 +5,6 @@ import { PromptProvider } from "./components/prompt/promptContext.tsx";
 import { Prompt } from "./components/prompt/prompt.tsx";
 import { AlertProvider } from "./components/alert/alertContext.tsx";
 import { AlertBanner } from "./components/alert/alertBanner.tsx";
-import { ApiProvider } from "./api/apiContext.tsx";
 import { AppSettingsProvider } from "./components/appSettings/appSettingsContext.tsx";
 import { GeopilotAuthProvider } from "./auth/geopilotAuthComponent.tsx";
 import App from "./app.tsx";
@@ -75,13 +74,11 @@ export const AppContext = () => {
           <Prompt />
           <AlertProvider>
             <AlertBanner />
-            <ApiProvider>
-              <AppSettingsProvider>
-                <GeopilotAuthProvider>
-                  <App />
-                </GeopilotAuthProvider>
-              </AppSettingsProvider>
-            </ApiProvider>
+            <AppSettingsProvider>
+              <GeopilotAuthProvider>
+                <App />
+              </GeopilotAuthProvider>
+            </AppSettingsProvider>
           </AlertProvider>
         </PromptProvider>
       </ThemeProvider>

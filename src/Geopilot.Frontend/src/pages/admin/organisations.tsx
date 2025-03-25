@@ -3,18 +3,18 @@ import { useCallback, useEffect, useState } from "react";
 import { Mandate, Organisation, User } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { Tooltip } from "@mui/material";
-import { useApi } from "../../api";
 import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { useControlledNavigate } from "../../components/controlledNavigate";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
+import useApiFetch from "../../hooks/useApiFetch.ts";
 
 export const Organisations = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [organisations, setOrganisations] = useState<Organisation[]>();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
 
   const loadOrganisations = useCallback(() => {
     fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(

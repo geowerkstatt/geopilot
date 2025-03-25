@@ -1,7 +1,6 @@
 import { FileDropzone } from "../../components/fileDropzone.tsx";
 import { useCallback, useContext, useEffect, useState } from "react";
 import { ValidationSettings } from "../../api/apiInterfaces.ts";
-import { useApi } from "../../api";
 import { FormProvider, useForm } from "react-hook-form";
 import { FlexBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { Trans } from "react-i18next";
@@ -12,11 +11,12 @@ import { useAppSettings } from "../../components/appSettings/appSettingsInterfac
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
+import useApiFetch from "../../hooks/useApiFetch.ts";
 
 export const DeliveryUpload = () => {
   const [validationSettings, setValidationSettings] = useState<ValidationSettings>();
   const { initialized, termsOfUse } = useAppSettings();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
   const formMethods = useForm({ mode: "all" });
   const { setStepError, selectedFile, setSelectedFile, isLoading, uploadFile, resetDelivery } =
     useContext(DeliveryContext);

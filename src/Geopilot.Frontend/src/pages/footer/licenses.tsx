@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
-import { useApi } from "../../api";
 import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Typography } from "@mui/material";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { CenteredBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ExpandMore } from "@mui/icons-material";
 import { BaseButton } from "../../components/buttons.tsx";
+import useApiFetch from "../../hooks/useApiFetch.ts";
 
 interface PackageList {
   [packageName: string]: PackageDetails;
@@ -36,7 +36,7 @@ export const Licenses = () => {
   const { t } = useTranslation();
   const [licenseInfo, setLicenseInfo] = useState<PackageList>();
   const [licenseInfoCustom, setLicenseInfoCustom] = useState<PackageList>();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
   const { hash } = useLocation();
   const navigate = useNavigate();
 

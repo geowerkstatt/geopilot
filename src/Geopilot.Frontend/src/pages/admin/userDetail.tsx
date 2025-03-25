@@ -10,17 +10,17 @@ import {
   FormInput,
 } from "../../components/form/form.ts";
 import { Organisation, User } from "../../api/apiInterfaces.ts";
-import { useApi } from "../../api";
 import { useGeopilotAuth } from "../../auth";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import useApiFetch from "../../hooks/useApiFetch.ts";
 
 const UserDetail = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
   const { id } = useParams<{ id: string }>();
 
   const [editableUser, setEditableUser] = useState<User>();

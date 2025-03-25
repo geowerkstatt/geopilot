@@ -1,14 +1,14 @@
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { User } from "../api/apiInterfaces";
 import { useAuth } from "react-oidc-context";
-import { useApi } from "../api";
+import useApiFetch from "../hooks/useApiFetch";
 
 export const UserContext = createContext<User | null | undefined>(undefined);
 
 export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<User | null>();
   const auth = useAuth();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useApiFetch();
 
   const fetchUserInfo = useCallback(async () => {
     fetchApi<User>("/api/v1/user/self", {
