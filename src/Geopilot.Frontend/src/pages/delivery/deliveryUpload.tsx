@@ -1,5 +1,5 @@
 import { FileDropzone } from "../../components/fileDropzone.tsx";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { ValidationSettings } from "../../api/apiInterfaces.ts";
 import { useApi } from "../../api";
 import { FormProvider, useForm } from "react-hook-form";
@@ -33,6 +33,13 @@ export const DeliveryUpload = () => {
     uploadFile();
   };
 
+  const setFileError = useCallback(
+    (error: string | undefined) => {
+      setStepError(DeliveryStepEnum.Upload, error);
+    },
+    [setStepError],
+  );
+
   return (
     initialized && (
       <FormProvider {...formMethods}>
@@ -43,9 +50,7 @@ export const DeliveryUpload = () => {
               setSelectedFile={setSelectedFile}
               fileExtensions={validationSettings?.allowedFileExtensions}
               disabled={isLoading}
-              setFileError={error => {
-                setStepError(DeliveryStepEnum.Upload, error);
-              }}
+              setFileError={setFileError}
             />
             <FlexRowSpaceBetweenBox>
               <FormCheckbox
