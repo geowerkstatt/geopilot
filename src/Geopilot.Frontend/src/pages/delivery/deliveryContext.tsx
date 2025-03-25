@@ -99,7 +99,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     return activeStep === stepKeys.indexOf(step);
   };
 
-  const setStepError = (key: DeliveryStepEnum, error: string | undefined) => {
+  const setStepError = useCallback((key: DeliveryStepEnum, error: string | undefined) => {
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
       const step = newSteps.get(key);
@@ -108,7 +108,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       }
       return newSteps;
     });
-  };
+  }, []);
 
   const continueToNextStep = useCallback(() => {
     setAbortControllers([]);
