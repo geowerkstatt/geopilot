@@ -178,13 +178,13 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
   }, [fetchApi, handleApiError, validationResponse?.jobId]);
 
-  const validateFile = () => {
+  const validateFile = useCallback(() => {
     if (validationResponse?.status === ValidationStatus.Processing && !isLoading) {
       setIsLoading(true);
       setIsValidating(true);
       getValidationStatus();
     }
-  };
+  }, [getValidationStatus, isLoading, validationResponse?.status]);
 
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);

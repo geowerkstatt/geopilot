@@ -15,8 +15,7 @@ export const DeliveryValidation = () => {
 
   useEffect(() => {
     validateFile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [validateFile]);
 
   const getValidationKeysString = () => {
     if (!validationResponse?.validatorResults) return "";
