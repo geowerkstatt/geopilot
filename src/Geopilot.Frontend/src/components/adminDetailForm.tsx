@@ -41,10 +41,11 @@ const AdminDetailForm = <T extends { id: number }>({
     useControlledNavigate();
   const navigate = useNavigate();
   const { showPrompt } = useContext(PromptContext);
+  const dataIdRef = useRef<number | undefined>(data?.id);
 
   const saveData = useCallback(
     async (formData: FieldValues, reloadAfterSave = true) => {
-      const id = data?.id || 0;
+      const id = dataIdRef.current || 0;
       const dataToSave = prepareDataForSave(formData);
       dataToSave.id = id;
       const response = await fetchApi(apiEndpoint, {
@@ -71,7 +72,6 @@ const AdminDetailForm = <T extends { id: number }>({
     },
     [
       apiEndpoint,
-      data?.id,
       basePath,
       fetchApi,
       formMethods,
@@ -130,6 +130,12 @@ const AdminDetailForm = <T extends { id: number }>({
       }
     }
   }, [checkIsDirty]);
+
+  useEffect(() => {
+    if (data) {
+      dataIdRef.current = data.id;
+    }
+  }, [data]);
 
   return (
     <FlexBox>
