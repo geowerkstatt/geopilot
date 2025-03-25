@@ -129,7 +129,7 @@ const AdminDetailForm = <T extends { id: number }>({
         });
       }
     }
-  }, [checkIsDirty]);
+  }, [checkIsDirty, formMethods, leaveEditingPage, saveData, showPrompt]);
 
   useEffect(() => {
     if (data) {
