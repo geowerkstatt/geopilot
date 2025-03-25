@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
@@ -27,7 +27,7 @@ export const DeliveryOverview = () => {
   const { user } = useGeopilotAuth();
   const { fetchApi } = useApi();
 
-  async function loadDeliveries() {
+  const loadDeliveries = useCallback(async () => {
     setIsLoading(true);
     fetchApi<Delivery[]>("/api/v1/delivery", { errorMessageLabel: "deliveryOverviewLoadingError" })
       .then(response => {
@@ -44,14 +44,13 @@ export const DeliveryOverview = () => {
       .finally(() => {
         setIsLoading(false);
       });
-  }
+  }, [fetchApi]);
 
   useEffect(() => {
     if (user?.isAdmin) {
       loadDeliveries();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadDeliveries, user?.isAdmin]);
 
   const handleDelete = (id: GridRowId) => {
     fetchApi("/api/v1/delivery/" + id, { method: "DELETE" })
