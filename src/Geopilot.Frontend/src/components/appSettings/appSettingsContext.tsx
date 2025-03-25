@@ -13,8 +13,8 @@ export const AppSettingsContext = createContext<AppSettingsContextInterface>({
 export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const { i18n } = useTranslation();
   const { fetchApi, fetchLocalizedMarkdown } = useApi();
-  const [clientSettings, setClientSettings] = useState<ClientSettings | null>();
-  const [termsOfUse, setTermsOfUse] = useState<string | undefined>();
+  const [clientSettings, setClientSettings] = useState<ClientSettings | null | undefined>(undefined);
+  const [termsOfUse, setTermsOfUse] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     fetchApi<ClientSettings>("/client-settings.json", { responseType: ContentType.Json })

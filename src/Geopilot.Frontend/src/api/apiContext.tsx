@@ -56,7 +56,7 @@ export const ApiProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   }
 
-  const fetchLocalizedMarkdown = async (markdown: string, language: string): Promise<string | undefined> => {
+  const fetchLocalizedMarkdown = async (markdown: string, language: string): Promise<string | null> => {
     try {
       if (!language) {
         throw new Error("Language undefined");
@@ -71,7 +71,7 @@ export const ApiProvider: FC<PropsWithChildren> = ({ children }) => {
         return await fetchApi<string>(`/${markdown}.md`, { responseType: ContentType.Markdown });
       } catch (fallbackError) {
         console.error("Failed to fetch markdown:", fallbackError);
-        return undefined;
+        return null;
       }
     }
   };
