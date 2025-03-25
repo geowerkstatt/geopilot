@@ -33,8 +33,7 @@ export const DeliverySubmit = () => {
         },
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validationResponse, user]);
+  }, [validationResponse, user, fetchApi, setStepError, t]);
 
   const submitForm = (data: FieldValues) => {
     if (data["precursor"] === "") {
