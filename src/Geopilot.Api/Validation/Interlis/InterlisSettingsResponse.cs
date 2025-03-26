@@ -3,7 +3,7 @@
 /// <summary>
 /// Result of a settings query of interlis-check-service at /api/v1/settings.
 /// </summary>
-public class IliCheckSettingsResponse
+public class InterlisSettingsResponse
 {
     /// <summary>
     /// The accepted file types.
