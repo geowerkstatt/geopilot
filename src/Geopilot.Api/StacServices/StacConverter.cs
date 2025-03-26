@@ -126,7 +126,9 @@ public class StacConverter
         }
 
         var stacApiContext = StacApiContextFactory.Create();
-        var assets = delivery.Assets.Select(file => ToStacAsset(file, item, stacApiContext.BaseUri)).ToDictionary(asset => Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(asset.Uri.ToString()))).ToLowerInvariant());
+        var assets = delivery.Assets.ToDictionary(
+            asset => asset.Id.ToString(CultureInfo.InvariantCulture),
+            asset => ToStacAsset(asset, item, stacApiContext.BaseUri));
         item.Assets.AddRange(assets);
         StacLinker.Link(item, stacApiContext);
 
