@@ -28,8 +28,8 @@ Das Projekt unterstützt das Starten der Applikation mit Docker Compose, um eine
 
 ```bash
 dotnet dev-certs https --trust
-dotnet dev-certs https --export-path ".\certs\geopilot.pem" --no-password --format PEM
-docker-compose up
+dotnet dev-certs https --export-path ".\certs\cert.pem" --no-password --format PEM
+docker compose up -d
 ```
 
 ### URLs Entwicklungsumgebung 🔗
