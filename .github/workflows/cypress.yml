@@ -14,27 +14,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set environment variables
-        run: |
-          echo PEM_CERT_PATH=$(pwd)/certs/geopilot.pem >> $GITHUB_ENV
-          echo UBUNTU_TRUSTED_CERT_PATH=/usr/local/share/ca-certificates/geopilot.crt >> $GITHUB_ENV
-
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0"
 
-      - name: Create dev-certs
-        run: |
-          mkdir ./certs
-          dotnet dev-certs https --export-path ${{ env.PEM_CERT_PATH }} --no-password --format PEM
-          chmod -R 664 ./certs/*
-
-      - name: Trust dev-certs
-        run: |
-          sudo apt-get install -y ca-certificates
-          sudo cp ${{ env.PEM_CERT_PATH }} ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
-          sudo update-ca-certificates
+      - name: Setup dev-certs
+        uses: ./.github/actions/setup-dev-certs
 
       - name: Start db and api's
         run: docker compose up --wait
