@@ -23,7 +23,7 @@ public class InterlisValidator : IValidator
     private ICollection<string>? supportedFileExtensions;
 
     /// <inheritdoc/>
-    public string Name => "ilicheck";
+    public string Name => "INTERLIS";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InterlisValidator"/> class.
@@ -44,7 +44,7 @@ public class InterlisValidator : IValidator
         if (supportedFileExtensions != null) return supportedFileExtensions;
 
         var response = await httpClient.GetAsync(SettingsUrl).ConfigureAwait(false);
-        var configResult = await ReadSuccessResponseJsonAsync<IliCheckSettingsResponse>(response, CancellationToken.None).ConfigureAwait(false);
+        var configResult = await ReadSuccessResponseJsonAsync<InterlisSettingsResponse>(response, CancellationToken.None).ConfigureAwait(false);
         supportedFileExtensions = configResult.AcceptedFileTypes?.Split(", ");
         return supportedFileExtensions ?? Array.Empty<string>();
     }
@@ -74,7 +74,7 @@ public class InterlisValidator : IValidator
         };
     }
 
-    private async Task<IliCheckUploadResponse> UploadTransferFileAsync(string transferFile, CancellationToken cancellationToken)
+    private async Task<InterlisUploadResponse> UploadTransferFileAsync(string transferFile, CancellationToken cancellationToken)
     {
         using var streamContent = new StreamContent(fileProvider.Open(transferFile));
         using var formData = new MultipartFormDataContent { { streamContent, "file", transferFile } };
@@ -87,15 +87,15 @@ public class InterlisValidator : IValidator
             throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
         }
 
-        return await ReadSuccessResponseJsonAsync<IliCheckUploadResponse>(response, cancellationToken).ConfigureAwait(false);
+        return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<IliCheckStatusResponse?> PollStatusAsync(string statusUrl, CancellationToken cancellationToken)
+    private async Task<InterlisStatusResponse?> PollStatusAsync(string statusUrl, CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
             using var response = await httpClient.GetAsync(statusUrl, cancellationToken).ConfigureAwait(false);
-            var statusResponse = await ReadSuccessResponseJsonAsync<IliCheckStatusResponse>(response, cancellationToken).ConfigureAwait(false);
+            var statusResponse = await ReadSuccessResponseJsonAsync<InterlisStatusResponse>(response, cancellationToken).ConfigureAwait(false);
 
             if (statusResponse.Status == Status.Completed
                 || statusResponse.Status == Status.CompletedWithErrors
@@ -110,7 +110,7 @@ public class InterlisValidator : IValidator
         return null;
     }
 
-    private async Task<IDictionary<string, string>> DownloadLogFilesAsync(IliCheckStatusResponse statusResponse, string transferFile, CancellationToken cancellationToken)
+    private async Task<IDictionary<string, string>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse, string transferFile, CancellationToken cancellationToken)
     {
         var logFiles = new Dictionary<string, string>();
         var tasks = new List<Task>();
