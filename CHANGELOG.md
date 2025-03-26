@@ -13,6 +13,8 @@
 - File size limit lowered to 100 MB to adhere to hosting provider restrictions (Cloudflare).
 - Error messages from HTTP responses are now displayed localized in the delivery view.
 - Moved licenses to separate page and improved layout for a better UX.
+- Modularized a component of our CI/CD Workflows.
+- Updated README.md to work with new dev-cert naming.
 - Removed references to name "ilicheck", replaced with "interlis".
 
 ### Fixed
