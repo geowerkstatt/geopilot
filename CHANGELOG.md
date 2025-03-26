@@ -15,7 +15,7 @@
 - Moved licenses to separate page and improved layout for a better UX.
 - Modularized a component of our CI/CD Workflows.
 - Updated README.md to work with new dev-cert naming.
-- Removed references to name "ilicheck", replaced with "interlis".
+- **BREAKING** Removed references to name "ilicheck", replaced with "INTERLIS".
 
 ### Fixed
 
