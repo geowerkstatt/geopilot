@@ -25,7 +25,7 @@ jobs:
       - name: Debug external requests
         run: |
           set -x
-          curl -v https://downloads.interlis.ch/ilivalidator/ilivalidator-1.14.5.zip --output test
+          curl -v https://jars.interlis.ch/ch/interlis/ilivalidator/1.14.5/ilivalidator-1.14.5-bindist.zip --output test
           # etc.
 
       - name: Start db and api's
