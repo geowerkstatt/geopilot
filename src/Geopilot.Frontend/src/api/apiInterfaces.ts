@@ -22,7 +22,7 @@ export class ApiError extends Error {
 
 export interface ApiContextInterface {
   fetchApi: <T>(url: string, options?: Partial<FetchParams>) => Promise<T>;
-  fetchLocalizedMarkdown: (markdown: string, language: string) => Promise<string>;
+  fetchLocalizedMarkdown: (markdown: string, language: string) => Promise<string | null>;
 }
 
 export enum FieldEvaluationType {
