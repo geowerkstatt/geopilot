@@ -1,6 +1,6 @@
-import { useContext, useCallback } from "react";
+import { useCallback, useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { FetchParams, ApiError, ContentType } from "../api/apiInterfaces";
+import { ApiError, ContentType, FetchParams } from "../api/apiInterfaces";
 import { AlertContext } from "../components/alert/alertContext";
 
 const useFetch = () => {
@@ -49,20 +49,25 @@ const useFetch = () => {
     [showAlert, t],
   );
 
-  const fetchLocalizedMarkdown = useCallback(
-    (markdown: string, language: string): Promise<string> => {
-      return fetchApi<string>(`/${markdown}.${language}.md`, { responseType: ContentType.Markdown })
-        .then(response => {
-          if (response) {
-            return response;
-          } else {
-            throw new Error("Language-specific markdown not found");
-          }
-        })
-        .catch(() => fetchApi<string>(`/${markdown}.md`, { responseType: ContentType.Markdown }));
-    },
-    [fetchApi],
-  );
+  const fetchLocalizedMarkdown = async (markdown: string, language: string): Promise<string | null> => {
+    try {
+      if (!language) {
+        throw new Error("Language undefined");
+      }
+      const response = await fetchApi<string>(`/${markdown}.${language}.md`, { responseType: ContentType.Markdown });
+      if (response) {
+        return response;
+      }
+      throw new Error("Language-specific markdown not found");
+    } catch (error) {
+      try {
+        return await fetchApi<string>(`/${markdown}.md`, { responseType: ContentType.Markdown });
+      } catch (fallbackError) {
+        console.error("Failed to fetch markdown:", fallbackError);
+        return null;
+      }
+    }
+  };
 
   return { fetchApi, fetchLocalizedMarkdown };
 };

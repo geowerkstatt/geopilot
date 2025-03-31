@@ -10,7 +10,7 @@ import useFetch from "../../hooks/useFetch.ts";
 
 export const About = () => {
   const { t, i18n } = useTranslation();
-  const [info, setInfo] = useState<string>();
+  const [info, setInfo] = useState<string | null>();
   const [version, setVersion] = useState<string | null>();
   const { termsOfUse } = useAppSettings();
   const { fetchApi, fetchLocalizedMarkdown } = useFetch();
