@@ -7,7 +7,7 @@ import { CenteredBox } from "../../components/styledComponents.ts";
 
 export const Imprint = () => {
   const { t, i18n } = useTranslation();
-  const [content, setContent] = useState<string>();
+  const [content, setContent] = useState<string | null>();
   const { fetchLocalizedMarkdown } = useApi();
 
   useEffect(() => {
