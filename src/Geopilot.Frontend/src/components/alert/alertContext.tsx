@@ -1,4 +1,4 @@
-import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
+import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { AlertContextInterface, AlertOptions } from "./alertInterfaces";
 import { AlertColor } from "@mui/material";
 
@@ -15,10 +15,13 @@ export const AlertProvider: FC<PropsWithChildren> = ({ children }) => {
   const [currentAlert, setCurrentAlert] = useState<AlertOptions>();
   const [alerts, setAlerts] = useState<AlertOptions[]>([]);
 
-  const showAlert = (text: string, severity: AlertColor | undefined, allowAutoHide: boolean | undefined) => {
-    const newAlert = { text, severity: severity ?? "info", allowAutoHide: allowAutoHide ?? false };
-    setAlerts(prevAlerts => [...prevAlerts, newAlert]);
-  };
+  const showAlert = useCallback(
+    (text: string, severity: AlertColor | undefined, allowAutoHide: boolean | undefined) => {
+      const newAlert = { text, severity: severity ?? "info", allowAutoHide: allowAutoHide ?? false };
+      setAlerts(prevAlerts => [...prevAlerts, newAlert]);
+    },
+    [],
+  );
 
   const closeAlert = () => {
     setCurrentAlert(undefined);
