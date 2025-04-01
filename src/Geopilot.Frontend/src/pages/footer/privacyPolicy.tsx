@@ -7,7 +7,7 @@ import useFetch from "../../hooks/useFetch.ts";
 
 export const PrivacyPolicy = () => {
   const { t, i18n } = useTranslation();
-  const [content, setContent] = useState<string>();
+  const [content, setContent] = useState<string | null>();
   const { fetchLocalizedMarkdown } = useFetch();
 
   useEffect(() => {
