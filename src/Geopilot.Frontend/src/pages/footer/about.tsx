@@ -1,19 +1,19 @@
 import { Trans, useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
-import { useApi } from "../../api";
 import { Link as RouterLink } from "react-router-dom";
 import { Link, Typography } from "@mui/material";
 import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { CenteredBox } from "../../components/styledComponents.ts";
 import { useLocation } from "react-router-dom";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const About = () => {
   const { t, i18n } = useTranslation();
-  const [info, setInfo] = useState<string>();
+  const [info, setInfo] = useState<string | null>();
   const [version, setVersion] = useState<string | null>();
   const { termsOfUse } = useAppSettings();
-  const { fetchApi, fetchLocalizedMarkdown } = useApi();
+  const { fetchApi, fetchLocalizedMarkdown } = useFetch();
   const { hash } = useLocation();
 
   useEffect(() => {

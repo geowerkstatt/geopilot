@@ -1,20 +1,21 @@
-import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
+import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { AuthSettings } from "./authInterfaces";
-import { useApi } from "../api";
+import useFetch from "../hooks/useFetch.ts";
 
 export const ApiAuthConfigurationContext = createContext<AuthSettings | undefined>(undefined);
 
 export const ApiAuthConfigurationProvider: FC<PropsWithChildren> = ({ children }) => {
   const [apiAuthSettings, setApiAuthSettings] = useState<AuthSettings>();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useFetch();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const loadAuthSettings = () => {
+  const loadAuthSettings = useCallback(() => {
     fetchApi<AuthSettings>("/api/v1/user/auth").then(setApiAuthSettings);
-  };
+  }, [fetchApi]);
 
   useEffect(() => {
-    if (apiAuthSettings) return;
+    if (apiAuthSettings) {
+      return;
+    }
 
     loadAuthSettings();
     // Retry every 3s

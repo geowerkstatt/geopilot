@@ -1,63 +1,58 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents.ts";
 import { FormAutocomplete, FormContainer, FormInput } from "../../components/form/form.ts";
 import { Mandate, Organisation, User } from "../../api/apiInterfaces.ts";
-import { useApi } from "../../api";
 import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
+import useFetch from "../../hooks/useFetch.ts";
 
 const OrganisationDetail = () => {
   const { t } = useTranslation();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useFetch();
   const { id = "0" } = useParams<{ id: string }>();
 
   const [organisation, setOrganisation] = useState<Organisation>();
   const [mandates, setMandates] = useState<Mandate[]>();
   const [users, setUsers] = useState<User[]>();
 
-  const loadOrganisation = async (id: string) => {
-    const organisation = await fetchApi<Organisation>(`/api/v1/organisation/${id}`, {
-      errorMessageLabel: "organisationLoadingError",
-    });
-    setOrganisation(organisation);
-  };
+  const loadOrganisation = useCallback(
+    async (id: string) => {
+      const organisation = await fetchApi<Organisation>(`/api/v1/organisation/${id}`, {
+        errorMessageLabel: "organisationLoadingError",
+      });
+      setOrganisation(organisation);
+    },
+    [fetchApi],
+  );
 
-  const loadMandates = async () => {
+  const loadMandates = useCallback(async () => {
     const mandates = await fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" });
     setMandates(mandates);
-  };
+  }, [fetchApi]);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     const users = await fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" });
     setUsers(users);
-  };
+  }, [fetchApi]);
 
   useEffect(() => {
-    if (organisation === undefined) {
-      if (id !== "0") {
-        loadOrganisation(id);
-      } else {
-        setOrganisation({
-          id: 0,
-          name: "",
-          mandates: [],
-          users: [],
-        });
-      }
+    if (id !== "0") {
+      loadOrganisation(id);
+    } else {
+      setOrganisation({
+        id: 0,
+        name: "",
+        mandates: [],
+        users: [],
+      });
     }
-    if (mandates === undefined) {
-      loadMandates();
-    }
-    if (users === undefined) {
-      loadUsers();
-    }
-    // We only want to run this once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    loadMandates();
+    loadUsers();
+  }, [id, loadMandates, loadOrganisation, loadUsers]);
 
   const prepareOrganisationForSave = (formData: FieldValues): Organisation => {
     const organisation = formData as Organisation;

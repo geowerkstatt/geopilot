@@ -1,8 +1,8 @@
 import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
 import { AppSettingsContextInterface, ClientSettings } from "./appSettingsInterface";
-import { useApi } from "../../api";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { useTranslation } from "react-i18next";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const AppSettingsContext = createContext<AppSettingsContextInterface>({
   initialized: false,
@@ -12,7 +12,7 @@ export const AppSettingsContext = createContext<AppSettingsContextInterface>({
 
 export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const { i18n } = useTranslation();
-  const { fetchApi, fetchLocalizedMarkdown } = useApi();
+  const { fetchApi, fetchLocalizedMarkdown } = useFetch();
   const [clientSettings, setClientSettings] = useState<ClientSettings | null>();
   const [termsOfUse, setTermsOfUse] = useState<string | null>();
 
@@ -20,9 +20,11 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
     fetchApi<ClientSettings>("/client-settings.json", { responseType: ContentType.Json })
       .then(setClientSettings)
       .catch(() => setClientSettings(null));
+  }, [fetchApi]);
 
+  useEffect(() => {
     fetchLocalizedMarkdown("terms-of-use", i18n.language).then(setTermsOfUse);
-  }, [fetchApi, fetchLocalizedMarkdown, i18n.language]);
+  }, [fetchLocalizedMarkdown, i18n.language]);
 
   useEffect(() => {
     if (clientSettings) {

@@ -5,8 +5,7 @@ import {
   DeliveryStepError,
   DeliverySubmitData,
 } from "./deliveryInterfaces.tsx";
-import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
-import { useApi } from "../../api";
+import { createContext, FC, PropsWithChildren, useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
 import { DeliveryUpload } from "./deliveryUpload.tsx";
 import { DeliveryValidation } from "./deliveryValidation.tsx";
@@ -14,6 +13,7 @@ import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
 import { DeliveryCompleted } from "./deliveryCompleted.tsx";
 import { useTranslation } from "react-i18next";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
@@ -38,7 +38,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
-  const { fetchApi } = useApi();
+  const { fetchApi } = useFetch();
   const { authEnabled } = useGeopilotAuth();
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(
     new Map<DeliveryStepEnum, DeliveryStep>([
@@ -53,24 +53,27 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       ],
     ]),
   );
-  const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = {
-    [DeliveryStepEnum.Upload]: [
-      { status: 400, errorKey: "validationErrorFileMalformed" },
-      { status: 413, errorKey: "validationErrorFileTooLarge" },
-      { status: 500, errorKey: "validationErrorUnexpected" },
-    ],
-    [DeliveryStepEnum.Validate]: [
-      { status: 400, errorKey: "validationErrorRequestMalformed" },
-      { status: 404, errorKey: "validationErrorCannotFind" },
-    ],
-    [DeliveryStepEnum.Submit]: [
-      { status: 400, errorKey: "deliveryErrorMalformedRequest" },
-      { status: 401, errorKey: "deliveryErrorUnauthorized" },
-      { status: 404, errorKey: "deliveryErrorNoValidationFound" },
-      { status: 500, errorKey: "deliveryErrorUnexpected" },
-    ],
-    [DeliveryStepEnum.Done]: [],
-  };
+  const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = useMemo(
+    () => ({
+      [DeliveryStepEnum.Upload]: [
+        { status: 400, errorKey: "validationErrorFileMalformed" },
+        { status: 413, errorKey: "validationErrorFileTooLarge" },
+        { status: 500, errorKey: "validationErrorUnexpected" },
+      ],
+      [DeliveryStepEnum.Validate]: [
+        { status: 400, errorKey: "validationErrorRequestMalformed" },
+        { status: 404, errorKey: "validationErrorCannotFind" },
+      ],
+      [DeliveryStepEnum.Submit]: [
+        { status: 400, errorKey: "deliveryErrorMalformedRequest" },
+        { status: 401, errorKey: "deliveryErrorUnauthorized" },
+        { status: 404, errorKey: "deliveryErrorNoValidationFound" },
+        { status: 500, errorKey: "deliveryErrorUnexpected" },
+      ],
+      [DeliveryStepEnum.Done]: [],
+    }),
+    [],
+  );
 
   useEffect(() => {
     if (authEnabled) {
@@ -99,7 +102,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     return activeStep === stepKeys.indexOf(step);
   };
 
-  const setStepError = (key: DeliveryStepEnum, error: string | undefined) => {
+  const setStepError = useCallback((key: DeliveryStepEnum, error: string | undefined) => {
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
       const step = newSteps.get(key);
@@ -108,7 +111,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       }
       return newSteps;
     });
-  };
+  }, []);
 
   const continueToNextStep = useCallback(() => {
     setAbortControllers([]);
@@ -117,14 +120,17 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   }, [activeStep, steps]);
 
-  const handleApiError = (error: ApiError, key: DeliveryStepEnum) => {
-    if (error && error.message && !error.message.includes("AbortError")) {
-      setStepError(
-        key,
-        deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey || error.message,
-      );
-    }
-  };
+  const handleApiError = useCallback(
+    (error: ApiError, key: DeliveryStepEnum) => {
+      if (error && error.message && !error.message.includes("AbortError")) {
+        setStepError(
+          key,
+          deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey || error.message,
+        );
+      }
+    },
+    [deliveryStepErrors, setStepError],
+  );
 
   const uploadFile = () => {
     if (selectedFile) {
@@ -170,16 +176,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       .catch((error: ApiError) => {
         handleApiError(error, DeliveryStepEnum.Validate);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validationResponse?.jobId]);
+  }, [fetchApi, handleApiError, validationResponse?.jobId]);
 
-  const validateFile = () => {
+  const validateFile = useCallback(() => {
     if (validationResponse?.status === ValidationStatus.Processing && !isLoading) {
       setIsLoading(true);
       setIsValidating(true);
       getValidationStatus();
     }
-  };
+  }, [getValidationStatus, isLoading, validationResponse?.status]);
 
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);
@@ -240,7 +245,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         }
       }
     }
-  }, [abortControllers.length, continueToNextStep, getValidationStatus, isValidating, t, validationResponse]);
+  }, [
+    abortControllers.length,
+    continueToNextStep,
+    getValidationStatus,
+    isValidating,
+    setStepError,
+    t,
+    validationResponse,
+  ]);
 
   return (
     <DeliveryContext.Provider

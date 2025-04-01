@@ -3,15 +3,15 @@ import { BaseButton } from "./buttons.tsx";
 import { ChevronLeft, UndoOutlined } from "@mui/icons-material";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
-import { ReactNode, useContext, useEffect } from "react";
+import { ReactNode, useCallback, useContext, useEffect, useRef } from "react";
 import { PromptAction } from "./prompt/promptInterfaces.ts";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { useControlledNavigate } from "./controlledNavigate";
 import { PromptContext } from "./prompt/promptContext.tsx";
 import { CircularProgress, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import { useApi } from "../api";
 import { useNavigate } from "react-router-dom";
+import useFetch from "../hooks/useFetch.ts";
 
 interface AdminDetailFormProps<T> {
   basePath: string;
@@ -35,12 +35,62 @@ const AdminDetailForm = <T extends { id: number }>({
   children,
 }: AdminDetailFormProps<T>) => {
   const { t } = useTranslation();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useFetch();
   const formMethods = useForm({ mode: "all" });
   const { registerCheckIsDirty, unregisterCheckIsDirty, checkIsDirty, leaveEditingPage, navigateTo } =
     useControlledNavigate();
   const navigate = useNavigate();
   const { showPrompt } = useContext(PromptContext);
+  const dataIdRef = useRef<number | undefined>(data?.id);
+
+  const saveData = useCallback(
+    async (formData: FieldValues, reloadAfterSave = true) => {
+      const id = dataIdRef.current || 0;
+      const dataToSave = prepareDataForSave(formData);
+      dataToSave.id = id;
+      const response = await fetchApi(apiEndpoint, {
+        method: id === 0 ? "POST" : "PUT",
+        body: JSON.stringify(dataToSave),
+        errorMessageLabel: saveErrorLabel,
+      });
+
+      const savedData = response as T;
+
+      if (reloadAfterSave) {
+        onSaveSuccess(savedData);
+        formMethods.reset(savedData);
+
+        if (id === 0) {
+          const newPath = `${basePath}/${savedData.id}`;
+          navigate(newPath, { replace: true });
+          unregisterCheckIsDirty(`${basePath}/0`);
+          registerCheckIsDirty(newPath);
+        }
+      }
+
+      return savedData;
+    },
+    [
+      apiEndpoint,
+      basePath,
+      fetchApi,
+      formMethods,
+      navigate,
+      onSaveSuccess,
+      prepareDataForSave,
+      registerCheckIsDirty,
+      saveErrorLabel,
+      unregisterCheckIsDirty,
+    ],
+  );
+
+  const submitForm = (data: FieldValues) => {
+    formMethods.trigger().then(isValid => {
+      if (isValid) {
+        saveData(data, true);
+      }
+    });
+  };
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -49,9 +99,7 @@ const AdminDetailForm = <T extends { id: number }>({
     return () => {
       unregisterCheckIsDirty(path);
     };
-    // We only want to run this effect once on mount and on unmount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [registerCheckIsDirty, unregisterCheckIsDirty]);
 
   useEffect(() => {
     if (checkIsDirty) {
@@ -81,44 +129,13 @@ const AdminDetailForm = <T extends { id: number }>({
         });
       }
     }
-    // We only want to run this effect when checkIsDirty changes. If we add all dependencies, the prompt will be shown multiple times.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkIsDirty]);
+  }, [checkIsDirty, formMethods, leaveEditingPage, saveData, showPrompt]);
 
-  const saveData = async (formData: FieldValues, reloadAfterSave = true) => {
-    const id = data?.id || 0;
-    const dataToSave = prepareDataForSave(formData);
-    dataToSave.id = id;
-    const response = await fetchApi(apiEndpoint, {
-      method: id === 0 ? "POST" : "PUT",
-      body: JSON.stringify(dataToSave),
-      errorMessageLabel: saveErrorLabel,
-    });
-
-    const savedData = response as T;
-
-    if (reloadAfterSave) {
-      onSaveSuccess(savedData);
-      formMethods.reset(savedData);
-
-      if (id === 0) {
-        const newPath = `${basePath}/${savedData.id}`;
-        navigate(newPath, { replace: true });
-        unregisterCheckIsDirty(`${basePath}/0`);
-        registerCheckIsDirty(newPath);
-      }
+  useEffect(() => {
+    if (data) {
+      dataIdRef.current = data.id;
     }
-
-    return savedData;
-  };
-
-  const submitForm = (data: FieldValues) => {
-    formMethods.trigger().then(isValid => {
-      if (isValid) {
-        saveData(data, true);
-      }
-    });
-  };
+  }, [data]);
 
   return (
     <FlexBox>

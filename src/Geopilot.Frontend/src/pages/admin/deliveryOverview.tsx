@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
@@ -7,8 +7,8 @@ import { useGeopilotAuth } from "../../auth";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { AlertContext } from "../../components/alert/alertContext";
 import { ApiError, Delivery } from "../../api/apiInterfaces";
-import { useApi } from "../../api";
 import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
+import useFetch from "../../hooks/useFetch.ts";
 
 interface DeliveryMandate {
   id: number;
@@ -25,9 +25,9 @@ export const DeliveryOverview = () => {
   const { showPrompt } = useContext(PromptContext);
   const { showAlert } = useContext(AlertContext);
   const { user } = useGeopilotAuth();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useFetch();
 
-  async function loadDeliveries() {
+  const loadDeliveries = useCallback(async () => {
     setIsLoading(true);
     fetchApi<Delivery[]>("/api/v1/delivery", { errorMessageLabel: "deliveryOverviewLoadingError" })
       .then(response => {
@@ -44,14 +44,13 @@ export const DeliveryOverview = () => {
       .finally(() => {
         setIsLoading(false);
       });
-  }
+  }, [fetchApi]);
 
   useEffect(() => {
     if (user?.isAdmin) {
       loadDeliveries();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadDeliveries, user?.isAdmin]);
 
   const handleDelete = (id: GridRowId) => {
     fetchApi("/api/v1/delivery/" + id, { method: "DELETE" })
