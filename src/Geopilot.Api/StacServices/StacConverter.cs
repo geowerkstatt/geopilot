@@ -7,6 +7,8 @@ using Stac.Api.Interfaces;
 using Stac.Api.WebApi.Services;
 using Stac.Collection;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Geopilot.Api.StacServices;
 
@@ -124,7 +126,9 @@ public class StacConverter
         }
 
         var stacApiContext = StacApiContextFactory.Create();
-        var assets = delivery.Assets.Select(file => ToStacAsset(file, item, stacApiContext.BaseUri)).ToDictionary(asset => asset.Title);
+        var assets = delivery.Assets.ToDictionary(
+            asset => asset.Id.ToString(CultureInfo.InvariantCulture),
+            asset => ToStacAsset(asset, item, stacApiContext.BaseUri));
         item.Assets.AddRange(assets);
         StacLinker.Link(item, stacApiContext);
 

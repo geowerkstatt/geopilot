@@ -155,7 +155,8 @@ public class StacConverterTest
         Assert.AreNotEqual(0, item.Links.Count);
 
         Assert.AreEqual(2, item.Assets.Count);
-        var stacAsset = item.Assets[testDelivery.Assets[0].OriginalFilename];
+        var stacAsset = item.Assets.Values.FirstOrDefault(a => a.Title == testDelivery.Assets[0].OriginalFilename);
+        Assert.IsNotNull(stacAsset, "Asset with title matching original filename not found");
         Assert.AreEqual(item, stacAsset.ParentStacObject);
         Assert.AreEqual("TestFile.xtf", stacAsset.Title);
         Assert.AreEqual("PrimaryData", stacAsset.Roles.First());
