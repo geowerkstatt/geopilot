@@ -13,7 +13,9 @@ export const ApiAuthConfigurationProvider: FC<PropsWithChildren> = ({ children }
   }, [fetchApi]);
 
   useEffect(() => {
-    if (apiAuthSettings) return;
+    if (apiAuthSettings) {
+      return;
+    }
 
     loadAuthSettings();
     // Retry every 3s
