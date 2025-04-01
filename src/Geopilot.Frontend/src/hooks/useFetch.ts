@@ -1,10 +1,11 @@
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError, ContentType, FetchParams } from "../api/apiInterfaces";
 import { AlertContext } from "../components/alert/alertContext";
 
 const useFetch = () => {
   const { t } = useTranslation();
+  const tRef = useRef(t);
   const { showAlert } = useContext(AlertContext);
 
   const fetchApi = useCallback(
@@ -18,7 +19,7 @@ const useFetch = () => {
           } else if (!options.responseType || responseContentType?.includes(options.responseType)) {
             return (await response.text()) as T;
           } else {
-            throw new ApiError(t("invalidContentType", { contentType: responseContentType }));
+            throw new ApiError(tRef.current("invalidContentType", { contentType: responseContentType }));
           }
         } else {
           let errorResponse;
@@ -37,7 +38,7 @@ const useFetch = () => {
         }
       } catch (error) {
         if (options.errorMessageLabel) {
-          showAlert(t(options.errorMessageLabel, { error: (error as Error)?.message }), "error");
+          showAlert(tRef.current(options.errorMessageLabel, { error: (error as Error)?.message }), "error");
         }
         if (error instanceof ApiError) {
           throw error;
@@ -46,7 +47,7 @@ const useFetch = () => {
         }
       }
     },
-    [showAlert, t],
+    [showAlert],
   );
 
   const fetchLocalizedMarkdown = useCallback(
@@ -71,6 +72,10 @@ const useFetch = () => {
     },
     [fetchApi],
   );
+
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   return { fetchApi, fetchLocalizedMarkdown };
 };
