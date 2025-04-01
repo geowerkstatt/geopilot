@@ -1,7 +1,6 @@
 import { FileDropzone } from "../../components/fileDropzone.tsx";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { ValidationSettings } from "../../api/apiInterfaces.ts";
-import { useApi } from "../../api";
 import { FormProvider, useForm } from "react-hook-form";
 import { FlexBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { Trans } from "react-i18next";
@@ -12,11 +11,12 @@ import { useAppSettings } from "../../components/appSettings/appSettingsInterfac
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const DeliveryUpload = () => {
   const [validationSettings, setValidationSettings] = useState<ValidationSettings>();
   const { initialized, termsOfUse } = useAppSettings();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useFetch();
   const formMethods = useForm({ mode: "all" });
   const { setStepError, selectedFile, setSelectedFile, isLoading, uploadFile, resetDelivery } =
     useContext(DeliveryContext);
@@ -25,13 +25,19 @@ export const DeliveryUpload = () => {
     if (!validationSettings) {
       fetchApi<ValidationSettings>("/api/v1/validation").then(setValidationSettings);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validationSettings]);
+  }, [fetchApi, validationSettings]);
 
   const submitForm = () => {
     setStepError(DeliveryStepEnum.Upload, undefined);
     uploadFile();
   };
+
+  const setFileError = useCallback(
+    (error: string | undefined) => {
+      setStepError(DeliveryStepEnum.Upload, error);
+    },
+    [setStepError],
+  );
 
   return (
     initialized && (
@@ -43,9 +49,7 @@ export const DeliveryUpload = () => {
               setSelectedFile={setSelectedFile}
               fileExtensions={validationSettings?.allowedFileExtensions}
               disabled={isLoading}
-              setFileError={error => {
-                setStepError(DeliveryStepEnum.Upload, error);
-              }}
+              setFileError={setFileError}
             />
             <FlexRowSpaceBetweenBox>
               <FormCheckbox

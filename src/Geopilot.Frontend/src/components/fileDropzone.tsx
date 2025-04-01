@@ -27,8 +27,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
 
   useEffect(() => {
     setFileError(error);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [error]);
+  }, [error, setFileError]);
 
   useEffect(() => {
     setAcceptsAllFileTypes(!fileExtensions || fileExtensions?.includes(".*"));

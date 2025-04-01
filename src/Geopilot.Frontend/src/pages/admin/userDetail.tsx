@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents.ts";
@@ -10,44 +10,43 @@ import {
   FormInput,
 } from "../../components/form/form.ts";
 import { Organisation, User } from "../../api/apiInterfaces.ts";
-import { useApi } from "../../api";
 import { useGeopilotAuth } from "../../auth";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import useFetch from "../../hooks/useFetch.ts";
 
 const UserDetail = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
-  const { fetchApi } = useApi();
+  const { fetchApi } = useFetch();
   const { id } = useParams<{ id: string }>();
 
   const [editableUser, setEditableUser] = useState<User>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
 
-  const loadUser = async (id: string) => {
-    const user = await fetchApi<User>(`/api/v1/user/${id}`, { errorMessageLabel: "userLoadingError" });
-    setEditableUser(user);
-  };
+  const loadUser = useCallback(
+    async (id: string) => {
+      const user = await fetchApi<User>(`/api/v1/user/${id}`, { errorMessageLabel: "userLoadingError" });
+      setEditableUser(user);
+    },
+    [fetchApi],
+  );
 
-  const loadOrganisations = async () => {
+  const loadOrganisations = useCallback(async () => {
     const organisations = await fetchApi<Organisation[]>("/api/v1/organisation", {
       errorMessageLabel: "organisationsLoadingError",
     });
     setOrganisations(organisations);
-  };
+  }, [fetchApi]);
 
   useEffect(() => {
-    if (editableUser === undefined && id) {
+    if (id) {
       loadUser(id);
     }
-    if (organisations === undefined) {
-      loadOrganisations();
-    }
-    // We only want to run this once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    loadOrganisations();
+  }, [id, loadOrganisations, loadUser]);
 
   const prepareUserForSave = (formData: FieldValues): User => {
     const user = formData as User;

@@ -200,9 +200,14 @@ describe("Footer tests", () => {
     });
   });
 
-  it("checks about page uses fallback for both markdown files when localized content is not available", () => {
+  it("checks about page uses fallback for terms of use markdown when localized content is not available", () => {
     languages.forEach(language => {
       testFallbackMarkdown("/about", "terms-of-use", language);
+    });
+  });
+
+  it("checks about page uses fallback for info markdown when localized content is not available", () => {
+    languages.forEach(language => {
       testFallbackMarkdown("/about", "info", language);
     });
   });

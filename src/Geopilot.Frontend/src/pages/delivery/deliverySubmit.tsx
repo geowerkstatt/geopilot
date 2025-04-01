@@ -7,16 +7,16 @@ import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
 import SendIcon from "@mui/icons-material/Send";
 import { Delivery, FieldEvaluationType, Mandate } from "../../api/apiInterfaces.ts";
-import { useApi } from "../../api";
 import { DeliveryStepEnum, DeliverySubmitData } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 import { useTranslation } from "react-i18next";
+import useFetch from "../../hooks/useFetch.ts";
 
 export const DeliverySubmit = () => {
   const { t } = useTranslation();
   const { authEnabled, user, login } = useGeopilotAuth();
   const formMethods = useForm({ mode: "all" });
-  const { fetchApi } = useApi();
+  const { fetchApi } = useFetch();
   const { setStepError, validationResponse, isLoading, submitDelivery, resetDelivery } = useContext(DeliveryContext);
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [selectedMandate, setSelectedMandate] = useState<Mandate>();
@@ -33,8 +33,7 @@ export const DeliverySubmit = () => {
         },
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validationResponse, user]);
+  }, [validationResponse, user, fetchApi, setStepError, t]);
 
   const submitForm = (data: FieldValues) => {
     if (data["precursor"] === "") {
