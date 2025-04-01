@@ -20,9 +20,11 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
     fetchApi<ClientSettings>("/client-settings.json", { responseType: ContentType.Json })
       .then(setClientSettings)
       .catch(() => setClientSettings(null));
+  }, [fetchApi]);
 
+  useEffect(() => {
     fetchLocalizedMarkdown("terms-of-use", i18n.language).then(setTermsOfUse);
-  }, [fetchApi, fetchLocalizedMarkdown, i18n.language]);
+  }, [fetchLocalizedMarkdown, i18n.language]);
 
   useEffect(() => {
     if (clientSettings) {
