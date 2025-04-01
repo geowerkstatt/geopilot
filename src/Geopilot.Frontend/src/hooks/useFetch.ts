@@ -49,25 +49,28 @@ const useFetch = () => {
     [showAlert, t],
   );
 
-  const fetchLocalizedMarkdown = async (markdown: string, language: string): Promise<string | null> => {
-    try {
-      if (!language) {
-        throw new Error("Language undefined");
-      }
-      const response = await fetchApi<string>(`/${markdown}.${language}.md`, { responseType: ContentType.Markdown });
-      if (response) {
-        return response;
-      }
-      throw new Error("Language-specific markdown not found");
-    } catch (error) {
+  const fetchLocalizedMarkdown = useCallback(
+    async (markdown: string, language: string): Promise<string | null> => {
       try {
-        return await fetchApi<string>(`/${markdown}.md`, { responseType: ContentType.Markdown });
-      } catch (fallbackError) {
-        console.error("Failed to fetch markdown:", fallbackError);
-        return null;
+        if (!language) {
+          throw new Error("Language undefined");
+        }
+        const response = await fetchApi<string>(`/${markdown}.${language}.md`, { responseType: ContentType.Markdown });
+        if (response) {
+          return response;
+        }
+        throw new Error("Language-specific markdown not found");
+      } catch (error) {
+        try {
+          return await fetchApi<string>(`/${markdown}.md`, { responseType: ContentType.Markdown });
+        } catch (fallbackError) {
+          console.error("Failed to fetch markdown:", fallbackError);
+          return null;
+        }
       }
-    }
-  };
+    },
+    [fetchApi],
+  );
 
   return { fetchApi, fetchLocalizedMarkdown };
 };
