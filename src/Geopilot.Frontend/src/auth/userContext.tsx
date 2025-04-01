@@ -1,6 +1,6 @@
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { ApiError, User } from "../api/apiInterfaces";
-import { useAuth } from "react-oidc-context";
+import { AuthContextProps, useAuth } from "react-oidc-context";
 import useFetch from "../hooks/useFetch.ts";
 
 export const UserContext = createContext<User | null | undefined>(undefined);
@@ -10,25 +10,28 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
   const auth = useAuth();
   const { fetchApi } = useFetch();
 
-  const fetchUserInfo = useCallback(() => {
-    fetchApi<User>("/api/v1/user/self", {
-      headers: {
-        Authorization: `Bearer ${auth.user?.id_token}`,
-      },
-      errorMessageLabel: "userLoadingError",
-    })
-      .then(setUser)
-      .catch(error => {
-        if (error instanceof ApiError && error.status === 401) {
-          auth.removeUser();
-          setUser(null);
-        }
-      });
-  }, [auth, fetchApi]);
+  const fetchUserInfo = useCallback(
+    (auth: AuthContextProps) => {
+      fetchApi<User>("/api/v1/user/self", {
+        headers: {
+          Authorization: `Bearer ${auth.user?.id_token}`,
+        },
+        errorMessageLabel: "userLoadingError",
+      })
+        .then(setUser)
+        .catch(error => {
+          if (error instanceof ApiError && error.status === 401) {
+            auth.removeUser();
+            setUser(null);
+          }
+        });
+    },
+    [fetchApi],
+  );
 
   useEffect(() => {
     if (auth?.isAuthenticated) {
-      fetchUserInfo();
+      fetchUserInfo(auth);
     } else if (auth && !auth.isLoading) {
       setUser(null);
     }
