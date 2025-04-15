@@ -14,10 +14,13 @@ export const Users = () => {
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [users, setUsers] = useState<User[]>();
+  const [isLoading, setIsLoading] = useState(true);
   const { fetchApi } = useFetch();
 
   const loadUsers = useCallback(() => {
-    fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" }).then(setUsers);
+    fetchApi<User[]>("/api/v1/user", { errorMessageLabel: "usersLoadingError" })
+      .then(setUsers)
+      .finally(() => setIsLoading(false));
   }, [fetchApi]);
 
   const startEditing = (id: GridRowId) => {
@@ -85,7 +88,7 @@ export const Users = () => {
 
   return (
     <>
-      <GeopilotDataGrid name="users" loading={!users?.length} rows={users} columns={columns} onSelect={startEditing} />
+      <GeopilotDataGrid name="users" loading={isLoading} rows={users} columns={columns} onSelect={startEditing} />
     </>
   );
 };

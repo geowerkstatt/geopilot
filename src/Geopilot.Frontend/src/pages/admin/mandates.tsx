@@ -14,10 +14,13 @@ export const Mandates = () => {
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [mandates, setMandates] = useState<Mandate[]>();
+  const [isLoading, setIsLoading] = useState(true);
   const { fetchApi } = useFetch();
 
   const loadMandates = useCallback(() => {
-    fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" }).then(setMandates);
+    fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" })
+      .then(setMandates)
+      .finally(() => setIsLoading(false));
   }, [fetchApi]);
 
   const startEditing = (id: GridRowId) => {
@@ -83,7 +86,7 @@ export const Mandates = () => {
     <GeopilotDataGrid
       name="mandates"
       addLabel="addMandate"
-      loading={!mandates?.length}
+      loading={isLoading}
       rows={mandates}
       columns={columns}
       onSelect={startEditing}
