@@ -3,7 +3,7 @@ import { BaseButton } from "./buttons.tsx";
 import { ChevronLeft, UndoOutlined } from "@mui/icons-material";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
-import { ReactNode, useCallback, useContext, useEffect, useRef } from "react";
+import { ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { PromptAction } from "./prompt/promptInterfaces.ts";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { useControlledNavigate } from "./controlledNavigate";
@@ -42,39 +42,49 @@ const AdminDetailForm = <T extends { id: number }>({
   const navigate = useNavigate();
   const { showPrompt } = useContext(PromptContext);
   const dataIdRef = useRef<number | undefined>(data?.id);
+  const [isSaving, setIsSaving] = useState(false);
 
   const saveData = useCallback(
     async (formData: FieldValues, reloadAfterSave = true) => {
-      const id = dataIdRef.current || 0;
-      const dataToSave = prepareDataForSave(formData);
-      dataToSave.id = id;
-      const response = await fetchApi(apiEndpoint, {
-        method: id === 0 ? "POST" : "PUT",
-        body: JSON.stringify(dataToSave),
-        errorMessageLabel: saveErrorLabel,
-      });
-
-      const savedData = response as T;
-
-      if (reloadAfterSave) {
-        onSaveSuccess(savedData);
-        formMethods.reset(savedData);
-
-        if (id === 0) {
-          const newPath = `${basePath}/${savedData.id}`;
-          navigate(newPath, { replace: true });
-          unregisterCheckIsDirty(`${basePath}/0`);
-          registerCheckIsDirty(newPath);
-        }
+      if (isSaving) {
+        return;
       }
+      setIsSaving(true);
+      try {
+        const id = dataIdRef.current || 0;
+        const dataToSave = prepareDataForSave(formData);
+        dataToSave.id = id;
+        const response = await fetchApi(apiEndpoint, {
+          method: id === 0 ? "POST" : "PUT",
+          body: JSON.stringify(dataToSave),
+          errorMessageLabel: saveErrorLabel,
+        });
+        const savedData = response as T;
 
-      return savedData;
+        if (reloadAfterSave) {
+          onSaveSuccess(savedData);
+          formMethods.reset(savedData);
+
+          if (id === 0) {
+            const newPath = `${basePath}/${savedData.id}`;
+            navigate(newPath, { replace: true });
+            unregisterCheckIsDirty(`${basePath}/0`);
+            registerCheckIsDirty(newPath);
+          }
+        }
+
+        return savedData;
+      } finally {
+        // Ensure that isSaving is reset even if an error occurs
+        setIsSaving(false);
+      }
     },
     [
       apiEndpoint,
       basePath,
       fetchApi,
       formMethods,
+      isSaving,
       navigate,
       onSaveSuccess,
       prepareDataForSave,
@@ -163,6 +173,7 @@ const AdminDetailForm = <T extends { id: number }>({
                 <BaseButton
                   icon={<SaveOutlinedIcon />}
                   disabled={
+                    isSaving ||
                     !formMethods.formState.isDirty ||
                     (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
                   }
