@@ -311,7 +311,7 @@ describe("Mandate tests", () => {
     setSelect("evaluateComment", 1, 3);
 
     // Click the save button twice in rapid succession.
-    cy.dataCy("save-button").click({force: true}).click({force: true});
+    cy.dataCy("save-button").click({ force: true }).click({ force: true });
 
     // Wait for the slow save to complete.
     cy.wait("@slowSave").then(interception => {
