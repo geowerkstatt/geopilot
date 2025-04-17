@@ -28,7 +28,6 @@ export const DeliveryOverview = () => {
   const { fetchApi } = useFetch();
 
   const loadDeliveries = useCallback(async () => {
-    setIsLoading(true);
     fetchApi<Delivery[]>("/api/v1/delivery", { errorMessageLabel: "deliveryOverviewLoadingError" })
       .then(response => {
         setDeliveries(

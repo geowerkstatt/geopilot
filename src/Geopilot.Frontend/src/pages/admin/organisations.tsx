@@ -14,12 +14,13 @@ export const Organisations = () => {
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [organisations, setOrganisations] = useState<Organisation[]>();
+  const [isLoading, setIsLoading] = useState(true);
   const { fetchApi } = useFetch();
 
   const loadOrganisations = useCallback(() => {
-    fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" }).then(
-      setOrganisations,
-    );
+    fetchApi<Organisation[]>("/api/v1/organisation", { errorMessageLabel: "organisationsLoadingError" })
+      .then(setOrganisations)
+      .finally(() => setIsLoading(false));
   }, [fetchApi]);
 
   const startEditing = (id: GridRowId) => {
@@ -86,7 +87,7 @@ export const Organisations = () => {
     <GeopilotDataGrid
       name="organisations"
       addLabel="addOrganisation"
-      loading={!organisations?.length}
+      loading={isLoading}
       rows={organisations}
       columns={columns}
       onSelect={startEditing}

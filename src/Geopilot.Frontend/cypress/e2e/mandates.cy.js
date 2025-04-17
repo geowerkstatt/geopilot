@@ -282,4 +282,43 @@ describe("Mandate tests", () => {
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Schumm, Runte and Macejkovic");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");
   });
+
+  it("prevents multiple save requests while waiting for the API response", () => {
+    const randomMandateName = getRandomManadateName();
+
+    // Intercept the POST call and simulate a delayed response.
+    cy.intercept({ url: "/api/v1/mandate", method: "POST" }, req => {
+      // Attach a delay to the response to simulate latency.
+      req.on("response", res => {
+        res.setDelay(2000); // Delay in milliseconds
+      });
+    }).as("slowSave");
+
+    // Open new mandate form.
+    cy.dataCy("addMandate-button").click();
+    cy.location().should(location => {
+      expect(location.pathname).to.eq(`/admin/mandates/0`);
+    });
+
+    // Fill in required fields.
+    setInput("name", randomMandateName);
+    setInput("extent-bottom-left-longitude", "7.3");
+    setInput("extent-bottom-left-latitude", "47.13");
+    setInput("extent-upper-right-longitude", "8.052");
+    setInput("extent-upper-right-latitude", "47.46");
+    setSelect("evaluatePrecursorDelivery", 0, 3);
+    setSelect("evaluatePartial", 1, 2);
+    setSelect("evaluateComment", 1, 3);
+
+    // Click the save button twice in rapid succession.
+    cy.dataCy("save-button").click({ force: true }).click({ force: true });
+
+    // Wait for the slow save to complete.
+    cy.wait("@slowSave").then(interception => {
+      expect(interception).to.exist;
+    });
+
+    // Ensure that only one API call was made.
+    cy.get("@slowSave.all").should("have.length", 1);
+  });
 });

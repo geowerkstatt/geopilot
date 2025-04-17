@@ -42,33 +42,41 @@ const AdminDetailForm = <T extends { id: number }>({
   const navigate = useNavigate();
   const { showPrompt } = useContext(PromptContext);
   const dataIdRef = useRef<number | undefined>(data?.id);
+  const isSavingRef = useRef<boolean>(false);
 
   const saveData = useCallback(
     async (formData: FieldValues, reloadAfterSave = true) => {
-      const id = dataIdRef.current || 0;
-      const dataToSave = prepareDataForSave(formData);
-      dataToSave.id = id;
-      const response = await fetchApi(apiEndpoint, {
-        method: id === 0 ? "POST" : "PUT",
-        body: JSON.stringify(dataToSave),
-        errorMessageLabel: saveErrorLabel,
-      });
-
-      const savedData = response as T;
-
-      if (reloadAfterSave) {
-        onSaveSuccess(savedData);
-        formMethods.reset(savedData);
-
-        if (id === 0) {
-          const newPath = `${basePath}/${savedData.id}`;
-          navigate(newPath, { replace: true });
-          unregisterCheckIsDirty(`${basePath}/0`);
-          registerCheckIsDirty(newPath);
-        }
+      if (isSavingRef.current) {
+        return;
       }
+      isSavingRef.current = true;
+      try {
+        const id = dataIdRef.current || 0;
+        const dataToSave = prepareDataForSave(formData);
+        dataToSave.id = id;
+        const response = await fetchApi(apiEndpoint, {
+          method: id === 0 ? "POST" : "PUT",
+          body: JSON.stringify(dataToSave),
+          errorMessageLabel: saveErrorLabel,
+        });
+        const savedData = response as T;
 
-      return savedData;
+        if (reloadAfterSave) {
+          onSaveSuccess(savedData);
+          formMethods.reset(savedData);
+
+          if (id === 0) {
+            const newPath = `${basePath}/${savedData.id}`;
+            navigate(newPath, { replace: true });
+            unregisterCheckIsDirty(`${basePath}/0`);
+            registerCheckIsDirty(newPath);
+          }
+        }
+
+        return savedData;
+      } finally {
+        isSavingRef.current = false;
+      }
     },
     [
       apiEndpoint,
@@ -163,6 +171,7 @@ const AdminDetailForm = <T extends { id: number }>({
                 <BaseButton
                   icon={<SaveOutlinedIcon />}
                   disabled={
+                    isSavingRef.current ||
                     !formMethods.formState.isDirty ||
                     (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
                   }
