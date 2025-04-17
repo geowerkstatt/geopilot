@@ -3,7 +3,7 @@ import { BaseButton } from "./buttons.tsx";
 import { ChevronLeft, UndoOutlined } from "@mui/icons-material";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
-import { ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useContext, useEffect, useRef } from "react";
 import { PromptAction } from "./prompt/promptInterfaces.ts";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { useControlledNavigate } from "./controlledNavigate";
@@ -42,14 +42,14 @@ const AdminDetailForm = <T extends { id: number }>({
   const navigate = useNavigate();
   const { showPrompt } = useContext(PromptContext);
   const dataIdRef = useRef<number | undefined>(data?.id);
-  const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef<boolean>(false);
 
   const saveData = useCallback(
     async (formData: FieldValues, reloadAfterSave = true) => {
-      if (isSaving) {
+      if (isSavingRef.current) {
         return;
       }
-      setIsSaving(true);
+      isSavingRef.current = true;
       try {
         const id = dataIdRef.current || 0;
         const dataToSave = prepareDataForSave(formData);
@@ -75,8 +75,7 @@ const AdminDetailForm = <T extends { id: number }>({
 
         return savedData;
       } finally {
-        // Ensure that isSaving is reset even if an error occurs
-        setIsSaving(false);
+        isSavingRef.current = false;
       }
     },
     [
@@ -84,7 +83,6 @@ const AdminDetailForm = <T extends { id: number }>({
       basePath,
       fetchApi,
       formMethods,
-      isSaving,
       navigate,
       onSaveSuccess,
       prepareDataForSave,
@@ -173,7 +171,7 @@ const AdminDetailForm = <T extends { id: number }>({
                 <BaseButton
                   icon={<SaveOutlinedIcon />}
                   disabled={
-                    isSaving ||
+                    isSavingRef.current ||
                     !formMethods.formState.isDirty ||
                     (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
                   }
