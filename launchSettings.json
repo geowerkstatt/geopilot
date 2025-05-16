@@ -9,7 +9,8 @@
         "geopilot": "DoNotStart",
         "interlis-check-service": "StartWithoutDebugging",
         "stac-browser": "StartWithoutDebugging",
-        "keycloak":  "StartWithoutDebugging"
+        "keycloak":  "StartWithoutDebugging",
+        "qgis-server": "StartWithoutDebugging"
       }
     }
   }
