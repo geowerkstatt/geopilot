@@ -11,6 +11,7 @@ services:
 
   db:
     image: postgis/postgis
+    container_name: geopilot_db
     restart: always
     ports:
       - 5432:5432
@@ -95,3 +96,16 @@ services:
     ports:
       - "4011:8080"
     command: start-dev --import-realm
+
+  qgis-server:
+    image: camptocamp/qgis-server:latest
+    container_name: qgis_server
+    ports:
+      - "8380:80"
+    volumes:
+      - ./config/qgisserver:/etc/qgisserver
+    environment:
+      - QGIS_SERVER_LOG_LEVEL=0  # INFO (log all requests)
+      - DEBUG=1                  # display env before spawning QGIS Server
+      - QGIS_SERVER_LANDING_PAGE_PROJECTS_DIRECTORIES=/etc/qgisserver/validationWithID0000
+    restart: always
