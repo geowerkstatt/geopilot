@@ -108,4 +108,5 @@ services:
       - QGIS_SERVER_LOG_LEVEL=0  # INFO (log all requests)
       - DEBUG=1                  # display env before spawning QGIS Server
       - QGIS_SERVER_LANDING_PAGE_PROJECTS_DIRECTORIES=/etc/qgisserver/validationWithID0000
+      - PGSERVICEFILE=/etc/qgisserver/validationWithID0000/pg_service.conf
     restart: always
