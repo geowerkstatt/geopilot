@@ -1,0 +1,199 @@
+INTERLIS 2.3;
+
+/** KANTONALE ERWEITERUNG SH.
+Nutzungsplanung (kantonal/kommunal) des Kanton Schaffhausen.
+*/
+
+/* 
+Version     | Who | Modification
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 2025-03-10 | AGI | Version 5.0
+                  | - OID
+                  |   -> Stabile ID für Behälter und Objekte vom Typ TypeID
+                  | - DOMAIN Rechtsstatus mit Unteraufzählung:
+                  |   -> inKraft(ohneLaufendesVerfahren, InAufhebungsverfahren), 
+                  | - CLASS Grundnutzung_Zonenflaeche:
+                  |   -> neues Attribut Rechtsstatus
+                  |   -> Geometrie: Verschärfung ohne Arcs und Toleranz
+                  | - CLASS Linienbezogene_Festlegung:
+                  |   -> neues Attribut Rechtsstatus
+                  |   -> Attribut Anfangspunkt gelöscht
+                  |   -> Attribut bebaubar gelöscht
+                  |   -> Geometrie mit Verschärfung ohne Arcs und Toleranz
+                  | - CLASS Objektbezogene_Festlegung:
+                  |   -> neues Attribut Rechtsstatus
+                  | - CLASS Ueberlagernde_Festlegung:
+                  |   -> neues Attribut Rechtsstatus
+                  |   -> Geometrie mit Verschärfung ohne Arcs und Toleranz
+                  | - CLASS Typ:
+                  |   -> neues Attribut Bauzone
+                  | - CLASS Typ_Kt:
+                  |   -> neues Attribut Symbol
+                  |   -> neues Attribut IstGrundnutzungZonenflaeche (für technische Zwecke)
+                  |   -> neues Attribut IstLinienbezogeneFestlegung (für technische Zwecke)
+                  |   -> neues Attribut IstObjektbezogeneFestlegung (für technische Zwecke)
+                  |   -> neues Attribut IstUeberlagerndeFestlegung (für technische Zwecke)           
+                  | - CLASS Geometrie:
+                  |   -> Attribut Entstehung gelöscht
+                  | - CLASS Baugebietseinteilung (neu):
+                  |   -> neues Attribut Rechtsstatus
+                  |   -> neues Attribut Baugebiet
+                  |   -> neues Attribut Geometrie
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 2019-04-18 | AGI | Version 4.0
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 2012-12-05 | AGI | Version 2.1
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Fachtechnische Auskunft
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+Planungs- und Naturschutzamt
+Telefon: +41 52 632 73 25
+URL: https://sh.ch/CMS/Webseite/Kanton-Schaffhausen/Beh-rde/Verwaltung/Baudepartement/Planungs--und-Naturschutzamt-3592-DE.html
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 
+Allgemeines zum Datenmodell                                 
+-------------------------------------------------------------------------------
+- Version 5.0 basiert auf minimalem Geodatenmodell
+  Nutzungsplanung_V1_2 (ID 73) vom ARE.
+-------------------------------------------------------------------------------
+
+Beteiligte
+-------------------------------------------------------------------------------
+Erarbeitet durch:                                                                     
+- Felix Berger, Kanton Schaffhausen Amt für Geoinformation (AGI)
+- Romedi Filli, Kanton Schaffhausen Amt für Geoinformation (AGI)
+- Marcel Ackermann, Kanton Schaffhausen Amt für Geoinformation (AGI)
+ 
+INTERLIS-Modell erstellt durch:
+- Marcel Ackermann, Kanton Schaffhausen Amt für Geoinformation
+-------------------------------------------------------------------------------
+
+Organisatorische Aspekte
+-------------------------------------------------------------------------------    
+- Datenmodelländerungen und -erweiterungen erfolgen über das AGI.                                               
+- Inhaltliche Belange werden durch das PNA überprüft und gewährleistet.
+- Modellkonformität werden durch die systemischen Mechanismen vom 
+  Datenerfasser per ausgelagertem AddChecks-INTERLIS-Modell geprüft.
+-------------------------------------------------------------------------------
+
+Hinweise zur Datenerfassung
+-------------------------------------------------------------------------------
+- Das erweiterte SH-Datenmodell lässt keine Bogen zu. 
+-------------------------------------------------------------------------------
+*/
+
+!!@ technicalContact=mailto:gis@sh.ch
+!!@ furtherInformation=https://geo.sh.ch
+!!@ furtherMetadata=https://www.geocat.ch/geonetwork/srv/ger/catalog.search#/metadata/23bdd982-a057-4137-bbb6-add2644993cc
+!!@ author=agi-sh
+!!@ tags="Kanton Schaffhausen, Nutzungsplanung, Lärmempfindlichkeit, Zonenplan, Raumplanung"
+!!@ IDGeoIV=73-SH..145-SH
+
+MODEL SH_Nutzungsplanung_V5_0 (de)
+AT "http://geo.sh.ch"
+VERSION "2025-03-10" =
+
+  IMPORTS Nutzungsplanung_V1_2, Laermempfindlichkeitsstufen_V1_2, GeometryCHLV95_V1;
+
+  DOMAIN 
+
+    TypeID = OID TEXT*60;
+
+    RechtsStatus EXTENDS Nutzungsplanung_V1_2.RechtsStatus = (
+      inKraft(
+        ohneLaufendesVerfahren, 
+        InAufhebungsVerfahren)
+    );
+
+  TOPIC Rechtsvorschriften EXTENDS Nutzungsplanung_V1_2.Rechtsvorschriften =
+    BASKET OID AS TypeID;
+    OID AS TypeID;
+    DEPENDS ON Nutzungsplanung_V1_2.Catalogue_CH;
+
+    CLASS Dokument (EXTENDED) = END Dokument;
+
+  END Rechtsvorschriften;
+
+  TOPIC Geobasisdaten EXTENDS Nutzungsplanung_V1_2.Geobasisdaten =
+    OID AS TypeID;
+    DEPENDS ON Nutzungsplanung_V1_2.Catalogue_CH, Nutzungsplanung_V1_2.Rechtsvorschriften;
+  
+    CLASS Typ (EXTENDED) =
+      /** SH-Erweiterung */
+      Bauzone: MANDATORY BOOLEAN;
+      /** SH-Erweiterung */
+	    Laermempfindlichkeitsstufe : Laermempfindlichkeitsstufen_V1_2.ES;
+    END Typ;
+    
+    CLASS Typ_Kt (EXTENDED) =
+      /** SH-Erweiterung: Darstellungssymbol als Binärdatei */
+      Symbol : BLACKBOX BINARY;
+      /** SH-Erweiterung: Typ der Grundnutzung zugeordnet */
+      IstGrundnutzungZonenflaeche : MANDATORY BOOLEAN;
+      /** SH-Erweiterung: Typ der Linienbezogenen Festlegung zugeordnet */
+      IstLinienbezogeneFestlegung : MANDATORY BOOLEAN;
+      /** SH-Erweiterung: Typ der Objektbezogenen Festlegung zugeordnet */
+      IstObjektbezogeneFestlegung : MANDATORY BOOLEAN;
+      /** SH-Erweiterung: Typ der Überlagernden Festlegung zugeordnet */
+      IstUeberlagerndeFestlegung : MANDATORY BOOLEAN;
+    END Typ_Kt;
+
+	  CLASS Grundnutzung_Zonenflaeche (EXTENDED) =
+      /** SH-Erweiterung: Unteraufzählung */
+      Rechtsstatus (EXTENDED) : MANDATORY RechtsStatus;
+	    /** SH-Erweiterung: Lärmaufstufung nur bei Empfindlichkeitsstufe 'ES_II' und 'ES_III zulässig */
+	    LaermempfindlichkeitsstufeAufgestuft : MANDATORY BOOLEAN;
+      /** SH-Erweiterung: Für Planbeschriftung */
+      Objektnummer : TEXT*200;
+      /** SH-Erweiterung: Nur Segmentbogen zulässig */
+      Geometrie (EXTENDED) : MANDATORY SURFACE WITH (STRAIGHTS) VERTEX GeometryCHLV95_V1.Coord2 WITHOUT OVERLAPS>0.000;
+	  END Grundnutzung_Zonenflaeche;
+
+	  CLASS Linienbezogene_Festlegung (EXTENDED) =
+      /** SH-Erweiterung: Unteraufzählung */
+      Rechtsstatus (EXTENDED) : MANDATORY RechtsStatus;
+      /** SH-Erweiterung: Für Planbeschriftung */
+      Objektnummer : TEXT*200;
+      /** SH-Erweiterung: Gerichtete Linie nur als Segmentbogen zulässig */
+      Geometrie (EXTENDED) :  MANDATORY POLYLINE WITH (STRAIGHTS) VERTEX GeometryCHLV95_V1.Coord2 WITHOUT OVERLAPS>0.000;
+    END Linienbezogene_Festlegung;
+
+    CLASS Objektbezogene_Festlegung (EXTENDED) =
+      /** SH-Erweiterung: Unteraufzählung */
+      Rechtsstatus (EXTENDED) : MANDATORY RechtsStatus;
+      /** SH-Erweiterung: Für Planbeschriftung */
+      Objektnummer : TEXT*200;
+    END Objektbezogene_Festlegung;
+
+    CLASS Ueberlagernde_Festlegung (EXTENDED) =
+      /** SH-Erweiterung: Unteraufzählung */
+      Rechtsstatus (EXTENDED) : MANDATORY RechtsStatus;
+      /** SH-Erweiterung: Für Planbeschriftung */
+      Objektnummer : TEXT*200;
+      /** SH-Erweiterung: Nur Segmentbogen zulässig */
+      Geometrie (EXTENDED) : MANDATORY SURFACE WITH (STRAIGHTS) VERTEX GeometryCHLV95_V1.Coord2 WITHOUT OVERLAPS>0.000;
+    END Ueberlagernde_Festlegung;
+
+    CLASS Baugebietseinteilung =
+      /** SH-Erweiterung: Unteraufzählung */
+      Rechtsstatus : MANDATORY RechtsStatus;
+      /** SH-Erweiterung */
+      Baugebiet : MANDATORY BOOLEAN;
+      /** SH-Erweiterung: Nur Segmentbogen zulässig */
+      Geometrie : MANDATORY SURFACE WITH (STRAIGHTS) VERTEX GeometryCHLV95_V1.Coord2 WITHOUT OVERLAPS>0.000;
+    END Baugebietseinteilung;
+
+  END Geobasisdaten;
+
+  TOPIC TransferMetadaten EXTENDS Nutzungsplanung_V1_2.TransferMetadaten =
+    BASKET OID AS TypeID;
+    OID AS TypeID;
+    DEPENDS ON SH_Nutzungsplanung_V5_0.Rechtsvorschriften;
+
+    CLASS Amt (EXTENDED) = END Amt;
+    CLASS Datenbestand (EXTENDED) = END Datenbestand;
+
+  END TransferMetadaten;
+
+END SH_Nutzungsplanung_V5_0.
