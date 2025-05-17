@@ -1,6 +1,13 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Geopilot.Api.Models;
+
+public enum UserType
+{
+    HUMAN,
+    MACHINE
+}
 
 /// <summary>
 /// A person that is allowed to view or declare deliveries.
@@ -19,9 +26,14 @@ public class User
     public string AuthIdentifier { get; set; } = string.Empty;
 
     /// <summary>
+    /// The unique login identifier or username
+    /// </summary>
+    public string LoginIdentifier { get; set; } = string.Empty;
+
+    /// <summary>
     /// The email address of the user.
     /// </summary>
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
 
     /// <summary>
     /// The full name of the user.
@@ -32,6 +44,11 @@ public class User
     /// Whether the user is an administrator.
     /// </summary>
     public bool IsAdmin { get; set; }
+
+    /// <summary>
+    /// Account type for user "Human/Machine".
+    /// </summary>
+    public UserType UserType { get; set; }
 
     /// <summary>
     /// Organisations the user is a member of.

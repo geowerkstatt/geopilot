@@ -17,7 +17,7 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const [termsOfUse, setTermsOfUse] = useState<string | null>();
 
   useEffect(() => {
-    fetchApi<ClientSettings>("/client-settings.json", { responseType: ContentType.Json })
+    fetchApi<ClientSettings>("/client-settings-test.json", { responseType: ContentType.Json })
       .then(setClientSettings)
       .catch(() => setClientSettings(null));
   }, [fetchApi]);

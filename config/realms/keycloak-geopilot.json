@@ -39,6 +39,45 @@
           }
         }
       ]
+    },
+    {
+      "id": "47c21bc9-15cb-4d46-95b6-b93fda39a17f",
+      "clientId": "geopilot-api",
+      "name": "API",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "geopilot-api",
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "client.secret.creation.time": "1747493385",
+        "backchannel.logout.session.required": "true",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false"
+      }
+    },
+    {
+      "id": "2081df83-19fe-4529-9910-5ea3c5903601",
+      "clientId": "robot",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "robot",
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "client.secret.creation.time": "1747494743",
+        "backchannel.logout.session.required": "true",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false"
+      }
     }
   ],
   "users": [

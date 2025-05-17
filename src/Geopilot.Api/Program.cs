@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.StaticFiles;
+using IdentityModel.AspNetCore.OAuth2Introspection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Net.Http.Headers;
@@ -26,10 +27,7 @@ builder.Services.AddCors(options =>
 {
     // DotNetStac.Api uses the "All" policy for access in the STAC browser.
     options.AddPolicy(
-        "All", policy =>
-        {
-            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-        });
+        "All", policy => { policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); });
 });
 
 builder.Services
@@ -51,10 +49,10 @@ builder.Services
 
 builder.Services.Configure<BrowserAuthOptions>(builder.Configuration.GetSection("Auth"));
 
-builder.Services
+/*builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-    {
+        {
         options.Authority = builder.Configuration["Auth:Authority"];
         options.Audience = builder.Configuration["Auth:ClientId"];
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
@@ -68,6 +66,25 @@ builder.Services
                 context.Token = context.Request.Cookies["geopilot.auth"];
                 return Task.CompletedTask;
             },
+        };
+    });*/
+
+builder.Services
+    .AddAuthentication("Bearer")     // default scheme = "Bearer"
+    .AddOAuth2Introspection("Bearer", options =>
+    {
+        options.Authority             = builder.Configuration["Auth:Authority"];
+        options.IntrospectionEndpoint = builder.Configuration["Auth:IntrospectUrl"];
+        options.ClientId              = builder.Configuration["Auth:ApiClientId"];
+        options.ClientSecret          = builder.Configuration["Auth:ApiClientSecret"];
+
+        // Look in the header first, then in the cookie
+        options.TokenRetriever = req =>
+        {
+            var token = TokenRetrieval.FromAuthorizationHeader()(req);
+            return string.IsNullOrEmpty(token)
+                ? req.Cookies["geopilot.auth"]
+                : token;
         };
     });
 
@@ -93,7 +110,8 @@ builder.Services.AddSwaggerGen(options =>
     });
 
     // Include existing documentation in Swagger UI.
-    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory,
+        $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
 
     options.EnableAnnotations();
     options.SupportNonNullableReferenceTypes();
@@ -128,12 +146,10 @@ builder.Services.AddAuthorization(options =>
             RequireAdmin = true,
         });
     });
-    options.AddPolicy(GeopilotPolicies.User, policy =>
-    {
-        policy.Requirements.Add(new GeopilotUserRequirement());
-    });
+    options.AddPolicy(GeopilotPolicies.User, policy => { policy.Requirements.Add(new GeopilotUserRequirement()); });
 
-    var adminPolicy = options.GetPolicy(GeopilotPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");
+    var adminPolicy = options.GetPolicy(GeopilotPolicies.Admin) ??
+                      throw new InvalidOperationException("Missing Admin authorization policy");
     options.DefaultPolicy = adminPolicy;
     options.FallbackPolicy = adminPolicy;
 });
@@ -157,7 +173,8 @@ builder.Services
     {
         var configuration = services.GetRequiredService<IConfiguration>();
         var checkServiceUrl = configuration.GetValue<string>("Validation:InterlisCheckServiceUrl")
-            ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
+                              ?? throw new InvalidOperationException(
+                                  "Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
 
         httpClient.BaseAddress = new Uri(checkServiceUrl);
         httpClient.DefaultRequestHeaders.Accept.Clear();
@@ -228,7 +245,8 @@ else
 app.Use(async (context, next) =>
 {
     var authorizationService = context.RequestServices.GetRequiredService<IAuthorizationService>();
-    if (context.Request.Path.StartsWithSegments("/browser") && !(await authorizationService.AuthorizeAsync(context.User, GeopilotPolicies.Admin)).Succeeded)
+    if (context.Request.Path.StartsWithSegments("/browser") &&
+        !(await authorizationService.AuthorizeAsync(context.User, GeopilotPolicies.Admin)).Succeeded)
     {
         context.Response.Redirect("/");
     }
@@ -254,6 +272,8 @@ app.Use(async (context, next) =>
 
     await next.Invoke();
 });
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

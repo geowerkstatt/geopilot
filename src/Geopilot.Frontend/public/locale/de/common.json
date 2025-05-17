@@ -77,6 +77,7 @@
   "mandateSaveError": "Beim Speichern des Mandats ist ein Fehler aufgetreten: {{error}}",
   "mandates": "Mandate",
   "mandatesLoadingError": "Beim Laden der Mandate ist ein Fehler aufgetreten: {{error}}",
+  "maschineUser": "Maschineller Benutzer",
   "name": "Name",
   "noMandatesFound": "Es wurde kein passendes Mandat für Ihre Lieferung gefunden.",
   "or": "oder",

@@ -1,10 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { Tooltip } from "@mui/material";
-import { Organisation, User } from "../../api/apiInterfaces";
+import { Box, Tooltip } from "@mui/material";
+import { Organisation, User, UserType } from "../../api/apiInterfaces";
 import { useCallback, useEffect, useState } from "react";
 import { useGeopilotAuth } from "../../auth";
-import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
+import { GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId, GridValidRowModel } from "@mui/x-data-grid";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import MachineIcon from "@mui/icons-material/SmartToyOutlined";
 import { useControlledNavigate } from "../../components/controlledNavigate";
 import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
 import useFetch from "../../hooks/useFetch.ts";
@@ -42,6 +43,22 @@ export const Users = () => {
       type: "string",
       flex: 1,
       minWidth: 200,
+      renderCell: (params: GridRenderCellParams<GridValidRowModel, string>) => {
+        const userRow = params.row;
+        const fullName = params.value;
+
+        if (userRow.userType === UserType.MACHINE) {
+          return (
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Tooltip title={t("machineUser") || "Machine User"}>
+                <MachineIcon sx={{ color: "action.active", mr: 1 }} />
+              </Tooltip>
+              {fullName}
+            </Box>
+          );
+        }
+        return fullName;
+      },
     },
     {
       field: "email",

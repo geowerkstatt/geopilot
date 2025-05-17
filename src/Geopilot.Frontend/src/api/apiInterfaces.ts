@@ -62,7 +62,9 @@ export interface User {
   id: number;
   fullName: string;
   isAdmin: boolean;
+  loginIdentifier: string;
   email: string;
+  userType: UserType;
   organisations: Organisation[];
   deliveries?: Delivery[];
 }
@@ -76,6 +78,11 @@ export enum ValidationStatus {
   Completed = "completed",
   CompletedWithErrors = "completedWithErrors",
   Failed = "failed",
+}
+
+export enum UserType {
+  HUMAN = "human",
+  MACHINE = "machine",
 }
 
 export interface ValidatorResult {

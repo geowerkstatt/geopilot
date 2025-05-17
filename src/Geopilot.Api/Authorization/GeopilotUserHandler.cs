@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Models;
+using IdentityModel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
@@ -25,7 +26,8 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
     }
 
     /// <inheritdoc/>
-    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, GeopilotUserRequirement requirement)
+    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context,
+        GeopilotUserRequirement requirement)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(requirement);
@@ -48,39 +50,48 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
 
     internal async Task<User?> UpdateOrCreateUser(AuthorizationHandlerContext context)
     {
+        var contextUser = context.User;
+
         var sub = context.User.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Sub)?.Value;
         var email = context.User.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Email)?.Value;
         var name = context.User.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Name)?.Value;
+        var clientId = contextUser.Claims.FirstOrDefault(claim => claim.Type == JwtClaimTypes.ClientId)?.Value;
 
-        if (sub == null || name == null || email == null)
-        {
-            logger.LogError("Login failed as not all required claims were provided.");
-            return null;
-        }
+        var isHuman = !string.IsNullOrEmpty(email);
+        var loginId = isHuman ? email! : clientId;
+        if (loginId == null)
+            throw new InvalidOperationException($"Cannot determine login identifier for sub={sub}");
 
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == sub);
+        var fullName = isHuman ? name ?? email!.Split('@')[0] : clientId!;
+        var userType = isHuman ? UserType.HUMAN : UserType.MACHINE;
+
+        var user = await dbContext.Users.SingleOrDefaultAsync(x => x.AuthIdentifier == sub);
+
         if (user == null)
         {
-            user = new User { AuthIdentifier = sub, Email = email, FullName = name };
-
-            // Elevate first user to admin
-            if (!dbContext.Users.Any())
+            user = new User
             {
-                user.IsAdmin = true;
-            }
-
-            await dbContext.Users.AddAsync(user);
-            logger.LogInformation("New user (with sub <{Sub}>) has been registered in database.", sub);
+                AuthIdentifier = sub,
+                LoginIdentifier = loginId,
+                Email = email,
+                FullName = fullName,
+                UserType = userType,
+                // first human to sign up becomes admin:
+                IsAdmin = (userType == UserType.HUMAN) &&
+                          !await dbContext.Users.AnyAsync(x => x.UserType == UserType.HUMAN)
+            };
+            dbContext.Users.Add(user);
+            logger.LogInformation("Registered new {UserType} user {Sub}", userType, sub);
         }
-        else if (user.Email != email || user.FullName != name)
+        else
         {
-            // Update user information in database from provided principal
-            user.Email = email;
-            user.FullName = name;
+            if (user.LoginIdentifier != loginId) user.LoginIdentifier = loginId;
+            if (user.Email != email) user.Email = email;
+            if (user.FullName != fullName) user.FullName = fullName;
+            if (user.UserType != userType) user.UserType = userType;
         }
 
         await dbContext.SaveChangesAsync();
-
-        return await dbContext.Users.SingleAsync(u => u.AuthIdentifier == sub);
+        return user;
     }
 }

@@ -48,8 +48,10 @@ internal static class ContextExtensions
             .RuleFor(u => u.Id, _ => 0)
             .RuleFor(u => u.AuthIdentifier, f => f.Random.Uuid().ToString())
             .RuleFor(u => u.FullName, f => f.Person.FullName)
+            .RuleFor(u => u.LoginIdentifier, f => f.Person.FullName)
             .RuleFor(u => u.Email, f => f.Person.Email)
             .RuleFor(u => u.IsAdmin, f => f.IndexFaker == 0)
+            .RuleFor(u => u.UserType, UserType.HUMAN)
             .RuleFor(u => u.Organisations, _ => new List<Organisation>())
             .RuleFor(u => u.Deliveries, _ => new List<Delivery>());
 
