@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## v2.0.203 - 2025-05-01
+
 ### Added
 
 - Localisation support for configurable markdown content (Impressum, Privacy Policy etc.), which allows to provide different versions for different languages.
