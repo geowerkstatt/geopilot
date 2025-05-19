@@ -62,6 +62,7 @@
   "imprint": "Impressum",
   "invalidContentType": "Ungültiger Antworttyp",
   "isAdmin": "Ist Admin",
+  "isApproved": "Ich besätige die Richtigkeit dieser Lieferung.",
   "isPartialDelivery": "Ist Teillieferung",
   "latitude": "Breite",
   "licenseInformation": "Lizenzinformationen",

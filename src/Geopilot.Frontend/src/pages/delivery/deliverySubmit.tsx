@@ -21,6 +21,7 @@ export const DeliverySubmit = () => {
   const [mandates, setMandates] = useState<Mandate[]>([]);
   const [selectedMandate, setSelectedMandate] = useState<Mandate>();
   const [previousDeliveries, setPreviousDeliveries] = useState<Delivery[]>([]);
+  const [requiresApproval, setRequiresApproval] = useState(false);
 
   useEffect(() => {
     if (validationResponse?.jobId && user) {
@@ -42,6 +43,10 @@ export const DeliverySubmit = () => {
     submitDelivery(data as DeliverySubmitData);
   };
 
+  const handlePrecursorChange = (precursorId: number) => {
+    setRequiresApproval(precursorId != undefined);
+  };
+
   const handleMandateChange = (mandateId: number) => {
     formMethods.reset();
     formMethods.setValue("mandate", mandateId);
@@ -55,6 +60,7 @@ export const DeliverySubmit = () => {
       setSelectedMandate(undefined);
       setPreviousDeliveries([]);
     }
+    setRequiresApproval(false);
   };
 
   return authEnabled && user ? (
@@ -78,6 +84,7 @@ export const DeliverySubmit = () => {
                 label="precursor"
                 required={selectedMandate.evaluatePrecursorDelivery === FieldEvaluationType.Required}
                 disabled={previousDeliveries.length === 0}
+                onUpdate={handlePrecursorChange}
                 values={previousDeliveries.map(delivery => ({
                   key: delivery.id,
                   name: delivery.date.toLocaleString(),
@@ -98,6 +105,16 @@ export const DeliverySubmit = () => {
                 required={selectedMandate.evaluateComment === FieldEvaluationType.Required}
                 multiline={true}
                 rows={3}
+              />
+            </FormContainer>
+          ) : null}
+          {requiresApproval ? (
+            <FormContainer>
+              <FormCheckbox
+                fieldName="isApproved"
+                label="isApproved"
+                checked={false}
+                validation={{ validate: (value: boolean) => value }}
               />
             </FormContainer>
           ) : null}
