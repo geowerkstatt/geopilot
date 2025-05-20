@@ -11,6 +11,42 @@ import VectorSource from "ol/source/Vector";
 import GeoJSON from "ol/format/GeoJSON";
 import { Extent } from "ol/extent";
 import { bbox as bboxStrategy } from "ol/loadingstrategy";
+import { Style, Fill, Stroke } from "ol/style";
+import Feature from "ol/Feature";
+import { Geometry } from "ol/geom";
+
+const getFeatureStyle = (isNew: boolean) => (feature: Feature<Geometry>) => {
+  const operation = (feature.get("operation") as string)?.toLowerCase() || "";
+  if (operation == "deleted (no close geometry)") {
+    return new Style({
+      fill: new Fill({ color: "rgba(255,0,0,0.9)" }),
+      stroke: new Stroke({ color: "#ff0000", width: 2 }),
+    });
+  }
+  if (operation == "added (no close geometry)") {
+    return new Style({
+      fill: new Fill({ color: "rgba(000,255,000,0.9)" }),
+      stroke: new Stroke({ color: "#00ff00", width: 2 }),
+    });
+  }
+  if (operation == "changed (equal geometry)") {
+    return new Style({
+      fill: new Fill({ color: "rgba(000,000,255,0.9)" }),
+      stroke: new Stroke({ color: "#0000ff", width: 2 }),
+    });
+  }
+  if (operation == "changed (close geometry)") {
+    return new Style({
+      fill: new Fill({ color: isNew ? "rgba(000, 255, 128, 0.7)" : "rgba(255, 000, 128, 0.9)" }),
+      stroke: new Stroke({ color: isNew ? "#00FF80" : "#ff0080", width: 2 }),
+    });
+  }
+  // fallback style
+  return new Style({
+    fill: new Fill({ color: "rgba(128,128,128,0.3)" }),
+    stroke: new Stroke({ color: "#888", width: 1 }),
+  });
+};
 
 export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -60,8 +96,8 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
         target: mapRef.current,
         layers: [
           new TileLayer({ source: new OSM(), className: styles.ol_bw }),
-          new VectorLayer({ source: currentGeometrySource }),
-          new VectorLayer({ source: nextGeometrySource }),
+          new VectorLayer({ source: currentGeometrySource, style: getFeatureStyle(false), className: styles.diff_old }),
+          new VectorLayer({ source: nextGeometrySource, style: getFeatureStyle(true), className: styles.diff_new }),
         ],
         view: new View({
           center: fromLonLat([8.6, 47.7]),
