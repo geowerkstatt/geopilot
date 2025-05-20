@@ -13,8 +13,25 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
   const mapRef = useRef<HTMLDivElement>(null);
   const mapObj = useRef<Map | null>(null);
 
+  const OGCFilter = (extent: Extent) =>
+`
+<Filter>
+  <And>
+    <PropertyIsNotEqualTo>
+      <PropertyName>operation</PropertyName>
+      <Literal>unchanged</Literal>
+    </PropertyIsNotEqualTo>
+    <BBOX>
+      <PropertyName>the_geom</PropertyName>
+      <Box srsName="EPSG:3857">
+        <coordinates>${extent.join(",")}</coordinates>
+      </Box>
+    </BBOX>
+  </And>
+</Filter>
+`.trim();
+
   useEffect(() => {
-    console.log("Running useEffect", mapRef.current);
     if (mapRef.current && !mapObj.current) {
       const currentGeometrySource = new VectorSource({
         format: new GeoJSON(),
@@ -22,7 +39,7 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
           `${sourceWFS}?service=WFS&` +
           "version=1.1.0&request=GetFeature&typename=diff_sh_ntznng_v5_0geobasisdaten_grundnutzung_zonenflaeche.c_geometrie&" +
           "outputFormat=application/json&srsname=EPSG:3857&" +
-          `bbox=${extent.join(",")},EPSG:3857'`,
+          `filter=${encodeURIComponent(OGCFilter(extent))}`,
         strategy: bboxStrategy,
       });
 
@@ -32,7 +49,7 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
           `${sourceWFS}?service=WFS&` +
           "version=1.1.0&request=GetFeature&typename=diff_sh_ntznng_v5_0geobasisdaten_grundnutzung_zonenflaeche.n_geometrie&" +
           "outputFormat=application/json&srsname=EPSG:3857&" +
-          `bbox=${extent.join(",")},EPSG:3857'`,
+          `filter=${encodeURIComponent(OGCFilter(extent))}`,
         strategy: bboxStrategy,
       });
 
@@ -50,7 +67,6 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
       });
     }
 
-    console.log("Map should be loaded", mapObj.current);
 
     return () => {
       mapObj.current?.setTarget(undefined);
