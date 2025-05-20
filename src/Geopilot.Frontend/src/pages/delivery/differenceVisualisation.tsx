@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import "ol/ol.css";
+import styles from "./differenceVisualisation.module.css";
 import Map from "ol/Map";
 import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
@@ -7,6 +9,7 @@ import { fromLonLat } from "ol/proj";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import GeoJSON from "ol/format/GeoJSON";
+import { Extent } from "ol/extent";
 import { bbox as bboxStrategy } from "ol/loadingstrategy";
 
 export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) => {
@@ -14,22 +17,22 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
   const mapObj = useRef<Map | null>(null);
 
   const OGCFilter = (extent: Extent) =>
-`
-<Filter>
-  <And>
-    <PropertyIsNotEqualTo>
-      <PropertyName>operation</PropertyName>
-      <Literal>unchanged</Literal>
-    </PropertyIsNotEqualTo>
-    <BBOX>
-      <PropertyName>the_geom</PropertyName>
-      <Box srsName="EPSG:3857">
-        <coordinates>${extent.join(",")}</coordinates>
-      </Box>
-    </BBOX>
-  </And>
-</Filter>
-`.trim();
+    `
+    <Filter>
+      <And>
+        <PropertyIsNotEqualTo>
+          <PropertyName>operation</PropertyName>
+          <Literal>unchanged</Literal>
+        </PropertyIsNotEqualTo>
+        <BBOX>
+          <PropertyName>the_geom</PropertyName>
+          <Box srsName="EPSG:3857">
+            <coordinates>${extent.join(",")}</coordinates>
+          </Box>
+        </BBOX>
+      </And>
+    </Filter>
+    `.trim();
 
   useEffect(() => {
     if (mapRef.current && !mapObj.current) {
@@ -56,7 +59,7 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
       mapObj.current = new Map({
         target: mapRef.current,
         layers: [
-          new TileLayer({ source: new OSM() }),
+          new TileLayer({ source: new OSM(), className: styles.ol_bw }),
           new VectorLayer({ source: currentGeometrySource }),
           new VectorLayer({ source: nextGeometrySource }),
         ],
@@ -66,7 +69,6 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
         }),
       });
     }
-
 
     return () => {
       mapObj.current?.setTarget(undefined);
