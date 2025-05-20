@@ -11,6 +11,7 @@ import { DeliveryStepEnum, DeliverySubmitData } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 import { useTranslation } from "react-i18next";
 import useFetch from "../../hooks/useFetch.ts";
+import { DifferenceVisualisation } from "./differenceVisualisation.tsx";
 
 export const DeliverySubmit = () => {
   const { t } = useTranslation();
@@ -109,14 +110,19 @@ export const DeliverySubmit = () => {
             </FormContainer>
           ) : null}
           {requiresApproval ? (
-            <FormContainer>
-              <FormCheckbox
-                fieldName="isApproved"
-                label="isApproved"
-                checked={false}
-                validation={{ validate: (value: boolean) => value }}
-              />
-            </FormContainer>
+            <>
+              <FormContainer>
+                <DifferenceVisualisation sourceWFS="/mapservice/validationWithID0000" />
+              </FormContainer>
+              <FormContainer>
+                <FormCheckbox
+                  fieldName="isApproved"
+                  label="isApproved"
+                  checked={false}
+                  validation={{ validate: (value: boolean) => value }}
+                />
+              </FormContainer>
+            </>
           ) : null}
           <FlexRowEndBox>
             <CancelButton onClick={() => resetDelivery()} disabled={isLoading} />

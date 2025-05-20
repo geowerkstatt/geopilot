@@ -86,6 +86,10 @@ export default defineConfig({
         target: "http://localhost:7188/",
         secure: false,
       },
+      "^/mapservice(/.*)?$": {
+        target: "http://localhost:7188/",
+        secure: false,
+      },
     },
     port: 5173,
     https: {

@@ -4,7 +4,7 @@
     "Projects": [
       {
         "Path": "src\\Geopilot.Frontend\\Geopilot.Frontend.esproj",
-        "Action": "Start",
+        "Action": "StartWithoutDebugging",
         "DebugTarget": "localhost (Edge)"
       },
       {
