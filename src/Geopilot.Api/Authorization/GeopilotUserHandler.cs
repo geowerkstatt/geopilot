@@ -58,7 +58,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             return null;
         }
 
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == sub);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user == null)
         {
             user = new User { AuthIdentifier = sub, Email = email, FullName = name };
@@ -72,10 +72,10 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             await dbContext.Users.AddAsync(user);
             logger.LogInformation("New user (with sub <{Sub}>) has been registered in database.", sub);
         }
-        else if (user.Email != email || user.FullName != name)
+        else if (user.AuthIdentifier != sub || user.FullName != name)
         {
             // Update user information in database from provided principal
-            user.Email = email;
+            user.AuthIdentifier = sub;
             user.FullName = name;
         }
 
