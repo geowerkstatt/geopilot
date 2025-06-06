@@ -59,13 +59,13 @@
       ]
     },
     {
-      "id": "1ed45832-2880-4fd4-a274-bbcc101c3308",
+      "id": "1ed45832-2880-4fd4-a274-bbcc101c33087",
       "username": "uploader",
       "enabled": true,
       "emailVerified": true,
-      "email": "uploader@geopilot.ch",
+      "email": "user@geopilot.ch",
       "firstName": "Ursula",
-      "lastName": "Uploader",
+      "lastName": "User",
       "credentials": [
         {
           "type": "password",
