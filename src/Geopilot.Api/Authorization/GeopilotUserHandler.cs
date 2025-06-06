@@ -81,6 +81,6 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
 
         await dbContext.SaveChangesAsync();
 
-        return await dbContext.Users.SingleAsync(u => u.AuthIdentifier == sub);
+        return await dbContext.Users.SingleAsync(u => u.Email == email);
     }
 }
