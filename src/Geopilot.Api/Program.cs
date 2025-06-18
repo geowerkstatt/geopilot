@@ -22,6 +22,15 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add detailed logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole(options => options.IncludeScopes = true);
+builder.Logging.AddDebug();
+
+// Set minimum log level
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
+
 builder.Services.AddCors(options =>
 {
     // DotNetStac.Api uses the "All" policy for access in the STAC browser.

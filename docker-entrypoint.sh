@@ -1,6 +1,13 @@
 #!/bin/bash
 set -e
 
+echo "Starting Geopilot container with environment: $ASPNETCORE_ENVIRONMENT"
+
+# Print environment variables (excluding secrets)
+echo "--- Environment Variables ---"
+printenv | grep -v -E "PASSWORD|SECRET|KEY" | sort
+
+
 # Sets the umask from the docker default 0022, to 0002. This has the effect that newly created files and directories
 # will have the group write permission set. With the default 0022, groups that own these directories won't be able to edit them.
 umask 0002
