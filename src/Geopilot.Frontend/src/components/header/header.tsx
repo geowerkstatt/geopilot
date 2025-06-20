@@ -101,7 +101,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             )}
             <Box
               sx={{
-                display: {xs: "none", sm: "flex"},
+                display: { xs: "none", sm: "flex" },
                 overflow: "hidden",
                 textWrap: "nowrap",
                 alignItems: { xs: "start", md: "center" },
@@ -110,13 +110,19 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 geopilot&nbsp;
               </Typography>
               {clientSettings?.application?.name && (
-                <Typography sx={{ typography: { xs: "h6", md: "h1" }, margin: "0 !important", textOverflow: "ellipsis", overflow: "hidden" }}>
+                <Typography
+                  sx={{
+                    typography: { xs: "h6", md: "h1" },
+                    margin: "0 !important",
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                  }}>
                   {clientSettings?.application?.localName?.[i18n.language] || clientSettings?.application?.name}
                 </Typography>
               )}
             </Box>
           </FlexRowBox>
-          <FlexRowBox sx={{flexWrap: "nowrap"}}>
+          <FlexRowBox sx={{ flexWrap: "nowrap" }}>
             <LanguagePopup />
             {authEnabled &&
               (user ? (
