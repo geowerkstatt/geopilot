@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Fixed visual issues with Header on mobile devices.
 - Fixed bug where language preference is reset in certain circumstances.
 
 ## v2.0.203 - 2025-05-01
