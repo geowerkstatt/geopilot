@@ -63,7 +63,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
           }}>
           <FlexRowBox
             data-cy="header"
-            sx={{ padding: "5px 0", cursor: "pointer" }}
+            sx={{ padding: "5px 0", cursor: "pointer", flexWrap: "nowrap", overflow: "hidden" }}
             onClick={() => {
               navigateTo("/");
             }}>
@@ -101,21 +101,28 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             )}
             <Box
               sx={{
-                display: "flex",
-                flexDirection: { xs: "column", md: "row" },
+                display: { xs: "none", sm: "flex" },
+                overflow: "hidden",
+                textWrap: "nowrap",
                 alignItems: { xs: "start", md: "center" },
               }}>
               <Typography sx={{ typography: { xs: "h4", md: "h1" }, margin: "0 !important" }}>
                 geopilot&nbsp;
               </Typography>
               {clientSettings?.application?.name && (
-                <Typography sx={{ typography: { xs: "h6", md: "h1" }, margin: "0 !important" }}>
+                <Typography
+                  sx={{
+                    typography: { xs: "h6", md: "h1" },
+                    margin: "0 !important",
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                  }}>
                   {clientSettings?.application?.localName?.[i18n.language] || clientSettings?.application?.name}
                 </Typography>
               )}
             </Box>
           </FlexRowBox>
-          <FlexRowBox>
+          <FlexRowBox sx={{ flexWrap: "nowrap" }}>
             <LanguagePopup />
             {authEnabled &&
               (user ? (
