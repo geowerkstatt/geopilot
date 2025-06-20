@@ -9,7 +9,7 @@ i18n
   .use(LanguageDetector)
   .init({
     detection: {
-      order: ["navigator", "cookie", "htmlTag"],
+      order: ["cookie", "navigator", "htmlTag"],
       lookupCookie: "i18next",
       caches: ["cookie"],
     },
