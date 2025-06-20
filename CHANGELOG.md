@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed bug where language preference is reset in certain circumstances.
+
 ## v2.0.203 - 2025-05-01
 
 ### Added
