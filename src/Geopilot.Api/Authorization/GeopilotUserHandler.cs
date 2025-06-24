@@ -58,7 +58,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             return null;
         }
 
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase));
         if (user == null)
         {
             user = new User { AuthIdentifier = sub, Email = email.ToLowerInvariant(), FullName = name };
