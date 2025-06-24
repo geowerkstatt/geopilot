@@ -58,10 +58,10 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             return null;
         }
 
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email);
         if (user == null)
         {
-            user = new User { AuthIdentifier = sub, Email = email, FullName = name };
+            user = new User { AuthIdentifier = sub, Email = email.ToLowerInvariant(), FullName = name };
 
             // Elevate first user to admin
             if (!dbContext.Users.Any())
@@ -81,6 +81,6 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
 
         await dbContext.SaveChangesAsync();
 
-        return await dbContext.Users.SingleAsync(u => u.Email == email);
+        return user;
     }
 }
