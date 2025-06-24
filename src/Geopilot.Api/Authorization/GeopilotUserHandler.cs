@@ -58,7 +58,8 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             return null;
         }
 
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Email.ToLowerInvariant() == email.ToLowerInvariant());
+        // This convers everything to lower case and compares it pretty much, check this: https://learn.microsoft.com/en-us/ef/core/miscellaneous/collations-and-case-sensitivity#database-collation
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => EF.Functions.Collate(u.Email, "SQL_Latin1_General_CP1_CI_AS") == EF.Functions.Collate(email, "SQL_Latin1_General_CP1_CI_AS"));
         if (user == null)
         {
             user = new User { AuthIdentifier = sub, Email = email.ToLowerInvariant(), FullName = name };
