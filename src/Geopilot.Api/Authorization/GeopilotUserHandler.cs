@@ -61,7 +61,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         var user = await dbContext.Users.FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email, email));
         if (user == null)
         {
-            user = new User { AuthIdentifier = sub, Email = email.ToLowerInvariant(), FullName = name };
+            user = new User { AuthIdentifier = sub, Email = email, FullName = name };
 
             // Elevate first user to admin
             if (!dbContext.Users.Any())
