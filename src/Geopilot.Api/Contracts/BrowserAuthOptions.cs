@@ -14,4 +14,9 @@ public class BrowserAuthOptions
     /// The client id of the application registered at the authority.
     /// </summary>
     public string ClientId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The organization id of the application registered at the authority.
+    /// </summary>
+    public string? OrganizationId { get; set; } = string.Empty;
 }

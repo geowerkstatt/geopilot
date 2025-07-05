@@ -21,4 +21,5 @@ export interface OidcContainerProps extends PropsWithChildren {
 export interface AuthSettings {
   authority: string;
   clientId: string;
+  organizationId?: string;
 }
