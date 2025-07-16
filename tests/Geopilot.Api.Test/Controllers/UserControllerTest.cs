@@ -25,6 +25,7 @@ public class UserControllerTest
         {
             Authority = "https://localhost/some-authority",
             ClientId = Guid.NewGuid().ToString(),
+            Scope = "profile email openid"
         };
         authOptionsMock.SetupGet(o => o.Value).Returns(browserAuthOptions);
 
