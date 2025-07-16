@@ -16,7 +16,7 @@ public class BrowserAuthOptions
     public string ClientId { get; set; } = string.Empty;
 
     /// <summary>
-    /// The organization id of the application registered at the authority.
+    /// The scopes required to authenticate with the IDP.
     /// </summary>
-    public string? OrganizationId { get; set; } = string.Empty;
+    public string Scope { get; set; } = string.Empty;
 }
