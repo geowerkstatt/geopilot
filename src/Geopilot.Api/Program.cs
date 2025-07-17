@@ -164,16 +164,9 @@ builder.Services
         httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     });
 
+builder.Services.AddHttpClient<IGeopilotUserInfoService, GeopilotUserInfoService>();
+builder.Services.AddScoped<IGeopilotUserInfoService, GeopilotUserInfoService>();
 builder.Services.AddHttpContextAccessor();
-
-builder.Services
-    .AddHttpClient<GeopilotUserHandler>()
-    .ConfigureHttpClient(httpClient =>
-    {
-        httpClient.DefaultRequestHeaders.Accept.Clear();
-        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-    });
-
 
 var configureContextOptions = (DbContextOptionsBuilder options) =>
 {
