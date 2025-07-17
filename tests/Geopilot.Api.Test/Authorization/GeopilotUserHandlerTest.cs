@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.IdentityModel.Tokens.Jwt;
@@ -12,6 +13,8 @@ namespace Geopilot.Api.Test.Authorization;
 public class GeopilotUserHandlerTest
 {
     private Mock<ILogger<GeopilotUserHandler>> loggerMock;
+    private Mock<GeopilotUserInfoService> userInfoServiceMock;
+    private Mock<IHttpContextAccessor> httpContextAccessorMock;
     private Context context;
     private GeopilotUserHandler geopilotUserHandler;
 
@@ -19,8 +22,15 @@ public class GeopilotUserHandlerTest
     public void Initialize()
     {
         loggerMock = new Mock<ILogger<GeopilotUserHandler>>();
+        userInfoServiceMock = new Mock<GeopilotUserInfoService>();
+        httpContextAccessorMock = new Mock<IHttpContextAccessor>();
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        geopilotUserHandler = new GeopilotUserHandler(loggerMock.Object, context);
+
+        geopilotUserHandler = new GeopilotUserHandler(
+            loggerMock.Object,
+            context,
+            userInfoServiceMock.Object,
+            httpContextAccessorMock.Object);
     }
 
     [TestCleanup]
