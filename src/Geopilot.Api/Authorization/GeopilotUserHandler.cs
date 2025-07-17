@@ -1,8 +1,6 @@
 ﻿using Geopilot.Api.Models;
-using Geopilot.Api.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace Geopilot.Api.Authorization;
 
@@ -13,29 +11,25 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
 {
     private readonly Context dbContext;
     private readonly ILogger<GeopilotUserHandler> logger;
-    private readonly HttpClient httpClient;
-    private readonly IConfiguration configuration;
+    private readonly GeopilotUserInfoService userInfoService;
     private readonly IHttpContextAccessor httpContextAccessor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GeopilotUserHandler"/> class.
     /// </summary>
-    /// <param name="dbContext">The database context.</param>
     /// <param name="logger">The logger used for authorization related logging.</param>
-    /// <param name="httpClient">HTTP client for userinfo endpoint calls.</param>
-    /// <param name="configuration">Application configuration.</param>
+    /// <param name="dbContext">The database context.</param>
+    /// <param name="userInfoService">Service for retrieving user information from the identity provider.</param>
     /// <param name="httpContextAccessor">HTTP context accessor.</param>
     public GeopilotUserHandler(
         ILogger<GeopilotUserHandler> logger,
         Context dbContext,
-        HttpClient httpClient,
-        IConfiguration configuration,
+        GeopilotUserInfoService userInfoService,
         IHttpContextAccessor httpContextAccessor)
     {
         this.dbContext = dbContext;
         this.logger = logger;
-        this.httpClient = httpClient;
-        this.configuration = configuration;
+        this.userInfoService = userInfoService;
         this.httpContextAccessor = httpContextAccessor;
     }
 
@@ -63,14 +57,14 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
 
     internal async Task<User?> UpdateOrCreateUser(AuthorizationHandlerContext context)
     {
-        var accessToken = ExtractAccessToken(context);
+        var accessToken = ExtractAccessToken();
         if (string.IsNullOrEmpty(accessToken))
         {
             logger.LogError("No access token found in request.");
             return null;
         }
 
-        var userInfo = await GetUserInfoAsync(accessToken);
+        var userInfo = await userInfoService.GetUserInfoAsync(accessToken);
         if (userInfo == null)
             return null;
 
@@ -81,7 +75,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             {
                 AuthIdentifier = userInfo.Sub,
                 Email = userInfo.Email,
-                FullName = userInfo.Name
+                FullName = userInfo.Name,
             };
 
             // Elevate first user to admin
@@ -104,59 +98,17 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         return await dbContext.Users.SingleAsync(u => u.AuthIdentifier == userInfo.Sub);
     }
 
-    private string? ExtractAccessToken(AuthorizationHandlerContext context)
+    private string? ExtractAccessToken()
     {
         var httpContext = httpContextAccessor.HttpContext;
-        if (httpContext == null)
-            return null;
+        if (httpContext == null) return null;
 
-        // Check Authorization header first
         var authHeader = httpContext.Request.Headers["Authorization"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.Ordinal))
         {
             return authHeader.Substring("Bearer ".Length);
         }
 
-        // Fallback to cookie
         return httpContext.Request.Cookies["geopilot.auth"];
     }
-
-    private async Task<UserInfoResponse?> GetUserInfoAsync(string accessToken)
-    {
-        try
-        {
-            var userInfoEndpoint = configuration["Auth:UserInfoUrl"];
-
-            using var request = new HttpRequestMessage(HttpMethod.Get, userInfoEndpoint);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-
-            var response = await httpClient.SendAsync(request);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogError("Failed to retrieve user info. Status: {StatusCode}", response.StatusCode);
-                return null;
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var userInfo = JsonSerializer.Deserialize<UserInfoResponse>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            if (string.IsNullOrEmpty(userInfo?.Sub) || string.IsNullOrEmpty(userInfo?.Email) || string.IsNullOrEmpty(userInfo?.Name))
-            {
-                logger.LogError("UserInfo response missing required fields (sub, email, name).");
-                return null;
-            }
-
-            return userInfo;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error retrieving user info from userinfo endpoint.");
-            return null;
-        }
-    }
 }
-
