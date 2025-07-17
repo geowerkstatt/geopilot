@@ -69,6 +69,7 @@ services:
       Auth__Authority: http://localhost:4011/realms/geopilot
       Auth__ClientId: geopilot-client
       Auth__AuthorizationUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/auth
+      Auth__UserInfoUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/userinfo
       Auth__TokenUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/token
       Auth__ApiOrigin: http://localhost:5173
       Auth__Scope: "profile email openid"
