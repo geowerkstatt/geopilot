@@ -1,4 +1,4 @@
-namespace Geopilot.Api.Contracts;
+﻿namespace Geopilot.Api.Contracts;
 
 /// <summary>
 /// Response model for OIDC userinfo endpoint.

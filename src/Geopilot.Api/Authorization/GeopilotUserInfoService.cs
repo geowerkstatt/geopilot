@@ -1,4 +1,4 @@
-using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Contracts;
 using System.Text.Json;
 
 namespace Geopilot.Api.Authorization;

@@ -1,4 +1,4 @@
-using Geopilot.Api.Authorization;
+﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
