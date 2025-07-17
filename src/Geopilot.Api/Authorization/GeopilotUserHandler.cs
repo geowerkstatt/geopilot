@@ -11,7 +11,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
 {
     private readonly Context dbContext;
     private readonly ILogger<GeopilotUserHandler> logger;
-    private readonly GeopilotUserInfoService userInfoService;
+    private readonly IGeopilotUserInfoService userInfoService;
     private readonly IHttpContextAccessor httpContextAccessor;
 
     /// <summary>
@@ -24,7 +24,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
     public GeopilotUserHandler(
         ILogger<GeopilotUserHandler> logger,
         Context dbContext,
-        GeopilotUserInfoService userInfoService,
+        IGeopilotUserInfoService userInfoService,
         IHttpContextAccessor httpContextAccessor)
     {
         this.dbContext = dbContext;
