@@ -54,6 +54,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GEOW_BOT_TOKEN }}
+          persist-credentials: true
 
       - name: Set environment variables
         run: |
