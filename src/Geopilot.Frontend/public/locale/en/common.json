@@ -57,7 +57,6 @@
   "fileDropzoneErrorNotSupported": "The file type is not supported",
   "fileDropzoneErrorTooManyFiles": "Only one file can be checked at a time",
   "fileTypes": "Formats",
-  "fileTypesLoadingError": "An error occurred while loading the formats: {{error}}",
   "id": "ID",
   "imprint": "Imprint",
   "invalidContentType": "Invalid response type",
@@ -107,6 +106,9 @@
   "validationErrorFileTooLarge": "Maximum file size exceeded. (Error 413)",
   "validationErrorRequestMalformed": "Invalid or corrupted request to the validation server. (Error 400)",
   "validationErrorUnexpected": "Unexpected server error during processing. (Error 500)",
+  "validationForm": "Validation",
+  "validationProfile": "Validation profile",
   "validationIsRunning": "The file is currently being validated with {{validators}}...",
+  "validatorsLoadingError": "An error occurred while loading the validators: {{error}}",
   "version": "Version"
 }

@@ -57,7 +57,6 @@
   "fileDropzoneErrorNotSupported": "Der Dateityp wird nicht unterstützt",
   "fileDropzoneErrorTooManyFiles": "Es kann nur eine Datei aufs Mal geprüft werden",
   "fileTypes": "Formate",
-  "fileTypesLoadingError": "Beim Laden der Formate ist ein Fehler aufgetreten: {{error}}",
   "id": "ID",
   "imprint": "Impressum",
   "invalidContentType": "Ungültiger Antworttyp",
@@ -107,6 +106,9 @@
   "validationErrorFileTooLarge": "Maximale Dateigrösse überschritten. (Fehler 413)",
   "validationErrorRequestMalformed": "Ungültige oder beschädigte Anfrage an den Validierunsserver. (Fehler 400)",
   "validationErrorUnexpected": "Unerwarteter Serverfehler beim Verarbeiten. (Fehler 500)",
+  "validationForm": "Validierung",
   "validationIsRunning": "Die Datei wird gerade mit {{validators}} validiert...",
+  "validationProfile": "Prüfprofil",
+  "validatorsLoadingError": "Beim Laden der Validatoren ist ein Fehler aufgetreten: {{error}}",
   "version": "Version"
 }

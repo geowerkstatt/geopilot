@@ -41,6 +41,7 @@ export interface Mandate {
   evaluatePrecursorDelivery?: FieldEvaluationType;
   evaluatePartial?: FieldEvaluationType;
   evaluateComment?: FieldEvaluationType;
+  interlisValidationProfile?: string;
 }
 
 export interface Organisation {
@@ -88,4 +89,19 @@ export interface ValidationResponse {
   jobId: string;
   status: ValidationStatus;
   validatorResults: Record<string, ValidatorResult>;
+}
+
+export interface LocalisedText {
+  language: string;
+  text: string;
+}
+
+export interface Profile {
+  id: string;
+  titles: LocalisedText[];
+}
+
+export interface ValidatorConfiguration {
+  supportedFileExtensions: string[];
+  profiles: Profile[];
 }
