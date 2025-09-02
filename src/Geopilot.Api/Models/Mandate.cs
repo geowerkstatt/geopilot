@@ -29,6 +29,11 @@ public class Mandate
 #pragma warning restore CA1819 // Properties should not return arrays
 
     /// <summary>
+    /// ID of the INTERLIS validation profile to be used when validating INTERLIS data.
+    /// </summary>
+    public string? InterlisValidationProfile { get; set; }
+
+    /// <summary>
     /// The spatial extent of the mandate. The extent is a polygon in WGS84.
     /// Delivered data must be within the extent.
     /// </summary>
