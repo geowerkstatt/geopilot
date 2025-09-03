@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Typography } from "@mui/material";
+import { Checkbox, FormControlLabel, Typography } from "@mui/material";
 import { FlexRowSpaceBetweenBox, GeopilotBox } from "../../components/styledComponents.ts";
 import {
   FormAutocomplete,
-  FormCheckbox,
   FormContainer,
   FormContainerHalfWidth,
   FormExtent,
@@ -149,44 +148,41 @@ const MandateDetail = () => {
         <FormContainer>
           <FormExtent fieldName={"coordinates"} label={"spatialExtent"} value={mandate?.coordinates} required={true} />
         </FormContainer>
-    </GeopilotBox>
-    <GeopilotBox>
-      <Typography variant={"h3"} margin={0}>
-        {t("validationForm")}
-      </Typography>
+      </GeopilotBox>
       <GeopilotBox>
-        <FlexRowSpaceBetweenBox>
-          <FormCheckbox
-            fieldName={"interlisValidationChecked"}
-            label={"Interlis"}
-            checked={true}
-            disabled={true}
-          />
-          <div>
-            <span>{t("fileTypes")}: </span>
-            <span>{validators[interlisValidatorName]?.supportedFileExtensions.join(", ") ?? ""}</span>
-          </div>
-        </FlexRowSpaceBetweenBox>
+        <Typography variant={"h3"} margin={0}>
+          {t("validationForm")}
+        </Typography>
+        <GeopilotBox>
+          <FlexRowSpaceBetweenBox>
+            <Typography variant={"h4"} margin={0}>
+              {interlisValidatorName}
+            </Typography>
+            <span>
+              <span>{t("fileTypes")}: </span>
+              <span>{validators[interlisValidatorName]?.supportedFileExtensions.join(", ") ?? ""}</span>
+            </span>
+          </FlexRowSpaceBetweenBox>
+          <FormContainer>
+            <FormSelect
+              fieldName={"interlisValidationProfile"}
+              label={"validationProfile"}
+              required={false}
+              selected={mandate?.interlisValidationProfile}
+              values={getInterlisProfileSelectMenuItems()}
+            />
+          </FormContainer>
+        </GeopilotBox>
         <FormContainer>
-          <FormSelect
-            fieldName={"interlisValidationProfile"}
-            label={"validationProfile"}
-            required={true}
-            selected={mandate?.interlisValidationProfile}
-            values={getInterlisProfileSelectMenuItems()}
+          <FormAutocomplete<string>
+            fieldName={"fileTypes"}
+            label={"fileTypes"}
+            required={false}
+            values={validators[interlisValidatorName]?.supportedFileExtensions ?? []}
+            selected={mandate?.fileTypes}
           />
         </FormContainer>
       </GeopilotBox>
-      <FormContainer>
-        <FormAutocomplete<string>
-          fieldName={"fileTypes"}
-          label={"fileTypes"}
-          required={false}
-          values={validators[interlisValidatorName]?.supportedFileExtensions ?? []}
-          selected={mandate?.fileTypes}
-        />
-      </FormContainer>
-    </GeopilotBox>
       <GeopilotBox>
         <Typography variant={"h3"} margin={0}>
           {t("deliveryForm")}
