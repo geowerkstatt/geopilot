@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
+using Geopilot.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ public class MandateController : ControllerBase
     private readonly ILogger<MandateController> logger;
     private readonly Context context;
     private readonly IValidationService validationService;
+    private readonly IEnumerable<IValidator> validators;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MandateController"/> class.
@@ -26,11 +28,13 @@ public class MandateController : ControllerBase
     /// <param name="logger">Logger for the instance.</param>
     /// <param name="context">Database context for getting mandates.</param>
     /// <param name="validationService">The validation service providing upload file information for filetype matching.</param>
-    public MandateController(ILogger<MandateController> logger, Context context, IValidationService validationService)
+    /// <param name="validators">The validator providing information about the INTERLIS validation.</param>
+    public MandateController(ILogger<MandateController> logger, Context context, IValidationService validationService, IEnumerable<IValidator> validators)
     {
         this.logger = logger;
         this.context = context;
         this.validationService = validationService;
+        this.validators = validators;
     }
 
     /// <summary>
@@ -122,6 +126,11 @@ public class MandateController : ControllerBase
             if (!mandate.SetPolygonFromCoordinates())
                 return BadRequest("Invalid coordinates for spatial extent.");
 
+            if (mandate.InterlisValidationProfile == "") mandate.InterlisValidationProfile = null;
+
+            if (!IsValidInterlisProfile(mandate.InterlisValidationProfile))
+                return BadRequest($"INTERLIS validation profile <{mandate.InterlisValidationProfile}> does not exist.");
+
             var organisationIds = mandate.Organisations.Select(o => o.Id).ToList();
             mandate.Organisations = await context.Organisations
                 .Where(o => organisationIds.Contains(o.Id))
@@ -176,6 +185,11 @@ public class MandateController : ControllerBase
             if (!mandate.SetPolygonFromCoordinates())
                 return BadRequest("Invalid coordinates for spatial extent.");
 
+            if (mandate.InterlisValidationProfile == "") mandate.InterlisValidationProfile = null;
+
+            if (!IsValidInterlisProfile(mandate.InterlisValidationProfile))
+                return BadRequest($"INTERLIS validation profile <{mandate.InterlisValidationProfile}> does not exist.");
+
             context.Entry(existingMandate).CurrentValues.SetValues(mandate);
 
             var organisationIds = mandate.Organisations.Select(o => o.Id).ToList();
@@ -205,5 +219,14 @@ public class MandateController : ControllerBase
             logger.LogError(e, $"An error occured while updating the mandate.");
             return Problem(e.Message);
         }
+    }
+
+    private bool IsValidInterlisProfile(string? profile)
+    {
+        if (profile == null) return true;
+
+        var interlisValidator = validators.OfType<InterlisValidator>().FirstOrDefault();
+        var supportedProfiles = interlisValidator?.GetSupportedProfilesAsync().Result;
+        return supportedProfiles != null && supportedProfiles.Any(p => p.Id == profile);
     }
 }
