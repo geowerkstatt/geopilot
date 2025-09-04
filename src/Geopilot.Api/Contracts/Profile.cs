@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace Geowerkstatt.Ilicop.Web.Contracts
+namespace Geopilot.Api.Contracts
 {
     /// <summary>
     /// A validation profile that is used for validating INTERLIS data.

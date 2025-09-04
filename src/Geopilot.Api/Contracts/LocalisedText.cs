@@ -1,4 +1,4 @@
-﻿namespace Geowerkstatt.Ilicop.Web.Contracts
+﻿namespace Geopilot.Api.Contracts
 {
     /// <summary>
     /// Text that may be localized with a ISO639-1 language code.

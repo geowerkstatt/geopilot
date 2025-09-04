@@ -1,5 +1,5 @@
-﻿using Geopilot.Api.FileAccess;
-using Geowerkstatt.Ilicop.Web.Contracts;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.FileAccess;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Globalization;

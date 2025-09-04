@@ -16,7 +16,7 @@ public class ValidatorControllerTest
         var validator1 = new Mock<IValidator>(MockBehavior.Strict);
         validator1.SetupGet(v => v.Name).Returns("VAL1");
         validator1.Setup(v => v.GetSupportedFileExtensionsAsync()).ReturnsAsync(new List<string> { ".xtf" });
-        validator1.Setup(v => v.GetSupportedProfilesAsync()).ReturnsAsync(new List<Geowerkstatt.Ilicop.Web.Contracts.Profile>
+        validator1.Setup(v => v.GetSupportedProfilesAsync()).ReturnsAsync(new List<Profile>
         {
             new() { Id = "P1" },
         });
@@ -24,7 +24,7 @@ public class ValidatorControllerTest
         var validator2 = new Mock<IValidator>(MockBehavior.Strict);
         validator2.SetupGet(v => v.Name).Returns("VAL2");
         validator2.Setup(v => v.GetSupportedFileExtensionsAsync()).ReturnsAsync(new List<string> { ".gml", ".*" });
-        validator2.Setup(v => v.GetSupportedProfilesAsync()).ReturnsAsync(new List<Geowerkstatt.Ilicop.Web.Contracts.Profile>
+        validator2.Setup(v => v.GetSupportedProfilesAsync()).ReturnsAsync(new List<Profile>
         {
             new() { Id = "Q1" },
             new() { Id = "Q2" },

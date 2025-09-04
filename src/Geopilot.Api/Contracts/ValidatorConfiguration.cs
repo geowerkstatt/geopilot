@@ -1,6 +1,4 @@
-﻿using Geowerkstatt.Ilicop.Web.Contracts;
-
-namespace Geopilot.Api.Contracts
+﻿namespace Geopilot.Api.Contracts
 {
     /// <summary>
     /// A configuration for a validator endpoint.
