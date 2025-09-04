@@ -32,6 +32,7 @@ namespace Geopilot.Api.Controllers
         /// <returns></returns>
         [HttpGet]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns a list of available validators and their supported configurations.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "There was an error while reading the profiles from a check service")]
         public async Task<IActionResult> Get()
         {
             var result = new Dictionary<string, ValidatorConfiguration>();
