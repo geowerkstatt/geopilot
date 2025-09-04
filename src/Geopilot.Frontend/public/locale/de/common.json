@@ -14,6 +14,7 @@
   "bottomLeft": "Unten links",
   "bugTracking": "Bugtracking",
   "cancel": "Abbrechen",
+  "clear": "Leeren",
   "clickToSelect": "Zum Auswählen klicken",
   "codeLicenseInfo": "Der Code steht unter der <licenseLink>GNU Affero General Public License v3.0 Lizenz</licenseLink> im <repositoryLink>Github Repository</repositoryLink> zur Verfügung. Falls Ihnen Bugs begegnen, können Sie dort einen <issuesLink>Issue</issuesLink> eröffnen.",
   "comment": "Kommentar",

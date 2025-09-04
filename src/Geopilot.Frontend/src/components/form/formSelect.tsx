@@ -43,7 +43,7 @@ export const FormSelect: FC<FormSelectProps> = ({
 
   const menuItems: FormSelectMenuItem[] = [];
   if (!required) {
-    menuItems.push({ key: -1, value: undefined, label: t("reset"), italic: true });
+    menuItems.push({ key: -1, value: "", label: t("clear"), italic: true });
   }
 
   if (values) {

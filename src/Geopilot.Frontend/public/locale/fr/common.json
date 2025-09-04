@@ -14,6 +14,7 @@
   "bottomLeft": "En bas à gauche",
   "bugTracking": "Suivi des bugs",
   "cancel": "Annuler",
+  "clear": "Effacer",
   "clickToSelect": "Cliquer pour sélectionner",
   "codeLicenseInfo": "Le code est disponible sous la <licenseLink>licence GNU Affero General Public License v3.0</licenseLink> dans le référentiel <repositoryLink>GitHub</repositoryLink>. Si vous rencontrez des bugs, vous pouvez ouvrir un <issuesLink>problème</issuesLink> là-bas.",
   "comment": "Commentaire",
