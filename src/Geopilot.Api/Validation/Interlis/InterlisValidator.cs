@@ -160,7 +160,7 @@ public class InterlisValidator : IValidator
             var profileList = await ReadSuccessResponseJsonAsync<List<Profile>>(response, CancellationToken.None).ConfigureAwait(false);
             return profileList;
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex) when (ex is HttpRequestException || ex is InvalidOperationException)
         {
             logger.LogError(ex, "Could not get supported profiles from {InterlisCheckServiceUrl}", httpClient.BaseAddress);
             return new List<Profile>();
