@@ -160,9 +160,9 @@ describe("Mandate tests", () => {
 
     setAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Brown and Sons"]);
-    setAutocomplete("fileTypes", ".csv");
+    setAutocomplete("fileTypes", ".xml");
     setAutocomplete("fileTypes", ".xtf");
-    evaluateAutocomplete("fileTypes", [".csv", ".xtf"]);
+    evaluateAutocomplete("fileTypes", [".xml", ".xtf"]);
 
     // Resets all fields and validations.
     cy.dataCy("reset-button").click();
@@ -187,7 +187,7 @@ describe("Mandate tests", () => {
 
     setInput("name", randomMandateName);
     setAutocomplete("organisations", "Brown and Sons");
-    setAutocomplete("fileTypes", ".csv");
+    setAutocomplete("fileTypes", ".xml");
     setAutocomplete("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
@@ -206,12 +206,12 @@ describe("Mandate tests", () => {
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
-    setAutocomplete("fileTypes", ".xml");
+    setAutocomplete("fileTypes", ".itf");
     cy.wait(500);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("backToMandates-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
-    getGridRowThatContains("mandates-grid", randomMandateName).contains(".xml").should("not.exist");
+    getGridRowThatContains("mandates-grid", randomMandateName).contains(".itf").should("not.exist");
   });
 
   it("can edit existing mandate", () => {
@@ -224,7 +224,7 @@ describe("Mandate tests", () => {
     cy.dataCy("addMandate-button").click();
     setInput("name", randomMandateName);
     setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
-    setAutocomplete("fileTypes", ".csv");
+    setAutocomplete("fileTypes", ".xml");
     setAutocomplete("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
