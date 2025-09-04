@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.FileAccess;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.FileAccess;
 
 namespace Geopilot.Api.Validation;
 
@@ -28,4 +29,10 @@ public interface IValidator
     /// <exception cref="InvalidOperationException">If the file of the <paramref name="validationJob"/> is not found.</exception>
     /// <exception cref="ValidationFailedException">If the validation failed unexpectedly.</exception>
     Task<ValidatorResult> ExecuteAsync(ValidationJob validationJob, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets all supported profiles of this validator.
+    /// </summary>
+    /// <returns>List of multilingual described <see cref="Profile"/> objects.</returns>
+    Task<List<Profile>> GetSupportedProfilesAsync();
 }

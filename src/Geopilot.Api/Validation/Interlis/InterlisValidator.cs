@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.FileAccess;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.FileAccess;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Globalization;
@@ -14,6 +15,7 @@ public class InterlisValidator : IValidator
 {
     private const string UploadUrl = "/api/v1/upload";
     private const string SettingsUrl = "/api/v1/settings";
+    private const string ProfileUrl = "/api/v1/profile";
     private static readonly TimeSpan pollInterval = TimeSpan.FromSeconds(2);
 
     private readonly ILogger<InterlisValidator> logger;
@@ -147,5 +149,21 @@ public class InterlisValidator : IValidator
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<T>(jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
         return result ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
+    }
+
+    /// <inheritdoc/>
+    public async Task<List<Profile>> GetSupportedProfilesAsync()
+    {
+        try
+        {
+            var response = await httpClient.GetAsync(ProfileUrl).ConfigureAwait(false);
+            var profileList = await ReadSuccessResponseJsonAsync<List<Profile>>(response, CancellationToken.None).ConfigureAwait(false);
+            return profileList;
+        }
+        catch (Exception ex) when (ex is HttpRequestException || ex is InvalidOperationException)
+        {
+            logger.LogError(ex, "Could not get supported profiles from {InterlisCheckServiceUrl}", httpClient.BaseAddress);
+            return new List<Profile>();
+        }
     }
 }
