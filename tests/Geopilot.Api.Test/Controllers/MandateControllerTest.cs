@@ -2,10 +2,13 @@
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
+using Geopilot.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using NetTopologySuite.Geometries;
+using System.Net.Http;
 
 namespace Geopilot.Api.Controllers
 {
@@ -14,6 +17,7 @@ namespace Geopilot.Api.Controllers
     {
         private Mock<ILogger<MandateController>> loggerMock;
         private Mock<IValidationService> validationServiceMock;
+        private Mock<InterlisValidator> interlisValidatorMock;
         private Context context;
         private MandateController mandateController;
         private User editUser;
@@ -29,7 +33,20 @@ namespace Geopilot.Api.Controllers
             loggerMock = new Mock<ILogger<MandateController>>();
             validationServiceMock = new Mock<IValidationService>();
             context = AssemblyInitialize.DbFixture.GetTestContext();
-            mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
+
+            // Create InterlisValidator instead of IValidator because a type check is done in the controller.
+            var interlisLoggerMock = new Mock<ILogger<InterlisValidator>>();
+            var fileProviderMock = new Mock<IFileProvider>();
+            var httpClient = new HttpClient();
+            var jsonOptionsMock = Options.Create(new JsonOptions());
+            interlisValidatorMock = new Mock<InterlisValidator>(
+                interlisLoggerMock.Object,
+                fileProviderMock.Object,
+                httpClient,
+                jsonOptionsMock);
+            var validatorMocks = new List<IValidator> { interlisValidatorMock.Object };
+
+            mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object, validatorMocks);
 
             unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
             xtfMandate = new Mandate
