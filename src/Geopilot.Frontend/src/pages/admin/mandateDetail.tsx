@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Checkbox, FormControlLabel, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import { FlexRowSpaceBetweenBox, GeopilotBox } from "../../components/styledComponents.ts";
 import {
   FormAutocomplete,
@@ -9,7 +9,13 @@ import {
   FormInput,
   FormSelect,
 } from "../../components/form/form.ts";
-import { FieldEvaluationType, Mandate, Organisation, Profile, ValidationSettings, ValidatorConfiguration } from "../../api/apiInterfaces.ts";
+import {
+  FieldEvaluationType,
+  Mandate,
+  Organisation,
+  Profile,
+  ValidatorConfiguration,
+} from "../../api/apiInterfaces.ts";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
@@ -26,7 +32,7 @@ const MandateDetail = () => {
 
   const [mandate, setMandate] = useState<Mandate>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
-  const [validators, setValidators] = useState<{[key: string]: ValidatorConfiguration}>({});
+  const [validators, setValidators] = useState<{ [key: string]: ValidatorConfiguration }>({});
 
   const interlisValidatorName = "INTERLIS";
 
@@ -46,7 +52,7 @@ const MandateDetail = () => {
   }, [fetchApi]);
 
   const loadValidators = useCallback(async () => {
-    const validators = await fetchApi<{[key: string]: ValidatorConfiguration}>("/api/v1/validator", {
+    const validators = await fetchApi<{ [key: string]: ValidatorConfiguration }>("/api/v1/validator", {
       errorMessageLabel: "validatorsLoadingError",
     });
     setValidators(validators ?? {});
@@ -54,12 +60,14 @@ const MandateDetail = () => {
 
   // Helper to get the FormSelect menu items for the INTERLIS validation profiles
   const getInterlisProfileSelectMenuItems = (): FormSelectValue[] => {
-    return validators[interlisValidatorName]?.profiles.map((profile, idx) => ({
-      key: idx,
-      value: profile.id,
-      name: `${getLocalisedProfileTitle(profile, i18n.language)} (${t("id")}: ${profile.id})`,
-    })) ?? [];
-  }
+    return (
+      validators[interlisValidatorName]?.profiles.map((profile, idx) => ({
+        key: idx,
+        value: profile.id,
+        name: `${getLocalisedProfileTitle(profile, i18n.language)} (${t("id")}: ${profile.id})`,
+      })) ?? []
+    );
+  };
 
   // Helper function to get the localized title for an INTERLIS validation profile
   const getLocalisedProfileTitle = (profile: Profile, language: string): string => {
@@ -68,16 +76,16 @@ const MandateDetail = () => {
     }
 
     // Look for title in the current language first
-    const germanTitle = profile.titles.find((title) => title.language === language);
+    const germanTitle = profile.titles.find(title => title.language === language);
     if (germanTitle) {
       return germanTitle.text || profile.id;
     }
 
     // Fallback to title with no language or empty language
     const fallbackTitle = profile.titles.find(
-      (title) => title.language === null || title.language === "" || title.language === undefined
+      title => title.language === null || title.language === "" || title.language === undefined,
     );
-    
+
     if (fallbackTitle) {
       return fallbackTitle.text;
     }
