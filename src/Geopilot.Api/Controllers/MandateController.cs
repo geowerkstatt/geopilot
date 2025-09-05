@@ -1,7 +1,6 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
-using Geopilot.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +16,8 @@ namespace Geopilot.Api.Controllers;
 [Route("api/v{version:apiVersion}/[controller]")]
 public class MandateController : ControllerBase
 {
+    private const string InterlisValidatorName = "INTERLIS";
+
     private readonly ILogger<MandateController> logger;
     private readonly Context context;
     private readonly IValidationService validationService;
@@ -225,7 +226,7 @@ public class MandateController : ControllerBase
     {
         if (profile == null) return true;
 
-        var interlisValidator = validators.OfType<InterlisValidator>().FirstOrDefault();
+        var interlisValidator = validators.FirstOrDefault(v => v.Name == InterlisValidatorName);
         var supportedProfiles = interlisValidator?.GetSupportedProfilesAsync().Result;
         return supportedProfiles != null && supportedProfiles.Any(p => p.Id == profile);
     }
