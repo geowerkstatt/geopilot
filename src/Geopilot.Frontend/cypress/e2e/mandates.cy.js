@@ -238,7 +238,6 @@ describe("Mandate tests", () => {
     cy.wait("@saveNew");
 
     // Test editing the mandate
-    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").contains(randomMandateName).click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
@@ -278,7 +277,6 @@ describe("Mandate tests", () => {
     cy.dataCy("backToMandates-button").click();
     isPromptVisible(false);
     cy.wait("@getMandates");
-    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Schumm, Runte and Macejkovic");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");
   });
