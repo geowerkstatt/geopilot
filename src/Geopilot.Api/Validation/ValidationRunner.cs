@@ -10,7 +10,7 @@ public class ValidationRunner : BackgroundService, IValidationRunner
 {
     private readonly ILogger<ValidationRunner> logger;
     private readonly Channel<(ValidationJob Job, IValidator Validator)> queue;
-    private readonly ConcurrentDictionary<Guid, (ValidationJob Job, ValidationJobStatus JobStatus)> jobs = new();
+    private readonly ConcurrentDictionary<Guid, ValidationJob> jobs = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationRunner"/> class.
@@ -53,8 +53,7 @@ public class ValidationRunner : BackgroundService, IValidationRunner
         ArgumentNullException.ThrowIfNull(validationJob);
         ArgumentNullException.ThrowIfNull(validators);
 
-        var status = new ValidationJobStatus(validationJob.Id);
-        jobs[validationJob.Id] = (validationJob, status);
+        jobs[validationJob.Id] = validationJob;
         foreach (var validator in validators)
         {
             await queue.Writer.WriteAsync((validationJob, validator));
@@ -64,13 +63,7 @@ public class ValidationRunner : BackgroundService, IValidationRunner
     /// <inheritdoc/>
     public ValidationJob? GetJob(Guid jobId)
     {
-        return jobs.TryGetValue(jobId, out var entry) ? entry.Job : null;
-    }
-
-    /// <inheritdoc/>
-    public ValidationJobStatus? GetJobStatus(Guid jobId)
-    {
-        return jobs.TryGetValue(jobId, out var entry) ? entry.JobStatus : null;
+        return jobs.GetValueOrDefault(jobId);
     }
 
     /// <summary>
@@ -81,8 +74,8 @@ public class ValidationRunner : BackgroundService, IValidationRunner
     /// <param name="validatorResult">The result of the validator.</param>
     private void UpdateJobStatus(Guid jobId, string validatorName, ValidatorResult validatorResult)
     {
-        var jobStatus = jobs[jobId].JobStatus;
-        jobStatus.ValidatorResults[validatorName] = validatorResult;
-        jobStatus.UpdateJobStatusFromResults();
+        var job = jobs[jobId];
+        job.ValidatorResults[validatorName] = validatorResult;
+        job.UpdateJobStatusFromResults();
     }
 }

@@ -38,9 +38,8 @@ public class AssetHandler : IAssetHandler
     public IEnumerable<Asset> PersistJobAssets(Guid jobId)
     {
         var job = validationService.GetJob(jobId);
-        var jobStatus = validationService.GetJobStatus(jobId);
 
-        if (jobStatus is null || job is null)
+        if (job is null)
             throw new InvalidOperationException($"Validation job with id {jobId} not found.");
 
         var assets = new List<Asset>();
@@ -48,7 +47,7 @@ public class AssetHandler : IAssetHandler
         Directory.CreateDirectory(directoryProvider.GetAssetDirectoryPath(jobId));
 
         assets.Add(PersistPrimaryValidationJobAsset(job));
-        assets.AddRange(PersistValidationJobValidatorAssets(jobStatus));
+        assets.AddRange(PersistValidationJobValidatorAssets(job));
 
         return assets;
     }
@@ -110,11 +109,11 @@ public class AssetHandler : IAssetHandler
     /// </summary>
     /// <param name="jobStatus">The validation job status containing information about created validation assets.</param>
     /// <returns>List of Assets representing the log files in persistent storage.</returns>
-    private List<Asset> PersistValidationJobValidatorAssets(ValidationJobStatus jobStatus)
+    private List<Asset> PersistValidationJobValidatorAssets(ValidationJob job)
     {
         var assets = new List<Asset>();
 
-        foreach (var validator in jobStatus.ValidatorResults)
+        foreach (var validator in job.ValidatorResults)
         {
             foreach (var logfile in validator.Value.LogFiles)
             {
@@ -126,7 +125,7 @@ public class AssetHandler : IAssetHandler
                     SanitizedFilename = logfile.Value,
                     FileHash = SHA256.HashData(stream),
                 };
-                CopyAssetToPersistentStorage(jobStatus.JobId, asset);
+                CopyAssetToPersistentStorage(job.Id, asset);
                 assets.Add(asset);
             }
         }

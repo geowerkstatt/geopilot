@@ -36,7 +36,7 @@ public class ValidationService : IValidationService
     }
 
     /// <inheritdoc/>
-    public async Task<ValidationJobStatus> StartValidationJobAsync(ValidationJob validationJob)
+    public async Task StartValidationJobAsync(ValidationJob validationJob)
     {
         ArgumentNullException.ThrowIfNull(validationJob);
 
@@ -52,19 +52,12 @@ public class ValidationService : IValidationService
         }
 
         await validationRunner.EnqueueJobAsync(validationJob, supportedValidators);
-        return GetJobStatus(validationJob.Id) ?? throw new InvalidOperationException("The validation job was not enqueued.");
     }
 
     /// <inheritdoc/>
     public ValidationJob? GetJob(Guid jobId)
     {
         return validationRunner.GetJob(jobId);
-    }
-
-    /// <inheritdoc/>
-    public ValidationJobStatus? GetJobStatus(Guid jobId)
-    {
-        return validationRunner.GetJobStatus(jobId);
     }
 
     /// <inheritdoc/>

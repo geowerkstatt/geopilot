@@ -125,14 +125,14 @@ public class ValidationController : ControllerBase
             logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
         }
 
-        var status = await validationService.StartValidationJobAsync(validationJob);
+        await validationService.StartValidationJobAsync(validationJob);
         logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
 
         var location = new Uri(
             string.Format(CultureInfo.InvariantCulture, "/api/v{0}/validation/{1}", version.MajorVersion, validationJob.Id),
             UriKind.Relative);
 
-        return Created(location, status);
+        return Created(location, validationJob);
     }
 
     /// <summary>
@@ -148,14 +148,14 @@ public class ValidationController : ControllerBase
     {
         logger.LogTrace("Status for job <{JobId}> requested.", jobId);
 
-        var jobStatus = validationService.GetJobStatus(jobId);
-        if (jobStatus == null)
+        var job = validationService.GetJob(jobId);
+        if (job == null)
         {
             logger.LogTrace("No job information available for job id <{JobId}>", jobId);
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        return Ok(jobStatus);
+        return Ok(job);
     }
 
     /// <summary>

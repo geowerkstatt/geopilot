@@ -19,11 +19,4 @@ public interface IValidationRunner
     /// <param name="jobId">The job identifier.</param>
     /// <returns>The <see cref="ValidationJob"/> for the given <paramref name="jobId"/> if the job exists; otherwise, <c>null</c>.</returns>
     ValidationJob? GetJob(Guid jobId);
-
-    /// <summary>
-    /// Gets the <see cref="ValidationJobStatus"/> for the given <paramref name="jobId"/>.
-    /// </summary>
-    /// <param name="jobId">The job identifier.</param>
-    /// <returns>The <see cref="ValidationJobStatus"/> for the given <paramref name="jobId"/> if the job exists; otherwise, <c>null</c>.</returns>
-    ValidationJobStatus? GetJobStatus(Guid jobId);
 }

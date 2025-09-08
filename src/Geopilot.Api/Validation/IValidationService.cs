@@ -18,8 +18,7 @@ public interface IValidationService
     /// Starts the validation job asynchronously.
     /// </summary>
     /// <param name="validationJob">The validation job to start.</param>
-    /// <returns>Current job status information.</returns>
-    Task<ValidationJobStatus> StartValidationJobAsync(ValidationJob validationJob);
+    Task StartValidationJobAsync(ValidationJob validationJob);
 
     /// <summary>
     /// Gets the validation job.
@@ -27,13 +26,6 @@ public interface IValidationService
     /// <param name="jobId">The id of the validation job.</param>
     /// <returns>Validation job with the specified <paramref name="jobId"/>.</returns>
     ValidationJob? GetJob(Guid jobId);
-
-    /// <summary>
-    /// Gets the validation job status.
-    /// </summary>
-    /// <param name="jobId">The id of the validation job.</param>
-    /// <returns>Status information for the validation job with the specified <paramref name="jobId"/>.</returns>
-    ValidationJobStatus? GetJobStatus(Guid jobId);
 
     /// <summary>
     /// Gets all file extensions that are supported for upload.
