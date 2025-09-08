@@ -2,7 +2,6 @@
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
-using Geowerkstatt.Ilicop.Web.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
