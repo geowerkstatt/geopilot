@@ -10,7 +10,6 @@ public class ValidationRunner : BackgroundService, IValidationRunner
 {
     private readonly ILogger<ValidationRunner> logger;
     private readonly Channel<(ValidationJob Job, IValidator Validator)> queue;
-    private readonly ConcurrentDictionary<Guid, ValidationJob> jobs = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationRunner"/> class.
@@ -26,22 +25,22 @@ public class ValidationRunner : BackgroundService, IValidationRunner
     {
         await Parallel.ForEachAsync(queue.Reader.ReadAllAsync(stoppingToken), stoppingToken, async (item, cancellationToken) =>
         {
-            var validatorName = item.Validator.Name;
-            var jobId = item.Job.Id;
+            var (job, validator) = item;
+            var validatorName = validator.Name;
             try
             {
-                UpdateJobStatus(jobId, validatorName, new ValidatorResult(Status.Processing, "Die Datei wird validiert..."));
+                UpdateJobStatus(job, validatorName, new ValidatorResult(Status.Processing, "Die Datei wird validiert..."));
                 var result = await item.Validator.ExecuteAsync(item.Job, cancellationToken);
-                UpdateJobStatus(jobId, validatorName, result);
+                UpdateJobStatus(job, validatorName, result);
             }
             catch (ValidationFailedException ex)
             {
-                UpdateJobStatus(jobId, validatorName, new ValidatorResult(Status.Failed, ex.Message));
+                UpdateJobStatus(job, validatorName, new ValidatorResult(Status.Failed, ex.Message));
             }
             catch (Exception ex)
             {
                 var traceId = Guid.NewGuid();
-                UpdateJobStatus(jobId, validatorName, new ValidatorResult(Status.Failed, $"Unbekannter Fehler. Fehler-Id: <{traceId}>"));
+                UpdateJobStatus(job, validatorName, new ValidatorResult(Status.Failed, $"Unbekannter Fehler. Fehler-Id: <{traceId}>"));
                 logger.LogError(ex, "Unhandled exception TraceId: <{TraceId}> Message: <{ErrorMessage}>", traceId, ex.Message);
             }
         });
@@ -53,17 +52,10 @@ public class ValidationRunner : BackgroundService, IValidationRunner
         ArgumentNullException.ThrowIfNull(validationJob);
         ArgumentNullException.ThrowIfNull(validators);
 
-        jobs[validationJob.Id] = validationJob;
         foreach (var validator in validators)
         {
             await queue.Writer.WriteAsync((validationJob, validator));
         }
-    }
-
-    /// <inheritdoc/>
-    public ValidationJob? GetJob(Guid jobId)
-    {
-        return jobs.GetValueOrDefault(jobId);
     }
 
     /// <summary>
@@ -72,9 +64,8 @@ public class ValidationRunner : BackgroundService, IValidationRunner
     /// <param name="jobId">The identifier of the job to update.</param>
     /// <param name="validatorName">The name of the validator.</param>
     /// <param name="validatorResult">The result of the validator.</param>
-    private void UpdateJobStatus(Guid jobId, string validatorName, ValidatorResult validatorResult)
+    private void UpdateJobStatus(ValidationJob job, string validatorName, ValidatorResult validatorResult)
     {
-        var job = jobs[jobId];
         job.ValidatorResults[validatorName] = validatorResult;
         job.UpdateJobStatusFromResults();
     }

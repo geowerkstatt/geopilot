@@ -11,16 +11,18 @@ public class ValidationService : IValidationService
     private readonly IValidationRunner validationRunner;
     private readonly IEnumerable<IValidator> validators;
     private readonly Context context;
+    private readonly IValidationManager validationManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationService"/> class.
     /// </summary>
-    public ValidationService(IFileProvider fileProvider, IValidationRunner validationRunner, IEnumerable<IValidator> validators, Context context)
+    public ValidationService(IFileProvider fileProvider, IValidationRunner validationRunner, IEnumerable<IValidator> validators, Context context, IValidationManager validationManager)
     {
         this.fileProvider = fileProvider;
         this.validationRunner = validationRunner;
         this.validators = validators;
         this.context = context;
+        this.validationManager = validationManager;
     }
 
     /// <inheritdoc/>
@@ -51,13 +53,14 @@ public class ValidationService : IValidationService
             }
         }
 
+        validationManager.AddJob(validationJob);
         await validationRunner.EnqueueJobAsync(validationJob, supportedValidators);
     }
 
     /// <inheritdoc/>
     public ValidationJob? GetJob(Guid jobId)
     {
-        return validationRunner.GetJob(jobId);
+        return validationManager.GetJob(jobId);
     }
 
     /// <inheritdoc/>

@@ -144,6 +144,7 @@ contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
 contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");
 builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
+builder.Services.AddSingleton<IValidationManager, ValidationManager>();
 builder.Services.AddSingleton<IValidationRunner, ValidationRunner>();
 builder.Services.AddHostedService(services => (ValidationRunner)services.GetRequiredService<IValidationRunner>());
 builder.Services.AddTransient<IValidationService, ValidationService>();
