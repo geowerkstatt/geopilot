@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.FileAccess;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 
 namespace Geopilot.Api.Validation;
@@ -9,16 +8,10 @@ namespace Geopilot.Api.Validation;
 /// </summary>
 [SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1313:ParameterNamesMustBeginWithLowerCaseLetter", Justification = "Record class constructor.")]
 public record class ValidationJob(
-    [property: JsonPropertyName("jobId")] Guid Id,
+    Guid Id,
     string OriginalFileName,
     string TempFileName)
 {
-    /// <summary>
-    /// Name of the temp file.
-    /// </summary>
-    [JsonIgnore]
-    public string TempFileName { get; init; } = TempFileName;
-
     /// <summary>
     /// Overall status of the validation job.
     /// </summary>

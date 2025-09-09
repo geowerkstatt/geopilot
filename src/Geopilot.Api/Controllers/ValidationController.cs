@@ -1,4 +1,5 @@
-﻿using Asp.Versioning;
+﻿using Api;
+using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Validation;
@@ -132,7 +133,7 @@ public class ValidationController : ControllerBase
             string.Format(CultureInfo.InvariantCulture, "/api/v{0}/validation/{1}", version.MajorVersion, validationJob.Id),
             UriKind.Relative);
 
-        return Created(location, validationJob);
+        return Created(location, validationJob.ToResponse());
     }
 
     /// <summary>
@@ -155,7 +156,7 @@ public class ValidationController : ControllerBase
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        return Ok(job);
+        return Ok(job.ToResponse());
     }
 
     /// <summary>
