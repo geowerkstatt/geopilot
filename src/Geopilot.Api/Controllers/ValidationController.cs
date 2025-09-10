@@ -90,7 +90,7 @@ public class ValidationController : ControllerBase
     /// </remarks>
     /// <returns>Information for a newly created validation job.</returns>
     [HttpPost]
-    [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(ValidationJobStatus), "application/json")]
+    [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(ValidationJobResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status413PayloadTooLarge, "The file is too large. Max allowed request body size is 200 MB.")]
     [SwaggerResponse(
@@ -142,7 +142,7 @@ public class ValidationController : ControllerBase
     /// <param name="jobId" example="2e71ae96-e6ad-4b67-b817-f09412d09a2c">The job identifier.</param>
     /// <returns>The status information for the specified <paramref name="jobId"/>.</returns>
     [HttpGet("{jobId}")]
-    [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(ValidationJobStatus), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(ValidationJobResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), "application/json")]
     public IActionResult GetStatus(Guid jobId)
