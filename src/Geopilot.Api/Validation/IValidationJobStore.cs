@@ -1,8 +1,9 @@
 ﻿namespace Geopilot.Api.Validation
 {
-    public interface IValidationManager
+    public interface IValidationJobStore
     {
         ValidationJob? GetJob(Guid jobId);
+
         void AddJob(ValidationJob job);
     }
 }

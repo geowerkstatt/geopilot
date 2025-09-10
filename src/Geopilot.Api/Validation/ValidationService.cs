@@ -11,12 +11,12 @@ public class ValidationService : IValidationService
     private readonly IValidationRunner validationRunner;
     private readonly IEnumerable<IValidator> validators;
     private readonly Context context;
-    private readonly IValidationManager validationManager;
+    private readonly IValidationJobStore validationManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationService"/> class.
     /// </summary>
-    public ValidationService(IFileProvider fileProvider, IValidationRunner validationRunner, IEnumerable<IValidator> validators, Context context, IValidationManager validationManager)
+    public ValidationService(IFileProvider fileProvider, IValidationRunner validationRunner, IEnumerable<IValidator> validators, Context context, IValidationJobStore validationManager)
     {
         this.fileProvider = fileProvider;
         this.validationRunner = validationRunner;
