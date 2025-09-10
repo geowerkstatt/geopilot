@@ -5,7 +5,6 @@ namespace Geopilot.Api.Validation;
 /// <summary>
 /// Represents the result of one validation as part of a validation job.
 /// </summary>
-[SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1313:ParameterNamesMustBeginWithLowerCaseLetter", Justification = "Record class constructor.")]
 public record class ValidatorResult(Status Status, string? StatusMessage)
 {
     /// <summary>

@@ -3,7 +3,7 @@
 namespace Geopilot.Api.Validation;
 
 /// <summary>
-/// Provides methods to start validation jobs and access job status information.
+/// Provides methods to create, start, check and access validation jobs.
 /// </summary>
 public interface IValidationService
 {

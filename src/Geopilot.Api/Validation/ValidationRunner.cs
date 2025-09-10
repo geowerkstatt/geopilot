@@ -1,10 +1,9 @@
-﻿using System.Collections.Concurrent;
-using System.Threading.Channels;
+﻿using System.Threading.Channels;
 
 namespace Geopilot.Api.Validation;
 
 /// <summary>
-/// Runs validation jobs in the background and provides access to job status information.
+/// Runs validation jobs in the background.
 /// </summary>
 public class ValidationRunner : BackgroundService, IValidationRunner
 {

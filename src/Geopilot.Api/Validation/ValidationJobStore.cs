@@ -2,7 +2,9 @@
 
 namespace Geopilot.Api.Validation;
 
-/// <inheritdoc/>
+/// <summary>
+/// Stores and retrieves <see cref="ValidationJob"/> instances in memory in a thread-safe manner.
+/// </summary>
 public class ValidationJobStore : IValidationJobStore
 {
     private readonly ConcurrentDictionary<Guid, ValidationJob> jobs = new();

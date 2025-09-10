@@ -107,7 +107,7 @@ public class AssetHandler : IAssetHandler
     /// <summary>
     /// Migrates all log files for a validation job into a persistent storage.
     /// </summary>
-    /// <param name="jobStatus">The validation job status containing information about created validation assets.</param>
+    /// <param name="job">The validation job for which the validation assets should be persisted.</param>
     /// <returns>List of Assets representing the log files in persistent storage.</returns>
     private List<Asset> PersistValidationJobValidatorAssets(ValidationJob job)
     {

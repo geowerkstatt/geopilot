@@ -1,12 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Serialization;
-
-namespace Geopilot.Api.Validation;
+﻿namespace Geopilot.Api.Validation;
 
 /// <summary>
 /// Represents a validation job.
 /// </summary>
-[SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1313:ParameterNamesMustBeginWithLowerCaseLetter", Justification = "Record class constructor.")]
 public record class ValidationJob(
     Guid Id,
     string OriginalFileName,

@@ -1,7 +1,7 @@
 ﻿namespace Geopilot.Api.Validation;
 
 /// <summary>
-/// Runs validation jobs and provides access job status information.
+/// Runs validation jobs.
 /// </summary>
 public interface IValidationRunner
 {
