@@ -292,8 +292,8 @@ namespace Geopilot.Api.Controllers
 
             var guid = Guid.NewGuid();
             validationServiceMock
-                .Setup(s => s.GetJobStatus(guid))
-                .Returns(new ValidationJobStatus(guid) { JobId = guid, Status = Status.Completed });
+                .Setup(s => s.GetJob(guid))
+                .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip") { Status = Status.Completed });
             var assetHandlerMock = new Mock<IAssetHandler>();
             assetHandlerMock
                 .Setup(p => p.PersistJobAssets(guid))

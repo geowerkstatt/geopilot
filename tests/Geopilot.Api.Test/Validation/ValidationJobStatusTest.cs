@@ -1,7 +1,7 @@
 ﻿namespace Geopilot.Api.Validation;
 
 [TestClass]
-public class ValidationJobStatusTest
+public class ValidationJobTest
 {
     [TestMethod]
     [DataRow(
@@ -31,7 +31,7 @@ public class ValidationJobStatusTest
         Status.Processing)]
     public void UpdateJobStatusFromResults(Status expected, Status status1, Status status2, Status status3)
     {
-        var status = new ValidationJobStatus(Guid.NewGuid());
+        var status = new ValidationJob(Guid.NewGuid(), "", "");
         status.ValidatorResults.Add("Validator1", new ValidatorResult(status1, ""));
         status.ValidatorResults.Add("Validator2", new ValidatorResult(status2, ""));
         status.ValidatorResults.Add("Validator3", new ValidatorResult(status3, ""));
