@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Typography } from "@mui/material";
-import { FlexRowSpaceBetweenBox, GeopilotBox } from "../../components/styledComponents.ts";
+import { FlexRowSpaceBetweenBox, GeopilotBox } from "../../../components/styledComponents.ts";
 import {
   FormAutocomplete,
   FormContainer,
@@ -8,15 +8,15 @@ import {
   FormExtent,
   FormInput,
   FormSelect,
-} from "../../components/form/form.ts";
-import { FieldEvaluationType, Mandate, Organisation, ValidatorConfiguration } from "../../api/apiInterfaces.ts";
-import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
-import AdminDetailForm from "../../components/adminDetailForm.tsx";
+} from "../../../components/form/form.ts";
+import { FieldEvaluationType, Mandate, Organisation, ValidatorConfiguration } from "../../../api/apiInterfaces.ts";
+import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
+import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import useFetch from "../../hooks/useFetch.ts";
-import InterlisProfileFormSelect from "../../components/form/interlisProfileFormSelect.tsx";
+import useFetch from "../../../hooks/useFetch.ts";
+import InterlisProfileFormSelect from "./interlisProfileFormSelect.tsx";
 
 const MandateDetail = () => {
   const { t } = useTranslation();

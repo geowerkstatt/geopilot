@@ -6,21 +6,21 @@ import Header from "./components/header/header";
 import { useGeopilotAuth } from "./auth";
 import Delivery from "./pages/delivery/delivery";
 import Admin from "./pages/admin/admin";
-import DeliveryOverview from "./pages/admin/deliveryOverview";
-import Users from "./pages/admin/users";
-import Mandates from "./pages/admin/mandates";
-import Organisations from "./pages/admin/organisations";
+import DeliveryOverview from "./pages/admin/deliveries/deliveryOverview.tsx";
 import Footer from "./pages/footer/footer";
 import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
 import { About } from "./pages/footer/about.tsx";
 import { Imprint } from "./pages/footer/imprint.tsx";
 import { DeliveryProvider } from "./pages/delivery/deliveryContext.tsx";
 import { CircularProgress } from "@mui/material";
-import MandateDetail from "./pages/admin/mandateDetail.tsx";
 import { ControlledNavigateProvider } from "./components/controlledNavigate/controlledNavigateProvider.tsx";
-import OrganisationDetail from "./pages/admin/organisationDetail.tsx";
-import UserDetail from "./pages/admin/userDetail.tsx";
 import { Licenses } from "./pages/footer/licenses.tsx";
+import Users from "./pages/admin/users/users.tsx";
+import UserDetail from "./pages/admin/users/userDetail.tsx";
+import MandateDetail from "./pages/admin/mandates/mandateDetail.tsx";
+import Mandates from "./pages/admin/mandates/mandates.tsx";
+import OrganisationDetail from "./pages/admin/organisations/organisationDetail.tsx";
+import Organisations from "./pages/admin/organisations/organisations.tsx";
 
 export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);

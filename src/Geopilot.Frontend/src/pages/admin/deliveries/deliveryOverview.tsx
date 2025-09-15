@@ -3,12 +3,12 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { useTranslation } from "react-i18next";
 import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { Tooltip } from "@mui/material";
-import { useGeopilotAuth } from "../../auth";
-import { PromptContext } from "../../components/prompt/promptContext";
-import { AlertContext } from "../../components/alert/alertContext";
-import { ApiError, Delivery } from "../../api/apiInterfaces";
-import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
-import useFetch from "../../hooks/useFetch.ts";
+import { useGeopilotAuth } from "../../../auth";
+import { PromptContext } from "../../../components/prompt/promptContext";
+import { AlertContext } from "../../../components/alert/alertContext";
+import { ApiError, Delivery } from "../../../api/apiInterfaces";
+import GeopilotDataGrid from "../../../components/geopilotDataGrid.tsx";
+import useFetch from "../../../hooks/useFetch.ts";
 
 interface DeliveryMandate {
   id: number;

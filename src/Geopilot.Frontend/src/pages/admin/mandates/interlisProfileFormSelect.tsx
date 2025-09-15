@@ -1,8 +1,8 @@
 import { FC } from "react";
 import { useTranslation } from "react-i18next";
-import { Profile } from "../../api/apiInterfaces";
-import i18n from "../../i18n";
-import { FormSelect, FormSelectValue } from "./formSelect";
+import { Profile } from "../../../api/apiInterfaces";
+import i18n from "../../../i18n";
+import { FormSelect, FormSelectValue } from "../../../components/form/formSelect";
 
 interface InterlisProfileFormSelectProps {
   profiles?: Profile[];
