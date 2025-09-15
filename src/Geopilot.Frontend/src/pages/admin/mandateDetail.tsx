@@ -9,21 +9,14 @@ import {
   FormInput,
   FormSelect,
 } from "../../components/form/form.ts";
-import {
-  FieldEvaluationType,
-  Mandate,
-  Organisation,
-  Profile,
-  ValidatorConfiguration,
-} from "../../api/apiInterfaces.ts";
+import { FieldEvaluationType, Mandate, Organisation, ValidatorConfiguration } from "../../api/apiInterfaces.ts";
 import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
 import AdminDetailForm from "../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import useFetch from "../../hooks/useFetch.ts";
-import i18n from "../../i18n.js";
-import { FormSelectValue } from "../../components/form/formSelect.tsx";
+import InterlisProfileFormSelect from "../../components/form/interlisProfileFormSelect.tsx";
 
 const MandateDetail = () => {
   const { t } = useTranslation();
@@ -58,42 +51,6 @@ const MandateDetail = () => {
     setValidators(validators ?? {});
   }, [fetchApi]);
 
-  // Helper to get the FormSelect menu items for the INTERLIS validation profiles
-  const getInterlisProfileSelectMenuItems = (): FormSelectValue[] => {
-    return (
-      validators[interlisValidatorName]?.profiles.map((profile, idx) => ({
-        key: idx,
-        value: profile.id,
-        name: `${getLocalisedProfileTitle(profile, i18n.language)} (${t("id")}: ${profile.id})`,
-      })) ?? []
-    );
-  };
-
-  // Helper function to get the localized title for an INTERLIS validation profile
-  const getLocalisedProfileTitle = (profile: Profile, language: string): string => {
-    if (!profile.titles || profile.titles.length === 0) {
-      return profile.id;
-    }
-
-    // Look for title in the current language first
-    const germanTitle = profile.titles.find(title => title.language === language);
-    if (germanTitle) {
-      return germanTitle.text || profile.id;
-    }
-
-    // Fallback to title with no language or empty language
-    const fallbackTitle = profile.titles.find(
-      title => title.language === null || title.language === "" || title.language === undefined,
-    );
-
-    if (fallbackTitle) {
-      return fallbackTitle.text;
-    }
-
-    // Final fallback to profile ID
-    return profile.id;
-  };
-
   useEffect(() => {
     if (id !== "0") {
       loadMandate(id);
@@ -120,6 +77,11 @@ const MandateDetail = () => {
     mandate.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
+
+    if (mandate.interlisValidationProfile === "") {
+      mandate.interlisValidationProfile = undefined;
+    }
+
     return mandate;
   };
 
@@ -172,12 +134,9 @@ const MandateDetail = () => {
             </span>
           </FlexRowSpaceBetweenBox>
           <FormContainer>
-            <FormSelect
-              fieldName={"interlisValidationProfile"}
-              label={"validationProfile"}
-              required={false}
+            <InterlisProfileFormSelect
+              profiles={validators[interlisValidatorName]?.profiles}
               selected={mandate?.interlisValidationProfile}
-              values={getInterlisProfileSelectMenuItems()}
             />
           </FormContainer>
         </GeopilotBox>
