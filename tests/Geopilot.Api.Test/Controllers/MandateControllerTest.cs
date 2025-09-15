@@ -211,7 +211,6 @@ namespace Geopilot.Api.Controllers
         [TestMethod]
         [DataRow("DEFAULT", DisplayName = "CreateMandate")]
         [DataRow(null, DisplayName = "CreateMandateWithProfileNull")]
-        [DataRow("", DisplayName = "CreateMandateWithProfileEmptyString")]
         public async Task CreateMandate(string profile)
         {
             interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
@@ -235,7 +234,9 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
-        public async Task CreateMandateChecksProfileExists()
+        [DataRow("NONEXISTING", DisplayName = "CreateMandateWithNonExistentProfile")]
+        [DataRow("", DisplayName = "CreateMandateWithProfileEmptyString")]
+        public async Task CreateMandateChecksProfileExists(string profile)
         {
             interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
                 .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" } });
@@ -246,7 +247,7 @@ namespace Geopilot.Api.Controllers
                 Name = "ACCORDIANWALK",
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
-                InterlisValidationProfile = "NONEXISTING",
+                InterlisValidationProfile = profile,
             };
             var result = await mandateController.Create(mandate);
             ActionResultAssert.IsBadRequest(result);
@@ -271,7 +272,6 @@ namespace Geopilot.Api.Controllers
         [TestMethod]
         [DataRow("different-profile", DisplayName = "EditMandate")]
         [DataRow(null, DisplayName = "EditMandateWithProfileNull")]
-        [DataRow("", DisplayName = "EditMandateWithProfileEmptyString")]
         public async Task EditMandate(string newProfile)
         {
             interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
@@ -352,7 +352,9 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
-        public async Task EditMandateChecksProfileExists()
+        [DataRow("NONEXISTING", DisplayName = "EditMandateWithNonExistentProfile")]
+        [DataRow("", DisplayName = "EditMandateWithProfileEmptyString")]
+        public async Task EditMandateChecksProfileExists(string profile)
         {
             interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
                 .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" } });
@@ -364,7 +366,7 @@ namespace Geopilot.Api.Controllers
                 Name = "PEARLFOLLOWER",
                 Organisations = new List<Organisation>() { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
-                InterlisValidationProfile = "NONEXISTING",
+                InterlisValidationProfile = profile,
             };
             var result = await mandateController.Edit(mandate);
             ActionResultAssert.IsBadRequest(result);
