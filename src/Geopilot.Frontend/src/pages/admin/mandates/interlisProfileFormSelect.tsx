@@ -15,8 +15,8 @@ const getLocalisedProfileTitle = (profile: Profile, language: string): string =>
   }
 
   const localTitle = profile.titles.find(title => title.language === language);
-  if (localTitle) {
-    return localTitle.text || profile.id;
+  if (localTitle && localTitle.text) {
+    return localTitle.text;
   }
 
   const fallbackTitle = profile.titles.find(title => !title.language);
