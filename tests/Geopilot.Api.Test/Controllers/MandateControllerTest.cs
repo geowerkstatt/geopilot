@@ -32,7 +32,6 @@ namespace Geopilot.Api.Controllers
             context = AssemblyInitialize.DbFixture.GetTestContext();
 
             interlisValidatorMock = new Mock<IValidator>();
-            interlisValidatorMock.Setup(v => v.Name).Returns("INTERLIS");
             var validatorMocks = new List<IValidator> { interlisValidatorMock.Object };
 
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object, validatorMocks);

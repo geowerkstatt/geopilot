@@ -16,8 +16,6 @@ namespace Geopilot.Api.Controllers;
 [Route("api/v{version:apiVersion}/[controller]")]
 public class MandateController : ControllerBase
 {
-    private const string InterlisValidatorName = "INTERLIS";
-
     private readonly ILogger<MandateController> logger;
     private readonly Context context;
     private readonly IValidationService validationService;
@@ -129,7 +127,7 @@ public class MandateController : ControllerBase
 
             if (mandate.InterlisValidationProfile == "") mandate.InterlisValidationProfile = null;
 
-            if (!IsValidInterlisProfile(mandate.InterlisValidationProfile))
+            if (!await IsValidInterlisProfile(mandate.InterlisValidationProfile))
                 return BadRequest($"INTERLIS validation profile <{mandate.InterlisValidationProfile}> does not exist.");
 
             var organisationIds = mandate.Organisations.Select(o => o.Id).ToList();
@@ -188,7 +186,7 @@ public class MandateController : ControllerBase
 
             if (mandate.InterlisValidationProfile == "") mandate.InterlisValidationProfile = null;
 
-            if (!IsValidInterlisProfile(mandate.InterlisValidationProfile))
+            if (!await IsValidInterlisProfile(mandate.InterlisValidationProfile))
                 return BadRequest($"INTERLIS validation profile <{mandate.InterlisValidationProfile}> does not exist.");
 
             context.Entry(existingMandate).CurrentValues.SetValues(mandate);
@@ -222,12 +220,14 @@ public class MandateController : ControllerBase
         }
     }
 
-    private bool IsValidInterlisProfile(string? profile)
+    private async Task<bool> IsValidInterlisProfile(string? profile)
     {
         if (profile == null) return true;
 
-        var interlisValidator = validators.FirstOrDefault(v => v.Name == InterlisValidatorName);
-        var supportedProfiles = interlisValidator?.GetSupportedProfilesAsync().Result;
-        return supportedProfiles != null && supportedProfiles.Any(p => p.Id == profile);
+        var interlisValidator = validators.FirstOrDefault();
+        if (interlisValidator == null) return false;
+
+        var supportedProfiles = await interlisValidator.GetSupportedProfilesAsync();
+        return supportedProfiles.Any(p => string.Equals(p.Id, profile, StringComparison.Ordinal));
     }
 }
