@@ -125,8 +125,6 @@ public class MandateController : ControllerBase
             if (!mandate.SetPolygonFromCoordinates())
                 return BadRequest("Invalid coordinates for spatial extent.");
 
-            if (mandate.InterlisValidationProfile == "") mandate.InterlisValidationProfile = null;
-
             if (!await IsValidInterlisProfile(mandate.InterlisValidationProfile))
                 return BadRequest($"INTERLIS validation profile <{mandate.InterlisValidationProfile}> does not exist.");
 
@@ -183,8 +181,6 @@ public class MandateController : ControllerBase
 
             if (!mandate.SetPolygonFromCoordinates())
                 return BadRequest("Invalid coordinates for spatial extent.");
-
-            if (mandate.InterlisValidationProfile == "") mandate.InterlisValidationProfile = null;
 
             if (!await IsValidInterlisProfile(mandate.InterlisValidationProfile))
                 return BadRequest($"INTERLIS validation profile <{mandate.InterlisValidationProfile}> does not exist.");
