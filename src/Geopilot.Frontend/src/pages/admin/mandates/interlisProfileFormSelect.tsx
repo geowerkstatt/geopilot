@@ -24,6 +24,11 @@ const getLocalisedProfileTitle = (profile: Profile, language: string): string =>
     return fallbackTitle.text;
   }
 
+  const firstTitle = profile.titles.find(title => title.text);
+  if (firstTitle) {
+    return firstTitle.text;
+  }
+
   return profile.id;
 };
 
