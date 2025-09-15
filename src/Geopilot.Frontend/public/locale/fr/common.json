@@ -14,6 +14,7 @@
   "bottomLeft": "En bas à gauche",
   "bugTracking": "Suivi des bugs",
   "cancel": "Annuler",
+  "clear": "Effacer",
   "clickToSelect": "Cliquer pour sélectionner",
   "codeLicenseInfo": "Le code est disponible sous la <licenseLink>licence GNU Affero General Public License v3.0</licenseLink> dans le référentiel <repositoryLink>GitHub</repositoryLink>. Si vous rencontrez des bugs, vous pouvez ouvrir un <issuesLink>problème</issuesLink> là-bas.",
   "comment": "Commentaire",
@@ -57,7 +58,6 @@
   "fileDropzoneErrorNotSupported": "Le type de fichier n'est pas pris en charge",
   "fileDropzoneErrorTooManyFiles": "Seul un fichier peut être vérifié à la fois",
   "fileTypes": "Formats",
-  "fileTypesLoadingError": "Une erreur s'est produite lors du chargement des formats: {{error}}",
   "id": "ID",
   "imprint": "Mentions légales",
   "invalidContentType": "Type de réponse non valide",
@@ -107,6 +107,9 @@
   "validationErrorFileTooLarge": "Taille maximale du fichier dépassée. (Erreur 413)",
   "validationErrorRequestMalformed": "Requête invalide ou corrompue au serveur de validation. (Erreur 400)",
   "validationErrorUnexpected": "Erreur inattendue du serveur lors du traitement. (Erreur 500)",
+  "validationForm": "Validation",
   "validationIsRunning": "Le fichier est en cours de validation avec {{validators}}...",
+  "validationProfile": "Profil de validation",
+  "validatorsLoadingError": "Une erreur s'est produite lors du chargement des validateurs: {{error}}",
   "version": "Version"
 }

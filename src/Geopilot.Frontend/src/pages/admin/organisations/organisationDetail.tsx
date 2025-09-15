@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { Typography } from "@mui/material";
-import { GeopilotBox } from "../../components/styledComponents.ts";
-import { FormAutocomplete, FormContainer, FormInput } from "../../components/form/form.ts";
-import { Mandate, Organisation, User } from "../../api/apiInterfaces.ts";
-import AdminDetailForm from "../../components/adminDetailForm.tsx";
+import { GeopilotBox } from "../../../components/styledComponents.ts";
+import { FormAutocomplete, FormContainer, FormInput } from "../../../components/form/form.ts";
+import { Mandate, Organisation, User } from "../../../api/apiInterfaces.ts";
+import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
-import useFetch from "../../hooks/useFetch.ts";
+import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
+import useFetch from "../../../hooks/useFetch.ts";
 
 const OrganisationDetail = () => {
   const { t } = useTranslation();

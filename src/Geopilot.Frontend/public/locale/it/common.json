@@ -14,6 +14,7 @@
   "bottomLeft": "In basso a sinistra",
   "bugTracking": "Tracciamento bug",
   "cancel": "Annulla",
+  "clear": "Cancella",
   "clickToSelect": "Clicca per selezionare",
   "codeLicenseInfo": "Il codice è disponibile sotto la <licenseLink>licenza GNU Affero General Public License v3.0</licenseLink> nel <repositoryLink>repository di GitHub</repositoryLink>. Se trovi dei bug, puoi aprire un <issuesLink>Issue</issuesLink> lì.",
   "comment": "Commento",
@@ -57,7 +58,6 @@
   "fileDropzoneErrorNotSupported": "Tipo di file non supportato",
   "fileDropzoneErrorTooManyFiles": "Puoi verificare solo un file alla volta",
   "fileTypes": "Formati",
-  "fileTypesLoadingError": "Si è verificato un errore durante il caricamento dei formati: {{error}}",
   "id": "ID",
   "imprint": "Impressum",
   "invalidContentType": "Tipo di risposta non valido",
@@ -107,6 +107,9 @@
   "validationErrorFileTooLarge": "Dimensione massima del file superata. (Errore 413)",
   "validationErrorRequestMalformed": "Richiesta non valida o danneggiata al server di convalida. (Errore 400)",
   "validationErrorUnexpected": "Errore imprevisto del server durante l'elaborazione. (Errore 500)",
+  "validationForm": "Convalida",
   "validationIsRunning": "Il file è in corso di validazione con {{validators}}...",
+  "validationProfile": "Profilo di convalida",
+  "validatorsLoadingError": "Si è verificato un errore durante il caricamento dei validatori: {{error}}",
   "version": "Versione"
 }
