@@ -5,7 +5,7 @@ namespace Geopilot.Api.Validation;
 /// <summary>
 /// Represents the result of one validation as part of a validation job.
 /// </summary>
-public record class ValidatorResult(Status Status, string? StatusMessage)
+public record class ValidatorResult(ValidatorResultStatus Status, string? StatusMessage)
 {
     /// <summary>
     /// Available log files to download.

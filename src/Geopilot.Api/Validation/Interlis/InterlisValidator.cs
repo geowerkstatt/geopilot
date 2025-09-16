@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Contracts;
+﻿using Bogus;
+using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -8,9 +9,6 @@ using System.Text.Json;
 
 namespace Geopilot.Api.Validation.Interlis;
 
-/// <summary>
-/// Validates an INTERLIS transfer file provided through an <see cref="IFileProvider"/>.
-/// </summary>
 public class InterlisValidator : IValidator
 {
     private const string UploadUrl = "/api/v1/upload";
@@ -19,10 +17,12 @@ public class InterlisValidator : IValidator
     private static readonly TimeSpan pollInterval = TimeSpan.FromSeconds(2);
 
     private readonly ILogger<InterlisValidator> logger;
-    private readonly IFileProvider fileProvider;
     private readonly HttpClient httpClient;
     private readonly JsonSerializerOptions jsonSerializerOptions;
     private ICollection<string>? supportedFileExtensions;
+
+    private IFileProvider? fileProvider;
+    private string? fileName;
 
     /// <inheritdoc/>
     public string Name => "INTERLIS";
@@ -30,12 +30,11 @@ public class InterlisValidator : IValidator
     /// <summary>
     /// Initializes a new instance of the <see cref="InterlisValidator"/> class.
     /// </summary>
-    public InterlisValidator(ILogger<InterlisValidator> logger, IFileProvider fileProvider, HttpClient httpClient, IOptions<JsonOptions> jsonOptions)
+    public InterlisValidator(ILogger<InterlisValidator> logger, HttpClient httpClient, IOptions<JsonOptions> jsonOptions)
     {
         ArgumentNullException.ThrowIfNull(jsonOptions);
 
         this.logger = logger;
-        this.fileProvider = fileProvider;
         this.httpClient = httpClient;
         jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
     }
@@ -51,26 +50,33 @@ public class InterlisValidator : IValidator
         return supportedFileExtensions ?? Array.Empty<string>();
     }
 
-    /// <inheritdoc/>
-    public async Task<ValidatorResult> ExecuteAsync(ValidationJob validationJob, CancellationToken cancellationToken)
+    public void Configure(IFileProvider fileProvider, string fileName)
     {
-        ArgumentNullException.ThrowIfNull(validationJob);
-        if (string.IsNullOrWhiteSpace(validationJob.TempFileName)) throw new ArgumentException("Transfer file name cannot be empty.", nameof(validationJob));
+        ArgumentNullException.ThrowIfNull(fileProvider);
+        ArgumentException.ThrowIfNullOrEmpty(fileName);
 
-        fileProvider.Initialize(validationJob.Id);
-        if (!fileProvider.Exists(validationJob.TempFileName)) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Transfer file with the specified name <{0}> not found for validation id <{1}>.", validationJob.TempFileName, validationJob.Id));
+        this.fileProvider = fileProvider;
+        this.fileName = fileName;
+    }
 
-        logger.LogInformation("Validating transfer file <{File}>...", validationJob.TempFileName);
-        var uploadResponse = await UploadTransferFileAsync(validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
+    /// <inheritdoc/>
+    public async Task<ValidatorResult> ExecuteAsync(CancellationToken cancellationToken)
+    {
+        if (fileProvider == null) throw new InvalidOperationException("File provider has not been configured.");
+        if (string.IsNullOrWhiteSpace(fileName)) throw new InvalidOperationException("Transfer file has not been configured.");
+        if (!fileProvider.Exists(fileName)) throw new InvalidOperationException($"Transfer file with the specified name <{fileName}> not found.");
+
+        logger.LogInformation("Validating transfer file <{File}>...", fileName);
+        var uploadResponse = await UploadTransferFileAsync(fileName, cancellationToken).ConfigureAwait(false);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken).ConfigureAwait(false);
         if (statusResponse == null)
         {
-            return new ValidatorResult(Status.Failed, "Validation was cancelled.");
+            return new ValidatorResult(ValidatorResultStatus.Failed, "Validation was cancelled.");
         }
 
-        var logFiles = await DownloadLogFilesAsync(statusResponse, validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
+        var logFiles = await DownloadLogFilesAsync(statusResponse, fileName, cancellationToken).ConfigureAwait(false);
 
-        return new ValidatorResult(statusResponse.Status, statusResponse.StatusMessage)
+        return new ValidatorResult(statusResponse.Status.ToValidatorResultStatus(), statusResponse.StatusMessage)
         {
             LogFiles = logFiles,
         };
@@ -99,9 +105,9 @@ public class InterlisValidator : IValidator
             using var response = await httpClient.GetAsync(statusUrl, cancellationToken).ConfigureAwait(false);
             var statusResponse = await ReadSuccessResponseJsonAsync<InterlisStatusResponse>(response, cancellationToken).ConfigureAwait(false);
 
-            if (statusResponse.Status == Status.Completed
-                || statusResponse.Status == Status.CompletedWithErrors
-                || statusResponse.Status == Status.Failed)
+            if (statusResponse.Status == InterlisStatusResponseStatus.Completed
+                || statusResponse.Status == InterlisStatusResponseStatus.CompletedWithErrors
+                || statusResponse.Status == InterlisStatusResponseStatus.Failed)
             {
                 return statusResponse;
             }

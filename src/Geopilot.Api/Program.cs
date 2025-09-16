@@ -145,12 +145,11 @@ contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");
 builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 builder.Services.AddSingleton<IValidationJobStore, ValidationJobStore>();
-builder.Services.AddSingleton<IValidationRunner, ValidationRunner>();
-builder.Services.AddHostedService(services => (ValidationRunner)services.GetRequiredService<IValidationRunner>());
 builder.Services.AddTransient<IValidationService, ValidationService>();
 builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
+builder.Services.AddHostedService<ValidationRunner>();
 
 builder.Services
     .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")

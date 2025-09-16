@@ -12,13 +12,17 @@ public interface IValidationService
     /// </summary>
     /// <param name="originalFileName">Name of the uploaded file.</param>
     /// <returns>The created <see cref="ValidationJob"/> and a <see cref="FileHandle"/> to store the file to validate.</returns>
-    (ValidationJob ValidationJob, FileHandle FileHandle) CreateValidationJob(string originalFileName);
+    ValidationJob CreateJob();
+
+    FileHandle? CreateFileHandleForJob(Guid jobId, string originalFileName);
+
+    ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName);
 
     /// <summary>
-    /// Starts the validation job asynchronously.
+    /// Starts the validation job.
     /// </summary>
-    /// <param name="validationJob">The validation job to start.</param>
-    Task StartValidationJobAsync(ValidationJob validationJob);
+    /// <param name="jobId">The id of the validation job to start.</param>
+    Task<ValidationJob> StartJobAsync(Guid jobId);
 
     /// <summary>
     /// Gets the validation job.

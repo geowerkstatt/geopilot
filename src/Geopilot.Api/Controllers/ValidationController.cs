@@ -117,23 +117,39 @@ public class ValidationController : ControllerBase
             return Problem($"File extension <{fileExtension}> is not supported.", statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var (validationJob, fileHandle) = validationService.CreateValidationJob(file.FileName);
-        using (fileHandle)
+        try
         {
-            logger.LogInformation("Start uploading <{FormFile}> as <{File}>, file size: {FileSize}", file.FileName, fileHandle.FileName, file.Length);
+            var validationJob = validationService.CreateJob();
+            var fileHandle = validationService.CreateFileHandleForJob(validationJob.Id, file.FileName);
 
-            await file.CopyToAsync(fileHandle.Stream).ConfigureAwait(false);
-            logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
-        }
+            if (fileHandle == null) // This should never happen
+            {
+                logger.LogError("Failed to create file handle for job <{JobId}> and file <{FileName}>.", validationJob.Id, file.FileName);
+                return Problem($"Could not create file handle for job <{validationJob.Id}>.", statusCode: StatusCodes.Status500InternalServerError);
+            }
 
-        await validationService.StartValidationJobAsync(validationJob);
-        logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
+            using (fileHandle)
+            {
+                logger.LogInformation("Start uploading <{FormFile}> as <{File}>, file size: {FileSize}", file.FileName, fileHandle.FileName, file.Length);
+                await file.CopyToAsync(fileHandle.Stream).ConfigureAwait(false);
+                validationJob = validationService.AddFileToJob(validationJob.Id, file.FileName, fileHandle.FileName);
+                logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
+            }
 
-        var location = new Uri(
+            validationJob = await validationService.StartJobAsync(validationJob.Id);
+            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
+
+            var location = new Uri(
             string.Format(CultureInfo.InvariantCulture, "/api/v{0}/validation/{1}", version.MajorVersion, validationJob.Id),
             UriKind.Relative);
 
-        return Created(location, validationJob.ToResponse());
+            return Created(location, validationJob.ToResponse());
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "File upload failed.");
+            return Problem("An unexpected error occured.", statusCode: StatusCodes.Status500InternalServerError);
+        }
     }
 
     /// <summary>

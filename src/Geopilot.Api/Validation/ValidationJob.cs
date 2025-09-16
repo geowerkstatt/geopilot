@@ -1,50 +1,36 @@
-﻿namespace Geopilot.Api.Validation;
+﻿using System.Collections.Immutable;
+
+namespace Geopilot.Api.Validation;
 
 /// <summary>
 /// Represents a validation job.
 /// </summary>
 public record class ValidationJob(
     Guid Id,
-    string OriginalFileName,
-    string TempFileName)
+    string? OriginalFileName,
+    string? TempFileName,
+    ImmutableDictionary<string, ValidatorResult?> ValidatorResults,
+    Status Status)
 {
     /// <summary>
-    /// Overall status of the validation job.
+    /// Aggregates the status of all <see cref="ValidatorResults"/> and returns the aggregated <see cref="Status"/>.
     /// </summary>
-    public Status Status { get; set; } = Status.Processing;
-
-    /// <summary>
-    /// Available validator results.
-    /// </summary>
-    public IDictionary<string, ValidatorResult> ValidatorResults { get; } = new Dictionary<string, ValidatorResult>();
-
-    /// <summary>
-    /// Aggregates the status of all <see cref="ValidatorResults"/> and updates the <see cref="Status"/> property.
-    /// </summary>
-    public void UpdateJobStatusFromResults()
+    public static Status GetStatusFromResults(ImmutableDictionary<string, ValidatorResult?> validatorResults)
     {
-        Status = ValidatorResults.Values
-            .Select(v => v.Status)
-            .Aggregate(Status.Completed, ReduceStatus);
-    }
+        if (validatorResults == null || validatorResults.Count == 0)
+            throw new ArgumentException("Validator results must not be null or empty.", nameof(validatorResults));
 
-    private static Status ReduceStatus(Status current, Status next)
-    {
-        return current switch
-        {
-            // Completed has the lowest priority and requires all results to be completed.
-            Status.Completed => next,
+        if (validatorResults.Values.Any(v => v is null))
+            return Status.Processing;
 
-            // CompletedWithErrors has a higher priority than completed.
-            Status.CompletedWithErrors => next == Status.Completed ? Status.CompletedWithErrors : next,
+        var statuses = validatorResults.Values.Select(v => v!.Status).ToList();
 
-            // Failed is only set when all validations finished.
-            Status.Failed => next == Status.Processing ? next : Status.Failed,
+        if (statuses.Contains(ValidatorResultStatus.Failed))
+            return Status.Failed;
 
-            // Processing has the highest priority. If at least one validator is still running, the job is processing.
-            Status.Processing => Status.Processing,
+        if (statuses.Contains(ValidatorResultStatus.CompletedWithErrors))
+            return Status.CompletedWithErrors;
 
-            _ => throw new InvalidOperationException($"Unknown status <{current}>."),
-        };
+        return Status.Completed;
     }
 }

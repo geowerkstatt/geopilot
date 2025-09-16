@@ -5,6 +5,10 @@
 /// </summary>
 public enum Status
 {
+    Created,
+
+    Ready,
+
     /// <summary>
     /// The job is processing.
     /// </summary>

@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Validation.Interlis;
 
 namespace Geopilot.Api.Validation;
 
@@ -8,39 +9,50 @@ namespace Geopilot.Api.Validation;
 public class ValidationService : IValidationService
 {
     private readonly IFileProvider fileProvider;
-    private readonly IValidationRunner validationRunner;
     private readonly IEnumerable<IValidator> validators;
     private readonly Context context;
-    private readonly IValidationJobStore validationManager;
+    private readonly IValidationJobStore jobStore;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationService"/> class.
     /// </summary>
-    public ValidationService(IFileProvider fileProvider, IValidationRunner validationRunner, IEnumerable<IValidator> validators, Context context, IValidationJobStore validationManager)
+    public ValidationService(IFileProvider fileProvider, IEnumerable<IValidator> validators, Context context, IValidationJobStore validationJobStore)
     {
         this.fileProvider = fileProvider;
-        this.validationRunner = validationRunner;
         this.validators = validators;
         this.context = context;
-        this.validationManager = validationManager;
+        this.jobStore = validationJobStore;
     }
 
     /// <inheritdoc/>
-    public (ValidationJob ValidationJob, FileHandle FileHandle) CreateValidationJob(string originalFileName)
+    public ValidationJob CreateJob()
     {
-        var id = Guid.NewGuid();
-        fileProvider.Initialize(id);
+        return jobStore.CreateJob();
+    }
+
+    /// <inheritdoc/>
+    public FileHandle? CreateFileHandleForJob(Guid jobId, string originalFileName)
+    {
+        if (jobStore.GetJob(jobId) == null) return null;
 
         var extension = Path.GetExtension(originalFileName);
-        var fileHandle = fileProvider.CreateFileWithRandomName(extension);
-        var validationJob = new ValidationJob(id, originalFileName, fileHandle.FileName);
-        return (validationJob, fileHandle);
+        fileProvider.Initialize(jobId);
+        return fileProvider.CreateFileWithRandomName(extension);
     }
 
     /// <inheritdoc/>
-    public async Task StartValidationJobAsync(ValidationJob validationJob)
+    public ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName)
     {
-        ArgumentNullException.ThrowIfNull(validationJob);
+        if (!jobStore.TryAddFileToJob(jobId, originalFileName, tempFileName, out var updatedJob))
+            throw new InvalidOperationException($"Failed to add file <{originalFileName}> to job <{jobId}>.");
+
+        return updatedJob;
+    }
+
+    /// <inheritdoc/>
+    public async Task<ValidationJob> StartJobAsync(Guid jobId)
+    {
+        var validationJob = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
 
         var fileExtension = Path.GetExtension(validationJob.TempFileName);
         var supportedValidators = new List<IValidator>();
@@ -49,18 +61,31 @@ public class ValidationService : IValidationService
             var supportedExtensions = await validator.GetSupportedFileExtensionsAsync();
             if (IsExtensionSupported(supportedExtensions, fileExtension))
             {
+                ConfigureValidator(validator, validationJob);
                 supportedValidators.Add(validator);
             }
         }
 
-        validationManager.AddJob(validationJob);
-        await validationRunner.EnqueueJobAsync(validationJob, supportedValidators);
+        if (!jobStore.TryStartJob(validationJob.Id, supportedValidators, out var updatedJob))
+            throw new InvalidOperationException($"Failed to start validation job <{jobId}>.");
+
+        return updatedJob;
+    }
+
+    private void ConfigureValidator(IValidator validator, ValidationJob validationJob)
+    {
+        switch (validator)
+        {
+            case InterlisValidator interlisValidator:
+                interlisValidator.Configure(fileProvider, validationJob.TempFileName);
+                break;
+        }
     }
 
     /// <inheritdoc/>
     public ValidationJob? GetJob(Guid jobId)
     {
-        return validationManager.GetJob(jobId);
+        return jobStore.GetJob(jobId);
     }
 
     /// <inheritdoc/>
