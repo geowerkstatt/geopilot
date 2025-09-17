@@ -31,9 +31,9 @@ public class ValidationService : IValidationService
     }
 
     /// <inheritdoc/>
-    public FileHandle? CreateFileHandleForJob(Guid jobId, string originalFileName)
+    public FileHandle CreateFileHandleForJob(Guid jobId, string originalFileName)
     {
-        if (jobStore.GetJob(jobId) == null) return null;
+        if (jobStore.GetJob(jobId) == null) throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
 
         var extension = Path.GetExtension(originalFileName);
         fileProvider.Initialize(jobId);

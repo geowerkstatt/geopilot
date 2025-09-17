@@ -3,23 +3,37 @@
 namespace Geopilot.Api.Validation;
 
 /// <summary>
-/// Provides methods to create, start, check and access validation jobs.
+/// Handles the business logic for validations and delegates the job management to an <see cref="IValidationJobStore"/>.
 /// </summary>
 public interface IValidationService
 {
     /// <summary>
     /// Creates a new <see cref="ValidationJob"/>.
     /// </summary>
-    /// <param name="originalFileName">Name of the uploaded file.</param>
-    /// <returns>The created <see cref="ValidationJob"/> and a <see cref="FileHandle"/> to store the file to validate.</returns>
+    /// <returns>The created <see cref="ValidationJob"/>.</returns>
     ValidationJob CreateJob();
 
-    FileHandle? CreateFileHandleForJob(Guid jobId, string originalFileName);
+    /// <summary>
+    /// Creates a file handle associated with the specified job and original file name.
+    /// </summary>
+    /// <param name="jobId">The id of the job for which the file handle is being created.</param>
+    /// <param name="originalFileName">The name of the original file associated with the job.</param>
+    /// <returns>A <see cref="FileHandle"/> object representing the created file handle.</returns>
+    /// <exception cref="ArgumentException">If no job with the specified <paramref name="jobId"/> exists.</exception>
+    FileHandle CreateFileHandleForJob(Guid jobId, string originalFileName);
 
+    /// <summary>
+    /// Adds the uploaded file to the specified job.
+    /// </summary>
+    /// <param name="jobId">The id of the job to add the file to.</param>
+    /// <param name="originalFileName">The original file name of the uploaded file.</param>
+    /// <param name="tempFileName">The temporary, sanitized, internal file name of the uploaded file.</param>
+    /// <returns>The updated job, with the original and temporary file name set.</returns>
+    /// <exception cref="InvalidOperationException">If the file could not be added to the job.</exception>
     ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName);
 
     /// <summary>
-    /// Starts the validation job.
+    /// Starts the validation job with all validators that support the type of the uploaded file.
     /// </summary>
     /// <param name="jobId">The id of the validation job to start.</param>
     Task<ValidationJob> StartJobAsync(Guid jobId);
@@ -28,7 +42,7 @@ public interface IValidationService
     /// Gets the validation job.
     /// </summary>
     /// <param name="jobId">The id of the validation job.</param>
-    /// <returns>Validation job with the specified <paramref name="jobId"/>.</returns>
+    /// <returns>Validation job with the specified <paramref name="jobId"/>, or <see langword="null"/> if no job with the specified id exists.</returns>
     ValidationJob? GetJob(Guid jobId);
 
     /// <summary>

@@ -17,7 +17,12 @@ public class ValidationRunner : BackgroundService
         this.jobStore = jobStore;
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Processes <see cref="IValidator"/> instances retrieved from the <see cref="ValidationJobStore"/> in parallel.
+    /// </summary>
+    /// <remarks>For every <see cref="IValidator"/> processed, a <see cref="ValidatorResult"/> is created and delivered to the <see cref="ValidationJobStore"/>.</remarks>
+    /// <param name="stoppingToken">A <see cref="CancellationToken"/> that is used to signal the operation should stop.</param>
+    /// <returns>A task that represents the asynchronous execution of the validation process.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Parallel.ForEachAsync(jobStore.ValidationQueue.ReadAllAsync(stoppingToken), stoppingToken, async (validator, cancellationToken) =>

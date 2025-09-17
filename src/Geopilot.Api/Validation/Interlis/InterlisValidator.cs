@@ -1,9 +1,7 @@
-﻿using Bogus;
-using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using System.Globalization;
 using System.Net;
 using System.Text.Json;
 
@@ -50,6 +48,12 @@ public class InterlisValidator : IValidator
         return supportedFileExtensions ?? Array.Empty<string>();
     }
 
+    /// <summary>
+    /// Configures the validator with the specified file provider and file name.
+    /// </summary>
+    /// <remarks>This method must be called before <see cref="ExecuteAsync(CancellationToken)"/> is called.</remarks>
+    /// <param name="fileProvider"></param>
+    /// <param name="fileName"></param>
     public void Configure(IFileProvider fileProvider, string fileName)
     {
         ArgumentNullException.ThrowIfNull(fileProvider);

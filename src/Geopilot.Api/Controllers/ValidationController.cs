@@ -122,12 +122,6 @@ public class ValidationController : ControllerBase
             var validationJob = validationService.CreateJob();
             var fileHandle = validationService.CreateFileHandleForJob(validationJob.Id, file.FileName);
 
-            if (fileHandle == null) // This should never happen
-            {
-                logger.LogError("Failed to create file handle for job <{JobId}> and file <{FileName}>.", validationJob.Id, file.FileName);
-                return Problem($"Could not create file handle for job <{validationJob.Id}>.", statusCode: StatusCodes.Status500InternalServerError);
-            }
-
             using (fileHandle)
             {
                 logger.LogInformation("Start uploading <{FormFile}> as <{File}>, file size: {FileSize}", file.FileName, fileHandle.FileName, file.Length);

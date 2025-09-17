@@ -5,7 +5,7 @@ using System.Threading.Channels;
 namespace Geopilot.Api.Validation;
 
 /// <summary>
-/// Stores and retrieves <see cref="ValidationJob"/> instances in memory in a thread-safe manner.
+/// Stores, retrieves and updates <see cref="ValidationJob"/> instances in memory in a thread-safe manner.
 /// </summary>
 public class ValidationJobStore : IValidationJobStore
 {
@@ -89,27 +89,6 @@ public class ValidationJobStore : IValidationJobStore
         }
 
         return true;
-
-        /*
-         updatedJob = job with {
-            Status = Status.Processing,
-            ValidatorResults = validatorResults,
-        };
-
-        if (!jobs.TryUpdate(job.Id, updatedJob, job))
-        {
-            updatedJob = null!;
-            return false;
-        }
-
-        foreach (var validator in validators)
-        {
-            validationQueue.Writer.TryWrite(validator);
-            validatorJobMap[validator] = job.Id;
-        }
-
-        return true;
-         */
     }
 
     /// <inheritdoc/>
@@ -131,7 +110,7 @@ public class ValidationJobStore : IValidationJobStore
             return job with { ValidatorResults = updatedResults, Status = updatedStatus };
         };
 
-        // TODO remove validator from validatorJobMap to prevent memory leak
+        validatorJobMap.TryRemove(validator, out _);
 
         var maxRetries = job.ValidatorResults.Count * 2; // Arbitrary retry limit based on number of validators
         return jobs.TryUpdateWithRetry(jobId, updateFunc, maxRetries, out updatedJob);

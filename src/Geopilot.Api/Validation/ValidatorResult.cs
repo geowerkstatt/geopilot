@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace Geopilot.Api.Validation;
+﻿namespace Geopilot.Api.Validation;
 
 /// <summary>
 /// Represents the result of one validation as part of a validation job.
