@@ -80,7 +80,7 @@ public class InterlisValidator : IValidator
 
         var logFiles = await DownloadLogFilesAsync(statusResponse, fileName, cancellationToken).ConfigureAwait(false);
 
-        return new ValidatorResult(statusResponse.Status.ToValidatorResultStatus(), statusResponse.StatusMessage)
+        return new ValidatorResult(ToValidatorResultStatus(statusResponse.Status), statusResponse.StatusMessage)
         {
             LogFiles = logFiles,
         };
@@ -159,6 +159,17 @@ public class InterlisValidator : IValidator
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<T>(jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
         return result ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
+    }
+
+    private ValidatorResultStatus ToValidatorResultStatus(InterlisStatusResponseStatus status)
+    {
+        return status switch
+        {
+            InterlisStatusResponseStatus.Completed => ValidatorResultStatus.Completed,
+            InterlisStatusResponseStatus.CompletedWithErrors => ValidatorResultStatus.CompletedWithErrors,
+            InterlisStatusResponseStatus.Failed => ValidatorResultStatus.Failed,
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
+        };
     }
 
     /// <inheritdoc/>
