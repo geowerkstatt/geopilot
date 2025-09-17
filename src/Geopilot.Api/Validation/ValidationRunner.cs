@@ -46,10 +46,7 @@ public class ValidationRunner : BackgroundService
                 result = new ValidatorResult(ValidatorResultStatus.Failed, $"An unexpected error occured while running validation with validator <{validator.Name}> for job <{jobId}>.");
             }
 
-            if (!jobStore.TryAddValidatorResult(validator, result, out var validationJob))
-            {
-                logger.LogError("Failed to add validation result of validator <{Validator}> to job <{JobId}>.", validator.Name, validationJob.Id);
-            }
+            jobStore.AddValidatorResult(validator, result);
         });
     }
 }

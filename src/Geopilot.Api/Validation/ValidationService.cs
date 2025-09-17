@@ -43,10 +43,7 @@ public class ValidationService : IValidationService
     /// <inheritdoc/>
     public ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName)
     {
-        if (!jobStore.TryAddFileToJob(jobId, originalFileName, tempFileName, out var updatedJob))
-            throw new InvalidOperationException($"Failed to add file <{originalFileName}> to job <{jobId}>.");
-
-        return updatedJob;
+        return jobStore.AddFileToJob(jobId, originalFileName, tempFileName);
     }
 
     /// <inheritdoc/>
@@ -66,10 +63,7 @@ public class ValidationService : IValidationService
             }
         }
 
-        if (!jobStore.TryStartJob(validationJob.Id, supportedValidators, out var updatedJob))
-            throw new InvalidOperationException($"Failed to start validation job <{jobId}>.");
-
-        return updatedJob;
+        return jobStore.StartJob(jobId, supportedValidators);
     }
 
     private void ConfigureValidator(IValidator validator, ValidationJob validationJob)
