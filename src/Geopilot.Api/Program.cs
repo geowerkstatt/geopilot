@@ -103,10 +103,10 @@ builder.Services.AddSwaggerGen(options =>
 
     var authUrl = builder.Configuration["Auth:AuthorizationUrl"];
     var tokenUrl = builder.Configuration["Auth:TokenUrl"];
-    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl))
+    var scope = builder.Configuration["Auth:Scope"];
+    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(scope))
     {
-        var apiScope = builder.Configuration["Auth:ApiScope"];
-        options.AddGeopilotOAuth2(authUrl, tokenUrl, apiScope);
+        options.AddGeopilotOAuth2(authUrl, tokenUrl, scope);
     }
     else
     {
@@ -163,6 +163,10 @@ builder.Services
         httpClient.DefaultRequestHeaders.Accept.Clear();
         httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     });
+
+builder.Services.AddHttpClient<IGeopilotUserInfoService, GeopilotUserInfoService>();
+builder.Services.AddScoped<IGeopilotUserInfoService, GeopilotUserInfoService>();
+builder.Services.AddHttpContextAccessor();
 
 var configureContextOptions = (DbContextOptionsBuilder options) =>
 {

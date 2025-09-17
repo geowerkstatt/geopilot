@@ -14,7 +14,7 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
     (auth: AuthContextProps) => {
       fetchApi<User>("/api/v1/user/self", {
         headers: {
-          Authorization: `Bearer ${auth.user?.id_token}`,
+          Authorization: `Bearer ${auth.user?.access_token}`,
         },
         errorMessageLabel: "userLoadingError",
       })
