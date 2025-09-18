@@ -30,6 +30,19 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   resetDelivery: () => {},
 });
 
+const GetDefaultSteps = () =>
+  new Map([
+    [DeliveryStepEnum.Upload, { label: "upload", content: <DeliveryUpload /> }],
+    [
+      DeliveryStepEnum.Validate,
+      {
+        label: "validate",
+        keepOpen: true,
+        content: <DeliveryValidation />,
+      },
+    ],
+  ]);
+
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
@@ -39,20 +52,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
-  const { authEnabled } = useGeopilotAuth();
-  const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(
-    new Map<DeliveryStepEnum, DeliveryStep>([
-      [DeliveryStepEnum.Upload, { label: "upload", content: <DeliveryUpload /> }],
-      [
-        DeliveryStepEnum.Validate,
-        {
-          label: "validate",
-          keepOpen: true,
-          content: <DeliveryValidation />,
-        },
-      ],
-    ]),
-  );
+  const { user } = useGeopilotAuth();
+  const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(GetDefaultSteps);
+
   const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = useMemo(
     () => ({
       [DeliveryStepEnum.Upload]: [
@@ -76,26 +78,19 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   );
 
   useEffect(() => {
-    if (authEnabled) {
-      setSteps(prevSteps => {
-        const newSteps = new Map(prevSteps);
-
-        if (!newSteps.has(DeliveryStepEnum.Submit)) {
-          newSteps.set(DeliveryStepEnum.Submit, {
-            label: "deliver",
-            content: <DeliverySubmit />,
-          });
-        }
-        if (!newSteps.has(DeliveryStepEnum.Done)) {
-          newSteps.set(DeliveryStepEnum.Done, {
-            label: "done",
-            content: <DeliveryCompleted />,
-          });
-        }
-        return newSteps;
+    const steps = GetDefaultSteps();
+    if (user) {
+      steps.set(DeliveryStepEnum.Submit, {
+        label: "deliver",
+        content: <DeliverySubmit />,
+      });
+      steps.set(DeliveryStepEnum.Done, {
+        label: "done",
+        content: <DeliveryCompleted />,
       });
     }
-  }, [authEnabled]);
+    setSteps(steps);
+  }, [user]);
 
   const isActiveStep = (step: DeliveryStepEnum) => {
     const stepKeys = Array.from(steps.keys());
