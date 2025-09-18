@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Diagnostics;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Threading.Channels;
 
@@ -30,6 +29,7 @@ public class ValidationJobStore : IValidationJobStore
             Id: Guid.NewGuid(),
             OriginalFileName: null,
             TempFileName: null,
+            MandateId: null,
             ValidatorResults: ImmutableDictionary<string, ValidatorResult?>.Empty,
             Status: Status.Created);
 
@@ -58,7 +58,7 @@ public class ValidationJobStore : IValidationJobStore
     }
 
     /// <inheritdoc/>
-    public ValidationJob StartJob(Guid jobId, ICollection<IValidator> validators)
+    public ValidationJob StartJob(Guid jobId, ICollection<IValidator> validators, int? mandateId)
     {
         if (validators == null || validators.Count == 0)
             throw new ArgumentException("At least one validator must be specified to start the validation.", nameof(validators));
@@ -71,7 +71,12 @@ public class ValidationJobStore : IValidationJobStore
             if (job.Status != Status.Ready)
                 throw new InvalidOperationException($"Cannot start job <{jobId}> because its status is <{job.Status}> instead of <{Status.Ready}>.");
 
-            return job with { Status = Status.Processing, ValidatorResults = validatorResults };
+            return job with
+            {
+                Status = Status.Processing,
+                MandateId = mandateId,
+                ValidatorResults = validatorResults,
+            };
         };
 
         var updatedJob = jobs.AddOrUpdate(jobId, id => throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId)), updateFunc);

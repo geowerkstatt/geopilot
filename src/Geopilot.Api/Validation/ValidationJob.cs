@@ -9,6 +9,7 @@ public record class ValidationJob(
     Guid Id,
     string? OriginalFileName,
     string? TempFileName,
+    int? MandateId,
     ImmutableDictionary<string, ValidatorResult?> ValidatorResults,
     Status Status)
 {
