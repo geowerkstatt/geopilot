@@ -2,6 +2,7 @@
 using Geopilot.Api.FileAccess;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Immutable;
 using System.Net;
 using System.Text.Json;
@@ -25,6 +26,7 @@ public class InterlisValidator : IValidator
 
     private IFileProvider? fileProvider;
     private string? fileName;
+    private string? interlisValidationProfile;
 
     /// <inheritdoc/>
     public string Name => "INTERLIS";
@@ -53,18 +55,20 @@ public class InterlisValidator : IValidator
     }
 
     /// <summary>
-    /// Configures the validator with the specified file provider and file name.
+    /// Configures the validator with with everything that is required to execute the validation.
     /// </summary>
     /// <remarks>This method must be called before <see cref="ExecuteAsync(CancellationToken)"/> is called.</remarks>
-    /// <param name="fileProvider"></param>
-    /// <param name="fileName"></param>
-    public void Configure(IFileProvider fileProvider, string fileName)
+    /// <param name="fileProvider">A configured <see cref="IFileProvider"/> that can be used to access the file with the specified <paramref name="fileName"/>.</param>
+    /// <param name="fileName">The name of the file that should be validated. The file must be accessible through the specified <paramref name="fileProvider"/>.</param>
+    /// <param name="interlisValidationProfile">The INTERLIS profile used for validation.</param>
+    public void Configure(IFileProvider fileProvider, string fileName, string? interlisValidationProfile)
     {
         ArgumentNullException.ThrowIfNull(fileProvider);
         ArgumentException.ThrowIfNullOrEmpty(fileName);
 
         this.fileProvider = fileProvider;
         this.fileName = fileName;
+        this.interlisValidationProfile = interlisValidationProfile;
     }
 
     /// <inheritdoc/>
@@ -75,25 +79,31 @@ public class InterlisValidator : IValidator
         if (!fileProvider.Exists(fileName)) throw new InvalidOperationException($"Transfer file with the specified name <{fileName}> not found.");
 
         logger.LogInformation("Validating transfer file <{File}>...", fileName);
-        var uploadResponse = await UploadTransferFileAsync(fileName, cancellationToken).ConfigureAwait(false);
+        var uploadResponse = await UploadTransferFileAsync(fileProvider, fileName, interlisValidationProfile, cancellationToken).ConfigureAwait(false);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken).ConfigureAwait(false);
         if (statusResponse == null)
         {
             return new ValidatorResult(ValidatorResultStatus.Failed, "Validation was cancelled.");
         }
 
-        var logFiles = await DownloadLogFilesAsync(statusResponse, fileName, cancellationToken).ConfigureAwait(false);
+        var logFiles = await DownloadLogFilesAsync(statusResponse, fileProvider, fileName, cancellationToken).ConfigureAwait(false);
 
         return new ValidatorResult(ToValidatorResultStatus(statusResponse.Status), statusResponse.StatusMessage, logFiles.ToImmutableDictionary());
     }
 
-    private async Task<InterlisUploadResponse> UploadTransferFileAsync(string transferFile, CancellationToken cancellationToken)
+    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IFileProvider fileProvider, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
     {
         if (fileProvider == null)
             throw new InvalidOperationException("Validator not initialized correctly. FileProvider has not been set.");
 
         using var streamContent = new StreamContent(fileProvider.Open(transferFile));
-        using var formData = new MultipartFormDataContent { { streamContent, "file", transferFile } };
+        using var profileStringContent = new StringContent(interlisValidationProfile ?? string.Empty);
+        using var formData = new MultipartFormDataContent
+        {
+            { streamContent, "file", transferFile },
+            { profileStringContent, "profile" },
+        };
+
         using var response = await httpClient.PostAsync(UploadUrl, formData, cancellationToken).ConfigureAwait(false);
 
         if (response.StatusCode == HttpStatusCode.BadRequest)
@@ -128,7 +138,7 @@ public class InterlisValidator : IValidator
         return null;
     }
 
-    private async Task<IDictionary<string, string>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse, string transferFile, CancellationToken cancellationToken)
+    private async Task<IDictionary<string, string>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse, IFileProvider fileProvider, string transferFile, CancellationToken cancellationToken)
     {
         var logFiles = new Dictionary<string, string>();
         var tasks = new List<Task>();
@@ -138,14 +148,14 @@ public class InterlisValidator : IValidator
         {
             var logFile = $"{transferFileWithoutExtension}_log.log";
             logFiles["Log"] = logFile;
-            tasks.Add(DownloadLogAsFileAsync(statusResponse.LogUrl.ToString(), logFile, cancellationToken));
+            tasks.Add(DownloadLogAsFileAsync(fileProvider, statusResponse.LogUrl.ToString(), logFile, cancellationToken));
         }
 
         if (statusResponse.XtfLogUrl != null)
         {
             var xtfLogFile = $"{transferFileWithoutExtension}_log.xtf";
             logFiles["Xtf-Log"] = xtfLogFile;
-            tasks.Add(DownloadLogAsFileAsync(statusResponse.XtfLogUrl.ToString(), xtfLogFile, cancellationToken));
+            tasks.Add(DownloadLogAsFileAsync(fileProvider, statusResponse.XtfLogUrl.ToString(), xtfLogFile, cancellationToken));
         }
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -153,7 +163,7 @@ public class InterlisValidator : IValidator
         return logFiles;
     }
 
-    private async Task DownloadLogAsFileAsync(string url, string destination, CancellationToken cancellationToken)
+    private async Task DownloadLogAsFileAsync(IFileProvider fileProvider, string url, string destination, CancellationToken cancellationToken)
     {
         using var logDownloadStream = await httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false);
         using var logFileStream = fileProvider!.CreateFile(destination);

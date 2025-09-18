@@ -2,6 +2,7 @@
 using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
+using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -130,9 +131,6 @@ public class ValidationController : ControllerBase
                 logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
             }
 
-            validationJob = await validationService.StartJobAsync(validationJob.Id);
-            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
-
             var location = new Uri(
             string.Format(CultureInfo.InvariantCulture, "/api/v{0}/validation/{1}", version.MajorVersion, validationJob.Id),
             UriKind.Relative);
@@ -142,6 +140,49 @@ public class ValidationController : ControllerBase
         catch (Exception ex)
         {
             logger.LogError(ex, "File upload failed.");
+            return Problem("An unexpected error occured.", statusCode: StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    /// <summary>
+    /// Starts the job with the specified <paramref name="jobId"/>. If a <paramref name="mandateId"/> is provided, the job will be started for specified mandate.
+    /// Otherwise, the job will be started without a mandate.
+    /// </summary>
+    /// <remarks>
+    /// If a <paramref name="mandateId"/> is provided, the user must be authenticated and authorized to use the specified mandate.
+    /// Also, the mandate must support the file type the uploaded file of the specified job.
+    /// </remarks>
+    /// <param name="jobId">The id of the job that should be started.</param>
+    /// <param name="mandateId">The id of the mandate the job should be started with.</param>
+    /// <returns>The started validation job.</returns>
+    [HttpPatch("{jobId}")]
+    [SwaggerResponse(StatusCodes.Status200OK, "The validation job was successfully started.", typeof(ValidationJob), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request, or the mandate is not valid for the user/job.", typeof(ProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected error while starting the job.", typeof(ProblemDetails), "application/json")]
+    public async Task<IActionResult> StartJobAsync(Guid jobId, int? mandateId)
+    {
+        var job = validationService.GetJob(jobId);
+        if (job == null)
+        {
+            logger.LogTrace("No job information available for job id <{JobId}>", jobId);
+            return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        try
+        {
+            var validationJob = await validationService.StartJobAsync(jobId, mandateId, User);
+            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
+            return Ok(validationJob.ToResponse());
+        }
+        catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
+        {
+            logger.LogTrace(ex, "Starting job <{JobId}> failed.", jobId);
+            return Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Starting job <{JobId}> failed.", jobId);
             return Problem("An unexpected error occured.", statusCode: StatusCodes.Status500InternalServerError);
         }
     }

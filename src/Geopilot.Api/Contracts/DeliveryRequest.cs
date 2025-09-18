@@ -14,12 +14,6 @@ public class DeliveryRequest
     public Guid JobId { get; set; }
 
     /// <summary>
-    /// The id of a Mandate selected by the user to reference.
-    /// </summary>
-    [Required]
-    public int MandateId { get; set; }
-
-    /// <summary>
     /// Indicate whether the delivery contains partial data.
     /// </summary>
     public bool? PartialDelivery { get; set; }
