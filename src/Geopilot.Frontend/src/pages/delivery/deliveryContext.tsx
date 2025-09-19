@@ -6,7 +6,7 @@ import {
   DeliverySubmitData,
 } from "./deliveryInterfaces.tsx";
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useMemo, useState } from "react";
-import { ApiError, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
+import { ApiError, StartJobRequest, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
 import { DeliveryUpload } from "./deliveryUpload.tsx";
 import { DeliveryValidation } from "./deliveryValidation.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
@@ -41,6 +41,7 @@ const GetDefaultSteps = () =>
         content: <DeliveryValidation />,
       },
     ],
+    [DeliveryStepEnum.Done, { label: "done", content: <DeliveryCompleted /> }],
   ]);
 
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
@@ -49,7 +50,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File>();
   const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
-  const [isValidating, setIsValidating] = useState<boolean>(false);
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
   const { user } = useGeopilotAuth();
@@ -83,10 +83,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       steps.set(DeliveryStepEnum.Submit, {
         label: "deliver",
         content: <DeliverySubmit />,
-      });
-      steps.set(DeliveryStepEnum.Done, {
-        label: "done",
-        content: <DeliveryCompleted />,
       });
     }
     setSteps(steps);
@@ -158,28 +154,51 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   };
 
-  const getValidationStatus = useCallback(() => {
-    const abortController = new AbortController();
-    setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
-    fetchApi<ValidationResponse>(`/api/v1/validation/${validationResponse?.jobId}`, {
+  const pollValidationStatusUntilFinished = (jobId: string, abortController: AbortController) => {
+    fetchApi<ValidationResponse>(`/api/v1/validation/${jobId}`, {
       method: "GET",
       signal: abortController.signal,
     })
       .then(response => {
         setValidationResponse(response);
+        if (response.status === ValidationStatus.Processing) {
+          setTimeout(() => pollValidationStatusUntilFinished(jobId, abortController), 2000);
+        } else {
+          setIsLoading(false);
+
+          if (response.status === ValidationStatus.Completed) {
+            continueToNextStep();
+          } else {
+            setStepError(DeliveryStepEnum.Validate, t(response.status));
+          }
+        }
       })
       .catch((error: ApiError) => {
         handleApiError(error, DeliveryStepEnum.Validate);
       });
-  }, [fetchApi, handleApiError, validationResponse?.jobId]);
+  };
 
-  const validateFile = useCallback(() => {
-    if (validationResponse?.status === ValidationStatus.Processing && !isLoading) {
+  const validateFile = (jobId: string, startJobRequest: StartJobRequest) => {
+    if (validationResponse?.status === ValidationStatus.Ready && !isLoading) {
       setIsLoading(true);
-      setIsValidating(true);
-      getValidationStatus();
+
+      const abortController = new AbortController();
+      setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
+
+      fetchApi<ValidationResponse>(`/api/v1/validation/${jobId}`, {
+        method: "PATCH",
+        body: JSON.stringify(startJobRequest),
+        signal: abortController.signal,
+      })
+        .then(response => {
+          setValidationResponse(response);
+          pollValidationStatusUntilFinished(jobId, abortController);
+        })
+        .catch((error: ApiError) => {
+          handleApiError(error, DeliveryStepEnum.Validate);
+        });
     }
-  }, [getValidationStatus, isLoading, validationResponse?.status]);
+  };
 
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);
@@ -212,7 +231,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     abortControllers.forEach(controller => controller.abort());
     setAbortControllers([]);
     setIsLoading(false);
-    setIsValidating(false);
     setSelectedFile(undefined);
     setValidationResponse(undefined);
     setActiveStep(0);
@@ -225,30 +243,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       return newSteps;
     });
   };
-
-  useEffect(() => {
-    if (validationResponse && isValidating && abortControllers.length > 0) {
-      if (validationResponse.status === ValidationStatus.Processing) {
-        setTimeout(getValidationStatus, 2000);
-      } else {
-        setIsValidating(false);
-        setIsLoading(false);
-        if (validationResponse.status === ValidationStatus.Completed) {
-          continueToNextStep();
-        } else {
-          setStepError(DeliveryStepEnum.Validate, t(validationResponse.status));
-        }
-      }
-    }
-  }, [
-    abortControllers.length,
-    continueToNextStep,
-    getValidationStatus,
-    isValidating,
-    setStepError,
-    t,
-    validationResponse,
-  ]);
 
   return (
     <DeliveryContext.Provider

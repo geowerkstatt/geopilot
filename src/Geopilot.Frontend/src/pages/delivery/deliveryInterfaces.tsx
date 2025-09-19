@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { ValidationResponse } from "../../api/apiInterfaces.ts";
+import { StartJobRequest, ValidationResponse } from "../../api/apiInterfaces.ts";
 
 export enum DeliveryStepEnum {
   Upload = "upload",
@@ -38,7 +38,7 @@ export interface DeliveryContextInterface {
   validationResponse?: ValidationResponse;
   isLoading: boolean;
   uploadFile: () => void;
-  validateFile: () => void;
+  validateFile: (jobId: string, startJobRequest: StartJobRequest) => void;
   submitDelivery: (data: DeliverySubmitData) => void;
   resetDelivery: () => void;
 }
