@@ -129,14 +129,17 @@ export const setSelect = (fieldName, index, expected, parent) => {
 /**
  * Evaluates the state of a select form element.
  * @param {string} fieldName The name of the select field.
- * @param {string} expectedValue The expected value of the select.
+ * @param {string|function} expectedValueOrPredicate The expected value of the select, or a predicate function that receives the value and returns true if it matches the expectation.
  * @param {string} parent (optional) The parent of the form element.
  */
-export const evaluateSelect = (fieldName, expectedValue, parent) => {
+export const evaluateSelect = (fieldName, expectedValueOrPredicate, parent) => {
   var selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formSelect"] input`;
   cy.get(selector)
     .filter((k, input) => {
-      return input.value === expectedValue;
+      if (typeof expectedValueOrPredicate === "function") {
+        return expectedValueOrPredicate(input.value);
+      }
+      return input.value === expectedValueOrPredicate;
     })
     .should("have.length", 1);
 };

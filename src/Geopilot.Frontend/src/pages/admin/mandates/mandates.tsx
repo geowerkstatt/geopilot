@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useState } from "react";
-import { Mandate, Organisation } from "../../api/apiInterfaces";
-import { useGeopilotAuth } from "../../auth";
+import { Mandate, Organisation } from "../../../api/apiInterfaces";
+import { useGeopilotAuth } from "../../../auth";
 import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { Tooltip } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { useControlledNavigate } from "../../components/controlledNavigate";
-import GeopilotDataGrid from "../../components/geopilotDataGrid.tsx";
-import useFetch from "../../hooks/useFetch.ts";
+import { useControlledNavigate } from "../../../components/controlledNavigate";
+import GeopilotDataGrid from "../../../components/geopilotDataGrid.tsx";
+import useFetch from "../../../hooks/useFetch.ts";
 
 export const Mandates = () => {
   const { t } = useTranslation();

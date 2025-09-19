@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
-import { GeopilotBox } from "../../components/styledComponents.ts";
+import { GeopilotBox } from "../../../components/styledComponents.ts";
 import {
   FormAutocomplete,
   FormCheckbox,
   FormContainer,
   FormContainerHalfWidth,
   FormInput,
-} from "../../components/form/form.ts";
-import { Organisation, User } from "../../api/apiInterfaces.ts";
-import { useGeopilotAuth } from "../../auth";
-import { FormAutocompleteValue } from "../../components/form/formAutocomplete.tsx";
-import AdminDetailForm from "../../components/adminDetailForm.tsx";
+} from "../../../components/form/form.ts";
+import { Organisation, User } from "../../../api/apiInterfaces.ts";
+import { useGeopilotAuth } from "../../../auth/index.ts";
+import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
+import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import useFetch from "../../hooks/useFetch.ts";
+import useFetch from "../../../hooks/useFetch.ts";
 
 const UserDetail = () => {
   const { t } = useTranslation();

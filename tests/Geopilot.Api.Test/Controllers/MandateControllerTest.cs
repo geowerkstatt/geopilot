@@ -14,6 +14,7 @@ namespace Geopilot.Api.Controllers
     {
         private Mock<ILogger<MandateController>> loggerMock;
         private Mock<IValidationService> validationServiceMock;
+        private Mock<IValidator> interlisValidatorMock;
         private Context context;
         private MandateController mandateController;
         private User editUser;
@@ -29,7 +30,11 @@ namespace Geopilot.Api.Controllers
             loggerMock = new Mock<ILogger<MandateController>>();
             validationServiceMock = new Mock<IValidationService>();
             context = AssemblyInitialize.DbFixture.GetTestContext();
-            mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object);
+
+            interlisValidatorMock = new Mock<IValidator>();
+            var validatorMocks = new List<IValidator> { interlisValidatorMock.Object };
+
+            mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object, validatorMocks);
 
             unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
             xtfMandate = new Mandate
@@ -204,8 +209,13 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
-        public async Task CreateMandate()
+        [DataRow("DEFAULT", DisplayName = "CreateMandate")]
+        [DataRow(null, DisplayName = "CreateMandateWithProfileNull")]
+        public async Task CreateMandate(string profile)
         {
+            interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
+                .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" } });
+
             mandateController.SetupTestUser(adminUser);
             var mandate = new Mandate()
             {
@@ -213,18 +223,34 @@ namespace Geopilot.Api.Controllers
                 Name = "ACCORDIANWALK",
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
+                InterlisValidationProfile = profile,
             };
 
             var result = await mandateController.Create(mandate);
             ActionResultAssert.IsCreated(result);
             var resultValue = (result as CreatedResult)?.Value as Mandate;
             Assert.IsNotNull(resultValue);
-            Assert.AreEqual(mandate.Name, resultValue.Name);
-            CollectionAssert.AreEqual(mandate.FileTypes, resultValue.FileTypes);
-            Assert.AreEqual(mandate.Organisations.Count, resultValue.Organisations.Count);
-            Assert.AreEqual(mandate.Organisations[0].Id, resultValue.Organisations[0].Id);
-            Assert.IsNotNull(resultValue.Organisations[0].Name);
-            CollectionAssert.AreEqual(mandate.Coordinates, resultValue.Coordinates);
+            CompareMandates(mandate, resultValue);
+        }
+
+        [TestMethod]
+        [DataRow("NONEXISTING", DisplayName = "CreateMandateWithNonExistentProfile")]
+        [DataRow("", DisplayName = "CreateMandateWithProfileEmptyString")]
+        public async Task CreateMandateChecksProfileExists(string profile)
+        {
+            interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
+                .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" } });
+            mandateController.SetupTestUser(adminUser);
+            var mandate = new Mandate()
+            {
+                FileTypes = new string[] { ".*" },
+                Name = "ACCORDIANWALK",
+                Organisations = new List<Organisation> { new() { Id = 1 } },
+                Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
+                InterlisValidationProfile = profile,
+            };
+            var result = await mandateController.Create(mandate);
+            ActionResultAssert.IsBadRequest(result);
         }
 
         [TestMethod]
@@ -244,13 +270,18 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
-        public async Task EditMandate()
+        [DataRow("different-profile", DisplayName = "EditMandate")]
+        [DataRow(null, DisplayName = "EditMandateWithProfileNull")]
+        public async Task EditMandate(string newProfile)
         {
+            interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
+                .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" }, new Profile { Id = "different-profile" } });
             mandateController.SetupTestUser(adminUser);
             var mandate = new Mandate()
             {
                 FileTypes = new string[] { ".*", ".zip" },
                 Name = "PEARLFOLLOWER",
+                InterlisValidationProfile = "DEFAULT",
                 Organisations = new List<Organisation> { new() { Id = 1 }, new() { Id = organisation.Id } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
             };
@@ -282,6 +313,7 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(delivery);
 
             mandateToUpdate.Name = "ARKMUTANT";
+            mandateToUpdate.InterlisValidationProfile = newProfile;
             mandateToUpdate.FileTypes = new string[] { ".zip", ".gpkg" };
             mandateToUpdate.Organisations = new List<Organisation> { new() { Id = 3 }, new() { Id = organisation.Id } };
             mandateToUpdate.Coordinates = new List<Models.Coordinate> { new() { X = 7.93, Y = 46.70 }, new() { X = 8.86, Y = 47.02 } };
@@ -291,10 +323,10 @@ namespace Geopilot.Api.Controllers
             var updatedMandate = ActionResultAssert.IsOkObjectResult<Mandate>(updateResult);
             Assert.IsNotNull(updatedMandate);
 
-            Assert.AreEqual(mandateToUpdate.Name, updatedMandate.Name);
-            CollectionAssert.AreEqual(mandateToUpdate.FileTypes, updatedMandate.FileTypes);
             Assert.AreEqual(1, updatedMandate.Deliveries.Count);
             Assert.AreEqual(delivery.Id, updatedMandate.Deliveries[0].Id);
+            Assert.AreEqual(mandateToUpdate.Name, updatedMandate.Name);
+            CollectionAssert.AreEqual(mandateToUpdate.FileTypes, updatedMandate.FileTypes);
             CollectionAssert.AreEqual(mandateToUpdate.Coordinates, updatedMandate.Coordinates);
             Assert.AreEqual(mandateToUpdate.Organisations.Count, updatedMandate.Organisations.Count);
             for (var i = 0; i < mandateToUpdate.Organisations.Count; i++)
@@ -314,6 +346,27 @@ namespace Geopilot.Api.Controllers
                 Name = "PEARLFOLLOWER",
                 Organisations = new List<Organisation>() { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate>(),
+            };
+            var result = await mandateController.Edit(mandate);
+            ActionResultAssert.IsBadRequest(result);
+        }
+
+        [TestMethod]
+        [DataRow("NONEXISTING", DisplayName = "EditMandateWithNonExistentProfile")]
+        [DataRow("", DisplayName = "EditMandateWithProfileEmptyString")]
+        public async Task EditMandateChecksProfileExists(string profile)
+        {
+            interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
+                .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" } });
+            mandateController.SetupTestUser(adminUser);
+            var mandate = new Mandate()
+            {
+                Id = xtfMandate.Id,
+                FileTypes = new string[] { ".*", ".zip" },
+                Name = "PEARLFOLLOWER",
+                Organisations = new List<Organisation>() { new() { Id = 1 } },
+                Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
+                InterlisValidationProfile = profile,
             };
             var result = await mandateController.Edit(mandate);
             ActionResultAssert.IsBadRequest(result);
@@ -344,6 +397,7 @@ namespace Geopilot.Api.Controllers
         {
             Assert.AreEqual(expected.Id, actual.Id);
             Assert.AreEqual(expected.Name, actual.Name);
+            Assert.AreEqual(expected.InterlisValidationProfile, actual.InterlisValidationProfile);
             CollectionAssert.AreEqual(expected.FileTypes, actual.FileTypes);
             CollectionAssert.AreEqual(expected.Deliveries, actual.Deliveries);
             CollectionAssert.AreEqual(expected.Coordinates, actual.Coordinates);
@@ -351,6 +405,7 @@ namespace Geopilot.Api.Controllers
             for (var i = 0; i < expected.Organisations.Count; i++)
             {
                 Assert.AreEqual(expected.Organisations[i].Id, actual.Organisations[i].Id);
+                Assert.AreEqual(expected.Organisations[i].Name, actual.Organisations[i].Name);
             }
         }
     }

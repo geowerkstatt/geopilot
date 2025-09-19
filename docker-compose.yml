@@ -48,7 +48,7 @@ services:
         condition: service_healthy
 
   interlis-check-service:
-    image: ghcr.io/geowerkstatt/interlis-check-service:latest
+    image: ghcr.io/geowerkstatt/interlis-check-service:edge
     restart: unless-stopped
     ports:
       - 3080:8080

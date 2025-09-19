@@ -150,6 +150,7 @@ describe("Mandate tests", () => {
     hasError("evaluatePartial", true);
     hasError("evaluateComment", true);
 
+    // Fill out all required fields while checking if errors disappear.
     setSelect("evaluatePrecursorDelivery", 0, 3);
     hasError("evaluatePrecursorDelivery", false);
     setSelect("evaluatePartial", 1, 2);
@@ -158,11 +159,13 @@ describe("Mandate tests", () => {
     hasError("evaluateComment", false);
     cy.dataCy("save-button").should("be.enabled");
 
+    // Fill out optional fields.
+    setSelect("interlisValidationProfile", 1, 2);
     setAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Brown and Sons"]);
-    setAutocomplete("fileTypes", ".csv");
+    setAutocomplete("fileTypes", ".xml");
     setAutocomplete("fileTypes", ".xtf");
-    evaluateAutocomplete("fileTypes", [".csv", ".xtf"]);
+    evaluateAutocomplete("fileTypes", [".xml", ".xtf"]);
 
     // Resets all fields and validations.
     cy.dataCy("reset-button").click();
@@ -181,13 +184,15 @@ describe("Mandate tests", () => {
     evaluateInput("extent-bottom-left-latitude", "");
     evaluateInput("extent-upper-right-longitude", "");
     evaluateInput("extent-upper-right-latitude", "");
+    evaluateSelect("interlisValidationProfile", "");
     evaluateSelect("evaluatePrecursorDelivery", "");
     evaluateSelect("evaluatePartial", "");
     evaluateSelect("evaluateComment", "");
 
+    // Fill out the entire form
     setInput("name", randomMandateName);
     setAutocomplete("organisations", "Brown and Sons");
-    setAutocomplete("fileTypes", ".csv");
+    setAutocomplete("fileTypes", ".xml");
     setAutocomplete("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
@@ -196,22 +201,26 @@ describe("Mandate tests", () => {
     setSelect("evaluatePrecursorDelivery", 0, 3);
     setSelect("evaluatePartial", 1, 2);
     setSelect("evaluateComment", 1, 3);
+    setSelect("interlisValidationProfile", 1, 2);
 
+    // Save the mandate and check that we stay on the detail page of the new mandate.
     cy.dataCy("save-button").click();
     cy.wait("@saveNew");
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
     });
 
+    // Buttons should be disabled again after save.
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
-    setAutocomplete("fileTypes", ".xml");
+    // Check that unsaved changes are not saved when navigating back to the list and choosing "reset" in the prompt.
+    setAutocomplete("fileTypes", ".itf");
     cy.wait(500);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("backToMandates-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "reset");
-    getGridRowThatContains("mandates-grid", randomMandateName).contains(".xml").should("not.exist");
+    getGridRowThatContains("mandates-grid", randomMandateName).contains(".itf").should("not.exist");
   });
 
   it("can edit existing mandate", () => {
@@ -224,7 +233,7 @@ describe("Mandate tests", () => {
     cy.dataCy("addMandate-button").click();
     setInput("name", randomMandateName);
     setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
-    setAutocomplete("fileTypes", ".csv");
+    setAutocomplete("fileTypes", ".xml");
     setAutocomplete("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
@@ -238,49 +247,83 @@ describe("Mandate tests", () => {
     cy.wait("@saveNew");
 
     // Test editing the mandate
-    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").contains(randomMandateName).click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
     });
 
+    // Buttons should be disabled at first when form is untouched.
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
+
+    // Make change and check if buttons are now enabled after change.
     setAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Schumm, Runte and Macejkovic", "Brown and Sons"]);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.enabled");
 
+    // Make spatial extent invalid and check that errors are shown.
     setInput("extent-bottom-left-latitude", "");
     hasError("extent-bottom-left-longitude", true);
     hasError("extent-bottom-left-latitude", true);
     hasError("extent-upper-right-longitude", true);
     hasError("extent-upper-right-latitude", true);
+
+    // Buttons should still be enabled because form is dirty, but save should be disabled due to validation errors.
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.disabled");
 
+    // Make spatial extent valid again and check that errors are gone.
     setInput("extent-bottom-left-latitude", "47.23");
     hasError("extent-bottom-left-longitude", false);
     hasError("extent-bottom-left-latitude", false);
     hasError("extent-upper-right-longitude", false);
     hasError("extent-upper-right-latitude", false);
+
+    // Buttons should be enabled again because form is dirty and valid.
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.enabled");
 
+    // Change other fields as well.
     setSelect("evaluatePartial", 0, 2);
+    setSelect("interlisValidationProfile", 1, 2);
 
+    // Save
     cy.dataCy("save-button").click();
     cy.wait("@updateMandate");
     cy.wait(500); // Wait for the form to reset.
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
+    // Go back to list and check that changes are saved.
     cy.dataCy("backToMandates-button").click();
     isPromptVisible(false);
     cy.wait("@getMandates");
-    cy.dataCy("mandates-grid").find(".MuiTablePagination-actions [aria-label='Go to next page']").click();
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Schumm, Runte and Macejkovic");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");
+  });
+
+  it("can clear INTERLIS validation profile", () => {
+    // Open the first mandate in the list
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().click();
+    cy.location().should(location => {
+      expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
+    });
+
+    // Precondition: make sure the interlis profile select has a value other than empty string
+    evaluateSelect("interlisValidationProfile", value => value !== "");
+
+    // Clear the interlis profile by selecting the clear item (index 0)
+    setSelect("interlisValidationProfile", 0, 2);
+
+    // Save and reload after save has completed
+    cy.intercept({ url: "/api/v1/mandate", method: "PUT" }).as("updateMandate");
+    cy.dataCy("save-button").click();
+    cy.wait("@updateMandate");
+    cy.reload();
+
+    // Check that the clear of the interlis profile was persisted
+    evaluateSelect("interlisValidationProfile", "");
   });
 
   it("prevents multiple save requests while waiting for the API response", () => {
