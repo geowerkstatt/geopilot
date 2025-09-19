@@ -93,6 +93,7 @@ public class ValidationService : IValidationService
         switch (validator)
         {
             case InterlisValidator interlisValidator:
+                fileProvider.Initialize(validationJob.Id);
                 interlisValidator.Configure(fileProvider, validationJob.TempFileName ?? string.Empty, mandate?.InterlisValidationProfile);
                 break;
         }
