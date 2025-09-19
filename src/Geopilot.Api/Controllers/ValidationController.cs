@@ -149,19 +149,21 @@ public class ValidationController : ControllerBase
     /// Otherwise, the job will be started without a mandate.
     /// </summary>
     /// <remarks>
-    /// If a <paramref name="mandateId"/> is provided, the user must be authenticated and authorized to use the specified mandate.
+    /// If a mandate id is provided, the user must be authenticated and authorized to use the specified mandate.
     /// Also, the mandate must support the file type the uploaded file of the specified job.
     /// </remarks>
     /// <param name="jobId">The id of the job that should be started.</param>
-    /// <param name="mandateId">The id of the mandate the job should be started with.</param>
+    /// <param name="startJobRequest"><see cref="StartJobRequest"/> containing all information to start the job.</param>
     /// <returns>The started validation job.</returns>
     [HttpPatch("{jobId}")]
     [SwaggerResponse(StatusCodes.Status200OK, "The validation job was successfully started.", typeof(ValidationJob), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request, or the mandate is not valid for the user/job.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected error while starting the job.", typeof(ProblemDetails), "application/json")]
-    public async Task<IActionResult> StartJobAsync(Guid jobId, int? mandateId)
+    public async Task<IActionResult> StartJobAsync(Guid jobId, [FromBody] StartJobRequest startJobRequest)
     {
+        ArgumentNullException.ThrowIfNull(startJobRequest);
+
         var job = validationService.GetJob(jobId);
         if (job == null)
         {
@@ -171,7 +173,7 @@ public class ValidationController : ControllerBase
 
         try
         {
-            var validationJob = await validationService.StartJobAsync(jobId, mandateId, User);
+            var validationJob = await validationService.StartJobAsync(jobId, startJobRequest.MandateId, User);
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
             return Ok(validationJob.ToResponse());
         }
