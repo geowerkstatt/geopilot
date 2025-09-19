@@ -38,7 +38,9 @@ public class MandateService : IMandateService
     public HashSet<string> GetFileExtensionsForMandates()
     {
         return context.Mandates
-            .SelectMany(m => m.FileTypes)
+            .Select(mandate => mandate.FileTypes)
+            .AsEnumerable()
+            .SelectMany(ext => ext)
             .Select(ext => ext.ToLowerInvariant())
             .ToHashSet();
     }
