@@ -1,11 +1,11 @@
 ﻿using Geopilot.Api.Contracts;
-using Geopilot.Api.FileAccess;
 
 namespace Geopilot.Api.Validation;
 
 /// <summary>
-/// Provides methods to validate a <see cref="ValidationJob"/>.
+/// Defines the contract for a validator that performs validation operations on files or data.
 /// </summary>
+/// <remarks>Implementations of this interface are expected to be configurable with the file and/or data to be validated and everything else required to run the validation.</remarks>
 public interface IValidator
 {
     /// <summary>
@@ -19,16 +19,13 @@ public interface IValidator
     Task<ICollection<string>> GetSupportedFileExtensionsAsync();
 
     /// <summary>
-    /// Asynchronously validates the <paramref name="validationJob"/> specified.
-    /// Its file must be accessible by an <see cref="IFileProvider"/> when executing this function.
+    /// Executes the validation process asynchronously.
     /// </summary>
-    /// <param name="validationJob">The validation job.</param>
+    /// <remarks>This method must be called after the validator has been configured with the necessary file and/or data to be validated.</remarks>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the asynchronous operation.</param>
-    /// <exception cref="ArgumentNullException">If <paramref name="validationJob"/> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException">If the file of the <paramref name="validationJob"/> is <c>string.Empty</c>.</exception>
-    /// <exception cref="InvalidOperationException">If the file of the <paramref name="validationJob"/> is not found.</exception>
+    /// <exception cref="InvalidOperationException">If the validator has not been configured correctly and cannot do the validation.</exception>
     /// <exception cref="ValidationFailedException">If the validation failed unexpectedly.</exception>
-    Task<ValidatorResult> ExecuteAsync(ValidationJob validationJob, CancellationToken cancellationToken);
+    Task<ValidatorResult> ExecuteAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets all supported profiles of this validator.

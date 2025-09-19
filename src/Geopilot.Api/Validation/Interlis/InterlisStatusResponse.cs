@@ -17,7 +17,7 @@ public class InterlisStatusResponse
     /// The job status.
     /// </summary>
     [Required]
-    public Status Status { get; set; }
+    public InterlisStatusResponseStatus Status { get; set; }
 
     /// <summary>
     /// The job status message.

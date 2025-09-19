@@ -12,6 +12,7 @@ public class ValidationServiceTest
     private Mock<IValidator> validatorMock;
     private Mock<Context> contextMock;
     private ValidationService validationService;
+    private Mock<IValidationJobStore> validationJobStoreMock;
 
     [TestInitialize]
     public void Initialize()
@@ -20,12 +21,14 @@ public class ValidationServiceTest
         validationRunnerMock = new Mock<IValidationRunner>(MockBehavior.Strict);
         validatorMock = new Mock<IValidator>(MockBehavior.Strict);
         contextMock = new Mock<Context>(new DbContextOptions<Context>());
+        validationJobStoreMock = new Mock<IValidationJobStore>(MockBehavior.Strict);
 
         validationService = new ValidationService(
             fileProviderMock.Object,
             validationRunnerMock.Object,
             new[] { validatorMock.Object },
-            contextMock.Object);
+            contextMock.Object,
+            validationJobStoreMock.Object);
     }
 
     [TestCleanup]

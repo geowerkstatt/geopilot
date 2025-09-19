@@ -63,8 +63,8 @@ public class DeliveryControllerTest
     {
         var guid = Guid.NewGuid();
         validationServiceMock
-            .Setup(s => s.GetJobStatus(guid))
-            .Returns(default(ValidationJobStatus?));
+            .Setup(s => s.GetJob(guid))
+            .Returns(default(ValidationJob?));
 
         var deliveriesCount = context.Deliveries.Count();
         var mandateId = context.Mandates.First().Id;
@@ -342,8 +342,8 @@ public class DeliveryControllerTest
     {
         var guid = Guid.NewGuid();
         validationServiceMock
-            .Setup(s => s.GetJobStatus(guid))
-            .Returns(new ValidationJobStatus(guid) { JobId = guid, Status = jobStatus });
+            .Setup(s => s.GetJob(guid))
+            .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip") { Status = jobStatus });
         return guid;
     }
 

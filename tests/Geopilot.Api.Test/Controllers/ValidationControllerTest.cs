@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Http;
@@ -64,15 +65,15 @@ public sealed class ValidationControllerTest
         validationServiceMock.Setup(x => x.CreateValidationJob(originalFileName)).Returns((validationJob, fileHandle));
         validationServiceMock
             .Setup(x => x.StartValidationJobAsync(validationJob))
-            .Returns(Task.FromResult(new ValidationJobStatus(jobId)));
+            .Returns(Task.CompletedTask);
 
         var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedResult;
 
         Assert.IsInstanceOfType(response, typeof(CreatedResult));
-        Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobStatus));
+        Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobResponse));
         Assert.AreEqual(StatusCodes.Status201Created, response.StatusCode);
         Assert.AreEqual($"/api/v9/validation/{jobId}", response.Location);
-        Assert.AreEqual(jobId, ((ValidationJobStatus)response.Value!).JobId);
+        Assert.AreEqual(jobId, ((ValidationJobResponse)response.Value!).JobId);
     }
 
     [TestMethod]
@@ -105,16 +106,17 @@ public sealed class ValidationControllerTest
         var jobId = Guid.NewGuid();
 
         validationServiceMock
-            .Setup(x => x.GetJobStatus(jobId))
-            .Returns(new ValidationJobStatus(jobId) { Status = Status.Processing });
+            .Setup(x => x.GetJob(jobId))
+            .Returns(new ValidationJob(jobId, "BIZARRESCAN.xtf", "TEMP.xtf") { Status = Status.Processing });
 
         var response = controller.GetStatus(jobId) as OkObjectResult;
+        var jobResponse = response?.Value as ValidationJobResponse;
 
         Assert.IsInstanceOfType(response, typeof(OkObjectResult));
-        Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobStatus));
+        Assert.IsInstanceOfType(jobResponse, typeof(ValidationJobResponse));
         Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
-        Assert.AreEqual(jobId, ((ValidationJobStatus)response.Value!).JobId);
-        Assert.AreEqual(Status.Processing, ((ValidationJobStatus)response.Value).Status);
+        Assert.AreEqual(jobId, jobResponse.JobId);
+        Assert.AreEqual(Status.Processing, jobResponse.Status);
     }
 
     [TestMethod]
@@ -123,13 +125,13 @@ public sealed class ValidationControllerTest
         var jobId = Guid.Empty;
 
         validationServiceMock
-            .Setup(x => x.GetJobStatus(Guid.Empty))
-            .Returns((ValidationJobStatus?)null);
+            .Setup(x => x.GetJob(Guid.Empty))
+            .Returns((ValidationJob?)null);
 
         var response = controller.GetStatus(jobId) as ObjectResult;
 
         Assert.IsInstanceOfType(response, typeof(ObjectResult));
-        Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
+        Assert.AreEqual(StatusCodes.Status404NotFound, response.StatusCode);
         Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
     }
 

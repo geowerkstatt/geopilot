@@ -1,12 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace Geopilot.Api.Validation;
+﻿namespace Geopilot.Api.Validation;
 
 /// <summary>
 /// Represents the result of one validation as part of a validation job.
 /// </summary>
-[SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1313:ParameterNamesMustBeginWithLowerCaseLetter", Justification = "Record class constructor.")]
-public record class ValidatorResult(Status Status, string? StatusMessage)
+public record class ValidatorResult(ValidatorResultStatus Status, string? StatusMessage)
 {
     /// <summary>
     /// Available log files to download.

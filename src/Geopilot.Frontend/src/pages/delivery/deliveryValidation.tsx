@@ -48,9 +48,9 @@ export const DeliveryValidation = () => {
                   {key}
                 </Typography>
                 <FlexBox>
-                  <Typography variant="body1">{validationResponse.validatorResults[key].statusMessage}</Typography>
+                  <Typography variant="body1">{validationResponse.validatorResults[key]?.statusMessage}</Typography>
                   <FlexRowBox>
-                    {validationResponse.validatorResults[key].logFiles &&
+                    {validationResponse.validatorResults[key]?.logFiles &&
                       Object.keys(validationResponse.validatorResults[key].logFiles).map((logFileKey, index) => (
                         <BaseButton
                           key={index}
