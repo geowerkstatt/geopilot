@@ -1,9 +1,9 @@
 import { useContext } from "react";
-import { DeliveryContext } from "./deliveryContext";
+import { DeliveryContext } from "../deliveryContext.tsx";
 import { useTranslation } from "react-i18next";
 import { Typography } from "@mui/material";
-import { FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
-import { CancelButton } from "../../components/buttons.tsx";
+import { FlexRowSpaceBetweenBox } from "../../../components/styledComponents.ts";
+import { CancelButton } from "../../../components/buttons.tsx";
 
 export const DeliveryValidationLoading = () => {
   const { t } = useTranslation();

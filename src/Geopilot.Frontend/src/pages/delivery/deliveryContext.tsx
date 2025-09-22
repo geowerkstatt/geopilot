@@ -6,9 +6,9 @@ import {
   DeliverySubmitData,
 } from "./deliveryInterfaces.tsx";
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useMemo, useState } from "react";
-import { ApiError, StartJobRequest, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
+import { ApiError, Mandate, StartJobRequest, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
 import { DeliveryUpload } from "./deliveryUpload.tsx";
-import { DeliveryValidation } from "./deliveryValidation.tsx";
+import { DeliveryValidation } from "./validation/deliveryValidation.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
 import { DeliveryCompleted } from "./deliveryCompleted.tsx";
@@ -22,6 +22,8 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   setStepError: () => {},
   selectedFile: undefined,
   setSelectedFile: () => {},
+  selectedMandate: undefined,
+  setSelectedMandate: () => {},
   validationResponse: undefined,
   isLoading: false,
   uploadFile: () => {},
@@ -49,6 +51,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File>();
+  const [selectedMandate, setSelectedMandate] = useState<Mandate>();
   const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
@@ -77,15 +80,20 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     [],
   );
 
+  // Add/Remove deliver-step depending on if user is logged in or not
+  // Previous steps need to be recycled to keep their state (e.g. errors)
+  // Steps need to be added to the map in the correct order
   useEffect(() => {
-    const steps = GetDefaultSteps();
-    if (user) {
-      steps.set(DeliveryStepEnum.Submit, {
-        label: "deliver",
-        content: <DeliverySubmit />,
-      });
-    }
-    setSteps(steps);
+    setSteps(prevSteps => {
+      const newSteps: Map<DeliveryStepEnum, DeliveryStep> = new Map();
+
+      newSteps.set(DeliveryStepEnum.Upload, prevSteps.get(DeliveryStepEnum.Upload)!);
+      newSteps.set(DeliveryStepEnum.Validate, prevSteps.get(DeliveryStepEnum.Validate)!);
+      if (user) newSteps.set(DeliveryStepEnum.Submit, { label: "deliver", content: <DeliverySubmit /> });
+      newSteps.set(DeliveryStepEnum.Done, prevSteps.get(DeliveryStepEnum.Done)!);
+
+      return newSteps;
+    });
   }, [user]);
 
   const isActiveStep = (step: DeliveryStepEnum) => {
@@ -232,6 +240,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setAbortControllers([]);
     setIsLoading(false);
     setSelectedFile(undefined);
+    setSelectedMandate(undefined);
     setValidationResponse(undefined);
     setActiveStep(0);
     setSteps(prevSteps => {
@@ -253,6 +262,8 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         setStepError,
         selectedFile,
         setSelectedFile,
+        selectedMandate,
+        setSelectedMandate,
         validationResponse,
         isLoading,
         uploadFile,

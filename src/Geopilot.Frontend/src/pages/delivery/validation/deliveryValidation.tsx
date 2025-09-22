@@ -1,6 +1,6 @@
-import { useGeopilotAuth } from "../../auth/index.ts";
-import { DeliveryValidationNotLoggedIn } from "./deliveryValidationNotLoggedIn.tsx";
+import { useGeopilotAuth } from "../../../auth/index.ts";
 import { DeliveryValidationLoggedIn } from "./deliveryValidationLoggedIn.tsx";
+import { DeliveryValidationNotLoggedIn } from "./deliveryValidationNotLoggedIn.tsx";
 
 export const DeliveryValidation = () => {
   const { user } = useGeopilotAuth();

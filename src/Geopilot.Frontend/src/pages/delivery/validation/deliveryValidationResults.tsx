@@ -1,10 +1,10 @@
 import { Typography } from "@mui/material";
-import { FlexBox, FlexRowBox, FlexRowEndBox } from "../../components/styledComponents";
-import { BaseButton, CancelButton } from "../../components/buttons";
-import { DeliveryContext } from "./deliveryContext";
+import { FlexBox, FlexRowBox, FlexRowEndBox } from "../../../components/styledComponents";
+import { BaseButton, CancelButton } from "../../../components/buttons";
+import { DeliveryContext } from "../deliveryContext";
 import { useContext } from "react";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import { ValidationStatus } from "../../api/apiInterfaces";
+import { ValidationStatus } from "../../../api/apiInterfaces";
 
 export const DeliveryValidationResults = () => {
   const { validationResponse, resetDelivery } = useContext(DeliveryContext);
