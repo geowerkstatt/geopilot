@@ -3,19 +3,17 @@
 namespace Geopilot.Api.Validation
 {
     /// <summary>
-    /// Provides methods to store, retrieve and update <see cref="ValidationJob"/> instances.
+    /// Managed store for <see cref="ValidationJob"/> instances. Provides create, read and update operations.
+    /// Implemetations must be thread save.
     /// </summary>
     public interface IValidationJobStore
     {
         /// <summary>
-        /// Gets the channel reader for the validation queue, which provides access to a stream of <see
-        /// cref="IValidator"/> instances.
-        /// </summary>
-        /// <remarks>The validation queue is used to process validation tasks asynchronously. Consumers
-        /// can read from the queue using the returned <see cref="ChannelReader{T}"/> to retrieve <see
-        /// cref="IValidator"/> instances as they become available.
+        /// Gets the channel reader for the validation queue, which provides access to a stream of
+        /// <see cref="IValidator"/> instances ready for processing.
         /// It is expected that consumers deliver an <see cref="ValidatorResult"/> for each consumed <see cref="IValidator"/>
-        /// by calling <see cref="AddValidatorResult(IValidator, ValidatorResult)"/>.</remarks>
+        /// by calling <see cref="AddValidatorResult(IValidator, ValidatorResult)"/>.
+        /// </summary>
         ChannelReader<IValidator> ValidationQueue { get; }
 
         /// <summary>
@@ -24,13 +22,6 @@ namespace Geopilot.Api.Validation
         /// <param name="jobId">The id of the validation job.</param>
         /// <returns>The <see cref="ValidationJob"/> with the specified id or <see langword="null"/> if no job with the specified id exists.</returns>
         ValidationJob? GetJob(Guid jobId);
-
-        /// <summary>
-        /// Retrieves the id of the <see cref="ValidationJob"/> the specified validator is associated with.
-        /// </summary>
-        /// <param name="validator">The validator to get the associated job id of.</param>
-        /// <returns>The <see cref="Guid"/> of the job associated with the specified validator, or <see langword="null"/> if no job is associated with the specified validator.</returns>
-        Guid? GetJobId(IValidator validator);
 
         /// <summary>
         /// Creates and returns a new instance of a <see cref="ValidationJob"/>.

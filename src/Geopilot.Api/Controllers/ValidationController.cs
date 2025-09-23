@@ -137,7 +137,7 @@ public class ValidationController : ControllerBase
             string.Format(CultureInfo.InvariantCulture, "/api/v{0}/validation/{1}", version.MajorVersion, validationJob.Id),
             UriKind.Relative);
 
-            return Created(location, validationJob.ToResponse());
+            return CreatedAtAction(nameof(GetStatus), new { jobId = validationJob.Id }, validationJob.ToResponse());
         }
         catch (Exception ex)
         {

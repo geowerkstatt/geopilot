@@ -21,9 +21,6 @@ public class ValidationJobStore : IValidationJobStore
     public ValidationJob? GetJob(Guid jobId) => jobs.TryGetValue(jobId, out var job) ? job : null;
 
     /// <inheritdoc/>
-    public Guid? GetJobId(IValidator validator) => validatorJobMap.TryGetValue(validator, out var jobId) ? jobId : null;
-
-    /// <inheritdoc/>
     public ValidationJob CreateJob()
     {
         var newJob = new ValidationJob(
@@ -78,8 +75,8 @@ public class ValidationJobStore : IValidationJobStore
 
         foreach (var validator in validators)
         {
-            validationQueue.Writer.TryWrite(validator);
-            validatorJobMap[validator] = jobId;
+            if (validationQueue.Writer.TryWrite(validator))
+                validatorJobMap[validator] = jobId;
         }
 
         return updatedJob;
@@ -91,7 +88,8 @@ public class ValidationJobStore : IValidationJobStore
         ArgumentNullException.ThrowIfNull(validator);
         ArgumentNullException.ThrowIfNull(result);
 
-        var jobId = GetJobId(validator) ?? throw new ArgumentException("The specified validator is not associated with any job.", nameof(validator));
+        if (!validatorJobMap.TryGetValue(validator, out var jobId))
+            throw new ArgumentException("The specified validator is not associated with any job.", nameof(validator));
 
         var updateFunc = (Guid jobId, ValidationJob job) =>
         {

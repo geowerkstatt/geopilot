@@ -17,8 +17,10 @@ public record class ValidationJob(
     /// </summary>
     public static Status GetStatusFromResults(ImmutableDictionary<string, ValidatorResult?> validatorResults)
     {
-        if (validatorResults == null || validatorResults.Count == 0)
-            throw new ArgumentException("Validator results must not be null or empty.", nameof(validatorResults));
+        ArgumentNullException.ThrowIfNull(validatorResults);
+
+        if (validatorResults.Count == 0)
+            throw new InvalidOperationException("Cannot determine status from empty validator results.");
 
         if (validatorResults.Values.Any(v => v is null))
             return Status.Processing;

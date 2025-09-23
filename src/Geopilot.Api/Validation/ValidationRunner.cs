@@ -35,15 +35,13 @@ public class ValidationRunner : BackgroundService
             }
             catch (Exception ex) when (ex is ValidationFailedException)
             {
-                var jobId = jobStore.GetJobId(validator);
-                logger.LogError(ex, "Validator <{Validator}> failed for job <{JobId}>.", validator.Name, jobId);
+                logger.LogError(ex, "Validator <{Validator}> failed.", validator.Name);
                 result = new ValidatorResult(ValidatorResultStatus.Failed, ex.Message);
             }
             catch (Exception ex)
             {
-                var jobId = jobStore.GetJobId(validator);
-                logger.LogError(ex, "Unexpected error while running validation with validator <{Validator}> for job <{JobId}>.", validator.Name, jobId);
-                result = new ValidatorResult(ValidatorResultStatus.Failed, $"An unexpected error occured while running validation with validator <{validator.Name}> for job <{jobId}>.");
+                logger.LogError(ex, "Validator <{Validator}> failed.", validator.Name);
+                result = new ValidatorResult(ValidatorResultStatus.Failed, $"An unexpected error occured while running validation with validator <{validator.Name}>.");
             }
 
             jobStore.AddValidatorResult(validator, result);

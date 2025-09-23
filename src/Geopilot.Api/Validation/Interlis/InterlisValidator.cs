@@ -7,6 +7,9 @@ using System.Text.Json;
 
 namespace Geopilot.Api.Validation.Interlis;
 
+/// <summary>
+/// Validates an INTERLIS file provided through an <see cref="IFileProvider"/>.
+/// </summary>
 public class InterlisValidator : IValidator
 {
     private const string UploadUrl = "/api/v1/upload";
@@ -92,12 +95,14 @@ public class InterlisValidator : IValidator
         using var formData = new MultipartFormDataContent { { streamContent, "file", transferFile } };
         using var response = await httpClient.PostAsync(UploadUrl, formData, cancellationToken).ConfigureAwait(false);
 
-        logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
             var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+            logger.LogError("Upload of transfer file <{TransferFile}> to interlis-check-service failed.", transferFile);
             throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
         }
+
+        logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
 
         return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response, cancellationToken).ConfigureAwait(false);
     }

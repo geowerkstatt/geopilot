@@ -6,12 +6,12 @@
 public enum Status
 {
     /// <summary>
-    /// The job has been created but no file has been added yet.
+    /// The job has been created.
     /// </summary>
     Created,
 
     /// <summary>
-    /// The job is ready to be processed, a file has been added.
+    /// The job is ready to be processed.
     /// </summary>
     Ready,
 
