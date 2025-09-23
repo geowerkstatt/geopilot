@@ -32,19 +32,38 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   resetDelivery: () => {},
 });
 
-const GetDefaultSteps = () =>
-  new Map([
-    [DeliveryStepEnum.Upload, { label: "upload", content: <DeliveryUpload /> }],
-    [
-      DeliveryStepEnum.Validate,
-      {
-        label: "validate",
-        keepOpen: true,
-        content: <DeliveryValidation />,
-      },
-    ],
-    [DeliveryStepEnum.Done, { label: "done", content: <DeliveryCompleted /> }],
-  ]);
+// Gets the current steps while reusing previous steps if possible to keep their state (e.g. errors)
+const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, userLoggedIn: boolean) => {
+  const newSteps: Map<DeliveryStepEnum, DeliveryStep> = new Map();
+
+  newSteps.set(
+    DeliveryStepEnum.Upload,
+    previousSteps.get(DeliveryStepEnum.Upload) ?? { label: "upload", content: <DeliveryUpload /> },
+  );
+
+  newSteps.set(
+    DeliveryStepEnum.Validate,
+    previousSteps.get(DeliveryStepEnum.Validate) ?? {
+      label: "validate",
+      keepOpen: true,
+      content: <DeliveryValidation />,
+    },
+  );
+
+  if (userLoggedIn) {
+    newSteps.set(
+      DeliveryStepEnum.Submit,
+      previousSteps.get(DeliveryStepEnum.Submit) ?? { label: "deliver", content: <DeliverySubmit /> },
+    );
+  }
+
+  newSteps.set(
+    DeliveryStepEnum.Done,
+    previousSteps.get(DeliveryStepEnum.Done) ?? { label: "done", content: <DeliveryCompleted /> },
+  );
+
+  return newSteps;
+};
 
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const { t } = useTranslation();
@@ -56,7 +75,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
   const { user } = useGeopilotAuth();
-  const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(GetDefaultSteps);
+  const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), user !== null));
 
   const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = useMemo(
     () => ({
@@ -80,20 +99,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     [],
   );
 
-  // Add/Remove deliver-step depending on if user is logged in or not
-  // Previous steps need to be recycled to keep their state (e.g. errors)
-  // Steps need to be added to the map in the correct order
+  // Update steps depending on if user is logged in or not
   useEffect(() => {
-    setSteps(prevSteps => {
-      const newSteps: Map<DeliveryStepEnum, DeliveryStep> = new Map();
-
-      newSteps.set(DeliveryStepEnum.Upload, prevSteps.get(DeliveryStepEnum.Upload)!);
-      newSteps.set(DeliveryStepEnum.Validate, prevSteps.get(DeliveryStepEnum.Validate)!);
-      if (user) newSteps.set(DeliveryStepEnum.Submit, { label: "deliver", content: <DeliverySubmit /> });
-      newSteps.set(DeliveryStepEnum.Done, prevSteps.get(DeliveryStepEnum.Done)!);
-
-      return newSteps;
-    });
+    setSteps(prevSteps => getSteps(prevSteps, user !== null));
   }, [user]);
 
   const isActiveStep = (step: DeliveryStepEnum) => {
