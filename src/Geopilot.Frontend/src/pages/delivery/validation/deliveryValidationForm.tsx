@@ -6,12 +6,12 @@ import { useContext, useEffect, useState } from "react";
 import { DeliveryContext } from "../deliveryContext";
 import useFetch from "../../../hooks/useFetch";
 import { useTranslation } from "react-i18next";
-import { Mandate } from "../../../api/apiInterfaces";
+import { Mandate, ValidationStatus } from "../../../api/apiInterfaces";
 import { DeliveryStepEnum } from "../deliveryInterfaces";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
 
 export const DeliveryValidationForm = () => {
-  const { resetDelivery, validateFile, validationResponse, setStepError, setSelectedMandate } =
+  const { resetDelivery, validateFile, validationResponse, setStepError, setSelectedMandate, isLoading } =
     useContext(DeliveryContext);
   const formMethods = useForm({ mode: "all" });
   const { fetchApi } = useFetch();
@@ -39,6 +39,7 @@ export const DeliveryValidationForm = () => {
     setSelectedMandate(mandates.find(m => m.id === data["mandate"]));
   };
 
+  const isStartingJob = isLoading && validationResponse?.status === ValidationStatus.Ready;
   const isFormActive = !formMethods.formState.isSubmitting && !formMethods.formState.isSubmitSuccessful;
 
   return (
@@ -47,19 +48,20 @@ export const DeliveryValidationForm = () => {
         fieldName="mandate"
         label="mandate"
         required={true}
-        disabled={!isFormActive}
+        disabled={!isFormActive || isStartingJob}
         values={mandates
           ?.sort((a, b) => a.name.localeCompare(b.name))
           .map(mandate => ({ key: mandate.id, name: mandate.name }))}
       />
 
-      {isFormActive && (
+      {(isFormActive || isStartingJob) && (
         <FlexRowEndBox>
           <CancelButton onClick={() => resetDelivery()} />
           <BaseButton
             onClick={() => formMethods.handleSubmit(submitForm)()}
             icon={<PublishedWithChangesIcon />}
             label="validate"
+            disabled={isStartingJob}
           />
         </FlexRowEndBox>
       )}

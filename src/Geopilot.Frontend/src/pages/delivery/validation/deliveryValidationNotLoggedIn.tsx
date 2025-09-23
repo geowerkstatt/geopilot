@@ -8,12 +8,16 @@ import { useGeopilotAuth } from "../../../auth";
 import { DeliveryValidationLoading } from "./deliveryValidationLoading";
 import { DeliveryValidationResults } from "./deliveryValidationResults";
 import { isValidationFinished } from "../deliveryUtils";
+import { ValidationStatus } from "../../../api/apiInterfaces";
 
 export const DeliveryValidationNotLoggedIn = () => {
   const { resetDelivery, validateFile, isLoading, validationResponse } = useContext(DeliveryContext);
   const { login } = useGeopilotAuth();
 
-  if (isLoading) {
+  const isStartingJob = isLoading && validationResponse?.status === ValidationStatus.Ready;
+  const isValidating = isLoading && validationResponse?.status === ValidationStatus.Processing;
+
+  if (isValidating) {
     return <DeliveryValidationLoading />;
   }
 
@@ -28,8 +32,9 @@ export const DeliveryValidationNotLoggedIn = () => {
         onClick={() => validateFile(validationResponse!.jobId, {})}
         icon={<PublishedWithChangesIcon />}
         label="validateOnly"
+        disabled={isStartingJob}
       />
-      <BaseButton onClick={login} icon={<LoginIcon />} label="logInForDelivery" />
+      <BaseButton onClick={login} icon={<LoginIcon />} label="logInForDelivery" disabled={isStartingJob} />
     </FlexRowEndBox>
   );
 };
