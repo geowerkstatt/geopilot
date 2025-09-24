@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NetTopologySuite.Geometries;
+using System.Collections.Immutable;
 
 namespace Geopilot.Api.Controllers
 {
@@ -94,7 +95,7 @@ namespace Geopilot.Api.Controllers
             mandateController.SetupTestUser(editUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf"));
+                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
             xtfMandate.SetCoordinateListFromPolygon();
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
@@ -113,7 +114,7 @@ namespace Geopilot.Api.Controllers
             mandateController.SetupTestUser(editUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.XTF", "tmp.XTF"));
+                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
             xtfMandate.SetCoordinateListFromPolygon();
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
@@ -126,13 +127,13 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
-        public async Task GetWithJobIdExcludesNonMatchinMandates()
+        public async Task GetWithJobIdExcludesNonMatchingMandates()
         {
             var jobId = Guid.NewGuid();
             mandateController.SetupTestUser(editUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.csv", "tmp.csv"));
+                .Returns(new ValidationJob(jobId, "Original.csv", "tmp.csv", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
@@ -293,7 +294,7 @@ namespace Geopilot.Api.Controllers
             var guid = Guid.NewGuid();
             validationServiceMock
                 .Setup(s => s.GetJob(guid))
-                .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip") { Status = Status.Completed });
+                .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
             var assetHandlerMock = new Mock<IAssetHandler>();
             assetHandlerMock
                 .Setup(p => p.PersistJobAssets(guid))

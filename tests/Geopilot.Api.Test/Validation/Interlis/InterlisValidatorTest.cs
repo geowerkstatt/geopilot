@@ -31,7 +31,6 @@ public class InterlisValidatorTest
         httpClient.BaseAddress = new Uri("https://localhost");
         interlisValidator = new InterlisValidator(
             loggerMock.Object,
-            fileProviderMock.Object,
             httpClient,
             Options.Create(new JsonOptions()));
     }

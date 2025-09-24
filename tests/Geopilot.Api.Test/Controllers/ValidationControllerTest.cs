@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Collections.Immutable;
 
 namespace Geopilot.Api.Controllers;
 
@@ -54,25 +55,32 @@ public sealed class ValidationControllerTest
     {
         var jobId = Guid.NewGuid();
         const string originalFileName = "BIZARRESCAN.xtf";
+        const string tempFileName = "TEMP.xtf";
         formFileMock.SetupGet(x => x.Length).Returns(1234);
         formFileMock.SetupGet(x => x.FileName).Returns(originalFileName);
         formFileMock.Setup(x => x.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(0));
 
-        var validationJob = new ValidationJob(jobId, originalFileName, "TEMP.xtf");
-        using var fileHandle = new FileHandle(validationJob.TempFileName, Stream.Null);
+        var validationJob = new ValidationJob(jobId, originalFileName, tempFileName, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created);
+        using var fileHandle = new FileHandle(tempFileName, Stream.Null);
 
         validationServiceMock.Setup(x => x.IsFileExtensionSupportedAsync(".xtf")).Returns(Task.FromResult(true));
-        validationServiceMock.Setup(x => x.CreateValidationJob(originalFileName)).Returns((validationJob, fileHandle));
+        validationServiceMock.Setup(x => x.CreateJob()).Returns(validationJob);
+        validationServiceMock.Setup(x => x.CreateFileHandleForJob(jobId, originalFileName)).Returns(fileHandle);
         validationServiceMock
-            .Setup(x => x.StartValidationJobAsync(validationJob))
-            .Returns(Task.CompletedTask);
+            .Setup(x => x.AddFileToJob(jobId, originalFileName, tempFileName))
+            .Returns(validationJob);
+        validationServiceMock
+            .Setup(x => x.StartJobAsync(jobId))
+            .Returns(Task.FromResult(validationJob));
 
-        var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedResult;
+        var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedAtActionResult;
 
-        Assert.IsInstanceOfType(response, typeof(CreatedResult));
+        Assert.IsInstanceOfType(response, typeof(CreatedAtActionResult));
         Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobResponse));
         Assert.AreEqual(StatusCodes.Status201Created, response.StatusCode);
-        Assert.AreEqual($"/api/v9/validation/{jobId}", response.Location);
+        Assert.AreEqual("GetStatus", response.ActionName);
+        Assert.IsNotNull(response.RouteValues);
+        Assert.AreEqual(jobId, response.RouteValues["jobId"]);
         Assert.AreEqual(jobId, ((ValidationJobResponse)response.Value!).JobId);
     }
 
@@ -87,17 +95,19 @@ public sealed class ValidationControllerTest
     }
 
     [TestMethod]
-    public async Task UploadInvalidFileExtension()
+    [DataRow(".exe")]
+    [DataRow("")]
+    public async Task UploadInvalidFileExtension(string fileExtension)
     {
-        formFileMock.SetupGet(x => x.FileName).Returns("upload.exe");
+        formFileMock.SetupGet(x => x.FileName).Returns("upload" + fileExtension);
 
-        validationServiceMock.Setup(x => x.IsFileExtensionSupportedAsync(".exe")).Returns(Task.FromResult(false));
+        validationServiceMock.Setup(x => x.IsFileExtensionSupportedAsync(fileExtension)).Returns(Task.FromResult(false));
 
         var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as ObjectResult;
 
         Assert.IsInstanceOfType(response, typeof(ObjectResult));
         Assert.AreEqual(StatusCodes.Status400BadRequest, response!.StatusCode);
-        Assert.AreEqual("File extension <.exe> is not supported.", ((ProblemDetails)response.Value!).Detail);
+        Assert.AreEqual($"File extension <{fileExtension}> is not supported.", ((ProblemDetails)response.Value!).Detail);
     }
 
     [TestMethod]
@@ -107,7 +117,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "BIZARRESCAN.xtf", "TEMP.xtf") { Status = Status.Processing });
+            .Returns(new ValidationJob(jobId, "BIZARRESCAN.xtf", "TEMP.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing));
 
         var response = controller.GetStatus(jobId) as OkObjectResult;
         var jobResponse = response?.Value as ValidationJobResponse;
@@ -143,7 +153,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf"));
+            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
 
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.Exists(fileName)).Returns(true);
@@ -184,7 +194,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf"));
+            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
 
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.Exists(fileName)).Returns(false);

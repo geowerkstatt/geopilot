@@ -3,6 +3,7 @@ using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -22,7 +23,7 @@ public class AssetHandlerTest
     [TestInitialize]
     public void Initialize()
     {
-        job = new ValidationJob(Guid.NewGuid(), "OriginalName", "TempFileName") { Status = Status.Completed };
+        job = new ValidationJob(Guid.NewGuid(), "OriginalName", "TempFileName", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed);
         uploadDirectory = AssemblyInitialize.TestDirectoryProvider.GetUploadDirectoryPath(job.Id);
         assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(job.Id);
         loggerMock = new Mock<ILogger<AssetHandler>>();
@@ -66,9 +67,16 @@ public class AssetHandlerTest
         File.WriteAllText(Path.Combine(uploadDirectory, "mylogfile"), fileContent);
         fileProviderMock.Setup(x => x.Open("mylogfile")).Returns(new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
 
-        var validatorResult = new ValidatorResult(Status.Completed, string.Empty);
-        validatorResult.LogFiles.Add("mylogtype", "mylogfile");
-        job.ValidatorResults.Add("myValidator", validatorResult);
+        var logFiles = new Dictionary<string, string>
+        {
+            { "mylogtype", "mylogfile" },
+        }.ToImmutableDictionary();
+        var validatorResults = new Dictionary<string, ValidatorResult?>
+        {
+            { "myValidator", new ValidatorResult(ValidatorResultStatus.Completed, string.Empty, logFiles) },
+        }.ToImmutableDictionary();
+        var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", validatorResults, Status.Completed);
+        validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
 
         var assets = assetHandler.PersistJobAssets(job.Id);
 
@@ -86,10 +94,16 @@ public class AssetHandlerTest
     [ExpectedException(typeof(ArgumentNullException))]
     public void PersistValidationJobAssetsFailsWithoutJobDirectory()
     {
-        var validatorResult = new ValidatorResult(Status.Completed, string.Empty);
-        validatorResult.LogFiles.Add("mylogtype", "mylogfile");
-        var validationJobStatus = new ValidationJob(job.Id, "OrigFileName", "TempFileName") { Status = Status.Completed };
-        validationJobStatus.ValidatorResults.Add("myValidator", validatorResult);
+        var logFiles = new Dictionary<string, string>
+        {
+            { "mylogtype", "mylogfile" },
+        }.ToImmutableDictionary();
+        var validatorResults = new Dictionary<string, ValidatorResult?>
+        {
+            { "myValidator", new ValidatorResult(ValidatorResultStatus.Completed, string.Empty, logFiles) },
+        }.ToImmutableDictionary();
+        var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", validatorResults, Status.Completed);
+        validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
 
         var assets = assetHandler.PersistJobAssets(job.Id);
     }
