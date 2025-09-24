@@ -1,12 +1,22 @@
-﻿namespace Geopilot.Api.Validation;
+﻿using System.Collections.Immutable;
+
+namespace Geopilot.Api.Validation;
 
 /// <summary>
 /// Represents the result of one validation as part of a validation job.
 /// </summary>
-public record class ValidatorResult(ValidatorResultStatus Status, string? StatusMessage)
+public record class ValidatorResult(
+    ValidatorResultStatus Status,
+    string? StatusMessage,
+    ImmutableDictionary<string, string> LogFiles)
 {
     /// <summary>
-    /// Available log files to download.
+    /// Initializes a new instance of the <see cref="ValidatorResult"/> class with the specified status and status message.
     /// </summary>
-    public IDictionary<string, string> LogFiles { get; init; } = new Dictionary<string, string>();
+    /// <param name="status">The status of the validation result.</param>
+    /// <param name="statusMessage">An optional message providing additional information about the validation status. Can be <see langword="null"/>.</param>
+    public ValidatorResult(ValidatorResultStatus status, string? statusMessage)
+        : this(status, statusMessage, ImmutableDictionary<string, string>.Empty)
+    {
+    }
 }

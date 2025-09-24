@@ -2,6 +2,7 @@
 using Geopilot.Api.FileAccess;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Collections.Immutable;
 using System.Net;
 using System.Text.Json;
 
@@ -83,10 +84,7 @@ public class InterlisValidator : IValidator
 
         var logFiles = await DownloadLogFilesAsync(statusResponse, fileName, cancellationToken).ConfigureAwait(false);
 
-        return new ValidatorResult(ToValidatorResultStatus(statusResponse.Status), statusResponse.StatusMessage)
-        {
-            LogFiles = logFiles,
-        };
+        return new ValidatorResult(ToValidatorResultStatus(statusResponse.Status), statusResponse.StatusMessage, logFiles.ToImmutableDictionary());
     }
 
     private async Task<InterlisUploadResponse> UploadTransferFileAsync(string transferFile, CancellationToken cancellationToken)
