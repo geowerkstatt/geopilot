@@ -56,7 +56,7 @@ builder.Services
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
     {
         options.Authority = builder.Configuration["Auth:Authority"];
-        options.Audience = builder.Configuration["Auth:ClientId"];
+        options.Audience = builder.Configuration["Auth:ApiId"];
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.MapInboundClaims = false;
 
