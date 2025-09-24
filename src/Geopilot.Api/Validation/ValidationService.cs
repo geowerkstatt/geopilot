@@ -125,6 +125,9 @@ public class ValidationService : IValidationService
 
     private static bool IsExtensionSupported(ICollection<string> supportedExtensions, string fileExtension)
     {
+        if (string.IsNullOrWhiteSpace(fileExtension))
+            return false;
+
         return supportedExtensions.Any(ext => ext == ".*" || string.Equals(ext, fileExtension, StringComparison.OrdinalIgnoreCase));
     }
 }
