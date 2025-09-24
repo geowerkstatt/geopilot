@@ -68,11 +68,13 @@ services:
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
       Auth__Authority: http://localhost:4011/realms/geopilot
       Auth__ClientId: geopilot-client
+      Auth__ApiId: geopilot-api
       Auth__AuthorizationUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/auth
       Auth__UserInfoUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/userinfo
       Auth__TokenUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/token
-      Auth__ApiOrigin: http://localhost:5173
-      Auth__Scope: "profile email openid"
+      Auth__ApiOrigin: https://localhost:5173
+      Auth__Scope: "profile email openid geopilot.api"
+      Auth__ApiScope: "geopilot.api"
       Validation__InterlisCheckServiceUrl: http://interlis-check-service:8080/
       PUID: 1000
       PGID: 1000
