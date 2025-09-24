@@ -25,7 +25,7 @@ public class UserControllerTest
         {
             Authority = "https://localhost/some-authority",
             ClientId = Guid.NewGuid().ToString(),
-            Scope = "profile email openid",
+            Scope = "profile email openid geopilot.api",
         };
         authOptionsMock.SetupGet(o => o.Value).Returns(browserAuthOptions);
 
