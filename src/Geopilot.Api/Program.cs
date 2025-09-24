@@ -103,7 +103,7 @@ builder.Services.AddSwaggerGen(options =>
 
     var authUrl = builder.Configuration["Auth:AuthorizationUrl"];
     var tokenUrl = builder.Configuration["Auth:TokenUrl"];
-    var scope = builder.Configuration["Auth:Scope"];
+    var scope = builder.Configuration["Auth:ApiScope"];
     if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(scope))
     {
         options.AddGeopilotOAuth2(authUrl, tokenUrl, scope);
