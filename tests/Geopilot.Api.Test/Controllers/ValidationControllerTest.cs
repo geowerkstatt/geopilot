@@ -60,7 +60,7 @@ public sealed class ValidationControllerTest
         formFileMock.SetupGet(x => x.FileName).Returns(originalFileName);
         formFileMock.Setup(x => x.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(0));
 
-        var validationJob = new ValidationJob(jobId, originalFileName, tempFileName, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created);
+        var validationJob = new ValidationJob(jobId, originalFileName, tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created);
         using var fileHandle = new FileHandle(tempFileName, Stream.Null);
 
         validationServiceMock.Setup(x => x.IsFileExtensionSupportedAsync(".xtf")).Returns(Task.FromResult(true));
@@ -69,9 +69,6 @@ public sealed class ValidationControllerTest
         validationServiceMock
             .Setup(x => x.AddFileToJob(jobId, originalFileName, tempFileName))
             .Returns(validationJob);
-        validationServiceMock
-            .Setup(x => x.StartJobAsync(jobId))
-            .Returns(Task.FromResult(validationJob));
 
         var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedAtActionResult;
 
@@ -114,10 +111,11 @@ public sealed class ValidationControllerTest
     public void GetStatus()
     {
         var jobId = Guid.NewGuid();
+        var mandateId = 123;
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "BIZARRESCAN.xtf", "TEMP.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing));
+            .Returns(new ValidationJob(jobId, "BIZARRESCAN.xtf", "TEMP.xtf", mandateId, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing));
 
         var response = controller.GetStatus(jobId) as OkObjectResult;
         var jobResponse = response?.Value as ValidationJobResponse;
@@ -126,6 +124,7 @@ public sealed class ValidationControllerTest
         Assert.IsInstanceOfType(jobResponse, typeof(ValidationJobResponse));
         Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
         Assert.AreEqual(jobId, jobResponse.JobId);
+        Assert.AreEqual(mandateId, jobResponse.MandateId);
         Assert.AreEqual(Status.Processing, jobResponse.Status);
     }
 
@@ -153,7 +152,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
+            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
 
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.Exists(fileName)).Returns(true);
@@ -194,7 +193,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
+            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
 
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.Exists(fileName)).Returns(false);

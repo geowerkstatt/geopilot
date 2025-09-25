@@ -73,6 +73,8 @@ export interface ValidationSettings {
 }
 
 export enum ValidationStatus {
+  Created = "created",
+  Ready = "ready",
   Processing = "processing",
   Completed = "completed",
   CompletedWithErrors = "completedWithErrors",
@@ -104,4 +106,8 @@ export interface Profile {
 export interface ValidatorConfiguration {
   supportedFileExtensions: string[];
   profiles: Profile[];
+}
+
+export interface StartJobRequest {
+  mandateId?: number;
 }
