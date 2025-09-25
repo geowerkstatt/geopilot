@@ -20,9 +20,7 @@ internal static class DtoMapperExtensions
             job.Status,
             job.ValidatorResults.ToDictionary(
                 kvp => kvp.Key,
-                kvp => kvp.Value?.ToResponse()
-            )
-        );
+                kvp => kvp.Value?.ToResponse()));
     }
 
     /// <summary>
