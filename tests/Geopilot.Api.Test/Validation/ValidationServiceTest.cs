@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
+using Geopilot.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using System.Collections.Immutable;
@@ -13,6 +14,7 @@ public class ValidationServiceTest
     private Mock<IValidator> validatorMock;
     private Mock<Context> contextMock;
     private ValidationService validationService;
+    private Mock<IMandateService> mandateServiceMock;
     private Mock<IValidationJobStore> validationJobStoreMock;
 
     [TestInitialize]
@@ -22,12 +24,14 @@ public class ValidationServiceTest
         validatorMock = new Mock<IValidator>(MockBehavior.Strict);
         contextMock = new Mock<Context>(new DbContextOptions<Context>());
         validationJobStoreMock = new Mock<IValidationJobStore>(MockBehavior.Strict);
+        mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
 
         validationService = new ValidationService(
-            fileProviderMock.Object,
-            new[] { validatorMock.Object },
             contextMock.Object,
-            validationJobStoreMock.Object);
+            validationJobStoreMock.Object,
+            mandateServiceMock.Object,
+            fileProviderMock.Object,
+            new[] { validatorMock.Object });
     }
 
     [TestCleanup]
@@ -35,6 +39,8 @@ public class ValidationServiceTest
     {
         fileProviderMock.VerifyAll();
         validatorMock.VerifyAll();
+        validationJobStoreMock.VerifyAll();
+        mandateServiceMock.VerifyAll();
     }
 
     [TestMethod]
@@ -44,7 +50,7 @@ public class ValidationServiceTest
         const string tempFileName = "TEMP.xtf";
         using var expectedFileHandle = new FileHandle(tempFileName, Stream.Null);
 
-        var job = new ValidationJob(Guid.NewGuid(), originalFileName, tempFileName, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created);
+        var job = new ValidationJob(Guid.NewGuid(), originalFileName, tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created);
         validationJobStoreMock
             .Setup(x => x.GetJob(job.Id))
             .Returns(job);
@@ -68,11 +74,11 @@ public class ValidationServiceTest
     }
 
     [TestMethod]
-    public async Task StartJobAsync()
+    public async Task StartJobAsyncWithoutMandate()
     {
         var jobId = Guid.NewGuid();
         var tempFileName = "file.xtf";
-        var job = new ValidationJob(jobId, "original.xtf", tempFileName, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready);
+        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready);
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
 
@@ -88,20 +94,22 @@ public class ValidationServiceTest
             .ReturnsAsync(new List<string> { ".csv" });
 
         validationService = new ValidationService(
-        fileProviderMock.Object,
-        new[] { supportedValidatorMock1.Object, supportedValidatorMock2.Object, unsupportedValidator.Object },
-        contextMock.Object,
-        validationJobStoreMock.Object);
+            contextMock.Object,
+            validationJobStoreMock.Object,
+            mandateServiceMock.Object,
+            fileProviderMock.Object,
+            new[] { supportedValidatorMock1.Object, supportedValidatorMock2.Object, unsupportedValidator.Object });
 
         // Expect StartJob to be called with all supported validators
         validationJobStoreMock
             .Setup(x => x.StartJob(
                 jobId,
                 It.Is<ICollection<IValidator>>(v =>
-                    v.Count == 2 && v.Contains(supportedValidatorMock1.Object) && v.Contains(supportedValidatorMock2.Object))))
+                    v.Count == 2 && v.Contains(supportedValidatorMock1.Object) && v.Contains(supportedValidatorMock2.Object)),
+                null))
             .Returns(job);
 
-        var result = await validationService.StartJobAsync(jobId);
+        var result = await validationService.StartJobAsync(jobId, null, null);
 
         Assert.AreEqual(job, result);
     }
@@ -114,7 +122,7 @@ public class ValidationServiceTest
 
         await Assert.ThrowsExceptionAsync<ArgumentException>(async () =>
         {
-            await validationService.StartJobAsync(jobId);
+            await validationService.StartJobAsync(jobId, null, null);
         });
     }
 }
