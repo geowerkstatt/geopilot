@@ -21,7 +21,7 @@ public enum InterlisStatusResponseStatus
     CompletedWithErrors,
 
     /// <summary>
-    /// The validation failed.
+    /// The validation did not complete. Validation is inconclusive.
     /// </summary>
     Failed,
 }
