@@ -6,6 +6,16 @@
 public enum Status
 {
     /// <summary>
+    /// The job has been created.
+    /// </summary>
+    Created,
+
+    /// <summary>
+    /// The job is ready to be processed.
+    /// </summary>
+    Ready,
+
+    /// <summary>
     /// The job is processing.
     /// </summary>
     Processing,

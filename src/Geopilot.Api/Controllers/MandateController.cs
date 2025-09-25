@@ -67,6 +67,12 @@ public class MandateController : ControllerBase
                 return Ok(Array.Empty<Mandate>());
             }
 
+            if (string.IsNullOrEmpty(job.OriginalFileName))
+            {
+                logger.LogTrace("Validation job with id <{JobId}> has no associated file name.", jobId);
+                return Ok(Array.Empty<Mandate>());
+            }
+
             logger.LogTrace("Filtering mandates for job with id <{JobId}>", jobId);
             var extension = Path.GetExtension(job.OriginalFileName).ToLowerInvariant();
             mandates = mandates
