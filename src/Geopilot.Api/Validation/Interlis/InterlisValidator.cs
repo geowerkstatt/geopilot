@@ -89,7 +89,7 @@ public class InterlisValidator : IValidator
 
     private async Task<InterlisUploadResponse> UploadTransferFileAsync(string transferFile, CancellationToken cancellationToken)
     {
-        using var streamContent = new StreamContent(fileProvider.Open(transferFile));
+        using var streamContent = new StreamContent(fileProvider!.Open(transferFile));
         using var formData = new MultipartFormDataContent { { streamContent, "file", transferFile } };
         using var response = await httpClient.PostAsync(UploadUrl, formData, cancellationToken).ConfigureAwait(false);
 
@@ -153,7 +153,7 @@ public class InterlisValidator : IValidator
     private async Task DownloadLogAsFileAsync(string url, string destination, CancellationToken cancellationToken)
     {
         using var logDownloadStream = await httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false);
-        using var logFileStream = fileProvider.CreateFile(destination);
+        using var logFileStream = fileProvider!.CreateFile(destination);
         await logDownloadStream.CopyToAsync(logFileStream, cancellationToken).ConfigureAwait(false);
     }
 

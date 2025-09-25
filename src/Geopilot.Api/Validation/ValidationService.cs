@@ -56,7 +56,7 @@ public class ValidationService : IValidationService
         foreach (var validator in validators)
         {
             var supportedExtensions = await validator.GetSupportedFileExtensionsAsync();
-            if (IsExtensionSupported(supportedExtensions, fileExtension))
+            if (IsExtensionSupported(supportedExtensions, fileExtension!))
             {
                 ConfigureValidator(validator, validationJob);
                 supportedValidators.Add(validator);
@@ -71,7 +71,7 @@ public class ValidationService : IValidationService
         switch (validator)
         {
             case InterlisValidator interlisValidator:
-                interlisValidator.Configure(fileProvider, validationJob.TempFileName);
+                interlisValidator.Configure(fileProvider, validationJob.TempFileName!);
                 break;
         }
     }
