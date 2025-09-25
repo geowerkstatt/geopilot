@@ -92,6 +92,9 @@ public class AssetHandler : IAssetHandler
     /// <returns>Calculated Asset representing the file in persistent storage.</returns>
     private Asset PersistPrimaryValidationJobAsset(ValidationJob job)
     {
+        if (string.IsNullOrEmpty(job.TempFileName) || string.IsNullOrEmpty(job.OriginalFileName))
+            throw new InvalidOperationException($"Validation job <{job.Id}> does not have a correctly defined primary data file.");
+
         using var stream = temporaryFileProvider.Open(job.TempFileName);
         var asset = new Asset()
         {
@@ -115,6 +118,8 @@ public class AssetHandler : IAssetHandler
 
         foreach (var validator in job.ValidatorResults)
         {
+            if (validator.Value == null) continue;
+
             foreach (var logfile in validator.Value.LogFiles)
             {
                 using var stream = temporaryFileProvider.Open(logfile.Value);
