@@ -18,6 +18,7 @@ internal static class DtoMapperExtensions
         return new(
             job.Id,
             job.Status,
+            job.MandateId,
             job.ValidatorResults.ToDictionary(
                 kvp => kvp.Key,
                 kvp => kvp.Value?.ToResponse()));
