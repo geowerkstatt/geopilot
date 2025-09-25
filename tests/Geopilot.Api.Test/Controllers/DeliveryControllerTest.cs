@@ -230,7 +230,6 @@ public class DeliveryControllerTest
     [DataRow(FieldEvaluationType.Required, false, typeof(ValidationProblemDetails))]
     public async Task CreateValidatesPrecursorDelivery(FieldEvaluationType evaluaton, bool setPrecursor, Type responseValueType)
     {
-
         var (user, mandate) = AddMandateForAuthorizedUser(
             new Mandate
             {

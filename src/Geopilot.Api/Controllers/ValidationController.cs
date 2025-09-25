@@ -145,7 +145,7 @@ public class ValidationController : ControllerBase
     }
 
     /// <summary>
-    /// Starts the job with the specified <paramref name="jobId"/>. If a <paramref name="mandateId"/> is provided, the job will be started for specified mandate.
+    /// Starts the job with the specified <paramref name="jobId"/>. If a mandate is specified in the <paramref name="startJobRequest"/>, the job will be started with specified mandate.
     /// Otherwise, the job will be started without a mandate.
     /// </summary>
     /// <remarks>
