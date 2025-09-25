@@ -89,7 +89,10 @@ public class InterlisValidator : IValidator
 
     private async Task<InterlisUploadResponse> UploadTransferFileAsync(string transferFile, CancellationToken cancellationToken)
     {
-        using var streamContent = new StreamContent(fileProvider!.Open(transferFile));
+        if (fileProvider == null)
+            throw new InvalidOperationException("Validator not initialized correctly. FileProvider has not been set.");
+
+        using var streamContent = new StreamContent(fileProvider.Open(transferFile));
         using var formData = new MultipartFormDataContent { { streamContent, "file", transferFile } };
         using var response = await httpClient.PostAsync(UploadUrl, formData, cancellationToken).ConfigureAwait(false);
 

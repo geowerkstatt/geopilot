@@ -56,7 +56,7 @@ public class ValidationService : IValidationService
         foreach (var validator in validators)
         {
             var supportedExtensions = await validator.GetSupportedFileExtensionsAsync();
-            if (IsExtensionSupported(supportedExtensions, fileExtension!))
+            if (IsExtensionSupported(supportedExtensions, fileExtension))
             {
                 ConfigureValidator(validator, validationJob);
                 supportedValidators.Add(validator);
@@ -71,7 +71,7 @@ public class ValidationService : IValidationService
         switch (validator)
         {
             case InterlisValidator interlisValidator:
-                interlisValidator.Configure(fileProvider, validationJob.TempFileName!);
+                interlisValidator.Configure(fileProvider, validationJob.TempFileName ?? string.Empty);
                 break;
         }
     }
@@ -123,7 +123,7 @@ public class ValidationService : IValidationService
             .ToHashSet();
     }
 
-    private static bool IsExtensionSupported(ICollection<string> supportedExtensions, string fileExtension)
+    private static bool IsExtensionSupported(ICollection<string> supportedExtensions, string? fileExtension)
     {
         if (string.IsNullOrWhiteSpace(fileExtension))
             return false;
