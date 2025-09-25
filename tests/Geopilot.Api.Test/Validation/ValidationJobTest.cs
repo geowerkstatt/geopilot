@@ -1,7 +1,6 @@
-﻿using Geopilot.Api.Validation;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 
-namespace Geopilot.Api.Test.Validation;
+namespace Geopilot.Api.Validation;
 
 [TestClass]
 public class ValidationJobTest

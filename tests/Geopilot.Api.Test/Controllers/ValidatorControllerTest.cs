@@ -1,11 +1,10 @@
 ﻿using Geopilot.Api.Contracts;
-using Geopilot.Api.Controllers;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 
-namespace Geopilot.Api.Test.Controllers;
+namespace Geopilot.Api.Controllers;
 
 [TestClass]
 public class ValidatorControllerTest

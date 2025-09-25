@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Models;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using System.Collections.Immutable;
@@ -64,5 +65,56 @@ public class ValidationServiceTest
             .Returns((ValidationJob?)null);
 
         Assert.ThrowsException<ArgumentException>(() => validationService.CreateFileHandleForJob(unknownJobId, "SomeFile.xtf"));
+    }
+
+    [TestMethod]
+    public async Task StartJobAsync()
+    {
+        var jobId = Guid.NewGuid();
+        var tempFileName = "file.xtf";
+        var job = new ValidationJob(jobId, "original.xtf", tempFileName, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready);
+
+        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
+
+        var supportedValidatorMock1 = new Mock<IValidator>(MockBehavior.Strict);
+        var supportedValidatorMock2 = new Mock<IValidator>(MockBehavior.Strict);
+        var unsupportedValidator = new Mock<IValidator>(MockBehavior.Strict);
+
+        supportedValidatorMock1.Setup(x => x.GetSupportedFileExtensionsAsync())
+            .ReturnsAsync(new List<string> { ".xtf" });
+        supportedValidatorMock2.Setup(x => x.GetSupportedFileExtensionsAsync())
+            .ReturnsAsync(new List<string> { ".csv", ".xtf" });
+        unsupportedValidator.Setup(x => x.GetSupportedFileExtensionsAsync())
+            .ReturnsAsync(new List<string> { ".csv" });
+
+        validationService = new ValidationService(
+        fileProviderMock.Object,
+        new[] { supportedValidatorMock1.Object, supportedValidatorMock2.Object, unsupportedValidator.Object },
+        contextMock.Object,
+        validationJobStoreMock.Object);
+
+        // Expect StartJob to be called with all supported validators
+        validationJobStoreMock
+            .Setup(x => x.StartJob(
+                jobId,
+                It.Is<ICollection<IValidator>>(v =>
+                    v.Count == 2 && v.Contains(supportedValidatorMock1.Object) && v.Contains(supportedValidatorMock2.Object))))
+            .Returns(job);
+
+        var result = await validationService.StartJobAsync(jobId);
+
+        Assert.AreEqual(job, result);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncThrowsforUnknownJob()
+    {
+        var jobId = Guid.NewGuid();
+        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns((ValidationJob?)null);
+
+        await Assert.ThrowsExceptionAsync<ArgumentException>(async () =>
+        {
+            await validationService.StartJobAsync(jobId);
+        });
     }
 }

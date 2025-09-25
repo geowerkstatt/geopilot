@@ -35,6 +35,8 @@
 
   <ItemGroup>
     <Folder Include="Migrations\" />
+    <Folder Include="Persistent\" />
+    <Folder Include="Uploads\" />
   </ItemGroup>
 
 </Project>

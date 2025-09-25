@@ -1,6 +1,5 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
-using Geopilot.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,7 +8,7 @@ using Moq.Protected;
 using System.Net;
 using System.Net.Http.Json;
 
-namespace Geopilot.Api.Test.Validation.Interlis;
+namespace Geopilot.Api.Validation.Interlis;
 
 [TestClass]
 public class InterlisValidatorTest
