@@ -36,6 +36,12 @@ public class ValidationJobTest
         ValidatorResultStatus.Failed,
         ValidatorResultStatus.Completed)
     ]
+    [DataRow(
+        Status.Processing,
+        null,
+        null,
+        null)
+    ]
     public void GetStatusFromResults(Status expectedStatus, params ValidatorResultStatus?[] resultStatuses)
     {
         var validatorResults = resultStatuses
