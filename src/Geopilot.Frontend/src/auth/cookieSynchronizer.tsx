@@ -1,8 +1,8 @@
 import { FC, useEffect } from "react";
 import { useAuth } from "react-oidc-context";
 
-const setCookie = (id_token: string) => {
-  document.cookie = `geopilot.auth=${id_token};Path=/;Secure`;
+const setCookie = (access_token: string) => {
+  document.cookie = `geopilot.auth=${access_token};Path=/;Secure`;
 };
 
 const clearCookie = () => {
@@ -13,12 +13,12 @@ export const CookieSynchronizer: FC = () => {
   const auth = useAuth();
 
   useEffect(() => {
-    if (auth?.isAuthenticated && auth?.user?.id_token) {
-      setCookie(auth.user.id_token);
+    if (auth?.isAuthenticated && auth?.user?.access_token) {
+      setCookie(auth.user.access_token);
     } else {
       clearCookie();
     }
-  }, [auth, auth?.isAuthenticated, auth?.user?.id_token]);
+  }, [auth, auth?.isAuthenticated, auth?.user?.access_token]);
 
   return <></>;
 };

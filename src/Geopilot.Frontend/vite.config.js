@@ -75,15 +75,15 @@ export default defineConfig({
   server: {
     proxy: {
       "^/api/.*": {
-        target: "http://localhost:7188/",
+        target: "https://localhost:7443/",
         secure: false,
       },
       "^/browser(/.*)?$": {
-        target: "http://localhost:7188/",
+        target: "https://localhost:7443/",
         secure: false,
       },
       "^/swagger(/.*)?$": {
-        target: "http://localhost:7188/",
+        target: "https://localhost:7443/",
         secure: false,
       },
     },
