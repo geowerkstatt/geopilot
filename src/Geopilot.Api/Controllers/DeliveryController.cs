@@ -52,13 +52,13 @@ public class DeliveryController : ControllerBase
 
         logger.LogInformation("Declaration for job with id <{JobId}> requested.", declaration.JobId);
 
-        var jobStatus = validatorService.GetJobStatus(declaration.JobId);
-        if (jobStatus == default)
+        var job = validatorService.GetJob(declaration.JobId);
+        if (job == null)
         {
             logger.LogTrace("No job information available for job with id <{JobId}>.", declaration.JobId);
             return NotFound($"No job information available for job with id <{declaration.JobId}>");
         }
-        else if (jobStatus.Status != Status.Completed)
+        else if (job.Status != Status.Completed)
         {
             logger.LogTrace("Job with id <{JobId}> is not completed.", declaration.JobId);
             return BadRequest($"Job with id <{declaration.JobId}> is not completed.");

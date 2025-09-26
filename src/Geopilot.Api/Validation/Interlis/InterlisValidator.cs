@@ -2,14 +2,14 @@
 using Geopilot.Api.FileAccess;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using System.Globalization;
+using System.Collections.Immutable;
 using System.Net;
 using System.Text.Json;
 
 namespace Geopilot.Api.Validation.Interlis;
 
 /// <summary>
-/// Validates an INTERLIS transfer file provided through an <see cref="IFileProvider"/>.
+/// Validates an INTERLIS file provided through an <see cref="IFileProvider"/>.
 /// </summary>
 public class InterlisValidator : IValidator
 {
@@ -19,10 +19,12 @@ public class InterlisValidator : IValidator
     private static readonly TimeSpan pollInterval = TimeSpan.FromSeconds(2);
 
     private readonly ILogger<InterlisValidator> logger;
-    private readonly IFileProvider fileProvider;
     private readonly HttpClient httpClient;
     private readonly JsonSerializerOptions jsonSerializerOptions;
     private ICollection<string>? supportedFileExtensions;
+
+    private IFileProvider? fileProvider;
+    private string? fileName;
 
     /// <inheritdoc/>
     public string Name => "INTERLIS";
@@ -30,12 +32,11 @@ public class InterlisValidator : IValidator
     /// <summary>
     /// Initializes a new instance of the <see cref="InterlisValidator"/> class.
     /// </summary>
-    public InterlisValidator(ILogger<InterlisValidator> logger, IFileProvider fileProvider, HttpClient httpClient, IOptions<JsonOptions> jsonOptions)
+    public InterlisValidator(ILogger<InterlisValidator> logger, HttpClient httpClient, IOptions<JsonOptions> jsonOptions)
     {
         ArgumentNullException.ThrowIfNull(jsonOptions);
 
         this.logger = logger;
-        this.fileProvider = fileProvider;
         this.httpClient = httpClient;
         jsonSerializerOptions = jsonOptions.Value.JsonSerializerOptions;
     }
@@ -51,43 +52,58 @@ public class InterlisValidator : IValidator
         return supportedFileExtensions ?? Array.Empty<string>();
     }
 
-    /// <inheritdoc/>
-    public async Task<ValidatorResult> ExecuteAsync(ValidationJob validationJob, CancellationToken cancellationToken)
+    /// <summary>
+    /// Configures the validator with the specified file provider and file name.
+    /// </summary>
+    /// <remarks>This method must be called before <see cref="ExecuteAsync(CancellationToken)"/> is called.</remarks>
+    /// <param name="fileProvider"></param>
+    /// <param name="fileName"></param>
+    public void Configure(IFileProvider fileProvider, string fileName)
     {
-        ArgumentNullException.ThrowIfNull(validationJob);
-        if (string.IsNullOrWhiteSpace(validationJob.TempFileName)) throw new ArgumentException("Transfer file name cannot be empty.", nameof(validationJob));
+        ArgumentNullException.ThrowIfNull(fileProvider);
+        ArgumentException.ThrowIfNullOrEmpty(fileName);
 
-        fileProvider.Initialize(validationJob.Id);
-        if (!fileProvider.Exists(validationJob.TempFileName)) throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, "Transfer file with the specified name <{0}> not found for validation id <{1}>.", validationJob.TempFileName, validationJob.Id));
+        this.fileProvider = fileProvider;
+        this.fileName = fileName;
+    }
 
-        logger.LogInformation("Validating transfer file <{File}>...", validationJob.TempFileName);
-        var uploadResponse = await UploadTransferFileAsync(validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
+    /// <inheritdoc/>
+    public async Task<ValidatorResult> ExecuteAsync(CancellationToken cancellationToken)
+    {
+        if (fileProvider == null) throw new InvalidOperationException("File provider has not been configured.");
+        if (string.IsNullOrWhiteSpace(fileName)) throw new InvalidOperationException("Transfer file has not been configured.");
+        if (!fileProvider.Exists(fileName)) throw new InvalidOperationException($"Transfer file with the specified name <{fileName}> not found.");
+
+        logger.LogInformation("Validating transfer file <{File}>...", fileName);
+        var uploadResponse = await UploadTransferFileAsync(fileName, cancellationToken).ConfigureAwait(false);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken).ConfigureAwait(false);
         if (statusResponse == null)
         {
-            return new ValidatorResult(Status.Failed, "Validation was cancelled.");
+            return new ValidatorResult(ValidatorResultStatus.Failed, "Validation was cancelled.");
         }
 
-        var logFiles = await DownloadLogFilesAsync(statusResponse, validationJob.TempFileName, cancellationToken).ConfigureAwait(false);
+        var logFiles = await DownloadLogFilesAsync(statusResponse, fileName, cancellationToken).ConfigureAwait(false);
 
-        return new ValidatorResult(statusResponse.Status, statusResponse.StatusMessage)
-        {
-            LogFiles = logFiles,
-        };
+        return new ValidatorResult(ToValidatorResultStatus(statusResponse.Status), statusResponse.StatusMessage, logFiles.ToImmutableDictionary());
     }
 
     private async Task<InterlisUploadResponse> UploadTransferFileAsync(string transferFile, CancellationToken cancellationToken)
     {
+        if (fileProvider == null)
+            throw new InvalidOperationException("Validator not initialized correctly. FileProvider has not been set.");
+
         using var streamContent = new StreamContent(fileProvider.Open(transferFile));
         using var formData = new MultipartFormDataContent { { streamContent, "file", transferFile } };
         using var response = await httpClient.PostAsync(UploadUrl, formData, cancellationToken).ConfigureAwait(false);
 
-        logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
             var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+            logger.LogError("Upload of transfer file <{TransferFile}> to interlis-check-service failed.", transferFile);
             throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
         }
+
+        logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
 
         return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response, cancellationToken).ConfigureAwait(false);
     }
@@ -99,9 +115,9 @@ public class InterlisValidator : IValidator
             using var response = await httpClient.GetAsync(statusUrl, cancellationToken).ConfigureAwait(false);
             var statusResponse = await ReadSuccessResponseJsonAsync<InterlisStatusResponse>(response, cancellationToken).ConfigureAwait(false);
 
-            if (statusResponse.Status == Status.Completed
-                || statusResponse.Status == Status.CompletedWithErrors
-                || statusResponse.Status == Status.Failed)
+            if (statusResponse.Status == InterlisStatusResponseStatus.Completed
+                || statusResponse.Status == InterlisStatusResponseStatus.CompletedWithErrors
+                || statusResponse.Status == InterlisStatusResponseStatus.Failed)
             {
                 return statusResponse;
             }
@@ -140,7 +156,7 @@ public class InterlisValidator : IValidator
     private async Task DownloadLogAsFileAsync(string url, string destination, CancellationToken cancellationToken)
     {
         using var logDownloadStream = await httpClient.GetStreamAsync(url, cancellationToken).ConfigureAwait(false);
-        using var logFileStream = fileProvider.CreateFile(destination);
+        using var logFileStream = fileProvider!.CreateFile(destination);
         await logDownloadStream.CopyToAsync(logFileStream, cancellationToken).ConfigureAwait(false);
     }
 
@@ -149,6 +165,17 @@ public class InterlisValidator : IValidator
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<T>(jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
         return result ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
+    }
+
+    private ValidatorResultStatus ToValidatorResultStatus(InterlisStatusResponseStatus status)
+    {
+        return status switch
+        {
+            InterlisStatusResponseStatus.Completed => ValidatorResultStatus.Completed,
+            InterlisStatusResponseStatus.CompletedWithErrors => ValidatorResultStatus.CompletedWithErrors,
+            InterlisStatusResponseStatus.Failed => ValidatorResultStatus.Failed,
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
+        };
     }
 
     /// <inheritdoc/>

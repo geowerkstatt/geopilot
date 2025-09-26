@@ -3,6 +3,7 @@ using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -15,23 +16,22 @@ public class AssetHandlerTest
     private Mock<IValidationService> validationServiceMock;
     private Mock<IFileProvider> fileProviderMock;
     private AssetHandler assetHandler;
-    private Guid jobId;
+    private ValidationJob job;
     private string uploadDirectory;
     private string assetDirectory;
 
     [TestInitialize]
     public void Initialize()
     {
-        jobId = Guid.NewGuid();
-        uploadDirectory = AssemblyInitialize.TestDirectoryProvider.GetUploadDirectoryPath(jobId);
-        assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(jobId);
+        job = new ValidationJob(Guid.NewGuid(), "OriginalName", "TempFileName", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed);
+        uploadDirectory = AssemblyInitialize.TestDirectoryProvider.GetUploadDirectoryPath(job.Id);
+        assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(job.Id);
         loggerMock = new Mock<ILogger<AssetHandler>>();
         validationServiceMock = new Mock<IValidationService>();
         fileProviderMock = new Mock<IFileProvider>();
         assetHandler = new AssetHandler(loggerMock.Object, validationServiceMock.Object, fileProviderMock.Object, AssemblyInitialize.TestDirectoryProvider, new Mock<IContentTypeProvider>().Object);
 
-        validationServiceMock.Setup(s => s.GetJob(jobId)).Returns(new ValidationJob(jobId, "OriginalName", "TempFileName"));
-        validationServiceMock.Setup(s => s.GetJobStatus(jobId)).Returns(new ValidationJobStatus(jobId) { Status = Status.Completed });
+        validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(job);
     }
 
     [TestMethod]
@@ -43,7 +43,7 @@ public class AssetHandlerTest
         fileProviderMock.Setup(x => x.Open("TempFileName")).Returns(new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
 
         Assert.IsFalse(Directory.Exists(assetDirectory));
-        var assets = assetHandler.PersistJobAssets(jobId);
+        var assets = assetHandler.PersistJobAssets(job.Id);
 
         Assert.IsNotNull(assets);
         var primaryAsset = assets.FirstOrDefault(a => a.AssetType == AssetType.PrimaryData);
@@ -67,13 +67,18 @@ public class AssetHandlerTest
         File.WriteAllText(Path.Combine(uploadDirectory, "mylogfile"), fileContent);
         fileProviderMock.Setup(x => x.Open("mylogfile")).Returns(new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
 
-        var validatorResult = new ValidatorResult(Status.Completed, string.Empty);
-        validatorResult.LogFiles.Add("mylogtype", "mylogfile");
-        var validationJobStatus = new ValidationJobStatus(jobId) { Status = Status.Completed };
-        validationJobStatus.ValidatorResults.Add("myValidator", validatorResult);
-        validationServiceMock.Setup(s => s.GetJobStatus(jobId)).Returns(validationJobStatus);
+        var logFiles = new Dictionary<string, string>
+        {
+            { "mylogtype", "mylogfile" },
+        }.ToImmutableDictionary();
+        var validatorResults = new Dictionary<string, ValidatorResult?>
+        {
+            { "myValidator", new ValidatorResult(ValidatorResultStatus.Completed, string.Empty, logFiles) },
+        }.ToImmutableDictionary();
+        var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", validatorResults, Status.Completed);
+        validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
 
-        var assets = assetHandler.PersistJobAssets(jobId);
+        var assets = assetHandler.PersistJobAssets(job.Id);
 
         Assert.IsTrue(File.Exists(Path.Combine(assetDirectory, "mylogfile")));
         var logfileAsset = assets.FirstOrDefault(a => a.AssetType == AssetType.ValidationReport);
@@ -89,13 +94,18 @@ public class AssetHandlerTest
     [ExpectedException(typeof(ArgumentNullException))]
     public void PersistValidationJobAssetsFailsWithoutJobDirectory()
     {
-        var validatorResult = new ValidatorResult(Status.Completed, string.Empty);
-        validatorResult.LogFiles.Add("mylogtype", "mylogfile");
-        var validationJobStatus = new ValidationJobStatus(jobId) { Status = Status.Completed };
-        validationJobStatus.ValidatorResults.Add("myValidator", validatorResult);
-        validationServiceMock.Setup(s => s.GetJobStatus(jobId)).Returns(validationJobStatus);
+        var logFiles = new Dictionary<string, string>
+        {
+            { "mylogtype", "mylogfile" },
+        }.ToImmutableDictionary();
+        var validatorResults = new Dictionary<string, ValidatorResult?>
+        {
+            { "myValidator", new ValidatorResult(ValidatorResultStatus.Completed, string.Empty, logFiles) },
+        }.ToImmutableDictionary();
+        var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", validatorResults, Status.Completed);
+        validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
 
-        var assets = assetHandler.PersistJobAssets(jobId);
+        var assets = assetHandler.PersistJobAssets(job.Id);
     }
 
     [TestMethod]
@@ -110,7 +120,7 @@ public class AssetHandlerTest
     {
         Directory.CreateDirectory(assetDirectory);
         File.WriteAllText(Path.Combine(assetDirectory, "TempFileName"), "Some Content");
-        assetHandler.DeleteJobAssets(jobId);
+        assetHandler.DeleteJobAssets(job.Id);
         Assert.IsFalse(Directory.Exists(assetDirectory));
     }
 }

@@ -1,88 +1,50 @@
-﻿using System.Collections.Concurrent;
-using System.Threading.Channels;
-
-namespace Geopilot.Api.Validation;
+﻿namespace Geopilot.Api.Validation;
 
 /// <summary>
-/// Runs validation jobs in the background and provides access to job status information.
+/// Runs validation jobs in the background.
 /// </summary>
-public class ValidationRunner : BackgroundService, IValidationRunner
+public class ValidationRunner : BackgroundService
 {
     private readonly ILogger<ValidationRunner> logger;
-    private readonly Channel<(ValidationJob Job, IValidator Validator)> queue;
-    private readonly ConcurrentDictionary<Guid, (ValidationJob Job, ValidationJobStatus JobStatus)> jobs = new();
+    private readonly IValidationJobStore jobStore;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationRunner"/> class.
     /// </summary>
-    public ValidationRunner(ILogger<ValidationRunner> logger)
+    public ValidationRunner(ILogger<ValidationRunner> logger, IValidationJobStore jobStore)
     {
         this.logger = logger;
-        queue = Channel.CreateUnbounded<(ValidationJob, IValidator)>();
-    }
-
-    /// <inheritdoc/>
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        await Parallel.ForEachAsync(queue.Reader.ReadAllAsync(stoppingToken), stoppingToken, async (item, cancellationToken) =>
-        {
-            var validatorName = item.Validator.Name;
-            var jobId = item.Job.Id;
-            try
-            {
-                UpdateJobStatus(jobId, validatorName, new ValidatorResult(Status.Processing, "Die Datei wird validiert..."));
-                var result = await item.Validator.ExecuteAsync(item.Job, cancellationToken);
-                UpdateJobStatus(jobId, validatorName, result);
-            }
-            catch (ValidationFailedException ex)
-            {
-                UpdateJobStatus(jobId, validatorName, new ValidatorResult(Status.Failed, ex.Message));
-            }
-            catch (Exception ex)
-            {
-                var traceId = Guid.NewGuid();
-                UpdateJobStatus(jobId, validatorName, new ValidatorResult(Status.Failed, $"Unbekannter Fehler. Fehler-Id: <{traceId}>"));
-                logger.LogError(ex, "Unhandled exception TraceId: <{TraceId}> Message: <{ErrorMessage}>", traceId, ex.Message);
-            }
-        });
-    }
-
-    /// <inheritdoc/>
-    public async Task EnqueueJobAsync(ValidationJob validationJob, IEnumerable<IValidator> validators)
-    {
-        ArgumentNullException.ThrowIfNull(validationJob);
-        ArgumentNullException.ThrowIfNull(validators);
-
-        var status = new ValidationJobStatus(validationJob.Id);
-        jobs[validationJob.Id] = (validationJob, status);
-        foreach (var validator in validators)
-        {
-            await queue.Writer.WriteAsync((validationJob, validator));
-        }
-    }
-
-    /// <inheritdoc/>
-    public ValidationJob? GetJob(Guid jobId)
-    {
-        return jobs.TryGetValue(jobId, out var entry) ? entry.Job : null;
-    }
-
-    /// <inheritdoc/>
-    public ValidationJobStatus? GetJobStatus(Guid jobId)
-    {
-        return jobs.TryGetValue(jobId, out var entry) ? entry.JobStatus : null;
+        this.jobStore = jobStore;
     }
 
     /// <summary>
-    /// Adds or updates the status for the given <paramref name="jobId"/>.
+    /// Processes <see cref="IValidator"/> instances retrieved from the <see cref="ValidationJobStore"/> in parallel.
     /// </summary>
-    /// <param name="jobId">The identifier of the job to update.</param>
-    /// <param name="validatorName">The name of the validator.</param>
-    /// <param name="validatorResult">The result of the validator.</param>
-    private void UpdateJobStatus(Guid jobId, string validatorName, ValidatorResult validatorResult)
+    /// <remarks>For every <see cref="IValidator"/> processed, a <see cref="ValidatorResult"/> is created and delivered to the <see cref="ValidationJobStore"/>.</remarks>
+    /// <param name="stoppingToken">A <see cref="CancellationToken"/> that is used to signal the operation should stop.</param>
+    /// <returns>A task that represents the asynchronous execution of the validation process.</returns>
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var jobStatus = jobs[jobId].JobStatus;
-        jobStatus.ValidatorResults[validatorName] = validatorResult;
-        jobStatus.UpdateJobStatusFromResults();
+        await Parallel.ForEachAsync(jobStore.ValidationQueue.ReadAllAsync(stoppingToken), stoppingToken, async (validator, cancellationToken) =>
+        {
+            ValidatorResult? result = null;
+
+            try
+            {
+                result = await validator.ExecuteAsync(cancellationToken);
+            }
+            catch (Exception ex) when (ex is ValidationFailedException)
+            {
+                logger.LogError(ex, "Validator <{Validator}> failed.", validator.Name);
+                result = new ValidatorResult(ValidatorResultStatus.Failed, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Validator <{Validator}> failed.", validator.Name);
+                result = new ValidatorResult(ValidatorResultStatus.Failed, $"An unexpected error occured while running validation with validator <{validator.Name}>.");
+            }
+
+            jobStore.AddValidatorResult(validator, result);
+        });
     }
 }

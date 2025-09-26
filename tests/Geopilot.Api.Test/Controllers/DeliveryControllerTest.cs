@@ -4,10 +4,10 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Collections.Immutable;
 using System.Text;
 
 namespace Geopilot.Api.Controllers;
@@ -63,8 +63,8 @@ public class DeliveryControllerTest
     {
         var guid = Guid.NewGuid();
         validationServiceMock
-            .Setup(s => s.GetJobStatus(guid))
-            .Returns(default(ValidationJobStatus?));
+            .Setup(s => s.GetJob(guid))
+            .Returns(default(ValidationJob?));
 
         var deliveriesCount = context.Deliveries.Count();
         var mandateId = context.Mandates.First().Id;
@@ -342,8 +342,8 @@ public class DeliveryControllerTest
     {
         var guid = Guid.NewGuid();
         validationServiceMock
-            .Setup(s => s.GetJobStatus(guid))
-            .Returns(new ValidationJobStatus(guid) { JobId = guid, Status = jobStatus });
+            .Setup(s => s.GetJob(guid))
+            .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip", ImmutableDictionary<string, ValidatorResult?>.Empty, jobStatus));
         return guid;
     }
 
