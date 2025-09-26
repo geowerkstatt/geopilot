@@ -1,4 +1,3 @@
-import { PropsWithChildren } from "react";
 import { User } from "../api/apiInterfaces.ts";
 
 export interface GeopilotAuthContextInterface {
