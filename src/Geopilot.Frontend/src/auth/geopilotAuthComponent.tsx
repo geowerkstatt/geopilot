@@ -38,7 +38,7 @@ const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
   const user = useUser();
   const apiSetting = useApiAuthConfiguration();
 
-  const authEnabled = !!(apiSetting && apiSetting.clientId && apiSetting.authority);
+  const authEnabled = !!(apiSetting && apiSetting.clientAudience && apiSetting.authority);
   const isLoading = !((!!apiSetting && !authEnabled) || user !== undefined);
 
   const getLoginFunction = () => {

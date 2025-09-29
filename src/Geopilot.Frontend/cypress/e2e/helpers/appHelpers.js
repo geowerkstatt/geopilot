@@ -71,7 +71,7 @@ export const loginAsNewUser = () => {
 export const loadWithoutAuth = () => {
   cy.intercept("/api/v1/user/auth", {
     statusCode: 200,
-    body: { authority: "", clientId: "" },
+    body: { authority: "", clientAudience: "" },
   });
   cy.visit("/");
 };
