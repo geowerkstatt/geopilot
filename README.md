@@ -108,7 +108,9 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
 "Auth": {
     // General auth options
     "Authority": "http://localhost:4011/realms/geopilot", // Token issuer (required)
-    "ClientId": "geopilot-client", // Token audience (required)
+    "ClientAudience": "geopilot-client", // ID_Token audience (required)
+    "ApiAudience": "geopilot-api", // Access_Token audience (required)
+    "FullScope": "openid profile email geopilot.api" // Full scope a client application needs to send as to configure access and id tokens correctly
 
     // Swagger UI auth options
     "ApiOrigin": "https://localhost:7188", // Swagger UI origin (required)

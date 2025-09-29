@@ -103,10 +103,10 @@ builder.Services.AddSwaggerGen(options =>
 
     var authUrl = builder.Configuration["Auth:AuthorizationUrl"];
     var tokenUrl = builder.Configuration["Auth:TokenUrl"];
-    var scope = builder.Configuration["Auth:ApiScope"];
-    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(scope))
+    var apiScope = builder.Configuration["Auth:ApiServerScope"];
+    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(apiScope))
     {
-        options.AddGeopilotOAuth2(authUrl, tokenUrl, scope);
+        options.AddGeopilotOAuth2(authUrl, tokenUrl, apiScope);
     }
     else
     {
@@ -205,7 +205,7 @@ app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "geopilot API v1.0");
 
-    options.OAuthClientId(builder.Configuration["Auth:ClientId"]);
+    options.OAuthClientId(builder.Configuration["Auth:ClientAudience"]);
     options.OAuth2RedirectUrl($"{builder.Configuration["Auth:ApiOrigin"]}/swagger/oauth2-redirect.html");
     options.OAuthUsePkce();
 });

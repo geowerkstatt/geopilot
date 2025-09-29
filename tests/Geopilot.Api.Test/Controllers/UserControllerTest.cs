@@ -119,7 +119,7 @@ public class UserControllerTest
 
         Assert.IsNotNull(authOptions);
         Assert.AreEqual(browserAuthOptions.Authority, authOptions.Authority);
-        Assert.AreEqual(browserAuthOptions.ClientId, authOptions.ClientId);
+        Assert.AreEqual(browserAuthOptions.ClientAudience, authOptions.ClientAudience);
     }
 
     [TestMethod]

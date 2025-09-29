@@ -67,8 +67,8 @@ services:
       ConnectionStrings__Context: Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
       Auth__Authority: http://localhost:4011/realms/geopilot
-      Auth__ClientId: geopilot-client
-      Auth__ApiId: geopilot-api
+      Auth__ClientAudience: geopilot-client
+      Auth__ApiAudience: geopilot-api
       Auth__AuthorizationUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/auth
       Auth__UserInfoUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/userinfo
       Auth__TokenUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/token
