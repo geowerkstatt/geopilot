@@ -15,8 +15,8 @@ export const OidcContainerProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const oidcConfig: AuthProviderProps = {
     authority: apiSetting.authority,
-    client_id: apiSetting.clientId,
-    scope: apiSetting.scope,
+    client_id: apiSetting.clientAudience,
+    scope: apiSetting.fullScope,
     redirect_uri: window.location.origin,
     post_logout_redirect_uri: window.location.origin,
     onSigninCallback: onSigninCallback,

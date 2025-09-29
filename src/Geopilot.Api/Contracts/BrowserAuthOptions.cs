@@ -16,7 +16,7 @@ public class BrowserAuthOptions
     public string ClientId { get; set; } = string.Empty;
 
     /// <summary>
-    /// The scopes required to authenticate with the IDP.
+    /// The scope required for a client to authenticate with the IDP.
     /// </summary>
-    public string Scope { get; set; } = string.Empty;
+    public string FullScope { get; set; } = string.Empty;
 }

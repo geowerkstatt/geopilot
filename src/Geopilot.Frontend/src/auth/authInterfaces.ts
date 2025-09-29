@@ -11,6 +11,6 @@ export interface GeopilotAuthContextInterface {
 
 export interface AuthSettings {
   authority: string;
-  clientId: string;
-  scope: string;
+  clientAudience: string;
+  fullScope: string;
 }

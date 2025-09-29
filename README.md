@@ -95,7 +95,7 @@ _([Entwicklungsumgebung](./config/realms/keycloak-geopilot.json): `https://local
 ### Swagger UI
 
 Abhängig vom Identity Provider wird die Audience (`aud` Claim) im Access-Token automatisch gesetzt, sofern ein passender Scope verwendet wird.
-Der benötigte Scope kann in den Appsettings under `ApiScope` gesetzt werden, um diesen im Swagger UI zur Auswahl anzuzeigen.
+Der benötigte Scope kann in den Appsettings under `ApiServerScope` gesetzt werden, um diesen im Swagger UI zur Auswahl anzuzeigen.
 Ohne diesem Scope wird das Access-Token möglicherweise ohne oder für eine andere Audience ausgestellt.
 
 In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) wird die Audience stattdessen mit einem Keycloak Protocol Mapper festgelegt.
@@ -114,7 +114,7 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
     "ApiOrigin": "https://localhost:7188", // Swagger UI origin (required)
     "AuthorizationUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/auth", // OAuth2 login URL
     "TokenUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token", // OAuth2 token URL
-    "ApiScope": "<custom app scope>"
+    "ApiServerScope": "<custom app scope>"
 }
 ```
 

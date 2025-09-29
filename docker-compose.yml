@@ -73,8 +73,8 @@ services:
       Auth__UserInfoUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/userinfo
       Auth__TokenUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/token
       Auth__ApiOrigin: https://localhost:5173
-      Auth__Scope: "profile email openid geopilot.api"
-      Auth__ApiScope: "geopilot.api"
+      Auth__FullScope: "profile email openid geopilot.api"
+      Auth__ApiServerScope: "geopilot.api"
       Validation__InterlisCheckServiceUrl: http://interlis-check-service:8080/
       PUID: 1000
       PGID: 1000

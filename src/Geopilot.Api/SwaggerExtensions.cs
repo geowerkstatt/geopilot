@@ -35,8 +35,8 @@ public static class SwaggerExtensions
     /// <param name="options">The swagger options.</param>
     /// <param name="authUrl">The authorization URL.</param>
     /// <param name="tokenUrl">The token URL.</param>
-    /// <param name="apiScope">An optional scope defined for the client.</param>
-    public static void AddGeopilotOAuth2(this SwaggerGenOptions options, string authUrl, string tokenUrl, string? apiScope)
+    /// <param name="apiServerScope">An optional scope defined for the client.</param>
+    public static void AddGeopilotOAuth2(this SwaggerGenOptions options, string authUrl, string tokenUrl, string? apiServerScope)
     {
         var scopes = new Dictionary<string, string>
         {
@@ -44,9 +44,9 @@ public static class SwaggerExtensions
             { "email", "User Email" },
             { "profile", "User Profile" },
         };
-        if (apiScope != null)
+        if (apiServerScope != null)
         {
-            scopes.Add(apiScope, "geopilot API (required)");
+            scopes.Add(apiServerScope, "geopilot API (required)");
         }
 
         options.AddSecurityDefinition(JwtBearerDefaults.AuthenticationScheme, new OpenApiSecurityScheme
