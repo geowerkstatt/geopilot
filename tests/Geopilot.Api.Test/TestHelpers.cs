@@ -10,12 +10,14 @@ namespace Geopilot.Api;
 internal static class TestHelpers
 {
     public static ClaimsPrincipal CreateClaimsPrincipal(User user)
-        => new ClaimsPrincipal(new ClaimsIdentity(new[]
-        {
+        => new ClaimsPrincipal(new ClaimsIdentity(
+            new[]
+            {
             new Claim(JwtRegisteredClaimNames.Sub, user.AuthIdentifier),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Name, user.FullName),
-        }));
+            },
+            "MockAuthentication"));
 
     public static User CreateUser(string authIdentifier, string fullName, string email, bool isAdmin = false)
         => new User
