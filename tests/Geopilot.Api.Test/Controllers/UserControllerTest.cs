@@ -58,7 +58,7 @@ public class UserControllerTest
     }
 
     [TestMethod]
-    public async Task GetCurrentUserAsyncForÛnknownUserThrowsException()
+    public async Task GetCurrentUserAsyncForUnknownUserThrowsException()
     {
         var user = new User
         {
