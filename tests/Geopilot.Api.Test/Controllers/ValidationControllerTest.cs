@@ -14,6 +14,7 @@ namespace Geopilot.Api.Controllers;
 [TestClass]
 public sealed class ValidationControllerTest
 {
+    private Context context;
     private Mock<ILogger<ValidationController>> loggerMock;
     private Mock<IValidationService> validationServiceMock;
     private Mock<IFileProvider> fileProviderMock;
@@ -25,6 +26,7 @@ public sealed class ValidationControllerTest
     [TestInitialize]
     public void Initialize()
     {
+        context = AssemblyInitialize.DbFixture.GetTestContext();
         loggerMock = new Mock<ILogger<ValidationController>>();
         validationServiceMock = new Mock<IValidationService>(MockBehavior.Strict);
         fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
@@ -36,7 +38,8 @@ public sealed class ValidationControllerTest
             loggerMock.Object,
             validationServiceMock.Object,
             fileProviderMock.Object,
-            contentTypeProviderMock.Object);
+            contentTypeProviderMock.Object,
+            context);
     }
 
     [TestCleanup]

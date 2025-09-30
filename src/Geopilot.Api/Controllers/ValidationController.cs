@@ -26,16 +26,18 @@ public class ValidationController : ControllerBase
     private readonly IValidationService validationService;
     private readonly IFileProvider fileProvider;
     private readonly IContentTypeProvider contentTypeProvider;
+    private readonly Context context;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationController"/> class.
     /// </summary>
-    public ValidationController(ILogger<ValidationController> logger, IValidationService validationService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider)
+    public ValidationController(ILogger<ValidationController> logger, IValidationService validationService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider, Context context)
     {
         this.logger = logger;
         this.validationService = validationService;
         this.fileProvider = fileProvider;
         this.contentTypeProvider = contentTypeProvider;
+        this.context = context;
     }
 
     /// <summary>
@@ -173,9 +175,22 @@ public class ValidationController : ControllerBase
 
         try
         {
-            var validationJob = await validationService.StartJobAsync(jobId, startJobRequest.MandateId, User);
-            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
-            return Ok(validationJob.ToResponse());
+            if (startJobRequest.MandateId == null)
+            {
+                logger.LogInformation("Starting job <{JobId}> without mandate.", jobId);
+                var validationJob = await validationService.StartJobAsync(jobId);
+                logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
+                return Ok(validationJob.ToResponse());
+            }
+            else
+            {
+                var user = await context.GetUserByPrincipalAsync(User)
+                    ?? throw new InvalidOperationException("The user is not authenticated.");
+                logger.LogInformation("Starting job <{JobId}> with mandate <{MandateId}> for user <{AuthIdentifier}>.", jobId, startJobRequest.MandateId, user.AuthIdentifier);
+                var validationJob = await validationService.StartJobAsync(jobId, startJobRequest.MandateId.Value, user);
+                logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
+                return Ok(validationJob.ToResponse());
+            }
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
         {
@@ -184,7 +199,7 @@ public class ValidationController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Starting job <{JobId}> failed.", jobId);
+            logger.LogError(ex, "Starting job <{JobId}> failed unexpectedly.", jobId);
             return Problem("An unexpected error occured.", statusCode: StatusCodes.Status500InternalServerError);
         }
     }
