@@ -109,20 +109,211 @@ public class ValidationServiceTest
                 null))
             .Returns(job);
 
-        var result = await validationService.StartJobAsync(jobId, null, null);
+        var result = await validationService.StartJobAsync(jobId);
 
         Assert.AreEqual(job, result);
     }
 
     [TestMethod]
-    public async Task StartJobAsyncThrowsforUnknownJob()
+    public async Task StartJobAsyncThrowsForUnknownJob()
     {
         var jobId = Guid.NewGuid();
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns((ValidationJob?)null);
 
         await Assert.ThrowsExceptionAsync<ArgumentException>(async () =>
         {
-            await validationService.StartJobAsync(jobId, null, null);
+            await validationService.StartJobAsync(jobId);
         });
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncWithMandateSuccess()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var mandateId = 123;
+        var tempFileName = "file.xtf";
+        var user = new User
+        {
+            Id = 1,
+            AuthIdentifier = "user-123",
+            Email = "test@example.com",
+            FullName = "Test User",
+            IsAdmin = false,
+            Organisations = new List<Organisation>(),
+            Deliveries = new List<Delivery>()
+        };
+
+        var mandate = new Mandate
+        {
+            Id = mandateId,
+            Name = "Test Mandate",
+            FileTypes = new[] { ".xtf" },
+            Organisations = new List<Organisation>(),
+            Deliveries = new List<Delivery>()
+        };
+
+        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready);
+        var startedJob = new ValidationJob(jobId, "original.xtf", tempFileName, mandateId, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing);
+
+        var supportedValidatorMock1 = new Mock<IValidator>(MockBehavior.Strict);
+        var supportedValidatorMock2 = new Mock<IValidator>(MockBehavior.Strict);
+
+        supportedValidatorMock1.Setup(x => x.GetSupportedFileExtensionsAsync())
+            .ReturnsAsync(new List<string> { ".xtf" });
+        supportedValidatorMock2.Setup(x => x.GetSupportedFileExtensionsAsync())
+            .ReturnsAsync(new List<string> { ".csv", ".xtf" });
+
+        validationService = new ValidationService(
+            contextMock.Object,
+            validationJobStoreMock.Object,
+            mandateServiceMock.Object,
+            fileProviderMock.Object,
+            new[] { supportedValidatorMock1.Object, supportedValidatorMock2.Object });
+
+        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
+        mandateServiceMock.Setup(x => x.GetMandateByUserAndJobAsync(mandateId, user, jobId))
+            .ReturnsAsync(mandate);
+        validationJobStoreMock
+            .Setup(x => x.StartJob(
+                jobId,
+                It.Is<ICollection<IValidator>>(v =>
+                    v.Count == 2 && v.Contains(supportedValidatorMock1.Object) && v.Contains(supportedValidatorMock2.Object)),
+                mandateId))
+            .Returns(startedJob);
+
+        // Act
+        var result = await validationService.StartJobAsync(jobId, mandateId, user);
+
+        // Assert
+        Assert.AreEqual(startedJob, result);
+        Assert.AreEqual(mandateId, result.MandateId);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncWithMandateThrowsForUnknownJob()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var mandateId = 123;
+        var user = new User
+        {
+            Id = 1,
+            AuthIdentifier = "user-123",
+            Email = "test@example.com",
+            FullName = "Test User",
+            IsAdmin = false,
+            Organisations = new List<Organisation>(),
+            Deliveries = new List<Delivery>()
+        };
+
+        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns((ValidationJob?)null);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsExceptionAsync<ArgumentException>(async () =>
+        {
+            await validationService.StartJobAsync(jobId, mandateId, user);
+        });
+
+        Assert.AreEqual($"Validation job with id <{jobId}> not found. (Parameter 'jobId')", exception.Message);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncWithMandateThrowsForInvalidMandate()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var mandateId = 123;
+        var tempFileName = "file.xtf";
+        var user = new User
+        {
+            Id = 1,
+            AuthIdentifier = "user-123",
+            Email = "test@example.com",
+            FullName = "Test User",
+            IsAdmin = false,
+            Organisations = new List<Organisation>(),
+            Deliveries = new List<Delivery>()
+        };
+
+        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready);
+
+        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
+        mandateServiceMock.Setup(x => x.GetMandateByUserAndJobAsync(mandateId, user, jobId))
+            .ReturnsAsync((Mandate?)null);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+        {
+            await validationService.StartJobAsync(jobId, mandateId, user);
+        });
+
+        Assert.AreEqual($"The job <{jobId}> could not be started with mandate <{mandateId}.", exception.Message);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncWithMandateUsesCorrectValidators()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var mandateId = 123;
+        var tempFileName = "file.xtf";
+        var user = new User
+        {
+            Id = 1,
+            AuthIdentifier = "user-123",
+            Email = "test@example.com",
+            FullName = "Test User",
+            IsAdmin = false,
+            Organisations = new List<Organisation>(),
+            Deliveries = new List<Delivery>()
+        };
+
+        var mandate = new Mandate
+        {
+            Id = mandateId,
+            Name = "Test Mandate",
+            FileTypes = new[] { ".xtf" },
+            Organisations = new List<Organisation>(),
+            Deliveries = new List<Delivery>()
+        };
+
+        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready);
+        var startedJob = new ValidationJob(jobId, "original.xtf", tempFileName, mandateId, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing);
+
+        var mandateSpecificValidatorMock = new Mock<IValidator>(MockBehavior.Strict);
+        var unsupportedValidatorMock = new Mock<IValidator>(MockBehavior.Strict);
+
+        mandateSpecificValidatorMock.Setup(x => x.GetSupportedFileExtensionsAsync())
+            .ReturnsAsync(new List<string> { ".xtf" });
+        unsupportedValidatorMock.Setup(x => x.GetSupportedFileExtensionsAsync())
+            .ReturnsAsync(new List<string> { ".csv" });
+
+        validationService = new ValidationService(
+            contextMock.Object,
+            validationJobStoreMock.Object,
+            mandateServiceMock.Object,
+            fileProviderMock.Object,
+            new[] { mandateSpecificValidatorMock.Object, unsupportedValidatorMock.Object });
+
+        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
+        mandateServiceMock.Setup(x => x.GetMandateByUserAndJobAsync(mandateId, user, jobId))
+            .ReturnsAsync(mandate);
+        validationJobStoreMock
+            .Setup(x => x.StartJob(
+                jobId,
+                It.Is<ICollection<IValidator>>(v =>
+                    v.Count == 1 && v.Contains(mandateSpecificValidatorMock.Object)),
+                mandateId))
+            .Returns(startedJob);
+
+        // Act
+        var result = await validationService.StartJobAsync(jobId, mandateId, user);
+
+        // Assert
+        Assert.AreEqual(startedJob, result);
+        // Verify only the .xtf supporting validator was used, not the .csv one
+        mandateSpecificValidatorMock.Verify(x => x.GetSupportedFileExtensionsAsync(), Times.Once);
+        unsupportedValidatorMock.Verify(x => x.GetSupportedFileExtensionsAsync(), Times.Once);
     }
 }
