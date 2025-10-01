@@ -13,7 +13,6 @@ namespace Geopilot.Api.Validation;
 /// </summary>
 public class ValidationService : IValidationService
 {
-    private readonly Context context;
     private readonly IValidationJobStore jobStore;
     private readonly IMandateService mandateService;
 
@@ -23,9 +22,8 @@ public class ValidationService : IValidationService
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationService"/> class.
     /// </summary>
-    public ValidationService(Context context, IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IEnumerable<IValidator> validators)
+    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IEnumerable<IValidator> validators)
     {
-        this.context = context;
         this.jobStore = validationJobStore;
         this.mandateService = mandateService;
 
