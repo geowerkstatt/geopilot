@@ -10,6 +10,5 @@
     "logo": "/logo.png",
     "favicon": "/logo.png",
     "faviconDark": "/logo-dark.png"
-  },
-  "authScopes": ["openid", "email", "profile"]
+  }
 }

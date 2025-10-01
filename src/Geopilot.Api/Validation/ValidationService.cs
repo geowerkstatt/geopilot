@@ -3,6 +3,7 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Api.Validation.Interlis;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace Geopilot.Api.Validation;
@@ -12,7 +13,6 @@ namespace Geopilot.Api.Validation;
 /// </summary>
 public class ValidationService : IValidationService
 {
-    private readonly Context context;
     private readonly IValidationJobStore jobStore;
     private readonly IMandateService mandateService;
 
@@ -22,9 +22,8 @@ public class ValidationService : IValidationService
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationService"/> class.
     /// </summary>
-    public ValidationService(Context context, IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IEnumerable<IValidator> validators)
+    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IEnumerable<IValidator> validators)
     {
-        this.context = context;
         this.jobStore = validationJobStore;
         this.mandateService = mandateService;
 
@@ -55,37 +54,41 @@ public class ValidationService : IValidationService
     }
 
     /// <inheritdoc/>
-    public async Task<ValidationJob> StartJobAsync(Guid jobId, int? mandateId, ClaimsPrincipal? userClaimsPrincipal)
+    public async Task<ValidationJob> StartJobAsync(Guid jobId)
     {
         var validationJob = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
-        Mandate? mandate = null;
+        var jobValidators = await GetConfiguredValidators(validationJob, null);
+        return jobStore.StartJob(jobId, jobValidators, null);
+    }
+
+    /// <inheritdoc/>
+    public async Task<ValidationJob> StartJobAsync(Guid jobId, int mandateId, User user)
+    {
+        var validationJob = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
 
         // If a mandateId is provided, check if the user is allowed to start the job with the specified mandate
-        if (mandateId != null)
-        {
-            if (userClaimsPrincipal?.Identity?.IsAuthenticated != true)
-                throw new InvalidOperationException("Cannot start validation job with mandate because the user is not authenticated.");
+        var mandate = await mandateService.GetMandateByUserAndJobAsync(mandateId, user, jobId)
+            ?? throw new InvalidOperationException($"The job <{jobId}> could not be started with mandate <{mandateId}.");
+        var jobValidators = await GetConfiguredValidators(validationJob, mandate);
+        return jobStore.StartJob(jobId, jobValidators, mandateId);
+    }
 
-            var user = await context.GetUserByPrincipalAsync(userClaimsPrincipal);
-            mandate = await mandateService.GetMandateByUserAndJobAsync(mandateId.Value, user, jobId);
-            if (mandate == null)
-                throw new InvalidOperationException($"The job <{jobId}> could not be started with mandate <{mandateId}.");
-        }
-
+    private async Task<List<IValidator>> GetConfiguredValidators(ValidationJob validationJob, Mandate? mandate)
+    {
         // Get all supported validators and configure them for the job
         var fileExtension = Path.GetExtension(validationJob.TempFileName);
-        var supportedValidators = new List<IValidator>();
+        var jobValidators = new List<IValidator>();
         foreach (var validator in validators)
         {
             var supportedExtensions = await validator.GetSupportedFileExtensionsAsync();
             if (IsExtensionSupported(supportedExtensions, fileExtension))
             {
                 ConfigureValidator(validator, validationJob, mandate);
-                supportedValidators.Add(validator);
+                jobValidators.Add(validator);
             }
         }
 
-        return jobStore.StartJob(jobId, supportedValidators, mandateId);
+        return jobValidators;
     }
 
     private void ConfigureValidator(IValidator validator, ValidationJob validationJob, Mandate? mandate)

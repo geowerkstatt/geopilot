@@ -55,7 +55,7 @@ public class InterlisValidator : IValidator
     }
 
     /// <summary>
-    /// Configures the validator with with everything that is required to execute the validation.
+    /// Configures the validator with everything that is required to execute the validation.
     /// </summary>
     /// <remarks>This method must be called before <see cref="ExecuteAsync(CancellationToken)"/> is called.</remarks>
     /// <param name="fileProvider">A configured <see cref="IFileProvider"/> that can be used to access the file with the specified <paramref name="fileName"/>.</param>

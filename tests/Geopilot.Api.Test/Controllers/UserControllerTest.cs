@@ -24,7 +24,8 @@ public class UserControllerTest
         browserAuthOptions = new BrowserAuthOptions
         {
             Authority = "https://localhost/some-authority",
-            ClientId = Guid.NewGuid().ToString(),
+            ClientAudience = Guid.NewGuid().ToString(),
+            FullScope = "profile email openid geopilot.api",
         };
         authOptionsMock.SetupGet(o => o.Value).Returns(browserAuthOptions);
 
@@ -58,7 +59,7 @@ public class UserControllerTest
     }
 
     [TestMethod]
-    public async Task GetCurrentUserAsyncForÛnknownUserThrowsException()
+    public async Task GetCurrentUserAsyncForUnknownUserThrowsException()
     {
         var user = new User
         {
@@ -118,7 +119,7 @@ public class UserControllerTest
 
         Assert.IsNotNull(authOptions);
         Assert.AreEqual(browserAuthOptions.Authority, authOptions.Authority);
-        Assert.AreEqual(browserAuthOptions.ClientId, authOptions.ClientId);
+        Assert.AreEqual(browserAuthOptions.ClientAudience, authOptions.ClientAudience);
     }
 
     [TestMethod]

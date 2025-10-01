@@ -1,5 +1,5 @@
 ﻿using Geopilot.Api.FileAccess;
-using System.Security.Claims;
+using Geopilot.Api.Models;
 
 namespace Geopilot.Api.Validation;
 
@@ -37,15 +37,19 @@ public interface IValidationService
     /// Starts the validation job with all validators that support the type of the uploaded file.
     /// </summary>
     /// <remarks>
-    /// If a <paramref name="mandateId"/> is provided, a <paramref name="userClaimsPrincipal"/> must be provided aswell and
-    /// the user must be authenticated and authorized to use the specified mandate.
-    /// Also, the mandate must support the file type the uploaded file of the specified job.
+    /// The validation job is started without a reference to a <see cref="Mandate"/>." and therefore can not be delivered later/>.
     /// </remarks>
     /// <param name="jobId">The id of the validation job to start.</param>
-    /// <param name="mandateId">The id of the mandate the job is started for, if any.</param>
-    /// <param name="userClaimsPrincipal">The claims principal of the user starting the job, if any.</param>
     /// <returns>The started <see cref="ValidationJob"/>.</returns>
-    Task<ValidationJob> StartJobAsync(Guid jobId, int? mandateId, ClaimsPrincipal? userClaimsPrincipal);
+    Task<ValidationJob> StartJobAsync(Guid jobId);
+
+    /// <summary>
+    /// Start the validation job with all validators associated with the specified mandate.
+    /// </summary>
+    /// <param name="jobId">The id of the validation job to start.</param>
+    /// <param name="mandateId">The id of the mandate the job is started for.</param>
+    /// <param name="user">The user starting the job.</param>
+    Task<ValidationJob> StartJobAsync(Guid jobId, int mandateId, User user);
 
     /// <summary>
     /// Gets the validation job.
