@@ -182,7 +182,7 @@ public class ValidationController : ControllerBase
                 logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
                 return Ok(validationJob.ToResponse());
             }
-            else if (!User?.Identity?.IsAuthenticated ?? true)
+            else if (User is null || !User.Identity?.IsAuthenticated == true)
             {
                 logger.LogTrace("Starting job <{JobId}> with mandate <{MandateId}> failed, user is not authenticated.", jobId, startJobRequest.MandateId);
                 return Problem("User must be authenticated to start a job with a mandate.", statusCode: StatusCodes.Status400BadRequest);
