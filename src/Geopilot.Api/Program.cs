@@ -57,7 +57,7 @@ builder.Services
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
     {
         options.Authority = builder.Configuration["Auth:Authority"];
-        options.Audience = builder.Configuration["Auth:ClientId"];
+        options.Audience = builder.Configuration["Auth:ApiAudience"];
         options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.MapInboundClaims = false;
 
@@ -104,9 +104,9 @@ builder.Services.AddSwaggerGen(options =>
 
     var authUrl = builder.Configuration["Auth:AuthorizationUrl"];
     var tokenUrl = builder.Configuration["Auth:TokenUrl"];
-    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl))
+    var apiScope = builder.Configuration["Auth:ApiServerScope"];
+    if (!string.IsNullOrEmpty(authUrl) && !string.IsNullOrEmpty(tokenUrl) && !string.IsNullOrEmpty(apiScope))
     {
-        var apiScope = builder.Configuration["Auth:ApiScope"];
         options.AddGeopilotOAuth2(authUrl, tokenUrl, apiScope);
     }
     else
@@ -166,6 +166,10 @@ builder.Services
         httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     });
 
+builder.Services.AddHttpClient<IGeopilotUserInfoService, GeopilotUserInfoService>();
+builder.Services.AddScoped<IGeopilotUserInfoService, GeopilotUserInfoService>();
+builder.Services.AddHttpContextAccessor();
+
 var configureContextOptions = (DbContextOptionsBuilder options) =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString(nameof(Context)), o =>
@@ -203,7 +207,7 @@ app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "geopilot API v1.0");
 
-    options.OAuthClientId(builder.Configuration["Auth:ClientId"]);
+    options.OAuthClientId(builder.Configuration["Auth:ClientAudience"]);
     options.OAuth2RedirectUrl($"{builder.Configuration["Auth:ApiOrigin"]}/swagger/oauth2-redirect.html");
     options.OAuthUsePkce();
 });

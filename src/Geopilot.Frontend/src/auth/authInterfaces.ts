@@ -1,4 +1,3 @@
-import { PropsWithChildren } from "react";
 import { User } from "../api/apiInterfaces.ts";
 
 export interface GeopilotAuthContextInterface {
@@ -10,15 +9,8 @@ export interface GeopilotAuthContextInterface {
   logout: () => void;
 }
 
-export interface GeopilotAuthComponentProps extends PropsWithChildren {
-  authScopes: string[];
-}
-
-export interface OidcContainerProps extends PropsWithChildren {
-  authScopes: string[];
-}
-
 export interface AuthSettings {
   authority: string;
-  clientId: string;
+  clientAudience: string;
+  fullScope: string;
 }

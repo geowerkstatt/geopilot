@@ -1,5 +1,10 @@
 # Changelog
 
+### Changed
+
+- (Potentially Breaking) Restructure application to use access tokens instead of id tokens for authorisation.
+- User data is now fetched from the `/userinfo` endpoint of the IDP instead of parsed from token claims.
+
 ## [Unreleased]
 
 - Fixed visual issues with Header on mobile devices.

@@ -6,7 +6,6 @@ export interface ClientSettings {
     cacheLocation: string;
     storeAuthStateInCookie: boolean;
   };
-  authScopes: string[];
   application: {
     name?: string;
     localName?: {
