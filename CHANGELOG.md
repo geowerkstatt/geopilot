@@ -1,11 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Added support for INTERLIS validation profiles.
+
 ### Changed
 
+- Changed how the delivery process works, as mandate selection is necessary before starting validation.
 - (Potentially Breaking) Restructure application to use access tokens instead of id tokens for authorisation.
 - User data is now fetched from the `/userinfo` endpoint of the IDP instead of parsed from token claims.
 
-## [Unreleased]
+### Fixed
 
 - Fixed visual issues with Header on mobile devices.
 - Fixed bug where language preference is reset in certain circumstances.
