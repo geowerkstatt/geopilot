@@ -1,19 +1,9 @@
 import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appHelpers.js";
-import {
-  evaluateSelect,
-  getFormField,
-  getFormInput,
-  hasError,
-  isDisabled,
-  setInput,
-  setSelect,
-  toggleCheckbox,
-} from "./helpers/formHelpers.js";
+import { hasError, setInput, setSelect } from "./helpers/formHelpers.js";
 import {
   addFile,
   stepHasError,
   stepIsActive,
-  stepIsCompleted,
   stepIsLoading,
   uploadFile,
   selectMandate,

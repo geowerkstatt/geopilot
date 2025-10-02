@@ -1,5 +1,4 @@
 import { toggleCheckbox, setSelect } from "./formHelpers.js";
-import { clickCancel } from "./buttonHelpers.js";
 
 export const fileNameExists = (filePath, success) => {
   const fileName = filePath.split("/").pop();
