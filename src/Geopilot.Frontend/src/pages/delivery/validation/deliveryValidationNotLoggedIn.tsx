@@ -12,7 +12,7 @@ import { ValidationStatus } from "../../../api/apiInterfaces";
 
 export const DeliveryValidationNotLoggedIn = () => {
   const { resetDelivery, validateFile, isLoading, validationResponse } = useContext(DeliveryContext);
-  const { login } = useGeopilotAuth();
+  const { login, authEnabled } = useGeopilotAuth();
 
   const isStartingJob = isLoading && validationResponse?.status === ValidationStatus.Ready;
   const isValidating = isLoading && validationResponse?.status === ValidationStatus.Processing;
@@ -28,13 +28,17 @@ export const DeliveryValidationNotLoggedIn = () => {
   return (
     <FlexRowEndBox>
       <CancelButton onClick={() => resetDelivery()} />
-      <BaseButton
-        onClick={() => validateFile(validationResponse!.jobId, {})}
-        icon={<PublishedWithChangesIcon />}
-        label="validateOnly"
-        disabled={isStartingJob}
-      />
-      <BaseButton onClick={login} icon={<LoginIcon />} label="logInForDelivery" disabled={isStartingJob} />
+      {validationResponse?.jobId && (
+        <BaseButton
+          onClick={() => validateFile(validationResponse.jobId, {})}
+          icon={<PublishedWithChangesIcon />}
+          label="validateOnly"
+          disabled={isStartingJob}
+        />
+      )}
+      {authEnabled && (
+        <BaseButton onClick={login} icon={<LoginIcon />} label="logInForDelivery" disabled={isStartingJob} />
+      )}
     </FlexRowEndBox>
   );
 };
