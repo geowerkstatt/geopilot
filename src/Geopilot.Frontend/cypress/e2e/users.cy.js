@@ -19,7 +19,7 @@ describe("Users tests", () => {
 
   it("displays the users in a list with pagination", () => {
     cy.dataCy("users-grid").should("exist");
-    cy.dataCy("users-grid").find(".MuiDataGrid-row").should("have.length", 12);
+    cy.dataCy("users-grid").find(".MuiDataGrid-row").should("have.length.of.at.least", 12); //New user might be created in other tests
     cy.dataCy("users-grid").find(".MuiDataGrid-row").first().contains("Jaime Pagac");
     cy.dataCy("users-grid")
       .find(".MuiTablePagination-actions [aria-label='Go to previous page']")
