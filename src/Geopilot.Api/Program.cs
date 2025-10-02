@@ -4,6 +4,7 @@ using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.Conventions;
 using Geopilot.Api.FileAccess;
+using Geopilot.Api.Services;
 using Geopilot.Api.StacServices;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
@@ -146,6 +147,7 @@ builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 builder.Services.AddSingleton<IValidationJobStore, ValidationJobStore>();
 builder.Services.AddTransient<IValidationService, ValidationService>();
+builder.Services.AddTransient<IMandateService, MandateService>();
 builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();

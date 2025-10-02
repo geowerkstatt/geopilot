@@ -75,6 +75,7 @@ public class ValidationJobStoreTest
     public void StartJob()
     {
         var job = store.CreateJob();
+        var mandateId = 123;
         store.AddFileToJob(job.Id, "a", "b");
 
         var validator1 = new Mock<IValidator>();
@@ -83,11 +84,12 @@ public class ValidationJobStoreTest
         validator2.SetupGet(v => v.Name).Returns("v2");
 
         var validators = new List<IValidator> { validator1.Object, validator2.Object };
-        store.StartJob(job.Id, validators);
+        store.StartJob(job.Id, validators, mandateId);
         var updated = store.GetJob(job.Id);
 
         Assert.IsNotNull(updated);
         Assert.AreEqual(Status.Processing, updated.Status);
+        Assert.AreEqual(mandateId, updated.MandateId);
         Assert.AreEqual(2, updated.ValidatorResults.Count);
         Assert.IsTrue(updated.ValidatorResults.ContainsKey("v1"));
         Assert.IsTrue(updated.ValidatorResults.ContainsKey("v2"));
@@ -108,7 +110,7 @@ public class ValidationJobStoreTest
     {
         var job = store.CreateJob();
         store.AddFileToJob(job.Id, "a", "b");
-        Assert.ThrowsException<ArgumentException>(() => store.StartJob(job.Id, new List<IValidator>()));
+        Assert.ThrowsException<ArgumentException>(() => store.StartJob(job.Id, new List<IValidator>(), null));
     }
 
     [TestMethod]
@@ -116,7 +118,7 @@ public class ValidationJobStoreTest
     {
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
-        Assert.ThrowsException<ArgumentException>(() => store.StartJob(Guid.NewGuid(), new List<IValidator> { validator.Object }));
+        Assert.ThrowsException<ArgumentException>(() => store.StartJob(Guid.NewGuid(), new List<IValidator> { validator.Object }, null));
     }
 
     [TestMethod]
@@ -125,7 +127,7 @@ public class ValidationJobStoreTest
         var job = store.CreateJob();
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
-        Assert.ThrowsException<InvalidOperationException>(() => store.StartJob(job.Id, new List<IValidator> { validator.Object }));
+        Assert.ThrowsException<InvalidOperationException>(() => store.StartJob(job.Id, new List<IValidator> { validator.Object }, null));
     }
 
     [TestMethod]
@@ -137,7 +139,7 @@ public class ValidationJobStoreTest
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
         var validators = new List<IValidator> { validator.Object };
-        store.StartJob(job.Id, validators);
+        store.StartJob(job.Id, validators, null);
 
         var result = new ValidatorResult(ValidatorResultStatus.Completed, "some message");
         store.AddValidatorResult(validator.Object, result);
@@ -157,7 +159,7 @@ public class ValidationJobStoreTest
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
         var validators = new List<IValidator> { validator.Object };
-        store.StartJob(job.Id, validators);
+        store.StartJob(job.Id, validators, null);
 
         // Complete the job
         var result = new ValidatorResult(ValidatorResultStatus.Completed, "some message");
@@ -176,7 +178,7 @@ public class ValidationJobStoreTest
         var registeredValidator = new Mock<IValidator>();
         registeredValidator.SetupGet(v => v.Name).Returns("registeredValidator");
         var validators = new List<IValidator> { registeredValidator.Object };
-        store.StartJob(job.Id, validators);
+        store.StartJob(job.Id, validators, null);
 
         var unregisteredValidator = new Mock<IValidator>();
         unregisteredValidator.SetupGet(v => v.Name).Returns("unregisteredValidator");

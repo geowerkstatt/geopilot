@@ -23,7 +23,7 @@ public class AssetHandlerTest
     [TestInitialize]
     public void Initialize()
     {
-        job = new ValidationJob(Guid.NewGuid(), "OriginalName", "TempFileName", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed);
+        job = new ValidationJob(Guid.NewGuid(), "OriginalName", "TempFileName", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed);
         uploadDirectory = AssemblyInitialize.TestDirectoryProvider.GetUploadDirectoryPath(job.Id);
         assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(job.Id);
         loggerMock = new Mock<ILogger<AssetHandler>>();
@@ -75,7 +75,7 @@ public class AssetHandlerTest
         {
             { "myValidator", new ValidatorResult(ValidatorResultStatus.Completed, string.Empty, logFiles) },
         }.ToImmutableDictionary();
-        var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", validatorResults, Status.Completed);
+        var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", null, validatorResults, Status.Completed);
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
 
         var assets = assetHandler.PersistJobAssets(job.Id);
@@ -102,7 +102,7 @@ public class AssetHandlerTest
         {
             { "myValidator", new ValidatorResult(ValidatorResultStatus.Completed, string.Empty, logFiles) },
         }.ToImmutableDictionary();
-        var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", validatorResults, Status.Completed);
+        var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", null, validatorResults, Status.Completed);
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
 
         var assets = assetHandler.PersistJobAssets(job.Id);

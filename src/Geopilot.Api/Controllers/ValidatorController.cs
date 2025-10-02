@@ -29,7 +29,6 @@ namespace Geopilot.Api.Controllers
         /// <summary>
         /// Gets all available validators and their supported configuraitions.
         /// </summary>
-        /// <returns></returns>
         [HttpGet]
         [SwaggerResponse(StatusCodes.Status200OK, "Returns a list of available validators and their supported configurations.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "There was an error while reading the profiles from a check service")]

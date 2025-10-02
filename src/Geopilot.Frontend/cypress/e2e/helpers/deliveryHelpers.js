@@ -1,5 +1,4 @@
-import { toggleCheckbox } from "./formHelpers.js";
-import { clickCancel } from "./buttonHelpers.js";
+import { toggleCheckbox, setSelect } from "./formHelpers.js";
 
 export const fileNameExists = (filePath, success) => {
   const fileName = filePath.split("/").pop();
@@ -16,27 +15,26 @@ export const addFile = (filePath, success) => {
 };
 
 export const uploadFile = () => {
+  cy.intercept("POST", "/api/v1/validation").as("upload");
   cy.dataCy("acceptTermsOfUse-formCheckbox").then($checkbox => {
     if (!$checkbox.hasClass("Mui-checked")) {
+      cy.dataCy("upload-button").should("be.disabled");
       toggleCheckbox("acceptTermsOfUse");
+      cy.dataCy("upload-button").should("be.enabled");
     }
     cy.dataCy("upload-button").click();
-    stepIsLoading("upload");
   });
+  cy.wait("@upload");
 };
 
-export const resetDelivery = activeStep => {
-  cy.dataCy(`${activeStep}-step`).dataCy("cancel-button").should("exist");
-  clickCancel(`${activeStep}-step`);
-  stepIsActive("upload");
-  stepIsCompleted("upload", false);
-  stepIsActive("validate", false);
-  stepIsCompleted("validate", false);
-  stepIsActive("submit", false);
-  stepIsCompleted("submit", false);
-  stepIsActive("done", false);
-  stepIsCompleted("done", false);
-  cy.dataCy("upload-button").should("be.disabled");
+export const selectMandate = (index, expected) => {
+  setSelect("mandate", index, expected);
+};
+
+export const startValidation = () => {
+  cy.intercept("PATCH", "/api/v1/validation/*").as("startValidation");
+  cy.dataCy("validate-button").click();
+  cy.wait("@startValidation");
 };
 
 export const stepIsActive = (stepName, isActive = true) => {

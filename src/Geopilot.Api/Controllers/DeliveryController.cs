@@ -63,18 +63,23 @@ public class DeliveryController : ControllerBase
             logger.LogTrace("Job with id <{JobId}> is not completed.", declaration.JobId);
             return BadRequest($"Job with id <{declaration.JobId}> is not completed.");
         }
+        else if (job.MandateId == null)
+        {
+            logger.LogTrace("Job with id <{JobId}> cannot be used to make a delivery.", declaration.JobId);
+            return BadRequest($"Job with id <{declaration.JobId}> cannot be used to make a delivery.");
+        }
 
         var user = await context.GetUserByPrincipalAsync(User);
         var mandate = context.Mandates
             .Include(m => m.Organisations)
             .ThenInclude(o => o.Users)
             .Include(m => m.Deliveries)
-            .SingleOrDefault(m => m.Id == declaration.MandateId);
+            .SingleOrDefault(m => m.Id == job.MandateId);
 
         if (mandate is null || !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id))
         {
-            logger.LogTrace($"Mandate with id <{declaration.MandateId}> not found.");
-            return NotFound($"Mandate with id <{declaration.MandateId}> not found.");
+            logger.LogTrace($"Mandate with id <{job.MandateId}> not found.");
+            return NotFound($"Mandate with id <{job.MandateId}> not found.");
         }
 
         if (mandate.EvaluatePrecursorDelivery == FieldEvaluationType.NotEvaluated && declaration.PrecursorDeliveryId.HasValue)

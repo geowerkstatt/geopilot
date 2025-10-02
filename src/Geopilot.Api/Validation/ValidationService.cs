@@ -1,5 +1,10 @@
 ﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Models;
+using Geopilot.Api.Services;
 using Geopilot.Api.Validation.Interlis;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace Geopilot.Api.Validation;
 
@@ -8,20 +13,22 @@ namespace Geopilot.Api.Validation;
 /// </summary>
 public class ValidationService : IValidationService
 {
+    private readonly IValidationJobStore jobStore;
+    private readonly IMandateService mandateService;
+
     private readonly IFileProvider fileProvider;
     private readonly IEnumerable<IValidator> validators;
-    private readonly Context context;
-    private readonly IValidationJobStore jobStore;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationService"/> class.
     /// </summary>
-    public ValidationService(IFileProvider fileProvider, IEnumerable<IValidator> validators, Context context, IValidationJobStore validationJobStore)
+    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IEnumerable<IValidator> validators)
     {
+        this.jobStore = validationJobStore;
+        this.mandateService = mandateService;
+
         this.fileProvider = fileProvider;
         this.validators = validators;
-        this.context = context;
-        this.jobStore = validationJobStore;
     }
 
     /// <inheritdoc/>
@@ -50,28 +57,47 @@ public class ValidationService : IValidationService
     public async Task<ValidationJob> StartJobAsync(Guid jobId)
     {
         var validationJob = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
+        var jobValidators = await GetConfiguredValidators(validationJob, null);
+        return jobStore.StartJob(jobId, jobValidators, null);
+    }
 
+    /// <inheritdoc/>
+    public async Task<ValidationJob> StartJobAsync(Guid jobId, int mandateId, User user)
+    {
+        var validationJob = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
+
+        // If a mandateId is provided, check if the user is allowed to start the job with the specified mandate
+        var mandate = await mandateService.GetMandateByUserAndJobAsync(mandateId, user, jobId)
+            ?? throw new InvalidOperationException($"The job <{jobId}> could not be started with mandate <{mandateId}.");
+        var jobValidators = await GetConfiguredValidators(validationJob, mandate);
+        return jobStore.StartJob(jobId, jobValidators, mandateId);
+    }
+
+    private async Task<List<IValidator>> GetConfiguredValidators(ValidationJob validationJob, Mandate? mandate)
+    {
+        // Get all supported validators and configure them for the job
         var fileExtension = Path.GetExtension(validationJob.TempFileName);
-        var supportedValidators = new List<IValidator>();
+        var jobValidators = new List<IValidator>();
         foreach (var validator in validators)
         {
             var supportedExtensions = await validator.GetSupportedFileExtensionsAsync();
             if (IsExtensionSupported(supportedExtensions, fileExtension))
             {
-                ConfigureValidator(validator, validationJob);
-                supportedValidators.Add(validator);
+                ConfigureValidator(validator, validationJob, mandate);
+                jobValidators.Add(validator);
             }
         }
 
-        return jobStore.StartJob(jobId, supportedValidators);
+        return jobValidators;
     }
 
-    private void ConfigureValidator(IValidator validator, ValidationJob validationJob)
+    private void ConfigureValidator(IValidator validator, ValidationJob validationJob, Mandate? mandate)
     {
         switch (validator)
         {
             case InterlisValidator interlisValidator:
-                interlisValidator.Configure(fileProvider, validationJob.TempFileName ?? string.Empty);
+                fileProvider.Initialize(validationJob.Id);
+                interlisValidator.Configure(fileProvider, validationJob.TempFileName ?? string.Empty, mandate?.InterlisValidationProfile);
                 break;
         }
     }
@@ -85,7 +111,7 @@ public class ValidationService : IValidationService
     /// <inheritdoc/>
     public async Task<ICollection<string>> GetSupportedFileExtensionsAsync()
     {
-        var mandateFileExtensions = GetFileExtensionsForMandates();
+        var mandateFileExtensions = mandateService.GetFileExtensionsForMandates();
         var validatorFileExtensions = await GetFileExtensionsForValidatorsAsync();
 
         return mandateFileExtensions
@@ -99,16 +125,6 @@ public class ValidationService : IValidationService
     {
         var extensions = await GetSupportedFileExtensionsAsync();
         return IsExtensionSupported(extensions, fileExtension);
-    }
-
-    private HashSet<string> GetFileExtensionsForMandates()
-    {
-        return context.Mandates
-            .Select(mandate => mandate.FileTypes)
-            .AsEnumerable()
-            .SelectMany(ext => ext)
-            .Select(ext => ext.ToLowerInvariant())
-            .ToHashSet();
     }
 
     private async Task<HashSet<string>> GetFileExtensionsForValidatorsAsync()

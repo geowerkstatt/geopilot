@@ -2,6 +2,7 @@
 using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
+using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,16 +26,18 @@ public class ValidationController : ControllerBase
     private readonly IValidationService validationService;
     private readonly IFileProvider fileProvider;
     private readonly IContentTypeProvider contentTypeProvider;
+    private readonly Context context;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationController"/> class.
     /// </summary>
-    public ValidationController(ILogger<ValidationController> logger, IValidationService validationService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider)
+    public ValidationController(ILogger<ValidationController> logger, IValidationService validationService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider, Context context)
     {
         this.logger = logger;
         this.validationService = validationService;
         this.fileProvider = fileProvider;
         this.contentTypeProvider = contentTypeProvider;
+        this.context = context;
     }
 
     /// <summary>
@@ -130,9 +133,6 @@ public class ValidationController : ControllerBase
                 logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
             }
 
-            validationJob = await validationService.StartJobAsync(validationJob.Id);
-            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
-
             var location = new Uri(
             string.Format(CultureInfo.InvariantCulture, "/api/v{0}/validation/{1}", version.MajorVersion, validationJob.Id),
             UriKind.Relative);
@@ -142,6 +142,68 @@ public class ValidationController : ControllerBase
         catch (Exception ex)
         {
             logger.LogError(ex, "File upload failed.");
+            return Problem("An unexpected error occured.", statusCode: StatusCodes.Status500InternalServerError);
+        }
+    }
+
+    /// <summary>
+    /// Starts the job with the specified <paramref name="jobId"/>. If a mandate is specified in the <paramref name="startJobRequest"/>, the job will be started with specified mandate.
+    /// Otherwise, the job will be started without a mandate.
+    /// </summary>
+    /// <remarks>
+    /// If a mandate id is provided, the user must be authenticated and authorized to use the specified mandate.
+    /// Also, the mandate must support the file type the uploaded file of the specified job.
+    /// </remarks>
+    /// <param name="jobId">The id of the job that should be started.</param>
+    /// <param name="startJobRequest"><see cref="StartJobRequest"/> containing all information to start the job.</param>
+    /// <returns>The started validation job.</returns>
+    [HttpPatch("{jobId}")]
+    [SwaggerResponse(StatusCodes.Status200OK, "The validation job was successfully started.", typeof(ValidationJob), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request, or the mandate is not valid for the user/job.", typeof(ProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected error while starting the job.", typeof(ProblemDetails), "application/json")]
+    public async Task<IActionResult> StartJobAsync(Guid jobId, [FromBody] StartJobRequest startJobRequest)
+    {
+        ArgumentNullException.ThrowIfNull(startJobRequest);
+
+        var job = validationService.GetJob(jobId);
+        if (job == null)
+        {
+            logger.LogTrace("No job information available for job id <{JobId}>", jobId);
+            return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        try
+        {
+            if (startJobRequest.MandateId == null)
+            {
+                logger.LogInformation("Starting job <{JobId}> without mandate.", jobId);
+                var validationJob = await validationService.StartJobAsync(jobId);
+                logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
+                return Ok(validationJob.ToResponse());
+            }
+            else if (User is null || !User.Identity?.IsAuthenticated == true)
+            {
+                logger.LogTrace("Starting job <{JobId}> with mandate <{MandateId}> failed, user is not authenticated.", jobId, startJobRequest.MandateId);
+                return Problem("User must be authenticated to start a job with a mandate.", statusCode: StatusCodes.Status400BadRequest);
+            }
+            else
+            {
+                var user = await context.GetUserByPrincipalAsync(User);
+                logger.LogInformation("Starting job <{JobId}> with mandate <{MandateId}> for user <{AuthIdentifier}>.", jobId, startJobRequest.MandateId, user.AuthIdentifier);
+                var validationJob = await validationService.StartJobAsync(jobId, startJobRequest.MandateId.Value, user);
+                logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
+                return Ok(validationJob.ToResponse());
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
+        {
+            logger.LogTrace(ex, "Starting job <{JobId}> failed.", jobId);
+            return Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Starting job <{JobId}> failed unexpectedly.", jobId);
             return Problem("An unexpected error occured.", statusCode: StatusCodes.Status500InternalServerError);
         }
     }

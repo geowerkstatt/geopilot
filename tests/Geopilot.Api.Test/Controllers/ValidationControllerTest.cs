@@ -1,6 +1,7 @@
 ﻿using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
+using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,7 @@ namespace Geopilot.Api.Controllers;
 [TestClass]
 public sealed class ValidationControllerTest
 {
+    private Context context;
     private Mock<ILogger<ValidationController>> loggerMock;
     private Mock<IValidationService> validationServiceMock;
     private Mock<IFileProvider> fileProviderMock;
@@ -25,6 +27,7 @@ public sealed class ValidationControllerTest
     [TestInitialize]
     public void Initialize()
     {
+        context = AssemblyInitialize.DbFixture.GetTestContext();
         loggerMock = new Mock<ILogger<ValidationController>>();
         validationServiceMock = new Mock<IValidationService>(MockBehavior.Strict);
         fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
@@ -36,7 +39,8 @@ public sealed class ValidationControllerTest
             loggerMock.Object,
             validationServiceMock.Object,
             fileProviderMock.Object,
-            contentTypeProviderMock.Object);
+            contentTypeProviderMock.Object,
+            context);
     }
 
     [TestCleanup]
@@ -48,6 +52,7 @@ public sealed class ValidationControllerTest
         contentTypeProviderMock.VerifyAll();
         apiVersionMock.VerifyAll();
         formFileMock.VerifyAll();
+        context.Dispose();
     }
 
     [TestMethod]
@@ -60,7 +65,7 @@ public sealed class ValidationControllerTest
         formFileMock.SetupGet(x => x.FileName).Returns(originalFileName);
         formFileMock.Setup(x => x.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(0));
 
-        var validationJob = new ValidationJob(jobId, originalFileName, tempFileName, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created);
+        var validationJob = new ValidationJob(jobId, originalFileName, tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created);
         using var fileHandle = new FileHandle(tempFileName, Stream.Null);
 
         validationServiceMock.Setup(x => x.IsFileExtensionSupportedAsync(".xtf")).Returns(Task.FromResult(true));
@@ -69,9 +74,6 @@ public sealed class ValidationControllerTest
         validationServiceMock
             .Setup(x => x.AddFileToJob(jobId, originalFileName, tempFileName))
             .Returns(validationJob);
-        validationServiceMock
-            .Setup(x => x.StartJobAsync(jobId))
-            .Returns(Task.FromResult(validationJob));
 
         var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedAtActionResult;
 
@@ -114,10 +116,11 @@ public sealed class ValidationControllerTest
     public void GetStatus()
     {
         var jobId = Guid.NewGuid();
+        var mandateId = 123;
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "BIZARRESCAN.xtf", "TEMP.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing));
+            .Returns(new ValidationJob(jobId, "BIZARRESCAN.xtf", "TEMP.xtf", mandateId, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing));
 
         var response = controller.GetStatus(jobId) as OkObjectResult;
         var jobResponse = response?.Value as ValidationJobResponse;
@@ -126,6 +129,7 @@ public sealed class ValidationControllerTest
         Assert.IsInstanceOfType(jobResponse, typeof(ValidationJobResponse));
         Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
         Assert.AreEqual(jobId, jobResponse.JobId);
+        Assert.AreEqual(mandateId, jobResponse.MandateId);
         Assert.AreEqual(Status.Processing, jobResponse.Status);
     }
 
@@ -153,7 +157,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
+            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
 
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.Exists(fileName)).Returns(true);
@@ -194,7 +198,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
+            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
 
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.Exists(fileName)).Returns(false);
@@ -204,5 +208,306 @@ public sealed class ValidationControllerTest
         Assert.IsInstanceOfType(response, typeof(ObjectResult));
         Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
         Assert.AreEqual($"No log file <{fileName}> found for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncWithoutMandateSuccess()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var startJobRequest = new StartJobRequest { MandateId = null };
+        var validationJob = new ValidationJob(
+            jobId,
+            "test.xtf",
+            "temp.xtf",
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Processing);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId)).ReturnsAsync(validationJob);
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as OkObjectResult;
+        var jobResponse = response?.Value as ValidationJobResponse;
+
+        // Assert
+        Assert.IsInstanceOfType(response, typeof(OkObjectResult));
+        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
+        Assert.IsInstanceOfType(jobResponse, typeof(ValidationJobResponse));
+        Assert.AreEqual(jobId, jobResponse.JobId);
+        Assert.AreEqual(Status.Processing, jobResponse.Status);
+        Assert.IsNull(jobResponse.MandateId);
+
+        validationServiceMock.Verify(x => x.StartJobAsync(jobId), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncWithMandateSuccess()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+
+        // Use the helper method to create user and mandate with proper relationships
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
+            new Mandate { Name = nameof(StartJobAsyncWithMandateSuccess) });
+        controller.SetupTestUser(user);
+
+        var startJobRequest = new StartJobRequest { MandateId = mandate.Id };
+
+        var validationJob = new ValidationJob(
+            jobId,
+            "test.xtf",
+            "temp.xtf",
+            mandate.Id,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Processing);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob).Verifiable();
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, user)).ReturnsAsync(validationJob);
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as OkObjectResult;
+        var jobResponse = response?.Value as ValidationJobResponse;
+
+        // Assert
+        Assert.IsInstanceOfType(response, typeof(OkObjectResult));
+        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
+        Assert.IsInstanceOfType(jobResponse, typeof(ValidationJobResponse));
+        Assert.AreEqual(jobId, jobResponse.JobId);
+        Assert.AreEqual(mandate.Id, jobResponse.MandateId);
+        Assert.AreEqual(Status.Processing, jobResponse.Status);
+
+        validationServiceMock.Verify();
+        validationServiceMock.Verify(x => x.StartJobAsync(jobId, mandate.Id, user), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncReturns404ForUnknownJob()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var startJobRequest = new StartJobRequest { MandateId = null };
+
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns((ValidationJob?)null);
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
+
+        // Assert
+        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.AreEqual(StatusCodes.Status404NotFound, response.StatusCode);
+        Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
+
+        validationServiceMock.Verify(x => x.GetJob(jobId), Times.Once);
+        validationServiceMock.Verify(x => x.StartJobAsync(It.IsAny<Guid>()), Times.Never);
+        validationServiceMock.Verify(x => x.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<User>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncReturns400ForArgumentException()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var startJobRequest = new StartJobRequest { MandateId = null };
+        var validationJob = new ValidationJob(
+            jobId,
+            "test.xtf",
+            "temp.xtf",
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Ready);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId))
+            .ThrowsAsync(new ArgumentException("Invalid job state"));
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
+
+        // Assert
+        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
+        Assert.AreEqual("Invalid job state", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncReturns400ForInvalidOperationException()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
+            new Mandate { Name = nameof(StartJobAsyncReturns400ForInvalidOperationException) });
+
+        var startJobRequest = new StartJobRequest { MandateId = mandate.Id };
+        var validationJob = new ValidationJob(
+            jobId,
+            "test.xtf",
+            "temp.xtf",
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Ready);
+
+        controller.SetupTestUser(user);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, It.IsAny<User>()))
+            .ThrowsAsync(new InvalidOperationException("User not authorized for mandate"));
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
+
+        // Assert
+        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
+        Assert.AreEqual("User not authorized for mandate", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncReturns500ForUnexpectedException()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var startJobRequest = new StartJobRequest { MandateId = null };
+        var validationJob = new ValidationJob(
+            jobId,
+            "test.xtf",
+            "temp.xtf",
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Ready);
+
+#pragma warning disable CA2201 // Do not raise reserved exception types
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId))
+            .ThrowsAsync(new Exception());
+#pragma warning restore CA2201 // Do not raise reserved exception types
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
+
+        // Assert
+        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.AreEqual(StatusCodes.Status500InternalServerError, response.StatusCode);
+        Assert.AreEqual("An unexpected error occured.", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncWithMandateReturnsBadRequestWithouUser()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var (user, mandate) = context.AddMandateWithUserOrganisation();
+
+        var startJobRequest = new StartJobRequest { MandateId = mandate.Id };
+        var validationJob = new ValidationJob(
+            jobId,
+            "test.xtf",
+            "temp.xtf",
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Ready);
+
+        // Note: Not setting up a user to simulate unauthenticated scenario
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
+
+        // Assert
+        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
+        Assert.AreEqual("User must be authenticated to start a job with a mandate.", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncWithMandateThrowsForUnauthorizedUser()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var (user, mandate) = context.AddMandateWithUserOrganisation();
+        mandate.Organisations.Clear(); // Remove organisation link to simulate unauthorized user
+        context.SaveChanges();
+
+        var startJobRequest = new StartJobRequest { MandateId = mandate.Id };
+        var validationJob = new ValidationJob(
+            jobId,
+            "test.xtf",
+            "temp.xtf",
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Ready);
+
+        controller.SetupTestUser(user);
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, It.IsAny<User>()))
+            .ThrowsAsync(new InvalidOperationException("The user is not authorized to start the job with the specified mandate."));
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
+
+        // Assert
+        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
+        Assert.AreEqual("The user is not authorized to start the job with the specified mandate.", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncCorrectlyRoutesToAppropriateServiceMethod()
+    {
+        // Test that the controller correctly routes to the appropriate service method based on MandateId presence
+
+        // Arrange - Without mandate
+        var jobId1 = Guid.NewGuid();
+        var startJobRequestWithoutMandate = new StartJobRequest { MandateId = null };
+        var validationJobWithoutMandate = new ValidationJob(
+            jobId1,
+            "test.xtf",
+            "temp.xtf",
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Processing);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId1)).Returns(validationJobWithoutMandate);
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId1)).ReturnsAsync(validationJobWithoutMandate);
+
+        // Act - Without mandate
+        var responseWithoutMandate = await controller.StartJobAsync(jobId1, startJobRequestWithoutMandate) as OkObjectResult;
+
+        // Assert - Without mandate
+        Assert.IsInstanceOfType(responseWithoutMandate, typeof(OkObjectResult));
+        validationServiceMock.Verify(x => x.StartJobAsync(jobId1), Times.Once);
+        validationServiceMock.Verify(x => x.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<User>()), Times.Never);
+
+        // Reset mock behavior for next test
+        validationServiceMock.Reset();
+
+        // Arrange - With mandate
+        var jobId2 = Guid.NewGuid();
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
+            new Mandate { Name = nameof(StartJobAsyncCorrectlyRoutesToAppropriateServiceMethod) });
+
+        var startJobRequestWithMandate = new StartJobRequest { MandateId = mandate.Id };
+
+        var validationJobWithMandate = new ValidationJob(
+            jobId2,
+            "test.xtf",
+            "temp.xtf",
+            mandate.Id,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Processing);
+
+        controller.SetupTestUser(user);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId2)).Returns(validationJobWithMandate);
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId2, mandate.Id, It.IsAny<User>())).ReturnsAsync(validationJobWithMandate);
+
+        // Act - With mandate
+        var responseWithMandate = await controller.StartJobAsync(jobId2, startJobRequestWithMandate) as OkObjectResult;
+
+        // Assert - With mandate
+        Assert.IsInstanceOfType(responseWithMandate, typeof(OkObjectResult));
+        validationServiceMock.Verify(x => x.StartJobAsync(jobId2, mandate.Id, It.IsAny<User>()), Times.Once);
+        validationServiceMock.Verify(x => x.StartJobAsync(It.IsAny<Guid>()), Times.Never);
     }
 }

@@ -45,11 +45,11 @@ public class DeliveryControllerTest
     [DataRow(Status.Failed, StatusCodes.Status400BadRequest)]
     public async Task CreateFailsJobNotCompleted(Status status, int resultCode)
     {
-        var guid = SetupValidationJob(status);
-        var deliveriesCount = context.Deliveries.Count();
         var mandateId = context.Mandates.First().Id;
+        var guid = SetupValidationJob(mandateId, status);
+        var deliveriesCount = context.Deliveries.Count();
 
-        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid,  MandateId = mandateId })) as ObjectResult;
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
 
         context.ChangeTracker.Clear();
 
@@ -67,9 +67,8 @@ public class DeliveryControllerTest
             .Returns(default(ValidationJob?));
 
         var deliveriesCount = context.Deliveries.Count();
-        var mandateId = context.Mandates.First().Id;
 
-        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid, MandateId = mandateId })) as ObjectResult;
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
 
         context.ChangeTracker.Clear();
 
@@ -81,14 +80,13 @@ public class DeliveryControllerTest
     [TestMethod]
     public async Task CreateFailsUnauthorizedUser()
     {
-        var guid = SetupValidationJob();
-
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
         var addedMandate = context.Mandates.Add(new Mandate());
+        var guid = SetupValidationJob(addedMandate.Entity.Id);
         context.SaveChanges();
-
         deliveryController.SetupTestUser(user.Entity);
-        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid, MandateId = addedMandate.Entity.Id })) as ObjectResult;
+
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
 
         context.ChangeTracker.Clear();
 
@@ -100,9 +98,7 @@ public class DeliveryControllerTest
     public async Task CreateMinimalDelivery()
     {
         var startTime = DateTime.Now;
-        Guid jobId = SetupValidationJob();
-        SetupJobPersistence(jobId);
-        var (user, mandate) = AddMandateForAuthorizedUser(
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
             new Mandate
             {
                 Name = nameof(CreateMinimalDelivery),
@@ -110,11 +106,13 @@ public class DeliveryControllerTest
                 EvaluatePartial = FieldEvaluationType.NotEvaluated,
                 EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
             });
+        deliveryController.SetupTestUser(user);
+        Guid jobId = SetupValidationJob(mandate.Id);
+        SetupJobPersistence(jobId);
 
         var request = new DeliveryRequest
         {
             JobId = jobId,
-            MandateId = mandate.Id,
             Comment = null,
             PartialDelivery = null,
             PrecursorDeliveryId = null,
@@ -159,19 +157,19 @@ public class DeliveryControllerTest
     [DataRow(FieldEvaluationType.Required, "Lorem Ipsum", typeof(Delivery), "Lorem Ipsum")]
     public async Task CreateValidatesComment(FieldEvaluationType evaluaton, string comment, Type responseValueType, string dbValue)
     {
-        Guid jobId = SetupValidationJob();
-        SetupJobPersistence(jobId);
-        var (user, mandate) = AddMandateForAuthorizedUser(
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
             new Mandate
             {
                 Name = nameof(CreateValidatesComment),
                 EvaluateComment = evaluaton,
             });
+        deliveryController.SetupTestUser(user);
+        Guid jobId = SetupValidationJob(mandate.Id);
+        SetupJobPersistence(jobId);
 
         var request = new DeliveryRequest
         {
             JobId = jobId,
-            MandateId = mandate.Id,
             Comment = comment,
         };
 
@@ -197,19 +195,19 @@ public class DeliveryControllerTest
     [DataRow(FieldEvaluationType.Required, false, typeof(Delivery), false)]
     public async Task CreateValidatesPartalDelivery(FieldEvaluationType evaluaton, bool? partialDelivery, Type responseValueType, bool? dbValue)
     {
-        Guid jobId = SetupValidationJob();
-        SetupJobPersistence(jobId);
-        var (user, mandate) = AddMandateForAuthorizedUser(
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
             new Mandate
             {
                 Name = nameof(CreateValidatesComment),
                 EvaluatePartial = evaluaton,
             });
+        deliveryController.SetupTestUser(user);
+        Guid jobId = SetupValidationJob(mandate.Id);
+        SetupJobPersistence(jobId);
 
         var request = new DeliveryRequest
         {
             JobId = jobId,
-            MandateId = mandate.Id,
             PartialDelivery = partialDelivery,
         };
 
@@ -235,16 +233,16 @@ public class DeliveryControllerTest
     [DataRow(FieldEvaluationType.Required, false, typeof(ValidationProblemDetails))]
     public async Task CreateValidatesPrecursorDelivery(FieldEvaluationType evaluaton, bool setPrecursor, Type responseValueType)
     {
-        Guid jobId = SetupValidationJob();
-        if (responseValueType == typeof(Delivery))
-            SetupJobPersistence(jobId);
-
-        var (user, mandate) = AddMandateForAuthorizedUser(
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
             new Mandate
             {
                 Name = nameof(CreateValidatesComment),
                 EvaluatePrecursorDelivery = evaluaton,
             });
+        deliveryController.SetupTestUser(user);
+        Guid jobId = SetupValidationJob(mandate.Id);
+        if (responseValueType == typeof(Delivery))
+            SetupJobPersistence(jobId);
         var precursorDelivery = new Delivery() { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = user };
         context.Deliveries.Add(precursorDelivery);
         context.SaveChanges();
@@ -254,7 +252,6 @@ public class DeliveryControllerTest
         var request = new DeliveryRequest
         {
             JobId = jobId,
-            MandateId = mandate.Id,
             PrecursorDeliveryId = precursorId,
         };
 
@@ -264,22 +261,12 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task CreateFailsMandateNotFound()
-    {
-        var guid = SetupValidationJob();
-        var (user, mandate) = AddMandateForAuthorizedUser(new Mandate { Name = nameof(CreateFailsMandateNotFound) });
-        var nextMandateId = context.Mandates.Max(m => m.Id) + 1;
-        var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid, MandateId = nextMandateId })) as ObjectResult;
-        Assert.IsNotNull(result);
-        Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
-    }
-
-    [TestMethod]
     public async Task CreateFailsPrecursorFromOtherMandate()
     {
-        var guid = SetupValidationJob();
         var deliveriesCount = context.Deliveries.Count();
-        var (user, mandate) = AddMandateForAuthorizedUser(new Mandate { Name = nameof(CreateFailsPrecursorFromOtherMandate) });
+        var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = nameof(CreateFailsPrecursorFromOtherMandate) });
+        deliveryController.SetupTestUser(user);
+        var guid = SetupValidationJob(mandate.Id);
         mandate.EvaluatePrecursorDelivery = FieldEvaluationType.Required;
         var otherMandate = context.Mandates.Add(new Mandate { Name = nameof(CreateFailsPrecursorFromOtherMandate) }).Entity;
         var precursorDelivery = new Delivery() { JobId = Guid.NewGuid(), Mandate = otherMandate, DeclaringUser = user };
@@ -288,7 +275,6 @@ public class DeliveryControllerTest
         var request = new DeliveryRequest
         {
             JobId = guid,
-            MandateId = mandate.Id,
             PrecursorDeliveryId = precursorDelivery.Id,
         };
 
@@ -300,35 +286,21 @@ public class DeliveryControllerTest
     [TestMethod]
     public async Task CreateFailsPrecursorNotFound()
     {
-        var guid = SetupValidationJob();
         var deliveriesCount = context.Deliveries.Count();
-        var (user, mandate) = AddMandateForAuthorizedUser(new Mandate { Name = nameof(CreateFailsPrecursorNotFound) });
+        var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = nameof(CreateFailsPrecursorNotFound) });
+        deliveryController.SetupTestUser(user);
+        var guid = SetupValidationJob(mandate.Id);
         mandate.EvaluatePrecursorDelivery = FieldEvaluationType.Required;
         var unknownDeliveryId = context.Deliveries.Max(d => d.Id) + 1;
 
         var request = new DeliveryRequest
         {
             JobId = guid,
-            MandateId = mandate.Id,
             PrecursorDeliveryId = unknownDeliveryId,
         };
         var result = await deliveryController.Create(request);
         Assert.IsNotNull(result);
         AssertResponseValueType(typeof(ValidationProblemDetails), result);
-    }
-
-    private (User User, Mandate Mandate) AddMandateForAuthorizedUser(Mandate mandate)
-    {
-        var user = new User() { FullName = nameof(DeliveryControllerTest) };
-        var organisation = new Organisation() { Name = nameof(DeliveryControllerTest) };
-
-        mandate.Organisations.Add(organisation);
-        organisation.Users.Add(user);
-        context.Mandates.Add(mandate);
-        context.SaveChanges();
-
-        deliveryController.SetupTestUser(user);
-        return (user, mandate);
     }
 
     private void SetupJobPersistence(Guid jobId)
@@ -338,12 +310,12 @@ public class DeliveryControllerTest
             .Returns(new List<Asset> { new Asset(), new Asset() });
     }
 
-    private Guid SetupValidationJob(Status jobStatus = Status.Completed)
+    private Guid SetupValidationJob(int? mandateId = null, Status jobStatus = Status.Completed)
     {
         var guid = Guid.NewGuid();
         validationServiceMock
             .Setup(s => s.GetJob(guid))
-            .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip", ImmutableDictionary<string, ValidatorResult?>.Empty, jobStatus));
+            .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip", mandateId, ImmutableDictionary<string, ValidatorResult?>.Empty, jobStatus));
         return guid;
     }
 
