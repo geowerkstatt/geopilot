@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Services;
+using Geopilot.Api.Validation.JrgDemoValidators;
 using Geopilot.Api.Validation.Interlis;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
@@ -98,6 +99,21 @@ public class ValidationService : IValidationService
             case InterlisValidator interlisValidator:
                 fileProvider.Initialize(validationJob.Id);
                 interlisValidator.Configure(fileProvider, validationJob.TempFileName ?? string.Empty, mandate?.InterlisValidationProfile);
+                break;
+
+            case CsvValidator csvValidator:
+                fileProvider.Initialize(validationJob.Id);
+                csvValidator.Configure(fileProvider, validationJob.TempFileName ?? string.Empty, validationJob.OriginalFileName ?? string.Empty);
+                break;
+
+            case IfcValidator ifcValidator:
+                fileProvider.Initialize(validationJob.Id);
+                ifcValidator.Configure(fileProvider, validationJob.TempFileName ?? string.Empty, validationJob.OriginalFileName ?? string.Empty);
+                break;
+
+            case PyTestValidator pyTestValidator:
+                fileProvider.Initialize(validationJob.Id);
+                pyTestValidator.Configure(fileProvider, validationJob.TempFileName ?? string.Empty, validationJob.OriginalFileName ?? string.Empty);
                 break;
         }
     }

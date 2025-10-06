@@ -8,6 +8,7 @@ using Geopilot.Api.Services;
 using Geopilot.Api.StacServices;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
+using Geopilot.Api.Validation.JrgDemoValidators;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
@@ -153,6 +154,9 @@ builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
 builder.Services.AddHostedService<ValidationRunner>();
 
+builder.Services.AddTransient<IValidator, CsvValidator>();
+builder.Services.AddTransient<IValidator, IfcValidator>();
+builder.Services.AddTransient<IValidator, PyTestValidator>();
 builder.Services
     .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")
     .ConfigureHttpClient((services, httpClient) =>
