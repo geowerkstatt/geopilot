@@ -11,6 +11,7 @@ services:
 
   db:
     image: postgis/postgis
+    container_name: geopilot_db
     restart: always
     ports:
       - 5432:5432
@@ -66,6 +67,7 @@ services:
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /https/cert.key
       ConnectionStrings__Context: Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
+      ReverseProxy__Clusters__mapserviceCluster__Destinations__mapserviceDestination__Address: http://qgis-server/
       Auth__Authority: http://localhost:4011/realms/geopilot
       Auth__ClientAudience: geopilot-client
       Auth__ApiAudience: geopilot-api
@@ -99,3 +101,17 @@ services:
     ports:
       - "4011:8080"
     command: start-dev --import-realm
+
+  qgis-server:
+    image: camptocamp/qgis-server:latest
+    container_name: qgis_server
+    ports:
+      - "8380:80"
+    volumes:
+      - ./config/qgisserver:/etc/qgisserver
+    environment:
+      - QGIS_SERVER_LOG_LEVEL=0  # INFO (log all requests)
+      - DEBUG=1                  # display env before spawning QGIS Server
+      - QGIS_SERVER_LANDING_PAGE_PROJECTS_DIRECTORIES=/etc/qgisserver/validationWithID0000
+      - PGSERVICEFILE=/etc/qgisserver/validationWithID0000/pg_service.conf
+    restart: always

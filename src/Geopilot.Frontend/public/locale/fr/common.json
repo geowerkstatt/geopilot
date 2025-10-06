@@ -62,6 +62,7 @@
   "imprint": "Mentions légales",
   "invalidContentType": "Type de réponse non valide",
   "isAdmin": "Est administrateur",
+  "isApproved": "Je confirme l'exactitude de cette livraison.",
   "isPartialDelivery": "La livraison partielle est-elle",
   "latitude": "Latitude",
   "licenseInformation": "Informations sur la licence",

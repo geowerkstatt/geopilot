@@ -62,6 +62,7 @@
   "imprint": "Imprint",
   "invalidContentType": "Invalid response type",
   "isAdmin": "Is Admin",
+  "isApproved": "I confirm the correctness of this delivery.",
   "isPartialDelivery": "Is partial delivery",
   "latitude": "Latitude",
   "licenseInformation": "License information",
