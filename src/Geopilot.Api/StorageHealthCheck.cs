@@ -24,7 +24,7 @@ namespace Geopilot.Api
             try
             {
                 // Simply check if the upload and asset directories exist.
-                if (!Directory.Exists(directoryProvider.UploadDirectory) || !Directory.Exists(directoryProvider.AssetDicrectory))
+                if (!Directory.Exists(directoryProvider.UploadDirectory) || !Directory.Exists(directoryProvider.AssetDirectory))
                 {
                     healthCheckResult = HealthCheckResult.Unhealthy();
                 }
