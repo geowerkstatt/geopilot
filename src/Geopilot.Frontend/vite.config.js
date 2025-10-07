@@ -87,7 +87,7 @@ export default defineConfig({
         secure: false,
       },
       "^/mapservice(/.*)?$": {
-        target: "http://localhost:7188/",
+        target: "https://localhost:7443/",
         secure: false,
       },
     },
