@@ -1,21 +1,31 @@
+$ili2pgJar = Join-Path $PSScriptRoot 'ili2pg-5.3.0\ili2pg-5.3.0.jar'
+$iliFile = Join-Path $PSScriptRoot 'SH_Nutzungsplanung_V5_0.ili'
+$xtfFile0 = Join-Path $PSScriptRoot 'sh_sha_SH_Nutzungsplanung_V5_0_Zeitstand0.xtf'
+$xtfFile2 = Join-Path $PSScriptRoot 'sh_sha_SH_Nutzungsplanung_V5_0_Zeitstand2.xtf'
+$createViewSql = Join-Path $PSScriptRoot 'createView.sql'
+
 Measure-Command {
     $job1 = Start-Job -ScriptBlock {
-        java -jar .\ili2pg-5.3.0\ili2pg-5.3.0.jar --schemaimport --dbschema current --dbhost localhost --dbdatabase geopilot --dbusr HAPPYWALK --dbpwd SOMBERSPORK --smart2Inheritance --createGeomIdx --createEnumTxtCol --sqlEnableNull --sqlExtRefCols --createBasketCol --createFk '.\SH_Nutzungsplanung_V5_0.ili'
-    }
+        param($ili2pgJar, $iliFile)
+        java -jar $ili2pgJar --schemaimport --dbschema current --dbhost localhost --dbdatabase geopilot --dbusr HAPPYWALK --dbpwd SOMBERSPORK --smart2Inheritance --createGeomIdx --createEnumTxtCol --sqlEnableNull --sqlExtRefCols --createBasketCol --createFk $iliFile
+    } -ArgumentList $ili2pgJar, $iliFile
     $job2 = Start-Job -ScriptBlock {
-        java -jar .\ili2pg-5.3.0\ili2pg-5.3.0.jar --schemaimport --dbschema next --dbhost localhost --dbdatabase geopilot --dbusr HAPPYWALK --dbpwd SOMBERSPORK --smart2Inheritance --createGeomIdx --createEnumTxtCol --sqlEnableNull --sqlExtRefCols --createBasketCol --createFk '.\SH_Nutzungsplanung_V5_0.ili'
-    }
+        param($ili2pgJar, $iliFile)
+        java -jar $ili2pgJar --schemaimport --dbschema next --dbhost localhost --dbdatabase geopilot --dbusr HAPPYWALK --dbpwd SOMBERSPORK --smart2Inheritance --createGeomIdx --createEnumTxtCol --sqlEnableNull --sqlExtRefCols --createBasketCol --createFk $iliFile
+    } -ArgumentList $ili2pgJar, $iliFile
     Wait-Job -Job $job1, $job2
     Receive-Job -Job $job1, $job2
 }
 
 Measure-Command {
     $job1 = Start-Job -ScriptBlock {
-        java -jar .\ili2pg-5.3.0\ili2pg-5.3.0.jar --import --dbschema current --dbhost localhost --dbdatabase geopilot --dbusr HAPPYWALK --dbpwd SOMBERSPORK --importBatchSize 1000 --skipReferenceErrors --skipGeometryErrors --disableValidation '.\sh_sha_SH_Nutzungsplanung_V5_0_Zeitstand0.xtf'
-    }
+        param($ili2pgJar, $xtfFile0)
+        java -jar $ili2pgJar --import --dbschema current --dbhost localhost --dbdatabase geopilot --dbusr HAPPYWALK --dbpwd SOMBERSPORK --importBatchSize 1000 --skipReferenceErrors --skipGeometryErrors --disableValidation $xtfFile0
+    } -ArgumentList $ili2pgJar, $xtfFile0
     $job2 = Start-Job -ScriptBlock {
-        java -jar .\ili2pg-5.3.0\ili2pg-5.3.0.jar --import --dbschema next --dbhost localhost --dbdatabase geopilot --dbusr HAPPYWALK --dbpwd SOMBERSPORK --importBatchSize 1000 --skipReferenceErrors --skipGeometryErrors --disableValidation '.\sh_sha_SH_Nutzungsplanung_V5_0_Zeitstand2.xtf'
-    }
+        param($ili2pgJar, $xtfFile2)
+        java -jar $ili2pgJar --import --dbschema next --dbhost localhost --dbdatabase geopilot --dbusr HAPPYWALK --dbpwd SOMBERSPORK --importBatchSize 1000 --skipReferenceErrors --skipGeometryErrors --disableValidation $xtfFile2
+    } -ArgumentList $ili2pgJar, $xtfFile2
     Wait-Job -Job $job1, $job2
     Receive-Job -Job $job1, $job2
 }
@@ -29,4 +39,4 @@ Measure-Command {
 ## Eqal but different geometry on TID="sh_c0bcc6ae-373f-4b5e-9040-06d3bf5c9f44"
 
 ## Create views for the differences in database
-Get-Content -Path .\createView.sql | docker container exec -i geopilot_db psql -U HAPPYWALK -d geopilot
+Get-Content -Path $createViewSql | docker container exec -i geopilot_db psql -U HAPPYWALK -d geopilot
