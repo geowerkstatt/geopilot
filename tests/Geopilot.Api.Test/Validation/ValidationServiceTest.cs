@@ -50,7 +50,7 @@ public class ValidationServiceTest
         const string tempFileName = "TEMP.xtf";
         using var expectedFileHandle = new FileHandle(tempFileName, Stream.Null);
 
-        var job = new ValidationJob(Guid.NewGuid(), originalFileName, tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created);
+        var job = new ValidationJob(Guid.NewGuid(), originalFileName, tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now);
         validationJobStoreMock
             .Setup(x => x.GetJob(job.Id))
             .Returns(job);
@@ -78,7 +78,7 @@ public class ValidationServiceTest
     {
         var jobId = Guid.NewGuid();
         var tempFileName = "file.xtf";
-        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready);
+        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
 
@@ -139,8 +139,8 @@ public class ValidationServiceTest
         var user = new User { Id = 2, FullName = nameof(StartJobAsyncWithMandateSuccess) };
         var tempFileName = "file.xtf";
 
-        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready);
-        var startedJob = new ValidationJob(jobId, "original.xtf", tempFileName, mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing);
+        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
+        var startedJob = new ValidationJob(jobId, "original.xtf", tempFileName, mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing, DateTime.Now);
 
         var supportedValidatorMock1 = new Mock<IValidator>(MockBehavior.Strict);
         var supportedValidatorMock2 = new Mock<IValidator>(MockBehavior.Strict);
@@ -207,7 +207,7 @@ public class ValidationServiceTest
         var mandateId = 1;
         var user = new User { Id = 2, FullName = nameof(StartJobAsyncWithMandateThrowsForInvalidMandate) };
 
-        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready);
+        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
         mandateServiceMock.Setup(x => x.GetMandateByUserAndJobAsync(mandateId, user, jobId))
@@ -235,8 +235,8 @@ public class ValidationServiceTest
                 FileTypes = [".xtf"],
             });
 
-        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready);
-        var startedJob = new ValidationJob(jobId, "original.xtf", tempFileName, mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing);
+        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
+        var startedJob = new ValidationJob(jobId, "original.xtf", tempFileName, mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing, DateTime.Now);
 
         var mandateSpecificValidatorMock = new Mock<IValidator>(MockBehavior.Strict);
         var unsupportedValidatorMock = new Mock<IValidator>(MockBehavior.Strict);

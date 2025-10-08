@@ -11,7 +11,8 @@ public record class ValidationJob(
     string? TempFileName,
     int? MandateId,
     ImmutableDictionary<string, ValidatorResult?> ValidatorResults,
-    Status Status)
+    Status Status,
+    DateTime CreatedOn)
 {
     /// <summary>
     /// Aggregates the status of all <see cref="ValidatorResults"/> and returns the aggregated <see cref="Status"/>.

@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Threading.Channels;
 
@@ -28,7 +29,8 @@ public class ValidationJobStore : IValidationJobStore
             TempFileName: null,
             MandateId: null,
             ValidatorResults: ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status: Status.Created);
+            Status: Status.Created,
+            DateTime.Now);
 
         jobs[newJob.Id] = newJob; // Does not handle GUID collisions
 
@@ -109,5 +111,26 @@ public class ValidationJobStore : IValidationJobStore
         };
 
         return jobs.AddOrUpdate(jobId, id => throw new ArgumentException($"Job with id <{jobId}> not found."), updateFunc);
+    }
+
+    /// <inheritdoc/>
+    public bool RemoveJob(Guid jobId)
+    {
+        var job = GetJob(jobId);
+        if (job == null)
+            return false;
+
+        // Remove all validators associated with this job from the map
+        var validatorsToRemove = validatorJobMap
+            .Where(kvp => kvp.Value == jobId)
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        foreach (var validator in validatorsToRemove)
+        {
+            validatorJobMap.TryRemove(validator, out _);
+        }
+
+        return jobs.TryRemove(jobId, out _);
     }
 }

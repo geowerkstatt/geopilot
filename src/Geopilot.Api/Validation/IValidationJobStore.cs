@@ -67,5 +67,12 @@ namespace Geopilot.Api.Validation
         /// <exception cref="ArgumentException">If the specified <paramref name="validator"/> is not associated with any job.</exception>
         /// <exception cref="InvalidOperationException">If the status of the job is not <see cref="Status.Processing"/>.</exception>
         ValidationJob AddValidatorResult(IValidator validator, ValidatorResult result);
+
+        /// <summary>
+        /// Removes the job with the specified id from the store.
+        /// </summary>
+        /// <param name="jobId">The id of the job to remove.</param>
+        /// <returns><see langword="true"/> if the job was removed successfully; otherwise, <see langword="false"/>. This method also returns <see langword="false"/> if no job with the specified id exists.</returns>
+        bool RemoveJob(Guid jobId);
     }
 }
