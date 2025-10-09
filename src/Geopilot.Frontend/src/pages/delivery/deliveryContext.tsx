@@ -66,7 +66,6 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, userLogged
 };
 
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
-  const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File>();
@@ -87,6 +86,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       [DeliveryStepEnum.Validate]: [
         { status: 400, errorKey: "validationErrorRequestMalformed" },
         { status: 404, errorKey: "validationErrorCannotFind" },
+        { status: 500, errorKey: "validationErrorUnexpected" },
       ],
       [DeliveryStepEnum.Submit]: [
         { status: 400, errorKey: "deliveryErrorMalformedRequest" },
@@ -185,7 +185,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
           if (response.status === ValidationStatus.Completed) {
             continueToNextStep();
           } else {
-            setStepError(DeliveryStepEnum.Validate, t(response.status));
+            setStepError(DeliveryStepEnum.Validate, response.status);
           }
         }
       })
