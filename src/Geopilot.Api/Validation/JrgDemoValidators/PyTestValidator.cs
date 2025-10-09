@@ -36,7 +36,7 @@ public class PyTestValidator : IValidator
 
             return new ValidatorResult(
                 ValidatorResultStatus.Completed,
-                "Validation succeeded.",
+                "Validation réussie.",
                 logs.ToImmutable());
         }
 
@@ -46,13 +46,13 @@ public class PyTestValidator : IValidator
 
             return new ValidatorResult(
                 ValidatorResultStatus.Failed,
-                "Validation found errors.",
+                "La validation a détecté des erreurs.",
                 logs.ToImmutable());
         }
 
         return new ValidatorResult(
             ValidatorResultStatus.Failed,
-            $"Unexpected error occured while validating <{originalFileName}>.");
+            $"Une erreur inattendue s'est produite lors de la validation de <{originalFileName}>.");
     }
 
     private async Task AddLogAsync(

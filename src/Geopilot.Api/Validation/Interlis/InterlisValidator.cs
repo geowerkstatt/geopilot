@@ -88,7 +88,12 @@ public class InterlisValidator : IValidator
 
         var logFiles = await DownloadLogFilesAsync(statusResponse, fileProvider, fileName, cancellationToken).ConfigureAwait(false);
 
-        return new ValidatorResult(ToValidatorResultStatus(statusResponse.Status), statusResponse.StatusMessage, logFiles.ToImmutableDictionary());
+        var message = statusResponse.StatusMessage;
+
+        if (message == "Die Daten sind modellkonform.")
+            message = "Les données sont conformes au modèle.";
+
+        return new ValidatorResult(ToValidatorResultStatus(statusResponse.Status), message, logFiles.ToImmutableDictionary());
     }
 
     private async Task<InterlisUploadResponse> UploadTransferFileAsync(IFileProvider fileProvider, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
