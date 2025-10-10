@@ -114,6 +114,7 @@
   "validationForm": "Convalida",
   "validationIsRunning": "Il file è in corso di validazione con {{validators}}...",
   "validationProfile": "Profilo di convalida",
+  "validationVisualisation": "Visualizzazione della convalida",
   "validatorsLoadingError": "Si è verificato un errore durante il caricamento dei validatori: {{error}}",
   "version": "Versione"
 }

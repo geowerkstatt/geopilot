@@ -114,6 +114,7 @@
   "validationForm": "Validation",
   "validationIsRunning": "The file is currently being validated with {{validators}}...",
   "validationProfile": "Validation profile",
+  "validationVisualisation": "Validation visualisation",
   "validatorsLoadingError": "An error occurred while loading the validators: {{error}}",
   "version": "Version"
 }
