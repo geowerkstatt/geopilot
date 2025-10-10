@@ -53,7 +53,7 @@ export interface Organisation {
 
 export interface Delivery {
   id: number;
-  date: Date;
+  date: string;
   declaringUser: User;
   mandate: Mandate;
   comment: string;
