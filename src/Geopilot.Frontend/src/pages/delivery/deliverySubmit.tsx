@@ -8,18 +8,24 @@ import { Delivery, FieldEvaluationType } from "../../api/apiInterfaces.ts";
 import { DeliverySubmitData } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 import useFetch from "../../hooks/useFetch.ts";
+import { DifferenceVisualisation } from "./differenceVisualisation.tsx";
 
 export const DeliverySubmit = () => {
   const formMethods = useForm({ mode: "all" });
   const { fetchApi } = useFetch();
-  const { isLoading, submitDelivery, resetDelivery, selectedMandate } = useContext(DeliveryContext);
+  const { isLoading, submitDelivery, resetDelivery, selectedMandate, selectedFile } = useContext(DeliveryContext);
   const [previousDeliveries, setPreviousDeliveries] = useState<Delivery[]>([]);
+  const [requiresApproval, setRequiresApproval] = useState(false);
 
   const submitForm = (data: FieldValues) => {
     if (data["precursor"] === "") {
       data["precursor"] = null;
     }
     submitDelivery(data as DeliverySubmitData);
+  };
+
+  const handlePrecursorChange = (precursorId: number) => {
+    setRequiresApproval(precursorId != undefined);
   };
 
   // Fetch previous deliveries for the selected mandate
@@ -40,6 +46,7 @@ export const DeliverySubmit = () => {
               <FormSelect
                 fieldName="precursor"
                 label="precursor"
+                onUpdate={handlePrecursorChange}
                 required={selectedMandate.evaluatePrecursorDelivery === FieldEvaluationType.Required}
                 disabled={previousDeliveries.length === 0}
                 values={previousDeliveries.map(delivery => ({
@@ -64,6 +71,21 @@ export const DeliverySubmit = () => {
                 rows={3}
               />
             </FormContainer>
+          ) : null}
+          {requiresApproval && selectedFile?.name === "sh_sha_SH_Nutzungsplanung_V5_0_Zeitstand2.xtf" ? (
+            <>
+              <FormContainer>
+                <DifferenceVisualisation sourceWFS="/mapservice/validationWithID0000" />
+              </FormContainer>
+              <FormContainer>
+                <FormCheckbox
+                  fieldName="isApproved"
+                  label="isApproved"
+                  checked={false}
+                  validation={{ validate: (value: boolean) => value }}
+                />
+              </FormContainer>
+            </>
           ) : null}
           <FlexRowEndBox>
             <CancelButton onClick={() => resetDelivery()} disabled={isLoading} />

@@ -14,9 +14,11 @@ import { bbox as bboxStrategy } from "ol/loadingstrategy";
 import { Style, Fill, Stroke } from "ol/style";
 import Feature from "ol/Feature";
 import { Geometry } from "ol/geom";
+import TileWMS from "ol/source/TileWMS";
 
 const getFeatureStyle = (isNew: boolean) => (feature: Feature<Geometry>) => {
   const operation = (feature.get("operation") as string)?.toLowerCase() || "";
+
   if (operation == "deleted (no close geometry)") {
     return new Style({
       fill: new Fill({ color: "rgba(255,0,0,0.9)" }),
@@ -92,10 +94,24 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
         strategy: bboxStrategy,
       });
 
+      const baseTileLayer = new TileLayer({
+        source: new TileWMS({
+          url: "https://wms.geo.sh.ch/wms",
+          params: {
+            LAYERS: "sh.nutzungsplanung.rechtsgueltig.grundnutzung",
+            FORMAT: "image/png",
+            TRANSPARENT: true,
+            VERSION: "1.3.0",
+          },
+          crossOrigin: "anonymous",
+        }),
+        opacity: 1,
+      });
+
       mapObj.current = new Map({
         target: mapRef.current,
         layers: [
-          new TileLayer({ source: new OSM(), className: styles.ol_bw }),
+          baseTileLayer,
           new VectorLayer({ source: currentGeometrySource, style: getFeatureStyle(false), className: styles.diff_old }),
           new VectorLayer({ source: nextGeometrySource, style: getFeatureStyle(true), className: styles.diff_new }),
         ],
@@ -112,5 +128,5 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
     };
   }, [sourceWFS]);
 
-  return <div ref={mapRef} style={{ width: "100%", height: 450, borderRadius: 8, border: "1px solid #bdbdbd" }} />;
+  return <div ref={mapRef} style={{ width: "100%", height: 450, borderRadius: 8, border: "1px solid #bdbdbd", backgroundColor: "#fff" }} />;
 };
