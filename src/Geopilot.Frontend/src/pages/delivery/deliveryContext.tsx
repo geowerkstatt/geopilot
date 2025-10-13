@@ -12,7 +12,6 @@ import { DeliveryValidation } from "./validation/deliveryValidation.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
 import { DeliveryCompleted } from "./deliveryCompleted.tsx";
-import { useTranslation } from "react-i18next";
 import useFetch from "../../hooks/useFetch.ts";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
