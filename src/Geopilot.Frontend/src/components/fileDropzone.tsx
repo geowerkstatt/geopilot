@@ -47,25 +47,25 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
         setError(undefined);
       }
       if (fileRejections.length > 0) {
-        let errorMessage: string;
+        let errorKey: string;
         const errorCode = fileRejections[0].errors[0].code;
 
         switch (errorCode) {
           case "file-invalid-type":
-            errorMessage = "fileDropzoneErrorNotSupported";
+            errorKey = "fileDropzoneErrorNotSupported";
             break;
           case "too-many-files":
-            errorMessage = "fileDropzoneErrorTooManyFiles";
+            errorKey = "fileDropzoneErrorTooManyFiles";
             break;
           case "file-too-large":
-            errorMessage = "fileDropzoneErrorFileTooLarge";
+            errorKey = "fileDropzoneErrorFileTooLarge";
             break;
           default:
-            errorMessage = "fileDropzoneErrorChooseFile";
+            errorKey = "fileDropzoneErrorChooseFile";
             break;
         }
 
-        setError(errorMessage);
+        setError(errorKey);
       } else {
         setSelectedFile(acceptedFiles[0]);
       }
