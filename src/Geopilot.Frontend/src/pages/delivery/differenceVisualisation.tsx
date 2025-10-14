@@ -3,9 +3,8 @@ import "ol/ol.css";
 import styles from "./differenceVisualisation.module.css";
 import Map from "ol/Map";
 import View from "ol/View";
-import TileLayer from "ol/layer/Tile";
 import OSM from "ol/source/OSM";
-import { fromLonLat } from "ol/proj";
+import ol_control_Swipe from "ol-ext/control/Swipe";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import GeoJSON from "ol/format/GeoJSON";
@@ -14,9 +13,12 @@ import { bbox as bboxStrategy } from "ol/loadingstrategy";
 import { Style, Fill, Stroke } from "ol/style";
 import Feature from "ol/Feature";
 import { Geometry } from "ol/geom";
-import TileWMS from "ol/source/TileWMS";
+import TileLayer from "ol/layer/Tile";
+import Overlay from "ol/Overlay";
+import "ol-ext/control/Swipe.css";
 
 const getFeatureStyle = (isNew: boolean) => (feature: Feature<Geometry>) => {
+  console.log(feature);
   const operation = (feature.get("operation") as string)?.toLowerCase() || "";
 
   if (operation == "deleted (no close geometry)") {
@@ -74,6 +76,27 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
 
   useEffect(() => {
     if (mapRef.current && !mapObj.current) {
+      // Create tooltip element
+      const tooltipEl = document.createElement("div");
+      tooltipEl.style.cssText = `
+        position: relative;
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        padding: 6px 10px;
+        border-radius: 4px;
+        white-space: pre-line;
+        font-size: 12px;
+        pointer-events: none;
+        transform: translateY(-12px);
+      `;
+
+      const overlay = new Overlay({
+        element: tooltipEl,
+        offset: [0, -12],
+        positioning: "bottom-center",
+        stopEvent: false,
+      });
+
       const currentGeometrySource = new VectorSource({
         format: new GeoJSON(),
         url: extent =>
@@ -94,32 +117,55 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
         strategy: bboxStrategy,
       });
 
-      const baseTileLayer = new TileLayer({
-        source: new TileWMS({
-          url: "https://wms.geo.sh.ch/wms",
-          params: {
-            LAYERS: "sh.nutzungsplanung.rechtsgueltig.grundnutzung",
-            FORMAT: "image/png",
-            TRANSPARENT: true,
-            VERSION: "1.3.0",
-          },
-          crossOrigin: "anonymous",
-        }),
-        opacity: 1,
+      const baseTileLayer = new TileLayer({ source: new OSM(), className: styles.ol_bw });
+      const beforeLayer = new VectorLayer({
+        source: nextGeometrySource,
+        style: getFeatureStyle(true),
+        className: styles.diff_new,
+      });
+      const afterLayer = new VectorLayer({
+        source: currentGeometrySource,
+        style: getFeatureStyle(false),
+        className: styles.diff_old,
       });
 
-      mapObj.current = new Map({
+      const map = new Map({
         target: mapRef.current,
-        layers: [
-          baseTileLayer,
-          new VectorLayer({ source: currentGeometrySource, style: getFeatureStyle(false), className: styles.diff_old }),
-          new VectorLayer({ source: nextGeometrySource, style: getFeatureStyle(true), className: styles.diff_new }),
-        ],
+        layers: [baseTileLayer, beforeLayer, afterLayer],
         view: new View({
-          center: fromLonLat([8.6, 47.7]),
-          zoom: 12,
+          center: [963555.2574733495, 6058156.276204036],
+          zoom: 13.65,
         }),
+        overlays: [overlay],
       });
+
+      const ctrl = new ol_control_Swipe();
+      map.addControl(ctrl);
+      ctrl.addLayer(beforeLayer, true);
+      ctrl.addLayer(afterLayer, false);
+
+      // Tooltip functionality
+      map.on("pointermove", evt => {
+        if (evt.dragging) return;
+
+        const feature = map.forEachFeatureAtPixel(evt.pixel, feature => feature);
+
+        if (feature) {
+          const operation = feature.get("operation") || "unknown operation";
+          const id = feature.get("id") || feature.getId() || "no id";
+          const text = `${operation}\nTID: ${id}`;
+
+          tooltipEl.textContent = text;
+          overlay.setPosition(evt.coordinate);
+          tooltipEl.style.display = "block";
+          map.getTargetElement().style.cursor = "pointer";
+        } else {
+          tooltipEl.style.display = "none";
+          map.getTargetElement().style.cursor = "";
+        }
+      });
+
+      mapObj.current = map;
     }
 
     return () => {
@@ -128,5 +174,10 @@ export const DifferenceVisualisation = ({ sourceWFS }: { sourceWFS: string }) =>
     };
   }, [sourceWFS]);
 
-  return <div ref={mapRef} style={{ width: "100%", height: 450, borderRadius: 8, border: "1px solid #bdbdbd", backgroundColor: "#fff" }} />;
+  return (
+    <div
+      ref={mapRef}
+      style={{ width: "100%", height: 450, borderRadius: 8, border: "1px solid #bdbdbd", backgroundColor: "#fff" }}
+    />
+  );
 };
