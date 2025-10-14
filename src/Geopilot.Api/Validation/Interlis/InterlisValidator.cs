@@ -93,6 +93,12 @@ public class InterlisValidator : IValidator
         if (message == "Die Daten sind modellkonform.")
             message = "Les données sont conformes au modèle.";
 
+        if (message == "Die Daten sind nicht modellkonform.")
+            message = "Les données ne sont pas conformes au modèle.";
+
+        if (message == "Die XML-Struktur der Transferdatei ist ungültig.")
+            message = "La structure XML du fichier n'est pas valide.";
+
         return new ValidatorResult(ToValidatorResultStatus(statusResponse.Status), message, logFiles.ToImmutableDictionary());
     }
 
