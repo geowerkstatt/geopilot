@@ -32,12 +32,13 @@ export const ValidationVisualisation = () => {
       position: relative;
       background: rgba(0,0,0,0.75);
       color: #fff;
-      padding: 4px 8px;
+      padding: 6px 10px;
       border-radius: 4px;
-      white-space: nowrap;
+      white-space: pre-line;
       font-size: 12px;
       pointer-events: none;
       transform: translateY(-12px);
+      max-width: fit-content;
     `;
     tooltipRef.current = tooltipEl;
 
@@ -143,15 +144,11 @@ export const ValidationVisualisation = () => {
       target: mapRef.current,
       layers: [baseLayer, clusterLayer],
       view: new View({
-        center: [808075.5185416606, 5971312.53417889],
-        zoom: 12,
+        center: [810681.9625898949, 5972942.988941241],
+        zoom: 14.58,
       }),
       overlays: [overlay],
     });
-
-    if (!vectorSource.isEmpty()) {
-      map.getView().fit(vectorSource.getExtent(), { padding: [40, 40, 40, 40], maxZoom: 16 });
-    }
 
     // Click to zoom into cluster
     map.on("click", evt => {
@@ -167,7 +164,7 @@ export const ValidationVisualisation = () => {
     });
 
     // Hover tooltip
-    map.on("pointermove", evt => {
+    map.on("pointermove", (evt) => {
       if (evt.dragging) return;
       (clusterLayer as any).getFeatures(evt.pixel).then((hits: any[]) => {
         if (!hits.length) {
@@ -179,8 +176,14 @@ export const ValidationVisualisation = () => {
         const members = clusterFeature.get("features");
         let text: string | undefined;
         if (members?.length === 1) {
-          // Show the single feature's message property
-          text = members[0].get("Message") ?? "(no message)";
+          // Show the single feature's message, tid, and objtag properties
+          const feature = members[0];
+          const message = feature.get("Message") ?? "(no message)";
+          const tid = feature.get("Tid") ?? "(no tid)";
+          const objTag = feature.get("ObjTag") ?? "(no obj tag)";
+          text = `${message}\nTid: ${tid}\nObjTag: ${objTag}`;
+        } else if (members?.length > 1) {
+          text = `${members.length} erreurs`;
         }
         if (!text) {
           tooltipEl.style.display = "none";
@@ -194,6 +197,12 @@ export const ValidationVisualisation = () => {
     });
 
     mapInstanceRef.current = map;
+
+    map.on('moveend', () => {
+      const center = map.getView().getCenter();
+      const zoom = map.getView().getZoom();
+      console.log('Map center:', center, 'Zoom:', zoom);
+    });
 
     return () => {
       map.setTarget(undefined);
@@ -210,7 +219,6 @@ export const ValidationVisualisation = () => {
           height: 400,
           border: "1px solid #ccc",
           borderRadius: 4,
-          overflow: "hidden",
         }}
         data-cy="validation-map"
       />
