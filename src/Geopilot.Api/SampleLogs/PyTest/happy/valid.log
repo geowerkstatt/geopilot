@@ -1,0 +1,17 @@
+============================= test session starts =============================
+platform win32 -- Python 3.9.0, pytest-8.2.1, pluggy-1.6.0
+rootdir: D:\\_SOURCE\\pytest_endpoint
+plugins: anyio-4.10.0
+collected 4 items
+
+tests\
+naturereigniskataster_v1_0_2056.py ....                            [100%]
+
+============================== warnings summary ===============================
+tests/naturereigniskataster_v1_0_2056.py::TestData::test_data_min_area_prozessraum_sturz
+tests/naturereigniskataster_v1_0_2056.py::TestData::test_data_overlay_prozessraum_sturz
+  c:\\users\\ogrimm\\appdata\\roaming\\python\\python39\\site-packages\\pandas\\core\\frame.py:717: DeprecationWarning: Passing a BlockManager to GeoDataFrame is deprecated and will raise in a future version. Use public APIs instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 4 passed, 2 warnings in 3.01s ========================

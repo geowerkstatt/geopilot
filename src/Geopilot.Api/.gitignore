@@ -1,2 +1,3 @@
 Uploads/
 Persistent/
+!SampleLogs/**/*.log
