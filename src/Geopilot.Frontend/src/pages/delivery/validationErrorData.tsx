@@ -7,7 +7,7 @@ export const ValidationErrorFeatures = {
       type: "Feature",
       properties: {
         ErrorId: "o136",
-        Type: "Error",
+        Type: "Warning",
         Message: "Attribute InAenderung requires a value",
         Description: "",
         Category: "",
@@ -32,7 +32,7 @@ export const ValidationErrorFeatures = {
       type: "Feature",
       properties: {
         ErrorId: "o137",
-        Type: "Error",
+        Type: "Warning",
         Message: "Attribute InAenderung requires a value",
         Description: "",
         Category: "",
@@ -57,7 +57,7 @@ export const ValidationErrorFeatures = {
       type: "Feature",
       properties: {
         ErrorId: "o138",
-        Type: "Error",
+        Type: "Warning",
         Message: "Attribute InAenderung requires a value",
         Description: "",
         Category: "",

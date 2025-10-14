@@ -50,43 +50,6 @@ export const ValidationVisualisation = () => {
     });
     overlayRef.current = overlay;
 
-    // --- Styles ---
-    const pointCircle = new CircleStyle({
-      radius: 5,
-      fill: new Fill({ color: "rgba(255, 255, 0, 1)" }),
-      stroke: new Stroke({ color: "red", width: 1 }),
-    });
-
-    const styles: Record<string, Style> = {
-      Point: new Style({ image: pointCircle }),
-      MultiPoint: new Style({ image: pointCircle }),
-      LineString: new Style({ stroke: new Stroke({ color: "green", width: 1 }) }),
-      MultiLineString: new Style({ stroke: new Stroke({ color: "green", width: 1 }) }),
-      Polygon: new Style({
-        stroke: new Stroke({ color: "blue", lineDash: [4], width: 3 }),
-        fill: new Fill({ color: "rgba(0, 0, 255, 0.1)" }),
-      }),
-      MultiPolygon: new Style({
-        stroke: new Stroke({ color: "yellow", width: 1 }),
-        fill: new Fill({ color: "rgba(255, 255, 0, 0.1)" }),
-      }),
-      GeometryCollection: new Style({
-        stroke: new Stroke({ color: "magenta", width: 2 }),
-        fill: new Fill({ color: "magenta" }),
-        image: new CircleStyle({
-          radius: 10,
-          fill: undefined,
-          stroke: new Stroke({ color: "magenta" }),
-        }),
-      }),
-      Circle: new Style({
-        stroke: new Stroke({ color: "red", width: 2 }),
-        fill: new Fill({ color: "rgba(255,0,0,1)" }),
-      }),
-    };
-
-    const styleFunction = (feature: any) => styles[feature.getGeometry().getType()];
-
     const vectorSource = new VectorSource({
       features: new GeoJSON().readFeatures(ValidationErrorFeatures),
     });
@@ -97,19 +60,32 @@ export const ValidationVisualisation = () => {
       source: vectorSource,
     });
 
+    const errorStyle = new Style({
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: "#ff3939ff" }),
+        stroke: new Stroke({ color: "#444", width: 1 }),
+      }),
+    });
+
+    const warningStyle = new Style({
+      image: new CircleStyle({
+        radius: 7,
+        fill: new Fill({ color: "#ffcc33" }),
+        stroke: new Stroke({ color: "#444", width: 1 }),
+      }),
+    });
+
     const clusterStyleCache: Record<number, Style> = {};
     const clusterLayer = new VectorLayer({
       source: clusterSource,
       style: (feature: any) => {
-        const size = feature.get("features")?.length || 1;
+        const features = feature.get("features");
+        const size = features?.length || 1;
         if (size === 1) {
-          return new Style({
-            image: new CircleStyle({
-              radius: 7,
-              fill: new Fill({ color: "#ffcc33" }),
-              stroke: new Stroke({ color: "#444", width: 1 }),
-            }),
-          });
+          const featureType = features[0].get("Type");
+          if (featureType === "Error") return errorStyle;
+          if (featureType === "Warning") return warningStyle;
         }
         let style = clusterStyleCache[size];
         if (!style) {
@@ -164,7 +140,7 @@ export const ValidationVisualisation = () => {
     });
 
     // Hover tooltip
-    map.on("pointermove", (evt) => {
+    map.on("pointermove", evt => {
       if (evt.dragging) return;
       (clusterLayer as any).getFeatures(evt.pixel).then((hits: any[]) => {
         if (!hits.length) {
@@ -179,9 +155,9 @@ export const ValidationVisualisation = () => {
           // Show the single feature's message, tid, and objtag properties
           const feature = members[0];
           const message = feature.get("Message") ?? "(no message)";
-          const tid = feature.get("Tid") ?? "(no tid)";
+          const tid = feature.get("Tid") ?? "(no TID)";
           const objTag = feature.get("ObjTag") ?? "(no obj tag)";
-          text = `${message}\nTid: ${tid}\nObjTag: ${objTag}`;
+          text = `${message}\nTID: ${tid}\nType: ${objTag}`;
         } else if (members?.length > 1) {
           text = `${members.length} erreurs`;
         }
@@ -197,12 +173,6 @@ export const ValidationVisualisation = () => {
     });
 
     mapInstanceRef.current = map;
-
-    map.on('moveend', () => {
-      const center = map.getView().getCenter();
-      const zoom = map.getView().getZoom();
-      console.log('Map center:', center, 'Zoom:', zoom);
-    });
 
     return () => {
       map.setTarget(undefined);
