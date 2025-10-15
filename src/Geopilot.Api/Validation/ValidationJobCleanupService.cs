@@ -73,7 +73,7 @@ public class ValidationJobCleanupService : BackgroundService
                     continue;
 
                 var job = jobStore.GetJob(jobId);
-                var jobAge = now - job?.CreatedOn;
+                var jobAge = now - job?.CreatedAt;
 
                 // Delete orphaned job folders or jobs older than the retention period
                 if (job == null || jobAge > validationOptions.JobRetention)

@@ -12,7 +12,7 @@ public record class ValidationJob(
     int? MandateId,
     ImmutableDictionary<string, ValidatorResult?> ValidatorResults,
     Status Status,
-    DateTime CreatedOn)
+    DateTime CreatedAt)
 {
     /// <summary>
     /// Aggregates the status of all <see cref="ValidatorResults"/> and returns the aggregated <see cref="Status"/>.
