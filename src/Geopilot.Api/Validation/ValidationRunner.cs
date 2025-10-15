@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api.Validation;
+﻿using Microsoft.Extensions.Options;
+
+namespace Geopilot.Api.Validation;
 
 /// <summary>
 /// Runs validation jobs in the background.
@@ -7,20 +9,18 @@ public class ValidationRunner : BackgroundService
 {
     private readonly ILogger<ValidationRunner> logger;
     private readonly IValidationJobStore jobStore;
-    private readonly TimeSpan validatorTimeoutHours;
+    private readonly ValidationOptions validationOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationRunner"/> class.
     /// </summary>
-    public ValidationRunner(ILogger<ValidationRunner> logger, IValidationJobStore jobStore, IConfiguration configuration)
+    public ValidationRunner(ILogger<ValidationRunner> logger, IValidationJobStore jobStore, IOptions<ValidationOptions> validationOptions)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(validationOptions);
 
         this.logger = logger;
         this.jobStore = jobStore;
-
-        var section = configuration.GetSection("Validation");
-        validatorTimeoutHours = TimeSpan.FromHours(section.GetValue<double>("ValidatorTimeoutHours", 12));
+        this.validationOptions = validationOptions.Value;
     }
 
     /// <summary>
@@ -35,7 +35,8 @@ public class ValidationRunner : BackgroundService
         {
             ValidatorResult? result = null;
 
-            using var timeoutCts = new CancellationTokenSource(validatorTimeoutHours);
+            var validatorTimeout = validationOptions.ValidatorTimeouts.GetValueOrDefault(validator.Name, TimeSpan.FromHours(12));
+            using var timeoutCts = new CancellationTokenSource(validatorTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
             try

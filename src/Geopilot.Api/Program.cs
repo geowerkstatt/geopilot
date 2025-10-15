@@ -140,6 +140,8 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 
+builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("Validation"));
+
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
 contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");

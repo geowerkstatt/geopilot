@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.FileAccess;
+using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api.Validation;
 
@@ -10,8 +11,7 @@ public class ValidationJobCleanupService : BackgroundService
     private readonly IValidationJobStore jobStore;
     private readonly IDirectoryProvider directoryProvider;
     private readonly ILogger<ValidationJobCleanupService> logger;
-    private readonly TimeSpan jobRetention;
-    private readonly TimeSpan cleanupInterval;
+    private readonly ValidationOptions validationOptions;
     private readonly object cleanupLock = new();
 
     /// <summary>
@@ -21,17 +21,14 @@ public class ValidationJobCleanupService : BackgroundService
         IValidationJobStore jobStore,
         IDirectoryProvider directoryProvider,
         ILogger<ValidationJobCleanupService> logger,
-        IConfiguration configuration)
+        IOptions<ValidationOptions> validationOptions)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(validationOptions);
 
         this.jobStore = jobStore;
         this.directoryProvider = directoryProvider;
         this.logger = logger;
-
-        var section = configuration.GetSection("Validation");
-        jobRetention = TimeSpan.FromHours(section.GetValue<double>("JobRetentionHours", 24));
-        cleanupInterval = TimeSpan.FromHours(section.GetValue<double>("CleanupIntervalHours", 24));
+        this.validationOptions = validationOptions.Value;
     }
 
     /// <summary>
@@ -41,12 +38,12 @@ public class ValidationJobCleanupService : BackgroundService
     /// <returns>A task that represents the asynchronous execution of the cleanup service.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("ValidationJobCleanupService started. Cleanup interval: {Interval} hours.", cleanupInterval.TotalHours);
+        logger.LogInformation("ValidationJobCleanupService started. Cleanup interval: {Interval}.", validationOptions.JobCleanupInterval.ToString());
 
         while (!stoppingToken.IsCancellationRequested)
         {
             RunCleanup();
-            await Task.Delay(cleanupInterval, stoppingToken);
+            await Task.Delay(validationOptions.JobCleanupInterval, stoppingToken);
         }
     }
 
@@ -79,7 +76,7 @@ public class ValidationJobCleanupService : BackgroundService
                 var jobAge = now - job?.CreatedOn;
 
                 // Delete orphaned job folders or jobs older than the retention period
-                if (job == null || jobAge > jobRetention)
+                if (job == null || jobAge > validationOptions.JobRetention)
                 {
                     if (DeleteJob(jobId))
                         deletedJobs++;
