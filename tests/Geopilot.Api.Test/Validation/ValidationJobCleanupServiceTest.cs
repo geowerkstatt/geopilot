@@ -2,6 +2,7 @@
 using Geopilot.Api.Validation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using System.Collections.Immutable;
 using System.Globalization;
@@ -25,21 +26,21 @@ public class ValidationJobCleanupServiceTest
         directoryProviderMock = new Mock<IDirectoryProvider>();
         loggerMock = new Mock<ILogger<ValidationJobCleanupService>>();
 
-        var configDict = new Dictionary<string, string?>
+        var validationOptions = new ValidationOptions
         {
-            { "Validation:JobRetentionHours", RetentionHours.ToString(CultureInfo.InvariantCulture) },
-            { "Validation:CleanupIntervalHours", "24" },
+            JobRetention = TimeSpan.FromHours(RetentionHours),
+            JobCleanupInterval = TimeSpan.FromHours(24),
+            ValidatorTimeouts = new Dictionary<string, TimeSpan>(),
         };
 
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configDict)
-            .Build();
+        var optionsMock = new Mock<IOptions<ValidationOptions>>();
+        optionsMock.Setup(o => o.Value).Returns(validationOptions);
 
         service = new ValidationJobCleanupService(
             jobStoreMock.Object,
             directoryProviderMock.Object,
             loggerMock.Object,
-            configuration);
+            optionsMock.Object);
 
         tempUploadRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tempUploadRoot);
