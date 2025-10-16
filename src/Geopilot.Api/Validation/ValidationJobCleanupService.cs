@@ -12,7 +12,7 @@ public class ValidationJobCleanupService : BackgroundService
     private readonly IDirectoryProvider directoryProvider;
     private readonly ILogger<ValidationJobCleanupService> logger;
     private readonly ValidationOptions validationOptions;
-    private readonly object cleanupLock = new();
+    private readonly SemaphoreSlim cleanupSemaphore = new SemaphoreSlim(1);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationJobCleanupService"/> class.
@@ -47,6 +47,14 @@ public class ValidationJobCleanupService : BackgroundService
         }
     }
 
+    /// <inheritdoc/>
+    public override void Dispose()
+    {
+        cleanupSemaphore.Dispose();
+        base.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
     /// <summary>
     /// Performs the cleanup of old or orphaned validation jobs and their associated files.
     /// </summary>
@@ -54,7 +62,7 @@ public class ValidationJobCleanupService : BackgroundService
     {
         try
         {
-            if (!Monitor.TryEnter(cleanupLock))
+            if (!cleanupSemaphore.Wait(0))
             {
                 logger.LogWarning("Validation job cleanup is already running. Skipping this run.");
                 return;
@@ -91,7 +99,7 @@ public class ValidationJobCleanupService : BackgroundService
         }
         finally
         {
-            Monitor.Exit(cleanupLock);
+            cleanupSemaphore.Release();
         }
     }
 

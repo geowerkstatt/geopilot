@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using System.Collections.Immutable;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Geopilot.Api.Test.Validation;
 
@@ -160,5 +161,23 @@ public class ValidationJobCleanupServiceTest
 
         File.Delete(lockedFilePath);
         Directory.Delete(jobDir, true);
+    }
+
+    [TestMethod]
+    public async Task RunCleanupSkipsIfAlreadyRunning()
+    {
+        var firstRun = Task.Run(() => service.RunCleanup()); // First run should proceed
+        var secondRun = Task.Run(() => service.RunCleanup()); // Second run should log warning and skip
+
+        await Task.WhenAll(firstRun, secondRun);
+
+        loggerMock.Verify(
+        l => l.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Validation job cleanup is already running. Skipping this run.")),
+            null,
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+        Times.Once);
     }
 }
