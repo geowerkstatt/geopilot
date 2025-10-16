@@ -60,14 +60,14 @@ public class ValidationJobCleanupService : BackgroundService
     /// </summary>
     public void RunCleanup()
     {
+        if (!cleanupSemaphore.Wait(0))
+        {
+            logger.LogWarning("Validation job cleanup is already running. Skipping this run.");
+            return;
+        }
+
         try
         {
-            if (!cleanupSemaphore.Wait(0))
-            {
-                logger.LogWarning("Validation job cleanup is already running. Skipping this run.");
-                return;
-            }
-
             var now = DateTime.UtcNow;
             int deletedJobs = 0;
             var uploadRoot = directoryProvider.UploadDirectory;
