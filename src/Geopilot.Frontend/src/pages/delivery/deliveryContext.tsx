@@ -5,14 +5,13 @@ import {
   DeliveryStepError,
   DeliverySubmitData,
 } from "./deliveryInterfaces.tsx";
-import { createContext, FC, PropsWithChildren, useCallback, useEffect, useMemo, useState } from "react";
+import { createContext, FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, Mandate, StartJobRequest, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
 import { DeliveryUpload } from "./deliveryUpload.tsx";
 import { DeliveryValidation } from "./validation/deliveryValidation.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
 import { DeliveryCompleted } from "./deliveryCompleted.tsx";
-import { useTranslation } from "react-i18next";
 import useFetch from "../../hooks/useFetch.ts";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
@@ -66,15 +65,16 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, userLogged
 };
 
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
-  const { t } = useTranslation();
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [validationStarted, setValidationStarted] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File>();
   const [selectedMandate, setSelectedMandate] = useState<Mandate>();
   const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
   const { user } = useGeopilotAuth();
+  const prevUserIdRef = useRef<number | undefined>(user?.id);
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), user !== null));
 
   const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = useMemo(
@@ -87,6 +87,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       [DeliveryStepEnum.Validate]: [
         { status: 400, errorKey: "validationErrorRequestMalformed" },
         { status: 404, errorKey: "validationErrorCannotFind" },
+        { status: 500, errorKey: "validationErrorUnexpected" },
       ],
       [DeliveryStepEnum.Submit]: [
         { status: 400, errorKey: "deliveryErrorMalformedRequest" },
@@ -185,7 +186,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
           if (response.status === ValidationStatus.Completed) {
             continueToNextStep();
           } else {
-            setStepError(DeliveryStepEnum.Validate, t(response.status));
+            setStepError(DeliveryStepEnum.Validate, response.status);
           }
         }
       })
@@ -197,6 +198,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const validateFile = (jobId: string, startJobRequest: StartJobRequest) => {
     if (validationResponse?.status === ValidationStatus.Ready && !isLoading) {
       setIsLoading(true);
+      setValidationStarted(true);
 
       const abortController = new AbortController();
       setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
@@ -243,10 +245,11 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       .finally(() => setIsLoading(false));
   };
 
-  const resetDelivery = () => {
+  const resetDelivery = useCallback(() => {
     abortControllers.forEach(controller => controller.abort());
     setAbortControllers([]);
     setIsLoading(false);
+    setValidationStarted(false);
     setSelectedFile(undefined);
     setSelectedMandate(undefined);
     setValidationResponse(undefined);
@@ -259,7 +262,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
       return newSteps;
     });
-  };
+  }, [abortControllers]);
+
+  // Reset delivery when user changes AFTER the validation was already started
+  useEffect(() => {
+    if (validationStarted && user?.id !== prevUserIdRef.current) {
+      resetDelivery();
+    }
+    prevUserIdRef.current = user?.id;
+  }, [user?.id, resetDelivery, validationStarted]);
 
   return (
     <DeliveryContext.Provider

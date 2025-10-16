@@ -44,7 +44,7 @@ export const DeliverySubmit = () => {
                 disabled={previousDeliveries.length === 0}
                 values={previousDeliveries.map(delivery => ({
                   key: delivery.id,
-                  name: delivery.date.toLocaleString(),
+                  name: new Date(delivery.date).toLocaleString(),
                 }))}
               />
             ) : null}
