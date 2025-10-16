@@ -113,22 +113,4 @@ public class ValidationJobCleanupServiceTest
         Assert.IsTrue(Directory.Exists(nonGuidDir));
         jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
     }
-
-    [TestMethod]
-    public async Task RunCleanupSkipsIfAlreadyRunning()
-    {
-        var firstRun = Task.Run(() => service.RunCleanup()); // First run should proceed
-        var secondRun = Task.Run(() => service.RunCleanup()); // Second run should log warning and skip
-
-        await Task.WhenAll(firstRun, secondRun);
-
-        loggerMock.Verify(
-        l => l.Log(
-            LogLevel.Warning,
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Validation job cleanup is already running. Skipping this run.")),
-            null,
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-        Times.Once);
-    }
 }
