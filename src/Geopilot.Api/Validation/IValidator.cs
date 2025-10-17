@@ -25,6 +25,7 @@ public interface IValidator
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the asynchronous operation.</param>
     /// <exception cref="InvalidOperationException">If the validator has not been configured correctly and cannot do the validation.</exception>
     /// <exception cref="ValidationFailedException">If the validation failed unexpectedly.</exception>
+    /// <exception cref="OperationCanceledException">If the validation was cancelled.</exception>
     Task<ValidatorResult> ExecuteAsync(CancellationToken cancellationToken);
 
     /// <summary>

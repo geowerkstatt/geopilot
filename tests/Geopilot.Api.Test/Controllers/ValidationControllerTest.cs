@@ -65,7 +65,7 @@ public sealed class ValidationControllerTest
         formFileMock.SetupGet(x => x.FileName).Returns(originalFileName);
         formFileMock.Setup(x => x.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(0));
 
-        var validationJob = new ValidationJob(jobId, originalFileName, tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created);
+        var validationJob = new ValidationJob(jobId, originalFileName, tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now);
         using var fileHandle = new FileHandle(tempFileName, Stream.Null);
 
         validationServiceMock.Setup(x => x.IsFileExtensionSupportedAsync(".xtf")).Returns(Task.FromResult(true));
@@ -120,7 +120,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "BIZARRESCAN.xtf", "TEMP.xtf", mandateId, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing));
+            .Returns(new ValidationJob(jobId, "BIZARRESCAN.xtf", "TEMP.xtf", mandateId, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing, DateTime.Now));
 
         var response = controller.GetStatus(jobId) as OkObjectResult;
         var jobResponse = response?.Value as ValidationJobResponse;
@@ -157,7 +157,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
+            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed, DateTime.Now));
 
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.Exists(fileName)).Returns(true);
@@ -198,7 +198,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
+            .Returns(new ValidationJob(jobId, "original.xtf", "temp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed, DateTime.Now));
 
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.Exists(fileName)).Returns(false);
@@ -222,7 +222,8 @@ public sealed class ValidationControllerTest
             "temp.xtf",
             null,
             ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Processing);
+            Status.Processing,
+            DateTime.Now);
 
         validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
         validationServiceMock.Setup(x => x.StartJobAsync(jobId)).ReturnsAsync(validationJob);
@@ -261,7 +262,8 @@ public sealed class ValidationControllerTest
             "temp.xtf",
             mandate.Id,
             ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Processing);
+            Status.Processing,
+            DateTime.Now);
 
         validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob).Verifiable();
         validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, user)).ReturnsAsync(validationJob);
@@ -316,7 +318,8 @@ public sealed class ValidationControllerTest
             "temp.xtf",
             null,
             ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Ready);
+            Status.Ready,
+            DateTime.Now);
 
         validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
         validationServiceMock.Setup(x => x.StartJobAsync(jobId))
@@ -346,7 +349,8 @@ public sealed class ValidationControllerTest
             "temp.xtf",
             null,
             ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Ready);
+            Status.Ready,
+            DateTime.Now);
 
         controller.SetupTestUser(user);
 
@@ -375,7 +379,8 @@ public sealed class ValidationControllerTest
             "temp.xtf",
             null,
             ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Ready);
+            Status.Ready,
+            DateTime.Now);
 
 #pragma warning disable CA2201 // Do not raise reserved exception types
         validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
@@ -406,7 +411,8 @@ public sealed class ValidationControllerTest
             "temp.xtf",
             null,
             ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Ready);
+            Status.Ready,
+            DateTime.Now);
 
         // Note: Not setting up a user to simulate unauthenticated scenario
         validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
@@ -436,7 +442,8 @@ public sealed class ValidationControllerTest
             "temp.xtf",
             null,
             ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Ready);
+            Status.Ready,
+            DateTime.Now);
 
         controller.SetupTestUser(user);
         validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
@@ -466,7 +473,8 @@ public sealed class ValidationControllerTest
             "temp.xtf",
             null,
             ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Processing);
+            Status.Processing,
+            DateTime.Now);
 
         validationServiceMock.Setup(x => x.GetJob(jobId1)).Returns(validationJobWithoutMandate);
         validationServiceMock.Setup(x => x.StartJobAsync(jobId1)).ReturnsAsync(validationJobWithoutMandate);
@@ -495,7 +503,8 @@ public sealed class ValidationControllerTest
             "temp.xtf",
             mandate.Id,
             ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Processing);
+            Status.Processing,
+            DateTime.Now);
 
         controller.SetupTestUser(user);
 

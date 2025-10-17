@@ -81,10 +81,6 @@ public class InterlisValidator : IValidator
         logger.LogInformation("Validating transfer file <{File}>...", fileName);
         var uploadResponse = await UploadTransferFileAsync(fileProvider, fileName, interlisValidationProfile, cancellationToken).ConfigureAwait(false);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken).ConfigureAwait(false);
-        if (statusResponse == null)
-        {
-            return new ValidatorResult(ValidatorResultStatus.Failed, "Validation was cancelled.");
-        }
 
         var logFiles = await DownloadLogFilesAsync(statusResponse, fileProvider, fileName, cancellationToken).ConfigureAwait(false);
 
@@ -118,7 +114,7 @@ public class InterlisValidator : IValidator
         return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<InterlisStatusResponse?> PollStatusAsync(string statusUrl, CancellationToken cancellationToken)
+    private async Task<InterlisStatusResponse> PollStatusAsync(string statusUrl, CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -135,7 +131,7 @@ public class InterlisValidator : IValidator
             await Task.Delay(pollInterval, cancellationToken).ConfigureAwait(false);
         }
 
-        return null;
+        throw new OperationCanceledException();
     }
 
     private async Task<IDictionary<string, string>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse, IFileProvider fileProvider, string transferFile, CancellationToken cancellationToken)

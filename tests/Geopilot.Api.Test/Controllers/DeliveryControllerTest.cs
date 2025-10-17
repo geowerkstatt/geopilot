@@ -315,7 +315,7 @@ public class DeliveryControllerTest
         var guid = Guid.NewGuid();
         validationServiceMock
             .Setup(s => s.GetJob(guid))
-            .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip", mandateId, ImmutableDictionary<string, ValidatorResult?>.Empty, jobStatus));
+            .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip", mandateId, ImmutableDictionary<string, ValidatorResult?>.Empty, jobStatus, DateTime.Now));
         return guid;
     }
 

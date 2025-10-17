@@ -9,7 +9,7 @@ public class DirectoryProvider : IDirectoryProvider
     public string UploadDirectory { get; }
 
     /// <inheritdoc/>
-    public string AssetDicrectory { get; }
+    public string AssetDirectory { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DirectoryProvider"/> class.
@@ -18,14 +18,14 @@ public class DirectoryProvider : IDirectoryProvider
     {
         UploadDirectory = configuration.GetValue<string>("Storage:UploadDirectory")
             ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
-        AssetDicrectory = configuration.GetValue<string>("Storage:AssetsDirectory")
+        AssetDirectory = configuration.GetValue<string>("Storage:AssetsDirectory")
             ?? throw new InvalidOperationException("Missing root directory for persisted assets, the value can be configured as \"Storage:AssetsDirectory\"");
     }
 
     /// <inheritdoc/>
     public string GetAssetDirectoryPath(Guid jobId)
     {
-        return Path.Combine(AssetDicrectory, jobId.ToString());
+        return Path.Combine(AssetDirectory, jobId.ToString());
     }
 
     /// <inheritdoc/>

@@ -95,7 +95,7 @@ namespace Geopilot.Api.Controllers
             mandateController.SetupTestUser(editUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready));
+                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
             xtfMandate.SetCoordinateListFromPolygon();
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
@@ -114,7 +114,7 @@ namespace Geopilot.Api.Controllers
             mandateController.SetupTestUser(editUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready));
+                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
             xtfMandate.SetCoordinateListFromPolygon();
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
@@ -133,7 +133,7 @@ namespace Geopilot.Api.Controllers
             mandateController.SetupTestUser(editUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.csv", "tmp.csv", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready));
+                .Returns(new ValidationJob(jobId, "Original.csv", "tmp.csv", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
@@ -294,7 +294,7 @@ namespace Geopilot.Api.Controllers
             var guid = Guid.NewGuid();
             validationServiceMock
                 .Setup(s => s.GetJob(guid))
-                .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip", mandateToUpdate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed));
+                .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip", mandateToUpdate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed, DateTime.Now));
             var assetHandlerMock = new Mock<IAssetHandler>();
             assetHandlerMock
                 .Setup(p => p.PersistJobAssets(guid))

@@ -13,7 +13,7 @@ public interface IDirectoryProvider
     /// <summary>
     /// Gets the root directory for persisted assets.
     /// </summary>
-    string AssetDicrectory { get; }
+    string AssetDirectory { get; }
 
     /// <summary>
     /// Gets the upload directory for the specified <paramref name="jobId"/>.

@@ -140,6 +140,8 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 
+builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("Validation"));
+
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
 contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");
@@ -152,6 +154,7 @@ builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
 builder.Services.AddHostedService<ValidationRunner>();
+builder.Services.AddHostedService<ValidationJobCleanupService>();
 
 builder.Services
     .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")
