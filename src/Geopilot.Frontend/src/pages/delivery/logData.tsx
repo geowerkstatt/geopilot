@@ -1,10 +1,10 @@
 export const LogData = [
   {
-    message: "DMAV_FixpunkteAVKategorie3_V1_0",
+    message: "DMAV_PointsFixesMOCategorie3_V1_0",
     type: "Info",
     values: [
       {
-        message: "FixpunkteAVKategorie3.LFP3_Gueltig",
+        message: "PointsFixesMOCategorie3.PFP3_Valable",
         type: "Info",
         values: [
           {
@@ -18,7 +18,7 @@ export const LogData = [
         ],
       },
       {
-        message: "FixpunkteAVKategorie3.LFP3",
+        message: "PointsFixesMOCategorie3.PFP3",
         type: "Info",
         values: [
           {
@@ -36,7 +36,7 @@ export const LogData = [
         ],
       },
       {
-        message: "FixpunkteAVKategorie3.HFP3Nachfuehrung",
+        message: "PointsFixesMOCategorie3.MiseAJourPFA3 ",
         type: "Info",
         values: [
           {
@@ -46,7 +46,7 @@ export const LogData = [
         ],
       },
       {
-        message: "FixpunkteAVKategorie3.HFP3_Gueltig",
+        message: "PointsFixesMOCategorie3.HFP3PFA3_Valable_Gueltig",
         type: "Info",
         values: [
           {
@@ -60,7 +60,7 @@ export const LogData = [
         ],
       },
       {
-        message: "FixpunkteAVKategorie3.LFP3Nachfuehrung",
+        message: "PointsFixesMOCategorie3.MiseAJourPFP3 ",
         type: "Info",
         values: [
           {
@@ -72,11 +72,11 @@ export const LogData = [
     ],
   },
   {
-    message: "DMAV_V1_0_Validierung",
+    message: "DMAV_V1_0_Validation",
     type: "Error",
     values: [
       {
-        message: "FixpunkteKategorie3_Validierung.v_LFP3",
+        message: "PointsFixesMOCategorie3_Validation.v_PFP3",
         type: "Info",
         values: [
           {
@@ -86,17 +86,17 @@ export const LogData = [
         ],
       },
       {
-        message: "FixpunkteKategorie3_Validierung.v_HFP3",
+        message: "PointsFixesMOCategorie3_Validation.v_PFA3",
         type: "Error",
         values: [
           {
-            message: "Hoehengeometrie darf nicht gleich 0.0 sein",
+            message: "Geomaltimetrie ne peut pas être égale à 0.0",
             type: "Error",
           },
         ],
       },
       {
-        message: "Einzelobjekte_Validierung.v_Einzelobjekt",
+        message: "ObjetsDivers_Validation.v_ObjetsDivers",
         type: "Info",
         values: [
           {
@@ -250,7 +250,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Rohrleitungen_Validierung.v_Leitungsobjekt",
+        message: "Conduites_Validation.v_ElementConduite",
         type: "Info",
         values: [
           {
@@ -260,7 +260,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke_Validierung.v_Liegenschaft",
+        message: "Immeubles_Validation.v_bien_fonds",
         type: "Info",
         values: [
           {
@@ -270,7 +270,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke_Validierung.v_Grundstueck",
+        message: "Immeubles_Validation.v_Immeubles",
         type: "Info",
         values: [
           {
@@ -292,7 +292,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke_Validierung.v_SelbstaendigesDauerndesRecht",
+        message: "Immeubles_Validation.v_droit_distinct_permanent",
         type: "Info",
         values: [
           {
@@ -308,11 +308,11 @@ export const LogData = [
     ],
   },
   {
-    message: "DMAV_Nomenklatur_V1_0",
+    message: "DMAV_Nomenclature_V1_0",
     type: "Info",
     values: [
       {
-        message: "Nomenklatur.NKNachfuehrung",
+        message: "Nomenclature.MiseAJourNC",
         type: "Info",
         values: [
           {
@@ -324,11 +324,11 @@ export const LogData = [
     ],
   },
   {
-    message: "DMAV_Dienstbarkeitsgrenzen_V1_0",
+    message: "DMAV_AssiettesDeServitudes_V1_0",
     type: "Info",
     values: [
       {
-        message: "Dienstbarkeitsgrenzen.Dienstbarkeitsgrenze",
+        message: "AssiettesDeServitudes.AssietteDeServitudes ",
         type: "Info",
         values: [
           {
@@ -338,7 +338,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Dienstbarkeitsgrenzen.DiBNachfuehrung",
+        message: "AssiettesDeServitudes.MiseAJourSV",
         type: "Info",
         values: [
           {
@@ -350,11 +350,11 @@ export const LogData = [
     ],
   },
   {
-    message: "DMAV_Einzelobjekte_V1_0",
+    message: "DMAV_ObjetsDivers_V1_0",
     type: "Error",
     values: [
       {
-        message: "Einzelobjekte.Messpunkt",
+        message: "ObjetsDivers.PointMesure",
         type: "Info",
         values: [
           {
@@ -368,7 +368,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Einzelobjekte.Einzelobjekt",
+        message: "ObjetsDivers.ObjetDivers",
         type: "Info",
         values: [
           {
@@ -378,11 +378,11 @@ export const LogData = [
         ],
       },
       {
-        message: "Einzelobjekte.EONachfuehrung",
+        message: "ObjetsDivers.MiseAJourOD",
         type: "Error",
         values: [
           {
-            message: "Benutzerschlüssel ist nicht eindeutig (Attributkombination: NBIdent, Identifikator)",
+            message: "La clé utilisateur n'est pas unique (Combinaison d'attributs : IdentDN, Identification)",
             type: "Error",
           },
         ],
@@ -390,11 +390,11 @@ export const LogData = [
     ],
   },
   {
-    message: "DMAV_Rohrleitungen_V1_0",
+    message: "DMAV_Conduites_V1_0",
     type: "Info",
     values: [
       {
-        message: "Rohrleitungen.Messpunkt",
+        message: "Conduites.PointMesure",
         type: "Info",
         values: [
           {
@@ -408,7 +408,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Rohrleitungen.Leitungsobjekt",
+        message: "Conduites.ElementConduite",
         type: "Info",
         values: [
           {
@@ -418,7 +418,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Rohrleitungen.Flaechenelement",
+        message: "Conduites.ElementSurfacique",
         type: "Info",
         values: [
           {
@@ -428,7 +428,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Rohrleitungen.RLNachfuehrung",
+        message: "Conduites.MiseAJourCON",
         type: "Info",
         values: [
           {
@@ -440,11 +440,11 @@ export const LogData = [
     ],
   },
   {
-    message: "DMAV_Grundstuecke_V1_0",
+    message: "DMAV_Immeubles_V1_0",
     type: "Info",
     values: [
       {
-        message: "Grundstuecke.Grenzpunkt_Gueltig",
+        message: "Immeubles.PointLimite_Valable",
         type: "Info",
         values: [
           {
@@ -454,7 +454,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke.Grenzpunkt",
+        message: "Immeubles.PointLimite",
         type: "Info",
         values: [
           {
@@ -472,7 +472,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke.Liegenschaft",
+        message: "Immeubles.bien_fonds",
         type: "Info",
         values: [
           {
@@ -490,7 +490,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke.GrundstueckLiegenschaft",
+        message: "Immeubles.ImmeubleBienFonds",
         type: "Info",
         values: [
           {
@@ -504,7 +504,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke.Grundstueck_Gueltig",
+        message: "Immeubles.Immeuble_Valable",
         type: "Info",
         values: [
           {
@@ -518,7 +518,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke.Grundstueck",
+        message: "Immeubles.Immeuble",
         type: "Info",
         values: [
           {
@@ -536,7 +536,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke.SelbstaendigesDauerndesRecht",
+        message: "Immeubles.droit_distinct_permanent",
         type: "Info",
         values: [
           {
@@ -554,7 +554,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke.GrundstueckSelbstaendigesDauerndesRecht",
+        message: "Immeubles.ImmeubleDroitDistinctPermanent",
         type: "Info",
         values: [
           {
@@ -568,7 +568,7 @@ export const LogData = [
         ],
       },
       {
-        message: "Grundstuecke.GSNachfuehrung",
+        message: "Immeubles.MiseAJourIM",
         type: "Info",
         values: [
           {
@@ -580,27 +580,27 @@ export const LogData = [
     ],
   },
   {
-    message: "Weitere Meldungen",
+    message: "Plus d'actualités",
     type: "Error",
     values: [
       {
-        message: "Attribute InAenderung requires a value",
+        message: "Attribute EnCoursModification  requires a value",
         type: "Error",
       },
       {
-        message: "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
+        message: "value Bodenbedeckungen is not a member of the enumeration in attribute DansModule",
         type: "Error",
       },
       {
-        message: "Attribute IstExaktDefiniert requires a value",
+        message: "Attribute EstDefiniExactement requires a value",
         type: "Error",
       },
       {
-        message: "Attribute IstLagezuverlaessig requires a value",
+        message: "Attribute EstFiablePlanimetrie requires a value",
         type: "Error",
       },
       {
-        message: "Attribute Hoehengenauigkeit requires a value",
+        message: "Attribute PrecisionAltimetrie requires a value",
         type: "Error",
       },
       {
