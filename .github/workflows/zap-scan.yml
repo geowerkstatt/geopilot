@@ -8,10 +8,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0"
 
@@ -22,7 +22,7 @@ jobs:
         run: docker compose up --wait
 
       - name: ZAP full scan
-        uses: zaproxy/action-full-scan@v0.12.0
+        uses: zaproxy/action-full-scan@v0.13.0
         with:
           target: "https://localhost:5173"
           rules_file_name: "./config/zap-full-scan-rules.tsv"
@@ -35,10 +35,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0"
 
@@ -49,7 +49,7 @@ jobs:
         run: docker compose up --wait
 
       - name: ZAP api scan
-        uses: zaproxy/action-api-scan@v0.9.0
+        uses: zaproxy/action-api-scan@v0.10.0
         with:
           target: "https://localhost:5173/swagger/v1/swagger.json"
           rules_file_name: "./config/zap-api-scan-rules.tsv"
