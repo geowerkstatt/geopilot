@@ -68,11 +68,11 @@ internal class ActionResultAssert
         AssertActionResult(actionResult, StatusCodes.Status500InternalServerError);
 
         var problemDetails = (ProblemDetails)((ObjectResult)actionResult!).Value!;
-        StringAssert.Contains(
-            problemDetails.Detail,
+        Assert.Contains(
             expectedErrorMessageSubstring,
-            $"The error message does not contain the expected message '{expectedErrorMessageSubstring}'.",
-            StringComparison.OrdinalIgnoreCase);
+            problemDetails.Detail,
+            StringComparison.OrdinalIgnoreCase,
+            $"The error message does not contain the expected message '{expectedErrorMessageSubstring}'.");
     }
 
     private static void AssertActionResult(IActionResult? currentActionResult, int expectedStatusCode)

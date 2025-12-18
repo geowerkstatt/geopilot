@@ -37,8 +37,8 @@ public class StringExtensionsTest
     [TestMethod]
     public void SanitizeFileNameForInvalid()
     {
-        Assert.ThrowsException<ArgumentNullException>(() => string.Empty.SanitizeFileName());
-        Assert.ThrowsException<ArgumentNullException>(() => "   ".SanitizeFileName());
-        Assert.ThrowsException<ArgumentNullException>(() => (null as string).SanitizeFileName());
+        Assert.ThrowsExactly<ArgumentNullException>(() => string.Empty.SanitizeFileName());
+        Assert.ThrowsExactly<ArgumentNullException>(() => "   ".SanitizeFileName());
+        Assert.ThrowsExactly<ArgumentNullException>(() => (null as string).SanitizeFileName());
     }
 }

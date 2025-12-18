@@ -164,7 +164,7 @@ namespace Geopilot.Api.Controllers
         public async Task GetWithoutValidDbUserThrowsException()
         {
             mandateController.SetupTestUser(new User { AuthIdentifier = "NotRegisteredUserId" });
-            await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () => await mandateController.Get());
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await mandateController.Get());
         }
 
         [TestMethod]

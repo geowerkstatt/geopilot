@@ -91,7 +91,6 @@ public class AssetHandlerTest
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentNullException))]
     public void PersistValidationJobAssetsFailsWithoutJobDirectory()
     {
         var logFiles = new Dictionary<string, string>
@@ -105,14 +104,13 @@ public class AssetHandlerTest
         var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", null, validatorResults, Status.Completed, DateTime.Now);
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
 
-        var assets = assetHandler.PersistJobAssets(job.Id);
+        Assert.ThrowsExactly<ArgumentNullException>(() => assetHandler.PersistJobAssets(job.Id));
     }
 
     [TestMethod]
-    [ExpectedException(typeof(InvalidOperationException))]
     public void PersistValidationJobAssetsFailsWithoutJobFiles()
     {
-        var assets = assetHandler.PersistJobAssets(Guid.NewGuid());
+        Assert.ThrowsExactly<InvalidOperationException>(() => assetHandler.PersistJobAssets(Guid.NewGuid()));
     }
 
     [TestMethod]

@@ -68,7 +68,7 @@ public class UserControllerTest
 
         var httpContextMock = userController.SetupTestUser(user);
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () => await userController.GetSelfAsync());
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await userController.GetSelfAsync());
         httpContextMock.VerifyAll();
     }
 

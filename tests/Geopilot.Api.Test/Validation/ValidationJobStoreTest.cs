@@ -60,7 +60,7 @@ public class ValidationJobStoreTest
     [TestMethod]
     public void AddFileToJobThrowsIfJobNotFound()
     {
-        Assert.ThrowsException<ArgumentException>(() => store.AddFileToJob(Guid.NewGuid(), "a", "b"));
+        Assert.ThrowsExactly<ArgumentException>(() => store.AddFileToJob(Guid.NewGuid(), "a", "b"));
     }
 
     [TestMethod]
@@ -68,7 +68,7 @@ public class ValidationJobStoreTest
     {
         var job = store.CreateJob();
         store.AddFileToJob(job.Id, "a", "b");
-        Assert.ThrowsException<InvalidOperationException>(() => store.AddFileToJob(job.Id, "a2", "b2"));
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.AddFileToJob(job.Id, "a2", "b2"));
     }
 
     [TestMethod]
@@ -110,7 +110,7 @@ public class ValidationJobStoreTest
     {
         var job = store.CreateJob();
         store.AddFileToJob(job.Id, "a", "b");
-        Assert.ThrowsException<ArgumentException>(() => store.StartJob(job.Id, new List<IValidator>(), null));
+        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(job.Id, new List<IValidator>(), null));
     }
 
     [TestMethod]
@@ -118,7 +118,7 @@ public class ValidationJobStoreTest
     {
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
-        Assert.ThrowsException<ArgumentException>(() => store.StartJob(Guid.NewGuid(), new List<IValidator> { validator.Object }, null));
+        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(Guid.NewGuid(), new List<IValidator> { validator.Object }, null));
     }
 
     [TestMethod]
@@ -127,7 +127,7 @@ public class ValidationJobStoreTest
         var job = store.CreateJob();
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
-        Assert.ThrowsException<InvalidOperationException>(() => store.StartJob(job.Id, new List<IValidator> { validator.Object }, null));
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.StartJob(job.Id, new List<IValidator> { validator.Object }, null));
     }
 
     [TestMethod]
@@ -166,7 +166,7 @@ public class ValidationJobStoreTest
         store.AddValidatorResult(validator.Object, result);
 
         // Try to add again, should throw
-        Assert.ThrowsException<ArgumentException>(() => store.AddValidatorResult(validator.Object, result));
+        Assert.ThrowsExactly<ArgumentException>(() => store.AddValidatorResult(validator.Object, result));
     }
 
     [TestMethod]
@@ -186,6 +186,6 @@ public class ValidationJobStoreTest
         var result = new ValidatorResult(ValidatorResultStatus.Completed, "some message");
 
         // Try to add result for unregistered validator
-        Assert.ThrowsException<ArgumentException>(() => store.AddValidatorResult(unregisteredValidator.Object, result));
+        Assert.ThrowsExactly<ArgumentException>(() => store.AddValidatorResult(unregisteredValidator.Object, result));
     }
 }
