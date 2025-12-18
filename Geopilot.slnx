@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="CHANGELOG.md" />
+    <File Path="config/realms/keycloak-geopilot.json" />
+    <File Path="docker-entrypoint.sh" />
+    <File Path="Dockerfile" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="src/Geopilot.Api/Geopilot.Api.csproj">
+    <BuildDependency Project="docker-compose.dcproj" />
+  </Project>
+  <Project Path="src/Geopilot.Frontend/Geopilot.Frontend.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="tests/Geopilot.Api.Test/Geopilot.Api.Test.csproj" />
+</Solution>

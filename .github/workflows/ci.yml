@@ -22,10 +22,10 @@ jobs:
         run: dotnet tool restore
 
       - name: Install dependencies
-        run: dotnet restore Geopilot.sln
+        run: dotnet restore Geopilot.slnx
 
       - name: Build dotnet
-        run: dotnet build Geopilot.sln -c Release --no-restore /warnaserror
+        run: dotnet build Geopilot.slnx -c Release --no-restore /warnaserror
       - name: Run frontend ci install
         working-directory: ./src/Geopilot.Frontend
         run: npm ci
@@ -46,5 +46,5 @@ jobs:
         run: docker compose up -d --wait --wait-timeout 30 db
 
       - name: Test
-        run: dotnet test Geopilot.sln -c Release --no-build --verbosity normal
+        run: dotnet test Geopilot.slnx -c Release --no-build --verbosity normal
 
