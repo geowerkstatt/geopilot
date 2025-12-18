@@ -65,7 +65,7 @@ public class MandateService : IMandateService
 
         var extension = Path.GetExtension(job.OriginalFileName).ToLowerInvariant();
         return mandates
-            .Where(m => m.FileTypes.Contains(".*") || m.FileTypes.Select(ft => ft.ToLowerInvariant()).Contains(extension));
+            .Where(m => m.FileTypes.Contains(".*") || m.FileTypes.Select(ft => ft.ToLower()).Contains(extension));
     }
 
     private IQueryable<Mandate> FilterMandatesByUser(IQueryable<Mandate> mandates, User user)
