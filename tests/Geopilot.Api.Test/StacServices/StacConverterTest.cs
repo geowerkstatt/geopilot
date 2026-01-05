@@ -14,8 +14,8 @@ public class StacConverterTest
 {
     private static readonly double[] mandateExtent = new double[] { 7.536621, 46.521076, 9.398804, 47.476376 };
 
-    private static Mandate mandate;
-    private static Delivery testDelivery;
+    private Mandate mandate;
+    private Delivery testDelivery;
     private Mock<IContentTypeProvider> contentTypeProviderMock;
     private Mock<IStacApiContext> contextMock;
     private Mock<IStacApiContextFactory> contextFactoryMock;
