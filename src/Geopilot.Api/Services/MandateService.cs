@@ -29,7 +29,6 @@ public class MandateService : IMandateService
     public async Task<Mandate?> GetMandateByUserAndJobAsync(int mandateId, User user, Guid jobId)
     {
         ArgumentNullException.ThrowIfNull(user);
-        ArgumentNullException.ThrowIfNull(jobId);
 
         return await GetMandatesQuery(user, jobId).SingleOrDefaultAsync(m => m.Id == mandateId);
     }
