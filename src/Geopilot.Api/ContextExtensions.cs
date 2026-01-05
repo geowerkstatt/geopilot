@@ -205,4 +205,18 @@ internal static class ContextExtensions
 
         context.SaveChanges();
     }
+
+    /// <summary>
+    /// Filters mandates to those that accept all files or the provided file extension.
+    /// </summary>
+    public static IQueryable<Mandate> FilterMandatesByFileExtension(this IQueryable<Mandate> mandates, string fileExtension)
+    {
+        var extension = fileExtension.ToLowerInvariant();
+
+        // EF Core can only translate ToLower without culture info.
+#pragma warning disable CA1304, CA1311 // Specify a culture or use an invariant version
+        return mandates
+            .Where(m => m.FileTypes.Contains(".*") || m.FileTypes.Select(ft => ft.ToLower()).Contains(extension));
+#pragma warning restore CA1304, CA1311 // Specify a culture or use an invariant version
+    }
 }

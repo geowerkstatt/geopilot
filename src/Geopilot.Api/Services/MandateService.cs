@@ -63,9 +63,8 @@ public class MandateService : IMandateService
         var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
         var fileName = job.OriginalFileName ?? throw new InvalidOperationException($"Validation job with id <{jobId}> has no file associated.");
 
-        var extension = Path.GetExtension(job.OriginalFileName).ToLowerInvariant();
-        return mandates
-            .Where(m => m.FileTypes.Contains(".*") || m.FileTypes.Select(ft => ft.ToLower()).Contains(extension));
+        var extension = Path.GetExtension(fileName);
+        return mandates.FilterMandatesByFileExtension(extension);
     }
 
     private IQueryable<Mandate> FilterMandatesByUser(IQueryable<Mandate> mandates, User user)
