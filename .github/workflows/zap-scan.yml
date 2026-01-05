@@ -13,7 +13,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0"
+          dotnet-version: "10.0"
 
       - name: Setup dev-certs
         uses: ./.github/actions/setup-dev-certs
@@ -40,7 +40,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0"
+          dotnet-version: "10.0"
 
       - name: Setup dev-certs
         uses: ./.github/actions/setup-dev-certs
