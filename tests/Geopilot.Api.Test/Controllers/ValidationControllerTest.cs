@@ -77,8 +77,8 @@ public sealed class ValidationControllerTest
 
         var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedAtActionResult;
 
-        Assert.IsInstanceOfType(response, typeof(CreatedAtActionResult));
-        Assert.IsInstanceOfType(response!.Value, typeof(ValidationJobResponse));
+        Assert.IsInstanceOfType<CreatedAtActionResult>(response);
+        Assert.IsInstanceOfType<ValidationJobResponse>(response!.Value);
         Assert.AreEqual(StatusCodes.Status201Created, response.StatusCode);
         Assert.AreEqual("GetStatus", response.ActionName);
         Assert.IsNotNull(response.RouteValues);
@@ -91,7 +91,7 @@ public sealed class ValidationControllerTest
     {
         var response = await controller.UploadAsync(apiVersionMock.Object, null!) as ObjectResult;
 
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status400BadRequest, response!.StatusCode);
         Assert.AreEqual("Form data <file> cannot be empty.", ((ProblemDetails)response.Value!).Detail);
     }
@@ -107,7 +107,7 @@ public sealed class ValidationControllerTest
 
         var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as ObjectResult;
 
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status400BadRequest, response!.StatusCode);
         Assert.AreEqual($"File extension <{fileExtension}> is not supported.", ((ProblemDetails)response.Value!).Detail);
     }
@@ -125,8 +125,8 @@ public sealed class ValidationControllerTest
         var response = controller.GetStatus(jobId) as OkObjectResult;
         var jobResponse = response?.Value as ValidationJobResponse;
 
-        Assert.IsInstanceOfType(response, typeof(OkObjectResult));
-        Assert.IsInstanceOfType(jobResponse, typeof(ValidationJobResponse));
+        Assert.IsInstanceOfType<OkObjectResult>(response);
+        Assert.IsInstanceOfType<ValidationJobResponse>(jobResponse);
         Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
         Assert.AreEqual(jobId, jobResponse.JobId);
         Assert.AreEqual(mandateId, jobResponse.MandateId);
@@ -144,7 +144,7 @@ public sealed class ValidationControllerTest
 
         var response = controller.GetStatus(jobId) as ObjectResult;
 
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status404NotFound, response.StatusCode);
         Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
     }
@@ -168,7 +168,7 @@ public sealed class ValidationControllerTest
 
         var response = controller.Download(jobId, fileName) as FileStreamResult;
 
-        Assert.IsInstanceOfType(response, typeof(FileStreamResult));
+        Assert.IsInstanceOfType<FileStreamResult>(response);
         Assert.AreEqual("text/plain", response!.ContentType);
         Assert.AreEqual("original_log.log", response.FileDownloadName);
     }
@@ -185,7 +185,7 @@ public sealed class ValidationControllerTest
 
         var response = controller.Download(default, "logfile.log") as ObjectResult;
 
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
         Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
     }
@@ -205,7 +205,7 @@ public sealed class ValidationControllerTest
 
         var response = controller.Download(jobId, fileName) as ObjectResult;
 
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
         Assert.AreEqual($"No log file <{fileName}> found for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
     }
@@ -233,9 +233,9 @@ public sealed class ValidationControllerTest
         var jobResponse = response?.Value as ValidationJobResponse;
 
         // Assert
-        Assert.IsInstanceOfType(response, typeof(OkObjectResult));
+        Assert.IsInstanceOfType<OkObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
-        Assert.IsInstanceOfType(jobResponse, typeof(ValidationJobResponse));
+        Assert.IsInstanceOfType<ValidationJobResponse>(jobResponse);
         Assert.AreEqual(jobId, jobResponse.JobId);
         Assert.AreEqual(Status.Processing, jobResponse.Status);
         Assert.IsNull(jobResponse.MandateId);
@@ -273,9 +273,9 @@ public sealed class ValidationControllerTest
         var jobResponse = response?.Value as ValidationJobResponse;
 
         // Assert
-        Assert.IsInstanceOfType(response, typeof(OkObjectResult));
+        Assert.IsInstanceOfType<OkObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
-        Assert.IsInstanceOfType(jobResponse, typeof(ValidationJobResponse));
+        Assert.IsInstanceOfType<ValidationJobResponse>(jobResponse);
         Assert.AreEqual(jobId, jobResponse.JobId);
         Assert.AreEqual(mandate.Id, jobResponse.MandateId);
         Assert.AreEqual(Status.Processing, jobResponse.Status);
@@ -297,7 +297,7 @@ public sealed class ValidationControllerTest
         var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
 
         // Assert
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status404NotFound, response.StatusCode);
         Assert.AreEqual($"No job information available for job id <{jobId}>", ((ProblemDetails)response.Value!).Detail);
 
@@ -329,7 +329,7 @@ public sealed class ValidationControllerTest
         var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
 
         // Assert
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.AreEqual("Invalid job state", ((ProblemDetails)response.Value!).Detail);
     }
@@ -362,7 +362,7 @@ public sealed class ValidationControllerTest
         var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
 
         // Assert
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.AreEqual("User not authorized for mandate", ((ProblemDetails)response.Value!).Detail);
     }
@@ -392,7 +392,7 @@ public sealed class ValidationControllerTest
         var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
 
         // Assert
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status500InternalServerError, response.StatusCode);
         Assert.AreEqual("An unexpected error occured.", ((ProblemDetails)response.Value!).Detail);
     }
@@ -421,7 +421,7 @@ public sealed class ValidationControllerTest
         var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
 
         // Assert
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.AreEqual("User must be authenticated to start a job with a mandate.", ((ProblemDetails)response.Value!).Detail);
     }
@@ -454,7 +454,7 @@ public sealed class ValidationControllerTest
         var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
 
         // Assert
-        Assert.IsInstanceOfType(response, typeof(ObjectResult));
+        Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.AreEqual("The user is not authorized to start the job with the specified mandate.", ((ProblemDetails)response.Value!).Detail);
     }
@@ -483,7 +483,7 @@ public sealed class ValidationControllerTest
         var responseWithoutMandate = await controller.StartJobAsync(jobId1, startJobRequestWithoutMandate) as OkObjectResult;
 
         // Assert - Without mandate
-        Assert.IsInstanceOfType(responseWithoutMandate, typeof(OkObjectResult));
+        Assert.IsInstanceOfType<OkObjectResult>(responseWithoutMandate);
         validationServiceMock.Verify(x => x.StartJobAsync(jobId1), Times.Once);
         validationServiceMock.Verify(x => x.StartJobAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<User>()), Times.Never);
 
@@ -515,7 +515,7 @@ public sealed class ValidationControllerTest
         var responseWithMandate = await controller.StartJobAsync(jobId2, startJobRequestWithMandate) as OkObjectResult;
 
         // Assert - With mandate
-        Assert.IsInstanceOfType(responseWithMandate, typeof(OkObjectResult));
+        Assert.IsInstanceOfType<OkObjectResult>(responseWithMandate);
         validationServiceMock.Verify(x => x.StartJobAsync(jobId2, mandate.Id, It.IsAny<User>()), Times.Once);
         validationServiceMock.Verify(x => x.StartJobAsync(It.IsAny<Guid>()), Times.Never);
     }

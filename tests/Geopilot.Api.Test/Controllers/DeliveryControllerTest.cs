@@ -444,7 +444,7 @@ public class DeliveryControllerTest
 
         var response = await deliveryController.Get(mandateId);
 
-        Assert.IsInstanceOfType(response, typeof(NotFoundResult));
+        Assert.IsInstanceOfType<NotFoundResult>(response);
     }
 
     [TestMethod]
