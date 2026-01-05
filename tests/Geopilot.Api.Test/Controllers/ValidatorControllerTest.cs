@@ -38,19 +38,19 @@ public class ValidatorControllerTest
 
         var payload = ok.Value as Dictionary<string, ValidatorConfiguration>;
         Assert.IsNotNull(payload);
-        Assert.AreEqual(2, payload.Count);
+        Assert.HasCount(2, payload);
 
         Assert.IsTrue(payload.ContainsKey("VAL1"));
         Assert.IsTrue(payload.ContainsKey("VAL2"));
 
         var val1 = payload["VAL1"];
         CollectionAssert.AreEqual(new List<string> { ".xtf" }, val1.SupportedFileExtensions);
-        Assert.AreEqual(1, val1.Profiles.Count);
+        Assert.HasCount(1, val1.Profiles);
         Assert.AreEqual("P1", val1.Profiles[0].Id);
 
         var val2 = payload["VAL2"];
         CollectionAssert.AreEqual(new List<string> { ".gml", ".*" }, val2.SupportedFileExtensions);
-        Assert.AreEqual(2, val2.Profiles.Count);
+        Assert.HasCount(2, val2.Profiles);
         Assert.AreEqual("Q1", val2.Profiles[0].Id);
         Assert.AreEqual("Q2", val2.Profiles[1].Id);
 

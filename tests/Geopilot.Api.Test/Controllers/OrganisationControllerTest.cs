@@ -54,7 +54,7 @@ namespace Geopilot.Api.Controllers
             var organisations = organisationController.Get();
 
             Assert.IsNotNull(organisations);
-            Assert.AreEqual(4, organisations.Count);
+            Assert.HasCount(4, organisations);
             ContainsOrganisation(organisations, testOrganisation);
         }
 
@@ -69,8 +69,8 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(organisation);
             Assert.AreEqual(organisationId, organisation.Id);
             Assert.AreEqual("Schumm, Runte and Macejkovic", organisation.Name);
-            Assert.AreEqual(4, organisation.Mandates.Count);
-            Assert.AreEqual(2, organisation.Users.Count);
+            Assert.HasCount(4, organisation.Mandates);
+            Assert.HasCount(2, organisation.Users);
         }
 
         [TestMethod]
@@ -95,9 +95,9 @@ namespace Geopilot.Api.Controllers
             var resultValue = (result as CreatedResult)?.Value as Organisation;
             Assert.IsNotNull(resultValue);
             Assert.AreEqual(organisation.Name, resultValue.Name);
-            Assert.AreEqual(organisation.Users.Count, resultValue.Users.Count);
+            Assert.HasCount(organisation.Users.Count, resultValue.Users);
             Assert.AreEqual(editUser.Id, resultValue.Users[0].Id);
-            Assert.AreEqual(organisation.Mandates.Count, resultValue.Mandates.Count);
+            Assert.HasCount(organisation.Mandates.Count, resultValue.Mandates);
             Assert.AreEqual(unrestrictedMandate.Id, resultValue.Mandates[0].Id);
         }
 
@@ -144,13 +144,13 @@ namespace Geopilot.Api.Controllers
         {
             Assert.AreEqual(expected.Id, actual.Id);
             Assert.AreEqual(expected.Name, actual.Name);
-            Assert.AreEqual(expected.Mandates.Count, actual.Mandates.Count);
+            Assert.HasCount(expected.Mandates.Count, actual.Mandates);
             for (var i = 0; i < expected.Mandates.Count; i++)
             {
                 Assert.AreEqual(expected.Mandates[i].Id, actual.Mandates[i].Id);
             }
 
-            Assert.AreEqual(expected.Users.Count, actual.Users.Count);
+            Assert.HasCount(expected.Users.Count, actual.Users);
             for (var i = 0; i < expected.Users.Count; i++)
             {
                 Assert.AreEqual(expected.Users[i].Id, actual.Users[i].Id);

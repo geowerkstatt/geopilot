@@ -54,7 +54,7 @@ public class UserControllerTest
         Assert.AreEqual(authIdentifier, userResult.AuthIdentifier);
         Assert.AreEqual("Full Name", userResult.FullName);
         Assert.AreEqual("some@email.com", userResult.Email);
-        Assert.AreEqual(true, userResult.IsAdmin);
+        Assert.IsTrue(userResult.IsAdmin);
         httpContextMock.VerifyAll();
     }
 
@@ -141,7 +141,7 @@ public class UserControllerTest
         Assert.IsNotNull(resultValue);
         Assert.AreEqual("FLEA XI", resultValue.FullName);
         Assert.IsTrue(resultValue.IsAdmin);
-        Assert.AreEqual(2, resultValue.Organisations.Count);
+        Assert.HasCount(2, resultValue.Organisations);
         for (var i = 0; i < 2; i++)
         {
             Assert.AreEqual(testUser.Organisations[i].Id, resultValue.Organisations[i].Id);
@@ -151,7 +151,7 @@ public class UserControllerTest
         result = await userController.Edit(testUser);
         resultValue = ActionResultAssert.IsOkObjectResult<User>(result);
         Assert.IsNotNull(resultValue);
-        Assert.AreEqual(2, resultValue.Organisations.Count);
+        Assert.HasCount(2, resultValue.Organisations);
         for (var i = 0; i < 2; i++)
         {
             Assert.AreEqual(testUser.Organisations[i].Id, resultValue.Organisations[i].Id);

@@ -22,9 +22,8 @@ public class ValidationJobStoreTest
         Assert.AreEqual(Status.Created, job.Status);
         Assert.IsNull(job.OriginalFileName);
         Assert.IsNull(job.TempFileName);
-        Assert.IsNotNull(job.Id);
         Assert.AreNotEqual(Guid.Empty, job.Id);
-        Assert.AreEqual(0, job.ValidatorResults.Count);
+        Assert.IsEmpty(job.ValidatorResults);
     }
 
     [TestMethod]
@@ -90,7 +89,7 @@ public class ValidationJobStoreTest
         Assert.IsNotNull(updated);
         Assert.AreEqual(Status.Processing, updated.Status);
         Assert.AreEqual(mandateId, updated.MandateId);
-        Assert.AreEqual(2, updated.ValidatorResults.Count);
+        Assert.HasCount(2, updated.ValidatorResults);
         Assert.IsTrue(updated.ValidatorResults.ContainsKey("v1"));
         Assert.IsTrue(updated.ValidatorResults.ContainsKey("v2"));
 
@@ -100,9 +99,9 @@ public class ValidationJobStoreTest
         while (queue.TryRead(out var v))
             readValidators.Add(v);
 
-        Assert.AreEqual(2, readValidators.Count);
-        Assert.IsTrue(readValidators.Contains(validator1.Object));
-        Assert.IsTrue(readValidators.Contains(validator2.Object));
+        Assert.HasCount(2, readValidators);
+        Assert.Contains(validator1.Object, readValidators);
+        Assert.Contains(validator2.Object, readValidators);
     }
 
     [TestMethod]
