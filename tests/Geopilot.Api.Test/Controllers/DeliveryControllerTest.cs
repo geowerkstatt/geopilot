@@ -128,8 +128,8 @@ public class DeliveryControllerTest
         Assert.IsNotNull(returnedDelivery);
         Assert.AreEqual(jobId, returnedDelivery.JobId);
         Assert.AreEqual(string.Empty, returnedDelivery.Comment);
-        Assert.AreEqual(null, returnedDelivery.Partial);
-        Assert.AreEqual(null, returnedDelivery.PrecursorDelivery);
+        Assert.IsNull(returnedDelivery.Partial);
+        Assert.IsNull(returnedDelivery.PrecursorDelivery);
 
         var dbDelivery = context.Deliveries
             .Include(d => d.Mandate)
@@ -141,8 +141,8 @@ public class DeliveryControllerTest
         Assert.AreEqual(jobId, dbDelivery.JobId);
         Assert.AreEqual(mandate.Id, dbDelivery.Mandate.Id);
         Assert.AreEqual(string.Empty, dbDelivery.Comment);
-        Assert.AreEqual(null, dbDelivery.Partial);
-        Assert.AreEqual(null, dbDelivery.PrecursorDelivery);
+        Assert.IsNull(dbDelivery.Partial);
+        Assert.IsNull(dbDelivery.PrecursorDelivery);
     }
 
     [TestMethod]
@@ -337,8 +337,8 @@ public class DeliveryControllerTest
             .IgnoreQueryFilters()
             .FirstOrDefault(d => d.Id == delivery.Id);
         Assert.IsNotNull(dbDelivery);
-        Assert.AreEqual(true, dbDelivery.Deleted);
-        Assert.AreEqual(true, dbDelivery.Assets.All(a => a.Deleted));
+        Assert.IsTrue(dbDelivery.Deleted);
+        Assert.IsTrue(dbDelivery.Assets.All(a => a.Deleted));
     }
 
     [TestMethod]
@@ -385,7 +385,7 @@ public class DeliveryControllerTest
         var list = response?.Value as List<Delivery>;
 
         Assert.IsNotNull(list);
-        Assert.AreEqual(context.Deliveries.Count(), list.Count);
+        Assert.HasCount(context.Deliveries.Count(), list);
     }
 
     [TestMethod]
@@ -409,7 +409,7 @@ public class DeliveryControllerTest
 
         Assert.IsNotNull(list);
         Assert.AreNotEqual(0, accessibleDeliveries.Count);
-        Assert.AreEqual(accessibleDeliveries.Count, list.Count);
+        Assert.HasCount(accessibleDeliveries.Count, list);
         CollectionAssert.AllItemsAreUnique(list);
     }
 
@@ -429,7 +429,7 @@ public class DeliveryControllerTest
         var list = response?.Value as List<Delivery>;
 
         Assert.IsNotNull(list);
-        Assert.AreEqual(context.Deliveries.Where(d => d.Mandate != null && d.Mandate.Id == mandateId).Count(), list.Count);
+        Assert.HasCount(context.Deliveries.Where(d => d.Mandate != null && d.Mandate.Id == mandateId).Count(), list);
     }
 
     [TestMethod]
@@ -444,7 +444,7 @@ public class DeliveryControllerTest
 
         var response = await deliveryController.Get(mandateId);
 
-        Assert.IsInstanceOfType(response, typeof(NotFoundResult));
+        Assert.IsInstanceOfType<NotFoundResult>(response);
     }
 
     [TestMethod]
@@ -467,7 +467,7 @@ public class DeliveryControllerTest
 
         Assert.IsNotNull(list);
         Assert.AreNotEqual(0, deliveris.Count);
-        Assert.AreEqual(deliveris.Count, list.Count);
+        Assert.HasCount(deliveris.Count, list);
         CollectionAssert.AllItemsAreUnique(list);
     }
 }

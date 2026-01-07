@@ -1,7 +1,7 @@
 # syntax=docker.io/docker/dockerfile:1
 # check=error=true
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 ARG VERSION=0.0.1
 ARG REVISION=0000000
@@ -51,7 +51,7 @@ RUN \
     --customPath license.template.json \
     --out ${PUBLISH_DIR}/wwwroot/license.json
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 ENV HOME=/app
 ENV TZ=Europe/Zurich
 ENV ASPNETCORE_ENVIRONMENT=Production

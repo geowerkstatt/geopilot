@@ -14,8 +14,8 @@ public class StacConverterTest
 {
     private static readonly double[] mandateExtent = new double[] { 7.536621, 46.521076, 9.398804, 47.476376 };
 
-    private static Mandate mandate;
-    private static Delivery testDelivery;
+    private Mandate mandate;
+    private Delivery testDelivery;
     private Mock<IContentTypeProvider> contentTypeProviderMock;
     private Mock<IStacApiContext> contextMock;
     private Mock<IStacApiContextFactory> contextFactoryMock;
@@ -98,7 +98,7 @@ public class StacConverterTest
         Assert.AreEqual(converter.GetCollectionId(mandate), collection.Id);
         Assert.AreEqual("Test Mandate", collection.Title);
         Assert.AreEqual(string.Empty, collection.Description);
-        Assert.AreEqual(0, collection.Links.Count);
+        Assert.IsEmpty(collection.Links);
         var actualExtent = collection.Extent.Spatial.BoundingBoxes[0];
         Assert.AreEqual(mandateExtent[0], actualExtent[1]);
         Assert.AreEqual(mandateExtent[1], actualExtent[0]);
@@ -133,7 +133,7 @@ public class StacConverterTest
         Assert.AreEqual(converter.GetCollectionId(mandate), collection.Id);
         Assert.AreEqual("Test Mandate", collection.Title);
         Assert.AreEqual(string.Empty, collection.Description);
-        Assert.AreEqual(1, collection.Links.Count);
+        Assert.HasCount(1, collection.Links);
         Assert.AreEqual("item", collection.Links.First().RelationshipType);
         var actualExtent = collection.Extent.Spatial.BoundingBoxes[0];
         Assert.AreEqual(mandateExtent[0], actualExtent[1]);
@@ -154,7 +154,7 @@ public class StacConverterTest
         Assert.AreEqual(string.Empty, item.Description);
         Assert.AreNotEqual(0, item.Links.Count);
 
-        Assert.AreEqual(2, item.Assets.Count);
+        Assert.HasCount(2, item.Assets);
         var stacAsset = item.Assets.Values.FirstOrDefault(a => a.Title == testDelivery.Assets[0].OriginalFilename);
         Assert.IsNotNull(stacAsset, "Asset with title matching original filename not found");
         Assert.AreEqual(item, stacAsset.ParentStacObject);

@@ -8,7 +8,7 @@
     <PackageProjectUrl>https://github.com/GeoWerkstatt/geopilot</PackageProjectUrl>
     <RepositoryUrl>https://github.com/GeoWerkstatt/geopilot.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <AnalysisLevel>8.0-recommended</AnalysisLevel>
+    <AnalysisLevel>10.0-recommended</AnalysisLevel>
     <IsPackable>false</IsPackable>
     <VersionPrefix>3.0</VersionPrefix>
   </PropertyGroup>

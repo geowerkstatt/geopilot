@@ -8,7 +8,7 @@ public class VersionControllerTest
     {
         var result = new VersionController().Get();
         Assert.IsNotNull(result);
-        Assert.IsTrue(result.Length > 0);
+        Assert.IsGreaterThan(0, result.Length);
         StringAssert.StartsWith(result, "3.0", StringComparison.Ordinal);
     }
 }

@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,21 +14,21 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: "8.0"
+          dotnet-version: "10.0"
 
       - name: Restore dotnet tools
         run: dotnet tool restore
 
       - name: Install dependencies
-        run: dotnet restore Geopilot.sln
+        run: dotnet restore Geopilot.slnx
 
       - name: Build dotnet
-        run: dotnet build Geopilot.sln -c Release --no-restore /warnaserror
+        run: dotnet build Geopilot.slnx -c Release --no-restore /warnaserror
       - name: Run frontend ci install
         working-directory: ./src/Geopilot.Frontend
         run: npm ci
@@ -46,5 +49,5 @@ jobs:
         run: docker compose up -d --wait --wait-timeout 30 db
 
       - name: Test
-        run: dotnet test Geopilot.sln -c Release --no-build --verbosity normal
+        run: dotnet test Geopilot.slnx -c Release --no-build --verbosity normal
 

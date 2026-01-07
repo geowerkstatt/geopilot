@@ -60,7 +60,7 @@ public class InterlisValidatorTest
         var result = await interlisValidator.GetSupportedProfilesAsync();
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(2, result.Count);
+        Assert.HasCount(2, result);
         Assert.AreEqual("p1", result[0].Id);
         Assert.AreEqual("p2", result[1].Id);
     }
@@ -84,6 +84,6 @@ public class InterlisValidatorTest
         var result = await interlisValidator.GetSupportedProfilesAsync();
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(0, result.Count);
+        Assert.IsEmpty(result);
     }
 }

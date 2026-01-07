@@ -13,6 +13,7 @@
 - Changed how the delivery process works, as mandate selection is necessary before starting validation.
 - (Potentially Breaking) Restructure application to use access tokens instead of id tokens for authorisation.
 - User data is now fetched from the `/userinfo` endpoint of the IDP instead of parsed from token claims.
+- Updated to .NET 10.0.
 
 ### Fixed
 

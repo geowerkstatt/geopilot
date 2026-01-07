@@ -70,7 +70,7 @@ public class GeopilotUserHandlerTest
         Assert.AreEqual(authIdentifier, user.AuthIdentifier);
         Assert.AreEqual("BROOMNEIGHBOR", user.FullName);
         Assert.AreEqual("ONYXSHADOW@example.com", user.Email);
-        Assert.AreEqual(false, user.IsAdmin);
+        Assert.IsFalse(user.IsAdmin);
 
         // Arrange - Update user
         var updatedUserInfo = new UserInfoResponse
@@ -91,7 +91,7 @@ public class GeopilotUserHandlerTest
         Assert.AreEqual(authIdentifier, user.AuthIdentifier);
         Assert.AreEqual("PERFECTSTONE", user.FullName);
         Assert.AreEqual("DIRERUN@example.com", user.Email);
-        Assert.AreEqual(false, user.IsAdmin);
+        Assert.IsFalse(user.IsAdmin);
     }
 
     [TestMethod]
@@ -129,7 +129,7 @@ public class GeopilotUserHandlerTest
         Assert.AreEqual(authIdentifier, user.AuthIdentifier);
         Assert.AreEqual("STORMSLAW", user.FullName);
         Assert.AreEqual("MAIN@example.com", user.Email);
-        Assert.AreEqual(true, user.IsAdmin);
+        Assert.IsTrue(user.IsAdmin);
     }
 
     [TestMethod]
