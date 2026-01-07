@@ -157,14 +157,14 @@ namespace Geopilot.Api.Controllers
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            Assert.AreEqual(0, mandates.Count);
+            Assert.IsEmpty(mandates);
         }
 
         [TestMethod]
         public async Task GetWithoutValidDbUserThrowsException()
         {
             mandateController.SetupTestUser(new User { AuthIdentifier = "NotRegisteredUserId" });
-            await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () => await mandateController.Get());
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await mandateController.Get());
         }
 
         [TestMethod]
@@ -193,13 +193,13 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(mandate);
             Assert.AreEqual(mandateId, mandate.Id);
             Assert.AreEqual("Handmade Soft Cheese", mandate.Name);
-            Assert.AreEqual(2, mandate.Coordinates.Count);
-            Assert.AreEqual(2, mandate.Deliveries.Count);
+            Assert.HasCount(2, mandate.Coordinates);
+            Assert.HasCount(2, mandate.Deliveries);
             Assert.AreEqual(FieldEvaluationType.Optional, mandate.EvaluatePrecursorDelivery);
             Assert.AreEqual(FieldEvaluationType.Required, mandate.EvaluatePartial);
             Assert.AreEqual(FieldEvaluationType.NotEvaluated, mandate.EvaluateComment);
-            Assert.AreEqual(4, mandate.FileTypes.Length);
-            Assert.AreEqual(1, mandate.Organisations.Count);
+            Assert.HasCount(4, mandate.FileTypes);
+            Assert.HasCount(1, mandate.Organisations);
         }
 
         [TestMethod]
@@ -323,12 +323,12 @@ namespace Geopilot.Api.Controllers
             var updatedMandate = ActionResultAssert.IsOkObjectResult<Mandate>(updateResult);
             Assert.IsNotNull(updatedMandate);
 
-            Assert.AreEqual(1, updatedMandate.Deliveries.Count);
+            Assert.HasCount(1, updatedMandate.Deliveries);
             Assert.AreEqual(delivery.Id, updatedMandate.Deliveries[0].Id);
             Assert.AreEqual(mandateToUpdate.Name, updatedMandate.Name);
             CollectionAssert.AreEqual(mandateToUpdate.FileTypes, updatedMandate.FileTypes);
             CollectionAssert.AreEqual(mandateToUpdate.Coordinates, updatedMandate.Coordinates);
-            Assert.AreEqual(mandateToUpdate.Organisations.Count, updatedMandate.Organisations.Count);
+            Assert.HasCount(mandateToUpdate.Organisations.Count, updatedMandate.Organisations);
             for (var i = 0; i < mandateToUpdate.Organisations.Count; i++)
             {
                 Assert.AreEqual(mandateToUpdate.Organisations[i].Id, updatedMandate.Organisations[i].Id);
@@ -401,7 +401,7 @@ namespace Geopilot.Api.Controllers
             CollectionAssert.AreEqual(expected.FileTypes, actual.FileTypes);
             CollectionAssert.AreEqual(expected.Deliveries, actual.Deliveries);
             CollectionAssert.AreEqual(expected.Coordinates, actual.Coordinates);
-            Assert.AreEqual(expected.Organisations.Count, actual.Organisations.Count);
+            Assert.HasCount(expected.Organisations.Count, actual.Organisations);
             for (var i = 0; i < expected.Organisations.Count; i++)
             {
                 Assert.AreEqual(expected.Organisations[i].Id, actual.Organisations[i].Id);

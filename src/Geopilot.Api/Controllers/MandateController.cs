@@ -74,9 +74,8 @@ public class MandateController : ControllerBase
             }
 
             logger.LogTrace("Filtering mandates for job with id <{JobId}>", jobId);
-            var extension = Path.GetExtension(job.OriginalFileName).ToLowerInvariant();
-            mandates = mandates
-                .Where(m => m.FileTypes.Contains(".*") || m.FileTypes.Select(filetype => filetype.ToLowerInvariant()).Contains(extension));
+            var extension = Path.GetExtension(job.OriginalFileName);
+            mandates = mandates.FilterMandatesByFileExtension(extension);
         }
 
         var result = mandates.ToList();

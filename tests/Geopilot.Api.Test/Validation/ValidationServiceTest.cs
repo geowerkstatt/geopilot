@@ -70,7 +70,7 @@ public class ValidationServiceTest
             .Setup(x => x.GetJob(unknownJobId))
             .Returns((ValidationJob?)null);
 
-        Assert.ThrowsException<ArgumentException>(() => validationService.CreateFileHandleForJob(unknownJobId, "SomeFile.xtf"));
+        Assert.ThrowsExactly<ArgumentException>(() => validationService.CreateFileHandleForJob(unknownJobId, "SomeFile.xtf"));
     }
 
     [TestMethod]
@@ -124,7 +124,7 @@ public class ValidationServiceTest
         var jobId = Guid.NewGuid();
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns((ValidationJob?)null);
 
-        await Assert.ThrowsExceptionAsync<ArgumentException>(async () =>
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
         {
             await validationService.StartJobAsync(jobId);
         });
@@ -190,7 +190,7 @@ public class ValidationServiceTest
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns((ValidationJob?)null);
 
         // Act & Assert
-        var exception = await Assert.ThrowsExceptionAsync<ArgumentException>(async () =>
+        var exception = await Assert.ThrowsExactlyAsync<ArgumentException>(async () =>
         {
             await validationService.StartJobAsync(jobId, mandate.Id, user);
         });
@@ -214,7 +214,7 @@ public class ValidationServiceTest
             .ReturnsAsync((Mandate?)null);
 
         // Act & Assert
-        var exception = await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+        var exception = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
         {
             await validationService.StartJobAsync(jobId, mandateId, user);
         });

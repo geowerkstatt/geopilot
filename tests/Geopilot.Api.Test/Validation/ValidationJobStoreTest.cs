@@ -22,9 +22,8 @@ public class ValidationJobStoreTest
         Assert.AreEqual(Status.Created, job.Status);
         Assert.IsNull(job.OriginalFileName);
         Assert.IsNull(job.TempFileName);
-        Assert.IsNotNull(job.Id);
         Assert.AreNotEqual(Guid.Empty, job.Id);
-        Assert.AreEqual(0, job.ValidatorResults.Count);
+        Assert.IsEmpty(job.ValidatorResults);
     }
 
     [TestMethod]
@@ -60,7 +59,7 @@ public class ValidationJobStoreTest
     [TestMethod]
     public void AddFileToJobThrowsIfJobNotFound()
     {
-        Assert.ThrowsException<ArgumentException>(() => store.AddFileToJob(Guid.NewGuid(), "a", "b"));
+        Assert.ThrowsExactly<ArgumentException>(() => store.AddFileToJob(Guid.NewGuid(), "a", "b"));
     }
 
     [TestMethod]
@@ -68,7 +67,7 @@ public class ValidationJobStoreTest
     {
         var job = store.CreateJob();
         store.AddFileToJob(job.Id, "a", "b");
-        Assert.ThrowsException<InvalidOperationException>(() => store.AddFileToJob(job.Id, "a2", "b2"));
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.AddFileToJob(job.Id, "a2", "b2"));
     }
 
     [TestMethod]
@@ -90,7 +89,7 @@ public class ValidationJobStoreTest
         Assert.IsNotNull(updated);
         Assert.AreEqual(Status.Processing, updated.Status);
         Assert.AreEqual(mandateId, updated.MandateId);
-        Assert.AreEqual(2, updated.ValidatorResults.Count);
+        Assert.HasCount(2, updated.ValidatorResults);
         Assert.IsTrue(updated.ValidatorResults.ContainsKey("v1"));
         Assert.IsTrue(updated.ValidatorResults.ContainsKey("v2"));
 
@@ -100,9 +99,9 @@ public class ValidationJobStoreTest
         while (queue.TryRead(out var v))
             readValidators.Add(v);
 
-        Assert.AreEqual(2, readValidators.Count);
-        Assert.IsTrue(readValidators.Contains(validator1.Object));
-        Assert.IsTrue(readValidators.Contains(validator2.Object));
+        Assert.HasCount(2, readValidators);
+        Assert.Contains(validator1.Object, readValidators);
+        Assert.Contains(validator2.Object, readValidators);
     }
 
     [TestMethod]
@@ -110,7 +109,7 @@ public class ValidationJobStoreTest
     {
         var job = store.CreateJob();
         store.AddFileToJob(job.Id, "a", "b");
-        Assert.ThrowsException<ArgumentException>(() => store.StartJob(job.Id, new List<IValidator>(), null));
+        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(job.Id, new List<IValidator>(), null));
     }
 
     [TestMethod]
@@ -118,7 +117,7 @@ public class ValidationJobStoreTest
     {
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
-        Assert.ThrowsException<ArgumentException>(() => store.StartJob(Guid.NewGuid(), new List<IValidator> { validator.Object }, null));
+        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(Guid.NewGuid(), new List<IValidator> { validator.Object }, null));
     }
 
     [TestMethod]
@@ -127,7 +126,7 @@ public class ValidationJobStoreTest
         var job = store.CreateJob();
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
-        Assert.ThrowsException<InvalidOperationException>(() => store.StartJob(job.Id, new List<IValidator> { validator.Object }, null));
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.StartJob(job.Id, new List<IValidator> { validator.Object }, null));
     }
 
     [TestMethod]
@@ -166,7 +165,7 @@ public class ValidationJobStoreTest
         store.AddValidatorResult(validator.Object, result);
 
         // Try to add again, should throw
-        Assert.ThrowsException<ArgumentException>(() => store.AddValidatorResult(validator.Object, result));
+        Assert.ThrowsExactly<ArgumentException>(() => store.AddValidatorResult(validator.Object, result));
     }
 
     [TestMethod]
@@ -186,6 +185,6 @@ public class ValidationJobStoreTest
         var result = new ValidatorResult(ValidatorResultStatus.Completed, "some message");
 
         // Try to add result for unregistered validator
-        Assert.ThrowsException<ArgumentException>(() => store.AddValidatorResult(unregisteredValidator.Object, result));
+        Assert.ThrowsExactly<ArgumentException>(() => store.AddValidatorResult(unregisteredValidator.Object, result));
     }
 }

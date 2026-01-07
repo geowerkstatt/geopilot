@@ -59,14 +59,14 @@ public class ValidationJobTest
     public void GetStatusFromResultsWithEmptyResultsThrowsException()
     {
         var validatorResults = ImmutableDictionary<string, ValidatorResult?>.Empty;
-        Assert.ThrowsException<InvalidOperationException>(() =>
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
             ValidationJob.GetStatusFromResults(validatorResults));
     }
 
     [TestMethod]
     public void GetStatusFromResultsWithNullResultsThrowsException()
     {
-        Assert.ThrowsException<ArgumentNullException>(() =>
+        Assert.ThrowsExactly<ArgumentNullException>(() =>
             ValidationJob.GetStatusFromResults(null!));
     }
 }

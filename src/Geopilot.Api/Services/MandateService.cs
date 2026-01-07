@@ -29,7 +29,6 @@ public class MandateService : IMandateService
     public async Task<Mandate?> GetMandateByUserAndJobAsync(int mandateId, User user, Guid jobId)
     {
         ArgumentNullException.ThrowIfNull(user);
-        ArgumentNullException.ThrowIfNull(jobId);
 
         return await GetMandatesQuery(user, jobId).SingleOrDefaultAsync(m => m.Id == mandateId);
     }
@@ -63,9 +62,8 @@ public class MandateService : IMandateService
         var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
         var fileName = job.OriginalFileName ?? throw new InvalidOperationException($"Validation job with id <{jobId}> has no file associated.");
 
-        var extension = Path.GetExtension(job.OriginalFileName).ToLowerInvariant();
-        return mandates
-            .Where(m => m.FileTypes.Contains(".*") || m.FileTypes.Select(ft => ft.ToLowerInvariant()).Contains(extension));
+        var extension = Path.GetExtension(fileName);
+        return mandates.FilterMandatesByFileExtension(extension);
     }
 
     private IQueryable<Mandate> FilterMandatesByUser(IQueryable<Mandate> mandates, User user)

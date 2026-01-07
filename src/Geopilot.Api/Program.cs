@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
@@ -183,7 +183,6 @@ var configureContextOptions = (DbContextOptionsBuilder options) =>
 };
 
 builder.Services.AddDbContextFactory<Context>(configureContextOptions);
-builder.Services.AddDbContext<Context>(configureContextOptions);
 
 builder.Services.AddStacData(builder => { });
 
