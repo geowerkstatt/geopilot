@@ -1,0 +1,33 @@
+name: Component Detection
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  component-detection:
+    runs-on: ubuntu-latest
+    name: Restore and detect components
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0'
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: NuGet component detection
+        uses: advanced-security/component-detection-dependency-submission-action@v0.1.0
+        with:
+          detectorsCategories: NuGet
