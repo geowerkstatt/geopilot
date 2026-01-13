@@ -747,7 +747,7 @@
       "description": "",
       "protocol": "openid-connect",
       "attributes": {
-        "include.in.token.scope": "false",
+        "include.in.token.scope": "true",
         "display.on.consent.screen": "true",
         "gui.order": "",
         "consent.screen.text": ""
