@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## v3.0.227 - 2026-01-07
+
 ### Added
 
 - Added support for INTERLIS validation profiles.
