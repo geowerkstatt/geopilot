@@ -202,7 +202,10 @@ var app = builder.Build();
 // Migrate db changes on startup
 using var scope = app.Services.CreateScope();
 using var context = scope.ServiceProvider.GetRequiredService<Context>();
-context.Database.Migrate();
+if (context.Database.GetPendingMigrations().Any())
+{
+    context.MigrateDatabase();
+}
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>

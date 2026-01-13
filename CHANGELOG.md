@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- The application can start without needing the permission to install PostgreSQL extensions if PostGIS is already installed.
+
 ## v3.0.227 - 2026-01-07
 
 ### Added
