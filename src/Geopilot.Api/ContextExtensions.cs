@@ -1,6 +1,8 @@
 ﻿using Bogus;
 using Geopilot.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using NetTopologySuite.Geometries;
 using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
@@ -218,5 +220,31 @@ internal static class ContextExtensions
         return mandates
             .Where(m => m.FileTypes.Contains(".*") || m.FileTypes.Select(ft => ft.ToLower()).Contains(extension));
 #pragma warning restore CA1304, CA1311 // Specify a culture or use an invariant version
+    }
+
+    public static void MigrateDatabase(this Context context)
+    {
+        if (context.IsPostgisInstalled())
+        {
+            // Workaround for azure dbs requiring admin permission for "CREATE EXTENSION IF NOT EXISTS postgis" even if it is already installed.
+            // See: https://github.com/npgsql/efcore.pg/issues/3496
+            var migrator = context.GetInfrastructure().GetRequiredService<IMigrator>();
+            var migrationScript = migrator
+                .GenerateScript(options: MigrationsSqlGenerationOptions.Idempotent)
+                .Replace("CREATE EXTENSION IF NOT EXISTS postgis;", "");
+            context.Database.ExecuteSqlRaw(migrationScript);
+        }
+        else
+        {
+            // Full migration including postgis installation.
+            context.Database.Migrate();
+        }
+    }
+
+    private static bool IsPostgisInstalled(this Context context)
+    {
+        return context.Database
+            .SqlQuery<int>($"SELECT 1 FROM pg_extension WHERE extname = 'postgis'")
+            .Any();
     }
 }
