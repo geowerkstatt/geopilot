@@ -1,0 +1,12 @@
+processes:
+  - name: ili_validator
+    implementation:  Geopilot.Api.Pipeline.Process.IliValidatorProcess
+    data_handling:
+      input_mapping:
+        ili_file: file
+      output_mapping:
+        error_log: error_log
+        xtf_log: xtf_log
+    default_config:
+      only_translate_if_xtf_is_de: false
+pipelines:
