@@ -18,7 +18,7 @@ internal interface IPipelineProcess
     DataHandlingConfig? DataHandlingConfig { get; set; }
 
     /// <summary>
-    /// The defaul configuration settings for the process. Can be overridden in specific pipeline steps (<see cref="StepConfig.ProcessConfigOverwrites"/>).
+    /// The process configuration. Defines the settings and parameters for the process execution.
     /// </summary>
-    Dictionary<string, object>? DefaultConfig { get; set; }
+    Dictionary<string, object>? Config { get; set; }
 }

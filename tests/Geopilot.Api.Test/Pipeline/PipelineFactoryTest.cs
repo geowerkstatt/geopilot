@@ -88,11 +88,6 @@ public class PipelineFactoryTest
         Assert.HasCount(1, pipeline.Steps);
         var validationStep = pipeline.Steps[0];
         Assert.AreEqual("validation", validationStep.Name, "validation step name not as expected");
-        Dictionary<string, object> expectedProcessConfigOverwrites = new Dictionary<string, object>()
-        {
-            { "log_level", "DEBUG" },
-        };
-        CollectionAssert.AreEqual(expectedProcessConfigOverwrites, validationStep.ProcessConfigOverwrites, "process config overwrites not as expected");
         Assert.HasCount(1, validationStep.InputConfig);
         var inputConfig_0 = validationStep.InputConfig.ElementAt(0);
         InputConfig expectedInputConfig_0 = new InputConfig()
@@ -132,9 +127,9 @@ public class PipelineFactoryTest
         CollectionAssert.AreEqual(expectedDataHandlingOutputMappingConfig, stepProcess.DataHandlingConfig.OutputMapping, "process data handling output mapping config not as expected");
         var expectedDefaultConfig = new Dictionary<string, object>()
         {
-            { "log_level", "INFO" },
+            { "log_level", "DEBUG" },
         };
-        CollectionAssert.AreEqual(expectedDefaultConfig, stepProcess.DefaultConfig, "process default Config not as expected");
+        CollectionAssert.AreEqual(expectedDefaultConfig, stepProcess.Config, "process config not as expected");
         Assert.IsNotNull(stepProcess as IliValidatorProcess, "process is not of type ILI Validator");
     }
 

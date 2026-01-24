@@ -9,10 +9,9 @@ namespace Geopilot.Api.Pipeline;
 /// </summary>
 internal class PipelineStep
 {
-    public PipelineStep(string name, Dictionary<string, object>? processConfigOverwrites, List<InputConfig> inputConfig, List<OutputConfig> outputConfig, IPipelineProcess process)
+    public PipelineStep(string name, List<InputConfig> inputConfig, List<OutputConfig> outputConfig, IPipelineProcess process)
     {
         this.Name = name;
-        this.ProcessConfigOverwrites = processConfigOverwrites;
         this.InputConfig = inputConfig;
         this.OutputConfig = outputConfig;
         this.Process = process;
@@ -22,11 +21,6 @@ internal class PipelineStep
     /// The name of the step. This name is unique within the pipeline. Other Steps reference this name to define data flow.
     /// </summary>
     public string Name { get; }
-
-    /// <summary>
-    /// Overwrites the process configuration for this step.
-    /// </summary>
-    public Dictionary<string, object>? ProcessConfigOverwrites { get; }
 
     /// <summary>
     /// The input configuration for this step.

@@ -1,5 +1,8 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Stac;
+using System;
+using System.Diagnostics;
 using System.Globalization;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -88,7 +91,7 @@ internal class PipelineFactory
 
     private PipelineStep CreateStep(StepConfig stepConfig)
     {
-        return new PipelineStep(stepConfig.Name, stepConfig.ProcessConfigOverwrites, stepConfig.Input, stepConfig.Output, CreateProcess(stepConfig.Process));
+        return new PipelineStep(stepConfig.Name, stepConfig.Input, stepConfig.Output, CreateProcess(stepConfig));
     }
 
     private ProcessConfig? GetProcessConfig(string processName)
@@ -97,8 +100,9 @@ internal class PipelineFactory
             .FirstOrDefault(p => p.Name == processName);
     }
 
-    private IPipelineProcess CreateProcess(string process)
+    private IPipelineProcess CreateProcess(StepConfig stepConfig)
     {
+        var process = stepConfig.Process;
         if (string.IsNullOrEmpty(process))
             throw new InvalidOperationException("no process defined in step");
         var processConfig = GetProcessConfig(process);
@@ -113,8 +117,25 @@ internal class PipelineFactory
 
         processInstance.Name = processConfig.Name;
         processInstance.DataHandlingConfig = processConfig.DataHandlingConfig;
-        processInstance.DefaultConfig = processConfig.DefaultConfig;
+        processInstance.Config = GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
 
         return processInstance;
+    }
+
+    private Dictionary<string, object> GenerateProcessConfig(Dictionary<string, object> processDefaultConfig, Dictionary<string, object>? processDefaultConfigOverwrites)
+    {
+        var mergedConfig = new Dictionary<string, object>(processDefaultConfig);
+        if (processDefaultConfigOverwrites != null)
+        {
+            foreach (var overwrite in processDefaultConfigOverwrites)
+            {
+                if (mergedConfig.ContainsKey(overwrite.Key))
+                {
+                    mergedConfig[overwrite.Key] = overwrite.Value;
+                }
+            }
+        }
+
+        return mergedConfig;
     }
 }

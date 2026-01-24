@@ -16,7 +16,7 @@ internal class IliValidatorProcess : IPipelineProcess
     public DataHandlingConfig? DataHandlingConfig { get; set; }
 
     /// <summary>
-    /// ToDo: Define default configuration for ILI validation process.
+    /// ToDo: Define configuration for ILI validation process.
     /// </summary>
-    public Dictionary<string, object>? DefaultConfig { get; set; }
+    public Dictionary<string, object>? Config { get; set; }
 }
