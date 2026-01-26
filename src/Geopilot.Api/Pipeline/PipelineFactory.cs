@@ -61,17 +61,15 @@ internal class PipelineFactory
 
         var duplicatePipelineNames = string.Join(", ", this.pipelineProcessConfig.Pipelines
             .GroupBy(p => p.Name)
-            .ToDictionary(g => g.Key, g => g.Count())
-            .Where(kv => kv.Value > 1)
-            .Select(kv => kv.Key));
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key));
         if (!string.IsNullOrEmpty(duplicatePipelineNames))
             throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "duplicate pipeline names found: {0}", duplicatePipelineNames));
 
         var duplicateProcessNames = string.Join(", ", this.pipelineProcessConfig.Processes
             .GroupBy(p => p.Name)
-            .ToDictionary(g => g.Key, g => g.Count())
-            .Where(kv => kv.Value > 1)
-            .Select(kv => kv.Key));
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key));
         if (!string.IsNullOrEmpty(duplicateProcessNames))
             throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "duplicate process names found: {0}", duplicateProcessNames));
 
