@@ -125,7 +125,7 @@ public class PipelineFactoryTest
         Assert.IsNotNull(stepProcess.DataHandlingConfig, "step process data handling config not defined");
         CollectionAssert.AreEqual(expectedDataHandlingInputMappingConfig, stepProcess.DataHandlingConfig.InputMapping, "process data handling input mapping config not as expected");
         CollectionAssert.AreEqual(expectedDataHandlingOutputMappingConfig, stepProcess.DataHandlingConfig.OutputMapping, "process data handling output mapping config not as expected");
-        var expectedDefaultConfig = new Dictionary<string, object>()
+        var expectedDefaultConfig = new Dictionary<string, string>()
         {
             { "log_level", "DEBUG" },
         };

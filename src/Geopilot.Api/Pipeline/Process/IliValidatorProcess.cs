@@ -18,5 +18,5 @@ internal class IliValidatorProcess : IPipelineProcess
     /// <summary>
     /// ToDo: Define configuration for ILI validation process.
     /// </summary>
-    public Dictionary<string, object>? Config { get; set; }
+    public Dictionary<string, string>? Config { get; set; }
 }

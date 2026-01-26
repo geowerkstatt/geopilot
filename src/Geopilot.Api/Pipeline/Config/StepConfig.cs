@@ -24,7 +24,7 @@ internal class StepConfig
     /// Optional configuration overrides for the process in this step. Overrides the default configuration defined in <see cref="ProcessConfig.DefaultConfig"/>.
     /// </summary>
     [YamlMember(Alias = "process_config_overwrites")]
-    public Dictionary<string, object>? ProcessConfigOverwrites { get; set; }
+    public Dictionary<string, string>? ProcessConfigOverwrites { get; set; }
 
     /// <summary>
     /// Configuration for input data handling in this step. Defines how to map data from the input sources to the process.

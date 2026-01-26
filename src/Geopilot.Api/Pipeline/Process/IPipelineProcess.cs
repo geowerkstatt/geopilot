@@ -20,5 +20,5 @@ internal interface IPipelineProcess
     /// <summary>
     /// The process configuration. Defines the settings and parameters for the process execution.
     /// </summary>
-    Dictionary<string, object>? Config { get; set; }
+    Dictionary<string, string>? Config { get; set; }
 }
