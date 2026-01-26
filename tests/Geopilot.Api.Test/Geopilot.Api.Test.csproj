@@ -9,10 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Config\Pipeline\basicPipeline_01.yaml" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Config\Pipeline\*.yaml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
