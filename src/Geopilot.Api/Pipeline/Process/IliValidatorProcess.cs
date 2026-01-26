@@ -8,7 +8,7 @@ namespace Geopilot.Api.Pipeline.Process;
 internal class IliValidatorProcess : IPipelineProcess
 {
     /// <inheritdoc/>
-    public string? Name { get; set; }
+    public required string Name { get; set; }
 
     /// <summary>
     /// ToDo: Define data handling configuration for ILI validation process.

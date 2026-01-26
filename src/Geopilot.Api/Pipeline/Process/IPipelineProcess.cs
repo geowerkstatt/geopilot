@@ -10,7 +10,7 @@ internal interface IPipelineProcess
     /// <summary>
     /// The unique name of the process.
     /// </summary>
-    string? Name { get; set; }
+    string Name { get; set; }
 
     /// <summary>
     /// The input and output data handling configuration for the process.
