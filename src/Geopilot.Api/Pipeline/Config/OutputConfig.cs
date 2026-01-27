@@ -20,12 +20,6 @@ internal class OutputConfig
     public required string As { get; set; }
 
     /// <summary>
-    /// The attribute key to map the output data to.
-    /// </summary>
-    [YamlMember(Alias = "with_key")]
-    public string? WithKey { get; set; }
-
-    /// <summary>
     /// The action to perform with the output data.
     /// </summary>
     [YamlMember(Alias = "action")]

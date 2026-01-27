@@ -24,10 +24,4 @@ internal class InputConfig
     /// </summary>
     [YamlMember(Alias = "as")]
     public required string As { get; set; }
-
-    /// <summary>
-    /// The attribute key to map the input data to.
-    /// </summary>
-    [YamlMember(Alias = "with_key")]
-    public string? WithKey { get; set; }
 }

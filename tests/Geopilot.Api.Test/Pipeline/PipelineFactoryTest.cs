@@ -95,7 +95,6 @@ public class PipelineFactoryTest
             From = "upload",
             Take = "ili_file",
             As = "ili_file",
-            WithKey = "file",
         };
         AssertInputConfig(expectedInputConfig_0, inputConfig_0);
         Assert.HasCount(2, validationStep.OutputConfig);
@@ -105,14 +104,12 @@ public class PipelineFactoryTest
         {
             Take = "error_log",
             As = "error_log",
-            WithKey = "error_log",
             Action = OutputAction.IGNORE,
         };
         OutputConfig expectedOutputConfig_1 = new OutputConfig()
         {
             Take = "xtf_log",
             As = "xtf_log",
-            WithKey = "xtf_log",
             Action = OutputAction.DOWNLOAD,
         };
         AssertOutputConfig(expectedOutputConfig_0, outputConfig_0);
@@ -145,7 +142,6 @@ public class PipelineFactoryTest
         {
             Assert.AreEqual(expectedConfig.Take, actualConfig.Take, "Output config 'Take' not as expected");
             Assert.AreEqual(expectedConfig.As, actualConfig.As, "Output config 'As' not as expected");
-            Assert.AreEqual(expectedConfig.WithKey, actualConfig.WithKey, "Output config 'WithKey' not as expected");
             Assert.AreEqual(expectedConfig.Action, actualConfig.Action, "Output config 'Action' not as expected");
         }
         else if (expectedConfig != null && actualConfig == null)
@@ -165,7 +161,6 @@ public class PipelineFactoryTest
             Assert.AreEqual(expectedConfig.From, actualConfig.From, "Output config 'From' not as expected");
             Assert.AreEqual(expectedConfig.Take, actualConfig.Take, "Output config 'Take' not as expected");
             Assert.AreEqual(expectedConfig.As, actualConfig.As, "Output config 'As' not as expected");
-            Assert.AreEqual(expectedConfig.WithKey, actualConfig.WithKey, "Output config 'WithKey' not as expected");
         }
         else if (expectedConfig != null && actualConfig == null)
         {

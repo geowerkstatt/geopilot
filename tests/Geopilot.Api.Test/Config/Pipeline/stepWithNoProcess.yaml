@@ -24,13 +24,10 @@ pipelines:
           - from: upload
             take: ili_file
             as: ili_file
-            with_key: file
         output:
           - take: error_log
             as: error_log
-            with_key: error_log
             action: IGNORE
           - take: xtf_log
             as: xtf_log
-            with_key: xtf_log
             action: DOWNLOAD
