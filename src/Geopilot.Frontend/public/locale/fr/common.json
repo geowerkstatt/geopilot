@@ -98,6 +98,7 @@
   "upperRight": "En haut à droite",
   "userDisconnect": "Voulez-vous vraiment déconnecter l'utilisateur? Cet utilisateur sera déconnecté de toutes les organisations. Cette action ne peut pas être annulée.",
   "userLoadingError": "Une erreur s'est produite lors du chargement d'utilisateur: {{error}}",
+  "userNoPermission": "L'utilisateur n'est pas autorisé à utiliser Geopilot.",
   "userSaveError": "Une erreur s'est produite lors de l'enregistrement de l'utilisateur: {{error}}",
   "users": "Utilisateurs",
   "usersLoadingError": "Une erreur s'est produite lors du chargement des utilisateurs: {{error}}",

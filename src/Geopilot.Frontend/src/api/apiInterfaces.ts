@@ -58,11 +58,16 @@ export interface Delivery {
   mandate: Mandate;
   comment: string;
 }
+export enum UserState {
+  Inactive = "inactive",
+  Active = "active",
+}
 
 export interface User {
   id: number;
   fullName: string;
   isAdmin: boolean;
+  state: UserState;
   email: string;
   organisations: Organisation[];
   deliveries?: Delivery[];
