@@ -20,6 +20,7 @@ interface AdminDetailFormProps<T> {
   apiEndpoint: string;
   saveErrorLabel: string;
   prepareDataForSave: (data: FieldValues) => T;
+  prepareDataAfterSave?: (data: T) => T;
   onSaveSuccess: (savedData: T) => void;
   children: ReactNode;
 }
@@ -31,6 +32,7 @@ const AdminDetailForm = <T extends { id: number }>({
   apiEndpoint,
   saveErrorLabel,
   prepareDataForSave,
+  prepareDataAfterSave,
   onSaveSuccess,
   children,
 }: AdminDetailFormProps<T>) => {
@@ -60,10 +62,11 @@ const AdminDetailForm = <T extends { id: number }>({
           errorMessageLabel: saveErrorLabel,
         });
         const savedData = response as T;
+        const newFormData = prepareDataAfterSave ? prepareDataAfterSave(savedData) : savedData;
 
         if (reloadAfterSave) {
           onSaveSuccess(savedData);
-          formMethods.reset(savedData);
+          formMethods.reset(newFormData);
 
           if (id === 0) {
             const newPath = `${basePath}/${savedData.id}`;
@@ -86,6 +89,7 @@ const AdminDetailForm = <T extends { id: number }>({
       navigate,
       onSaveSuccess,
       prepareDataForSave,
+      prepareDataAfterSave,
       registerCheckIsDirty,
       saveErrorLabel,
       unregisterCheckIsDirty,

@@ -39,7 +39,6 @@ public class User
     /// The current state of the user.
     /// </summary>
     [Column(TypeName = "varchar(24)")]
-    [DefaultValue("Active")]
     public UserState State { get; set; } = UserState.Active;
 
     /// <summary>

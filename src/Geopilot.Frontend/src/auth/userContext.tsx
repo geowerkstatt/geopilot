@@ -16,12 +16,12 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
         headers: {
           Authorization: `Bearer ${auth.user?.access_token}`,
         },
-        errorMessageLabel: "userLoadingError",
+        errorMessageLabel: "userNoPermission",
       })
         .then(setUser)
         .catch(error => {
-          if (error instanceof ApiError && error.status === 401) {
-            auth.removeUser();
+          if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+            auth.signoutSilent();
             setUser(null);
           }
         });

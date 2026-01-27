@@ -131,7 +131,10 @@ builder.Services.AddAuthorization(options =>
     });
     options.AddPolicy(GeopilotPolicies.User, policy =>
     {
-        policy.Requirements.Add(new GeopilotUserRequirement());
+        policy.Requirements.Add(new GeopilotUserRequirement
+        {
+            RequireAdmin = false,
+        });
     });
 
     var adminPolicy = options.GetPolicy(GeopilotPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");

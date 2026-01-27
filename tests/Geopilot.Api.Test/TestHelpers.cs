@@ -19,13 +19,14 @@ internal static class TestHelpers
                 ],
                 "MockAuthentication"));
 
-    public static User CreateUser(string authIdentifier, string fullName, string email, bool isAdmin = false)
+    public static User CreateUser(string authIdentifier, string fullName, string email, bool isAdmin = false, UserState state = UserState.Active)
         => new User
         {
             AuthIdentifier = authIdentifier,
             FullName = fullName,
             Email = email,
             IsAdmin = isAdmin,
+            State = state,
         };
 
     public static void AssertResponseValueType(Type expectedValueType,  IActionResult response)
