@@ -21,7 +21,7 @@ internal class Pipeline
     public PipelineParametersConfig? Parameters { get; }
 
     /// <summary>
-    /// The steps in the pipeline to be executed sequential.
+    /// The steps in the pipeline to be executed sequentially.
     /// </summary>
     public List<PipelineStep> Steps { get; }
 

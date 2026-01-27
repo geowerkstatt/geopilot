@@ -8,7 +8,7 @@ namespace Geopilot.Api.Pipeline.Config;
 internal class PipelineParametersConfig
 {
     /// <summary>
-    /// The name of the upload step in the pipeline. From this attribute the first step will takte the data from.
+    /// The name of the upload step in the pipeline. From this attribute the first step will take the data from.
     /// </summary>
     [YamlMember(Alias = "upload_step")]
     public required string UploadStep { get; set; }

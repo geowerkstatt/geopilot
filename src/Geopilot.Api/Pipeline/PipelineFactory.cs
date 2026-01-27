@@ -52,7 +52,7 @@ internal class PipelineFactory
     /// </summary>
     /// <param name="name">The name of the pipeline. References to <see cref="PipelineConfig.Name"/>.</param>
     /// <returns>A <see cref="Pipeline"/> instance.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the pipeline cannot be created.</exception>
+    /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
     internal Pipeline CreatePipeline(string name)
     {
         if (this.pipelineProcessConfig.Pipelines == null)
@@ -110,6 +110,8 @@ internal class PipelineFactory
         var objectType = Type.GetType(processConfig.Implementation);
         if (objectType == null)
             throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "unknown implementation '{0}' for process '{1}'", processConfig.Implementation, process));
+        if (objectType.GetConstructor(Type.EmptyTypes) == null)
+            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "no parameterless constructor found for process implementation '{0}'", processConfig.Implementation));
         var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
         if (processInstance == null)
             throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "failed to create process instance for '{0}'", process));
@@ -121,7 +123,7 @@ internal class PipelineFactory
         return processInstance;
     }
 
-    private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string> processDefaultConfig, Dictionary<string, string>? processDefaultConfigOverwrites)
+    private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string> processDefaultConfig, Dictionary<string, string> processDefaultConfigOverwrites)
     {
         var mergedConfig = processDefaultConfig != null ? new Dictionary<string, string>(processDefaultConfig) : new Dictionary<string, string>();
         if (processDefaultConfigOverwrites != null)

@@ -179,11 +179,11 @@ public class PipelineFactoryTest
         }
         else if (expectedConfig != null && actualConfig == null)
         {
-            Assert.Fail("Expected InputConfig is defined bug actual InputConfig is not defined");
+            Assert.Fail("Expected InputConfig is defined but actual InputConfig is not defined");
         }
         else if (expectedConfig == null && actualConfig != null)
         {
-            Assert.Fail("Expected InputConfig is not defined bug actual InputConfig is defined");
+            Assert.Fail("Expected InputConfig is not defined but actual InputConfig is defined");
         }
     }
 }

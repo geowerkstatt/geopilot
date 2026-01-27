@@ -8,13 +8,13 @@ namespace Geopilot.Api.Pipeline.Config;
 internal class InputConfig
 {
     /// <summary>
-    /// The source to take input data from.
+    /// The name of the step from which to take the data from.
     /// </summary>
     [YamlMember(Alias = "from")]
-    public string? From { get; set; }
+    public required string From { get; set; }
 
     /// <summary>
-    /// The attribute name to take the input data from.
+    /// The name of the attribute from which to take the data.
     /// </summary>
     [YamlMember(Alias = "take")]
     public required string Take { get; set; }
