@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Geopilot.Api.Models;
 
@@ -32,6 +34,13 @@ public class User
     /// Whether the user is an administrator.
     /// </summary>
     public bool IsAdmin { get; set; }
+
+    /// <summary>
+    /// The current state of the user.
+    /// </summary>
+    [Column(TypeName = "varchar(24)")]
+    [DefaultValue("Active")]
+    public UserState State { get; set; } = UserState.Active;
 
     /// <summary>
     /// Organisations the user is a member of.
