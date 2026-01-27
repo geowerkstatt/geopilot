@@ -127,11 +127,24 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new GeopilotUserRequirement
         {
             RequireAdmin = true,
+            RequireActiveUser = true,
+        });
+    });
+    options.AddPolicy(GeopilotPolicies.ActiveUser, policy =>
+    {
+        policy.Requirements.Add(new GeopilotUserRequirement
+        {
+            RequireAdmin = false,
+            RequireActiveUser = true,
         });
     });
     options.AddPolicy(GeopilotPolicies.User, policy =>
     {
-        policy.Requirements.Add(new GeopilotUserRequirement());
+        policy.Requirements.Add(new GeopilotUserRequirement
+        {
+            RequireAdmin = false,
+            RequireActiveUser = false,
+        });
     });
 
     var adminPolicy = options.GetPolicy(GeopilotPolicies.Admin) ?? throw new InvalidOperationException("Missing Admin authorization policy");

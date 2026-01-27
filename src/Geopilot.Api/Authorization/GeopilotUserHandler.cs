@@ -46,6 +46,12 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         if (user is null)
             return;
 
+        if (requirement.RequireActiveUser && user.State == UserState.Inactive)
+        {
+            logger.LogWarning("User with id <{UserId}> is not active.", user.AuthIdentifier);
+            return;
+        }
+
         if (requirement.RequireAdmin && !user.IsAdmin)
         {
             logger.LogWarning("User with id <{UserId}> did not fulfill admin requirement.", user.AuthIdentifier);

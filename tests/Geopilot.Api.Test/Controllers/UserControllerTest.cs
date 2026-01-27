@@ -50,11 +50,12 @@ public class UserControllerTest
         var httpContextMock = userController.SetupTestUser(dbUser);
 
         var userResult = await userController.GetSelfAsync();
+        var user = ActionResultAssert.IsOkObjectResult<User>(userResult);
         Assert.IsNotNull(userResult);
-        Assert.AreEqual(authIdentifier, userResult.AuthIdentifier);
-        Assert.AreEqual("Full Name", userResult.FullName);
-        Assert.AreEqual("some@email.com", userResult.Email);
-        Assert.IsTrue(userResult.IsAdmin);
+        Assert.AreEqual(authIdentifier, user.AuthIdentifier);
+        Assert.AreEqual("Full Name", user.FullName);
+        Assert.AreEqual("some@email.com", user.Email);
+        Assert.IsTrue(user.IsAdmin);
         httpContextMock.VerifyAll();
     }
 

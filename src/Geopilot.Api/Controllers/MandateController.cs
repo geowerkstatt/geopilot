@@ -42,7 +42,7 @@ public class MandateController : ControllerBase
     /// <param name="jobId">Optional. Get matching mandates by validation job id.</param>
     /// <returns>List of mandates matching optional filter criteria.</returns>
     [HttpGet]
-    [Authorize(Policy = GeopilotPolicies.User)]
+    [Authorize(Policy = GeopilotPolicies.ActiveUser)]
     [SwaggerResponse(StatusCodes.Status200OK, "Returns list of mandates associated to the current user matching the optional filter criteria.", typeof(IEnumerable<Mandate>), "application/json")]
     public async Task<IActionResult> Get(
         [FromQuery, SwaggerParameter("Filter mandates matching validation job file extension.")]

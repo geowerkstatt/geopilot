@@ -11,4 +11,9 @@ public class GeopilotUserRequirement : IAuthorizationRequirement
     /// Only allow administrators.
     /// </summary>
     public bool RequireAdmin { get; init; }
+
+    /// <summary>
+    /// Only allow active users.
+    /// </summary>
+    public bool RequireActiveUser { get; init; }
 }

@@ -57,11 +57,20 @@ public class UserController : ControllerBase
     [HttpGet("self")]
     [Authorize(Policy = GeopilotPolicies.User)]
     [SwaggerResponse(StatusCodes.Status200OK, "Returns the currently logged in user.", typeof(User), "application/json")]
-    public async Task<User?> GetSelfAsync()
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The user could not be found.")]
+    public async Task<IActionResult> GetSelfAsync()
     {
         var user = await context.GetUserByPrincipalAsync(User);
         logger.LogTrace("User <{AuthIdenifier}> getting account information.", user.AuthIdentifier);
-        return user;
+        if (user.State == UserState.Active)
+        {
+            return Ok(user);
+        }
+        else
+        {
+            logger.LogWarning("User <{AuthIdenifier}> is not active.", user.AuthIdentifier);
+            return NotFound();
+        }
     }
 
     /// <summary>

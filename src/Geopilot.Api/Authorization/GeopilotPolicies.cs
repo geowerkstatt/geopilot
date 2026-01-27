@@ -13,5 +13,10 @@ public static class GeopilotPolicies
     /// <summary>
     /// Allow access for all users that are stored in the database.
     /// </summary>
+    public const string ActiveUser = "ActiveUser";
+
+    /// <summary>
+    /// Allow access for all users that are stored in the database.
+    /// </summary>
     public const string User = "User";
 }

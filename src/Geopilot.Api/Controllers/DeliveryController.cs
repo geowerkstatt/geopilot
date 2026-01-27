@@ -40,7 +40,7 @@ public class DeliveryController : ControllerBase
     /// <param name="declaration"><see cref="DeliveryRequest"/> containing all information for the declaration process.</param>
     /// <returns>Created <see cref="Delivery"/>.</returns>
     [HttpPost]
-    [Authorize(Policy = GeopilotPolicies.User)]
+    [Authorize(Policy = GeopilotPolicies.ActiveUser)]
     [SwaggerResponse(StatusCodes.Status201Created, "The delivery was created successfully.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The user is not authorized.")]
@@ -162,7 +162,7 @@ public class DeliveryController : ControllerBase
     /// <param name="mandateId">Optional. Filter deliveries for given mandate.</param>
     /// <returns>A list of <see cref="Delivery"/>.</returns>
     [HttpGet]
-    [Authorize(Policy = GeopilotPolicies.User)]
+    [Authorize(Policy = GeopilotPolicies.ActiveUser)]
     [SwaggerResponse(StatusCodes.Status200OK, "A list matching filter criteria.", typeof(List<Delivery>), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Failed to find mandate.")]
     public async Task<IActionResult> Get([FromQuery] int? mandateId = null)
