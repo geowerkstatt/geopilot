@@ -1,8 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
-using Stac;
-using System;
-using System.Diagnostics;
 using System.Globalization;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -42,8 +39,12 @@ internal class PipelineFactory
     private PipelineFactory(PipelineProcessConfig pipelineProcessConfig)
     {
         this.pipelineProcessConfig = pipelineProcessConfig;
+
+        using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
+        this.logger = factory.CreateLogger<PipelineFactory>();
     }
 
+    private readonly ILogger<PipelineFactory> logger;
     private PipelineProcessConfig pipelineProcessConfig;
 
     /// <summary>
@@ -130,6 +131,10 @@ internal class PipelineFactory
                 if (mergedConfig.ContainsKey(overwrite.Key))
                 {
                     mergedConfig[overwrite.Key] = overwrite.Value;
+                }
+                else
+                {
+                    this.logger.LogWarning("Attempted to overwrite non-existing process configuration '{Key}' ==> '{Value}'", overwrite.Key, overwrite.Value);
                 }
             }
         }
