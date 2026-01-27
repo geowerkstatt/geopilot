@@ -1,0 +1,23 @@
+processes:
+pipelines:
+  - name: ili_validation
+    parameters:
+      upload_step: upload
+      mapping:
+        - file_extension: xtf
+          attribute: ili_file
+    steps:
+      - name: validation
+        process: ili_validator
+        process_config_overwrites:
+        input:
+          - from: upload
+            take: ili_file
+            as: ili_file
+        output:
+          - take: error_log
+            as: error_log
+            action: IGNORE
+          - take: xtf_log
+            as: xtf_log
+            action: DOWNLOAD
