@@ -2,14 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
-import {
-  FormAutocomplete,
-  FormCheckbox,
-  FormContainer,
-  FormContainerHalfWidth,
-  FormInput,
-} from "../../../components/form/form.ts";
-import { Organisation, User } from "../../../api/apiInterfaces.ts";
+import { FormAutocomplete, FormCheckbox, FormContainer, FormInput } from "../../../components/form/form.ts";
+import { Organisation, User, UserState } from "../../../api/apiInterfaces.ts";
 import { useGeopilotAuth } from "../../../auth/index.ts";
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
@@ -53,6 +47,7 @@ const UserDetail = () => {
     user.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
+    user.state = formData["isActive"] ? UserState.Active : UserState.Inactive;
     delete user.deliveries;
     return user;
   };
@@ -75,14 +70,20 @@ const UserDetail = () => {
             <FormInput fieldName={"fullName"} label={"name"} value={editableUser?.fullName} disabled={true} />
             <FormInput fieldName={"email"} label={"email"} value={editableUser?.email} disabled={true} />
           </FormContainer>
-          <FormContainerHalfWidth>
+          <FormContainer>
             <FormCheckbox
               fieldName={"isAdmin"}
               label={"isAdmin"}
               checked={editableUser?.isAdmin ?? false}
               disabled={!user || user?.id === editableUser?.id}
             />
-          </FormContainerHalfWidth>
+            <FormCheckbox
+              fieldName={"isActive"}
+              label={"active"}
+              checked={editableUser?.state == UserState.Active ?? false}
+              disabled={!user || user?.id === editableUser?.id}
+            />
+          </FormContainer>
           <FormContainer>
             <FormAutocomplete<Organisation>
               fieldName={"organisations"}
