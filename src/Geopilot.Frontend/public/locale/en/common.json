@@ -1,5 +1,6 @@
 {
   "about": "About",
+  "active": "Active",
   "addAnotherDelivery": "Add another delivery",
   "addMandate": "Add mandate",
   "addOrganisation": "Add organisation",
@@ -60,6 +61,7 @@
   "fileTypes": "Formats",
   "id": "ID",
   "imprint": "Imprint",
+  "inactive": "Inactive",
   "invalidContentType": "Invalid response type",
   "isAdmin": "Is Admin",
   "isPartialDelivery": "Is partial delivery",
@@ -100,6 +102,7 @@
   "userLoadingError": "An error occurred while loading the user: {{error}}",
   "userNoPermission": "The user is not authorized for geopilot.",
   "userSaveError": "An error occurred while saving the user: {{error}}",
+  "userState": "State",
   "users": "Users",
   "usersLoadingError": "An error occurred while loading the users: {{error}}",
   "validate": "Validate",

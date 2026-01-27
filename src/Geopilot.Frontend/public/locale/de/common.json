@@ -1,5 +1,6 @@
 {
   "about": "Über",
+  "active": "Aktiv",
   "addAnotherDelivery": "Weitere Lieferung hinzufügen",
   "addMandate": "Mandat hinzufügen",
   "addOrganisation": "Organisation hinzufügen",
@@ -60,6 +61,7 @@
   "fileTypes": "Formate",
   "id": "ID",
   "imprint": "Impressum",
+  "inactive": "Inaktiv",
   "invalidContentType": "Ungültiger Antworttyp",
   "isAdmin": "Ist Admin",
   "isPartialDelivery": "Ist Teillieferung",
@@ -100,6 +102,7 @@
   "userLoadingError": "Beim Laden der Benutzer:in ist ein Fehler aufgetreten: {{error}}",
   "userNoPermission": "Der Benutzer ist für geopilot nicht berechitgt",
   "userSaveError": "Beim Speichern des Benutzers ist ein Fehler aufgetreten: {{error}}",
+  "userState": "Status",
   "users": "Benutzer:innen",
   "usersLoadingError": "Beim Laden der Benutzer:innen ist ein Fehler aufgetreten: {{error}}",
   "validate": "Validieren",
