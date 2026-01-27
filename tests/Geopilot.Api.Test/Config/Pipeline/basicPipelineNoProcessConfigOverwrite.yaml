@@ -8,8 +8,6 @@ processes:
         error_log: error_log
         xtf_log: xtf_log
     default_config:
-      log_level: INFO
-      profile: null
 pipelines:
   - name: ili_validation
     parameters:
@@ -21,7 +19,6 @@ pipelines:
       - name: validation
         process: ili_validator
         process_config_overwrites:
-          log_level: DEBUG
           profile: PROFILE-A
         input:
           - from: upload

@@ -123,7 +123,7 @@ internal class PipelineFactory
 
     private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string> processDefaultConfig, Dictionary<string, string>? processDefaultConfigOverwrites)
     {
-        var mergedConfig = new Dictionary<string, string>(processDefaultConfig);
+        var mergedConfig = processDefaultConfig != null ? new Dictionary<string, string>(processDefaultConfig) : new Dictionary<string, string>();
         if (processDefaultConfigOverwrites != null)
         {
             foreach (var overwrite in processDefaultConfigOverwrites)

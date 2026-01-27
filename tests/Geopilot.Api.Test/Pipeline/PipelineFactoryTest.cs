@@ -125,9 +125,24 @@ public class PipelineFactoryTest
         var expectedDefaultConfig = new Dictionary<string, string>()
         {
             { "log_level", "DEBUG" },
+            { "profile", "PROFILE-A" },
         };
         CollectionAssert.AreEqual(expectedDefaultConfig, stepProcess.Config, "process config not as expected");
         Assert.IsNotNull(stepProcess as IliValidatorProcess, "process is not of type ILI Validator");
+    }
+
+    [TestMethod]
+    public void CreateBasicPipelineNoProcessConfigOverwrite()
+    {
+        PipelineFactory factory = CreatePipelineFactory("basicPipelineNoProcessConfigOverwrite");
+        var pipeline = factory.CreatePipeline("ili_validation");
+        Assert.IsNotNull(pipeline, "pipeline not created");
+        Assert.HasCount(1, pipeline.Steps);
+        var validationStep = pipeline.Steps[0];
+        IPipelineProcess stepProcess = validationStep.Process;
+        Assert.IsNotNull(stepProcess, "step process not created");
+        var expectedDefaultConfig = new Dictionary<string, string>();
+        CollectionAssert.AreEqual(expectedDefaultConfig, stepProcess.Config, "process config not as expected");
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)
