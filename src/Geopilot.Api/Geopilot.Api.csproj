@@ -41,4 +41,8 @@
     <Folder Include="Migrations\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Geopilot.Api.Test" />
+  </ItemGroup>
+
 </Project>
