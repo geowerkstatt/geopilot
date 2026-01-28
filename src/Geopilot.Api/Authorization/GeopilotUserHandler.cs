@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace Geopilot.Api.Authorization;
 
@@ -46,9 +47,10 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         if (user is null)
             return;
 
-        if (requirement.RequireActiveUser && user.State == UserState.Inactive)
+        if (user.State == UserState.Inactive)
         {
             logger.LogWarning("User with id <{UserId}> is not active.", user.AuthIdentifier);
+            context.Fail(new AuthorizationFailureReason(this, string.Format(CultureInfo.InvariantCulture, "User with id <{0}> is not active.", user.AuthIdentifier)));
             return;
         }
 

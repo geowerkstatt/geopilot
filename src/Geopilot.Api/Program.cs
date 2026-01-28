@@ -127,7 +127,6 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new GeopilotUserRequirement
         {
             RequireAdmin = true,
-            RequireActiveUser = true,
         });
     });
     options.AddPolicy(GeopilotPolicies.ActiveUser, policy =>
@@ -135,15 +134,6 @@ builder.Services.AddAuthorization(options =>
         policy.Requirements.Add(new GeopilotUserRequirement
         {
             RequireAdmin = false,
-            RequireActiveUser = true,
-        });
-    });
-    options.AddPolicy(GeopilotPolicies.User, policy =>
-    {
-        policy.Requirements.Add(new GeopilotUserRequirement
-        {
-            RequireAdmin = false,
-            RequireActiveUser = false,
         });
     });
 

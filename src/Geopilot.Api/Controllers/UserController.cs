@@ -26,6 +26,7 @@ public class UserController : ControllerBase
     /// <param name="logger">The logger for the instance.</param>
     /// <param name="context">The database context.</param>
     /// <param name="authOptions">The browser auth options.</param>
+    /// <param name="authorizationService">The authorization service.</param>
     public UserController(ILogger<UserController> logger, Context context, IOptions<BrowserAuthOptions> authOptions)
     {
         ArgumentNullException.ThrowIfNull(authOptions);
@@ -55,22 +56,14 @@ public class UserController : ControllerBase
     /// </summary>
     /// <returns>The <see cref="User"/> that is currently logged in.</returns>
     [HttpGet("self")]
-    [Authorize(Policy = GeopilotPolicies.User)]
+    [Authorize(Policy = GeopilotPolicies.ActiveUser)]
     [SwaggerResponse(StatusCodes.Status200OK, "Returns the currently logged in user.", typeof(User), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The user could not be found.")]
-    public async Task<IActionResult> GetSelfAsync()
+    public async Task<User?> GetSelfAsync()
     {
         var user = await context.GetUserByPrincipalAsync(User);
         logger.LogTrace("User <{AuthIdenifier}> getting account information.", user.AuthIdentifier);
-        if (user.State == UserState.Active)
-        {
-            return Ok(user);
-        }
-        else
-        {
-            logger.LogWarning("User <{AuthIdenifier}> is not active.", user.AuthIdentifier);
-            return NotFound();
-        }
+        return user;
     }
 
     /// <summary>
