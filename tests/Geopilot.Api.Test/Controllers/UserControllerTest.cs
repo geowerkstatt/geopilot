@@ -1,5 +1,7 @@
-﻿using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Authorization;
+using Geopilot.Api.Contracts;
 using Geopilot.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -125,7 +127,7 @@ public class UserControllerTest
     [TestMethod]
     public async Task EditUser()
     {
-        var testUser = CreateUser(Guid.NewGuid().ToString(), "FLEA XI", "flea@xi.com", isAdmin: false);
+        var testUser = CreateUser(Guid.NewGuid().ToString(), "FLEA XI", "flea@xi.com", isAdmin: false, state: UserState.Inactive);
         context.Users.Add(testUser);
         context.SaveChanges();
 
@@ -134,6 +136,7 @@ public class UserControllerTest
         Assert.IsNotNull(user);
         user.FullName = "FLEA XI Updated";
         user.IsAdmin = true;
+        user.State = UserState.Active;
         user.Organisations = new List<Organisation> { new() { Id = 1 }, new() { Id = 2 } };
 
         var result = await userController.Edit(user);
@@ -141,6 +144,7 @@ public class UserControllerTest
         Assert.IsNotNull(resultValue);
         Assert.AreEqual("FLEA XI", resultValue.FullName);
         Assert.IsTrue(resultValue.IsAdmin);
+        Assert.AreEqual(UserState.Active, resultValue.State);
         Assert.HasCount(2, resultValue.Organisations);
         for (var i = 0; i < 2; i++)
         {

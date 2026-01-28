@@ -52,6 +52,7 @@ internal static class ContextExtensions
             .RuleFor(u => u.FullName, f => f.Person.FullName)
             .RuleFor(u => u.Email, f => f.Person.Email)
             .RuleFor(u => u.IsAdmin, f => f.IndexFaker == 0)
+            .RuleFor(u => u.State, f => UserState.Active)
             .RuleFor(u => u.Organisations, _ => new List<Organisation>())
             .RuleFor(u => u.Deliveries, _ => new List<Delivery>());
 
@@ -63,6 +64,7 @@ internal static class ContextExtensions
             FullName = "Andreas Admin",
             Email = "admin@geopilot.ch",
             IsAdmin = true,
+            State = UserState.Active,
         });
 
         context.Users.Add(new User
@@ -71,6 +73,7 @@ internal static class ContextExtensions
             FullName = "Ursula User",
             Email = "user@geopilot.ch",
             IsAdmin = false,
+            State = UserState.Active,
         });
 
         context.SaveChanges();

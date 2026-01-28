@@ -57,6 +57,14 @@ export const Users = () => {
       type: "boolean",
     },
     {
+      field: "state",
+      headerName: t("userState"),
+      width: 160,
+      valueFormatter: (param: string) => {
+        return t(param);
+      },
+    },
+    {
       field: "organisations",
       headerName: t("organisations"),
       flex: 1,

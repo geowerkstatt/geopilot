@@ -120,6 +120,7 @@ public class UserController : ControllerBase
                 return NotFound();
 
             existingUser.IsAdmin = user.IsAdmin;
+            existingUser.State = user.State;
 
             var organisationIds = user.Organisations.Select(o => o.Id).ToList();
             var organisations = await context.Organisations
