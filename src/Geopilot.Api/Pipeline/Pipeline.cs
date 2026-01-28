@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline.Config;
 using NetTopologySuite.Index.HPRtree;
 
 namespace Geopilot.Api.Pipeline;
@@ -36,5 +37,15 @@ internal class Pipeline
         this.Name = name;
         this.Steps = steps;
         this.Parameters = parameters;
+    }
+
+    public PipelineContext Run(FileHandle file)
+    {
+        var context = new PipelineContext()
+        {
+            State = PipelineState.NotStarted,
+            StepResults = new Dictionary<string, StepResult>(),
+        };
+        return context;
     }
 }
