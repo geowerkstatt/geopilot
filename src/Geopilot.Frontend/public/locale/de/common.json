@@ -100,7 +100,7 @@
   "upperRight": "Oben rechts",
   "userDisconnect": "Möchten Sie den Benutzer wirklich inaktiv setzen? Der Benutzer wird von allen Organisationen getrennt. Diese Aktion kann nicht rückgängig gemacht werden.",
   "userLoadingError": "Beim Laden der Benutzer:in ist ein Fehler aufgetreten: {{error}}",
-  "userNoPermission": "Der Benutzer ist für geopilot nicht berechitgt",
+  "userNoPermission": "Der Benutzer ist für geopilot nicht berechtigt",
   "userSaveError": "Beim Speichern des Benutzers ist ein Fehler aufgetreten: {{error}}",
   "userState": "Status",
   "users": "Benutzer:innen",

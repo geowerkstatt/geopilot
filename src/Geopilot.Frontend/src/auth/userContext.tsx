@@ -20,7 +20,7 @@ export const UserProvider: FC<PropsWithChildren> = ({ children }) => {
       })
         .then(setUser)
         .catch(error => {
-          if (error instanceof ApiError && (error.status === 401 || error.status === 404)) {
+          if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
             auth.signoutSilent();
             setUser(null);
           }
