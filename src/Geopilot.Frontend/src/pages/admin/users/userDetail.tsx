@@ -52,15 +52,23 @@ const UserDetail = () => {
     return user;
   };
 
+  const prepareUserForForm = (user: User): User => {
+    return {
+      ...user,
+      isActive: user.state === UserState.Active,
+    } as User;
+  };
+
   return (
     id && (
       <AdminDetailForm<User>
         basePath="/admin/users"
         backLabel="backToUsers"
-        data={editableUser}
+        data={editableUser ? prepareUserForForm(editableUser) : undefined}
         apiEndpoint="/api/v1/user"
         saveErrorLabel="userSaveError"
         prepareDataForSave={prepareUserForSave}
+        prepareDataAfterSave={prepareUserForForm}
         onSaveSuccess={setEditableUser}>
         <GeopilotBox>
           <Typography variant={"h3"} margin={0}>
@@ -80,7 +88,7 @@ const UserDetail = () => {
             <FormCheckbox
               fieldName={"isActive"}
               label={"active"}
-              checked={editableUser?.state == UserState.Active ?? false}
+              checked={editableUser?.state === UserState.Active}
               disabled={!user || user?.id === editableUser?.id}
             />
           </FormContainer>
