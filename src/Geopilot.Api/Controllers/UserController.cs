@@ -26,7 +26,6 @@ public class UserController : ControllerBase
     /// <param name="logger">The logger for the instance.</param>
     /// <param name="context">The database context.</param>
     /// <param name="authOptions">The browser auth options.</param>
-    /// <param name="authorizationService">The authorization service.</param>
     public UserController(ILogger<UserController> logger, Context context, IOptions<BrowserAuthOptions> authOptions)
     {
         ArgumentNullException.ThrowIfNull(authOptions);
