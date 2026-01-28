@@ -1,6 +1,6 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
-using YamlDotNet.Serialization;
+using System.Runtime.CompilerServices;
 
 namespace Geopilot.Api.Pipeline;
 
@@ -13,7 +13,7 @@ internal class PipelineStep
     {
         this.Name = name;
         this.InputConfig = inputConfig;
-        this.OutputConfig = outputConfig;
+        this.OutputConfigs = outputConfig;
         this.Process = process;
     }
 
@@ -30,10 +30,68 @@ internal class PipelineStep
     /// <summary>
     /// The output configuration for this step.
     /// </summary>
-    public List<OutputConfig> OutputConfig { get; }
+    public List<OutputConfig> OutputConfigs { get; }
 
     /// <summary>
     /// The process to be executed for this step.
     /// </summary>
     public IPipelineProcess Process { get; }
+
+    public StepResult Run(PipelineContext context)
+    {
+        var inputProcessData = CreateProcessData(context);
+        var outputProcessData = Process.Run(inputProcessData);
+        var stepResult = CreateStepResult(outputProcessData);
+        return stepResult;
+    }
+
+    private StepResult CreateStepResult(ProcessData outputProcessData)
+    {
+        var stepResult = new StepResult() { State = StepState.Success };
+        foreach (var outputConfig in OutputConfigs)
+        {
+            if (outputProcessData.Data.TryGetValue(outputConfig.Take, out var processDataPart))
+            {
+                var stepOutput = new StepOutput
+                {
+                    Data = processDataPart.Data,
+                    Action = outputConfig.Action,
+                };
+                stepResult.Outputs[outputConfig.As] = stepOutput;
+            }
+            else
+            {
+                // TODO: Handle missing output data
+            }
+        }
+
+        return stepResult;
+    }
+
+    private ProcessData CreateProcessData(PipelineContext context)
+    {
+        var processData = new ProcessData();
+
+        foreach (var inputConfig in this.InputConfig)
+        {
+            if (context.StepResults.TryGetValue(inputConfig.From, out var stepResult))
+            {
+                if (stepResult.Outputs.TryGetValue(inputConfig.Take, out var stepOutput))
+                {
+                    var processDataPart = new ProcessDataPart { Data = stepOutput.Data };
+                    processData.Data[inputConfig.As] = processDataPart;
+                }
+                else
+                {
+                    // TODO: Handle missing output in step result
+                }
+            }
+            else
+            {
+                // TODO: Handle missing step result in context
+            }
+        }
+
+        return processData;
+    }
 }

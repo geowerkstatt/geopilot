@@ -6,7 +6,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Represents the configuration for an <see cref="IPipelineProcess"/> for mapping input and output data fields.
 /// </summary>
-internal class DataHandlingConfig
+public class DataHandlingConfig
 {
     /// <summary>
     /// Defines how input data fields are mapped. The key is the expected input field name, and the value is the actual data source field name.

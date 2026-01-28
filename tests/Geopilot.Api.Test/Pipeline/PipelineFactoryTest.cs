@@ -97,9 +97,9 @@ public class PipelineFactoryTest
             As = "ili_file",
         };
         AssertInputConfig(expectedInputConfig_0, inputConfig_0);
-        Assert.HasCount(2, validationStep.OutputConfig);
-        var outputConfig_0 = validationStep.OutputConfig.ElementAt(0);
-        var outputConfig_1 = validationStep.OutputConfig.ElementAt(1);
+        Assert.HasCount(2, validationStep.OutputConfigs);
+        var outputConfig_0 = validationStep.OutputConfigs.ElementAt(0);
+        var outputConfig_1 = validationStep.OutputConfigs.ElementAt(1);
         OutputConfig expectedOutputConfig_0 = new OutputConfig()
         {
             Take = "error_log",
@@ -147,7 +147,7 @@ public class PipelineFactoryTest
 
     private PipelineFactory CreatePipelineFactory(string filename)
     {
-        string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Config/Pipeline/" + filename + ".yaml");
+        string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
         return PipelineFactory.FromFile(path);
     }
 

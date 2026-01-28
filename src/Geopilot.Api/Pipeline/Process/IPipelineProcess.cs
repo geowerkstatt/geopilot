@@ -5,7 +5,7 @@ namespace Geopilot.Api.Pipeline.Process;
 /// <summary>
 /// Interface for a pipeline process. Implementing classes define specific processing logic within a pipeline.
 /// </summary>
-internal interface IPipelineProcess
+public interface IPipelineProcess
 {
     /// <summary>
     /// The unique name of the process.
@@ -21,4 +21,6 @@ internal interface IPipelineProcess
     /// The process configuration. Defines the settings and parameters for the process execution.
     /// </summary>
     Dictionary<string, string>? Config { get; set; }
+
+    ProcessData Run(ProcessData data);
 }

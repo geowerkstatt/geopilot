@@ -78,6 +78,12 @@ internal class PipelineFactory
         if (pipelineConfig == null)
             throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "pipeline for '{0}' not found", name));
 
+        if (pipelineConfig.Parameters == null)
+            throw new InvalidOperationException($"missing 'parameters' for pipeline '{name}'");
+
+        if (string.IsNullOrEmpty(pipelineConfig.Parameters.UploadStep))
+            throw new InvalidOperationException($"'upload_step' in 'parameters' for pipeline '{name}' must be set and cannot be an empty string");
+
         return new Pipeline(pipelineConfig.Name, CreateSteps(pipelineConfig), pipelineConfig.Parameters);
     }
 
