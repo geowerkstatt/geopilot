@@ -1,5 +1,5 @@
 processes:
-  - name: ili_validator
+  - id: ili_validator
     implementation:  Geopilot.Api.Pipeline.Process.IliValidatorProcess
     data_handling:
       input_mapping:

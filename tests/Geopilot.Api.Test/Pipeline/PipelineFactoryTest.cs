@@ -12,8 +12,8 @@ public class PipelineFactoryTest
     [TestMethod(DisplayName = "YAML Validation")]
     [DataRow("noProcesses", "PipelineProcessConfig: The Processes field is required.")]
     [DataRow("noPipelines", "PipelineProcessConfig: The Pipelines field is required.")]
-    [DataRow("noStepProcess", "StepConfig: The Process field is required.")]
-    [DataRow("noStepName", "StepConfig: The Name field is required.")]
+    [DataRow("noStepProcess", "StepConfig: The ProcessId field is required.")]
+    [DataRow("noStepId", "StepConfig: The Id field is required.")]
     [DataRow("noStepInput", "StepConfig: The Input field is required.")]
     [DataRow("noStepOutput", "StepConfig: The Output field is required.")]
     [DataRow("noStepInputConfigFrom", "InputConfig: The From field is required.")]
@@ -22,10 +22,10 @@ public class PipelineFactoryTest
     [DataRow("noStepOutputConfigTake", "OutputConfig: The Take field is required.")]
     [DataRow("noStepOutputConfigAs", "OutputConfig: The As field is required.")]
     [DataRow("noStepOutputConfigAction", "OutputConfig: The Action field is required.")]
-    [DataRow("noProcessName", "ProcessConfig: The Name field is required.")]
+    [DataRow("noProcessId", "ProcessConfig: The Id field is required.")]
     [DataRow("noProcessImplementation", "ProcessConfig: The Implementation field is required.")]
     [DataRow("noProcessDataHandling", "ProcessConfig: The DataHandlingConfig field is required.")]
-    [DataRow("noPipelineName", "PipelineConfig: The Name field is required.")]
+    [DataRow("noPipelineId", "PipelineConfig: The Id field is required.")]
     [DataRow("noPipelineParameters", "PipelineConfig: The Parameters field is required.")]
     [DataRow("noPipelineSteps", "PipelineConfig: The Steps field is required.")]
     [DataRow("noPipelineUploadStep", "PipelineParametersConfig: The UploadStep field is required.")]
@@ -49,12 +49,14 @@ public class PipelineFactoryTest
     [TestMethod(DisplayName = "Pipeline Validation")]
     [DataRow("stepWithInvalidProcessReference", "StepConfig: process reference for 'invalid_reference'")]
     [DataRow("unknownProcessImplementation", "ProcessConfig: unknown implementation 'this.is.unknown.ProcessorClass' for process 'ili_validator'")]
-    [DataRow("pipelineNotUnique", "PipelineProcessConfig: duplicate pipeline names found: ili_validation")]
-    [DataRow("processNotUnique", "PipelineProcessConfig: duplicate process names found: ili_validator")]
-    public void PipelineStepInvalidProcessReference(string pipelineFile, string expectedErrorMessage)
+    [DataRow("pipelineNotUnique", "PipelineProcessConfig: duplicate pipeline ids found: ili_validation")]
+    [DataRow("processNotUnique", "PipelineProcessConfig: duplicate process ids found: ili_validator")]
+    [DataRow("stepNotUnique", "PipelineProcessConfig: duplicate step ids found: not_unique")]
+    public void PipelineValidation(string pipelineFile, string expectedErrorMessage)
     {
         PipelineFactory factory = CreatePipelineFactory(pipelineFile);
         var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.IsTrue(validationErrors.HasErrors, "expected validation errors but none found");
         Assert.AreEqual(expectedErrorMessage, validationErrors.ErrorMessage);
     }
 
@@ -64,7 +66,7 @@ public class PipelineFactoryTest
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
         var pipeline = factory.CreatePipeline("ili_validation");
         Assert.IsNotNull(pipeline, "pipeline not created");
-        Assert.AreEqual("ili_validation", pipeline.Name, "pipeline name not as expected");
+        Assert.AreEqual("ili_validation", pipeline.Id, "pipeline name not as expected");
         Assert.IsNotNull(pipeline.Parameters, "pipeline parameters not initialized");
         Assert.AreEqual("upload", pipeline.Parameters.UploadStep, "upload step not as expected");
         Assert.HasCount(1, pipeline.Parameters.Mapping);
@@ -73,7 +75,7 @@ public class PipelineFactoryTest
         Assert.AreEqual("ili_file", mapping_0.Attribute, "pipeline mapping 0 attribute not as expected");
         Assert.HasCount(1, pipeline.Steps);
         var validationStep = pipeline.Steps[0];
-        Assert.AreEqual("validation", validationStep.Name, "validation step name not as expected");
+        Assert.AreEqual("validation", validationStep.Id, "validation step name not as expected");
         Assert.HasCount(1, validationStep.InputConfig);
         var inputConfig_0 = validationStep.InputConfig.ElementAt(0);
         InputConfig expectedInputConfig_0 = new InputConfig()

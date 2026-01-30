@@ -1,5 +1,5 @@
 processes:
-  - name: ili_validator
+  - id: ili_validator
     implementation: Geopilot.Api.Pipeline.Process.IliValidatorProcess
     data_handling:
       input_mapping:
@@ -11,7 +11,8 @@ processes:
       log_level: INFO
       profile: null
 pipelines:
-  - name: ili_validation
+  - id: ili_validation
+    display_name: ILI Validation
     parameters:
       upload_step: upload
       mapping:

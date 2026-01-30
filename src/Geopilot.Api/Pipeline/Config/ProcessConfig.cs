@@ -10,11 +10,11 @@ namespace Geopilot.Api.Pipeline.Config;
 internal class ProcessConfig
 {
     /// <summary>
-    /// The unique name of the process. Used to reference this process in <see cref="StepConfig"/>.
+    /// The unique process identifier. Used to reference this process in <see cref="StepConfig"/>.
     /// </summary>
-    [YamlMember(Alias = "name")]
+    [YamlMember(Alias = "id")]
     [Required(AllowEmptyStrings = false)]
-    public required string Name { get; set; }
+    public required string Id { get; set; }
 
     /// <summary>
     /// The implementation reference, a fully qualified class identifier for the process logic. Has to implement <see cref="Geopilot.Api.Pipeline.Process.IPipelineProcess"/>.

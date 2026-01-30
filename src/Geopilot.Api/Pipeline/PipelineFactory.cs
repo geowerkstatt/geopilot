@@ -52,7 +52,7 @@ internal class PipelineFactory
     /// <summary>
     /// Creates a pipeline instance with the specified name.
     /// </summary>
-    /// <param name="name">The name of the pipeline. References to <see cref="PipelineConfig.Name"/>.</param>
+    /// <param name="name">The name of the pipeline. References to <see cref="PipelineConfig.Id"/>.</param>
     /// <returns>A <see cref="Pipeline"/> instance.</returns>
     /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
     internal Pipeline CreatePipeline(string name)
@@ -62,11 +62,11 @@ internal class PipelineFactory
         if (validationErrors.HasErrors)
             throw new InvalidOperationException(validationErrors.ErrorMessage);
 
-        var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Name == name);
+        var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Id == name);
 
         if (pipelineConfig != null)
         {
-            return new Pipeline(pipelineConfig.Name, CreateSteps(pipelineConfig), pipelineConfig.Parameters);
+            return new Pipeline(pipelineConfig.Id, pipelineConfig.DisplayName, CreateSteps(pipelineConfig), pipelineConfig.Parameters);
         }
         else
         {
@@ -83,12 +83,12 @@ internal class PipelineFactory
 
     private PipelineStep CreateStep(StepConfig stepConfig)
     {
-        return new PipelineStep(stepConfig.Name, stepConfig.Input, stepConfig.Output, CreateProcess(stepConfig));
+        return new PipelineStep(stepConfig.Id, stepConfig.DisplayName, stepConfig.Input, stepConfig.Output, CreateProcess(stepConfig));
     }
 
     private IPipelineProcess CreateProcess(StepConfig stepConfig)
     {
-        var processConfig = PipelineProcessConfig.Processes.GetProcessConfig(stepConfig.Process);
+        var processConfig = PipelineProcessConfig.Processes.GetProcessConfig(stepConfig.ProcessId);
         if (processConfig != null)
         {
             var objectType = Type.GetType(processConfig.Implementation);
@@ -97,7 +97,7 @@ internal class PipelineFactory
                 var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
                 if (processInstance != null)
                 {
-                    processInstance.Name = processConfig.Name;
+                    processInstance.Name = processConfig.Id;
                     processInstance.DataHandlingConfig = processConfig.DataHandlingConfig;
                     processInstance.Config = GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
                     return processInstance;
@@ -105,7 +105,7 @@ internal class PipelineFactory
             }
         }
 
-        throw new InvalidOperationException($"failed to create process instance for '{stepConfig.Process}'");
+        throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
     }
 
     private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string>? processDefaultConfig, Dictionary<string, string>? processDefaultConfigOverwrites)

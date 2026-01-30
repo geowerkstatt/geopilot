@@ -10,11 +10,18 @@ namespace Geopilot.Api.Pipeline.Config;
 internal class PipelineConfig
 {
     /// <summary>
-    /// The name of the pipeline. A pipeline is uniquely identified by its name.
+    /// The pipeline identifier. A pipeline is uniquely identified by its id.
     /// </summary>
-    [YamlMember(Alias = "name")]
+    [YamlMember(Alias = "id")]
     [Required(AllowEmptyStrings = false)]
-    public required string Name { get; set; }
+    public required string Id { get; set; }
+
+    /// <summary>
+    /// The pipelines display name. A human-readable name for the pipeline.
+    /// </summary>
+    [YamlMember(Alias = "display_name")]
+    [Required(AllowEmptyStrings = false)]
+    public required string DisplayName { get; set; }
 
     /// <summary>
     /// The parameters for the pipeline.

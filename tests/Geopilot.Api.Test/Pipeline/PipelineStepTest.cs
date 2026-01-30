@@ -59,7 +59,7 @@ public class PipelineStepTest
         var processMock = new Mock<IPipelineProcess>();
         processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).Returns(processData);
 
-        var pipelineStep = new PipelineStep("my_step", inputConfigs, outputConfigs, processMock.Object);
+        var pipelineStep = new PipelineStep("my_step", "my step", inputConfigs, outputConfigs, processMock.Object);
 
         var stepResult = pipelineStep.Run(pipelineContext);
 

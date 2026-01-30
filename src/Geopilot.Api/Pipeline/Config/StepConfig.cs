@@ -10,18 +10,25 @@ namespace Geopilot.Api.Pipeline.Config;
 internal class StepConfig
 {
     /// <summary>
-    /// The name of the step. It uniquely identifies the step within the given pipeline. It is used to reference this step from other configurations.
+    /// The step identifier. It uniquely identifies the step within the given pipeline. It is used to reference this step from other configurations.
     /// </summary>
-    [YamlMember(Alias = "name")]
+    [YamlMember(Alias = "id")]
     [Required(AllowEmptyStrings = false)]
-    public required string Name { get; set; }
+    public required string Id { get; set; }
 
     /// <summary>
-    /// The process to execute in this step. References the <see cref="ProcessConfig.Name"/> of a defined process.
+    /// The steps display name. A human-readable name for the step.
     /// </summary>
-    [YamlMember(Alias = "process")]
+    [YamlMember(Alias = "display_name")]
     [Required(AllowEmptyStrings = false)]
-    public required string Process { get; set; }
+    public required string DisplayName { get; set; }
+
+    /// <summary>
+    /// The process to execute in this step. References the <see cref="ProcessConfig.Id"/> of a defined process.
+    /// </summary>
+    [YamlMember(Alias = "process_id")]
+    [Required(AllowEmptyStrings = false)]
+    public required string ProcessId { get; set; }
 
     /// <summary>
     /// Optional configuration overrides for the process in this step. Overrides the default configuration defined in <see cref="ProcessConfig.DefaultConfig"/>.

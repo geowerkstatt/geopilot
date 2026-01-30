@@ -12,9 +12,14 @@ namespace Geopilot.Api.Pipeline;
 internal class Pipeline
 {
     /// <summary>
-    /// The unique name of the pipeline.
+    /// The unique id of the pipeline.
     /// </summary>
-    public string Name { get; }
+    public string Id { get; }
+
+    /// <summary>
+    /// The pipelines display name. A human-readable name for the pipeline.
+    /// </summary>
+    public string DisplayName { get; }
 
     /// <summary>
     /// The parameters for the pipeline.
@@ -29,12 +34,14 @@ internal class Pipeline
     /// <summary>
     /// Initializes a new instance of the <see cref="Pipeline"/> class.
     /// </summary>
-    /// <param name="name">The unique name of the pipeline.</param>
+    /// <param name="id">The unique name of the pipeline.</param>
+    /// <param name="displayName">The pipelines display name. A human-readable name for the pipeline.</param>
     /// <param name="steps">The steps in the pipeline.</param>
     /// <param name="parameters">The parameters for the pipeline.</param>
-    public Pipeline(string name, List<PipelineStep> steps, PipelineParametersConfig parameters)
+    public Pipeline(string id, string displayName, List<PipelineStep> steps, PipelineParametersConfig parameters)
     {
-        this.Name = name;
+        this.Id = id;
+        this.DisplayName = displayName;
         this.Steps = steps;
         this.Parameters = parameters;
     }
@@ -53,7 +60,7 @@ internal class Pipeline
         foreach (var step in this.Steps)
         {
             var stepResult = step.Run(context);
-            context.StepResults[step.Name] = stepResult;
+            context.StepResults[step.Id] = stepResult;
         }
 
         return context;
