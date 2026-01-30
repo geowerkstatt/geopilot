@@ -1,6 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
-using System.Globalization;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization.NodeDeserializers;
@@ -40,14 +39,15 @@ internal class PipelineFactory
 
     private PipelineFactory(PipelineProcessConfig pipelineProcessConfig)
     {
-        this.pipelineProcessConfig = pipelineProcessConfig;
+        this.PipelineProcessConfig = pipelineProcessConfig;
 
         using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
         this.logger = factory.CreateLogger<PipelineFactory>();
     }
 
     private readonly ILogger<PipelineFactory> logger;
-    private PipelineProcessConfig pipelineProcessConfig;
+
+    public PipelineProcessConfig PipelineProcessConfig { get; }
 
     /// <summary>
     /// Creates a pipeline instance with the specified name.
@@ -57,25 +57,21 @@ internal class PipelineFactory
     /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
     internal Pipeline CreatePipeline(string name)
     {
-        var duplicatePipelineNames = string.Join(", ", this.pipelineProcessConfig.Pipelines
-            .GroupBy(p => p.Name)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key));
-        if (!string.IsNullOrEmpty(duplicatePipelineNames))
-            throw new InvalidOperationException($"duplicate pipeline names found: {duplicatePipelineNames}");
+        var validationErrors = this.PipelineProcessConfig.Validate();
 
-        var duplicateProcessNames = string.Join(", ", this.pipelineProcessConfig.Processes
-            .GroupBy(p => p.Name)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key));
-        if (!string.IsNullOrEmpty(duplicateProcessNames))
-            throw new InvalidOperationException($"duplicate process names found: {duplicateProcessNames}");
+        if (validationErrors.HasErrors)
+            throw new InvalidOperationException(validationErrors.ErrorMessage);
 
-        var pipelineConfig = this.pipelineProcessConfig.Pipelines.Find(p => p.Name == name);
-        if (pipelineConfig == null)
+        var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Name == name);
+
+        if (pipelineConfig != null)
+        {
+            return new Pipeline(pipelineConfig.Name, CreateSteps(pipelineConfig), pipelineConfig.Parameters);
+        }
+        else
+        {
             throw new InvalidOperationException($"pipeline for '{name}' not found");
-
-        return new Pipeline(pipelineConfig.Name, CreateSteps(pipelineConfig), pipelineConfig.Parameters);
+        }
     }
 
     private List<PipelineStep> CreateSteps(PipelineConfig pipelineConfig)
@@ -90,31 +86,26 @@ internal class PipelineFactory
         return new PipelineStep(stepConfig.Name, stepConfig.Input, stepConfig.Output, CreateProcess(stepConfig));
     }
 
-    private ProcessConfig? GetProcessConfig(string processName)
-    {
-        return this.pipelineProcessConfig.Processes
-            .FirstOrDefault(p => p.Name == processName);
-    }
-
     private IPipelineProcess CreateProcess(StepConfig stepConfig)
     {
-        var processConfig = GetProcessConfig(stepConfig.Process);
-        if (processConfig == null)
-            throw new InvalidOperationException($"process reference for '{stepConfig.Process}'");
-        var objectType = Type.GetType(processConfig.Implementation);
-        if (objectType == null)
-            throw new InvalidOperationException($"unknown implementation '{processConfig.Implementation}' for process '{stepConfig.Process}'");
-        if (objectType.GetConstructor(Type.EmptyTypes) == null)
-            throw new InvalidOperationException($"no parameterless constructor found for process implementation '{processConfig.Implementation}'");
-        var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
-        if (processInstance == null)
-            throw new InvalidOperationException("failed to create process instance for '{stepConfig.Process}'");
+        var processConfig = PipelineProcessConfig.Processes.GetProcessConfig(stepConfig.Process);
+        if (processConfig != null)
+        {
+            var objectType = Type.GetType(processConfig.Implementation);
+            if (objectType != null)
+            {
+                var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
+                if (processInstance != null)
+                {
+                    processInstance.Name = processConfig.Name;
+                    processInstance.DataHandlingConfig = processConfig.DataHandlingConfig;
+                    processInstance.Config = GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
+                    return processInstance;
+                }
+            }
+        }
 
-        processInstance.Name = processConfig.Name;
-        processInstance.DataHandlingConfig = processConfig.DataHandlingConfig;
-        processInstance.Config = GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
-
-        return processInstance;
+        throw new InvalidOperationException($"failed to create process instance for '{stepConfig.Process}'");
     }
 
     private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string>? processDefaultConfig, Dictionary<string, string>? processDefaultConfigOverwrites)

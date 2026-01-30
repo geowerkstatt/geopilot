@@ -46,36 +46,16 @@ public class PipelineFactoryTest
         Assert.AreEqual("pipeline for 'foo' not found", exception.Message);
     }
 
-    [TestMethod]
-    public void PipelineStepInvalidProcessReference()
+    [TestMethod(DisplayName = "Pipeline Validation")]
+    [DataRow("stepWithInvalidProcessReference", "StepConfig: process reference for 'invalid_reference'")]
+    [DataRow("unknownProcessImplementation", "ProcessConfig: unknown implementation 'this.is.unknown.ProcessorClass' for process 'ili_validator'")]
+    [DataRow("pipelineNotUnique", "PipelineProcessConfig: duplicate pipeline names found: ili_validation")]
+    [DataRow("processNotUnique", "PipelineProcessConfig: duplicate process names found: ili_validator")]
+    public void PipelineStepInvalidProcessReference(string pipelineFile, string expectedErrorMessage)
     {
-        PipelineFactory factory = CreatePipelineFactory("stepWithInvalidProcessReference");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("process reference for 'invalid_reference'", exception.Message);
-    }
-
-    [TestMethod]
-    public void UnknownProcessImplementation()
-    {
-        PipelineFactory factory = CreatePipelineFactory("unknownProcessImplementation");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("unknown implementation 'this.is.unknown.ProcessorClass' for process 'ili_validator'", exception.Message);
-    }
-
-    [TestMethod]
-    public void PipelinesNotUnique()
-    {
-        PipelineFactory factory = CreatePipelineFactory("pipelineNotUnique");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("duplicate pipeline names found: ili_validation", exception.Message);
-    }
-
-    [TestMethod]
-    public void ProcessNotUnique()
-    {
-        PipelineFactory factory = CreatePipelineFactory("processNotUnique");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("duplicate process names found: ili_validator", exception.Message);
+        PipelineFactory factory = CreatePipelineFactory(pipelineFile);
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.AreEqual(expectedErrorMessage, validationErrors.ErrorMessage);
     }
 
     [TestMethod]
