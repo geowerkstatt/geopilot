@@ -22,5 +22,10 @@ public interface IPipelineProcess
     /// </summary>
     Dictionary<string, string>? Config { get; set; }
 
+    /// <summary>
+    /// Runs the process with the given input data.
+    /// </summary>
+    /// <param name="data">The input data for the process.</param>
+    /// <returns>The output data from the process.</returns>
     ProcessData Run(ProcessData data);
 }
