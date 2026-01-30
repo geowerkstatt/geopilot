@@ -55,7 +55,7 @@ internal class PipelineStep
                 var stepOutput = new StepOutput
                 {
                     Data = processDataPart.Data,
-                    Action = outputConfig.Action,
+                    Action = outputConfig.Action ?? OutputAction.IGNORE,
                 };
                 stepResult.Outputs[outputConfig.As] = stepOutput;
             }

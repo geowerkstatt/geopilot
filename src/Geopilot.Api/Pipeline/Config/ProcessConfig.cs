@@ -1,4 +1,6 @@
-﻿using YamlDotNet.Serialization;
+﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using YamlDotNet.Serialization;
 
 namespace Geopilot.Api.Pipeline.Config;
 
@@ -11,23 +13,26 @@ internal class ProcessConfig
     /// The unique name of the process. Used to reference this process in <see cref="StepConfig"/>.
     /// </summary>
     [YamlMember(Alias = "name")]
+    [Required(AllowEmptyStrings = false)]
     public required string Name { get; set; }
 
     /// <summary>
     /// The implementation reference, a fully qualified class identifier for the process logic. Has to implement <see cref="Geopilot.Api.Pipeline.Process.IPipelineProcess"/>.
     /// </summary>
     [YamlMember(Alias = "implementation")]
+    [Required(AllowEmptyStrings = false)]
     public required string Implementation { get; set; }
 
     /// <summary>
     /// Optional data handling configuration for the process. Defines how input and output data are mapped.
     /// </summary>
     [YamlMember(Alias = "data_handling")]
-    public DataHandlingConfig? DataHandlingConfig { get; set; }
+    [Required]
+    public required DataHandlingConfig DataHandlingConfig { get; set; }
 
     /// <summary>
     /// Optional default configuration for the process. Can be overridden by <see cref="StepConfig.ProcessConfigOverwrites"/>.
     /// </summary>
     [YamlMember(Alias = "default_config")]
-    public Dictionary<string, string> DefaultConfig { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string>? DefaultConfig { get; set; }
 }

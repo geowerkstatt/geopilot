@@ -3,6 +3,7 @@ using Geopilot.Api.Pipeline.Process;
 using System.Globalization;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using YamlDotNet.Serialization.NodeDeserializers;
 
 namespace Geopilot.Api.Pipeline;
 
@@ -20,6 +21,7 @@ internal class PipelineFactory
     {
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
+            .WithNodeDeserializer(i => new DeserializerValidation(i), s => s.InsteadOf<ObjectNodeDeserializer>())
             .Build();
         var pipelineProcessConfig = deserializer.Deserialize<PipelineProcessConfig>(processDefinition);
         return new PipelineFactory(pipelineProcessConfig);
@@ -55,34 +57,23 @@ internal class PipelineFactory
     /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
     internal Pipeline CreatePipeline(string name)
     {
-        if (this.pipelineProcessConfig.Pipelines == null)
-            throw new InvalidOperationException("no pipelines defined");
-        if (this.pipelineProcessConfig.Processes == null)
-            throw new InvalidOperationException("no processes defined");
-
         var duplicatePipelineNames = string.Join(", ", this.pipelineProcessConfig.Pipelines
             .GroupBy(p => p.Name)
             .Where(g => g.Count() > 1)
             .Select(g => g.Key));
         if (!string.IsNullOrEmpty(duplicatePipelineNames))
-            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "duplicate pipeline names found: {0}", duplicatePipelineNames));
+            throw new InvalidOperationException($"duplicate pipeline names found: {duplicatePipelineNames}");
 
         var duplicateProcessNames = string.Join(", ", this.pipelineProcessConfig.Processes
             .GroupBy(p => p.Name)
             .Where(g => g.Count() > 1)
             .Select(g => g.Key));
         if (!string.IsNullOrEmpty(duplicateProcessNames))
-            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "duplicate process names found: {0}", duplicateProcessNames));
+            throw new InvalidOperationException($"duplicate process names found: {duplicateProcessNames}");
 
         var pipelineConfig = this.pipelineProcessConfig.Pipelines.Find(p => p.Name == name);
         if (pipelineConfig == null)
-            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "pipeline for '{0}' not found", name));
-
-        if (pipelineConfig.Parameters == null)
-            throw new InvalidOperationException($"missing 'parameters' for pipeline '{name}'");
-
-        if (string.IsNullOrEmpty(pipelineConfig.Parameters.UploadStep))
-            throw new InvalidOperationException($"'upload_step' in 'parameters' for pipeline '{name}' must be set and cannot be an empty string");
+            throw new InvalidOperationException($"pipeline for '{name}' not found");
 
         return new Pipeline(pipelineConfig.Name, CreateSteps(pipelineConfig), pipelineConfig.Parameters);
     }
@@ -107,20 +98,17 @@ internal class PipelineFactory
 
     private IPipelineProcess CreateProcess(StepConfig stepConfig)
     {
-        var process = stepConfig.Process;
-        if (string.IsNullOrEmpty(process))
-            throw new InvalidOperationException("no process defined in step");
-        var processConfig = GetProcessConfig(process);
+        var processConfig = GetProcessConfig(stepConfig.Process);
         if (processConfig == null)
-            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "process type for '{0}' not found", process));
+            throw new InvalidOperationException($"process reference for '{stepConfig.Process}'");
         var objectType = Type.GetType(processConfig.Implementation);
         if (objectType == null)
-            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "unknown implementation '{0}' for process '{1}'", processConfig.Implementation, process));
+            throw new InvalidOperationException($"unknown implementation '{processConfig.Implementation}' for process '{stepConfig.Process}'");
         if (objectType.GetConstructor(Type.EmptyTypes) == null)
-            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "no parameterless constructor found for process implementation '{0}'", processConfig.Implementation));
+            throw new InvalidOperationException($"no parameterless constructor found for process implementation '{processConfig.Implementation}'");
         var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
         if (processInstance == null)
-            throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "failed to create process instance for '{0}'", process));
+            throw new InvalidOperationException("failed to create process instance for '{stepConfig.Process}'");
 
         processInstance.Name = processConfig.Name;
         processInstance.DataHandlingConfig = processConfig.DataHandlingConfig;
@@ -129,7 +117,7 @@ internal class PipelineFactory
         return processInstance;
     }
 
-    private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string> processDefaultConfig, Dictionary<string, string> processDefaultConfigOverwrites)
+    private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string>? processDefaultConfig, Dictionary<string, string>? processDefaultConfigOverwrites)
     {
         var mergedConfig = processDefaultConfig != null ? new Dictionary<string, string>(processDefaultConfig) : new Dictionary<string, string>();
         if (processDefaultConfigOverwrites != null)

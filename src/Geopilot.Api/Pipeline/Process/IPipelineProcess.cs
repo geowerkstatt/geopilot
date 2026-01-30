@@ -15,7 +15,7 @@ public interface IPipelineProcess
     /// <summary>
     /// The input and output data handling configuration for the process.
     /// </summary>
-    DataHandlingConfig? DataHandlingConfig { get; set; }
+    DataHandlingConfig DataHandlingConfig { get; set; }
 
     /// <summary>
     /// The process configuration. Defines the settings and parameters for the process execution.

@@ -12,11 +12,11 @@ public class DataHandlingConfig
     /// Defines how input data fields are mapped. The key is the expected input field name, and the value is the actual data source field name.
     /// </summary>
     [YamlMember(Alias = "input_mapping")]
-    public Dictionary<string, string> InputMapping { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string>? InputMapping { get; set; }
 
     /// <summary>
     /// Defines how output data fields are mapped. The key is the expected output field name, and the value is the actual data source field name.
     /// </summary>
     [YamlMember(Alias = "output_mapping")]
-    public Dictionary<string, string> OutputMapping { get; set; } = new Dictionary<string, string>();
+    public Dictionary<string, string>? OutputMapping { get; set; }
 }

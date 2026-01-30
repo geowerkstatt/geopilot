@@ -13,7 +13,7 @@ internal class DummyProcess : IPipelineProcess
     /// <summary>
     /// ToDo: Define data handling configuration for the dummy process.
     /// </summary>
-    public DataHandlingConfig? DataHandlingConfig { get; set; }
+    public required DataHandlingConfig DataHandlingConfig { get; set; }
 
     /// <summary>
     /// ToDo: Define configuration for the dummy process.

@@ -2,26 +2,40 @@
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using System.Reflection;
+using YamlDotNet.Core;
 
 namespace Geopilot.Api.Test.Pipeline;
 
 [TestClass]
 public class PipelineFactoryTest
 {
-    [TestMethod]
-    public void PipelineWithNoProcesses()
+    [TestMethod(DisplayName = "YAML Validation")]
+    [DataRow("noProcesses", "PipelineProcessConfig: The Processes field is required.")]
+    [DataRow("noPipelines", "PipelineProcessConfig: The Pipelines field is required.")]
+    [DataRow("noStepProcess", "StepConfig: The Process field is required.")]
+    [DataRow("noStepName", "StepConfig: The Name field is required.")]
+    [DataRow("noStepInput", "StepConfig: The Input field is required.")]
+    [DataRow("noStepOutput", "StepConfig: The Output field is required.")]
+    [DataRow("noStepInputConfigFrom", "InputConfig: The From field is required.")]
+    [DataRow("noStepInputConfigTake", "InputConfig: The Take field is required.")]
+    [DataRow("noStepInputConfigAs", "InputConfig: The As field is required.")]
+    [DataRow("noStepOutputConfigTake", "OutputConfig: The Take field is required.")]
+    [DataRow("noStepOutputConfigAs", "OutputConfig: The As field is required.")]
+    [DataRow("noStepOutputConfigAction", "OutputConfig: The Action field is required.")]
+    [DataRow("noProcessName", "ProcessConfig: The Name field is required.")]
+    [DataRow("noProcessImplementation", "ProcessConfig: The Implementation field is required.")]
+    [DataRow("noProcessDataHandling", "ProcessConfig: The DataHandlingConfig field is required.")]
+    [DataRow("noPipelineName", "PipelineConfig: The Name field is required.")]
+    [DataRow("noPipelineParameters", "PipelineConfig: The Parameters field is required.")]
+    [DataRow("noPipelineSteps", "PipelineConfig: The Steps field is required.")]
+    [DataRow("noPipelineUploadStep", "PipelineParametersConfig: The UploadStep field is required.")]
+    [DataRow("noPipelineFileMapping", "PipelineParametersConfig: The Mapping field is required.")]
+    [DataRow("noPipelineFileMappingExtension", "FileMappingConfig: The FileExtension field is required.")]
+    [DataRow("noPipelineFileMappingAttribute", "FileMappingConfig: The Attribute field is required.")]
+    public void YamlValidation(string pipelineFile, string expectedExceptionMessage)
     {
-        PipelineFactory factory = CreatePipelineFactory("pipelineNoProcesses");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("no processes defined", exception.Message);
-    }
-
-    [TestMethod]
-    public void PipelineWithNoPipelines()
-    {
-        PipelineFactory factory = CreatePipelineFactory("pipelineNoPipelines");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("no pipelines defined", exception.Message);
+        YamlException exception = Assert.Throws<YamlException>(() => CreatePipelineFactory(pipelineFile));
+        Assert.AreEqual(expectedExceptionMessage, exception.Message);
     }
 
     [TestMethod]
@@ -33,19 +47,11 @@ public class PipelineFactoryTest
     }
 
     [TestMethod]
-    public void PipelineStepNoProcessDefined()
-    {
-        PipelineFactory factory = CreatePipelineFactory("stepWithNoProcess");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("no process defined in step", exception.Message);
-    }
-
-    [TestMethod]
     public void PipelineStepInvalidProcessReference()
     {
         PipelineFactory factory = CreatePipelineFactory("stepWithInvalidProcessReference");
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("process type for 'invalid_reference' not found", exception.Message);
+        Assert.AreEqual("process reference for 'invalid_reference'", exception.Message);
     }
 
     [TestMethod]
