@@ -18,9 +18,15 @@ internal static class PipelineExtensions
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
-        outputErrors = pipelineProcessConfig.Processes.Validate(outputErrors);
+        if (pipelineProcessConfig.Processes == null || pipelineProcessConfig.Processes.Count == 0)
+            outputErrors.Add(new PipelineValidationError(typeof(PipelineProcessConfig), "The Processes field is required."));
+        else
+            outputErrors = pipelineProcessConfig.Processes.Validate(outputErrors);
 
-        outputErrors = pipelineProcessConfig.Pipelines.Validate(pipelineProcessConfig.Processes, outputErrors);
+        if (pipelineProcessConfig.Pipelines == null || pipelineProcessConfig.Pipelines.Count == 0)
+            outputErrors.Add(new PipelineValidationError(typeof(PipelineProcessConfig), "The Pipelines field is required."));
+        else
+            outputErrors = pipelineProcessConfig.Pipelines.Validate(pipelineProcessConfig.Processes, outputErrors);
 
         return outputErrors;
     }
@@ -36,10 +42,12 @@ internal static class PipelineExtensions
         if (!string.IsNullOrEmpty(duplicateProcessIds))
             outputErrors.Add(new PipelineValidationError(typeof(PipelineProcessConfig), $"duplicate process ids found: {duplicateProcessIds}"));
 
+        outputErrors = processes.Aggregate(outputErrors, (errors, processConfig) => processConfig.Validate(errors));
+
         return outputErrors;
     }
 
-    internal static PipelineValidationErrors Validate(this List<PipelineConfig> pipelines, List<ProcessConfig> processes, PipelineValidationErrors? inputErrors = null)
+    internal static PipelineValidationErrors Validate(this List<PipelineConfig> pipelines, List<ProcessConfig>? processes, PipelineValidationErrors? inputErrors = null)
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
@@ -59,43 +67,72 @@ internal static class PipelineExtensions
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
-        var objectType = Type.GetType(processConfig.Implementation);
-        if (objectType != null)
+        if (processConfig.Id == null || processConfig.Id.Trim() == string.Empty)
+            outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), "The Id field is required."));
+
+        if (processConfig.DataHandlingConfig == null)
+            outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), "The DataHandlingConfig field is required."));
+
+        if (processConfig.Implementation == null || processConfig.Implementation.Trim() == string.Empty)
         {
-            if (objectType.GetConstructor(Type.EmptyTypes) == null)
-                outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"no parameterless constructor found for process implementation '{processConfig.Implementation}'"));
-
-            var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
-
-            if (processInstance == null)
-                outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"failed to create process instance for '{processConfig.Implementation}'"));
+            outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), "The Implementation field is required."));
         }
         else
         {
-            outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"unknown implementation '{processConfig.Implementation}' for process '{processConfig.Id}'"));
+            var objectType = Type.GetType(processConfig.Implementation);
+            if (objectType != null)
+            {
+                if (objectType.GetConstructor(Type.EmptyTypes) == null)
+                    outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"no parameterless constructor found for process implementation '{processConfig.Implementation}'"));
+
+                var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
+
+                if (processInstance == null)
+                    outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"failed to create process instance for '{processConfig.Implementation}'"));
+            }
+            else
+            {
+                outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"unknown implementation '{processConfig.Implementation}' for process '{processConfig.Id}'"));
+            }
         }
 
         return outputErrors;
     }
 
-    internal static PipelineValidationErrors Validate(this PipelineConfig pipelineConfig, List<ProcessConfig> processes, PipelineValidationErrors? inputErrors = null)
+    internal static PipelineValidationErrors Validate(this PipelineConfig pipelineConfig, List<ProcessConfig>? processes, PipelineValidationErrors? inputErrors = null)
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
-        outputErrors = pipelineConfig.Steps.Validate(pipelineConfig, processes, outputErrors);
-        outputErrors = pipelineConfig.Parameters.Validate(pipelineConfig.Id, outputErrors);
+        if (pipelineConfig.Id == null || pipelineConfig.Id.Trim() == string.Empty)
+            outputErrors.Add(new PipelineValidationError(typeof(PipelineConfig), "The Id field is required."));
+
+        if (pipelineConfig.Parameters == null)
+            outputErrors.Add(new PipelineValidationError(typeof(PipelineConfig), "The Parameters field is required."));
+        else
+            outputErrors = pipelineConfig.Parameters.Validate(pipelineConfig.Id ?? "", outputErrors);
+
+        if (pipelineConfig.Steps == null || pipelineConfig.Steps.Count == 0)
+            outputErrors.Add(new PipelineValidationError(typeof(PipelineConfig), "The Steps field is required."));
+        else
+            outputErrors = pipelineConfig.Steps.Validate(pipelineConfig, processes, outputErrors);
 
         return outputErrors;
     }
 
     internal static PipelineValidationErrors Validate(
         this PipelineParametersConfig parameters,
-        string stepId,
+        string pipelineId,
         PipelineValidationErrors? inputErrors = null)
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
-        outputErrors = parameters.Mappings.Validate(stepId, outputErrors);
+        if (parameters.UploadStep == null || parameters.UploadStep.Trim() == string.Empty)
+            outputErrors.Add(new PipelineValidationError(typeof(PipelineParametersConfig), "The UploadStep field is required."));
+
+        if (parameters.Mappings == null || parameters.Mappings.Count == 0)
+            outputErrors.Add(new PipelineValidationError(typeof(PipelineParametersConfig), "The Mappings field is required."));
+        else
+            outputErrors = parameters.Mappings.Validate(pipelineId, outputErrors);
 
         return outputErrors;
     }
@@ -119,10 +156,22 @@ internal static class PipelineExtensions
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
-        var validFileExtension = new Regex(@"^[a-zA-Z]{2,}$");
-        if (!validFileExtension.IsMatch(fileMapping.FileExtension))
+        if (fileMapping.Attribute == null || fileMapping.Attribute.Trim() == string.Empty)
         {
-            outputErrors.Add(new PipelineValidationError(typeof(FileMappingsConfig), $"invalid file extension '{fileMapping.FileExtension}' in step '{pipelineId}'"));
+            outputErrors.Add(new PipelineValidationError(typeof(FileMappingsConfig), "The Attribute field is required."));
+        }
+
+        if (fileMapping.FileExtension == null || fileMapping.FileExtension.Trim() == string.Empty)
+        {
+            outputErrors.Add(new PipelineValidationError(typeof(FileMappingsConfig), "The FileExtension field is required."));
+        }
+        else
+        {
+            var validFileExtension = new Regex(@"^[a-zA-Z]{2,}$");
+            if (!validFileExtension.IsMatch(fileMapping.FileExtension))
+            {
+                outputErrors.Add(new PipelineValidationError(typeof(FileMappingsConfig), $"invalid file extension '{fileMapping.FileExtension}' in step '{pipelineId}'"));
+            }
         }
 
         return outputErrors;
@@ -131,7 +180,7 @@ internal static class PipelineExtensions
     internal static PipelineValidationErrors Validate(
         this List<StepConfig> allPipelienSteps,
         PipelineConfig pipelineConfig,
-        List<ProcessConfig> processes,
+        List<ProcessConfig>? processes,
         PipelineValidationErrors? inputErrors = null)
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
@@ -152,12 +201,27 @@ internal static class PipelineExtensions
     internal static PipelineValidationErrors Validate(
         this StepConfig stepConfig,
         PipelineConfig pipelineConfig,
-        List<ProcessConfig> processes,
+        List<ProcessConfig>? processes,
         PipelineValidationErrors? inputErrors = null)
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
-        var processConfig = stepConfig.ProcessId != null ? processes.GetProcessConfig(stepConfig.ProcessId) : null;
+        var processConfig = processes != null && stepConfig.ProcessId != null ? processes.GetProcessConfig(stepConfig.ProcessId) : null;
+
+        if (stepConfig.Id == null || stepConfig.Id.Trim() == string.Empty)
+            outputErrors.Add(new PipelineValidationError(typeof(StepConfig), "The Id field is required."));
+
+        if (stepConfig.ProcessId == null || stepConfig.ProcessId.Trim() == string.Empty)
+            outputErrors.Add(new PipelineValidationError(typeof(StepConfig), "The ProcessId field is required."));
+
+        if (stepConfig.Input == null || stepConfig.Input.Count == 0)
+            outputErrors.Add(new PipelineValidationError(typeof(StepConfig), "The Input field is required."));
+
+        if (stepConfig.Output == null || stepConfig.Output.Count == 0)
+            outputErrors.Add(new PipelineValidationError(typeof(StepConfig), "The Output field is required."));
+
+        if (stepConfig.DisplayName == null || stepConfig.DisplayName.Count == 0)
+            outputErrors.Add(new PipelineValidationError(typeof(StepConfig), "The DisplayName field is required."));
 
         if (processConfig == null)
         {
@@ -165,8 +229,7 @@ internal static class PipelineExtensions
         }
         else
         {
-            outputErrors = processConfig.Validate(outputErrors);
-            if (stepConfig.Input != null)
+            if (stepConfig.Input != null && stepConfig.Id != null)
             {
                 var possibleStepConfigReferences = GatherPossibleStepConfigReferences(stepConfig.Id, pipelineConfig.Steps, pipelineConfig);
                 outputErrors = stepConfig.Input.Validate(stepConfig.Id, possibleStepConfigReferences, processConfig, outputErrors);
@@ -174,7 +237,7 @@ internal static class PipelineExtensions
 
             if (stepConfig.Output != null)
             {
-                outputErrors = stepConfig.Output.Validate(stepConfig.Id, processConfig, outputErrors);
+                outputErrors = stepConfig.Output.Validate(stepConfig.Id ?? "", processConfig, outputErrors);
             }
         }
 
@@ -200,6 +263,9 @@ internal static class PipelineExtensions
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
+        outputErrors = inputConfigs
+            .Aggregate(outputErrors, (errors, inputConfig) => inputConfig.Validate(errors));
+
         inputConfigs.ForEach(inputConfig =>
         {
             var matchingReferences = possibleStepRefenreces
@@ -214,7 +280,7 @@ internal static class PipelineExtensions
             }
         });
 
-        if (processConfig.DataHandlingConfig.InputMapping != null)
+        if (processConfig.DataHandlingConfig != null && processConfig.DataHandlingConfig.InputMapping != null)
         {
             inputConfigs.ForEach(inputConfig =>
             {
@@ -230,6 +296,24 @@ internal static class PipelineExtensions
     }
 
     public static PipelineValidationErrors Validate(
+        this InputConfig inputConfig,
+        PipelineValidationErrors? inputErrors = null)
+    {
+        var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
+
+        if (inputConfig.From == null || inputConfig.From.Trim() == string.Empty)
+            outputErrors.Add(new PipelineValidationError(typeof(InputConfig), "The From field is required."));
+
+        if (inputConfig.Take == null || inputConfig.Take.Trim() == string.Empty)
+            outputErrors.Add(new PipelineValidationError(typeof(InputConfig), "The Take field is required."));
+
+        if (inputConfig.As == null || inputConfig.As.Trim() == string.Empty)
+            outputErrors.Add(new PipelineValidationError(typeof(InputConfig), "The As field is required."));
+
+        return outputErrors;
+    }
+
+    public static PipelineValidationErrors Validate(
         this List<OutputConfig> outputConfigs,
         string stepId,
         ProcessConfig processConfig,
@@ -237,7 +321,10 @@ internal static class PipelineExtensions
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
-        if (processConfig.DataHandlingConfig.OutputMapping != null)
+        outputErrors = outputConfigs
+            .Aggregate(outputErrors, (errors, outputConfig) => outputConfig.Validate(errors));
+
+        if (processConfig.DataHandlingConfig != null && processConfig.DataHandlingConfig.OutputMapping != null)
         {
             outputConfigs.ForEach(outputConfig =>
             {
@@ -245,9 +332,27 @@ internal static class PipelineExtensions
                     .Where(o => o.Value == outputConfig.Take)
                     .Count();
                 if (numberOfProcessOutput == 0)
-                    outputErrors.Add(new PipelineValidationError(typeof(OutputConfig), $"illegal output take: '{outputConfig.As}' in step '{stepId}'"));
+                    outputErrors.Add(new PipelineValidationError(typeof(OutputConfig), $"illegal output take: '{outputConfig.Take}' in step '{stepId}'"));
             });
         }
+
+        return outputErrors;
+    }
+
+    public static PipelineValidationErrors Validate(
+        this OutputConfig outputConfig,
+        PipelineValidationErrors? inputErrors = null)
+    {
+        var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
+
+        if (outputConfig.Take == null || outputConfig.Take.Trim() == string.Empty)
+            outputErrors.Add(new PipelineValidationError(typeof(OutputConfig), "The Take field is required."));
+
+        if (outputConfig.As == null || outputConfig.As.Trim() == string.Empty)
+            outputErrors.Add(new PipelineValidationError(typeof(OutputConfig), "The As field is required."));
+
+        if (outputConfig.Action == null)
+            outputErrors.Add(new PipelineValidationError(typeof(OutputConfig), "The Action field is required."));
 
         return outputErrors;
     }
@@ -265,8 +370,7 @@ internal static class PipelineExtensions
             {
                 Id = pipelineConfig.Parameters.UploadStep,
                 DisplayName = pipelineConfig.DisplayName,
-                Output = pipelineConfig.Parameters.Mappings
-                .Select(m => new OutputConfig() { As = m.Attribute, }).ToList(),
+                Output = pipelineConfig.Parameters.Mappings != null ? pipelineConfig.Parameters.Mappings.Select(m => new OutputConfig() { As = m.Attribute, }).ToList() : new List<OutputConfig>(),
             };
             possibleStepConfigReferences.Add(uploadStepConfig);
         }

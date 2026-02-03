@@ -20,7 +20,6 @@ internal class PipelineFactory
     {
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
-            .WithNodeDeserializer(i => new DeserializerValidation(i), s => s.InsteadOf<ObjectNodeDeserializer>())
             .Build();
         var pipelineProcessConfig = deserializer.Deserialize<PipelineProcessConfig>(processDefinition);
         return new PipelineFactory(pipelineProcessConfig);
@@ -61,11 +60,6 @@ internal class PipelineFactory
 
         if (pipelineConfig != null)
         {
-            var validationErrors = pipelineConfig.Validate(PipelineProcessConfig.Processes);
-
-            if (validationErrors.HasErrors)
-                throw new InvalidOperationException(validationErrors.ErrorMessage);
-
             return new Pipeline(pipelineConfig.Id, pipelineConfig.DisplayName, CreateSteps(pipelineConfig), pipelineConfig.Parameters);
         }
         else

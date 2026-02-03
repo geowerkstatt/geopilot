@@ -13,21 +13,18 @@ internal class ProcessConfig
     /// The unique process identifier. Used to reference this process in <see cref="StepConfig"/>.
     /// </summary>
     [YamlMember(Alias = "id")]
-    [Required(AllowEmptyStrings = false)]
     public required string Id { get; set; }
 
     /// <summary>
     /// The implementation reference, a fully qualified class identifier for the process logic. Has to implement <see cref="Geopilot.Api.Pipeline.Process.IPipelineProcess"/>.
     /// </summary>
     [YamlMember(Alias = "implementation")]
-    [Required(AllowEmptyStrings = false)]
     public required string Implementation { get; set; }
 
     /// <summary>
     /// Optional data handling configuration for the process. Defines how input and output data are mapped.
     /// </summary>
     [YamlMember(Alias = "data_handling")]
-    [Required]
     public required DataHandlingConfig DataHandlingConfig { get; set; }
 
     /// <summary>

@@ -25,7 +25,7 @@ pipelines:
         input:
           - from: upload
             take: ili_file
-            as: ili_file
+            as: file
         output:
           - take: error_log
             as: error_log

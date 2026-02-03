@@ -14,13 +14,11 @@ internal class PipelineProcessConfig
     /// List of process configurations available for use in pipelines.
     /// </summary>
     [YamlMember(Alias = "processes")]
-    [Required]
     public required List<ProcessConfig> Processes { get; set; }
 
     /// <summary>
     /// List of pipeline configurations defining various pipelines. A Pipeline is uniquely identified by its name.
     /// </summary>
     [YamlMember(Alias = "pipelines")]
-    [Required]
     public required List<PipelineConfig> Pipelines { get; set; }
 }

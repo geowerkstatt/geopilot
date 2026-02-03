@@ -12,13 +12,11 @@ internal class FileMappingsConfig
     /// The file extension to match for this mapping.
     /// </summary>
     [YamlMember(Alias = "file_extension")]
-    [Required(AllowEmptyStrings = false)]
     public required string FileExtension { get; set; }
 
     /// <summary>
     /// The attribute to map the file to.
     /// </summary>
     [YamlMember(Alias = "attribute")]
-    [Required(AllowEmptyStrings = false)]
     public required string Attribute { get; set; }
 }

@@ -29,7 +29,7 @@ pipelines:
           profile: PROFILE-A
         input:
           - take: ili_file
-            as: ili_file
+            as: file
         output:
           - take: error_log
             as: error_log

@@ -13,27 +13,23 @@ internal class PipelineConfig
     /// The pipeline identifier. A pipeline is uniquely identified by its id.
     /// </summary>
     [YamlMember(Alias = "id")]
-    [Required(AllowEmptyStrings = false)]
     public required string Id { get; set; }
 
     /// <summary>
     /// The pipelines display name. A human-readable name for the pipeline.
     /// </summary>
     [YamlMember(Alias = "display_name")]
-    [Required(AllowEmptyStrings = false)]
     public required Dictionary<string, string> DisplayName { get; set; }
 
     /// <summary>
     /// The parameters for the pipeline.
     /// </summary>
     [YamlMember(Alias = "parameters")]
-    [Required]
     public required PipelineParametersConfig Parameters { get; set; }
 
     /// <summary>
     /// The steps in the pipeline that will be executed sequentially. Each step defines a process to execute and its data handling configuration.
     /// </summary>
     [YamlMember(Alias = "steps")]
-    [Required]
     public required List<StepConfig> Steps { get; set; }
 }
