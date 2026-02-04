@@ -22,6 +22,13 @@ public class Mandate
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Indicates whether the mandate is public or restricted.
+    /// Public mandates can be accessed by anyone, even not logged in users.
+    /// Non-public, restricted mandates can only be accessed by logged in users that are part of an organisation listed in the mandates organisations.
+    /// </summary>
+    public bool IsPublic { get; set; }
+
+    /// <summary>
     /// List of file types that are allowed to be delivered. Include the period "." and support wildcards "*".
     /// </summary>
 #pragma warning disable CA1819 // Properties should not return arrays
