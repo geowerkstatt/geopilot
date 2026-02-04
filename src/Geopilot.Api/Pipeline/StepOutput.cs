@@ -10,7 +10,7 @@ public class StepOutput
     /// <summary>
     /// The action to perform with the output data.
     /// </summary>
-    public required OutputAction Action { get; set; }
+    public required HashSet<OutputAction> Action { get; set; }
 
     /// <summary>
     /// The data produced by this step.

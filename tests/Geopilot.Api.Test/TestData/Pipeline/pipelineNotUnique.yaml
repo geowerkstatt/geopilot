@@ -32,10 +32,11 @@ pipelines:
         output:
           - take: error_log
             as: error_log
-            action: IGNORE
+            action:
           - take: xtf_log
             as: xtf_log
-            action: DOWNLOAD
+            action:
+              - DOWNLOAD
   - id: ili_validation
     display_name:
       en: ILI Validation 2
@@ -58,7 +59,8 @@ pipelines:
         output:
           - take: error_log
             as: error_log
-            action: IGNORE
+            action:
           - take: xtf_log
             as: xtf_log
-            action: DOWNLOAD
+            action:
+              - DOWNLOAD

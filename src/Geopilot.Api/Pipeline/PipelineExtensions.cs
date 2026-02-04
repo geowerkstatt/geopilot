@@ -351,9 +351,6 @@ internal static class PipelineExtensions
         if (outputConfig.As == null || outputConfig.As.Trim() == string.Empty)
             outputErrors.Add(new PipelineValidationError(typeof(OutputConfig), "The As field is required."));
 
-        if (outputConfig.Action == null)
-            outputErrors.Add(new PipelineValidationError(typeof(OutputConfig), "The Action field is required."));
-
         return outputErrors;
     }
 

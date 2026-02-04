@@ -96,7 +96,7 @@ public class Pipeline : IPipeline
             {
                 var output = new StepOutput()
                 {
-                    Action = OutputAction.Ignore,
+                    Action = new HashSet<OutputAction>(),
                     Data = file,
                 };
                 stepResult.Outputs[mapping.Attribute] = output;

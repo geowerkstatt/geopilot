@@ -25,5 +25,5 @@ public class OutputConfig
     /// The action to perform with the output data.
     /// </summary>
     [YamlMember(Alias = "action")]
-    public OutputAction? Action { get; set; }
+    public HashSet<OutputAction>? Action { get; set; }
 }

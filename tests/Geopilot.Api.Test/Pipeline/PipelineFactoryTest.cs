@@ -50,13 +50,12 @@ public class PipelineFactoryTest
         {
             Take = "error_log",
             As = "error_log",
-            Action = OutputAction.Ignore,
         };
         OutputConfig expectedOutputConfig_1 = new OutputConfig()
         {
             Take = "xtf_log",
             As = "xtf_log",
-            Action = OutputAction.Download,
+            Action = new HashSet<OutputAction>() { OutputAction.Download },
         };
         AssertOutputConfig(expectedOutputConfig_0, outputConfig_0);
         AssertOutputConfig(expectedOutputConfig_1, outputConfig_1);
@@ -103,7 +102,10 @@ public class PipelineFactoryTest
         {
             Assert.AreEqual(expectedConfig.Take, actualConfig.Take, "Output config 'Take' not as expected");
             Assert.AreEqual(expectedConfig.As, actualConfig.As, "Output config 'As' not as expected");
-            Assert.AreEqual(expectedConfig.Action, actualConfig.Action, "Output config 'Action' not as expected");
+            if (expectedConfig.Action != null)
+                CollectionAssert.AreEquivalent(expectedConfig.Action.ToArray(), actualConfig.Action.ToArray(), "Output config 'Action' not as expected");
+            else
+                Assert.IsNull(actualConfig.Action, "Output config 'Action' not as expected");
         }
         else if (expectedConfig != null && actualConfig == null)
         {

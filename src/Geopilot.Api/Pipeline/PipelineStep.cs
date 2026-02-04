@@ -93,7 +93,7 @@ public class PipelineStep : IPipelineStep
                 var stepOutput = new StepOutput
                 {
                     Data = processDataPart.Data,
-                    Action = outputConfig.Action ?? OutputAction.Ignore,
+                    Action = outputConfig.Action ?? new HashSet<OutputAction>(),
                 };
                 stepResult.Outputs[outputConfig.As] = stepOutput;
             }

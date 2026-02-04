@@ -33,4 +33,4 @@ pipelines:
             as: file
         output:
           - take: error_log
-            action: IGNORE
+            action:

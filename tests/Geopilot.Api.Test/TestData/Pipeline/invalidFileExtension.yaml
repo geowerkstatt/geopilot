@@ -34,7 +34,8 @@ pipelines:
         output:
           - take: error_log
             as: error_log
-            action: IGNORE
+            action:
           - take: xtf_log
             as: xtf_log
-            action: DOWNLOAD
+            action:
+              - DOWNLOAD

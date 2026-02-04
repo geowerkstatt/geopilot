@@ -6,12 +6,12 @@
 public enum OutputAction
 {
     /// <summary>
-    /// Ignore the output data.
-    /// </summary>
-    Ignore,
-
-    /// <summary>
     /// Download the output data.
     /// </summary>
     Download,
+
+    /// <summary>
+    /// Deliver the output data.
+    /// </summary>
+    Delivery,
 }
