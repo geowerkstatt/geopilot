@@ -6,7 +6,7 @@ namespace Geopilot.Api.Pipeline;
 /// <summary>
 /// Represents a single step in a pipeline.
 /// </summary>
-internal class PipelineStep : IPipelineStep
+public class PipelineStep : IPipelineStep
 {
     /// <inheritdoc/>
     public string Id { get; }
@@ -28,6 +28,14 @@ internal class PipelineStep : IPipelineStep
 
     private ILogger<PipelineStep> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<PipelineStep>();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PipelineStep"/> class.
+    /// </summary>
+    /// <param name="id">The unique identifier for the step.</param>
+    /// <param name="displayName">The display name for the step.</param>
+    /// <param name="inputConfig">The input configuration for the step.</param>
+    /// <param name="outputConfig">The output configuration for the step.</param>
+    /// <param name="process">The process associated with the step.</param>
     public PipelineStep(
         string id,
         Dictionary<string, string> displayName,
@@ -45,17 +53,34 @@ internal class PipelineStep : IPipelineStep
     }
 
     /// <inheritdoc/>
-    public StepResult Run(PipelineContext context)
+    public StepResult? Run(PipelineContext context)
     {
-        this.State = StepState.Running;
+        if (context != null)
+        {
+            this.State = StepState.Running;
 
-        var inputProcessData = CreateProcessData(context);
-        var outputProcessData = Process.Run(inputProcessData);
-        var stepResult = CreateStepResult(outputProcessData);
+            try
+            {
+                var inputProcessData = CreateProcessData(context);
+                var outputProcessData = Process.Run(inputProcessData);
+                var stepResult = CreateStepResult(outputProcessData);
 
-        this.State = StepState.Success;
+                this.State = StepState.Success;
 
-        return stepResult;
+                return stepResult;
+            }
+            catch (Exception ex)
+            {
+                this.State = StepState.Failed;
+                logger.LogError(ex, $"error in step '{this.Id}': exception occurred during step execution.");
+                return null;
+            }
+        }
+        else
+        {
+            this.State = StepState.Failed;
+            return null;
+        }
     }
 
     private StepResult CreateStepResult(ProcessData outputProcessData)
@@ -68,7 +93,7 @@ internal class PipelineStep : IPipelineStep
                 var stepOutput = new StepOutput
                 {
                     Data = processDataPart.Data,
-                    Action = outputConfig.Action ?? OutputAction.IGNORE,
+                    Action = outputConfig.Action ?? OutputAction.Ignore,
                 };
                 stepResult.Outputs[outputConfig.As] = stepOutput;
             }

@@ -3,7 +3,10 @@ using Geopilot.Api.Pipeline.Config;
 
 namespace Geopilot.Api.Pipeline;
 
-internal interface IPipeline
+/// <summary>
+/// Interface for a pipeline.
+/// </summary>
+public interface IPipeline
 {
     /// <summary>
     /// The unique id of the pipeline.
@@ -13,7 +16,7 @@ internal interface IPipeline
     /// <summary>
     /// The pipelines display name. A human-readable name for the pipeline.
     /// </summary>
-    Dictionary<string, string> DisplayName { get; set; }
+    Dictionary<string, string> DisplayName { get; }
 
     /// <summary>
     /// The parameters for the pipeline.
@@ -23,12 +26,12 @@ internal interface IPipeline
     /// <summary>
     /// The steps in the pipeline to be executed sequentially.
     /// </summary>
-    List<PipelineStep> Steps { get; }
+    List<IPipelineStep> Steps { get; }
 
     /// <summary>
     /// The current state of the pipeline.
     /// </summary>
-    PipelineState State { get; set; }
+    PipelineState State { get; }
 
     /// <summary>
     /// Runs the pipeline with the specified input file.

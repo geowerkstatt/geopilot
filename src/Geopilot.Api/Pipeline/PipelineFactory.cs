@@ -68,14 +68,14 @@ internal class PipelineFactory
         }
     }
 
-    private List<PipelineStep> CreateSteps(PipelineConfig pipelineConfig)
+    private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig)
     {
         return pipelineConfig.Steps
             .Select(CreateStep)
             .ToList();
     }
 
-    private PipelineStep CreateStep(StepConfig stepConfig)
+    private IPipelineStep CreateStep(StepConfig stepConfig)
     {
         return new PipelineStep(
             stepConfig.Id,

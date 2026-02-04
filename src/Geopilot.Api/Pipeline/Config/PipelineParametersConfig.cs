@@ -6,7 +6,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Defines the parameters for a pipeline.
 /// </summary>
-internal class PipelineParametersConfig
+public class PipelineParametersConfig
 {
     /// <summary>
     /// The name of the upload step in the pipeline. From this attribute the first step will take the data from.

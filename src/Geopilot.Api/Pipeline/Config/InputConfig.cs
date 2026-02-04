@@ -6,7 +6,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Configuration for input data handling in a pipeline step.
 /// </summary>
-internal class InputConfig
+public class InputConfig
 {
     /// <summary>
     /// The name of the step from which to take the data from.

@@ -29,14 +29,14 @@ public class PipelineStepTest
             {
                 Take = "error_log",
                 As = "my_output",
-                Action = OutputAction.IGNORE,
+                Action = OutputAction.Ignore,
             },
         };
         var uploadStepResult = new StepResult()
         {
             Outputs = new Dictionary<string, StepOutput>
             {
-                { "xtf_file", new StepOutput { Action = OutputAction.IGNORE, Data = "some_data" } },
+                { "xtf_file", new StepOutput { Action = OutputAction.Ignore, Data = "some_data" } },
             },
         };
         var pipelineContext = new PipelineContext()
@@ -69,7 +69,7 @@ public class PipelineStepTest
         // Assert that the returned StepResult contains the correct content
         Assert.HasCount(1, stepResult.Outputs);
         Assert.IsTrue(stepResult.Outputs.ContainsKey("my_output"));
-        Assert.AreEqual(OutputAction.IGNORE, stepResult.Outputs["my_output"].Action);
+        Assert.AreEqual(OutputAction.Ignore, stepResult.Outputs["my_output"].Action);
         Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
     }
 }

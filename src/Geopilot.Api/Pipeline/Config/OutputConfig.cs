@@ -7,7 +7,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Configuration for output data handling in a pipeline step.
 /// </summary>
-internal class OutputConfig
+public class OutputConfig
 {
     /// <summary>
     /// The attribute name to take the data from.

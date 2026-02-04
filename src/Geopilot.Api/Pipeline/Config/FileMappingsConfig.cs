@@ -6,7 +6,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Configuration for file mappings in a pipeline.
 /// </summary>
-internal class FileMappingsConfig
+public class FileMappingsConfig
 {
     /// <summary>
     /// The file extension to match for this mapping.

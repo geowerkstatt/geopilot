@@ -3,7 +3,10 @@ using Geopilot.Api.Pipeline.Process;
 
 namespace Geopilot.Api.Pipeline;
 
-internal interface IPipelineStep
+/// <summary>
+/// Represents a single step in a pipeline.
+/// </summary>
+public interface IPipelineStep
 {
     /// <summary>
     /// The name of the step. This name is unique within the pipeline. Other Steps reference this name to define data flow.
@@ -40,5 +43,5 @@ internal interface IPipelineStep
     /// </summary>
     /// <param name="context">Context with the aggregated step results from previous steps.</param>
     /// <returns>The output data from the step.</returns>
-    StepResult Run(PipelineContext context);
+    StepResult? Run(PipelineContext context);
 }
