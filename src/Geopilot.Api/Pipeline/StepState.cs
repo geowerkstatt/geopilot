@@ -6,6 +6,7 @@
 /// <remarks>Use this enumeration to represent the current status of an individual step, such as in a multi-step
 /// operation or task sequence. The values indicate whether the step is awaiting execution, currently running, completed
 /// successfully, or has failed.</remarks>
+[Flags]
 public enum StepState
 {
     /// <summary>
@@ -22,11 +23,6 @@ public enum StepState
     /// Indicates that the process or operation has completed successfully.
     /// </summary>
     Success = 2,
-
-    /// <summary>
-    /// Indicates that the process or operation has generated a warning.
-    /// </summary>
-    Warning = 3,
 
     /// <summary>
     /// Indicates that the process or operation has failed.

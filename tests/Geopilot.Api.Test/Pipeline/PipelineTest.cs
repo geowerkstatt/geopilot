@@ -2,10 +2,8 @@
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Pipeline.Process;
 using Microsoft.OpenApi;
 using Moq;
-using System.Linq;
 using System.Reflection;
 
 namespace Geopilot.Api.Test.Pipeline;
@@ -104,8 +102,6 @@ public class PipelineTest
     [DataRow(PipelineState.Pending, new[] { StepState.Pending, StepState.Pending })]
     [DataRow(PipelineState.Running, new[] { StepState.Running, StepState.Pending })]
     [DataRow(PipelineState.Pending, new StepState[0])]
-    [DataRow(PipelineState.Success, new[] { StepState.Success, StepState.Warning, StepState.Pending })]
-    [DataRow(PipelineState.Success, new[] { StepState.Success, StepState.Warning, StepState.Success })]
     [DataRow(PipelineState.Failed, new[] { StepState.Success, StepState.Failed, StepState.Pending })]
     public void PipelineStateTest(PipelineState expectedState, IEnumerable<StepState> stepStates)
     {

@@ -35,7 +35,6 @@ public class Pipeline : IPipeline
                 case StepState.Running:
                     return PipelineState.Running;
                 case StepState.Success:
-                case StepState.Warning:
                     return PipelineState.Success;
                 case StepState.Failed:
                     return PipelineState.Failed;

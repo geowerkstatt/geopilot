@@ -2,9 +2,6 @@
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Geopilot.Api.Test.Pipeline;
 
@@ -12,7 +9,7 @@ namespace Geopilot.Api.Test.Pipeline;
 public class PipelineStepTest
 {
     [TestMethod]
-    public void Run()
+    public void SuccessfullStepRun()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -54,9 +51,13 @@ public class PipelineStepTest
 
         var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
 
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
         var stepResult = pipelineStep.Run(pipelineContext);
 
         Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
 
         // Verify that process.Run was called exactly once and with the correct ProcessData
         processMock.Verify(
@@ -71,5 +72,65 @@ public class PipelineStepTest
         Assert.IsTrue(stepResult.Outputs.ContainsKey("my_output"));
         Assert.AreEqual(OutputAction.Ignore, stepResult.Outputs["my_output"].Action);
         Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+    }
+
+    [TestMethod]
+    public void ExceptionDuringStepRun()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            new InputConfig
+            {
+                From = "upload",
+                Take = "xtf_file",
+                As = "file_to_validate",
+            },
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = OutputAction.Ignore,
+            },
+        };
+        var uploadStepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "xtf_file", new StepOutput { Action = OutputAction.Ignore, Data = "some_data" } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "upload", uploadStepResult },
+            },
+        };
+        var processData = new ProcessData();
+        processData.AddData("error_log", new ProcessDataPart("some_data"));
+
+        var processMock = new Mock<IPipelineProcess>();
+        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).Throws(new InvalidOperationException("something terible happend"));
+
+        var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = pipelineStep.Run(pipelineContext);
+
+        Assert.IsNull(stepResult);
+
+        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+
+        // Verify that process.Run was called exactly once and with the correct ProcessData
+        processMock.Verify(
+            p => p.Run(It.Is<ProcessData>(pd =>
+                pd.Data.Count == 1 &&
+                pd.Data.ContainsKey("file_to_validate") &&
+                pd.Data["file_to_validate"].Data.Equals("some_data"))),
+            Times.Once());
     }
 }
