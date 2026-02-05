@@ -11,7 +11,7 @@ describe("Delivery Overview tests", () => {
     cy.visit("/admin/delivery-overview");
     cy.wait("@deliveries");
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("1");
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Laurence Rosenbaum");
+    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Kelvin Spencer");
 
     // Sort by delivery date ascending
     cy.dataCy("deliveryOverview-grid").contains("Delivery date").click();

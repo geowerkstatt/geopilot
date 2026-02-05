@@ -131,10 +131,20 @@ internal static class ContextExtensions
             .Ignore(o => o.Coordinates)
             .RuleFor(o => o.Organisations, f => f.PickRandom(context.Organisations.ToList(), 1).ToList())
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>())
-            .RuleFor(o => o.IsPublic, f => f.Random.Bool());
+            .RuleFor(o => o.IsPublic, f => false);
 
         Mandate SeedMandate(int seed) => mandateFaker.UseSeed(seed).Generate();
-        context.Mandates.AddRange(Enumerable.Range(0, 10).Select(SeedMandate));
+        context.Mandates.AddRange(Enumerable.Range(0, 9).Select(SeedMandate));
+
+        context.Mandates.Add(new Mandate()
+        {
+            Name = "Public Mandate",
+            FileTypes = [".xtf"],
+            InterlisValidationProfile = "DEFAULT",
+            SpatialExtent = GetExtent(),
+            IsPublic = true,
+        });
+
         context.SaveChanges();
     }
 
