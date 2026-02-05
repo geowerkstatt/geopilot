@@ -3,6 +3,7 @@ import { Typography } from "@mui/material";
 import { FlexRowSpaceBetweenBox, GeopilotBox } from "../../../components/styledComponents.ts";
 import {
   FormAutocomplete,
+  FormCheckbox,
   FormContainer,
   FormContainerHalfWidth,
   FormExtent,
@@ -58,6 +59,7 @@ const MandateDetail = () => {
       setMandate({
         id: 0,
         name: "",
+        isPublic: false,
         organisations: [],
         fileTypes: [],
         coordinates: [
@@ -100,6 +102,9 @@ const MandateDetail = () => {
         </Typography>
         <FormContainer>
           <FormInput fieldName={"name"} label={"name"} value={mandate?.name} required={true} />
+        </FormContainer>
+        <FormContainer>
+          <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
         </FormContainer>
         <FormContainer>
           <FormAutocomplete<Organisation>
