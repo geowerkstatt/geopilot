@@ -12,21 +12,36 @@ internal class DummyProcess : IPipelineProcess
 
     private ILogger<DummyProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<DummyProcess>();
 
-    /// <inheritdoc/>
-    public required string Name { get; set; }
+    private DataHandlingConfig? dataHandlingConfig;
 
-    /// <inheritdoc/>
-    public required DataHandlingConfig DataHandlingConfig { get; set; }
+    private Dictionary<string, string>? config;
 
-    /// <inheritdoc/>
-    public Dictionary<string, string>? Config { get; set; }
+    /// <summary>
+    /// Initializes the pipeline process with the specified configuration settings.
+    /// </summary>
+    /// <param name="config">A dictionary containing configuration key-value pairs to be used for initialization. Cannot be null.</param>
+    [PipelineProcessInitialize]
+    public void Initialize(Dictionary<string, string> config)
+    {
+        this.config = config;
+    }
+
+    /// <summary>
+    /// Initializes the pipeline process with the specified data handling configuration.
+    /// </summary>
+    /// <param name="dataHandlingConfig">The data handling configuration to be used for the pipeline process. Cannot be null.</param>
+    [PipelineProcessInitialize]
+    public void Initialize(DataHandlingConfig dataHandlingConfig)
+    {
+        this.dataHandlingConfig = dataHandlingConfig;
+    }
 
     /// <inheritdoc/>
     public ProcessData Run(ProcessData inputData)
     {
         // ToDo: Implement ILI validation logic here.
-        var errorLogKey = DataHandlingConfig.GetInputMapping(InputMappingErrorLog);
-        if (!inputData.Data.TryGetValue(errorLogKey, out var errorLogData))
+        var errorLogKey = dataHandlingConfig?.GetInputMapping(InputMappingErrorLog);
+        if (errorLogKey == null || !inputData.Data.TryGetValue(errorLogKey, out var errorLogData))
         {
             var errorMessage = $"DummyProcess: input data does not contain required key '{InputMappingErrorLog}'.";
             logger.LogError(errorMessage);
@@ -35,7 +50,8 @@ internal class DummyProcess : IPipelineProcess
 
         var outputData = new ProcessData();
 
-        outputData.AddData(DataHandlingConfig.GetOutputMapping(OutputMappingErrorLog), new ProcessDataPart("DummyProcess: error log dummy data"));
+        if (dataHandlingConfig != null)
+            outputData.AddData(dataHandlingConfig.GetOutputMapping(OutputMappingErrorLog), new ProcessDataPart("DummyProcess: error log dummy data"));
 
         return outputData;
     }

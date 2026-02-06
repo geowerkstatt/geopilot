@@ -3,23 +3,21 @@ using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Microsoft.Extensions.Configuration;
 using System.Reflection;
-using WireMock.Server;
 
 namespace Geopilot.Api.Test.Pipeline;
 
 [TestClass]
 public class PipelineFactoryTest
 {
+    private static string interlisCheckServiceBaseUrl = "http://localhost:3080/";
     private IConfiguration configuration;
-    private WireMockServer server;
 
     [TestInitialize]
     public void SetUp()
     {
-        server = WireMockServer.Start();
         var inMemorySettings = new List<KeyValuePair<string, string>>
         {
-            new KeyValuePair<string, string>("Validation:InterlisCheckServiceUrl", server.Url),
+            new KeyValuePair<string, string>("Validation:InterlisCheckServiceUrl", interlisCheckServiceBaseUrl),
         };
 
         #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
@@ -27,13 +25,6 @@ public class PipelineFactoryTest
             .AddInMemoryCollection(inMemorySettings)
             .Build();
         #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-    }
-
-    [TestCleanup]
-    public void Cleanup()
-    {
-        server.Stop();
-        server.Dispose();
     }
 
     [TestMethod]
@@ -89,18 +80,25 @@ public class PipelineFactoryTest
         AssertOutputConfig(expectedOutputConfig_1, outputConfig_1);
         IPipelineProcess stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
-        Assert.AreEqual("ili_validator", stepProcess.Name, "process name not as expected");
         var expectedDataHandlingInputMappingConfig = new Dictionary<string, string>() { { "ili_file", "file" }, };
         var expectedDataHandlingOutputMappingConfig = new Dictionary<string, string>() { { "error_log", "error_log" }, { "xtf_log", "xtf_log" }, };
-        Assert.IsNotNull(stepProcess.DataHandlingConfig, "step process data handling config not defined");
-        CollectionAssert.AreEqual(expectedDataHandlingInputMappingConfig, stepProcess.DataHandlingConfig.InputMapping, "process data handling input mapping config not as expected");
-        CollectionAssert.AreEqual(expectedDataHandlingOutputMappingConfig, stepProcess.DataHandlingConfig.OutputMapping, "process data handling output mapping config not as expected");
+        var stepDataHandlingConfig = typeof(IliValidatorProcess)?
+            .GetProperty("DataHandlingConfig", BindingFlags.NonPublic | BindingFlags.Instance)?
+            .GetGetMethod(nonPublic: true)?
+            .Invoke(stepProcess, null) as DataHandlingConfig;
+        Assert.IsNotNull(stepDataHandlingConfig, "step process data handling config not defined");
+        CollectionAssert.AreEqual(expectedDataHandlingInputMappingConfig, stepDataHandlingConfig.InputMapping, "process data handling input mapping config not as expected");
+        CollectionAssert.AreEqual(expectedDataHandlingOutputMappingConfig, stepDataHandlingConfig.OutputMapping, "process data handling output mapping config not as expected");
         var expectedDefaultConfig = new Dictionary<string, string>()
         {
             { "log_level", "DEBUG" },
             { "profile", "PROFILE-A" },
         };
-        CollectionAssert.AreEqual(expectedDefaultConfig, stepProcess.Config, "process config not as expected");
+        var stepConfig = typeof(IliValidatorProcess)?
+            .GetProperty("Config", BindingFlags.NonPublic | BindingFlags.Instance)?
+            .GetGetMethod(nonPublic: true)?
+            .Invoke(stepProcess, null) as Dictionary<string, string>;
+        CollectionAssert.AreEqual(expectedDefaultConfig, stepConfig, "process config not as expected");
         Assert.IsNotNull(stepProcess as IliValidatorProcess, "process is not of type ILI Validator");
     }
 
@@ -115,7 +113,11 @@ public class PipelineFactoryTest
         IPipelineProcess stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
         var expectedDefaultConfig = new Dictionary<string, string>();
-        CollectionAssert.AreEqual(expectedDefaultConfig, stepProcess.Config, "process config not as expected");
+        var stepConfig = typeof(IliValidatorProcess)?
+            .GetProperty("Config", BindingFlags.NonPublic | BindingFlags.Instance)?
+            .GetGetMethod(nonPublic: true)?
+            .Invoke(stepProcess, null) as Dictionary<string, string>;
+        CollectionAssert.AreEqual(expectedDefaultConfig, stepConfig, "process config not as expected");
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)
@@ -125,6 +127,7 @@ public class PipelineFactoryTest
             .Builder()
             .File(path)
             .Configuration(configuration)
+            .CancellationToken(CancellationToken.None)
             .Build();
     }
 

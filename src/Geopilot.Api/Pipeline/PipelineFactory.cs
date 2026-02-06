@@ -80,10 +80,7 @@ internal class PipelineFactory
                 var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
                 if (processInstance != null)
                 {
-                    processInstance.Name = processConfig.Id;
-                    processInstance.DataHandlingConfig = processConfig.DataHandlingConfig;
-                    processInstance.Config = GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
-                    InitializeProcess(objectType, processInstance);
+                    InitializeProcess(objectType, processInstance, processConfig.DataHandlingConfig, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites));
 
                     return processInstance;
                 }
@@ -93,47 +90,78 @@ internal class PipelineFactory
         throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
     }
 
-    private void InitializeProcess(Type processType, IPipelineProcess process)
+    private void InitializeProcess(Type processType, IPipelineProcess process, DataHandlingConfig dataHandlingConfig, Dictionary<string, string> processConfig)
     {
         var methods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
 
-        if (this.configuration != null)
-            InitializeProcess(process, methods, this.configuration);
-        else
-            logger.LogWarning("No application configuration provided. Skipping pipeline process initialization with IConfiguration.");
-
-        if (this.cancellationToken != null)
-            InitializeProcess(process, methods, this.cancellationToken.Value);
-        else
-            logger.LogWarning("No cancellation token provided. Skipping pipeline process initialization with CancellationToken.");
-        InitializeProcess(process, methods, Environment.GetEnvironmentVariables());
+        InitializeProcess(process, methods, this.configuration);
+        InitializeProcess(process, methods, this.cancellationToken);
+        InitializeProcess(process, methods, dataHandlingConfig);
+        InitializeProcess(process, methods, processConfig);
     }
 
-    private static void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, IConfiguration configuration)
+    private void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, IConfiguration? configuration)
     {
-        methods
+        if (configuration != null)
+        {
+            methods
             .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
             .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(IConfiguration))
             .ToList()
             .ForEach(m => m.Invoke(process, new object[] { configuration }));
+        }
+        else
+        {
+            logger.LogWarning("No application configuration provided. Skipping pipeline process initialization with IConfiguration.");
+        }
     }
 
-    private static void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, CancellationToken cancellationToken)
+    private void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, CancellationToken? cancellationToken)
     {
-        methods
+        if (cancellationToken != null)
+        {
+            methods
             .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
             .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(CancellationToken))
             .ToList()
             .ForEach(m => m.Invoke(process, new object[] { cancellationToken }));
+        }
+        else
+        {
+            logger.LogWarning("No cancellation token provided. Skipping pipeline process initialization with CancellationToken.");
+        }
     }
 
-    private static void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, System.Collections.IDictionary dictionary)
+    private void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, DataHandlingConfig dataHandlingConfig)
     {
-        methods
+        if (dataHandlingConfig != null)
+        {
+            methods
             .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
-            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(System.Collections.IDictionary))
+            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(DataHandlingConfig))
             .ToList()
-            .ForEach(m => m.Invoke(process, new object[] { dictionary }));
+            .ForEach(m => m.Invoke(process, new object[] { dataHandlingConfig }));
+        }
+        else
+        {
+            logger.LogWarning("No data handling configuration provided. Skipping pipeline process initialization with data handling configuration.");
+        }
+    }
+
+    private void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, IDictionary<string, string> processConfig)
+    {
+        if (processConfig != null)
+        {
+            methods
+            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
+            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(IDictionary<string, string>))
+            .ToList()
+            .ForEach(m => m.Invoke(process, new object[] { processConfig }));
+        }
+        else
+        {
+            logger.LogWarning("No process configuration provided. Skipping pipeline process initialization with process configuration.");
+        }
     }
 
     private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string>? processDefaultConfig, Dictionary<string, string>? processDefaultConfigOverwrites)

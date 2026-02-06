@@ -8,6 +8,8 @@ processes:
         error_log: error_log
         xtf_log: xtf_log
     default_config:
+      profile:
+      poll_interval: 500
   - id: dummy_process
     implementation: Geopilot.Api.Pipeline.Process.DummyProcess
     data_handling:
@@ -31,6 +33,7 @@ pipelines:
           en: ILI Validation
         process_id: ili_validator
         process_config_overwrites:
+          profile: DEFAULT
         input:
           - from: upload
             take: ili_file

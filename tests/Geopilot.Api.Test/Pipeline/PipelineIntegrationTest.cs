@@ -1,24 +1,32 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Process;
+using Geopilot.Api.Validation.Interlis;
 using Microsoft.Extensions.Configuration;
+using Moq;
+using Moq.Protected;
+using System.Net;
+using System.Net.Http.Json;
 using System.Reflection;
-using WireMock.Server;
 
 namespace Geopilot.Api.Test.Pipeline;
 
 [TestClass]
 public class PipelineIntegrationTest
 {
+    private static Guid jobId = Guid.Parse("b98559c5-b374-4cbc-a797-1b5a13a297e7");
+    private static string interlisCheckServiceBaseUrl = "http://localhost/";
+    private Mock<HttpMessageHandler> interlisValidatorMessageHandlerMock;
     private IConfiguration configuration;
-    private WireMockServer server;
 
     [TestInitialize]
     public void SetUp()
     {
-        server = WireMockServer.Start();
+        interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+
         var inMemorySettings = new List<KeyValuePair<string, string>>
         {
-            new KeyValuePair<string, string>("Validation:InterlisCheckServiceUrl", server.Url),
+            new KeyValuePair<string, string>("Validation:InterlisCheckServiceUrl", interlisCheckServiceBaseUrl),
         };
 
         #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
@@ -26,13 +34,6 @@ public class PipelineIntegrationTest
             .AddInMemoryCollection(inMemorySettings)
             .Build();
         #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-    }
-
-    [TestCleanup]
-    public void Cleanup()
-    {
-        server.Stop();
-        server.Dispose();
     }
 
     [TestMethod]
@@ -45,6 +46,84 @@ public class PipelineIntegrationTest
 
         PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
         var pipeline = factory.CreatePipeline("two_steps");
+
+        using HttpResponseMessage uploadMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.Created,
+            Content = JsonContent.Create(new InterlisUploadResponse()
+            {
+                JobId = jobId,
+                StatusUrl = "/api/v1/status/" + jobId.ToString(),
+            }),
+        };
+        interlisValidatorMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/upload"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(uploadMockResponse);
+        using HttpResponseMessage getStatusMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = JsonContent.Create(new InterlisStatusResponse()
+            {
+                JobId = jobId,
+                LogUrl = "/api/v1/download?jobId=" + jobId.ToString() + "&logType=log",
+                XtfLogUrl = "/api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf",
+                Status = InterlisStatusResponseStatus.Completed,
+                StatusMessage = "Validation successful",
+            }),
+        };
+        interlisValidatorMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/status/" + jobId.ToString()),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(getStatusMockResponse);
+        using FileStream appLogFile = File.Open(@"TestData/DownloadFiles/ilicop/log.log", FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
+        using HttpResponseMessage getAppLogMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StreamContent(appLogFile),
+        };
+        interlisValidatorMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=log"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(getAppLogMockResponse);
+        using FileStream xtfLogFile = File.Open(@"TestData/DownloadFiles/ilicop/log.xtf", FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
+        using HttpResponseMessage getXtfLogMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StreamContent(xtfLogFile),
+        };
+        interlisValidatorMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(getXtfLogMockResponse);
+
+        pipeline.Steps
+            .Select(s => s.Process)
+            .Where(p => p is IliValidatorProcess)
+            .Cast<IliValidatorProcess>()
+            .ToList()
+            .ForEach(p =>
+            {
+                var httpClient = new HttpClient(interlisValidatorMessageHandlerMock.Object);
+                httpClient.BaseAddress = new Uri(interlisCheckServiceBaseUrl);
+                typeof(IliValidatorProcess)?
+                    .GetProperty("HttpClient", BindingFlags.NonPublic | BindingFlags.Instance)?
+                    .GetSetMethod(nonPublic: true)?
+                    .Invoke(p, new object[] { httpClient });
+            });
+
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(2, pipeline.Steps);
 
