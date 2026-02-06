@@ -3,13 +3,20 @@ name: Trivy
 on:
   schedule:
     - cron: '44 1 * * *'
+  workflow_dispatch:
+    inputs:
+      custom_tag:
+        description: 'Optional: Custom image tag to scan (leave empty to skip)'
+        required: false
+        type: string
 
 permissions:
   contents: read
   security-events: write
+  packages: read  # Required to pull images from GHCR
 
 jobs:
-  analyze:
+  analyze-main:
     name: Analyze
     runs-on: ubuntu-latest
     steps:
@@ -18,24 +25,90 @@ jobs:
 
       - name: Set environment variables
         run: |
-          echo IMAGE_NAME=ghcr.io$REGISTRY/$(echo ${GITHUB_REPOSITORY,,}) >> $GITHUB_ENV
+          echo "IMAGE_NAME=ghcr.io/$(echo ${GITHUB_REPOSITORY,,})" >> $GITHUB_ENV
 
       - name: Build image from Dockerfile
         run: |
           docker build --build-arg VERSION=$GITHUB_RUN_NUMBER --build-arg REVISION=${{ github.sha }} -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@7b7aa264d83dc58691451798b4d117d53d21edfe
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
         env:
           ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Addresses https://github.com/aquasecurity/trivy-action/issues/389
         with:
           image-ref: '${{ env.IMAGE_NAME }}:${{ github.sha }}'
-          format: 'template'
-          template: '@/contrib/sarif.tpl'
+          format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          limit-severities-for-sarif: 'true'
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'main-build'
+
+  analyze-latest:
+    name: Analyze Latest Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set environment variables
+        run: |
+          echo "IMAGE_NAME=ghcr.io/$(echo ${GITHUB_REPOSITORY,,})" >> $GITHUB_ENV
+
+      - name: Run Trivy vulnerability scanner on latest
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        env:
+          ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: '${{ env.IMAGE_NAME }}:latest'
+          format: 'sarif'
+          output: 'trivy-results-latest.sarif'
+          severity: 'CRITICAL,HIGH'
+          limit-severities-for-sarif: 'true'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-results-latest.sarif'
+          category: 'latest-image'
+
+  analyze-custom-tag:
+    name: Analyze Custom Tag Image
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.custom_tag != ''
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set environment variables
+        run: |
+          echo "IMAGE_NAME=ghcr.io/$(echo ${GITHUB_REPOSITORY,,})" >> $GITHUB_ENV
+
+      - name: Run Trivy vulnerability scanner on custom tag
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        env:
+          ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: '${{ env.IMAGE_NAME }}:${{ inputs.custom_tag }}'
+          format: 'sarif'
+          output: 'trivy-results-custom.sarif'
+          severity: 'CRITICAL,HIGH'
+          limit-severities-for-sarif: 'true'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-results-custom.sarif'
+          category: 'custom-tag-${{ inputs.custom_tag }}'
