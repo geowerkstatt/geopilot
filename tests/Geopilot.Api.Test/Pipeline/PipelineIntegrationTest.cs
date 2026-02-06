@@ -60,8 +60,7 @@ public class PipelineIntegrationTest
 
     private FileHandle CreateTestFileHandle(string file)
     {
-        var tempFilePath = Path.GetTempFileName();
-        var stream = File.Open(file, FileMode.Open, System.IO.FileAccess.Read);
+        var stream = File.Open(file, FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
         return new FileHandle(file, stream);
     }
 }

@@ -14,7 +14,7 @@ internal class StepConfig
     public required string Id { get; set; }
 
     /// <summary>
-    /// The steps display name. A human-readable name for the step.
+    /// A human-readable display name for the step in different languages. Key: ISO 639 language code, Value: The display name for that language.
     /// </summary>
     [YamlMember(Alias = "display_name")]
     public required Dictionary<string, string> DisplayName { get; set; }

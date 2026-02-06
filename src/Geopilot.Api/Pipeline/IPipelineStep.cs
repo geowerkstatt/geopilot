@@ -14,7 +14,7 @@ public interface IPipelineStep
     string Id { get; }
 
     /// <summary>
-    /// The steps display name. A human-readable name for the step.
+    /// A human-readable display name for the step in different languages. Key: ISO 639 language code, Value: The display name for that language.
     /// </summary>
     Dictionary<string, string> DisplayName { get; }
 

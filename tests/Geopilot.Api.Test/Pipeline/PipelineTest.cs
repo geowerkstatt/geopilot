@@ -13,6 +13,8 @@ public class PipelineTest
     [DataRow(PipelineState.Running, new[] { StepState.Running, StepState.Pending })]
     [DataRow(PipelineState.Pending, new StepState[0])]
     [DataRow(PipelineState.Failed, new[] { StepState.Success, StepState.Failed, StepState.Pending })]
+    [DataRow(PipelineState.Running, new[] { StepState.Success, StepState.Running })]
+    [DataRow(PipelineState.Running, new[] { StepState.Success, StepState.Pending })]
     public void PipelineStateTest(PipelineState expectedState, IEnumerable<StepState> stepStates)
     {
         var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
@@ -73,8 +75,7 @@ public class PipelineTest
 
     private FileHandle CreateTestFileHandle(string file)
     {
-        var tempFilePath = Path.GetTempFileName();
-        var stream = File.Open(file, FileMode.Open, System.IO.FileAccess.Read);
+        var stream = File.Open(file, FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
         return new FileHandle(file, stream);
     }
 }

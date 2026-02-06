@@ -14,7 +14,7 @@ public interface IPipeline
     string Id { get; }
 
     /// <summary>
-    /// The pipelines display name. A human-readable name for the pipeline.
+    /// A human-readable display name for the pipeline in different languages. Key: ISO 639 language code, Value: The display name for that language.
     /// </summary>
     Dictionary<string, string> DisplayName { get; }
 

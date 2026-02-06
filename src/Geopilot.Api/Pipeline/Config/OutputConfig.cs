@@ -11,13 +11,13 @@ public class OutputConfig
     /// The attribute name to take the data from.
     /// </summary>
     [YamlMember(Alias = "take")]
-    public string? Take { get; set; }
+    public required string Take { get; set; }
 
     /// <summary>
     /// The attribute name to map the output data to.
     /// </summary>
     [YamlMember(Alias = "as")]
-    public string? As { get; set; }
+    public required string As { get; set; }
 
     /// <summary>
     /// The action to perform with the output data.

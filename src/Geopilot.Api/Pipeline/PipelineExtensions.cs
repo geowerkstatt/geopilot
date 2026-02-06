@@ -364,7 +364,7 @@ internal static class PipelineExtensions
             {
                 Id = pipelineConfig.Parameters.UploadStep,
                 DisplayName = pipelineConfig.DisplayName,
-                Output = pipelineConfig.Parameters.Mappings != null ? pipelineConfig.Parameters.Mappings.Select(m => new OutputConfig() { As = m.Attribute, }).ToList() : new List<OutputConfig>(),
+                Output = pipelineConfig.Parameters.Mappings != null ? pipelineConfig.Parameters.Mappings.Select(m => new OutputConfig() { Take = "", As = m.Attribute, }).ToList() : new List<OutputConfig>(),
             };
             possibleStepConfigReferences.Add(uploadStepConfig);
         }

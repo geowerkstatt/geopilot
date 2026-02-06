@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline.Config;
+using System.Linq;
 
 namespace Geopilot.Api.Pipeline;
 
@@ -27,19 +28,31 @@ public class Pipeline : IPipeline
     {
         get
         {
-            var worstStepState = WorstStepState(this.Steps.Select(s => s.State));
-            switch (worstStepState)
+            var stepStates = this.Steps.Select(s => s.State).ToHashSet();
+
+            if (stepStates.Count == 0)
             {
-                case StepState.Pending:
-                    return PipelineState.Pending;
-                case StepState.Running:
-                    return PipelineState.Running;
-                case StepState.Success:
-                    return PipelineState.Success;
-                case StepState.Failed:
-                    return PipelineState.Failed;
-                default:
-                    return PipelineState.Pending;
+                return PipelineState.Pending;
+            }
+            else if (stepStates.Contains(StepState.Failed))
+            {
+                return PipelineState.Failed;
+            }
+            else if (stepStates.Contains(StepState.Running))
+            {
+                return PipelineState.Running;
+            }
+            else if (stepStates.All(s => s == StepState.Success))
+            {
+                return PipelineState.Success;
+            }
+            else if (stepStates.All(s => s == StepState.Pending))
+            {
+                return PipelineState.Pending;
+            }
+            else
+            {
+                return PipelineState.Running;
             }
         }
     }
@@ -105,18 +118,5 @@ public class Pipeline : IPipeline
         }
 
         return stepResult;
-    }
-
-    /// <summary>
-    /// Determines the worst state among a collection of step states.
-    /// </summary>
-    /// <param name="states">The collection of step states.</param>
-    /// <returns>The worst step state.</returns>
-    private static StepState WorstStepState(IEnumerable<StepState> states)
-    {
-        if (states == null || !states.Any())
-            return StepState.Pending;
-
-        return states.Max();
     }
 }

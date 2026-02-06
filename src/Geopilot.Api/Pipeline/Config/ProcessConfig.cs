@@ -20,7 +20,7 @@ internal class ProcessConfig
     public required string Implementation { get; set; }
 
     /// <summary>
-    /// Optional data handling configuration for the process. Defines how input and output data are mapped.
+    /// The data handling configuration for the process. Defines how input and output data are mapped.
     /// </summary>
     [YamlMember(Alias = "data_handling")]
     public required DataHandlingConfig DataHandlingConfig { get; set; }

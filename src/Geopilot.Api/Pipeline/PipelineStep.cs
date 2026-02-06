@@ -99,7 +99,7 @@ public class PipelineStep : IPipelineStep
             }
             else
             {
-                var errMsg = $"error in step '{this.Id}': output config is missing 'take' or 'as', or output data not found in process data. this error should not occure. please consolidate the pipeline validation logic.";
+                var errMsg = $"error in step '{this.Id}': output config is missing 'take' or 'as', or output data not found in process data. this error should not occur. please consolidate the pipeline validation logic.";
                 logger.LogError(errMsg);
                 throw new InvalidOperationException(errMsg);
             }
@@ -123,14 +123,14 @@ public class PipelineStep : IPipelineStep
                 }
                 else
                 {
-                    var errMsg = $"error in step '{this.Id}': step result is missing output data 'take', or output data could not be found in the step result. this error should not occure. please consolidate the pipeline validation locig.";
+                    var errMsg = $"error in step '{this.Id}': step result is missing output data 'take', or output data could not be found in the step result. this error should not occur. please consolidate the pipeline validation logic.";
                     logger.LogError(errMsg);
                     throw new InvalidOperationException(errMsg);
                 }
             }
             else
             {
-                var errMsg = $"error in step '{this.Id}': pipeline context is missing input config 'from', or step result could not be found in the context. this error should not occure. please consolidate the pipeline validation locig.";
+                var errMsg = $"error in step '{this.Id}': pipeline context is missing input config 'from', or step result could not be found in the context. this error should not occur. please consolidate the pipeline validation logic.";
                 logger.LogError(errMsg);
                 throw new InvalidOperationException(errMsg);
             }
