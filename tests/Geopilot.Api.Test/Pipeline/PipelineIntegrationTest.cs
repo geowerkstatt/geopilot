@@ -83,7 +83,13 @@ public class PipelineIntegrationTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
-        return PipelineFactory.FromFile(path, this.configuration);
+        using CancellationTokenSource cancellationToken = new CancellationTokenSource();
+        return PipelineFactory.PipelineFactoryBuilder
+            .Builder()
+            .File(path)
+            .Configuration(configuration)
+            .CancellationToken(cancellationToken.Token)
+            .Build();
     }
 
     private FileHandle CreateTestFileHandle(string file)
