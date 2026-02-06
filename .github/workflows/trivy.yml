@@ -25,7 +25,7 @@ jobs:
 
       - name: Set environment variables
         run: |
-          echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/$(echo ${GITHUB_REPOSITORY,,} | cut -d'/' -f2)" >> $GITHUB_ENV
+          echo "IMAGE_NAME=ghcr.io/$(echo ${GITHUB_REPOSITORY,,})" >> $GITHUB_ENV
 
       - name: Build image from Dockerfile
         run: |
@@ -61,7 +61,7 @@ jobs:
 
       - name: Set environment variables
         run: |
-          echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/$(echo ${GITHUB_REPOSITORY,,} | cut -d'/' -f2)" >> $GITHUB_ENV
+          echo "IMAGE_NAME=ghcr.io/$(echo ${GITHUB_REPOSITORY,,})" >> $GITHUB_ENV
 
       - name: Run Trivy vulnerability scanner on latest
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
@@ -94,7 +94,7 @@ jobs:
 
       - name: Set environment variables
         run: |
-          echo "IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/$(echo ${GITHUB_REPOSITORY,,} | cut -d'/' -f2)" >> $GITHUB_ENV
+          echo "IMAGE_NAME=ghcr.io/$(echo ${GITHUB_REPOSITORY,,})" >> $GITHUB_ENV
 
       - name: Run Trivy vulnerability scanner on custom tag
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
