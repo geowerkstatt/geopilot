@@ -2,6 +2,7 @@
 using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
+using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
@@ -175,26 +176,14 @@ public class ValidationController : ControllerBase
 
         try
         {
-            if (startJobRequest.MandateId == null)
-            {
-                logger.LogInformation("Starting job <{JobId}> without mandate.", jobId);
-                var validationJob = await validationService.StartJobAsync(jobId);
-                logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
-                return Ok(validationJob.ToResponse());
-            }
-            else if (User is null || !User.Identity?.IsAuthenticated == true)
-            {
-                logger.LogTrace("Starting job <{JobId}> with mandate <{MandateId}> failed, user is not authenticated.", jobId, startJobRequest.MandateId);
-                return Problem("User must be authenticated to start a job with a mandate.", statusCode: StatusCodes.Status400BadRequest);
-            }
-            else
-            {
-                var user = await context.GetUserByPrincipalAsync(User);
-                logger.LogInformation("Starting job <{JobId}> with mandate <{MandateId}> for user <{AuthIdentifier}>.", jobId, startJobRequest.MandateId, user.AuthIdentifier);
-                var validationJob = await validationService.StartJobAsync(jobId, startJobRequest.MandateId.Value, user);
-                logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
-                return Ok(validationJob.ToResponse());
-            }
+            var user = User?.Identity?.IsAuthenticated == true
+                        ? await context.GetUserByPrincipalAsync(User)
+                        : null;
+
+            logger.LogInformation("Starting job <{JobId}> with mandate <{MandateId}> for user <{AuthIdentifier}>.", jobId, startJobRequest.MandateId, user?.AuthIdentifier ?? "Unauthenticated");
+            var validationJob = await validationService.StartJobAsync(jobId, startJobRequest.MandateId, user);
+            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
+            return Ok(validationJob.ToResponse());
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
         {

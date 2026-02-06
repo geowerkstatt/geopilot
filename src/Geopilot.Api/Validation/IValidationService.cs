@@ -34,22 +34,12 @@ public interface IValidationService
     ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName);
 
     /// <summary>
-    /// Starts the validation job with all validators that support the type of the uploaded file.
-    /// </summary>
-    /// <remarks>
-    /// The validation job is started without a reference to a <see cref="Mandate"/>." and therefore can not be delivered later/>.
-    /// </remarks>
-    /// <param name="jobId">The id of the validation job to start.</param>
-    /// <returns>The started <see cref="ValidationJob"/>.</returns>
-    Task<ValidationJob> StartJobAsync(Guid jobId);
-
-    /// <summary>
     /// Start the validation job with all validators associated with the specified mandate.
     /// </summary>
     /// <param name="jobId">The id of the validation job to start.</param>
     /// <param name="mandateId">The id of the mandate the job is started for.</param>
     /// <param name="user">The user starting the job.</param>
-    Task<ValidationJob> StartJobAsync(Guid jobId, int mandateId, User user);
+    Task<ValidationJob> StartJobAsync(Guid jobId, int mandateId, User? user);
 
     /// <summary>
     /// Gets the validation job.
