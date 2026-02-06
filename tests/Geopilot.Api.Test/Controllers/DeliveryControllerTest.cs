@@ -95,6 +95,31 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
+    public async Task CreateWithPublicMandate()
+    {
+        // This test case should verify that a delivery can be created for a public mandate even if the user is not explicitly linked to it via an organisation
+        var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
+        var publicMandate = context.Mandates.Add(new Mandate
+        {
+            Name = nameof(CreateWithPublicMandate),
+            IsPublic = true,
+        });
+        context.SaveChanges();
+        deliveryController.SetupTestUser(user.Entity);
+        var jobId = SetupValidationJob(publicMandate.Entity.Id);
+
+        var request = new DeliveryRequest
+        {
+            JobId = jobId,
+        };
+
+        var result = (await deliveryController.Create(request)) as ObjectResult;
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(StatusCodes.Status201Created, result.StatusCode);
+    }
+
+    [TestMethod]
     public async Task CreateMinimalDelivery()
     {
         var startTime = DateTime.Now;
