@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline.Config;
 using System.Net.Http.Headers;
 
 namespace Geopilot.Api.Pipeline.Process;
@@ -12,6 +13,10 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     private const string OutputMappingErrorLog = "error_log";
     private const string OutputMappingXtfLog = "xtf_log";
     private const string InterlisCheckServiceBaseAddressConfiguration = "Validation:InterlisCheckServiceUrl";
+    private const string UploadUrl = "/api/v1/upload";
+    private const string SettingsUrl = "/api/v1/settings";
+    private const string ProfileUrl = "/api/v1/profile";
+    private static readonly TimeSpan pollInterval = TimeSpan.FromSeconds(2);
 
     private ILogger<IliValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<IliValidatorProcess>();
 
@@ -25,6 +30,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     public Dictionary<string, string>? Config { get; set; }
 
     private HttpClient? httpClient;
+    private CancellationToken? cancellationToken;
 
     public void Dispose()
     {
@@ -40,6 +46,12 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
 
         httpClient.DefaultRequestHeaders.Accept.Clear();
         httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    }
+
+    [PipelineProcessInitialize]
+    public void Initialize(CancellationToken cancellationToken)
+    {
+        this.cancellationToken = cancellationToken;
     }
 
     private ProcessDataPart InputIliFile(ProcessData inputData)
@@ -59,7 +71,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     public ProcessData Run(ProcessData inputData)
     {
         // ToDo: Implement ILI validation logic here.
-        object inputIliFile = InputIliFile(inputData);
+        var inputIliFile = InputIliFile(inputData).Data as FileHandle;
 
         var outputData = new ProcessData();
 

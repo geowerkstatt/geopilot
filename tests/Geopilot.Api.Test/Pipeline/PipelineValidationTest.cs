@@ -52,6 +52,10 @@ public class PipelineValidationTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
-        return PipelineFactory.FromFile(path, new Mock<IConfiguration>().Object);
+        return PipelineFactory.PipelineFactoryBuilder
+            .Builder()
+            .File(path)
+            .Configuration(new Mock<IConfiguration>().Object)
+            .Build();
     }
 }
