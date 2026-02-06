@@ -5,7 +5,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Defines the parameters for a pipeline.
 /// </summary>
-internal class PipelineParametersConfig
+public class PipelineParametersConfig
 {
     /// <summary>
     /// The name of the upload step in the pipeline. From this attribute the first step will take the data from.
@@ -17,5 +17,5 @@ internal class PipelineParametersConfig
     /// The file mappings for the pipeline.
     /// </summary>
     [YamlMember(Alias = "mapping")]
-    public List<FileMappingConfig> Mapping { get; set; } = new List<FileMappingConfig>();
+    public required List<FileMappingsConfig> Mappings { get; set; }
 }

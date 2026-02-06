@@ -5,7 +5,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Configuration for output data handling in a pipeline step.
 /// </summary>
-internal class OutputConfig
+public class OutputConfig
 {
     /// <summary>
     /// The attribute name to take the data from.
@@ -23,5 +23,5 @@ internal class OutputConfig
     /// The action to perform with the output data.
     /// </summary>
     [YamlMember(Alias = "action")]
-    public required OutputAction Action { get; set; }
+    public HashSet<OutputAction>? Action { get; set; }
 }

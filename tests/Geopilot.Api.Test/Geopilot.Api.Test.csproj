@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Config\Pipeline\*.yaml">
+    <Content Include="TestData\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

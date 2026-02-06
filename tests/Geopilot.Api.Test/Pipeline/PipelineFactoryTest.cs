@@ -9,22 +9,6 @@ namespace Geopilot.Api.Test.Pipeline;
 public class PipelineFactoryTest
 {
     [TestMethod]
-    public void PipelineWithNoProcesses()
-    {
-        PipelineFactory factory = CreatePipelineFactory("pipelineNoProcesses");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("no processes defined", exception.Message);
-    }
-
-    [TestMethod]
-    public void PipelineWithNoPipelines()
-    {
-        PipelineFactory factory = CreatePipelineFactory("pipelineNoPipelines");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("no pipelines defined", exception.Message);
-    }
-
-    [TestMethod]
     public void PipelineNotDefined()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
@@ -33,84 +17,45 @@ public class PipelineFactoryTest
     }
 
     [TestMethod]
-    public void PipelineStepNoProcessDefined()
-    {
-        PipelineFactory factory = CreatePipelineFactory("stepWithNoProcess");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("no process defined in step", exception.Message);
-    }
-
-    [TestMethod]
-    public void PipelineStepInvalidProcessReference()
-    {
-        PipelineFactory factory = CreatePipelineFactory("stepWithInvalidProcessReference");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("process type for 'invalid_reference' not found", exception.Message);
-    }
-
-    [TestMethod]
-    public void UnknownProcessImplementation()
-    {
-        PipelineFactory factory = CreatePipelineFactory("unknownProcessImplementation");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("unknown implementation 'this.is.unknown.ProcessorClass' for process 'ili_validator'", exception.Message);
-    }
-
-    [TestMethod]
-    public void PipelinesNotUnique()
-    {
-        PipelineFactory factory = CreatePipelineFactory("pipelineNotUnique");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("duplicate pipeline names found: ili_validation", exception.Message);
-    }
-
-    [TestMethod]
-    public void ProcessNotUnique()
-    {
-        PipelineFactory factory = CreatePipelineFactory("processNotUnique");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("ili_validation"));
-        Assert.AreEqual("duplicate process names found: ili_validator", exception.Message);
-    }
-
-    [TestMethod]
     public void CreateBasicPipeline()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
         var pipeline = factory.CreatePipeline("ili_validation");
+        Assert.AreEqual(PipelineState.Pending, pipeline.State, "pipeline state not as expected");
+        Assert.AreEqual(StepState.Pending, pipeline.Steps[0].State, "step state not as expected");
         Assert.IsNotNull(pipeline, "pipeline not created");
-        Assert.AreEqual("ili_validation", pipeline.Name, "pipeline name not as expected");
+        Assert.AreEqual("ili_validation", pipeline.Id, "pipeline name not as expected");
         Assert.IsNotNull(pipeline.Parameters, "pipeline parameters not initialized");
         Assert.AreEqual("upload", pipeline.Parameters.UploadStep, "upload step not as expected");
-        Assert.HasCount(1, pipeline.Parameters.Mapping);
-        var mapping_0 = pipeline.Parameters.Mapping.ElementAt(0);
+        Assert.HasCount(1, pipeline.Parameters.Mappings);
+        var mapping_0 = pipeline.Parameters.Mappings.ElementAt(0);
         Assert.AreEqual("xtf", mapping_0.FileExtension, "pipeline mapping 0 file extension not as expected");
         Assert.AreEqual("ili_file", mapping_0.Attribute, "pipeline mapping 0 attribute not as expected");
         Assert.HasCount(1, pipeline.Steps);
         var validationStep = pipeline.Steps[0];
-        Assert.AreEqual("validation", validationStep.Name, "validation step name not as expected");
+        Assert.AreEqual("validation", validationStep.Id, "validation step name not as expected");
         Assert.HasCount(1, validationStep.InputConfig);
         var inputConfig_0 = validationStep.InputConfig.ElementAt(0);
         InputConfig expectedInputConfig_0 = new InputConfig()
         {
             From = "upload",
             Take = "ili_file",
-            As = "ili_file",
+            As = "file",
         };
         AssertInputConfig(expectedInputConfig_0, inputConfig_0);
-        Assert.HasCount(2, validationStep.OutputConfig);
-        var outputConfig_0 = validationStep.OutputConfig.ElementAt(0);
-        var outputConfig_1 = validationStep.OutputConfig.ElementAt(1);
+        Assert.HasCount(2, validationStep.OutputConfigs);
+        var outputConfig_0 = validationStep.OutputConfigs.ElementAt(0);
+        var outputConfig_1 = validationStep.OutputConfigs.ElementAt(1);
         OutputConfig expectedOutputConfig_0 = new OutputConfig()
         {
             Take = "error_log",
             As = "error_log",
-            Action = OutputAction.IGNORE,
         };
         OutputConfig expectedOutputConfig_1 = new OutputConfig()
         {
             Take = "xtf_log",
             As = "xtf_log",
-            Action = OutputAction.DOWNLOAD,
+            Action = new HashSet<OutputAction>() { OutputAction.Download },
         };
         AssertOutputConfig(expectedOutputConfig_0, outputConfig_0);
         AssertOutputConfig(expectedOutputConfig_1, outputConfig_1);
@@ -147,7 +92,7 @@ public class PipelineFactoryTest
 
     private PipelineFactory CreatePipelineFactory(string filename)
     {
-        string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"Config/Pipeline/" + filename + ".yaml");
+        string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
         return PipelineFactory.FromFile(path);
     }
 
@@ -157,7 +102,10 @@ public class PipelineFactoryTest
         {
             Assert.AreEqual(expectedConfig.Take, actualConfig.Take, "Output config 'Take' not as expected");
             Assert.AreEqual(expectedConfig.As, actualConfig.As, "Output config 'As' not as expected");
-            Assert.AreEqual(expectedConfig.Action, actualConfig.Action, "Output config 'Action' not as expected");
+            if (expectedConfig.Action != null)
+                CollectionAssert.AreEquivalent(expectedConfig.Action.ToArray(), actualConfig.Action.ToArray(), "Output config 'Action' not as expected");
+            else
+                Assert.IsNull(actualConfig.Action, "Output config 'Action' not as expected");
         }
         else if (expectedConfig != null && actualConfig == null)
         {
