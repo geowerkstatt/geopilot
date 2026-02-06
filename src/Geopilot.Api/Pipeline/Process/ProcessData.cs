@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Antiforgery;
-
-namespace Geopilot.Api.Pipeline.Process;
+﻿namespace Geopilot.Api.Pipeline.Process;
 
 /// <summary>
 /// Represents the input and output data processed by a pipeline process.

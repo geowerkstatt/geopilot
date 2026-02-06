@@ -1,6 +1,4 @@
-﻿using static Org.BouncyCastle.Math.Primes;
-
-namespace Geopilot.Api.Pipeline;
+﻿namespace Geopilot.Api.Pipeline;
 
 /// <summary>
 /// Represents the result of a single step in a pipeline.

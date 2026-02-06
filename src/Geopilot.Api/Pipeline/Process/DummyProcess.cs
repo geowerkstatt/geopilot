@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api.Pipeline.Config;
-using Microsoft.Extensions.Logging;
 
 namespace Geopilot.Api.Pipeline.Process;
 

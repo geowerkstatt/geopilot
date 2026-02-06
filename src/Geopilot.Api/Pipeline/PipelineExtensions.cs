@@ -1,8 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
-using Stac;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace Geopilot.Api.Pipeline;

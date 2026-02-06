@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using YamlDotNet.Serialization;
-using static Org.BouncyCastle.Math.EC.ECCurve;
+﻿using YamlDotNet.Serialization;
 
 namespace Geopilot.Api.Pipeline.Config;
 
