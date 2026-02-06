@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using System.Reflection;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -14,30 +15,33 @@ internal class PipelineFactory
     /// Creates a <see cref="PipelineFactory"/> instance from a YAML configuration.
     /// </summary>
     /// <param name="processDefinition">The YAML configuration string.</param>
+    /// <param name="configuration">The application configuration.</param>
     /// <returns>A <see cref="PipelineFactory"/> instance.</returns>
-    public static PipelineFactory FromYaml(string processDefinition)
+    public static PipelineFactory FromYaml(string processDefinition, IConfiguration configuration)
     {
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .Build();
         var pipelineProcessConfig = deserializer.Deserialize<PipelineProcessConfig>(processDefinition);
-        return new PipelineFactory(pipelineProcessConfig);
+        return new PipelineFactory(pipelineProcessConfig, configuration);
     }
 
     /// <summary>
     /// Creates a <see cref="PipelineFactory"/> instance from a YAML file.
     /// </summary>
     /// <param name="path">The path to the YAML file.</param>
+    /// <param name="configuration">The application configuration.</param>
     /// <returns>A <see cref="PipelineFactory"/> instance.</returns>
-    public static PipelineFactory FromFile(string path)
+    public static PipelineFactory FromFile(string path, IConfiguration configuration)
     {
         var yaml = File.ReadAllText(path);
-        return FromYaml(yaml);
+        return FromYaml(yaml, configuration);
     }
 
-    private PipelineFactory(PipelineProcessConfig pipelineProcessConfig)
+    private PipelineFactory(PipelineProcessConfig pipelineProcessConfig, IConfiguration configuration)
     {
         this.PipelineProcessConfig = pipelineProcessConfig;
+        this.configuration = configuration;
 
         using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
         this.logger = factory.CreateLogger<PipelineFactory>();
@@ -46,6 +50,8 @@ internal class PipelineFactory
     private readonly ILogger<PipelineFactory> logger;
 
     public PipelineProcessConfig PipelineProcessConfig { get; }
+
+    private IConfiguration configuration;
 
     /// <summary>
     /// Creates a pipeline instance with the specified id.
@@ -98,12 +104,39 @@ internal class PipelineFactory
                     processInstance.Name = processConfig.Id;
                     processInstance.DataHandlingConfig = processConfig.DataHandlingConfig;
                     processInstance.Config = GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
+                    InitializeProcess(objectType, processInstance);
+
                     return processInstance;
                 }
             }
         }
 
         throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
+    }
+
+    private void InitializeProcess(Type processType, IPipelineProcess process)
+    {
+        var methods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+        InitializeProcess(process, methods, this.configuration);
+        InitializeProcess(process, methods, Environment.GetEnvironmentVariables());
+    }
+
+    private static void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, IConfiguration configuration)
+    {
+        methods
+            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
+            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(IConfiguration))
+            .ToList()
+            .ForEach(m => m.Invoke(process, new object[] { configuration }));
+    }
+
+    private static void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, System.Collections.IDictionary dictionary)
+    {
+        methods
+            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
+            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(System.Collections.IDictionary))
+            .ToList()
+            .ForEach(m => m.Invoke(process, new object[] { dictionary }));
     }
 
     private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string>? processDefaultConfig, Dictionary<string, string>? processDefaultConfigOverwrites)
