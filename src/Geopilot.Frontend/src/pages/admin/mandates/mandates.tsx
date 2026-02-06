@@ -53,6 +53,12 @@ export const Mandates = () => {
       },
     },
     {
+      field: "isPublic",
+      headerName: t("public"),
+      width: 160,
+      type: "boolean",
+    },
+    {
       field: "organisations",
       headerName: t("organisations"),
       flex: 1,

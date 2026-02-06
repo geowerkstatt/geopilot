@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { Mandate, ValidationStatus } from "../../../api/apiInterfaces";
 import { DeliveryStepEnum } from "../deliveryInterfaces";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
+import { useGeopilotAuth } from "../../../auth";
 
 export const DeliveryValidationForm = () => {
   const { resetDelivery, validateFile, validationResponse, setStepError, setSelectedMandate, isLoading } =
@@ -16,6 +17,7 @@ export const DeliveryValidationForm = () => {
   const formMethods = useForm({ mode: "all" });
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
+  const { user } = useGeopilotAuth();
   const [mandates, setMandates] = useState<Mandate[]>([]);
 
   // Fetch mandates for the current job
@@ -30,7 +32,7 @@ export const DeliveryValidationForm = () => {
         },
       );
     }
-  }, [validationResponse, fetchApi, setStepError, t]);
+  }, [validationResponse, fetchApi, setStepError, t, user]);
 
   const submitForm = (data: FieldValues) => {
     validateFile(validationResponse!.jobId, {

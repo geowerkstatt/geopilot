@@ -16,14 +16,12 @@ public interface IMandateService
     Task<List<Mandate>> GetMandatesAsync(User? user = null, Guid? jobId = null);
 
     /// <summary>
-    /// Retrieves the mandate with the specified id, if the specified user is allowed to make deliveries for it
-    /// and if the mandate accepts the file type of the file associated with the specified job.
+    /// Retrieves the mandate with the specified id, if the specified user is allowed to access it.
     /// </summary>
     /// <param name="mandateId">The id of the mandate to retrieve.</param>
-    /// <param name="user">The user that tries to access the mandate.</param>
-    /// <param name="jobId">The job for which the mandate should be retrieved.</param>
+    /// <param name="user">The user that tries to access the mandate. If null, the user is considered unauthenticated.</param>
     /// <returns>The <see cref="Mandate"/> if found and accessible; otherwise, null.</returns>
-    Task<Mandate?> GetMandateByUserAndJobAsync(int mandateId, User user, Guid jobId);
+    Task<Mandate?> GetMandateAsUser(int mandateId, User? user);
 
     /// <summary>
     /// Retrieves a list of all file extensions that are accepted by any mandate in the system.

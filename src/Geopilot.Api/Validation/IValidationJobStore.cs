@@ -48,12 +48,12 @@ namespace Geopilot.Api.Validation
         /// <remarks>This method only succeeds if the job has the status <see cref="Status.Ready"/>, meaning a file has been added and the job is ready to be processed.</remarks>
         /// <param name="jobId">The id of the job to start.</param>
         /// <param name="validators">A collection of validators, that are already configured for the job. Cannot be null or empty.</param>
-        /// <param name="mandateId">The id of the mandate the job running for, if any.</param>
+        /// <param name="mandateId">The id of the mandate the job running for.</param>
         /// <returns>the updated validation job with its status set to <see cref="Status.Ready"/>.</returns>
         /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
         /// <exception cref="ArgumentException">If <paramref name="validators"/> is <see langword="null"/> or empty.</exception>
         /// <exception cref="InvalidOperationException">If the status of the job is not <see cref="Status.Ready"/>.</exception>
-        ValidationJob StartJob(Guid jobId, ICollection<IValidator> validators, int? mandateId);
+        ValidationJob StartJob(Guid jobId, ICollection<IValidator> validators, int mandateId);
 
         /// <summary>
         /// Adds the <paramref name="result"/> to the job associated with the specified <paramref name="validator"/>.

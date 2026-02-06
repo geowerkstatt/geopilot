@@ -22,8 +22,11 @@ namespace Geopilot.Api.Controllers
         private User adminUser;
         private Mandate unrestrictedMandate;
         private Mandate xtfMandate;
-        private Mandate unassociatedMandate;
+        private Mandate publicCsvMandate;
+        private Mandate noOrganisationsMandate;
+        private Mandate noPermissionMandate;
         private Organisation organisation;
+        private Organisation organisation2;
 
         [TestInitialize]
         public void Initialize()
@@ -51,11 +54,17 @@ namespace Geopilot.Api.Controllers
                     new(8.046284, 47.392423),
                 }),
             };
-            unassociatedMandate = new Mandate { FileTypes = new string[] { "*.itf" }, Name = nameof(unassociatedMandate) };
+            xtfMandate.SetCoordinateListFromPolygon();
+
+            publicCsvMandate = new Mandate { FileTypes = new string[] { ".csv" }, Name = nameof(publicCsvMandate), IsPublic = true };
+            noOrganisationsMandate = new Mandate { FileTypes = new string[] { ".itf" }, Name = nameof(noOrganisationsMandate) };
+            noPermissionMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noPermissionMandate) };
 
             context.Mandates.Add(unrestrictedMandate);
             context.Mandates.Add(xtfMandate);
-            context.Mandates.Add(unassociatedMandate);
+            context.Mandates.Add(publicCsvMandate);
+            context.Mandates.Add(noOrganisationsMandate);
+            context.Mandates.Add(noPermissionMandate);
 
             editUser = CreateUser("123", "Edit User", "example@example.org");
             context.Users.Add(editUser);
@@ -66,18 +75,23 @@ namespace Geopilot.Api.Controllers
             organisation = new Organisation { Name = "GAMMAHUNT" };
             organisation.Mandates.Add(unrestrictedMandate);
             organisation.Mandates.Add(xtfMandate);
+            organisation.Mandates.Add(publicCsvMandate);
             organisation.Users.Add(editUser);
             organisation.Users.Add(adminUser);
 
+            organisation2 = new Organisation { Name = "DELTALIGHT" };
+            organisation2.Mandates.Add(noPermissionMandate);
+            organisation2.Users.Add(adminUser);
+
             context.Add(organisation);
+            context.Add(organisation2);
             context.SaveChanges();
         }
 
         [TestMethod]
-        public async Task GetReturnsListOfMandatesForUser()
+        public async Task GetAsNonAdminUser()
         {
             mandateController.SetupTestUser(editUser);
-            xtfMandate.SetCoordinateListFromPolygon();
 
             var result = (await mandateController.Get()) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
@@ -85,18 +99,35 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(mandates);
             ContainsMandate(mandates, unrestrictedMandate);
             ContainsMandate(mandates, xtfMandate);
-            DoesNotContainMandate(mandates, unassociatedMandate);
+            ContainsMandate(mandates, publicCsvMandate);
+            DoesNotContainMandate(mandates, noOrganisationsMandate);
+            DoesNotContainMandate(mandates, noPermissionMandate);
         }
 
         [TestMethod]
-        public async Task GetWithJobIdIncludesMatchingMandates()
+        public async Task GetAsAdminUser()
+        {
+            mandateController.SetupTestUser(adminUser);
+
+            var result = (await mandateController.Get()) as OkObjectResult;
+            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+
+            Assert.IsNotNull(mandates);
+            ContainsMandate(mandates, unrestrictedMandate);
+            ContainsMandate(mandates, xtfMandate);
+            ContainsMandate(mandates, publicCsvMandate);
+            ContainsMandate(mandates, noOrganisationsMandate);
+            ContainsMandate(mandates, noPermissionMandate);
+        }
+
+        [TestMethod]
+        public async Task GetWithJobIdAsNonAdmin()
         {
             var jobId = Guid.NewGuid();
             mandateController.SetupTestUser(editUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
                 .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
-            xtfMandate.SetCoordinateListFromPolygon();
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
@@ -104,18 +135,19 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(mandates);
             ContainsMandate(mandates, unrestrictedMandate);
             ContainsMandate(mandates, xtfMandate);
-            DoesNotContainMandate(mandates, unassociatedMandate);
+            DoesNotContainMandate(mandates, publicCsvMandate);
+            DoesNotContainMandate(mandates, noOrganisationsMandate);
+            DoesNotContainMandate(mandates, noPermissionMandate);
         }
 
         [TestMethod]
-        public async Task GetWithJobIdIncludesMatchingMandatesIgnoresCase()
+        public async Task GetWithJobIdAsAdmin()
         {
             var jobId = Guid.NewGuid();
-            mandateController.SetupTestUser(editUser);
+            mandateController.SetupTestUser(adminUser);
             validationServiceMock
                 .Setup(m => m.GetJob(jobId))
                 .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
-            xtfMandate.SetCoordinateListFromPolygon();
 
             var result = (await mandateController.Get(jobId)) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
@@ -123,25 +155,61 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(mandates);
             ContainsMandate(mandates, unrestrictedMandate);
             ContainsMandate(mandates, xtfMandate);
-            DoesNotContainMandate(mandates, unassociatedMandate);
+            ContainsMandate(mandates, noPermissionMandate);
+            DoesNotContainMandate(mandates, noOrganisationsMandate);
+            DoesNotContainMandate(mandates, publicCsvMandate);
         }
 
         [TestMethod]
-        public async Task GetWithJobIdExcludesNonMatchingMandates()
+        public async Task GetAsUnauthenticated()
         {
-            var jobId = Guid.NewGuid();
-            mandateController.SetupTestUser(editUser);
-            validationServiceMock
-                .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.csv", "tmp.csv", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
-
-            var result = (await mandateController.Get(jobId)) as OkObjectResult;
+            var result = (await mandateController.Get()) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            ContainsMandate(mandates, unrestrictedMandate);
+            ContainsMandate(mandates, publicCsvMandate);
             DoesNotContainMandate(mandates, xtfMandate);
-            DoesNotContainMandate(mandates, unassociatedMandate);
+            DoesNotContainMandate(mandates, unrestrictedMandate);
+            DoesNotContainMandate(mandates, noOrganisationsMandate);
+            DoesNotContainMandate(mandates, noPermissionMandate);
+        }
+
+        [TestMethod]
+        public async Task GetWithJobIdAsUnauthenticated()
+        {
+            var jobId = Guid.NewGuid();
+            validationServiceMock
+                .Setup(m => m.GetJob(jobId))
+                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
+
+            var result = (await mandateController.Get(jobId)) as OkObjectResult;
+            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+
+            Assert.IsNotNull(mandates);
+            DoesNotContainMandate(mandates, publicCsvMandate);
+            DoesNotContainMandate(mandates, unrestrictedMandate);
+            DoesNotContainMandate(mandates, xtfMandate);
+            DoesNotContainMandate(mandates, noOrganisationsMandate);
+            DoesNotContainMandate(mandates, noPermissionMandate);
+        }
+
+        [TestMethod]
+        public async Task GetWithJobIdIgnoresCase()
+        {
+            var jobId = Guid.NewGuid();
+            mandateController.SetupTestUser(editUser);
+            validationServiceMock
+                .Setup(m => m.GetJob(jobId))
+                .Returns(new ValidationJob(jobId, "Original.XTF", "tmp.XTF", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
+
+            var result = (await mandateController.Get(jobId)) as OkObjectResult;
+            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+
+            Assert.IsNotNull(mandates);
+            ContainsMandate(mandates, unrestrictedMandate);
+            ContainsMandate(mandates, xtfMandate);
+            DoesNotContainMandate(mandates, publicCsvMandate);
+            DoesNotContainMandate(mandates, noOrganisationsMandate);
         }
 
         [TestMethod]
@@ -397,6 +465,7 @@ namespace Geopilot.Api.Controllers
         {
             Assert.AreEqual(expected.Id, actual.Id);
             Assert.AreEqual(expected.Name, actual.Name);
+            Assert.AreEqual(expected.IsPublic, actual.IsPublic);
             Assert.AreEqual(expected.InterlisValidationProfile, actual.InterlisValidationProfile);
             CollectionAssert.AreEqual(expected.FileTypes, actual.FileTypes);
             CollectionAssert.AreEqual(expected.Deliveries, actual.Deliveries);

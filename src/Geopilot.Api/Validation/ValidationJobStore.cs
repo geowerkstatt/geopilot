@@ -56,7 +56,7 @@ public class ValidationJobStore : IValidationJobStore
     }
 
     /// <inheritdoc/>
-    public ValidationJob StartJob(Guid jobId, ICollection<IValidator> validators, int? mandateId)
+    public ValidationJob StartJob(Guid jobId, ICollection<IValidator> validators, int mandateId)
     {
         if (validators == null || validators.Count == 0)
             throw new ArgumentException("At least one validator must be specified to start the validation.", nameof(validators));
