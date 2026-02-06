@@ -1,4 +1,6 @@
 ﻿using Geopilot.Api.Pipeline;
+using Microsoft.Extensions.Configuration;
+using Moq;
 using System.Reflection;
 
 namespace Geopilot.Api.Test.Pipeline;
@@ -50,6 +52,6 @@ public class PipelineValidationTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
-        return PipelineFactory.FromFile(path);
+        return PipelineFactory.FromFile(path, new Mock<IConfiguration>().Object);
     }
 }

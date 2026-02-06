@@ -1,15 +1,17 @@
 ﻿using Geopilot.Api.Pipeline.Config;
+using System.Net.Http.Headers;
 
 namespace Geopilot.Api.Pipeline.Process;
 
 /// <summary>
 /// Process for validating ILI files.
 /// </summary>
-internal class IliValidatorProcess : IPipelineProcess
+internal class IliValidatorProcess : IPipelineProcess, IDisposable
 {
     private const string InputMappingIliFile = "ili_file";
     private const string OutputMappingErrorLog = "error_log";
     private const string OutputMappingXtfLog = "xtf_log";
+    private const string InterlisCheckServiceBaseAddressConfiguration = "Validation:InterlisCheckServiceUrl";
 
     private ILogger<IliValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<IliValidatorProcess>();
 
@@ -21,6 +23,24 @@ internal class IliValidatorProcess : IPipelineProcess
 
     /// <inheritdoc/>
     public Dictionary<string, string>? Config { get; set; }
+
+    private HttpClient? httpClient;
+
+    public void Dispose()
+    {
+        httpClient?.Dispose();
+    }
+
+    [PipelineProcessInitialize]
+    public void Initialize(IConfiguration configuration)
+    {
+        var checkServiceUrl = configuration.GetValue<string>(InterlisCheckServiceBaseAddressConfiguration)
+            ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
+        httpClient = new() { BaseAddress = new Uri(checkServiceUrl), };
+
+        httpClient.DefaultRequestHeaders.Accept.Clear();
+        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    }
 
     private ProcessDataPart InputIliFile(ProcessData inputData)
     {

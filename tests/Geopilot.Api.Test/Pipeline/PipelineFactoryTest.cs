@@ -1,13 +1,41 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Microsoft.Extensions.Configuration;
 using System.Reflection;
+using WireMock.Server;
 
 namespace Geopilot.Api.Test.Pipeline;
 
 [TestClass]
 public class PipelineFactoryTest
 {
+    private IConfiguration configuration;
+    private WireMockServer server;
+
+    [TestInitialize]
+    public void SetUp()
+    {
+        server = WireMockServer.Start();
+        var inMemorySettings = new List<KeyValuePair<string, string>>
+        {
+            new KeyValuePair<string, string>("Validation:InterlisCheckServiceUrl", server.Url),
+        };
+
+        #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+        this.configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+        #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        server.Stop();
+        server.Dispose();
+    }
+
     [TestMethod]
     public void PipelineNotDefined()
     {
@@ -93,7 +121,7 @@ public class PipelineFactoryTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
-        return PipelineFactory.FromFile(path);
+        return PipelineFactory.FromFile(path, configuration);
     }
 
     private static void AssertOutputConfig(OutputConfig expectedConfig, OutputConfig actualConfig)
