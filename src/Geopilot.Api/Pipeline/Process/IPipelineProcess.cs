@@ -12,5 +12,5 @@ public interface IPipelineProcess
     /// </summary>
     /// <param name="inputData">The input data for the process.</param>
     /// <returns>The output data from the process.</returns>
-    ProcessData Run(ProcessData inputData);
+    Task<ProcessData> Run(ProcessData inputData);
 }

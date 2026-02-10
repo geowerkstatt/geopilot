@@ -38,5 +38,5 @@ public interface IPipeline
     /// </summary>
     /// <param name="file">The input file to process.</param>
     /// <returns>The context containing the results of the pipeline execution.</returns>
-    PipelineContext Run(FileHandle file);
+    Task<PipelineContext> Run(FileHandle file);
 }

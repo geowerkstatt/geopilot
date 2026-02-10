@@ -1,6 +1,8 @@
-﻿using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Itenso.TimePeriod;
 using Moq;
 
 namespace Geopilot.Api.Test.Pipeline;
@@ -47,13 +49,13 @@ public class PipelineStepTest
         processData.AddData("error_log", new ProcessDataPart("some_data"));
 
         var processMock = new Mock<IPipelineProcess>();
-        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).Returns(processData);
+        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
 
         var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = pipelineStep.Run(pipelineContext);
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext)).GetAwaiter().GetResult();
 
         Assert.IsNotNull(stepResult);
 
@@ -113,15 +115,15 @@ public class PipelineStepTest
         processData.AddData("error_log", new ProcessDataPart("some_data"));
 
         var processMock = new Mock<IPipelineProcess>();
-        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).Returns(processData);
+        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
 
         var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = pipelineStep.Run(pipelineContext);
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext)).GetAwaiter().GetResult();
 
-        Assert.IsNull(stepResult);
+        Assert.IsEmpty(stepResult.Outputs);
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
 
@@ -173,15 +175,15 @@ public class PipelineStepTest
         processData.AddData("error_log", new ProcessDataPart("some_data"));
 
         var processMock = new Mock<IPipelineProcess>();
-        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).Returns(processData);
+        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
 
         var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = pipelineStep.Run(pipelineContext);
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext)).GetAwaiter().GetResult();
 
-        Assert.IsNull(stepResult);
+        Assert.IsEmpty(stepResult.Outputs);
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
 
@@ -237,9 +239,9 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = pipelineStep.Run(pipelineContext);
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext)).GetAwaiter().GetResult();
 
-        Assert.IsNull(stepResult);
+        Assert.IsEmpty(stepResult.Outputs);
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
 
@@ -291,15 +293,15 @@ public class PipelineStepTest
         processData.AddData("error_log", new ProcessDataPart("some_data"));
 
         var processMock = new Mock<IPipelineProcess>();
-        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).Returns(processData);
+        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
 
         var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = pipelineStep.Run(pipelineContext);
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext)).GetAwaiter().GetResult();
 
-        Assert.IsNull(stepResult);
+        Assert.IsEmpty(stepResult.Outputs);
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
 

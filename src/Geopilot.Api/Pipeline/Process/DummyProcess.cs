@@ -37,7 +37,7 @@ internal class DummyProcess : IPipelineProcess
     }
 
     /// <inheritdoc/>
-    public ProcessData Run(ProcessData inputData)
+    public async Task<ProcessData> Run(ProcessData inputData)
     {
         // ToDo: Implement ILI validation logic here.
         var errorLogKey = dataHandlingConfig?.GetInputMapping(InputMappingErrorLog);

@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using System.Threading.Tasks;
 
 namespace Geopilot.Api.Pipeline;
 
@@ -43,5 +44,5 @@ public interface IPipelineStep
     /// </summary>
     /// <param name="context">Context with the aggregated step results from previous steps.</param>
     /// <returns>The output data from the step.</returns>
-    StepResult? Run(PipelineContext context);
+    Task<StepResult> Run(PipelineContext context);
 }

@@ -73,7 +73,7 @@ public class Pipeline : IPipeline
     }
 
     /// <inheritdoc/>
-    public PipelineContext Run(FileHandle file)
+    public async Task<PipelineContext> Run(FileHandle file)
     {
         var context = new PipelineContext()
         {
@@ -90,7 +90,7 @@ public class Pipeline : IPipeline
         {
             if (this.State == PipelineState.Failed)
                 break;
-            var stepResult = step.Run(context);
+            var stepResult = await step.Run(context).ConfigureAwait(false);
             if (stepResult != null)
                 context.StepResults[step.Id] = stepResult;
         }

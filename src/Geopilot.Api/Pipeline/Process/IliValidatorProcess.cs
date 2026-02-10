@@ -156,16 +156,16 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     }
 
     /// <inheritdoc/>
-    public ProcessData Run(ProcessData inputData)
+    public async Task<ProcessData> Run(ProcessData inputData)
     {
         var inputIliFile = InputIliFile(inputData).Data as FileHandle ?? throw new ArgumentException("Invalid input ILI file.");
 
         var outputData = new ProcessData();
 
         logger.LogInformation("Validating transfer file <{File}>...", inputIliFile.FileName);
-        var uploadResponse = Task.Run(() => UploadTransferFileAsync(inputIliFile, inputIliFile.FileName, this.Profile)).GetAwaiter().GetResult();
-        var statusResponse = Task.Run(() => PollStatusAsync(uploadResponse.StatusUrl!)).GetAwaiter().GetResult();
-        var logFiles = Task.Run(() => DownloadLogFilesAsync(statusResponse)).GetAwaiter().GetResult();
+        var uploadResponse = await UploadTransferFileAsync(inputIliFile, inputIliFile.FileName, this.Profile);
+        var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!);
+        var logFiles = await DownloadLogFilesAsync(statusResponse);
 
         if (DataHandlingConfig != null)
         {
@@ -193,25 +193,25 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
             { profileStringContent, "profile" },
         };
 
-        using var response = await this.HttpClient.PostAsync(UploadUrl, formData, CancellationToken).ConfigureAwait(false);
+        using var response = await this.HttpClient.PostAsync(UploadUrl, formData, CancellationToken);
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
-            var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(JsonOptions, CancellationToken).ConfigureAwait(false);
+            var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(JsonOptions, CancellationToken);
             logger.LogError("Upload of transfer file <{TransferFile}> to interlis-check-service failed.", transferFile);
             throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
         }
 
         logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
 
-        return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response).ConfigureAwait(false);
+        return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response);
      }
 
     private async Task<InterlisStatusResponse> PollStatusAsync(string statusUrl)
     {
         while (!CancellationToken.IsCancellationRequested)
         {
-            using var response = await this.HttpClient.GetAsync(statusUrl, CancellationToken).ConfigureAwait(false);
-            var statusResponse = await ReadSuccessResponseJsonAsync<InterlisStatusResponse>(response).ConfigureAwait(false);
+            using var response = await this.HttpClient.GetAsync(statusUrl, CancellationToken);
+            var statusResponse = await ReadSuccessResponseJsonAsync<InterlisStatusResponse>(response);
 
             if (statusResponse.Status == InterlisStatusResponseStatus.Completed
                 || statusResponse.Status == InterlisStatusResponseStatus.CompletedWithErrors
@@ -220,7 +220,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
                 return statusResponse;
             }
 
-            await Task.Delay(PollInterval, CancellationToken).ConfigureAwait(false);
+            await Task.Delay(PollInterval, CancellationToken);
         }
 
         throw new OperationCanceledException();
@@ -240,7 +240,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
             tasks.Add(DownloadLogAsFileAsync(statusResponse.XtfLogUrl.ToString(), LogType.XtfLog));
         }
 
-        var logFiles = await Task.WhenAll(tasks).ConfigureAwait(false);
+        var logFiles = await Task.WhenAll(tasks);
         if (logFiles != null)
         {
             return logFiles.ToDictionary();
@@ -253,7 +253,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
 
     private async Task<KeyValuePair<LogType, string>> DownloadLogAsFileAsync(string url, LogType logType)
     {
-        using var logDownloadStream = await this.HttpClient.GetStreamAsync(url, CancellationToken).ConfigureAwait(false);
+        using var logDownloadStream = await this.HttpClient.GetStreamAsync(url, CancellationToken);
         using (var reader = new StreamReader(logDownloadStream))
         {
             return new KeyValuePair<LogType, string>(logType, await reader.ReadToEndAsync(CancellationToken));
@@ -263,7 +263,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response)
     {
         response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<T>(JsonOptions, CancellationToken).ConfigureAwait(false);
+        var result = await response.Content.ReadFromJsonAsync<T>(JsonOptions, CancellationToken);
         return result ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
     }
 }

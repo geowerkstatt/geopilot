@@ -128,7 +128,7 @@ public class PipelineIntegrationTest
         Assert.HasCount(2, pipeline.Steps);
 
         using var fileHandle = CreateTestFileHandle("TestData/UploadFiles/RoadsExdm2ien.xtf");
-        var context = pipeline.Run(fileHandle);
+        var context = Task.Run(() => pipeline.Run(fileHandle)).GetAwaiter().GetResult();
 
         Assert.AreEqual(PipelineState.Success, pipeline.State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);

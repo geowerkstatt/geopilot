@@ -53,7 +53,7 @@ public class PipelineStep : IPipelineStep
     }
 
     /// <inheritdoc/>
-    public StepResult? Run(PipelineContext context)
+    public async Task<StepResult> Run(PipelineContext context)
     {
         if (context != null)
         {
@@ -62,7 +62,7 @@ public class PipelineStep : IPipelineStep
             try
             {
                 var inputProcessData = CreateProcessData(context);
-                var outputProcessData = Process.Run(inputProcessData);
+                var outputProcessData = await Process.Run(inputProcessData);
                 var stepResult = CreateStepResult(outputProcessData);
 
                 this.State = StepState.Success;
@@ -73,13 +73,13 @@ public class PipelineStep : IPipelineStep
             {
                 this.State = StepState.Failed;
                 logger.LogError(ex, $"error in step '{this.Id}': exception occurred during step execution: {ex.Message}.");
-                return null;
+                return new StepResult();
             }
         }
         else
         {
             this.State = StepState.Failed;
-            return null;
+            return new StepResult();
         }
     }
 
