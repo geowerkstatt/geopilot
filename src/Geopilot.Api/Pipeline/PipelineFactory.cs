@@ -1,7 +1,6 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using System.Reflection;
-using System.Threading;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -90,7 +89,7 @@ internal class PipelineFactory
         throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
     }
 
-    private void InitializeProcess(Type processType, IPipelineProcess process, DataHandlingConfig dataHandlingConfig, Dictionary<string, string> processConfig)
+    private void InitializeProcess(Type processType, IPipelineProcess process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
     {
         var methods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
 
@@ -148,13 +147,13 @@ internal class PipelineFactory
         }
     }
 
-    private void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, IDictionary<string, string> processConfig)
+    private void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, Parameterization processConfig)
     {
         if (processConfig != null)
         {
             methods
             .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
-            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(IDictionary<string, string>))
+            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(Parameterization))
             .ToList()
             .ForEach(m => m.Invoke(process, new object[] { processConfig }));
         }
@@ -164,9 +163,9 @@ internal class PipelineFactory
         }
     }
 
-    private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string>? processDefaultConfig, Dictionary<string, string>? processDefaultConfigOverwrites)
+    private Parameterization GenerateProcessConfig(Parameterization? processDefaultConfig, Parameterization? processDefaultConfigOverwrites)
     {
-        var mergedConfig = processDefaultConfig != null ? new Dictionary<string, string>(processDefaultConfig) : new Dictionary<string, string>();
+        var mergedConfig = processDefaultConfig != null ? new Parameterization(processDefaultConfig) : new Parameterization();
         if (processDefaultConfigOverwrites != null)
         {
             foreach (var overwrite in processDefaultConfigOverwrites)

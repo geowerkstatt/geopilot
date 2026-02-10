@@ -29,5 +29,5 @@ internal class ProcessConfig
     /// Optional default configuration for the process. Can be overridden by <see cref="StepConfig.ProcessConfigOverwrites"/>.
     /// </summary>
     [YamlMember(Alias = "default_config")]
-    public Dictionary<string, string>? DefaultConfig { get; set; }
+    public Parameterization? DefaultConfig { get; set; }
 }

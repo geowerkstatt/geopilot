@@ -35,7 +35,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
 
     private DataHandlingConfig? DataHandlingConfig { get; set; }
 
-    private IDictionary<string, string>? Config { get; set; }
+    private Parameterization? Config { get; set; }
 
     private HttpClient HttpClient { get; set; } = new();
 
@@ -67,7 +67,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     /// <para>'poll_interval': optional polling interval for the validation process.</para>
     /// </remarks>
     [PipelineProcessInitialize]
-    public void Initialize(IDictionary<string, string> config)
+    public void Initialize(Parameterization config)
     {
         this.Config = config;
     }
