@@ -129,7 +129,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     /// <inheritdoc/>
     public async Task<ProcessData> Run(ProcessData inputData)
     {
-        var inputIliFile = InputIliFile(inputData).Data as FileHandle ?? throw new ArgumentException("Invalid input ILI file.");
+        var inputIliFile = InputIliFile(inputData).Data as IPilelineTransferFile ?? throw new ArgumentException("Invalid input ILI file.");
 
         var outputData = new ProcessData();
 
@@ -153,9 +153,9 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         return outputData;
     }
 
-    private async Task<InterlisUploadResponse> UploadTransferFileAsync(FileHandle fileHandle, string transferFile, string? interlisValidationProfile)
+    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPilelineTransferFile file, string transferFile, string? interlisValidationProfile)
     {
-        using var fileStream = fileHandle.Stream ?? throw new ArgumentException("Invalid input ILI file stream.");
+        using var fileStream = file.OpenFileStream() ?? throw new ArgumentException("Invalid input ILI file stream.");
         using var streamContent = new StreamContent(fileStream);
         using var profileStringContent = new StringContent(interlisValidationProfile ?? string.Empty);
         using var formData = new MultipartFormDataContent
@@ -225,6 +225,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     private async Task<KeyValuePair<LogType, string>> DownloadLogAsFileAsync(string url, LogType logType)
     {
         using var logDownloadStream = await this.HttpClient.GetStreamAsync(url, CancellationToken);
+
         using (var reader = new StreamReader(logDownloadStream))
         {
             return new KeyValuePair<LogType, string>(logType, await reader.ReadToEndAsync(CancellationToken));

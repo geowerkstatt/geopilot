@@ -58,9 +58,9 @@ public class PipelineTest
 
         var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters);
 
-        using var fileHandle = CreateTestFileHandle("TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PilelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf");
 
-        var context = pipeline.Run(fileHandle);
+        var context = pipeline.Run(uploadFile);
 
         firstStep.Verify(
             p => p.Run(It.Is<PipelineContext>(pc =>

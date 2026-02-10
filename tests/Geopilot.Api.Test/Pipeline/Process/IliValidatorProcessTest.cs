@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline.Process;
+﻿using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
 using Microsoft.Extensions.Configuration;
@@ -62,9 +61,9 @@ public class IliValidatorProcessTest
             .GetAppLogMockResponse(getAppLogMockResponse)
             .GetXtfLogMockResponse(getXtfLogMockResponse)
             .Build();
-        using var fileHandle = CreateTestFileHandle("TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PilelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
-        processData.AddData("file", new ProcessDataPart(fileHandle));
+        processData.AddData("file", new ProcessDataPart(uploadFile));
 
         var processResult = Task.Run(() => process.Run(processData)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
@@ -101,9 +100,9 @@ public class IliValidatorProcessTest
             .OutputXtfLog("xtf_log")
             .InterlisCheckServiceBaseUrl("http://localhost/")
             .Build();
-        using var fileHandle = CreateTestFileHandle("TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PilelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
-        processData.AddData("wrong_key", new ProcessDataPart(fileHandle));
+        processData.AddData("wrong_key", new ProcessDataPart(uploadFile));
         var exception = Assert.Throws<ArgumentException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
         Assert.AreEqual("IliValidatorProcess: input data does not contain required key 'ili_file'.", exception.Message);
     }
@@ -127,17 +126,11 @@ public class IliValidatorProcessTest
             .InterlisCheckServiceBaseUrl("http://localhost/")
             .UploadMockResponse(uploadMockResponse)
             .Build();
-        using var fileHandle = CreateTestFileHandle("TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PilelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
-        processData.AddData("file", new ProcessDataPart(fileHandle));
+        processData.AddData("file", new ProcessDataPart(uploadFile));
         var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
         Assert.AreEqual("Invalid transfer file", exception.Message);
-    }
-
-    private FileHandle CreateTestFileHandle(string file)
-    {
-        var stream = File.Open(file, FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
-        return new FileHandle(file, stream);
     }
 
     private class IliValidatorProcessBuilder

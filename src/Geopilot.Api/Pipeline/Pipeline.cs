@@ -73,7 +73,7 @@ public class Pipeline : IPipeline
     }
 
     /// <inheritdoc/>
-    public async Task<PipelineContext> Run(FileHandle file)
+    public async Task<PipelineContext> Run(IPilelineTransferFile file)
     {
         var context = new PipelineContext()
         {
@@ -98,7 +98,7 @@ public class Pipeline : IPipeline
         return context;
     }
 
-    private StepResult CreateUploadStepResult(FileHandle file)
+    private StepResult CreateUploadStepResult(IPilelineTransferFile file)
     {
         var stepResult = new StepResult();
 

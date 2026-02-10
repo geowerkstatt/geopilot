@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Validation.Interlis;
 using Microsoft.Extensions.Configuration;
@@ -127,8 +126,8 @@ public class PipelineIntegrationTest
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(2, pipeline.Steps);
 
-        using var fileHandle = CreateTestFileHandle("TestData/UploadFiles/RoadsExdm2ien.xtf");
-        var context = Task.Run(() => pipeline.Run(fileHandle)).GetAwaiter().GetResult();
+        PilelineTransferFile uploadFile = new PilelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var context = Task.Run(() => pipeline.Run(uploadFile)).GetAwaiter().GetResult();
 
         Assert.AreEqual(PipelineState.Success, pipeline.State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
@@ -144,9 +143,9 @@ public class PipelineIntegrationTest
         var uploadedFileStepOutput = uploadStepResult.Outputs[uploadedFileAttribute];
 
         Assert.IsNotNull(uploadedFileStepOutput.Data);
-        var uploadedFile = uploadedFileStepOutput.Data as FileHandle;
+        var uploadedFile = uploadedFileStepOutput.Data as IPilelineTransferFile;
         Assert.IsNotNull(uploadedFile);
-        Assert.AreEqual(fileHandle.FileName, uploadedFile.FileName);
+        Assert.AreEqual(uploadFile.FilePath, uploadedFile.FilePath);
 
         // Assert if StepResults from executed PipelineSteps are in the PipelineContext
         Assert.HasCount(3, stepResults);
@@ -169,11 +168,5 @@ public class PipelineIntegrationTest
             .Configuration(configuration)
             .CancellationToken(cancellationToken.Token)
             .Build();
-    }
-
-    private FileHandle CreateTestFileHandle(string file)
-    {
-        var stream = File.Open(file, FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
-        return new FileHandle(file, stream);
     }
 }
