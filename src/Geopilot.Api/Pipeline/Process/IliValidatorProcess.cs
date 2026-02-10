@@ -61,54 +61,25 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     /// <summary>
     /// Initializes the pipeline process with the specified configuration settings.
     /// </summary>
-    /// <param name="config">A dictionary containing configuration key-value pairs to be used for initialization. Cannot be null.</param>
-    /// <remarks>The configuration settings provided in the dictionary will be stored in the process for later use during execution.
-    /// <para>'profile': optional profile to run the validation with.</para>
-    /// <para>'poll_interval': optional polling interval for the validation process.</para>
-    /// </remarks>
-    [PipelineProcessInitialize]
-    public void Initialize(Parameterization config)
-    {
-        this.Config = config;
-    }
-
-    /// <summary>
-    /// Initializes the pipeline process with the specified data handling configuration.
-    /// </summary>
+    /// <param name="config">A dictionary containing configuration key-value pairs to be used for initialization. Cannot be null.<para>'profile': optional profile to run the validation with.</para><para>'poll_interval': optional polling interval for the validation process.</para></param>
     /// <param name="dataHandlingConfig">The data handling configuration to be used for the pipeline process. Cannot be null.</param>
-    [PipelineProcessInitialize]
-    public void Initialize(DataHandlingConfig dataHandlingConfig)
-    {
-        this.DataHandlingConfig = dataHandlingConfig;
-    }
-
-    /// <summary>
-    /// Initializes the pipeline process by configuring the HTTP client with the base address and default request
-    /// headers required for INTERLIS transfer file validation.
-    /// </summary>
-    /// <remarks>This method must be called before performing any operations that require communication with
-    /// the INTERLIS check service. The HTTP client will be set to accept JSON responses from the service.</remarks>
     /// <param name="configuration">The configuration source used to retrieve the base address for the INTERLIS check service. Cannot be null and
+    /// <param name="cancellationToken">The cancellation token to be used for the pipeline process.</param>
     /// must contain a valid service URL at value "Validation:InterlisCheckServiceUrl".</param>
     /// <exception cref="InvalidOperationException">Thrown if the configuration does not provide a valid INTERLIS check service base address.</exception>
     [PipelineProcessInitialize]
-    public void Initialize(IConfiguration configuration)
+    public void Initialize(Parameterization config, DataHandlingConfig dataHandlingConfig, IConfiguration configuration, CancellationToken cancellationToken)
     {
-        var checkServiceUrl = configuration.GetValue<string>(InterlisCheckServiceBaseAddressConfiguration)
-            ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
+        this.Config = config;
+
+        this.DataHandlingConfig = dataHandlingConfig;
+
+        var checkServiceUrl = configuration.GetValue<string>(InterlisCheckServiceBaseAddressConfiguration) ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
         this.HttpClient.BaseAddress = new Uri(checkServiceUrl);
 
         this.HttpClient.DefaultRequestHeaders.Accept.Clear();
         this.HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-    }
 
-    /// <summary>
-    /// Initializes the pipeline process by configuring the cancellation token.
-    /// </summary>
-    /// <param name="cancellationToken">The cancellation token to be used for the pipeline process.</param>
-    [PipelineProcessInitialize]
-    public void Initialize(CancellationToken cancellationToken)
-    {
         this.cancellationToken = cancellationToken;
     }
 

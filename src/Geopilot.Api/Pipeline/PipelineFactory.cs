@@ -91,75 +91,41 @@ internal class PipelineFactory
 
     private void InitializeProcess(Type processType, IPipelineProcess process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
     {
-        var methods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
-
-        InitializeProcess(process, methods, this.configuration);
-        InitializeProcess(process, methods, this.cancellationToken);
-        InitializeProcess(process, methods, dataHandlingConfig);
-        InitializeProcess(process, methods, processConfig);
+        processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length > 0)
+            .ToList()
+            .ForEach(m =>
+            {
+                var parameters = m.GetParameters()
+                    .Select(p => p.ParameterType)
+                    .Select(t => GenerateParameter(t, dataHandlingConfig, processConfig))
+                    .ToArray();
+                m.Invoke(process, parameters);
+            });
     }
 
-    private void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, IConfiguration? configuration)
+    private object? GenerateParameter(Type parameterType, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
     {
-        if (configuration != null)
+        if (parameterType == typeof(IConfiguration))
         {
-            methods
-            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
-            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(IConfiguration))
-            .ToList()
-            .ForEach(m => m.Invoke(process, new object[] { configuration }));
+            return configuration;
+        }
+        else if (parameterType == typeof(CancellationToken))
+        {
+            return cancellationToken;
+        }
+        else if (parameterType == typeof(DataHandlingConfig))
+        {
+            return dataHandlingConfig;
+        }
+        else if (parameterType == typeof(Parameterization))
+        {
+            return processConfig;
         }
         else
         {
-            logger.LogWarning("No application configuration provided. Skipping pipeline process initialization with IConfiguration.");
-        }
-    }
-
-    private void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, CancellationToken? cancellationToken)
-    {
-        if (cancellationToken != null)
-        {
-            methods
-            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
-            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(CancellationToken))
-            .ToList()
-            .ForEach(m => m.Invoke(process, new object[] { cancellationToken }));
-        }
-        else
-        {
-            logger.LogWarning("No cancellation token provided. Skipping pipeline process initialization with CancellationToken.");
-        }
-    }
-
-    private void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, DataHandlingConfig dataHandlingConfig)
-    {
-        if (dataHandlingConfig != null)
-        {
-            methods
-            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
-            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(DataHandlingConfig))
-            .ToList()
-            .ForEach(m => m.Invoke(process, new object[] { dataHandlingConfig }));
-        }
-        else
-        {
-            logger.LogWarning("No data handling configuration provided. Skipping pipeline process initialization with data handling configuration.");
-        }
-    }
-
-    private void InitializeProcess(IPipelineProcess process, MethodInfo[] methods, Parameterization processConfig)
-    {
-        if (processConfig != null)
-        {
-            methods
-            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length != 0)
-            .Where(m => m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == typeof(Parameterization))
-            .ToList()
-            .ForEach(m => m.Invoke(process, new object[] { processConfig }));
-        }
-        else
-        {
-            logger.LogWarning("No process configuration provided. Skipping pipeline process initialization with process configuration.");
+            logger.LogWarning($"Process initialization: No suitable parameter found for type '{parameterType}' with name '{parameterType.Name}' initialize with null.");
+            return null;
         }
     }
 

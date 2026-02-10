@@ -14,25 +14,17 @@ internal class DummyProcess : IPipelineProcess
 
     private DataHandlingConfig? dataHandlingConfig;
 
-    private Dictionary<string, string>? config;
+    private Parameterization? config;
 
     /// <summary>
     /// Initializes the pipeline process with the specified configuration settings.
     /// </summary>
     /// <param name="config">A dictionary containing configuration key-value pairs to be used for initialization. Cannot be null.</param>
-    [PipelineProcessInitialize]
-    public void Initialize(Dictionary<string, string> config)
-    {
-        this.config = config;
-    }
-
-    /// <summary>
-    /// Initializes the pipeline process with the specified data handling configuration.
-    /// </summary>
     /// <param name="dataHandlingConfig">The data handling configuration to be used for the pipeline process. Cannot be null.</param>
     [PipelineProcessInitialize]
-    public void Initialize(DataHandlingConfig dataHandlingConfig)
+    public void Initialize(Parameterization config, DataHandlingConfig dataHandlingConfig)
     {
+        this.config = config;
         this.dataHandlingConfig = dataHandlingConfig;
     }
 
