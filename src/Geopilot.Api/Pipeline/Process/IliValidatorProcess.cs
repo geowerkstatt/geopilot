@@ -1,5 +1,5 @@
-﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Api.Pipeline.Config;
+using Geopilot.Api.Test.Pipeline;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Mvc;
@@ -197,9 +197,9 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         throw new OperationCanceledException();
     }
 
-    private async Task<Dictionary<LogType, string>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse)
+    private async Task<Dictionary<LogType, IPilelineTransferFile>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse)
     {
-        List<Task<KeyValuePair<LogType, string>>> tasks = new List<Task<KeyValuePair<LogType, string>>>();
+        var tasks = new List<Task<KeyValuePair<LogType, IPilelineTransferFile>>>();
 
         if (statusResponse.LogUrl != null)
         {
@@ -222,14 +222,28 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         }
     }
 
-    private async Task<KeyValuePair<LogType, string>> DownloadLogAsFileAsync(string url, LogType logType)
+    private async Task<KeyValuePair<LogType, IPilelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType)
     {
-        using var logDownloadStream = await this.HttpClient.GetStreamAsync(url, CancellationToken);
-
-        using (var reader = new StreamReader(logDownloadStream))
+        PilelineTransferFile transferFile;
+        switch (logType)
         {
-            return new KeyValuePair<LogType, string>(logType, await reader.ReadToEndAsync(CancellationToken));
+            case LogType.ErrorLog:
+                transferFile = new PilelineTransferFile("errorLog", Path.GetTempFileName().Replace(".tmp", ".log"));
+                break;
+            case LogType.XtfLog:
+                transferFile = new PilelineTransferFile("xtfLog", Path.GetTempFileName().Replace(".tmp", ".xtf"));
+                break;
+            default:
+                throw new InvalidOperationException($"Unsupported log type: {logType}");
         }
+
+        using var logDownloadStream = await this.HttpClient.GetStreamAsync(url, CancellationToken);
+        var fileStream = File.Create(transferFile.FilePath);
+        logDownloadStream.Seek(0, SeekOrigin.Begin);
+        logDownloadStream.CopyTo(fileStream);
+        fileStream.Close();
+
+        return new KeyValuePair<LogType, IPilelineTransferFile>(logType, transferFile);
     }
 
     private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response)

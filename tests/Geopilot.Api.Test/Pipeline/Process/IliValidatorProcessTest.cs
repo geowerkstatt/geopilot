@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Pipeline.Process;
+﻿using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
 using Microsoft.Extensions.Configuration;
@@ -61,19 +62,23 @@ public class IliValidatorProcessTest
             .GetAppLogMockResponse(getAppLogMockResponse)
             .GetXtfLogMockResponse(getXtfLogMockResponse)
             .Build();
-        var uploadFile = new PilelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("file", new ProcessDataPart(uploadFile));
 
         var processResult = Task.Run(() => process.Run(processData)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(2, processResult.Data);
-        processResult.Data.TryGetValue("error_log", out var errLog);
-        Assert.IsNotNull(errLog);
-        Assert.IsNotEmpty(errLog.Data as string);
-        processResult.Data.TryGetValue("xtf_log", out var xtfLog);
+        processResult.Data.TryGetValue("error_log", out var appLogData);
+        Assert.IsNotNull(appLogData);
+        var appLog = appLogData.Data as IPilelineTransferFile;
+        Assert.IsNotNull(appLog);
+        Assert.AreEqual("errorLog.log", appLog.OrginalFileName);
+        processResult.Data.TryGetValue("xtf_log", out var xtfLogData);
+        Assert.IsNotNull(xtfLogData);
+        var xtfLog = xtfLogData.Data as IPilelineTransferFile;
         Assert.IsNotNull(xtfLog);
-        Assert.IsNotEmpty(xtfLog.Data as string);
+        Assert.AreEqual("xtfLog.xtf", xtfLog.OrginalFileName);
     }
 
     [TestMethod]
@@ -100,7 +105,7 @@ public class IliValidatorProcessTest
             .OutputXtfLog("xtf_log")
             .InterlisCheckServiceBaseUrl("http://localhost/")
             .Build();
-        var uploadFile = new PilelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("wrong_key", new ProcessDataPart(uploadFile));
         var exception = Assert.Throws<ArgumentException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
@@ -126,7 +131,7 @@ public class IliValidatorProcessTest
             .InterlisCheckServiceBaseUrl("http://localhost/")
             .UploadMockResponse(uploadMockResponse)
             .Build();
-        var uploadFile = new PilelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("file", new ProcessDataPart(uploadFile));
         var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());

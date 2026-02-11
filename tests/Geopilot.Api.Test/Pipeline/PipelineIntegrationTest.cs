@@ -126,7 +126,7 @@ public class PipelineIntegrationTest
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(2, pipeline.Steps);
 
-        PilelineTransferFile uploadFile = new PilelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf");
+        PilelineTransferFile uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var context = Task.Run(() => pipeline.Run(uploadFile)).GetAwaiter().GetResult();
 
         Assert.AreEqual(PipelineState.Success, pipeline.State);

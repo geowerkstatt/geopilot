@@ -11,13 +11,18 @@ public class PilelineTransferFile : IPilelineTransferFile
     /// Initializes a new instance of the PilelineTestTransferFile class with the specified file path.
     /// </summary>
     /// <param name="filePath">The full path to the file to be transferred. Cannot be null or empty.</param>
-    public PilelineTransferFile(string filePath)
+    /// <param name="orginalFileNameWithoutExtension">The original file name without its extension. Cannot be null or empty.</param>
+    public PilelineTransferFile(string orginalFileNameWithoutExtension, string filePath)
     {
         this.FilePath = filePath;
+        this.OrginalFileNameWithoutExtension = orginalFileNameWithoutExtension;
     }
 
     /// <inheritdoc/>
     public string FilePath { get; set; }
+
+    /// <inheritdoc/>
+    public string OrginalFileNameWithoutExtension { get; set; }
 
     /// <inheritdoc/>
     public Stream OpenFileStream()

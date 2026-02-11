@@ -58,7 +58,7 @@ public class PipelineTest
 
         var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters);
 
-        var uploadFile = new PilelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
         var context = pipeline.Run(uploadFile);
 
