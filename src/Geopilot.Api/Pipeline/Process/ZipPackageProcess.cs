@@ -9,9 +9,8 @@ namespace Geopilot.Api.Pipeline.Process;
 /// </summary>
 /// <remarks>This class is intended for use within a data processing pipeline where ZIP package handling of <see cref="IPipelineTransferFile"/> is required.
 /// All <see cref="IPipelineTransferFile"/> provided in the input <see cref="ProcessData"/> will be included in the created ZIP archive. The resulting ZIP file is then made available as an output of the process.
-/// It implements the <see cref="IPipelineProcess"/> interface. This type is internal and not intended for direct use outside of the pipeline infrastructure.
 /// The ZIP archive is provided under the key 'zip_package' in the <see cref="ProcessData"/> output.</remarks>
-internal class ZipPackageProcess : IPipelineProcess
+internal class ZipPackageProcess
 {
     private const string OutputMappingZipPackage = "zip_package";
     private const string ConfiguratiionKeyArchiveFileName = "archive_file_name";
@@ -45,14 +44,19 @@ internal class ZipPackageProcess : IPipelineProcess
         this.config = config;
     }
 
-    /// <inheritdoc/>
-    public async Task<ProcessData> Run(ProcessData inputData)
+    /// <summary>
+    /// Creates a ZIP archive from the provided input files and returns the resulting process data.
+    /// </summary>
+    /// <remarks>Only objects in the input list that implement IPipelineTransferFile are included in the ZIP
+    /// archive. The method requires a valid data handling configuration to map the output ZIP package.</remarks>
+    /// <param name="input">A list of objects representing input files to be packaged. Each object must implement the IPipelineTransferFile
+    /// interface to be included in the ZIP archive.</param>
+    /// <returns>A ProcessData instance containing the ZIP archive created from the input files.</returns>
+    /// <exception cref="ArgumentException">Thrown if no valid input files are found in the input list, or if the data handling configuration is not set.</exception>
+    [PipelineProcessRun]
+    public async Task<ProcessData> RunAsync(List<object> input)
     {
-        var outputData = new ProcessData();
-
-        var inputFiles = inputData.Data
-            .Values
-            .Select(d => d.Data)
+        var inputFiles = input
             .Where(d => d is IPipelineTransferFile)
             .Cast<IPipelineTransferFile>()
             .ToList();
@@ -80,7 +84,9 @@ internal class ZipPackageProcess : IPipelineProcess
 
         if (dataHandlingConfig != null)
         {
+            var outputData = new ProcessData();
             outputData.AddData(dataHandlingConfig.GetOutputMapping(OutputMappingZipPackage), new ProcessDataPart(zipTransferFile));
+            return outputData;
         }
         else
         {
@@ -88,7 +94,5 @@ internal class ZipPackageProcess : IPipelineProcess
             logger.LogError(errorMessage);
             throw new ArgumentException(errorMessage);
         }
-
-        return outputData;
     }
 }

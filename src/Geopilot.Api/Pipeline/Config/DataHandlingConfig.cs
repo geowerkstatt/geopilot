@@ -4,7 +4,7 @@ using YamlDotNet.Serialization;
 namespace Geopilot.Api.Pipeline.Config;
 
 /// <summary>
-/// Represents the configuration for an <see cref="IPipelineProcess"/> for mapping input and output data fields.
+/// Represents the configuration for a Pipeline Process for mapping input and output data fields.
 /// </summary>
 public class DataHandlingConfig
 {

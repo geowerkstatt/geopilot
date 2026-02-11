@@ -32,7 +32,7 @@ public interface IPipelineStep : IDisposable
     /// <summary>
     /// The process to be executed for this step.
     /// </summary>
-    IPipelineProcess Process { get; }
+    object Process { get; }
 
     /// <summary>
     /// The current state of the step.

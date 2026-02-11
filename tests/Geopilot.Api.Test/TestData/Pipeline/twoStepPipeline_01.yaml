@@ -36,7 +36,7 @@ pipelines:
         input:
           - from: upload
             take: ili_file
-            as: file
+            as: iliFile
         output:
           - take: error_log
             as: error_log
@@ -53,13 +53,13 @@ pipelines:
         input:
           - from: validation
             take: error_log
-            as: error_log
+            as: input
           - from: validation
             take: xtf_log
-            as: xtf_log
+            as: input
           - from: upload
             take: ili_file
-            as: ili_file
+            as: input
         output:
           - take: zip_package
             as: zip_package

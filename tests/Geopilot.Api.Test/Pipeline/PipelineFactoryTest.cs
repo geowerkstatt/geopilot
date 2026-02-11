@@ -78,7 +78,7 @@ public class PipelineFactoryTest
         };
         AssertOutputConfig(expectedOutputConfig_0, outputConfig_0);
         AssertOutputConfig(expectedOutputConfig_1, outputConfig_1);
-        IPipelineProcess stepProcess = validationStep.Process;
+        object stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
         var expectedDataHandlingInputMappingConfig = new Dictionary<string, string>() { { "ili_file", "file" }, };
         var expectedDataHandlingOutputMappingConfig = new Dictionary<string, string>() { { "error_log", "error_log" }, { "xtf_log", "xtf_log" }, };
@@ -108,7 +108,7 @@ public class PipelineFactoryTest
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(1, pipeline.Steps);
         var validationStep = pipeline.Steps[0];
-        IPipelineProcess stepProcess = validationStep.Process;
+        object stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
         var expectedDefaultConfig = new Parameterization();
         var stepConfig = typeof(IliValidatorProcess)

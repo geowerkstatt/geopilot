@@ -13,7 +13,7 @@ namespace Geopilot.Api.Pipeline.Process;
 /// <summary>
 /// Process for validating ILI files.
 /// </summary>
-internal class IliValidatorProcess : IPipelineProcess, IDisposable
+internal class IliValidatorProcess : IDisposable
 {
     private enum LogType
     {
@@ -21,7 +21,6 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         ErrorLog,
     }
 
-    private const string InputMappingIliFile = "ili_file";
     private const string OutputMappingErrorLog = "error_log";
     private const string OutputMappingXtfLog = "xtf_log";
     private const string ConfiguratiionKeyValidationProfile = "profile";
@@ -84,19 +83,6 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         this.cancellationToken = cancellationToken;
     }
 
-    private ProcessDataPart InputIliFile(ProcessData inputData)
-    {
-        var inputIliFileKey = dataHandlingConfig.GetInputMapping(InputMappingIliFile);
-        if (inputIliFileKey == null || !inputData.Data.TryGetValue(inputIliFileKey, out var iliFilePart))
-        {
-            var errorMessage = $"IliValidatorProcess: input data does not contain required key '{InputMappingIliFile}'.";
-            logger.LogError(errorMessage);
-            throw new ArgumentException(errorMessage);
-        }
-
-        return iliFilePart;
-    }
-
     private string Profile
     {
         get
@@ -119,15 +105,19 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         }
     }
 
-    /// <inheritdoc/>
-    public async Task<ProcessData> Run(ProcessData inputData)
+    /// <summary>
+    /// Runs the validation process for the specified ILI file.
+    /// </summary>
+    /// <param name="iliFile">The ILI file to validate. Cannot be null.</param>
+    /// <returns>A ProcessData instance containing the results of the validation process.</returns>
+    /// <exception cref="ArgumentException">Thrown if the input ILI file is invalid.</exception>
+    [PipelineProcessRun]
+    public async Task<ProcessData> RunAsync(IPipelineTransferFile iliFile)
     {
-        var inputIliFile = InputIliFile(inputData).Data as IPipelineTransferFile ?? throw new ArgumentException("Invalid input ILI file.");
-
         var outputData = new ProcessData();
 
-        logger.LogInformation("Validating transfer file <{File}>...", inputIliFile.FileName);
-        var uploadResponse = await UploadTransferFileAsync(inputIliFile, inputIliFile.FileName, this.Profile);
+        logger.LogInformation("Validating transfer file <{File}>...", iliFile.FileName);
+        var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.FileName, this.Profile);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!);
         var logFiles = await DownloadLogFilesAsync(statusResponse);
 

@@ -77,7 +77,7 @@ public class PipelineFactory : IPipelineFactory
             var objectType = Type.GetType(processConfig.Implementation);
             if (objectType != null)
             {
-                var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
+                var processInstance = Activator.CreateInstance(objectType);
                 if (processInstance != null)
                 {
                     InitializeProcess(objectType, processInstance, processConfig.DataHandlingConfig, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites), cancellationToken);
@@ -90,7 +90,7 @@ public class PipelineFactory : IPipelineFactory
         throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
     }
 
-    private void InitializeProcess(Type processType, IPipelineProcess process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig, CancellationToken cancellationToken)
+    private void InitializeProcess(Type processType, object process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
     {
         var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length > 0)

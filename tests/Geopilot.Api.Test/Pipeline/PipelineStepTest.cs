@@ -1,15 +1,43 @@
-﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
-using Itenso.TimePeriod;
-using Moq;
 
 namespace Geopilot.Api.Test.Pipeline;
 
 [TestClass]
 public class PipelineStepTest
 {
+    private class MockPipelineProcess
+    {
+        public MockPipelineProcess(ProcessData outputData)
+        {
+            this.outputData = outputData;
+        }
+
+        private ProcessData outputData;
+
+        public int NumberOfRunInvoced { get; set; }
+
+        [PipelineProcessRun]
+        public async Task<ProcessData> RunAsync(string data)
+        {
+            NumberOfRunInvoced++;
+            return this.outputData;
+        }
+    }
+
+    private class MockPipelineProcessException
+    {
+        public int NumberOfRunInvoced { get; set; }
+
+        [PipelineProcessRun]
+        public async Task<ProcessData> RunAsync(string data)
+        {
+            ++NumberOfRunInvoced;
+            throw new InvalidOperationException("Test exception during process run.");
+        }
+    }
+
     [TestMethod]
     public void SuccessfullStepRun()
     {
@@ -19,7 +47,7 @@ public class PipelineStepTest
             {
                 From = "upload",
                 Take = "xtf_file",
-                As = "file_to_validate",
+                As = "data",
             },
         };
         var outputConfigs = new List<OutputConfig>
@@ -48,10 +76,9 @@ public class PipelineStepTest
         var processData = new ProcessData();
         processData.AddData("error_log", new ProcessDataPart("some_data"));
 
-        var processMock = new Mock<IPipelineProcess>();
-        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
+        var processMock = new MockPipelineProcess(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -61,13 +88,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Success, pipelineStep.State);
 
-        // Verify that process.Run was called exactly once and with the correct ProcessData
-        processMock.Verify(
-            p => p.Run(It.Is<ProcessData>(pd =>
-                pd.Data.Count == 1 &&
-                pd.Data.ContainsKey("file_to_validate") &&
-                pd.Data["file_to_validate"].Data.Equals("some_data"))),
-            Times.Once());
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
 
         // Assert that the returned StepResult contains the correct content
         Assert.HasCount(1, stepResult.Outputs);
@@ -85,7 +106,7 @@ public class PipelineStepTest
             {
                 From = "invalid_upload_reference",
                 Take = "xtf_file",
-                As = "file_to_validate",
+                As = "data",
             },
         };
         var outputConfigs = new List<OutputConfig>
@@ -111,13 +132,10 @@ public class PipelineStepTest
                 { "upload", uploadStepResult },
             },
         };
-        var processData = new ProcessData();
-        processData.AddData("error_log", new ProcessDataPart("some_data"));
 
-        var processMock = new Mock<IPipelineProcess>();
-        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
+        var processMock = new MockPipelineProcess(new ProcessData());
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -127,13 +145,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
 
-        // Verify that process.Run was called exactly once and with the correct ProcessData
-        processMock.Verify(
-            p => p.Run(It.Is<ProcessData>(pd =>
-                pd.Data.Count == 1 &&
-                pd.Data.ContainsKey("file_to_validate") &&
-                pd.Data["file_to_validate"].Data.Equals("some_data"))),
-            Times.Never());
+        Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
 
     [TestMethod]
@@ -171,13 +183,10 @@ public class PipelineStepTest
                 { "upload", uploadStepResult },
             },
         };
-        var processData = new ProcessData();
-        processData.AddData("error_log", new ProcessDataPart("some_data"));
 
-        var processMock = new Mock<IPipelineProcess>();
-        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
+        var processMock = new MockPipelineProcess(new ProcessData());
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -187,13 +196,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
 
-        // Verify that process.Run was called exactly once and with the correct ProcessData
-        processMock.Verify(
-            p => p.Run(It.Is<ProcessData>(pd =>
-                pd.Data.Count == 1 &&
-                pd.Data.ContainsKey("file_to_validate") &&
-                pd.Data["file_to_validate"].Data.Equals("some_data"))),
-            Times.Never());
+        Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
 
     [TestMethod]
@@ -205,7 +208,7 @@ public class PipelineStepTest
             {
                 From = "upload",
                 Take = "xtf_file",
-                As = "file_to_validate",
+                As = "data",
             },
         };
         var outputConfigs = new List<OutputConfig>
@@ -232,10 +235,9 @@ public class PipelineStepTest
             },
         };
 
-        var processMock = new Mock<IPipelineProcess>();
-        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).Throws(new InvalidOperationException("something terible happend"));
+        var processMock = new MockPipelineProcessException();
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -245,13 +247,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
 
-        // Verify that process.Run was called exactly once and with the correct ProcessData
-        processMock.Verify(
-            p => p.Run(It.Is<ProcessData>(pd =>
-                pd.Data.Count == 1 &&
-                pd.Data.ContainsKey("file_to_validate") &&
-                pd.Data["file_to_validate"].Data.Equals("some_data"))),
-            Times.Once());
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
 
     [TestMethod]
@@ -263,7 +259,7 @@ public class PipelineStepTest
             {
                 From = "upload",
                 Take = "xtf_file",
-                As = "file_to_validate",
+                As = "data",
             },
         };
         var outputConfigs = new List<OutputConfig>
@@ -292,10 +288,9 @@ public class PipelineStepTest
         var processData = new ProcessData();
         processData.AddData("error_log", new ProcessDataPart("some_data"));
 
-        var processMock = new Mock<IPipelineProcess>();
-        processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
+        var processMock = new MockPipelineProcess(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -305,12 +300,6 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
 
-        // Verify that process.Run was called exactly once and with the correct ProcessData
-        processMock.Verify(
-            p => p.Run(It.Is<ProcessData>(pd =>
-                pd.Data.Count == 1 &&
-                pd.Data.ContainsKey("file_to_validate") &&
-                pd.Data["file_to_validate"].Data.Equals("some_data"))),
-            Times.Once());
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
 }

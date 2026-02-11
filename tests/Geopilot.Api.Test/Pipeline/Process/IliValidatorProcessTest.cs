@@ -6,7 +6,6 @@ using Microsoft.Extensions.Configuration;
 using Moq;
 using Moq.Protected;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Json;
 using System.Reflection;
 
@@ -64,10 +63,8 @@ public class IliValidatorProcessTest
             .GetXtfLogMockResponse(getXtfLogMockResponse)
             .Build();
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-        var processData = new ProcessData();
-        processData.AddData("file", new ProcessDataPart(uploadFile));
 
-        var processResult = Task.Run(() => process.Run(processData)).GetAwaiter().GetResult();
+        var processResult = Task.Run(() => process.RunAsync(uploadFile)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(2, processResult.Data);
         processResult.Data.TryGetValue("error_log", out var appLogData);
@@ -80,37 +77,6 @@ public class IliValidatorProcessTest
         var xtfLog = xtfLogData.Data as IPipelineTransferFile;
         Assert.IsNotNull(xtfLog);
         Assert.AreEqual("xtfLog.xtf", xtfLog.OrginalFileName);
-    }
-
-    [TestMethod]
-    public void InputIliFileNotCorrectType()
-    {
-        using var process = IliValidatorProcessBuilder.Create()
-            .InputFile("file")
-            .OutputErrorLog("error_log")
-            .OutputXtfLog("xtf_log")
-            .InterlisCheckServiceBaseUrl("http://localhost/")
-            .Build();
-        var processData = new ProcessData();
-        processData.AddData("file", new ProcessDataPart("invalid data"));
-        var exception = Assert.Throws<ArgumentException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
-        Assert.AreEqual("Invalid input ILI file.", exception.Message);
-    }
-
-    [TestMethod]
-    public void InputIliFileNotCorrectMapped()
-    {
-        using var process = IliValidatorProcessBuilder.Create()
-            .InputFile("file")
-            .OutputErrorLog("error_log")
-            .OutputXtfLog("xtf_log")
-            .InterlisCheckServiceBaseUrl("http://localhost/")
-            .Build();
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-        var processData = new ProcessData();
-        processData.AddData("wrong_key", new ProcessDataPart(uploadFile));
-        var exception = Assert.Throws<ArgumentException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
-        Assert.AreEqual("IliValidatorProcess: input data does not contain required key 'ili_file'.", exception.Message);
     }
 
     [TestMethod]
@@ -133,9 +99,7 @@ public class IliValidatorProcessTest
             .UploadMockResponse(uploadMockResponse)
             .Build();
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-        var processData = new ProcessData();
-        processData.AddData("file", new ProcessDataPart(uploadFile));
-        var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
+        var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.RunAsync(uploadFile)).GetAwaiter().GetResult());
         Assert.AreEqual("Invalid transfer file", exception.Message);
     }
 
