@@ -8,13 +8,11 @@ processes:
         error_log: error_log
         xtf_log: xtf_log
     default_config:
-  - id: dummy_process
-    implementation: Geopilot.Api.Pipeline.Process.DummyProcess
+  - id: zip_package_process
+    implementation: Geopilot.Api.Pipeline.Process.ZipPackageProcess
     data_handling:
-      input_mapping:
-        error_log: error_log
       output_mapping:
-        error_log: error_log
+        zip_package: zip_package
     default_config:
 pipelines:
   - id: two_steps
@@ -32,8 +30,8 @@ pipelines:
         process_id: ili_validator
         process_config_overwrites:
         input:
-          - from: dummy
-            take: error_log
+          - from: zip
+            take: zip_package
             as: file
         output:
           - take: error_log
@@ -43,16 +41,13 @@ pipelines:
             as: xtf_log
             action:
               - DOWNLOAD
-      - id: dummy
+      - id: zip
         display_name:
-          en: Dummy Step
-        process_id: dummy_process
+          en: ZIP Package Step
+        process_id: zip_package_process
         process_config_overwrites:
         input:
-          - from: validation
-            take: error_log
-            as: error_log
         output:
-          - take: error_log
-            as: error_log
+          - take: zip_package
+            as: zip_package
             action:

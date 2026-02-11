@@ -10,14 +10,13 @@ processes:
     default_config:
       profile:
       poll_interval: 500
-  - id: dummy_process
-    implementation: Geopilot.Api.Pipeline.Process.DummyProcess
+  - id: zip_package_process
+    implementation: Geopilot.Api.Pipeline.Process.ZipPackageProcess
     data_handling:
-      input_mapping:
-        error_log: error_log
       output_mapping:
-        error_log: error_log
+        zip_package: zip_package
     default_config:
+        archive_file_name: myPersonalZipArchive
 pipelines:
   - id: two_steps
     display_name:
@@ -46,16 +45,23 @@ pipelines:
             as: xtf_log
             action:
               - DOWNLOAD
-      - id: dummy
+      - id: zip_package
         display_name:
-          en: Dummy Step
-        process_id: dummy_process
+          en: Zip Package
+        process_id: zip_package_process
         process_config_overwrites:
         input:
           - from: validation
             take: error_log
             as: error_log
+          - from: validation
+            take: xtf_log
+            as: xtf_log
+          - from: upload
+            take: ili_file
+            as: ili_file
         output:
-          - take: error_log
-            as: error_log
+          - take: zip_package
+            as: zip_package
             action:
+              - DOWNLOAD

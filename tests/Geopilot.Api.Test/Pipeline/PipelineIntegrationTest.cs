@@ -40,7 +40,7 @@ public class PipelineIntegrationTest
     {
         var uploadStepId = "upload";
         var validationStepId = "validation";
-        var dummyStepId = "dummy";
+        var zipPackageStepId = "zip_package";
         var uploadedFileAttribute = "ili_file";
 
         PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
@@ -153,9 +153,9 @@ public class PipelineIntegrationTest
         var validationSetpResult = stepResults[validationStepId];
         Assert.HasCount(2, validationSetpResult.Outputs, "validation step has not the expected number of data");
 
-        Assert.IsTrue(stepResults.ContainsKey(dummyStepId));
-        var dummyStepResult = stepResults[dummyStepId];
-        Assert.HasCount(1, dummyStepResult.Outputs, "dummy step has not the expected number of data");
+        Assert.IsTrue(stepResults.ContainsKey(zipPackageStepId));
+        var zipPackageStepResult = stepResults[zipPackageStepId];
+        Assert.HasCount(1, zipPackageStepResult.Outputs, "dummy step has not the expected number of data");
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)
