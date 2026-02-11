@@ -5,7 +5,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Configuration for a pipeline.
 /// </summary>
-internal class PipelineConfig
+public class PipelineConfig
 {
     /// <summary>
     /// The pipeline identifier. A pipeline is uniquely identified by its id.

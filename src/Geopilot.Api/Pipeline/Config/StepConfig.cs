@@ -5,7 +5,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Represents the configuration for a single step in the <see cref="PipelineConfig"/>.
 /// </summary>
-internal class StepConfig
+public class StepConfig
 {
     /// <summary>
     /// The step identifier. It uniquely identifies the step within the given pipeline. It is used to reference this step from other configurations.

@@ -4,6 +4,7 @@ using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.Conventions;
 using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Services;
 using Geopilot.Api.StacServices;
 using Geopilot.Api.Validation;
@@ -158,6 +159,32 @@ builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
 builder.Services.AddHostedService<ValidationRunner>();
 builder.Services.AddHostedService<ValidationJobCleanupService>();
+
+Func<IServiceProvider, IPipelineFactory> cofigurePipelineFactory = (IServiceProvider sp) =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var pipelineDefinition = configuration.GetValue<string>("Storage:Pipeline");
+    if (!string.IsNullOrWhiteSpace(pipelineDefinition))
+    {
+        var pipelineFactory = PipelineFactory.Builder()
+        .File(pipelineDefinition)
+        .Configuration(configuration)
+        .Build();
+
+        var validationErrors = pipelineFactory.PipelineProcessConfig.Validate();
+        if (validationErrors.HasErrors)
+        {
+            throw new InvalidOperationException($"errors in pipeline '{pipelineDefinition}': {validationErrors.ErrorMessage}");
+        }
+
+        return pipelineFactory;
+    }
+    else
+    {
+        throw new InvalidOperationException("unknown pipeline definition. define pipeline under 'Storage:Pipeline'.");
+    }
+};
+builder.Services.AddSingleton<IPipelineFactory>(cofigurePipelineFactory);
 
 builder.Services
     .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")

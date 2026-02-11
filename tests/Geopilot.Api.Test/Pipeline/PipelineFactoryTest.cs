@@ -124,7 +124,6 @@ public class PipelineFactoryTest
             .Builder()
             .File(path)
             .Configuration(configuration)
-            .CancellationToken(CancellationToken.None)
             .Build();
     }
 

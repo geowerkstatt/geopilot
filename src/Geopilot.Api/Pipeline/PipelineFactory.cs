@@ -9,23 +9,23 @@ namespace Geopilot.Api.Pipeline;
 /// <summary>
 /// Factory for creating <see cref="Pipeline"/> instances from YAML configuration.
 /// </summary>
-internal class PipelineFactory
+public class PipelineFactory : IPipelineFactory
 {
     private readonly ILogger<PipelineFactory> logger;
 
+    /// <summary>
+    /// The pipeline process configuration used to create pipelines.
+    /// </summary>
     public PipelineProcessConfig PipelineProcessConfig { get; }
 
     private IConfiguration? configuration;
-    private CancellationToken? cancellationToken;
 
     private PipelineFactory(
         PipelineProcessConfig? pipelineProcessConfig,
-        IConfiguration? configuration,
-        CancellationToken? cancellationToken)
+        IConfiguration? configuration)
     {
         this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pipeline process configuration.");
         this.configuration = configuration;
-        this.cancellationToken = cancellationToken;
 
         using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
         this.logger = factory.CreateLogger<PipelineFactory>();
@@ -35,15 +35,27 @@ internal class PipelineFactory
     /// Creates a pipeline instance with the specified id.
     /// </summary>
     /// <param name="id">The id of the pipeline to be created. References to <see cref="PipelineConfig.Id"/>.</param>
-    /// <returns>A <see cref="Pipeline"/> instance.</returns>
+    /// <returns>A <see cref="IPipeline"/> instance.</returns>
     /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
-    internal Pipeline CreatePipeline(string id)
+    public IPipeline CreatePipeline(string id)
+    {
+        return CreatePipeline(id, CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Creates a pipeline instance with the specified id.
+    /// </summary>
+    /// <param name="id">The id of the pipeline to be created. References to <see cref="PipelineConfig.Id"/>.</param>
+    /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
+    /// <returns>A <see cref="IPipeline"/> instance.</returns>
+    /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
+    public IPipeline CreatePipeline(string id, CancellationToken cancellationToken)
     {
         var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Id == id);
 
         if (pipelineConfig != null)
         {
-            return new Pipeline(pipelineConfig.Id, pipelineConfig.DisplayName, CreateSteps(pipelineConfig), pipelineConfig.Parameters);
+            return new Pipeline(pipelineConfig.Id, pipelineConfig.DisplayName, CreateSteps(pipelineConfig, cancellationToken), pipelineConfig.Parameters);
         }
         else
         {
@@ -51,24 +63,24 @@ internal class PipelineFactory
         }
     }
 
-    private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig)
+    private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, CancellationToken cancellationToken)
     {
         return pipelineConfig.Steps
-            .Select(CreateStep)
+            .Select(s => CreateStep(s, cancellationToken) as IPipelineStep)
             .ToList();
     }
 
-    private IPipelineStep CreateStep(StepConfig stepConfig)
+    private PipelineStep CreateStep(StepConfig stepConfig, CancellationToken cancellationToken)
     {
         return new PipelineStep(
             stepConfig.Id,
             stepConfig.DisplayName,
             stepConfig.Input ?? new List<InputConfig>(),
             stepConfig.Output ?? new List<OutputConfig>(),
-            CreateProcess(stepConfig));
+            CreateProcess(stepConfig, cancellationToken));
     }
 
-    private IPipelineProcess CreateProcess(StepConfig stepConfig)
+    private IPipelineProcess CreateProcess(StepConfig stepConfig, CancellationToken cancellationToken)
     {
         var processConfig = stepConfig.ProcessId != null ? PipelineProcessConfig.Processes.GetProcessConfig(stepConfig.ProcessId) : null;
         if (processConfig != null)
@@ -79,7 +91,7 @@ internal class PipelineFactory
                 var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
                 if (processInstance != null)
                 {
-                    InitializeProcess(objectType, processInstance, processConfig.DataHandlingConfig, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites));
+                    InitializeProcess(objectType, processInstance, processConfig.DataHandlingConfig, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites), cancellationToken);
 
                     return processInstance;
                 }
@@ -89,7 +101,7 @@ internal class PipelineFactory
         throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
     }
 
-    private void InitializeProcess(Type processType, IPipelineProcess process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
+    private void InitializeProcess(Type processType, IPipelineProcess process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig, CancellationToken cancellationToken)
     {
         var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length > 0)
@@ -99,13 +111,13 @@ internal class PipelineFactory
             {
                 var parameters = m.GetParameters()
                     .Select(p => p.ParameterType)
-                    .Select(t => GenerateParameter(t, dataHandlingConfig, processConfig))
+                    .Select(t => GenerateParameter(t, dataHandlingConfig, processConfig, cancellationToken))
                     .ToArray();
                 m.Invoke(process, parameters);
             });
     }
 
-    private object? GenerateParameter(Type parameterType, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
+    private object? GenerateParameter(Type parameterType, DataHandlingConfig dataHandlingConfig, Parameterization processConfig, CancellationToken cancellationToken)
     {
         if (parameterType == typeof(IConfiguration))
         {
@@ -166,7 +178,6 @@ internal class PipelineFactory
     {
         private PipelineProcessConfig? pipelineProcessConfig;
         private IConfiguration? configuration;
-        private CancellationToken cancellationToken = System.Threading.CancellationToken.None;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PipelineFactoryBuilder"/> class.
@@ -209,21 +220,11 @@ internal class PipelineFactory
         }
 
         /// <summary>
-        /// Configures the pipeline factory to use a cancellation token.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        public PipelineFactoryBuilder CancellationToken(CancellationToken cancellationToken)
-        {
-            this.cancellationToken = cancellationToken;
-            return this;
-        }
-
-        /// <summary>
         /// Builds a new instance of the <see cref="PipelineFactory"/>.
         /// </summary>
         public PipelineFactory Build()
         {
-            return new PipelineFactory(this.pipelineProcessConfig, this.configuration, this.cancellationToken);
+            return new PipelineFactory(this.pipelineProcessConfig, this.configuration);
         }
     }
 }

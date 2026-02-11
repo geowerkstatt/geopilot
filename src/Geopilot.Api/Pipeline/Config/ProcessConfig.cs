@@ -5,7 +5,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Represents the configuration settings for a process, including its name, implementation reference, data handling options, and default parameters.
 /// </summary>
-internal class ProcessConfig
+public class ProcessConfig
 {
     /// <summary>
     /// The unique process identifier. Used to reference this process in <see cref="StepConfig"/>.
