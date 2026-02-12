@@ -7,7 +7,7 @@ namespace Geopilot.Api.Pipeline;
 /// <summary>
 /// Represents a single step in a pipeline.
 /// </summary>
-public interface IPipelineStep
+public interface IPipelineStep : IDisposable
 {
     /// <summary>
     /// The name of the step. This name is unique within the pipeline. Other Steps reference this name to define data flow.

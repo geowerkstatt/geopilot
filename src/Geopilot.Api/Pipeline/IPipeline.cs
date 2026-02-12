@@ -6,7 +6,7 @@ namespace Geopilot.Api.Pipeline;
 /// <summary>
 /// Interface for a pipeline.
 /// </summary>
-public interface IPipeline
+public interface IPipeline : IDisposable
 {
     /// <summary>
     /// The unique id of the pipeline.
@@ -38,5 +38,5 @@ public interface IPipeline
     /// </summary>
     /// <param name="file">The input file to process.</param>
     /// <returns>The context containing the results of the pipeline execution.</returns>
-    Task<PipelineContext> Run(IPilelineTransferFile file);
+    Task<PipelineContext> Run(IPipelineTransferFile file);
 }

@@ -1,13 +1,25 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using System.Reflection;
 
 namespace Geopilot.Api.Pipeline;
 
 /// <summary>
 /// Represents a single step in a pipeline.
 /// </summary>
-public class PipelineStep : IPipelineStep
+public sealed class PipelineStep : IPipelineStep
 {
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        Process
+            .GetType()
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessCleanupAttribute), true).Length > 0)
+            .ToList()
+            .ForEach(m => m.Invoke(Process, null));
+    }
+
     /// <inheritdoc/>
     public string Id { get; }
 

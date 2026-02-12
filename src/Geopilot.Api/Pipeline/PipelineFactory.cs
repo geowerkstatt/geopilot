@@ -23,7 +23,7 @@ internal class PipelineFactory
         IConfiguration? configuration,
         CancellationToken? cancellationToken)
     {
-        this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pileline process congifuration.");
+        this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pipeline process configuration.");
         this.configuration = configuration;
         this.cancellationToken = cancellationToken;
 
@@ -91,9 +91,10 @@ internal class PipelineFactory
 
     private void InitializeProcess(Type processType, IPipelineProcess process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
     {
-        processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+        var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length > 0)
-            .ToList()
+            .ToList();
+        initMethods
             .ForEach(m =>
             {
                 var parameters = m.GetParameters()
@@ -124,7 +125,7 @@ internal class PipelineFactory
         }
         else
         {
-            logger.LogWarning($"Process initialization: No suitable parameter found for type '{parameterType}' with name '{parameterType.Name}' initialize with null.");
+            logger.LogWarning($"Process initialization: No suitable parameter found for type '{parameterType}' with name '{parameterType.Name}' Initializing with null.");
             return null;
         }
     }
@@ -157,7 +158,7 @@ internal class PipelineFactory
     {
         private PipelineProcessConfig? pipelineProcessConfig;
         private IConfiguration? configuration;
-        private CancellationToken? cancellationToken;
+        private CancellationToken cancellationToken = System.Threading.CancellationToken.None;
 
         private PipelineFactoryBuilder()
         {

@@ -51,7 +51,7 @@ public class PipelineStepTest
         var processMock = new Mock<IPipelineProcess>();
         processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
 
-        var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -117,7 +117,7 @@ public class PipelineStepTest
         var processMock = new Mock<IPipelineProcess>();
         processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
 
-        var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -177,7 +177,7 @@ public class PipelineStepTest
         var processMock = new Mock<IPipelineProcess>();
         processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
 
-        var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -235,7 +235,7 @@ public class PipelineStepTest
         var processMock = new Mock<IPipelineProcess>();
         processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).Throws(new InvalidOperationException("something terible happend"));
 
-        var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -295,7 +295,7 @@ public class PipelineStepTest
         var processMock = new Mock<IPipelineProcess>();
         processMock.Setup(p => p.Run(It.IsAny<ProcessData>())).ReturnsAsync(processData);
 
-        var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 

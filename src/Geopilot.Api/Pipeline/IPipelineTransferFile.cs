@@ -3,17 +3,17 @@
 /// <summary>
 /// Represents a file to be transferred as part of a pipeline process.
 /// </summary>
-public interface IPilelineTransferFile
+public interface IPipelineTransferFile
 {
     /// <summary>
     /// The original file name without its extension.
     /// </summary>
-    string OrginalFileNameWithoutExtension { get; }
+    string OriginalFileNameWithoutExtension { get; }
 
     /// <summary>
     /// Gets the original file name, including its extension.
     /// </summary>
-    string OrginalFileName => OrginalFileNameWithoutExtension + Extension;
+    string OrginalFileName => OriginalFileNameWithoutExtension + Extension;
 
     /// <summary>
     /// Gets the name of the file including file extension associated with the current object.

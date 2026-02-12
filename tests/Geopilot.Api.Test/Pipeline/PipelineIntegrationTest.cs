@@ -117,16 +117,15 @@ public class PipelineIntegrationTest
             {
                 var httpClient = new HttpClient(interlisValidatorMessageHandlerMock.Object);
                 httpClient.BaseAddress = new Uri(interlisCheckServiceBaseUrl);
-                typeof(IliValidatorProcess)?
-                    .GetProperty("HttpClient", BindingFlags.NonPublic | BindingFlags.Instance)?
-                    .GetSetMethod(nonPublic: true)?
-                    .Invoke(p, new object[] { httpClient });
+                typeof(IliValidatorProcess)
+                    ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.SetValue(p, httpClient);
             });
 
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(2, pipeline.Steps);
 
-        PilelineTransferFile uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        PipelineTransferFile uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var context = Task.Run(() => pipeline.Run(uploadFile)).GetAwaiter().GetResult();
 
         Assert.AreEqual(PipelineState.Success, pipeline.State);
@@ -143,7 +142,7 @@ public class PipelineIntegrationTest
         var uploadedFileStepOutput = uploadStepResult.Outputs[uploadedFileAttribute];
 
         Assert.IsNotNull(uploadedFileStepOutput.Data);
-        var uploadedFile = uploadedFileStepOutput.Data as IPilelineTransferFile;
+        var uploadedFile = uploadedFileStepOutput.Data as IPipelineTransferFile;
         Assert.IsNotNull(uploadedFile);
         Assert.AreEqual(uploadFile.FilePath, uploadedFile.FilePath);
 
@@ -161,12 +160,10 @@ public class PipelineIntegrationTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
-        using CancellationTokenSource cancellationToken = new CancellationTokenSource();
         return PipelineFactory.PipelineFactoryBuilder
             .Builder()
             .File(path)
             .Configuration(configuration)
-            .CancellationToken(cancellationToken.Token)
             .Build();
     }
 }

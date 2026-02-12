@@ -39,7 +39,7 @@ public class PipelineFactoryTest
     public void CreateBasicPipeline()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
-        var pipeline = factory.CreatePipeline("ili_validation");
+        using var pipeline = factory.CreatePipeline("ili_validation");
         Assert.AreEqual(PipelineState.Pending, pipeline.State, "pipeline state not as expected");
         Assert.AreEqual(StepState.Pending, pipeline.Steps[0].State, "step state not as expected");
         Assert.IsNotNull(pipeline, "pipeline not created");
@@ -82,10 +82,9 @@ public class PipelineFactoryTest
         Assert.IsNotNull(stepProcess, "step process not created");
         var expectedDataHandlingInputMappingConfig = new Dictionary<string, string>() { { "ili_file", "file" }, };
         var expectedDataHandlingOutputMappingConfig = new Dictionary<string, string>() { { "error_log", "error_log" }, { "xtf_log", "xtf_log" }, };
-        var stepDataHandlingConfig = typeof(IliValidatorProcess)?
-            .GetProperty("DataHandlingConfig", BindingFlags.NonPublic | BindingFlags.Instance)?
-            .GetGetMethod(nonPublic: true)?
-            .Invoke(stepProcess, null) as DataHandlingConfig;
+        var stepDataHandlingConfig = typeof(IliValidatorProcess)
+            ?.GetField("dataHandlingConfig", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(stepProcess) as DataHandlingConfig;
         Assert.IsNotNull(stepDataHandlingConfig, "step process data handling config not defined");
         CollectionAssert.AreEqual(expectedDataHandlingInputMappingConfig, stepDataHandlingConfig.InputMapping, "process data handling input mapping config not as expected");
         CollectionAssert.AreEqual(expectedDataHandlingOutputMappingConfig, stepDataHandlingConfig.OutputMapping, "process data handling output mapping config not as expected");
@@ -94,10 +93,9 @@ public class PipelineFactoryTest
             { "log_level", "DEBUG" },
             { "profile", "PROFILE-A" },
         };
-        var stepConfig = typeof(IliValidatorProcess)?
-            .GetProperty("Config", BindingFlags.NonPublic | BindingFlags.Instance)?
-            .GetGetMethod(nonPublic: true)?
-            .Invoke(stepProcess, null) as Dictionary<string, string>;
+        var stepConfig = typeof(IliValidatorProcess)
+            ?.GetField("config", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(stepProcess) as Dictionary<string, string>;
         CollectionAssert.AreEqual(expectedDefaultConfig, stepConfig, "process config not as expected");
         Assert.IsNotNull(stepProcess as IliValidatorProcess, "process is not of type ILI Validator");
     }
@@ -106,17 +104,16 @@ public class PipelineFactoryTest
     public void CreateBasicPipelineNoProcessConfigOverwrite()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipelineNoProcessConfigOverwrite");
-        var pipeline = factory.CreatePipeline("ili_validation");
+        using var pipeline = factory.CreatePipeline("ili_validation");
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(1, pipeline.Steps);
         var validationStep = pipeline.Steps[0];
         IPipelineProcess stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
-        var expectedDefaultConfig = new Dictionary<string, string>();
-        var stepConfig = typeof(IliValidatorProcess)?
-            .GetProperty("Config", BindingFlags.NonPublic | BindingFlags.Instance)?
-            .GetGetMethod(nonPublic: true)?
-            .Invoke(stepProcess, null) as Dictionary<string, string>;
+        var expectedDefaultConfig = new Parameterization();
+        var stepConfig = typeof(IliValidatorProcess)
+            ?.GetField("config", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(stepProcess) as Parameterization;
         CollectionAssert.AreEqual(expectedDefaultConfig, stepConfig, "process config not as expected");
     }
 

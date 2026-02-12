@@ -33,13 +33,13 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
 
     private ILogger<IliValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<IliValidatorProcess>();
 
-    private DataHandlingConfig? DataHandlingConfig { get; set; }
+    private DataHandlingConfig dataHandlingConfig = new DataHandlingConfig();
 
-    private Parameterization? Config { get; set; }
+    private Parameterization config = new Parameterization();
 
-    private HttpClient HttpClient { get; set; } = new();
+    private HttpClient httpClient = new();
 
-    private CancellationToken? cancellationToken;
+    private CancellationToken cancellationToken = CancellationToken.None;
 
     static IliValidatorProcess()
     {
@@ -53,9 +53,10 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     /// <summary>
     /// Disposes the resources used by the <see cref="IliValidatorProcess"/>.
     /// </summary>
+    [PipelineProcessCleanup]
     public void Dispose()
     {
-        this.HttpClient.Dispose();
+        this.httpClient.Dispose();
     }
 
     /// <summary>
@@ -70,22 +71,22 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     [PipelineProcessInitialize]
     public void Initialize(Parameterization config, DataHandlingConfig dataHandlingConfig, IConfiguration configuration, CancellationToken cancellationToken)
     {
-        this.Config = config;
+        this.config = config;
 
-        this.DataHandlingConfig = dataHandlingConfig;
+        this.dataHandlingConfig = dataHandlingConfig;
 
         var checkServiceUrl = configuration.GetValue<string>(InterlisCheckServiceBaseAddressConfiguration) ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
-        this.HttpClient.BaseAddress = new Uri(checkServiceUrl);
+        this.httpClient.BaseAddress = new Uri(checkServiceUrl);
 
-        this.HttpClient.DefaultRequestHeaders.Accept.Clear();
-        this.HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        this.httpClient.DefaultRequestHeaders.Accept.Clear();
+        this.httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         this.cancellationToken = cancellationToken;
     }
 
     private ProcessDataPart InputIliFile(ProcessData inputData)
     {
-        var inputIliFileKey = DataHandlingConfig?.GetInputMapping(InputMappingIliFile);
+        var inputIliFileKey = dataHandlingConfig.GetInputMapping(InputMappingIliFile);
         if (inputIliFileKey == null || !inputData.Data.TryGetValue(inputIliFileKey, out var iliFilePart))
         {
             var errorMessage = $"IliValidatorProcess: input data does not contain required key '{InputMappingIliFile}'.";
@@ -96,19 +97,11 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         return iliFilePart;
     }
 
-    private CancellationToken CancellationToken
-    {
-        get
-        {
-            return cancellationToken ?? CancellationToken.None;
-        }
-    }
-
     private string Profile
     {
         get
         {
-            if (this.Config != null && this.Config.TryGetValue(ConfiguratiionKeyValidationProfile, out var profile))
+            if (this.config.TryGetValue(ConfiguratiionKeyValidationProfile, out var profile))
                 return profile;
             else
                 return string.Empty;
@@ -119,7 +112,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     {
         get
         {
-            if (this.Config != null && this.Config.TryGetValue(ConfiguratiionKeyPollInterval, out var pollIntervalStr) && int.TryParse(pollIntervalStr, out var pollInterval))
+            if (this.config != null && this.config.TryGetValue(ConfiguratiionKeyPollInterval, out var pollIntervalStr) && int.TryParse(pollIntervalStr, out var pollInterval))
                 return TimeSpan.FromMilliseconds(pollInterval);
             else
                 return TimeSpan.FromSeconds(2);
@@ -129,7 +122,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     /// <inheritdoc/>
     public async Task<ProcessData> Run(ProcessData inputData)
     {
-        var inputIliFile = InputIliFile(inputData).Data as IPilelineTransferFile ?? throw new ArgumentException("Invalid input ILI file.");
+        var inputIliFile = InputIliFile(inputData).Data as IPipelineTransferFile ?? throw new ArgumentException("Invalid input ILI file.");
 
         var outputData = new ProcessData();
 
@@ -138,22 +131,13 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!);
         var logFiles = await DownloadLogFilesAsync(statusResponse);
 
-        if (DataHandlingConfig != null)
-        {
-            outputData.AddData(DataHandlingConfig.GetOutputMapping(OutputMappingErrorLog), new ProcessDataPart(logFiles[LogType.ErrorLog]));
-            outputData.AddData(DataHandlingConfig.GetOutputMapping(OutputMappingXtfLog), new ProcessDataPart(logFiles[LogType.XtfLog]));
-        }
-        else
-        {
-            var errorMsg = "DataHandlingConfig is not set. Output data will not be mapped to any keys.";
-            logger.LogError(errorMsg);
-            throw new ArgumentException(errorMsg);
-        }
+        outputData.AddData(dataHandlingConfig.GetOutputMapping(OutputMappingErrorLog), new ProcessDataPart(logFiles[LogType.ErrorLog]));
+        outputData.AddData(dataHandlingConfig.GetOutputMapping(OutputMappingXtfLog), new ProcessDataPart(logFiles[LogType.XtfLog]));
 
         return outputData;
     }
 
-    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPilelineTransferFile file, string transferFile, string? interlisValidationProfile)
+    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineTransferFile file, string transferFile, string? interlisValidationProfile)
     {
         using var fileStream = file.OpenFileStream() ?? throw new ArgumentException("Invalid input ILI file stream.");
         using var streamContent = new StreamContent(fileStream);
@@ -164,10 +148,10 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
             { profileStringContent, "profile" },
         };
 
-        using var response = await this.HttpClient.PostAsync(UploadUrl, formData, CancellationToken);
+        using var response = await this.httpClient.PostAsync(UploadUrl, formData, cancellationToken);
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
-            var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(JsonOptions, CancellationToken);
+            var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(JsonOptions, cancellationToken);
             logger.LogError("Upload of transfer file <{TransferFile}> to interlis-check-service failed.", transferFile);
             throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
         }
@@ -179,9 +163,9 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
 
     private async Task<InterlisStatusResponse> PollStatusAsync(string statusUrl)
     {
-        while (!CancellationToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
-            using var response = await this.HttpClient.GetAsync(statusUrl, CancellationToken);
+            using var response = await this.httpClient.GetAsync(statusUrl, cancellationToken);
             var statusResponse = await ReadSuccessResponseJsonAsync<InterlisStatusResponse>(response);
 
             if (statusResponse.Status == InterlisStatusResponseStatus.Completed
@@ -191,15 +175,15 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
                 return statusResponse;
             }
 
-            await Task.Delay(PollInterval, CancellationToken);
+            await Task.Delay(PollInterval, cancellationToken);
         }
 
         throw new OperationCanceledException();
     }
 
-    private async Task<Dictionary<LogType, IPilelineTransferFile>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse)
+    private async Task<Dictionary<LogType, IPipelineTransferFile>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse)
     {
-        var tasks = new List<Task<KeyValuePair<LogType, IPilelineTransferFile>>>();
+        var tasks = new List<Task<KeyValuePair<LogType, IPipelineTransferFile>>>();
 
         if (statusResponse.LogUrl != null)
         {
@@ -222,34 +206,34 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         }
     }
 
-    private async Task<KeyValuePair<LogType, IPilelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType)
+    private async Task<KeyValuePair<LogType, IPipelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType)
     {
-        PilelineTransferFile transferFile;
+        PipelineTransferFile transferFile;
         switch (logType)
         {
             case LogType.ErrorLog:
-                transferFile = new PilelineTransferFile("errorLog", Path.GetTempFileName().Replace(".tmp", ".log"));
+                transferFile = new PipelineTransferFile("errorLog", Path.GetTempFileName().Replace(".tmp", ".log"));
                 break;
             case LogType.XtfLog:
-                transferFile = new PilelineTransferFile("xtfLog", Path.GetTempFileName().Replace(".tmp", ".xtf"));
+                transferFile = new PipelineTransferFile("xtfLog", Path.GetTempFileName().Replace(".tmp", ".xtf"));
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported log type: {logType}");
         }
 
-        using var logDownloadStream = await this.HttpClient.GetStreamAsync(url, CancellationToken);
+        using var logDownloadStream = await this.httpClient.GetStreamAsync(url, cancellationToken);
         var fileStream = File.Create(transferFile.FilePath);
         logDownloadStream.Seek(0, SeekOrigin.Begin);
         logDownloadStream.CopyTo(fileStream);
         fileStream.Close();
 
-        return new KeyValuePair<LogType, IPilelineTransferFile>(logType, transferFile);
+        return new KeyValuePair<LogType, IPipelineTransferFile>(logType, transferFile);
     }
 
     private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response)
     {
         response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<T>(JsonOptions, CancellationToken);
+        var result = await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken);
         return result ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
     }
 }

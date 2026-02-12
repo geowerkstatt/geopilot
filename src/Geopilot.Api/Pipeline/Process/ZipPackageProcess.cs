@@ -5,10 +5,10 @@ using System.IO.Compression;
 namespace Geopilot.Api.Pipeline.Process;
 
 /// <summary>
-/// Represents a pipeline process that handles packaging <see cref="IPilelineTransferFile"/> to a ZIP file which is also provided in a <see cref="IPilelineTransferFile"/>.
+/// Represents a pipeline process that handles packaging <see cref="IPipelineTransferFile"/> to a ZIP file which is also provided in a <see cref="IPipelineTransferFile"/>.
 /// </summary>
-/// <remarks>This class is intended for use within a data processing pipeline where ZIP package handling of <see cref="IPilelineTransferFile"/> is required.
-/// All <see cref="IPilelineTransferFile"/> provided in the input <see cref="ProcessData"/> will be included in the created ZIP archive. The resulting ZIP file is then made available as an output of the process.
+/// <remarks>This class is intended for use within a data processing pipeline where ZIP package handling of <see cref="IPipelineTransferFile"/> is required.
+/// All <see cref="IPipelineTransferFile"/> provided in the input <see cref="ProcessData"/> will be included in the created ZIP archive. The resulting ZIP file is then made available as an output of the process.
 /// It implements the <see cref="IPipelineProcess"/> interface. This type is internal and not intended for direct use outside of the pipeline infrastructure.
 /// The ZIP archive is provided under the key 'zip_package' in the <see cref="ProcessData"/> output.</remarks>
 internal class ZipPackageProcess : IPipelineProcess
@@ -18,15 +18,15 @@ internal class ZipPackageProcess : IPipelineProcess
 
     private ILogger<ZipPackageProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<ZipPackageProcess>();
 
-    private DataHandlingConfig? dataHandlingConfig;
+    private DataHandlingConfig dataHandlingConfig = new DataHandlingConfig();
 
-    private Parameterization? Config { get; set; }
+    private Parameterization config = new Parameterization();
 
     private string ArchiveFileName
     {
         get
         {
-            if (this.Config != null && this.Config.TryGetValue(ConfiguratiionKeyArchiveFileName, out var profile))
+            if (this.config != null && this.config.TryGetValue(ConfiguratiionKeyArchiveFileName, out var profile))
                 return profile;
             else
                 return "archive";
@@ -42,7 +42,7 @@ internal class ZipPackageProcess : IPipelineProcess
     public void Initialize(DataHandlingConfig dataHandlingConfig, Parameterization config)
     {
         this.dataHandlingConfig = dataHandlingConfig;
-        this.Config = config;
+        this.config = config;
     }
 
     /// <inheritdoc/>
@@ -53,8 +53,8 @@ internal class ZipPackageProcess : IPipelineProcess
         var inputFiles = inputData.Data
             .Values
             .Select(d => d.Data)
-            .Where(d => d is IPilelineTransferFile)
-            .Cast<IPilelineTransferFile>()
+            .Where(d => d is IPipelineTransferFile)
+            .Cast<IPipelineTransferFile>()
             .ToList();
 
         if (inputFiles.Count == 0)
@@ -64,8 +64,9 @@ internal class ZipPackageProcess : IPipelineProcess
             throw new ArgumentException(errorMessage);
         }
 
-        using var zipArchiveMemoryStream = new MemoryStream();
-        using (var zipArchive = new ZipArchive(zipArchiveMemoryStream, ZipArchiveMode.Create, true))
+        var zipTransferFile = new PipelineTransferFile(ArchiveFileName, Path.GetTempFileName().Replace(".tmp", ".zip"));
+        using var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create);
+        using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))
         {
             inputFiles
                 .ForEach(file =>
@@ -77,19 +78,13 @@ internal class ZipPackageProcess : IPipelineProcess
                 });
         }
 
-        var zipTransferFile = new PilelineTransferFile(ArchiveFileName, Path.GetTempFileName().Replace(".tmp", ".zip"));
-
-        using var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create);
-        zipArchiveMemoryStream.Seek(0, SeekOrigin.Begin);
-        zipArchiveMemoryStream.CopyTo(zipArchiveFileStream);
-
         if (dataHandlingConfig != null)
         {
             outputData.AddData(dataHandlingConfig.GetOutputMapping(OutputMappingZipPackage), new ProcessDataPart(zipTransferFile));
         }
         else
         {
-            var errorMessage = $"ZipPackageProcess: DataHandlingConfig is null. Cannot add output data for mapping '{OutputMappingZipPackage}'.";
+            var errorMessage = $"ZipPackageProcess: dataHandlingConfig is null. Cannot add output data for mapping '{OutputMappingZipPackage}'.";
             logger.LogError(errorMessage);
             throw new ArgumentException(errorMessage);
         }

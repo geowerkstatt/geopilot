@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Moq;
 using Moq.Protected;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Reflection;
 
@@ -62,7 +63,7 @@ public class IliValidatorProcessTest
             .GetAppLogMockResponse(getAppLogMockResponse)
             .GetXtfLogMockResponse(getXtfLogMockResponse)
             .Build();
-        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("file", new ProcessDataPart(uploadFile));
 
@@ -71,12 +72,12 @@ public class IliValidatorProcessTest
         Assert.HasCount(2, processResult.Data);
         processResult.Data.TryGetValue("error_log", out var appLogData);
         Assert.IsNotNull(appLogData);
-        var appLog = appLogData.Data as IPilelineTransferFile;
+        var appLog = appLogData.Data as IPipelineTransferFile;
         Assert.IsNotNull(appLog);
         Assert.AreEqual("errorLog.log", appLog.OrginalFileName);
         processResult.Data.TryGetValue("xtf_log", out var xtfLogData);
         Assert.IsNotNull(xtfLogData);
-        var xtfLog = xtfLogData.Data as IPilelineTransferFile;
+        var xtfLog = xtfLogData.Data as IPipelineTransferFile;
         Assert.IsNotNull(xtfLog);
         Assert.AreEqual("xtfLog.xtf", xtfLog.OrginalFileName);
     }
@@ -105,7 +106,7 @@ public class IliValidatorProcessTest
             .OutputXtfLog("xtf_log")
             .InterlisCheckServiceBaseUrl("http://localhost/")
             .Build();
-        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("wrong_key", new ProcessDataPart(uploadFile));
         var exception = Assert.Throws<ArgumentException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
@@ -131,7 +132,7 @@ public class IliValidatorProcessTest
             .InterlisCheckServiceBaseUrl("http://localhost/")
             .UploadMockResponse(uploadMockResponse)
             .Build();
-        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("file", new ProcessDataPart(uploadFile));
         var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
@@ -266,10 +267,12 @@ public class IliValidatorProcessTest
                     ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf"),
                     ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(this.getXtfLogMockResponse);
-            typeof(IliValidatorProcess)?
-                .GetProperty("HttpClient", BindingFlags.NonPublic | BindingFlags.Instance)?
-                .GetSetMethod(nonPublic: true)?
-                .Invoke(process, new object[] { new HttpClient(interlisValidatorMessageHandlerMock.Object) { BaseAddress = new Uri(interlisCheckServiceBaseUrl) } });
+            #pragma warning disable CA2000 // Dispose objects before losing scope
+            var httpClient = new HttpClient(interlisValidatorMessageHandlerMock.Object) { BaseAddress = new Uri(interlisCheckServiceBaseUrl) };
+            #pragma warning restore CA2000 // Dispose objects before losing scope
+            typeof(IliValidatorProcess)
+                ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.SetValue(process, httpClient);
             return process;
         }
     }

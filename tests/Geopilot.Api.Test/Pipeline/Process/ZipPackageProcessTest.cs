@@ -23,14 +23,14 @@ public class ZipPackageProcessTest
             };
         var process = new ZipPackageProcess();
         process.Initialize(dataHandlingConfig, parameterization);
-        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("file", new ProcessDataPart(uploadFile));
         var processResult = Task.Run(() => process.Run(processData)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(1, processResult.Data);
         processResult.Data.TryGetValue("package", out var outputData);
-        var zipArchive = outputData?.Data as IPilelineTransferFile;
+        var zipArchive = outputData?.Data as IPipelineTransferFile;
         Assert.IsNotNull(zipArchive);
         Assert.AreEqual("myPersonalZipArchive.zip", zipArchive.OrginalFileName);
     }
@@ -48,14 +48,14 @@ public class ZipPackageProcessTest
         var parameterization = new Parameterization();
         var process = new ZipPackageProcess();
         process.Initialize(dataHandlingConfig, parameterization);
-        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("file", new ProcessDataPart(uploadFile));
         var processResult = Task.Run(() => process.Run(processData)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(1, processResult.Data);
         processResult.Data.TryGetValue("package", out var outputData);
-        var zipArchive = outputData?.Data as IPilelineTransferFile;
+        var zipArchive = outputData?.Data as IPipelineTransferFile;
         Assert.IsNotNull(zipArchive);
         Assert.AreEqual("archive.zip", zipArchive.OrginalFileName);
     }
@@ -88,7 +88,7 @@ public class ZipPackageProcessTest
         var parameterization = new Parameterization();
         var process = new ZipPackageProcess();
         process.Initialize(dataHandlingConfig, parameterization);
-        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("file", new ProcessDataPart(uploadFile));
         var exception = Assert.Throws<KeyNotFoundException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
@@ -102,7 +102,7 @@ public class ZipPackageProcessTest
         var parameterization = new Parameterization();
         var process = new ZipPackageProcess();
         process.Initialize(dataHandlingConfig, parameterization);
-        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("file", new ProcessDataPart(uploadFile));
         var exception = Assert.Throws<KeyNotFoundException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
@@ -117,10 +117,10 @@ public class ZipPackageProcessTest
         #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
         process.Initialize(null, parameterization);
         #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-        var uploadFile = new PilelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processData = new ProcessData();
         processData.AddData("file", new ProcessDataPart(uploadFile));
         var exception = Assert.Throws<ArgumentException>(() => Task.Run(() => process.Run(processData)).GetAwaiter().GetResult());
-        Assert.AreEqual("ZipPackageProcess: DataHandlingConfig is null. Cannot add output data for mapping 'zip_package'.", exception.Message);
+        Assert.AreEqual("ZipPackageProcess: dataHandlingConfig is null. Cannot add output data for mapping 'zip_package'.", exception.Message);
     }
 }
