@@ -78,10 +78,12 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task CreateFailsUnauthorizedUser()
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task CreateFailsUnauthorizedUser(bool publicMandate)
     {
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
-        var addedMandate = context.Mandates.Add(new Mandate());
+        var addedMandate = context.Mandates.Add(new Mandate() { IsPublic = publicMandate });
         var guid = SetupValidationJob(addedMandate.Entity.Id);
         context.SaveChanges();
         deliveryController.SetupTestUser(user.Entity);

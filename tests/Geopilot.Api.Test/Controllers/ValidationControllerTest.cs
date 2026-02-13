@@ -255,14 +255,14 @@ public sealed class ValidationControllerTest
     [TestMethod]
     [DataRow(true, DisplayName = "StartJobAsyncWithPublicMandateAsUser")]
     [DataRow(false, DisplayName = "StartJobAsyncWithPublicMandateAsUnauthenticated")]
-    public async Task StartJobAsyncWithPublicMandateAsUser(bool loggedIn)
+    public async Task StartJobAsyncWithPublicMandate(bool loggedIn)
     {
         // Arrange
         var jobId = Guid.NewGuid();
 
         var publicMandate = context.Add(new Mandate
         {
-            Name = nameof(StartJobAsyncWithPublicMandateAsUnauthorised),
+            Name = nameof(StartJobAsyncWithPublicMandate),
             IsPublic = true,
         });
 
@@ -287,42 +287,6 @@ public sealed class ValidationControllerTest
 
         validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob).Verifiable();
         validationServiceMock.Setup(x => x.StartJobAsync(jobId, publicMandate.Entity.Id, It.IsAny<User?>())).ReturnsAsync(validationJob);
-
-        // Act
-        var response = await controller.StartJobAsync(jobId, startJobRequest) as OkObjectResult;
-        var jobResponse = response?.Value as ValidationJobResponse;
-
-        // Assert
-        Assert.IsInstanceOfType<OkObjectResult>(response);
-        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
-    }
-
-    [TestMethod]
-    public async Task StartJobAsyncWithPublicMandateAsUnauthorised()
-    {
-        // Arrange
-        var jobId = Guid.NewGuid();
-
-        var publicMandate = context.Add(new Mandate
-        {
-            Name = nameof(StartJobAsyncWithPublicMandateAsUnauthorised),
-            IsPublic = true,
-        });
-        context.SaveChanges();
-
-        var startJobRequest = new StartJobRequest { MandateId = publicMandate.Entity.Id };
-
-        var validationJob = new ValidationJob(
-            jobId,
-            "test.xtf",
-            "temp.xtf",
-            publicMandate.Entity.Id,
-            ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Processing,
-            DateTime.Now);
-
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob).Verifiable();
-        validationServiceMock.Setup(x => x.StartJobAsync(jobId, publicMandate.Entity.Id, null)).ReturnsAsync(validationJob);
 
         // Act
         var response = await controller.StartJobAsync(jobId, startJobRequest) as OkObjectResult;
@@ -443,6 +407,43 @@ public sealed class ValidationControllerTest
         Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status500InternalServerError, response.StatusCode);
         Assert.AreEqual("An unexpected error occured.", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncWithNonPublicMandateAsUnauthenticated()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+
+        var nonPublicMandate = context.Add(new Mandate
+        {
+            Name = nameof(StartJobAsyncWithNonPublicMandateAsUnauthenticated),
+            IsPublic = false,
+        });
+
+        context.SaveChanges();
+
+        var startJobRequest = new StartJobRequest { MandateId = nonPublicMandate.Entity.Id };
+
+        var validationJob = new ValidationJob(
+            jobId,
+            "test.xtf",
+            "temp.xtf",
+            nonPublicMandate.Entity.Id,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Processing,
+            DateTime.Now);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob).Verifiable();
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, nonPublicMandate.Entity.Id, null))
+            .ThrowsAsync(new InvalidOperationException("User not authorized for mandate"));
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
+
+        // Assert
+        Assert.IsNotNull(response);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
     }
 
     [TestMethod]

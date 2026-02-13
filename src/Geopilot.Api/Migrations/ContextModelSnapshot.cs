@@ -25,288 +25,288 @@ namespace Geopilot.Api.Migrations
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Geopilot.Api.Models.Asset", b =>
-            {
-                b.Property<int>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
 
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                b.Property<string>("AssetType")
-                    .IsRequired()
-                    .HasColumnType("varchar(24)");
+                    b.Property<string>("AssetType")
+                        .IsRequired()
+                        .HasColumnType("varchar(24)");
 
-                b.Property<bool>("Deleted")
-                    .HasColumnType("boolean");
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean");
 
-                b.Property<int>("DeliveryId")
-                    .HasColumnType("integer");
+                    b.Property<int>("DeliveryId")
+                        .HasColumnType("integer");
 
-                b.Property<byte[]>("FileHash")
-                    .IsRequired()
-                    .HasColumnType("bytea");
+                    b.Property<byte[]>("FileHash")
+                        .IsRequired()
+                        .HasColumnType("bytea");
 
-                b.Property<string>("OriginalFilename")
-                    .IsRequired()
-                    .HasColumnType("text");
+                    b.Property<string>("OriginalFilename")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                b.Property<string>("SanitizedFilename")
-                    .IsRequired()
-                    .HasColumnType("text");
+                    b.Property<string>("SanitizedFilename")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                b.HasKey("Id");
+                    b.HasKey("Id");
 
-                b.HasIndex("DeliveryId");
+                    b.HasIndex("DeliveryId");
 
-                b.ToTable("Assets");
-            });
+                    b.ToTable("Assets");
+                });
 
             modelBuilder.Entity("Geopilot.Api.Models.Delivery", b =>
-            {
-                b.Property<int>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
 
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                b.Property<string>("Comment")
-                    .IsRequired()
-                    .HasColumnType("text");
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                b.Property<DateTime>("Date")
-                    .HasColumnType("timestamp with time zone");
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
 
-                b.Property<int>("DeclaringUserId")
-                    .HasColumnType("integer");
+                    b.Property<int>("DeclaringUserId")
+                        .HasColumnType("integer");
 
-                b.Property<bool>("Deleted")
-                    .HasColumnType("boolean");
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean");
 
-                b.Property<Guid>("JobId")
-                    .HasColumnType("uuid");
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid");
 
-                b.Property<int>("MandateId")
-                    .HasColumnType("integer");
+                    b.Property<int>("MandateId")
+                        .HasColumnType("integer");
 
-                b.Property<bool?>("Partial")
-                    .HasColumnType("boolean");
+                    b.Property<bool?>("Partial")
+                        .HasColumnType("boolean");
 
-                b.Property<int?>("PrecursorDeliveryId")
-                    .HasColumnType("integer");
+                    b.Property<int?>("PrecursorDeliveryId")
+                        .HasColumnType("integer");
 
-                b.HasKey("Id");
+                    b.HasKey("Id");
 
-                b.HasIndex("DeclaringUserId");
+                    b.HasIndex("DeclaringUserId");
 
-                b.HasIndex("MandateId");
+                    b.HasIndex("MandateId");
 
-                b.HasIndex("PrecursorDeliveryId");
+                    b.HasIndex("PrecursorDeliveryId");
 
-                b.ToTable("Deliveries");
-            });
+                    b.ToTable("Deliveries");
+                });
 
             modelBuilder.Entity("Geopilot.Api.Models.Mandate", b =>
-            {
-                b.Property<int>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
 
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                b.Property<string>("EvaluateComment")
-                    .IsRequired()
-                    .HasColumnType("varchar(12)");
+                    b.Property<string>("EvaluateComment")
+                        .IsRequired()
+                        .HasColumnType("varchar(12)");
 
-                b.Property<string>("EvaluatePartial")
-                    .IsRequired()
-                    .HasColumnType("varchar(12)");
+                    b.Property<string>("EvaluatePartial")
+                        .IsRequired()
+                        .HasColumnType("varchar(12)");
 
-                b.Property<string>("EvaluatePrecursorDelivery")
-                    .IsRequired()
-                    .HasColumnType("varchar(12)");
+                    b.Property<string>("EvaluatePrecursorDelivery")
+                        .IsRequired()
+                        .HasColumnType("varchar(12)");
 
-                b.PrimitiveCollection<string[]>("FileTypes")
-                    .IsRequired()
-                    .HasColumnType("text[]");
+                    b.PrimitiveCollection<string[]>("FileTypes")
+                        .IsRequired()
+                        .HasColumnType("text[]");
 
-                b.Property<string>("InterlisValidationProfile")
-                    .HasColumnType("text");
+                    b.Property<string>("InterlisValidationProfile")
+                        .HasColumnType("text");
 
-                b.Property<bool>("IsPublic")
-                    .HasColumnType("boolean");
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean");
 
-                b.Property<string>("Name")
-                    .IsRequired()
-                    .HasColumnType("text");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                b.Property<Geometry>("SpatialExtent")
-                    .IsRequired()
-                    .HasColumnType("geometry");
+                    b.Property<Geometry>("SpatialExtent")
+                        .IsRequired()
+                        .HasColumnType("geometry");
 
-                b.HasKey("Id");
+                    b.HasKey("Id");
 
-                b.ToTable("Mandates");
-            });
+                    b.ToTable("Mandates");
+                });
 
             modelBuilder.Entity("Geopilot.Api.Models.Organisation", b =>
-            {
-                b.Property<int>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
 
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                b.Property<string>("Name")
-                    .IsRequired()
-                    .HasColumnType("text");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                b.HasKey("Id");
+                    b.HasKey("Id");
 
-                b.ToTable("Organisations");
-            });
+                    b.ToTable("Organisations");
+                });
 
             modelBuilder.Entity("Geopilot.Api.Models.User", b =>
-            {
-                b.Property<int>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("integer");
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
 
-                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                b.Property<string>("AuthIdentifier")
-                    .IsRequired()
-                    .HasColumnType("text");
+                    b.Property<string>("AuthIdentifier")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                b.Property<string>("Email")
-                    .IsRequired()
-                    .HasColumnType("text");
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                b.Property<string>("FullName")
-                    .IsRequired()
-                    .HasColumnType("text");
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-                b.Property<bool>("IsAdmin")
-                    .HasColumnType("boolean");
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("boolean");
 
-                b.Property<string>("State")
-                    .IsRequired()
-                    .HasColumnType("varchar(24)");
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("varchar(24)");
 
-                b.HasKey("Id");
+                    b.HasKey("Id");
 
-                b.ToTable("Users");
-            });
+                    b.ToTable("Users");
+                });
 
             modelBuilder.Entity("MandateOrganisation", b =>
-            {
-                b.Property<int>("MandatesId")
-                    .HasColumnType("integer");
+                {
+                    b.Property<int>("MandatesId")
+                        .HasColumnType("integer");
 
-                b.Property<int>("OrganisationsId")
-                    .HasColumnType("integer");
+                    b.Property<int>("OrganisationsId")
+                        .HasColumnType("integer");
 
-                b.HasKey("MandatesId", "OrganisationsId");
+                    b.HasKey("MandatesId", "OrganisationsId");
 
-                b.HasIndex("OrganisationsId");
+                    b.HasIndex("OrganisationsId");
 
-                b.ToTable("MandateOrganisation");
-            });
+                    b.ToTable("MandateOrganisation");
+                });
 
             modelBuilder.Entity("OrganisationUser", b =>
-            {
-                b.Property<int>("OrganisationsId")
-                    .HasColumnType("integer");
+                {
+                    b.Property<int>("OrganisationsId")
+                        .HasColumnType("integer");
 
-                b.Property<int>("UsersId")
-                    .HasColumnType("integer");
+                    b.Property<int>("UsersId")
+                        .HasColumnType("integer");
 
-                b.HasKey("OrganisationsId", "UsersId");
+                    b.HasKey("OrganisationsId", "UsersId");
 
-                b.HasIndex("UsersId");
+                    b.HasIndex("UsersId");
 
-                b.ToTable("OrganisationUser");
-            });
+                    b.ToTable("OrganisationUser");
+                });
 
             modelBuilder.Entity("Geopilot.Api.Models.Asset", b =>
-            {
-                b.HasOne("Geopilot.Api.Models.Delivery", "Delivery")
-                    .WithMany("Assets")
-                    .HasForeignKey("DeliveryId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+                {
+                    b.HasOne("Geopilot.Api.Models.Delivery", "Delivery")
+                        .WithMany("Assets")
+                        .HasForeignKey("DeliveryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                b.Navigation("Delivery");
-            });
+                    b.Navigation("Delivery");
+                });
 
             modelBuilder.Entity("Geopilot.Api.Models.Delivery", b =>
-            {
-                b.HasOne("Geopilot.Api.Models.User", "DeclaringUser")
-                    .WithMany("Deliveries")
-                    .HasForeignKey("DeclaringUserId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+                {
+                    b.HasOne("Geopilot.Api.Models.User", "DeclaringUser")
+                        .WithMany("Deliveries")
+                        .HasForeignKey("DeclaringUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                b.HasOne("Geopilot.Api.Models.Mandate", "Mandate")
-                    .WithMany("Deliveries")
-                    .HasForeignKey("MandateId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+                    b.HasOne("Geopilot.Api.Models.Mandate", "Mandate")
+                        .WithMany("Deliveries")
+                        .HasForeignKey("MandateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                b.HasOne("Geopilot.Api.Models.Delivery", "PrecursorDelivery")
-                    .WithMany()
-                    .HasForeignKey("PrecursorDeliveryId");
+                    b.HasOne("Geopilot.Api.Models.Delivery", "PrecursorDelivery")
+                        .WithMany()
+                        .HasForeignKey("PrecursorDeliveryId");
 
-                b.Navigation("DeclaringUser");
+                    b.Navigation("DeclaringUser");
 
-                b.Navigation("Mandate");
+                    b.Navigation("Mandate");
 
-                b.Navigation("PrecursorDelivery");
-            });
+                    b.Navigation("PrecursorDelivery");
+                });
 
             modelBuilder.Entity("MandateOrganisation", b =>
-            {
-                b.HasOne("Geopilot.Api.Models.Mandate", null)
-                    .WithMany()
-                    .HasForeignKey("MandatesId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+                {
+                    b.HasOne("Geopilot.Api.Models.Mandate", null)
+                        .WithMany()
+                        .HasForeignKey("MandatesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                b.HasOne("Geopilot.Api.Models.Organisation", null)
-                    .WithMany()
-                    .HasForeignKey("OrganisationsId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
-            });
+                    b.HasOne("Geopilot.Api.Models.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
 
             modelBuilder.Entity("OrganisationUser", b =>
-            {
-                b.HasOne("Geopilot.Api.Models.Organisation", null)
-                    .WithMany()
-                    .HasForeignKey("OrganisationsId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
+                {
+                    b.HasOne("Geopilot.Api.Models.Organisation", null)
+                        .WithMany()
+                        .HasForeignKey("OrganisationsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                b.HasOne("Geopilot.Api.Models.User", null)
-                    .WithMany()
-                    .HasForeignKey("UsersId")
-                    .OnDelete(DeleteBehavior.Cascade)
-                    .IsRequired();
-            });
+                    b.HasOne("Geopilot.Api.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
 
             modelBuilder.Entity("Geopilot.Api.Models.Delivery", b =>
-            {
-                b.Navigation("Assets");
-            });
+                {
+                    b.Navigation("Assets");
+                });
 
             modelBuilder.Entity("Geopilot.Api.Models.Mandate", b =>
-            {
-                b.Navigation("Deliveries");
-            });
+                {
+                    b.Navigation("Deliveries");
+                });
 
             modelBuilder.Entity("Geopilot.Api.Models.User", b =>
-            {
-                b.Navigation("Deliveries");
-            });
+                {
+                    b.Navigation("Deliveries");
+                });
 #pragma warning restore 612, 618
         }
     }

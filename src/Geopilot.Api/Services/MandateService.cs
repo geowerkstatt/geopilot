@@ -26,7 +26,7 @@ public class MandateService : IMandateService
     }
 
     /// <inheritdoc/>
-    public async Task<Mandate?> GetMandateAsUser(int mandateId, User? user)
+    public async Task<Mandate?> GetMandateForUser(int mandateId, User? user)
     {
         var mandates = context.Mandates.AsNoTracking();
 

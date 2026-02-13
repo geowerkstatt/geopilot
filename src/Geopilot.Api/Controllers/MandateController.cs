@@ -89,7 +89,7 @@ public class MandateController : ControllerBase
         var result = await mandates.ToListAsync();
         result.ForEach(m => m.SetCoordinateListFromPolygon());
 
-        logger.LogInformation($"Getting mandates with for job with id <{jobId}> resulted in <{result.Count}> matching mandates.");
+        logger.LogInformation($"Getting mandates for job with id <{jobId}> resulted in <{result.Count}> matching mandates.");
         return Ok(result);
     }
 

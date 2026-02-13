@@ -112,7 +112,7 @@ public class ValidationServiceTest
             [supportedValidatorMock1.Object, supportedValidatorMock2.Object]);
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
-        mandateServiceMock.Setup(x => x.GetMandateAsUser(mandate.Id, user))
+        mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user))
             .ReturnsAsync(mandate);
         validationJobStoreMock
             .Setup(x => x.StartJob(
@@ -145,7 +145,7 @@ public class ValidationServiceTest
         var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
         var mandate = new Mandate { Id = mandateId, Name = nameof(StartJobAsyncWithMandateThrowsForUnsupportedFileType), FileTypes = [".csv"] };
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
-        mandateServiceMock.Setup(x => x.GetMandateAsUser(mandateId, user))
+        mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user))
             .ReturnsAsync(mandate);
 
         // Act & Assert
@@ -168,7 +168,7 @@ public class ValidationServiceTest
         var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
-        mandateServiceMock.Setup(x => x.GetMandateAsUser(mandateId, user))
+        mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user))
             .ReturnsAsync((Mandate?)null);
 
         // Act & Assert
@@ -211,7 +211,7 @@ public class ValidationServiceTest
             [mandateSpecificValidatorMock.Object, unsupportedValidatorMock.Object]);
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
-        mandateServiceMock.Setup(x => x.GetMandateAsUser(mandate.Id, user))
+        mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user))
             .ReturnsAsync(mandate);
         validationJobStoreMock
             .Setup(x => x.StartJob(

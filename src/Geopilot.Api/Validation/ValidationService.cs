@@ -59,7 +59,7 @@ public class ValidationService : IValidationService
         var validationJob = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
 
         // Check if the user is allowed to start the job with the specified mandate
-        var mandate = await mandateService.GetMandateAsUser(mandateId, user);
+        var mandate = await mandateService.GetMandateForUser(mandateId, user);
         if (mandate != null)
         {
             // Check if the mandate supports the job file type

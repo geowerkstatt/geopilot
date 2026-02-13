@@ -38,7 +38,7 @@ public class MandateServiceTest
         var publicMandate = context.Mandates.Add(new Mandate { Name = "Public Mandate", IsPublic = true }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateAsUser(publicMandate.Id, user);
+        var result = await mandateService.GetMandateForUser(publicMandate.Id, user);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(publicMandate.Id, result.Id);
@@ -50,7 +50,7 @@ public class MandateServiceTest
         var publicMandate = context.Mandates.Add(new Mandate { Name = "Public Mandate", IsPublic = true }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateAsUser(publicMandate.Id, null);
+        var result = await mandateService.GetMandateForUser(publicMandate.Id, null);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(publicMandate.Id, result.Id);
@@ -62,7 +62,7 @@ public class MandateServiceTest
         var privateMandate = context.Mandates.Add(new Mandate { Name = "Private Mandate", IsPublic = false }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateAsUser(privateMandate.Id, null);
+        var result = await mandateService.GetMandateForUser(privateMandate.Id, null);
 
         Assert.IsNull(result);
     }
@@ -72,7 +72,7 @@ public class MandateServiceTest
     {
         var (user, mandate) = context.AddMandateWithUserOrganisation();
 
-        var result = await mandateService.GetMandateAsUser(mandate.Id, user);
+        var result = await mandateService.GetMandateForUser(mandate.Id, user);
 
         Assert.IsNotNull(result);
         Assert.AreEqual(mandate.Id, result.Id);
@@ -85,7 +85,7 @@ public class MandateServiceTest
         var mandate = context.Mandates.Add(new Mandate { Name = "Restricted Mandate", IsPublic = false }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateAsUser(mandate.Id, user);
+        var result = await mandateService.GetMandateForUser(mandate.Id, user);
 
         Assert.IsNull(result);
     }
@@ -96,7 +96,7 @@ public class MandateServiceTest
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
         context.SaveChanges();
 
-        var result = await mandateService.GetMandateAsUser(int.MaxValue, user);
+        var result = await mandateService.GetMandateForUser(int.MaxValue, user);
 
         Assert.IsNull(result);
     }

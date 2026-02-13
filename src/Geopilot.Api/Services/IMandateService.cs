@@ -21,7 +21,7 @@ public interface IMandateService
     /// <param name="mandateId">The id of the mandate to retrieve.</param>
     /// <param name="user">The user that tries to access the mandate. If null, the user is considered unauthenticated.</param>
     /// <returns>The <see cref="Mandate"/> if found and accessible; otherwise, null.</returns>
-    Task<Mandate?> GetMandateAsUser(int mandateId, User? user);
+    Task<Mandate?> GetMandateForUser(int mandateId, User? user);
 
     /// <summary>
     /// Retrieves a list of all file extensions that are accepted by any mandate in the system.
