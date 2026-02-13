@@ -152,6 +152,14 @@ internal class PipelineFactory
     }
 
     /// <summary>
+    /// Creates a new instance of the <see cref="PipelineFactoryBuilder"/>.
+    /// </summary>
+    public static PipelineFactoryBuilder Builder()
+    {
+        return new PipelineFactoryBuilder();
+    }
+
+    /// <summary>
     /// Builder for creating instances of <see cref="PipelineFactory"/>.
     /// </summary>
     public class PipelineFactoryBuilder
@@ -160,16 +168,11 @@ internal class PipelineFactory
         private IConfiguration? configuration;
         private CancellationToken cancellationToken = System.Threading.CancellationToken.None;
 
-        private PipelineFactoryBuilder()
-        {
-        }
-
         /// <summary>
-        /// Creates a new instance of the <see cref="PipelineFactoryBuilder"/>.
+        /// Initializes a new instance of the <see cref="PipelineFactoryBuilder"/> class.
         /// </summary>
-        public static PipelineFactoryBuilder Builder()
+        public PipelineFactoryBuilder()
         {
-            return new PipelineFactoryBuilder();
         }
 
         /// <summary>

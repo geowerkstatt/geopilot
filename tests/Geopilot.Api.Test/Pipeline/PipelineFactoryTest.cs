@@ -120,7 +120,7 @@ public class PipelineFactoryTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
-        return PipelineFactory.PipelineFactoryBuilder
+        return PipelineFactory
             .Builder()
             .File(path)
             .Configuration(configuration)
