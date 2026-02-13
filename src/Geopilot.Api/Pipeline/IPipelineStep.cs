@@ -1,12 +1,13 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using System.Threading.Tasks;
 
 namespace Geopilot.Api.Pipeline;
 
 /// <summary>
 /// Represents a single step in a pipeline.
 /// </summary>
-public interface IPipelineStep
+public interface IPipelineStep : IDisposable
 {
     /// <summary>
     /// The name of the step. This name is unique within the pipeline. Other Steps reference this name to define data flow.
@@ -43,5 +44,5 @@ public interface IPipelineStep
     /// </summary>
     /// <param name="context">Context with the aggregated step results from previous steps.</param>
     /// <returns>The output data from the step.</returns>
-    StepResult? Run(PipelineContext context);
+    Task<StepResult> Run(PipelineContext context);
 }

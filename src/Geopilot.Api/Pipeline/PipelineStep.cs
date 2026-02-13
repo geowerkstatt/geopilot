@@ -1,13 +1,25 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using System.Reflection;
 
 namespace Geopilot.Api.Pipeline;
 
 /// <summary>
 /// Represents a single step in a pipeline.
 /// </summary>
-public class PipelineStep : IPipelineStep
+public sealed class PipelineStep : IPipelineStep
 {
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        Process
+            .GetType()
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessCleanupAttribute), true).Length > 0)
+            .ToList()
+            .ForEach(m => m.Invoke(Process, null));
+    }
+
     /// <inheritdoc/>
     public string Id { get; }
 
@@ -53,7 +65,7 @@ public class PipelineStep : IPipelineStep
     }
 
     /// <inheritdoc/>
-    public StepResult? Run(PipelineContext context)
+    public async Task<StepResult> Run(PipelineContext context)
     {
         if (context != null)
         {
@@ -62,7 +74,7 @@ public class PipelineStep : IPipelineStep
             try
             {
                 var inputProcessData = CreateProcessData(context);
-                var outputProcessData = Process.Run(inputProcessData);
+                var outputProcessData = await Process.Run(inputProcessData);
                 var stepResult = CreateStepResult(outputProcessData);
 
                 this.State = StepState.Success;
@@ -73,13 +85,13 @@ public class PipelineStep : IPipelineStep
             {
                 this.State = StepState.Failed;
                 logger.LogError(ex, $"error in step '{this.Id}': exception occurred during step execution: {ex.Message}.");
-                return null;
+                return new StepResult();
             }
         }
         else
         {
             this.State = StepState.Failed;
-            return null;
+            return new StepResult();
         }
     }
 

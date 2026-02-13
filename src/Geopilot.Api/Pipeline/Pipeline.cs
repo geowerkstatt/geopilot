@@ -9,8 +9,14 @@ namespace Geopilot.Api.Pipeline;
 /// </summary>
 /// <remarks>A pipeline consists of an ordered collection of steps, each of which performs a specific operation.
 /// Optionally, parameters can be provided to configure the behavior of the pipeline or its steps.</remarks>
-public class Pipeline : IPipeline
+public sealed class Pipeline : IPipeline
 {
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        Steps.ForEach(step => step.Dispose());
+    }
+
     /// <inheritdoc/>
     public string Id { get; }
 
@@ -73,7 +79,7 @@ public class Pipeline : IPipeline
     }
 
     /// <inheritdoc/>
-    public PipelineContext Run(FileHandle file)
+    public async Task<PipelineContext> Run(IPipelineTransferFile file)
     {
         var context = new PipelineContext()
         {
@@ -90,15 +96,14 @@ public class Pipeline : IPipeline
         {
             if (this.State == PipelineState.Failed)
                 break;
-            var stepResult = step.Run(context);
-            if (stepResult != null)
-                context.StepResults[step.Id] = stepResult;
+            var stepResult = await step.Run(context).ConfigureAwait(false);
+            context.StepResults[step.Id] = stepResult;
         }
 
         return context;
     }
 
-    private StepResult CreateUploadStepResult(FileHandle file)
+    private StepResult CreateUploadStepResult(IPipelineTransferFile file)
     {
         var stepResult = new StepResult();
 

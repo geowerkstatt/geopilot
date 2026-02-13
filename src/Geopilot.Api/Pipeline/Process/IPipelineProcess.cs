@@ -8,24 +8,9 @@ namespace Geopilot.Api.Pipeline.Process;
 public interface IPipelineProcess
 {
     /// <summary>
-    /// The unique name of the process.
-    /// </summary>
-    string Name { get; set; }
-
-    /// <summary>
-    /// The input and output data handling configuration for the process.
-    /// </summary>
-    DataHandlingConfig DataHandlingConfig { get; set; }
-
-    /// <summary>
-    /// The process configuration. Defines the settings and parameters for the process execution.
-    /// </summary>
-    Dictionary<string, string>? Config { get; set; }
-
-    /// <summary>
     /// Runs the process with the given input data.
     /// </summary>
     /// <param name="inputData">The input data for the process.</param>
     /// <returns>The output data from the process.</returns>
-    ProcessData Run(ProcessData inputData);
+    Task<ProcessData> Run(ProcessData inputData);
 }

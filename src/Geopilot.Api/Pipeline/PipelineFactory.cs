@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using System.Reflection;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -10,42 +11,25 @@ namespace Geopilot.Api.Pipeline;
 /// </summary>
 internal class PipelineFactory
 {
-    /// <summary>
-    /// Creates a <see cref="PipelineFactory"/> instance from a YAML configuration.
-    /// </summary>
-    /// <param name="processDefinition">The YAML configuration string.</param>
-    /// <returns>A <see cref="PipelineFactory"/> instance.</returns>
-    public static PipelineFactory FromYaml(string processDefinition)
-    {
-        var deserializer = new DeserializerBuilder()
-            .WithNamingConvention(UnderscoredNamingConvention.Instance)
-            .Build();
-        var pipelineProcessConfig = deserializer.Deserialize<PipelineProcessConfig>(processDefinition);
-        return new PipelineFactory(pipelineProcessConfig);
-    }
+    private readonly ILogger<PipelineFactory> logger;
 
-    /// <summary>
-    /// Creates a <see cref="PipelineFactory"/> instance from a YAML file.
-    /// </summary>
-    /// <param name="path">The path to the YAML file.</param>
-    /// <returns>A <see cref="PipelineFactory"/> instance.</returns>
-    public static PipelineFactory FromFile(string path)
-    {
-        var yaml = File.ReadAllText(path);
-        return FromYaml(yaml);
-    }
+    public PipelineProcessConfig PipelineProcessConfig { get; }
 
-    private PipelineFactory(PipelineProcessConfig pipelineProcessConfig)
+    private IConfiguration? configuration;
+    private CancellationToken? cancellationToken;
+
+    private PipelineFactory(
+        PipelineProcessConfig? pipelineProcessConfig,
+        IConfiguration? configuration,
+        CancellationToken? cancellationToken)
     {
-        this.PipelineProcessConfig = pipelineProcessConfig;
+        this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pipeline process configuration.");
+        this.configuration = configuration;
+        this.cancellationToken = cancellationToken;
 
         using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
         this.logger = factory.CreateLogger<PipelineFactory>();
     }
-
-    private readonly ILogger<PipelineFactory> logger;
-
-    public PipelineProcessConfig PipelineProcessConfig { get; }
 
     /// <summary>
     /// Creates a pipeline instance with the specified id.
@@ -95,9 +79,8 @@ internal class PipelineFactory
                 var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
                 if (processInstance != null)
                 {
-                    processInstance.Name = processConfig.Id;
-                    processInstance.DataHandlingConfig = processConfig.DataHandlingConfig;
-                    processInstance.Config = GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
+                    InitializeProcess(objectType, processInstance, processConfig.DataHandlingConfig, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites));
+
                     return processInstance;
                 }
             }
@@ -106,9 +89,50 @@ internal class PipelineFactory
         throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
     }
 
-    private Dictionary<string, string> GenerateProcessConfig(Dictionary<string, string>? processDefaultConfig, Dictionary<string, string>? processDefaultConfigOverwrites)
+    private void InitializeProcess(Type processType, IPipelineProcess process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
     {
-        var mergedConfig = processDefaultConfig != null ? new Dictionary<string, string>(processDefaultConfig) : new Dictionary<string, string>();
+        var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length > 0)
+            .ToList();
+        initMethods
+            .ForEach(m =>
+            {
+                var parameters = m.GetParameters()
+                    .Select(p => p.ParameterType)
+                    .Select(t => GenerateParameter(t, dataHandlingConfig, processConfig))
+                    .ToArray();
+                m.Invoke(process, parameters);
+            });
+    }
+
+    private object? GenerateParameter(Type parameterType, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
+    {
+        if (parameterType == typeof(IConfiguration))
+        {
+            return configuration;
+        }
+        else if (parameterType == typeof(CancellationToken))
+        {
+            return cancellationToken;
+        }
+        else if (parameterType == typeof(DataHandlingConfig))
+        {
+            return dataHandlingConfig;
+        }
+        else if (parameterType == typeof(Parameterization))
+        {
+            return processConfig;
+        }
+        else
+        {
+            logger.LogWarning($"Process initialization: No suitable parameter found for type '{parameterType}' with name '{parameterType.Name}' Initializing with null.");
+            return null;
+        }
+    }
+
+    private Parameterization GenerateProcessConfig(Parameterization? processDefaultConfig, Parameterization? processDefaultConfigOverwrites)
+    {
+        var mergedConfig = processDefaultConfig != null ? new Parameterization(processDefaultConfig) : new Parameterization();
         if (processDefaultConfigOverwrites != null)
         {
             foreach (var overwrite in processDefaultConfigOverwrites)
@@ -125,5 +149,81 @@ internal class PipelineFactory
         }
 
         return mergedConfig;
+    }
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="PipelineFactoryBuilder"/>.
+    /// </summary>
+    public static PipelineFactoryBuilder Builder()
+    {
+        return new PipelineFactoryBuilder();
+    }
+
+    /// <summary>
+    /// Builder for creating instances of <see cref="PipelineFactory"/>.
+    /// </summary>
+    public class PipelineFactoryBuilder
+    {
+        private PipelineProcessConfig? pipelineProcessConfig;
+        private IConfiguration? configuration;
+        private CancellationToken cancellationToken = System.Threading.CancellationToken.None;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PipelineFactoryBuilder"/> class.
+        /// </summary>
+        public PipelineFactoryBuilder()
+        {
+        }
+
+        /// <summary>
+        /// Configures the pipeline factory to use a YAML process definition.
+        /// </summary>
+        /// <param name="processDefinition">The YAML process definition.</param>
+        public PipelineFactoryBuilder Yaml(string processDefinition)
+        {
+            var deserializer = new DeserializerBuilder()
+                .WithNamingConvention(UnderscoredNamingConvention.Instance)
+                .Build();
+            this.pipelineProcessConfig = deserializer.Deserialize<PipelineProcessConfig>(processDefinition);
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the pipeline factory to use a file-based YAML process definition.
+        /// </summary>
+        /// <param name="path">The file path to the YAML process definition.</param>
+        public PipelineFactoryBuilder File(string path)
+        {
+            var yaml = System.IO.File.ReadAllText(path);
+            return Yaml(yaml);
+        }
+
+        /// <summary>
+        /// Configures the pipeline factory to use an application configuration.
+        /// </summary>
+        /// <param name="configuration">The application configuration.</param>
+        public PipelineFactoryBuilder Configuration(IConfiguration configuration)
+        {
+            this.configuration = configuration;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the pipeline factory to use a cancellation token.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        public PipelineFactoryBuilder CancellationToken(CancellationToken cancellationToken)
+        {
+            this.cancellationToken = cancellationToken;
+            return this;
+        }
+
+        /// <summary>
+        /// Builds a new instance of the <see cref="PipelineFactory"/>.
+        /// </summary>
+        public PipelineFactory Build()
+        {
+            return new PipelineFactory(this.pipelineProcessConfig, this.configuration, this.cancellationToken);
+        }
     }
 }

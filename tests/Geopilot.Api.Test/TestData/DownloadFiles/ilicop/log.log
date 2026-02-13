@@ -1,0 +1,37 @@
+Info: ilivalidator-1.15.0-27cd81fb0d0ef2103e7afd673a7d00dd2053763f
+Info: ili2c-5.6.8-e6f7ab6dd5cdba29afc9b24866ecb98c057d82b2
+Info: iox-ili-1.24.4-8e966a086a72e7e2990a312b1229ee5878fd5994
+Info: java.version 17.0.17
+Info: User <app>
+Info: Start date 2026-02-10 06:31
+Info: maxMemory 4022272 KB
+Info: dataFile </uploads/5457285f-fd05-4d02-a4e0-9c0f30e67aa3/umxvks4e.xtf>
+Info: metaConfigFile <ilidata:DEFAULT>
+Info: pluginFolder </ilitools/ilivalidator/1.15.0/plugins>
+Info: modeldir </repository>
+Info: search in repository </repository/> for BID <DEFAULT>
+Info: lookup model <RoadsExdm2ien> 2.4 in repository </repository/>
+Info: lookup model <RoadsExdm2ien> 2.4 in repository <https://models.interlis.ch/>
+Info: lookup model <RoadsExdm2ben> 2.4 in repository </repository/>
+Info: lookup model <RoadsExdm2ben> 2.4 in repository <https://models.interlis.ch/>
+Info: ilifile </cache/models.interlis.ch/refhb24/RoadsExdm2ben.ili>
+Info: ilifile </cache/models.interlis.ch/refhb24/RoadsExdm2ien.ili>
+Info: validate data...
+Info: validate simple boundaries
+Info: first validation pass...
+Info: second validation pass...
+Info: validate multiplicity of role RoadsExdm2ben.Roads.StreetAxisAssoc.StreetAxis...
+Info: validate multiplicity of role RoadsExdm2ben.Roads.StreetNamePositionAssoc.StreetNamePosition...
+Info: validate target of role RoadsExdm2ben.Roads.StreetAxisAssoc.Street...
+Info: validate multiplicity of role RoadsExdm2ben.Roads.StreetAxisAssoc.Street...
+Info: validate target of role RoadsExdm2ben.Roads.StreetNamePositionAssoc.Street...
+Info: validate multiplicity of role RoadsExdm2ben.Roads.StreetNamePositionAssoc.Street...
+Info: object count 31 (structured elements 11)
+Info: /uploads/5457285f-fd05-4d02-a4e0-9c0f30e67aa3/umxvks4e.xtf: RoadsExdm2ien.RoadsExtended BID=REFHANDB00000001 fileVersion=9e2dc752890423e2b9c89071a4d662f5
+Info:      12 objects in CLASS RoadsExdm2ben.Roads.LandCover
+Info:       4 objects in CLASS RoadsExdm2ben.Roads.Street
+Info:       4 objects in CLASS RoadsExdm2ben.Roads.StreetNamePosition
+Info:       4 objects in CLASS RoadsExdm2ien.RoadsExtended.RoadSign
+Info:       7 objects in CLASS RoadsExdm2ien.RoadsExtended.StreetAxis
+Info: ...validation done
+Info: End date 2026-02-10 06:31 validation took 00h:00m:00s.0867ms

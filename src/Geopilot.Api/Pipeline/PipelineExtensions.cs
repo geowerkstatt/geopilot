@@ -211,9 +211,6 @@ internal static class PipelineExtensions
         if (stepConfig.ProcessId == null || stepConfig.ProcessId.Trim() == string.Empty)
             outputErrors.Add(new PipelineValidationError(typeof(StepConfig), "The ProcessId field is required."));
 
-        if (stepConfig.Input == null || stepConfig.Input.Count == 0)
-            outputErrors.Add(new PipelineValidationError(typeof(StepConfig), "The Input field is required."));
-
         if (stepConfig.Output == null || stepConfig.Output.Count == 0)
             outputErrors.Add(new PipelineValidationError(typeof(StepConfig), "The Output field is required."));
 

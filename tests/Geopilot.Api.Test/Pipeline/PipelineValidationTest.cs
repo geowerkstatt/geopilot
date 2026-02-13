@@ -1,4 +1,6 @@
 ﻿using Geopilot.Api.Pipeline;
+using Microsoft.Extensions.Configuration;
+using Moq;
 using System.Reflection;
 
 namespace Geopilot.Api.Test.Pipeline;
@@ -11,7 +13,6 @@ public class PipelineValidationTest
     [DataRow("noPipelines", "PipelineProcessConfig: The Pipelines field is required.")]
     [DataRow("noStepProcess", "StepConfig: The ProcessId field is required., StepConfig: process reference for ''")]
     [DataRow("noStepId", "StepConfig: The Id field is required.")]
-    [DataRow("noStepInput", "StepConfig: The Input field is required.")]
     [DataRow("noStepOutput", "StepConfig: The Output field is required.")]
     [DataRow("noStepInputConfigFrom", "InputConfig: The From field is required., InputConfig: illegal input from reference from: '', take: 'ili_file' in step 'validation'")]
     [DataRow("noStepInputConfigTake", "InputConfig: The Take field is required., InputConfig: illegal input from reference from: 'upload', take: '' in step 'validation'")]
@@ -33,7 +34,7 @@ public class PipelineValidationTest
     [DataRow("pipelineNotUnique", "PipelineProcessConfig: duplicate pipeline ids found: ili_validation")]
     [DataRow("processNotUnique", "PipelineProcessConfig: duplicate process ids found: ili_validator")]
     [DataRow("stepNotUnique", "PipelineProcessConfig: duplicate step ids found: not_unique")]
-    [DataRow("invalidStepInputFromReference_01", "InputConfig: illegal input from reference from: 'dummy', take: 'error_log' in step 'validation'")]
+    [DataRow("invalidStepInputFromReference_01", "InputConfig: illegal input from reference from: 'zip', take: 'zip_package' in step 'validation'")]
     [DataRow("invalidStepInputFromReference_02", "InputConfig: illegal input from reference from: 'invalidUploadStep', take: 'ili_file' in step 'validation'")]
     [DataRow("invalidStepInputTakeReference_01", "InputConfig: illegal input from reference from: 'upload', take: 'invalid_take_reference' in step 'validation'")]
     [DataRow("notUniqueOutputAs", "OutputConfig: not unique output as: 'error' in step 'validation'")]
@@ -50,6 +51,10 @@ public class PipelineValidationTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
-        return PipelineFactory.FromFile(path);
+        return PipelineFactory
+            .Builder()
+            .File(path)
+            .Configuration(new Mock<IConfiguration>().Object)
+            .Build();
     }
 }
