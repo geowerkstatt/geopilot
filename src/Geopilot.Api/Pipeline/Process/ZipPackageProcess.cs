@@ -54,14 +54,9 @@ internal class ZipPackageProcess
     /// <returns>A ProcessData instance containing the ZIP archive created from the input files.</returns>
     /// <exception cref="ArgumentException">Thrown if no valid input files are found in the input list, or if the data handling configuration is not set.</exception>
     [PipelineProcessRun]
-    public async Task<ProcessData> RunAsync(List<object> input)
+    public async Task<ProcessData> RunAsync(params IPipelineTransferFile[] input)
     {
-        var inputFiles = input
-            .Where(d => d is IPipelineTransferFile)
-            .Cast<IPipelineTransferFile>()
-            .ToList();
-
-        if (inputFiles.Count == 0)
+        if (input.Length == 0)
         {
             var errorMessage = "ZipPackageProcess: No valid input files found.";
             logger.LogError(errorMessage);
@@ -72,14 +67,13 @@ internal class ZipPackageProcess
         using var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create);
         using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))
         {
-            inputFiles
-                .ForEach(file =>
-                {
-                    var zipEntry = zipArchive.CreateEntry(file.OrginalFileName);
-                    using var zipEntryStream = zipEntry.Open();
-                    using var fileStream = file.OpenFileStream();
-                    fileStream.CopyTo(zipEntryStream);
-                });
+            foreach (var file in input)
+            {
+                var zipEntry = zipArchive.CreateEntry(file.OrginalFileName);
+                using var zipEntryStream = zipEntry.Open();
+                using var fileStream = file.OpenFileStream();
+                fileStream.CopyTo(zipEntryStream);
+            }
         }
 
         if (dataHandlingConfig != null)

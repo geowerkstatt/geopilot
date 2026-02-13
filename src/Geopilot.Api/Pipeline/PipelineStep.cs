@@ -1,5 +1,7 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -135,7 +137,7 @@ public sealed class PipelineStep : IPipelineStep
 
     private object GenerateParameter(ParameterInfo parameterInfo, PipelineContext context)
     {
-        var parameters = new List<object>();
+        var mappedParameters = new List<object>();
         foreach (var inputConfig in this.InputConfig)
         {
             if (context.StepResults.TryGetValue(inputConfig.From, out var stepResult))
@@ -144,19 +146,33 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     if (parameterInfo.Name == inputConfig.As)
                     {
-                        parameters.Add(stepOutput.Data);
+                        mappedParameters.Add(stepOutput.Data);
                     }
                 }
             }
         }
 
-        if (parameterInfo.ParameterType.IsAssignableFrom(parameters.GetType()))
+        if (parameterInfo.ParameterType.IsArray)
         {
-            return parameters;
+            var elementType = parameterInfo.ParameterType.GetElementType() ?? throw new InvalidOperationException("could not get type of element");
+            var parameterToInject = mappedParameters
+                .Where(p => elementType.IsAssignableFrom(p.GetType()))
+                .ToArray();
+            var parameterOfCorrectTypeToInject = Array.CreateInstance(elementType, parameterToInject.Length);
+            for (int i = 0; i < parameterToInject.Length; i++)
+            {
+                parameterOfCorrectTypeToInject.SetValue(parameterToInject[i], i);
+            }
+
+            if (parameterInfo.ParameterType.IsAssignableFrom(parameterOfCorrectTypeToInject.GetType()))
+            {
+                return parameterOfCorrectTypeToInject;
+            }
         }
-        else if (parameters.Count == 1 && parameterInfo.ParameterType.IsAssignableFrom(parameters[0].GetType()))
+
+        if (mappedParameters.Count == 1 && parameterInfo.ParameterType.IsAssignableFrom(mappedParameters[0].GetType()))
         {
-            return parameters[0];
+            return mappedParameters[0];
         }
         else
         {

@@ -69,7 +69,7 @@ public class PipelineFactory : IPipelineFactory
             CreateProcess(stepConfig, cancellationToken));
     }
 
-    private IPipelineProcess CreateProcess(StepConfig stepConfig, CancellationToken cancellationToken)
+    private object CreateProcess(StepConfig stepConfig, CancellationToken cancellationToken)
     {
         var processConfig = stepConfig.ProcessId != null ? PipelineProcessConfig.Processes.GetProcessConfig(stepConfig.ProcessId) : null;
         if (processConfig != null)
@@ -90,7 +90,7 @@ public class PipelineFactory : IPipelineFactory
         throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
     }
 
-    private void InitializeProcess(Type processType, object process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
+    private void InitializeProcess(Type processType, object process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig, CancellationToken cancellationToken)
     {
         var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length > 0)
