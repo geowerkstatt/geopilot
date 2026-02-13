@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Pipeline.Process;
 using System.Text.RegularExpressions;
 
 namespace Geopilot.Api.Pipeline;
@@ -226,7 +225,7 @@ internal static class PipelineExtensions
             if (stepConfig.Input != null && stepConfig.Id != null)
             {
                 var possibleStepConfigReferences = GatherPossibleStepConfigReferences(stepConfig.Id, pipelineConfig.Steps, pipelineConfig);
-                outputErrors = stepConfig.Input.Validate(stepConfig.Id, possibleStepConfigReferences, processConfig, outputErrors);
+                outputErrors = stepConfig.Input.Validate(stepConfig.Id, possibleStepConfigReferences, outputErrors);
             }
 
             if (stepConfig.Output != null)
@@ -252,7 +251,6 @@ internal static class PipelineExtensions
         this List<InputConfig> inputConfigs,
         string stepId,
         List<StepConfig> possibleStepRefenreces,
-        ProcessConfig processConfig,
         PipelineValidationErrors? inputErrors = null)
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
@@ -273,18 +271,6 @@ internal static class PipelineExtensions
                 outputErrors.Add(new PipelineValidationError(typeof(InputConfig), $"ambiguous input from reference from: '{inputConfig.From}', take: '{inputConfig.Take}' in step '{stepId}'"));
             }
         });
-
-        if (processConfig.DataHandlingConfig != null && processConfig.DataHandlingConfig.InputMapping != null)
-        {
-            inputConfigs.ForEach(inputConfig =>
-            {
-                var numberOfProcessInput = processConfig.DataHandlingConfig.InputMapping
-                    .Where(i => i.Value == inputConfig.As)
-                    .Count();
-                if (numberOfProcessInput == 0)
-                    outputErrors.Add(new PipelineValidationError(typeof(InputConfig), $"illegal input as: '{inputConfig.As}' in step '{stepId}'"));
-            });
-        }
 
         return outputErrors;
     }

@@ -2,8 +2,6 @@ processes:
   - id: ili_validator
     implementation: Geopilot.Api.Pipeline.Process.IliValidatorProcess
     data_handling:
-      input_mapping:
-        ili_file: file
       output_mapping:
         error_log: err_log
         xtf_log: xtf_log
@@ -30,7 +28,7 @@ pipelines:
         input:
           - from: upload
             take: ili_file
-            as: file
+            as: iliFile
         output:
           - take: error_log
             as: error_log

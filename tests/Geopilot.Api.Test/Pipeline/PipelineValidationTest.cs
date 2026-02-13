@@ -16,7 +16,7 @@ public class PipelineValidationTest
     [DataRow("noStepOutput", "StepConfig: The Output field is required.")]
     [DataRow("noStepInputConfigFrom", "InputConfig: The From field is required., InputConfig: illegal input from reference from: '', take: 'ili_file' in step 'validation'")]
     [DataRow("noStepInputConfigTake", "InputConfig: The Take field is required., InputConfig: illegal input from reference from: 'upload', take: '' in step 'validation'")]
-    [DataRow("noStepInputConfigAs", "InputConfig: The As field is required., InputConfig: illegal input as: '' in step 'validation'")]
+    [DataRow("noStepInputConfigAs", "InputConfig: The As field is required.")]
     [DataRow("noStepOutputConfigTake", "OutputConfig: The Take field is required., OutputConfig: illegal output take: '' in step 'validation'")]
     [DataRow("noStepOutputConfigAs", "OutputConfig: The As field is required.")]
     [DataRow("noProcessId", "ProcessConfig: The Id field is required., StepConfig: process reference for 'ili_validator'")]

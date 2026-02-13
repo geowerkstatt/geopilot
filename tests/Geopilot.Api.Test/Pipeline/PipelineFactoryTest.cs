@@ -59,7 +59,7 @@ public class PipelineFactoryTest
         {
             From = "upload",
             Take = "ili_file",
-            As = "file",
+            As = "iliFile",
         };
         AssertInputConfig(expectedInputConfig_0, inputConfig_0);
         Assert.HasCount(2, validationStep.OutputConfigs);
@@ -80,13 +80,11 @@ public class PipelineFactoryTest
         AssertOutputConfig(expectedOutputConfig_1, outputConfig_1);
         object stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
-        var expectedDataHandlingInputMappingConfig = new Dictionary<string, string>() { { "ili_file", "file" }, };
         var expectedDataHandlingOutputMappingConfig = new Dictionary<string, string>() { { "error_log", "error_log" }, { "xtf_log", "xtf_log" }, };
         var stepDataHandlingConfig = typeof(IliValidatorProcess)
             ?.GetField("dataHandlingConfig", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.GetValue(stepProcess) as DataHandlingConfig;
         Assert.IsNotNull(stepDataHandlingConfig, "step process data handling config not defined");
-        CollectionAssert.AreEqual(expectedDataHandlingInputMappingConfig, stepDataHandlingConfig.InputMapping, "process data handling input mapping config not as expected");
         CollectionAssert.AreEqual(expectedDataHandlingOutputMappingConfig, stepDataHandlingConfig.OutputMapping, "process data handling output mapping config not as expected");
         var expectedDefaultConfig = new Dictionary<string, string>()
         {

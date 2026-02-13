@@ -126,14 +126,14 @@ public sealed class PipelineStep : IPipelineStep
         return new StepResult();
     }
 
-    private List<object?> CreateProcessRunParamList(PipelineContext context, List<ParameterInfo> parameterInfos)
+    private List<object> CreateProcessRunParamList(PipelineContext context, List<ParameterInfo> parameterInfos)
     {
         return parameterInfos
             .Select(i => GenerateParameter(i, context))
             .ToList();
     }
 
-    private object? GenerateParameter(ParameterInfo parameterInfo, PipelineContext context)
+    private object GenerateParameter(ParameterInfo parameterInfo, PipelineContext context)
     {
         var parameters = new List<object>();
         foreach (var inputConfig in this.InputConfig)

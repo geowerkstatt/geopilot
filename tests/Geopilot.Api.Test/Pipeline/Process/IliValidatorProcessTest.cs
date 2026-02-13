@@ -178,10 +178,6 @@ public class IliValidatorProcessTest
             };
             var dataHandlingConfig = new Api.Pipeline.Config.DataHandlingConfig()
             {
-                InputMapping = new Dictionary<string, string>()
-                {
-                    { "ili_file", this.inputFile },
-                },
                 OutputMapping = new Dictionary<string, string>()
                 {
                     { "error_log", this.outputErrorLog },
