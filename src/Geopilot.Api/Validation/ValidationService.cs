@@ -54,23 +54,26 @@ public class ValidationService : IValidationService
     }
 
     /// <inheritdoc/>
-    public async Task<ValidationJob> StartJobAsync(Guid jobId)
-    {
-        var validationJob = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
-        var jobValidators = await GetConfiguredValidators(validationJob, null);
-        return jobStore.StartJob(jobId, jobValidators, null);
-    }
-
-    /// <inheritdoc/>
-    public async Task<ValidationJob> StartJobAsync(Guid jobId, int mandateId, User user)
+    public async Task<ValidationJob> StartJobAsync(Guid jobId, int mandateId, User? user)
     {
         var validationJob = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
 
-        // If a mandateId is provided, check if the user is allowed to start the job with the specified mandate
-        var mandate = await mandateService.GetMandateByUserAndJobAsync(mandateId, user, jobId)
-            ?? throw new InvalidOperationException($"The job <{jobId}> could not be started with mandate <{mandateId}.");
-        var jobValidators = await GetConfiguredValidators(validationJob, mandate);
-        return jobStore.StartJob(jobId, jobValidators, mandateId);
+        // Check if the user is allowed to start the job with the specified mandate
+        var mandate = await mandateService.GetMandateForUser(mandateId, user);
+        if (mandate != null)
+        {
+            // Check if the mandate supports the job file type
+            var jobFileType = Path.GetExtension(validationJob.OriginalFileName);
+            var mandateSupportsJobFileType = IsExtensionSupported(mandate.FileTypes, jobFileType);
+
+            if (mandateSupportsJobFileType)
+            {
+                var jobValidators = await GetConfiguredValidators(validationJob, mandate);
+                return jobStore.StartJob(jobId, jobValidators, mandateId);
+            }
+        }
+
+        throw new InvalidOperationException($"The job <{jobId}> could not be started with mandate <{mandateId}>.");
     }
 
     private async Task<List<IValidator>> GetConfiguredValidators(ValidationJob validationJob, Mandate? mandate)

@@ -132,6 +132,9 @@ namespace Geopilot.Api.Migrations
                     b.Property<string>("InterlisValidationProfile")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");

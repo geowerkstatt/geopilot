@@ -109,7 +109,7 @@ public class ValidationJobStoreTest
     {
         var job = store.CreateJob();
         store.AddFileToJob(job.Id, "a", "b");
-        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(job.Id, new List<IValidator>(), null));
+        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(job.Id, new List<IValidator>(), 0));
     }
 
     [TestMethod]
@@ -117,7 +117,7 @@ public class ValidationJobStoreTest
     {
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
-        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(Guid.NewGuid(), new List<IValidator> { validator.Object }, null));
+        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(Guid.NewGuid(), new List<IValidator> { validator.Object }, 0));
     }
 
     [TestMethod]
@@ -126,7 +126,7 @@ public class ValidationJobStoreTest
         var job = store.CreateJob();
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.StartJob(job.Id, new List<IValidator> { validator.Object }, null));
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.StartJob(job.Id, new List<IValidator> { validator.Object }, 0));
     }
 
     [TestMethod]
@@ -138,7 +138,7 @@ public class ValidationJobStoreTest
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
         var validators = new List<IValidator> { validator.Object };
-        store.StartJob(job.Id, validators, null);
+        store.StartJob(job.Id, validators, 0);
 
         var result = new ValidatorResult(ValidatorResultStatus.Completed, "some message");
         store.AddValidatorResult(validator.Object, result);
@@ -158,7 +158,7 @@ public class ValidationJobStoreTest
         var validator = new Mock<IValidator>();
         validator.SetupGet(v => v.Name).Returns("v1");
         var validators = new List<IValidator> { validator.Object };
-        store.StartJob(job.Id, validators, null);
+        store.StartJob(job.Id, validators, 0);
 
         // Complete the job
         var result = new ValidatorResult(ValidatorResultStatus.Completed, "some message");
@@ -177,7 +177,7 @@ public class ValidationJobStoreTest
         var registeredValidator = new Mock<IValidator>();
         registeredValidator.SetupGet(v => v.Name).Returns("registeredValidator");
         var validators = new List<IValidator> { registeredValidator.Object };
-        store.StartJob(job.Id, validators, null);
+        store.StartJob(job.Id, validators, 0);
 
         var unregisteredValidator = new Mock<IValidator>();
         unregisteredValidator.SetupGet(v => v.Name).Returns("unregisteredValidator");

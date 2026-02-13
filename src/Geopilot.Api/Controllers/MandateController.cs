@@ -37,25 +37,33 @@ public class MandateController : ControllerBase
     }
 
     /// <summary>
-    /// Get a list of mandates for the current user and matching all filter criteria.
+    /// Gets a list of all mandates that the current user has access to and match all filter criteria.
     /// </summary>
-    /// <param name="jobId">Optional. Get matching mandates by validation job id.</param>
+    /// <param name="jobId">Optional. When specified, only mandates that can be used for the specified validation job are returned.</param>
     /// <returns>List of mandates matching optional filter criteria.</returns>
     [HttpGet]
-    [Authorize(Policy = GeopilotPolicies.User)]
-    [SwaggerResponse(StatusCodes.Status200OK, "Returns list of mandates associated to the current user matching the optional filter criteria.", typeof(IEnumerable<Mandate>), "application/json")]
+    [AllowAnonymous]
+    [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandates that the current user has access to and match all filter criteria.", typeof(IEnumerable<Mandate>), "application/json")]
     public async Task<IActionResult> Get(
         [FromQuery, SwaggerParameter("Filter mandates matching validation job file extension.")]
         Guid jobId = default)
     {
         logger.LogInformation("Getting mandates for job with id <{JobId}>.", jobId);
 
-        var user = await context.GetUserByPrincipalAsync(User);
         var mandates = context.MandatesWithIncludes.AsNoTracking();
 
-        if (!user.IsAdmin || jobId != default)
+        if (User?.Identity?.IsAuthenticated ?? false)
         {
-            mandates = mandates.Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+            var user = await context.GetUserByPrincipalAsync(User);
+
+            if (!user.IsAdmin || jobId != default)
+            {
+                mandates = mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+            }
+        }
+        else
+        {
+            mandates = mandates.Where(m => m.IsPublic);
         }
 
         if (jobId != default)
@@ -78,10 +86,10 @@ public class MandateController : ControllerBase
             mandates = mandates.FilterMandatesByFileExtension(extension);
         }
 
-        var result = mandates.ToList();
+        var result = await mandates.ToListAsync();
         result.ForEach(m => m.SetCoordinateListFromPolygon());
 
-        logger.LogInformation($"Getting mandates with for job with id <{jobId}> resulted in <{result.Count}> matching mandates.");
+        logger.LogInformation($"Getting mandates for job with id <{jobId}> resulted in <{result.Count}> matching mandates.");
         return Ok(result);
     }
 

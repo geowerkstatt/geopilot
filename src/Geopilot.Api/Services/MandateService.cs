@@ -26,11 +26,20 @@ public class MandateService : IMandateService
     }
 
     /// <inheritdoc/>
-    public async Task<Mandate?> GetMandateByUserAndJobAsync(int mandateId, User user, Guid jobId)
+    public async Task<Mandate?> GetMandateForUser(int mandateId, User? user)
     {
-        ArgumentNullException.ThrowIfNull(user);
+        var mandates = context.Mandates.AsNoTracking();
 
-        return await GetMandatesQuery(user, jobId).SingleOrDefaultAsync(m => m.Id == mandateId);
+        if (user != null)
+        {
+            mandates = mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+        }
+        else
+        {
+            mandates = mandates.Where(m => m.IsPublic);
+        }
+
+        return await mandates.SingleOrDefaultAsync(m => m.Id == mandateId);
     }
 
     /// <inheritdoc/>
@@ -67,8 +76,8 @@ public class MandateService : IMandateService
     }
 
     private IQueryable<Mandate> FilterMandatesByUser(IQueryable<Mandate> mandates, User user)
-    {
-        return mandates
+        {
+            return mandates
             .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
     }
 }
