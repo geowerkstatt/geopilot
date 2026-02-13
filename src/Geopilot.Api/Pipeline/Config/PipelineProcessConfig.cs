@@ -6,7 +6,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// Represents the configuration for pipeline processes, including the collection of process and pipeline definitions.
 /// The steps in <see cref="PipelineConfig"/> reference to the <see cref="ProcessConfig"/> by its name."/>.
 /// </summary>
-internal class PipelineProcessConfig
+public class PipelineProcessConfig
 {
     /// <summary>
     /// List of process configurations available for use in pipelines.
