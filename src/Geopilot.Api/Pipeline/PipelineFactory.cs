@@ -31,24 +31,13 @@ public class PipelineFactory : IPipelineFactory
         this.logger = factory.CreateLogger<PipelineFactory>();
     }
 
-    /// <summary>
-    /// Creates a pipeline instance with the specified id.
-    /// </summary>
-    /// <param name="id">The id of the pipeline to be created. References to <see cref="PipelineConfig.Id"/>.</param>
-    /// <returns>A <see cref="IPipeline"/> instance.</returns>
-    /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
+    /// <inheritdoc />
     public IPipeline CreatePipeline(string id)
     {
         return CreatePipeline(id, CancellationToken.None);
     }
 
-    /// <summary>
-    /// Creates a pipeline instance with the specified id.
-    /// </summary>
-    /// <param name="id">The id of the pipeline to be created. References to <see cref="PipelineConfig.Id"/>.</param>
-    /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
-    /// <returns>A <see cref="IPipeline"/> instance.</returns>
-    /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
+    /// <inheritdoc />
     public IPipeline CreatePipeline(string id, CancellationToken cancellationToken)
     {
         var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Id == id);
