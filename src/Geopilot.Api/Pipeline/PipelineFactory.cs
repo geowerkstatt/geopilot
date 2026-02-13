@@ -34,17 +34,11 @@ public class PipelineFactory : IPipelineFactory
     /// <inheritdoc />
     public IPipeline CreatePipeline(string id)
     {
-        return CreatePipeline(id, CancellationToken.None);
-    }
-
-    /// <inheritdoc />
-    public IPipeline CreatePipeline(string id, CancellationToken cancellationToken)
-    {
         var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Id == id);
 
         if (pipelineConfig != null)
         {
-            return new Pipeline(pipelineConfig.Id, pipelineConfig.DisplayName, CreateSteps(pipelineConfig, cancellationToken), pipelineConfig.Parameters);
+            return new Pipeline(pipelineConfig.Id, pipelineConfig.DisplayName, CreateSteps(pipelineConfig), pipelineConfig.Parameters);
         }
         else
         {
@@ -52,24 +46,24 @@ public class PipelineFactory : IPipelineFactory
         }
     }
 
-    private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, CancellationToken cancellationToken)
+    private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig)
     {
         return pipelineConfig.Steps
-            .Select(s => CreateStep(s, cancellationToken) as IPipelineStep)
+            .Select(s => CreateStep(s) as IPipelineStep)
             .ToList();
     }
 
-    private PipelineStep CreateStep(StepConfig stepConfig, CancellationToken cancellationToken)
+    private PipelineStep CreateStep(StepConfig stepConfig)
     {
         return new PipelineStep(
             stepConfig.Id,
             stepConfig.DisplayName,
             stepConfig.Input ?? new List<InputConfig>(),
             stepConfig.Output ?? new List<OutputConfig>(),
-            CreateProcess(stepConfig, cancellationToken));
+            CreateProcess(stepConfig));
     }
 
-    private object CreateProcess(StepConfig stepConfig, CancellationToken cancellationToken)
+    private object CreateProcess(StepConfig stepConfig)
     {
         var processConfig = stepConfig.ProcessId != null ? PipelineProcessConfig.Processes.GetProcessConfig(stepConfig.ProcessId) : null;
         if (processConfig != null)
@@ -80,7 +74,7 @@ public class PipelineFactory : IPipelineFactory
                 var processInstance = Activator.CreateInstance(objectType);
                 if (processInstance != null)
                 {
-                    InitializeProcess(objectType, processInstance, processConfig.DataHandlingConfig, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites), cancellationToken);
+                    InitializeProcess(objectType, processInstance, processConfig.DataHandlingConfig, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites));
 
                     return processInstance;
                 }
@@ -90,7 +84,7 @@ public class PipelineFactory : IPipelineFactory
         throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
     }
 
-    private void InitializeProcess(Type processType, object process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig, CancellationToken cancellationToken)
+    private void InitializeProcess(Type processType, object process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
     {
         var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length > 0)
@@ -100,21 +94,17 @@ public class PipelineFactory : IPipelineFactory
             {
                 var parameters = m.GetParameters()
                     .Select(p => p.ParameterType)
-                    .Select(t => GenerateParameter(t, dataHandlingConfig, processConfig, cancellationToken))
+                    .Select(t => GenerateParameter(t, dataHandlingConfig, processConfig))
                     .ToArray();
                 m.Invoke(process, parameters);
             });
     }
 
-    private object? GenerateParameter(Type parameterType, DataHandlingConfig dataHandlingConfig, Parameterization processConfig, CancellationToken cancellationToken)
+    private object? GenerateParameter(Type parameterType, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
     {
         if (parameterType == typeof(IConfiguration))
         {
             return configuration;
-        }
-        else if (parameterType == typeof(CancellationToken))
-        {
-            return cancellationToken;
         }
         else if (parameterType == typeof(DataHandlingConfig))
         {

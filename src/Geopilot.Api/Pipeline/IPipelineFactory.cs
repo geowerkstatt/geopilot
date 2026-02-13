@@ -12,13 +12,4 @@ public interface IPipelineFactory
     /// <returns>A <see cref="Pipeline"/> instance.</returns>
     /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
     IPipeline CreatePipeline(string id);
-
-    /// <summary>
-    /// Creates a pipeline instance with the specified id.
-    /// </summary>
-    /// <param name="id">The id of the pipeline to be created.</param>
-    /// <param name="cancellationToken">A cancellation token to cancel the pipeline during its run.</param>
-    /// <returns>A <see cref="Pipeline"/> instance.</returns>
-    /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
-    IPipeline CreatePipeline(string id, CancellationToken cancellationToken);
 }

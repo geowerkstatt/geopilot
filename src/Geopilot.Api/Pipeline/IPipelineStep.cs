@@ -43,6 +43,7 @@ public interface IPipelineStep : IDisposable
     /// Runs the step with the given context.
     /// </summary>
     /// <param name="context">Context with the aggregated step results from previous steps.</param>
+    /// <param name="cancellationToken">Cancellation token to cancle the pipeline run.</param>
     /// <returns>The output data from the step.</returns>
-    Task<StepResult> Run(PipelineContext context);
+    Task<StepResult> Run(PipelineContext context, CancellationToken cancellationToken);
 }

@@ -64,7 +64,7 @@ public class IliValidatorProcessTest
             .Build();
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
-        var processResult = Task.Run(() => process.RunAsync(uploadFile)).GetAwaiter().GetResult();
+        var processResult = Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(2, processResult.Data);
         processResult.Data.TryGetValue("error_log", out var appLogData);
@@ -99,7 +99,7 @@ public class IliValidatorProcessTest
             .UploadMockResponse(uploadMockResponse)
             .Build();
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-        var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.RunAsync(uploadFile)).GetAwaiter().GetResult());
+        var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult());
         Assert.AreEqual("Invalid transfer file", exception.Message);
     }
 
@@ -196,7 +196,7 @@ public class IliValidatorProcessTest
                 .Build();
             #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
             var process = new IliValidatorProcess();
-            process.Initialize(parameterization, dataHandlingConfig, configuration, CancellationToken.None);
+            process.Initialize(parameterization, dataHandlingConfig, configuration);
 
             var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
             interlisValidatorMessageHandlerMock

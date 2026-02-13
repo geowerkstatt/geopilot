@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using System.Threading;
 
 namespace Geopilot.Api.Test.Pipeline;
 
@@ -19,7 +20,7 @@ public class PipelineStepTest
         public int NumberOfRunInvoced { get; set; }
 
         [PipelineProcessRun]
-        public async Task<ProcessData> RunAsync(string data)
+        public async Task<ProcessData> RunAsync(string data, CancellationToken cancellationToken)
         {
             NumberOfRunInvoced++;
             return this.outputData;
@@ -82,7 +83,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext)).GetAwaiter().GetResult();
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
 
         Assert.IsNotNull(stepResult);
 
@@ -139,7 +140,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext)).GetAwaiter().GetResult();
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
 
         Assert.IsEmpty(stepResult.Outputs);
 
@@ -190,7 +191,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext)).GetAwaiter().GetResult();
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
 
         Assert.IsEmpty(stepResult.Outputs);
 
@@ -241,7 +242,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext)).GetAwaiter().GetResult();
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
 
         Assert.IsEmpty(stepResult.Outputs);
 
@@ -294,7 +295,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext)).GetAwaiter().GetResult();
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
 
         Assert.IsEmpty(stepResult.Outputs);
 

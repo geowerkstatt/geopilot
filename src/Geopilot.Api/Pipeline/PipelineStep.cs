@@ -68,7 +68,7 @@ public sealed class PipelineStep : IPipelineStep
     }
 
     /// <inheritdoc/>
-    public async Task<StepResult> Run(PipelineContext context)
+    public async Task<StepResult> Run(PipelineContext context, CancellationToken cancellationToken)
     {
         if (context != null)
         {
@@ -95,7 +95,7 @@ public sealed class PipelineStep : IPipelineStep
                 else
                 {
                     var runMethod = processRunMethods.First();
-                    var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList()).ToArray();
+                    var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
                     var resultTask = runMethod.Invoke(Process, runParams);
                     if (resultTask != null)
                     {
@@ -128,15 +128,20 @@ public sealed class PipelineStep : IPipelineStep
         return new StepResult();
     }
 
-    private List<object> CreateProcessRunParamList(PipelineContext context, List<ParameterInfo> parameterInfos)
+    private List<object> CreateProcessRunParamList(PipelineContext context, List<ParameterInfo> parameterInfos, CancellationToken cancellationToken)
     {
         return parameterInfos
-            .Select(i => GenerateParameter(i, context))
+            .Select(i => GenerateParameter(i, context, cancellationToken))
             .ToList();
     }
 
-    private object GenerateParameter(ParameterInfo parameterInfo, PipelineContext context)
+    private object GenerateParameter(ParameterInfo parameterInfo, PipelineContext context, CancellationToken cancellationToken)
     {
+        if (parameterInfo.ParameterType.IsAssignableFrom(cancellationToken.GetType()))
+        {
+            return cancellationToken;
+        }
+
         var mappedParameters = new List<object>();
         foreach (var inputConfig in this.InputConfig)
         {
