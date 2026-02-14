@@ -17,8 +17,6 @@ internal class ZipPackageProcess
 
     private ILogger<ZipPackageProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<ZipPackageProcess>();
 
-    private DataHandlingConfig dataHandlingConfig = new DataHandlingConfig();
-
     private Parameterization config = new Parameterization();
 
     private string ArchiveFileName
@@ -35,12 +33,10 @@ internal class ZipPackageProcess
     /// <summary>
     /// Initializes the pipeline process with the specified configuration settings.
     /// </summary>
-    /// <param name="dataHandlingConfig">The data handling configuration to be used for the pipeline process. Cannot be null.</param>
     /// <param name="config">The parameterization configuration for the process. provides the archive file name under the key 'archive_file_name'.</param>
     [PipelineProcessInitialize]
-    public void Initialize(DataHandlingConfig dataHandlingConfig, Parameterization config)
+    public void Initialize(Parameterization config)
     {
-        this.dataHandlingConfig = dataHandlingConfig;
         this.config = config;
     }
 
@@ -76,17 +72,8 @@ internal class ZipPackageProcess
             }
         }
 
-        if (dataHandlingConfig != null)
-        {
-            var outputData = new ProcessData();
-            outputData.AddData(dataHandlingConfig.GetOutputMapping(OutputMappingZipPackage), new ProcessDataPart(zipTransferFile));
-            return outputData;
-        }
-        else
-        {
-            var errorMessage = $"ZipPackageProcess: dataHandlingConfig is null. Cannot add output data for mapping '{OutputMappingZipPackage}'.";
-            logger.LogError(errorMessage);
-            throw new ArgumentException(errorMessage);
-        }
+        var outputData = new ProcessData();
+        outputData.AddData(OutputMappingZipPackage, new ProcessDataPart(zipTransferFile));
+        return outputData;
     }
 }

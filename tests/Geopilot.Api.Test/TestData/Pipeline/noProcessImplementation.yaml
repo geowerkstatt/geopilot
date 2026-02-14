@@ -1,9 +1,5 @@
 processes:
   - id: ili_validator
-    data_handling:
-      output_mapping:
-        error_log: error_log
-        xtf_log: xtf_log
     default_config:
       log_level: INFO
       profile: null

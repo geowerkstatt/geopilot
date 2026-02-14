@@ -32,8 +32,6 @@ internal class IliValidatorProcess : IDisposable
 
     private ILogger<IliValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<IliValidatorProcess>();
 
-    private DataHandlingConfig dataHandlingConfig = new DataHandlingConfig();
-
     private Parameterization config = new Parameterization();
 
     private HttpClient httpClient = new();
@@ -60,16 +58,13 @@ internal class IliValidatorProcess : IDisposable
     /// Initializes the pipeline process with the specified configuration settings.
     /// </summary>
     /// <param name="config">A dictionary containing configuration key-value pairs to be used for initialization. Cannot be null.<para>'profile': optional profile to run the validation with.</para><para>'poll_interval': optional polling interval for the validation process.</para></param>
-    /// <param name="dataHandlingConfig">The data handling configuration to be used for the pipeline process. Cannot be null.</param>
     /// <param name="configuration">The configuration source used to retrieve the base address for the INTERLIS check service. Cannot be null and
     /// must contain a valid service URL at value "Validation:InterlisCheckServiceUrl".</param>
     /// <exception cref="InvalidOperationException">Thrown if the configuration does not provide a valid INTERLIS check service base address.</exception>
     [PipelineProcessInitialize]
-    public void Initialize(Parameterization config, DataHandlingConfig dataHandlingConfig, IConfiguration configuration)
+    public void Initialize(Parameterization config, IConfiguration configuration)
     {
         this.config = config;
-
-        this.dataHandlingConfig = dataHandlingConfig;
 
         var checkServiceUrl = configuration.GetValue<string>(InterlisCheckServiceBaseAddressConfiguration) ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
         this.httpClient.BaseAddress = new Uri(checkServiceUrl);
@@ -117,8 +112,8 @@ internal class IliValidatorProcess : IDisposable
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
         var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
 
-        outputData.AddData(dataHandlingConfig.GetOutputMapping(OutputMappingErrorLog), new ProcessDataPart(logFiles[LogType.ErrorLog]));
-        outputData.AddData(dataHandlingConfig.GetOutputMapping(OutputMappingXtfLog), new ProcessDataPart(logFiles[LogType.XtfLog]));
+        outputData.AddData(OutputMappingErrorLog, new ProcessDataPart(logFiles[LogType.ErrorLog]));
+        outputData.AddData(OutputMappingXtfLog, new ProcessDataPart(logFiles[LogType.XtfLog]));
 
         return outputData;
     }

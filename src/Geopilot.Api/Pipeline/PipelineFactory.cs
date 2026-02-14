@@ -74,7 +74,7 @@ public class PipelineFactory : IPipelineFactory
                 var processInstance = Activator.CreateInstance(objectType);
                 if (processInstance != null)
                 {
-                    InitializeProcess(objectType, processInstance, processConfig.DataHandlingConfig, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites));
+                    InitializeProcess(objectType, processInstance, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites));
 
                     return processInstance;
                 }
@@ -84,7 +84,7 @@ public class PipelineFactory : IPipelineFactory
         throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
     }
 
-    private void InitializeProcess(Type processType, object process, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
+    private void InitializeProcess(Type processType, object process, Parameterization processConfig)
     {
         var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length > 0)
@@ -94,21 +94,17 @@ public class PipelineFactory : IPipelineFactory
             {
                 var parameters = m.GetParameters()
                     .Select(p => p.ParameterType)
-                    .Select(t => GenerateParameter(t, dataHandlingConfig, processConfig))
+                    .Select(t => GenerateParameter(t, processConfig))
                     .ToArray();
                 m.Invoke(process, parameters);
             });
     }
 
-    private object? GenerateParameter(Type parameterType, DataHandlingConfig dataHandlingConfig, Parameterization processConfig)
+    private object? GenerateParameter(Type parameterType, Parameterization processConfig)
     {
         if (parameterType == typeof(IConfiguration))
         {
             return configuration;
-        }
-        else if (parameterType == typeof(DataHandlingConfig))
-        {
-            return dataHandlingConfig;
         }
         else if (parameterType == typeof(Parameterization))
         {

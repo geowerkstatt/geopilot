@@ -176,14 +176,6 @@ public class IliValidatorProcessTest
                 { "profile", this.validationProfile },
                 { "poll_interval", $"{this.pollInterval}" },
             };
-            var dataHandlingConfig = new Api.Pipeline.Config.DataHandlingConfig()
-            {
-                OutputMapping = new Dictionary<string, string>()
-                {
-                    { "error_log", this.outputErrorLog },
-                    { "xtf_log", this.outputXtfLog },
-                },
-            };
 
             var inMemorySettings = new List<KeyValuePair<string, string>>
             {
@@ -196,7 +188,7 @@ public class IliValidatorProcessTest
                 .Build();
             #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
             var process = new IliValidatorProcess();
-            process.Initialize(parameterization, dataHandlingConfig, configuration);
+            process.Initialize(parameterization, configuration);
 
             var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
             interlisValidatorMessageHandlerMock

@@ -21,12 +21,6 @@ public class ProcessConfig
     public required string Implementation { get; set; }
 
     /// <summary>
-    /// The data handling configuration for the process. Defines how input and output data are mapped.
-    /// </summary>
-    [YamlMember(Alias = "data_handling")]
-    public required DataHandlingConfig DataHandlingConfig { get; set; }
-
-    /// <summary>
     /// Optional default configuration for the process. Can be overridden by <see cref="StepConfig.ProcessConfigOverwrites"/>.
     /// </summary>
     [YamlMember(Alias = "default_config")]

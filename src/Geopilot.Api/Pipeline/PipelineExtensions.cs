@@ -66,9 +66,6 @@ internal static class PipelineExtensions
         if (processConfig.Id == null || processConfig.Id.Trim() == string.Empty)
             outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), "The Id field is required."));
 
-        if (processConfig.DataHandlingConfig == null)
-            outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), "The DataHandlingConfig field is required."));
-
         if (processConfig.Implementation == null || processConfig.Implementation.Trim() == string.Empty)
         {
             outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), "The Implementation field is required."));
@@ -230,7 +227,7 @@ internal static class PipelineExtensions
 
             if (stepConfig.Output != null)
             {
-                outputErrors = stepConfig.Output.Validate(stepConfig.Id ?? "", processConfig, outputErrors);
+                outputErrors = stepConfig.Output.Validate(stepConfig.Id ?? "", outputErrors);
             }
         }
 
@@ -296,25 +293,12 @@ internal static class PipelineExtensions
     public static PipelineValidationErrors Validate(
         this List<OutputConfig> outputConfigs,
         string stepId,
-        ProcessConfig processConfig,
         PipelineValidationErrors? inputErrors = null)
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
         outputErrors = outputConfigs
             .Aggregate(outputErrors, (errors, outputConfig) => outputConfig.Validate(errors));
-
-        if (processConfig.DataHandlingConfig != null && processConfig.DataHandlingConfig.OutputMapping != null)
-        {
-            outputConfigs.ForEach(outputConfig =>
-            {
-                var numberOfProcessOutput = processConfig.DataHandlingConfig.OutputMapping
-                    .Where(o => o.Value == outputConfig.Take)
-                    .Count();
-                if (numberOfProcessOutput == 0)
-                    outputErrors.Add(new PipelineValidationError(typeof(OutputConfig), $"illegal output take: '{outputConfig.Take}' in step '{stepId}'"));
-            });
-        }
 
         return outputErrors;
     }

@@ -1,10 +1,6 @@
 processes:
   - id: ili_validator
     implementation: Geopilot.Api.Pipeline.Process.IliValidatorProcess
-    data_handling:
-      output_mapping:
-        error_log: error_log
-        xtf_log: xtf_log
     default_config:
 pipelines:
   - id: ili_validation

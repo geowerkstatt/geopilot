@@ -1,20 +1,13 @@
 processes:
   - id: ili_validator
     implementation: Geopilot.Api.Pipeline.Process.IliValidatorProcess
-    data_handling:
-      output_mapping:
-        error_log: error_log
-        xtf_log: xtf_log
     default_config:
       profile:
       poll_interval: 500
   - id: zip_package_process
     implementation: Geopilot.Api.Pipeline.Process.ZipPackageProcess
-    data_handling:
-      output_mapping:
-        zip_package: zip_package
     default_config:
-        archive_file_name: myPersonalZipArchive
+      archive_file_name: myPersonalZipArchive
 pipelines:
   - id: two_steps
     display_name:
