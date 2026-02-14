@@ -13,17 +13,17 @@ public interface IPipelineTransferFile
     /// <summary>
     /// Gets the original file name, including its extension.
     /// </summary>
-    string OrginalFileName => OriginalFileNameWithoutExtension + Extension;
+    string OrginalFileName { get; }
 
     /// <summary>
     /// Gets the name of the file including file extension associated with the current object.
     /// </summary>
-    string FileName => Path.GetFileName(FilePath);
+    string FileName { get; }
 
     /// <summary>
     /// Gets the name of the file without its extension.
     /// </summary>
-    string FileNameWithoutExtension => Path.GetFileNameWithoutExtension(FilePath);
+    string FileNameWithoutExtension { get; }
 
     /// <summary>
     /// The full path of the file associated with the current object.
@@ -33,7 +33,7 @@ public interface IPipelineTransferFile
     /// <summary>
     /// Gets the file extension of the file associated with the current object.
     /// </summary>
-    string Extension => Path.GetExtension(FilePath);
+    string Extension { get; }
 
     /// <summary>
     /// Opens a stream to read the contents of the file associated with the current object.

@@ -79,7 +79,7 @@ public sealed class Pipeline : IPipeline
     }
 
     /// <inheritdoc/>
-    public async Task<PipelineContext> Run(IPipelineTransferFile file)
+    public async Task<PipelineContext> Run(IPipelineTransferFile file, CancellationToken cancellationToken)
     {
         var context = new PipelineContext()
         {
@@ -96,7 +96,7 @@ public sealed class Pipeline : IPipeline
         {
             if (this.State == PipelineState.Failed)
                 break;
-            var stepResult = await step.Run(context).ConfigureAwait(false);
+            var stepResult = await step.Run(context, cancellationToken).ConfigureAwait(false);
             context.StepResults[step.Id] = stepResult;
         }
 
