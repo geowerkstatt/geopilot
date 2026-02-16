@@ -78,10 +78,17 @@ internal static class PipelineExtensions
                 if (objectType.GetConstructor(Type.EmptyTypes) == null)
                     outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"no parameterless constructor found for process implementation '{processConfig.Implementation}'"));
 
-                var processInstance = Activator.CreateInstance(objectType);
+                try
+                {
+                    var processInstance = Activator.CreateInstance(objectType);
 
-                if (processInstance == null)
-                    outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"failed to create process instance for '{processConfig.Implementation}'"));
+                    if (processInstance == null)
+                        outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"failed to create process instance for '{processConfig.Implementation}'"));
+                }
+                catch (Exception ex)
+                {
+                    outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"exception while creating process instance for '{processConfig.Implementation}': {ex.Message}"));
+                }
             }
             else
             {

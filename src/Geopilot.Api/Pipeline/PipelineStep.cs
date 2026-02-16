@@ -16,7 +16,7 @@ public sealed class PipelineStep : IPipelineStep
         Process
             .GetType()
             .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => HasAttributeWithName(m, typeof(PipelineProcessCleanupAttribute).Name))
+            .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessCleanupAttribute)))
             .ToList()
             .ForEach(m => m.Invoke(Process, null));
     }
@@ -114,10 +114,8 @@ public sealed class PipelineStep : IPipelineStep
     private MethodInfo? GetProcessRunMethod()
     {
         var processRunMethods = Process.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(m => HasAttributeWithName(m, typeof(PipelineProcessRunAttribute).Name))
-                    .Where(m => m.ReturnType == typeof(Task<Dictionary<string, object>>))
-                    .Where(m => m?.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) as AsyncStateMachineAttribute != null)
-                    .Where(d => d != null);
+                    .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessRunAttribute)))
+                    .Where(m => m.ReturnType == typeof(Task<Dictionary<string, object>>));
 
         if (processRunMethods.Count() > 1)
         {
@@ -133,11 +131,6 @@ public sealed class PipelineStep : IPipelineStep
         {
             return processRunMethods.First();
         }
-    }
-
-    private bool HasAttributeWithName(MethodInfo methodInfo, string attributeName)
-    {
-        return methodInfo.GetCustomAttributes(true).Any(attr => attr.GetType().Name == attributeName);
     }
 
     private List<object> CreateProcessRunParamList(PipelineContext context, List<ParameterInfo> parameterInfos, CancellationToken cancellationToken)
