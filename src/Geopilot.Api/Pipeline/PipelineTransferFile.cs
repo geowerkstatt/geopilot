@@ -21,6 +21,42 @@ public class PipelineTransferFile : IPipelineTransferFile
     }
 
     /// <inheritdoc/>
+    public string OriginalFileName
+    {
+        get
+        {
+            return OriginalFileNameWithoutExtension + Extension;
+        }
+    }
+
+    /// <inheritdoc/>
+    public string FileName
+    {
+        get
+        {
+            return Path.GetFileName(FilePath);
+        }
+    }
+
+    /// <inheritdoc/>
+    public string FileNameWithoutExtension
+    {
+        get
+        {
+            return Path.GetFileNameWithoutExtension(FilePath);
+        }
+    }
+
+    /// <inheritdoc/>
+    public string Extension
+    {
+        get
+        {
+            return Path.GetExtension(FilePath);
+        }
+    }
+
+    /// <inheritdoc/>
     public string FilePath { get; set; }
 
     /// <inheritdoc/>

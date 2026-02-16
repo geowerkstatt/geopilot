@@ -13,7 +13,7 @@ namespace Geopilot.Api.Pipeline.Process;
 /// <summary>
 /// Process for validating ILI files.
 /// </summary>
-internal class IliValidatorProcess : IPipelineProcess, IDisposable
+internal class XtfValidatorProcess : IDisposable
 {
     private enum LogType
     {
@@ -21,7 +21,6 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         ErrorLog,
     }
 
-    private const string InputMappingIliFile = "ili_file";
     private const string OutputMappingErrorLog = "error_log";
     private const string OutputMappingXtfLog = "xtf_log";
     private const string ConfiguratiionKeyValidationProfile = "profile";
@@ -31,17 +30,13 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
 
     private static readonly JsonSerializerOptions JsonOptions;
 
-    private ILogger<IliValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<IliValidatorProcess>();
-
-    private DataHandlingConfig dataHandlingConfig = new DataHandlingConfig();
+    private ILogger<XtfValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<XtfValidatorProcess>();
 
     private Parameterization config = new Parameterization();
 
     private HttpClient httpClient = new();
 
-    private CancellationToken cancellationToken = CancellationToken.None;
-
-    static IliValidatorProcess()
+    static XtfValidatorProcess()
     {
         JsonOptions = new()
         {
@@ -51,7 +46,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     }
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="IliValidatorProcess"/>.
+    /// Disposes the resources used by the <see cref="XtfValidatorProcess"/>.
     /// </summary>
     [PipelineProcessCleanup]
     public void Dispose()
@@ -63,38 +58,19 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
     /// Initializes the pipeline process with the specified configuration settings.
     /// </summary>
     /// <param name="config">A dictionary containing configuration key-value pairs to be used for initialization. Cannot be null.<para>'profile': optional profile to run the validation with.</para><para>'poll_interval': optional polling interval for the validation process.</para></param>
-    /// <param name="dataHandlingConfig">The data handling configuration to be used for the pipeline process. Cannot be null.</param>
     /// <param name="configuration">The configuration source used to retrieve the base address for the INTERLIS check service. Cannot be null and
-    /// <param name="cancellationToken">The cancellation token to be used for the pipeline process.</param>
     /// must contain a valid service URL at value "Validation:InterlisCheckServiceUrl".</param>
     /// <exception cref="InvalidOperationException">Thrown if the configuration does not provide a valid INTERLIS check service base address.</exception>
     [PipelineProcessInitialize]
-    public void Initialize(Parameterization config, DataHandlingConfig dataHandlingConfig, IConfiguration configuration, CancellationToken cancellationToken)
+    public void Initialize(Parameterization config, IConfiguration configuration)
     {
         this.config = config;
-
-        this.dataHandlingConfig = dataHandlingConfig;
 
         var checkServiceUrl = configuration.GetValue<string>(InterlisCheckServiceBaseAddressConfiguration) ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
         this.httpClient.BaseAddress = new Uri(checkServiceUrl);
 
         this.httpClient.DefaultRequestHeaders.Accept.Clear();
         this.httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        this.cancellationToken = cancellationToken;
-    }
-
-    private ProcessDataPart InputIliFile(ProcessData inputData)
-    {
-        var inputIliFileKey = dataHandlingConfig.GetInputMapping(InputMappingIliFile);
-        if (inputIliFileKey == null || !inputData.Data.TryGetValue(inputIliFileKey, out var iliFilePart))
-        {
-            var errorMessage = $"IliValidatorProcess: input data does not contain required key '{InputMappingIliFile}'.";
-            logger.LogError(errorMessage);
-            throw new ArgumentException(errorMessage);
-        }
-
-        return iliFilePart;
     }
 
     private string Profile
@@ -119,25 +95,29 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         }
     }
 
-    /// <inheritdoc/>
-    public async Task<ProcessData> Run(ProcessData inputData)
+    /// <summary>
+    /// Runs the validation process for the specified ILI file.
+    /// </summary>
+    /// <param name="iliFile">The ILI file to validate. Cannot be null.</param>
+    /// <param name="cancellationToken">Cancellation token to canclel the operation.</param>
+    /// <returns>A ProcessData instance containing the results of the validation process.</returns>
+    /// <exception cref="ArgumentException">Thrown if the input ILI file is invalid.</exception>
+    [PipelineProcessRun]
+    public async Task<Dictionary<string, object>> RunAsync(IPipelineTransferFile iliFile, CancellationToken cancellationToken)
     {
-        var inputIliFile = InputIliFile(inputData).Data as IPipelineTransferFile ?? throw new ArgumentException("Invalid input ILI file.");
+        logger.LogInformation("Validating transfer file <{File}>...", iliFile.FileName);
+        var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.FileName, this.Profile, cancellationToken);
+        var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
+        var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
 
-        var outputData = new ProcessData();
-
-        logger.LogInformation("Validating transfer file <{File}>...", inputIliFile.FileName);
-        var uploadResponse = await UploadTransferFileAsync(inputIliFile, inputIliFile.FileName, this.Profile);
-        var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!);
-        var logFiles = await DownloadLogFilesAsync(statusResponse);
-
-        outputData.AddData(dataHandlingConfig.GetOutputMapping(OutputMappingErrorLog), new ProcessDataPart(logFiles[LogType.ErrorLog]));
-        outputData.AddData(dataHandlingConfig.GetOutputMapping(OutputMappingXtfLog), new ProcessDataPart(logFiles[LogType.XtfLog]));
-
-        return outputData;
+        return new Dictionary<string, object>()
+        {
+            { OutputMappingErrorLog, logFiles[LogType.ErrorLog] },
+            { OutputMappingXtfLog, logFiles[LogType.XtfLog] },
+        };
     }
 
-    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineTransferFile file, string transferFile, string? interlisValidationProfile)
+    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineTransferFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
     {
         using var fileStream = file.OpenFileStream() ?? throw new ArgumentException("Invalid input ILI file stream.");
         using var streamContent = new StreamContent(fileStream);
@@ -158,15 +138,15 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
 
         logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
 
-        return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response);
+        return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response, cancellationToken);
      }
 
-    private async Task<InterlisStatusResponse> PollStatusAsync(string statusUrl)
+    private async Task<InterlisStatusResponse> PollStatusAsync(string statusUrl, CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
             using var response = await this.httpClient.GetAsync(statusUrl, cancellationToken);
-            var statusResponse = await ReadSuccessResponseJsonAsync<InterlisStatusResponse>(response);
+            var statusResponse = await ReadSuccessResponseJsonAsync<InterlisStatusResponse>(response, cancellationToken);
 
             if (statusResponse.Status == InterlisStatusResponseStatus.Completed
                 || statusResponse.Status == InterlisStatusResponseStatus.CompletedWithErrors
@@ -181,18 +161,18 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         throw new OperationCanceledException();
     }
 
-    private async Task<Dictionary<LogType, IPipelineTransferFile>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse)
+    private async Task<Dictionary<LogType, IPipelineTransferFile>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse, CancellationToken cancellationToken)
     {
         var tasks = new List<Task<KeyValuePair<LogType, IPipelineTransferFile>>>();
 
         if (statusResponse.LogUrl != null)
         {
-            tasks.Add(DownloadLogAsFileAsync(statusResponse.LogUrl.ToString(), LogType.ErrorLog));
+            tasks.Add(DownloadLogAsFileAsync(statusResponse.LogUrl.ToString(), LogType.ErrorLog, cancellationToken));
         }
 
         if (statusResponse.XtfLogUrl != null)
         {
-            tasks.Add(DownloadLogAsFileAsync(statusResponse.XtfLogUrl.ToString(), LogType.XtfLog));
+            tasks.Add(DownloadLogAsFileAsync(statusResponse.XtfLogUrl.ToString(), LogType.XtfLog, cancellationToken));
         }
 
         var logFiles = await Task.WhenAll(tasks);
@@ -206,7 +186,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         }
     }
 
-    private async Task<KeyValuePair<LogType, IPipelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType)
+    private async Task<KeyValuePair<LogType, IPipelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType, CancellationToken cancellationToken)
     {
         PipelineTransferFile transferFile;
         switch (logType)
@@ -230,7 +210,7 @@ internal class IliValidatorProcess : IPipelineProcess, IDisposable
         return new KeyValuePair<LogType, IPipelineTransferFile>(logType, transferFile);
     }
 
-    private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response)
+    private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken);

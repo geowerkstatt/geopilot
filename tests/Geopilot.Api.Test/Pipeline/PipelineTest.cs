@@ -60,16 +60,14 @@ public class PipelineTest
 
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
-        var context = pipeline.Run(uploadFile);
+        var context = pipeline.Run(uploadFile, CancellationToken.None);
 
         firstStep.Verify(
-            p => p.Run(It.Is<PipelineContext>(pc =>
-                pc.StepResults.Count == 1 &&
-                pc.StepResults.ContainsKey("upload"))),
+            p => p.Run(It.Is<PipelineContext>(pc => pc.StepResults.Count == 1 && pc.StepResults.ContainsKey("upload")), It.IsAny<CancellationToken>()),
             Times.Once());
 
         secondStep.Verify(
-            p => p.Run(It.IsAny<PipelineContext>()),
+            p => p.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()),
             Times.Never());
     }
 

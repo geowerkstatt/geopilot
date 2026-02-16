@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Geopilot.Api.Pipeline;
 
@@ -15,7 +16,7 @@ public sealed class PipelineStep : IPipelineStep
         Process
             .GetType()
             .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessCleanupAttribute), true).Length > 0)
+            .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessCleanupAttribute)))
             .ToList()
             .ForEach(m => m.Invoke(Process, null));
     }
@@ -33,7 +34,7 @@ public sealed class PipelineStep : IPipelineStep
     public List<OutputConfig> OutputConfigs { get; }
 
     /// <inheritdoc/>
-    public IPipelineProcess Process { get; }
+    public object Process { get; }
 
     /// <inheritdoc/>
     public StepState State { get; set; }
@@ -53,7 +54,7 @@ public sealed class PipelineStep : IPipelineStep
         Dictionary<string, string> displayName,
         List<InputConfig> inputConfig,
         List<OutputConfig> outputConfig,
-        IPipelineProcess process)
+        object process)
     {
         this.Id = id;
         this.DisplayName = displayName;
@@ -65,7 +66,7 @@ public sealed class PipelineStep : IPipelineStep
     }
 
     /// <inheritdoc/>
-    public async Task<StepResult> Run(PipelineContext context)
+    public async Task<StepResult> Run(PipelineContext context, CancellationToken cancellationToken)
     {
         if (context != null)
         {
@@ -73,38 +74,134 @@ public sealed class PipelineStep : IPipelineStep
 
             try
             {
-                var inputProcessData = CreateProcessData(context);
-                var outputProcessData = await Process.Run(inputProcessData);
-                var stepResult = CreateStepResult(outputProcessData);
+                var runMethod = GetProcessRunMethod();
 
-                this.State = StepState.Success;
+                if (runMethod != null)
+                {
+                    var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
+                    var resultTask = runMethod.Invoke(Process, runParams);
+                    if (resultTask != null)
+                    {
+                        var result = await (Task<Dictionary<string, object>>)resultTask;
+                        var stepResult = CreateStepResult(result);
 
-                return stepResult;
+                        this.State = StepState.Success;
+
+                        return stepResult;
+                    }
+                    else
+                    {
+                        this.State = StepState.Failed;
+                        logger.LogError($"error in step '{this.Id}': no result returned from process.");
+                    }
+                }
             }
             catch (Exception ex)
             {
                 this.State = StepState.Failed;
                 logger.LogError(ex, $"error in step '{this.Id}': exception occurred during step execution: {ex.Message}.");
-                return new StepResult();
             }
         }
         else
         {
             this.State = StepState.Failed;
-            return new StepResult();
+            logger.LogError($"error in step '{this.Id}': pipeline context is null.");
+        }
+
+        return new StepResult();
+    }
+
+    private MethodInfo? GetProcessRunMethod()
+    {
+        var processRunMethods = Process.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessRunAttribute)))
+                    .Where(m => m.ReturnType == typeof(Task<Dictionary<string, object>>));
+
+        if (processRunMethods.Count() > 1)
+        {
+            logger.LogError($"error in step '{this.Id}': multiple methods found with PipelineProcessRunAttribute. there should only be one. please consolidate the pipeline validation logic.");
+            return null;
+        }
+        else if (!processRunMethods.Any())
+        {
+            logger.LogError($"error in step '{this.Id}': no method found with PipelineProcessRunAttribute. there should be exactly one. please consolidate the pipeline validation logic.");
+            return null;
+        }
+        else
+        {
+            return processRunMethods.First();
         }
     }
 
-    private StepResult CreateStepResult(ProcessData outputProcessData)
+    private List<object> CreateProcessRunParamList(PipelineContext context, List<ParameterInfo> parameterInfos, CancellationToken cancellationToken)
+    {
+        return parameterInfos
+            .Select(i => GenerateParameter(i, context, cancellationToken))
+            .ToList();
+    }
+
+    private object GenerateParameter(ParameterInfo parameterInfo, PipelineContext context, CancellationToken cancellationToken)
+    {
+        if (parameterInfo.ParameterType.IsAssignableFrom(cancellationToken.GetType()))
+        {
+            return cancellationToken;
+        }
+
+        var mappedParameters = new List<object>();
+        foreach (var inputConfig in this.InputConfig)
+        {
+            if (context.StepResults.TryGetValue(inputConfig.From, out var stepResult))
+            {
+                if (stepResult.Outputs.TryGetValue(inputConfig.Take, out var stepOutput))
+                {
+                    if (parameterInfo.Name == inputConfig.As)
+                    {
+                        mappedParameters.Add(stepOutput.Data);
+                    }
+                }
+            }
+        }
+
+        if (parameterInfo.ParameterType.IsArray)
+        {
+            var elementType = parameterInfo.ParameterType.GetElementType() ?? throw new InvalidOperationException("could not get type of element");
+            var parameterToInject = mappedParameters
+                .Where(p => elementType.IsAssignableFrom(p.GetType()))
+                .ToArray();
+            var parameterOfCorrectTypeToInject = Array.CreateInstance(elementType, parameterToInject.Length);
+            for (int i = 0; i < parameterToInject.Length; i++)
+            {
+                parameterOfCorrectTypeToInject.SetValue(parameterToInject[i], i);
+            }
+
+            if (parameterInfo.ParameterType.IsAssignableFrom(parameterOfCorrectTypeToInject.GetType()))
+            {
+                return parameterOfCorrectTypeToInject;
+            }
+        }
+
+        if (mappedParameters.Count == 1 && parameterInfo.ParameterType.IsAssignableFrom(mappedParameters[0].GetType()))
+        {
+            return mappedParameters[0];
+        }
+        else
+        {
+            var errorMessage = $"error in step '{this.Id}': could not find matching data for parameter '{parameterInfo.Name}' of type '{parameterInfo.ParameterType.FullName}' in process run method. please consolidate the pipeline validation logic.";
+            logger.LogError(errorMessage);
+            throw new InvalidOperationException(errorMessage);
+        }
+    }
+
+    private StepResult CreateStepResult(Dictionary<string, object> outputProcessData)
     {
         var stepResult = new StepResult();
         foreach (var outputConfig in OutputConfigs)
         {
-            if (outputConfig.Take != null && outputConfig.As != null && outputProcessData.Data.TryGetValue(outputConfig.Take, out var processDataPart))
+            if (outputConfig.Take != null && outputConfig.As != null && outputProcessData.TryGetValue(outputConfig.Take, out var processDataPart))
             {
                 var stepOutput = new StepOutput
                 {
-                    Data = processDataPart.Data,
+                    Data = processDataPart,
                     Action = outputConfig.Action ?? new HashSet<OutputAction>(),
                 };
                 stepResult.Outputs[outputConfig.As] = stepOutput;
@@ -118,36 +215,5 @@ public sealed class PipelineStep : IPipelineStep
         }
 
         return stepResult;
-    }
-
-    private ProcessData CreateProcessData(PipelineContext context)
-    {
-        var processData = new ProcessData();
-
-        foreach (var inputConfig in this.InputConfig)
-        {
-            if (context.StepResults.TryGetValue(inputConfig.From, out var stepResult))
-            {
-                if (stepResult.Outputs.TryGetValue(inputConfig.Take, out var stepOutput))
-                {
-                    var processDataPart = new ProcessDataPart(stepOutput.Data);
-                    processData.Data[inputConfig.As] = processDataPart;
-                }
-                else
-                {
-                    var errMsg = $"error in step '{this.Id}': step result is missing output data 'take', or output data could not be found in the step result. this error should not occur. please consolidate the pipeline validation logic.";
-                    logger.LogError(errMsg);
-                    throw new InvalidOperationException(errMsg);
-                }
-            }
-            else
-            {
-                var errMsg = $"error in step '{this.Id}': pipeline context is missing input config 'from', or step result could not be found in the context. this error should not occur. please consolidate the pipeline validation logic.";
-                logger.LogError(errMsg);
-                throw new InvalidOperationException(errMsg);
-            }
-        }
-
-        return processData;
     }
 }

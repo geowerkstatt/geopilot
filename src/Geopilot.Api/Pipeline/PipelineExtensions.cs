@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Pipeline.Process;
 using System.Text.RegularExpressions;
 
 namespace Geopilot.Api.Pipeline;
@@ -67,9 +66,6 @@ internal static class PipelineExtensions
         if (processConfig.Id == null || processConfig.Id.Trim() == string.Empty)
             outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), "The Id field is required."));
 
-        if (processConfig.DataHandlingConfig == null)
-            outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), "The DataHandlingConfig field is required."));
-
         if (processConfig.Implementation == null || processConfig.Implementation.Trim() == string.Empty)
         {
             outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), "The Implementation field is required."));
@@ -82,10 +78,17 @@ internal static class PipelineExtensions
                 if (objectType.GetConstructor(Type.EmptyTypes) == null)
                     outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"no parameterless constructor found for process implementation '{processConfig.Implementation}'"));
 
-                var processInstance = Activator.CreateInstance(objectType) as IPipelineProcess;
+                try
+                {
+                    var processInstance = Activator.CreateInstance(objectType);
 
-                if (processInstance == null)
-                    outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"failed to create process instance for '{processConfig.Implementation}'"));
+                    if (processInstance == null)
+                        outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"failed to create process instance for '{processConfig.Implementation}'"));
+                }
+                catch (Exception ex)
+                {
+                    outputErrors.Add(new PipelineValidationError(typeof(ProcessConfig), $"exception while creating process instance for '{processConfig.Implementation}': {ex.Message}"));
+                }
             }
             else
             {
@@ -226,12 +229,12 @@ internal static class PipelineExtensions
             if (stepConfig.Input != null && stepConfig.Id != null)
             {
                 var possibleStepConfigReferences = GatherPossibleStepConfigReferences(stepConfig.Id, pipelineConfig.Steps, pipelineConfig);
-                outputErrors = stepConfig.Input.Validate(stepConfig.Id, possibleStepConfigReferences, processConfig, outputErrors);
+                outputErrors = stepConfig.Input.Validate(stepConfig.Id, possibleStepConfigReferences, outputErrors);
             }
 
             if (stepConfig.Output != null)
             {
-                outputErrors = stepConfig.Output.Validate(stepConfig.Id ?? "", processConfig, outputErrors);
+                outputErrors = stepConfig.Output.Validate(stepConfig.Id ?? "", outputErrors);
             }
         }
 
@@ -252,7 +255,6 @@ internal static class PipelineExtensions
         this List<InputConfig> inputConfigs,
         string stepId,
         List<StepConfig> possibleStepRefenreces,
-        ProcessConfig processConfig,
         PipelineValidationErrors? inputErrors = null)
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
@@ -273,18 +275,6 @@ internal static class PipelineExtensions
                 outputErrors.Add(new PipelineValidationError(typeof(InputConfig), $"ambiguous input from reference from: '{inputConfig.From}', take: '{inputConfig.Take}' in step '{stepId}'"));
             }
         });
-
-        if (processConfig.DataHandlingConfig != null && processConfig.DataHandlingConfig.InputMapping != null)
-        {
-            inputConfigs.ForEach(inputConfig =>
-            {
-                var numberOfProcessInput = processConfig.DataHandlingConfig.InputMapping
-                    .Where(i => i.Value == inputConfig.As)
-                    .Count();
-                if (numberOfProcessInput == 0)
-                    outputErrors.Add(new PipelineValidationError(typeof(InputConfig), $"illegal input as: '{inputConfig.As}' in step '{stepId}'"));
-            });
-        }
 
         return outputErrors;
     }
@@ -310,25 +300,12 @@ internal static class PipelineExtensions
     public static PipelineValidationErrors Validate(
         this List<OutputConfig> outputConfigs,
         string stepId,
-        ProcessConfig processConfig,
         PipelineValidationErrors? inputErrors = null)
     {
         var outputErrors = inputErrors != null ? new PipelineValidationErrors(inputErrors) : new PipelineValidationErrors();
 
         outputErrors = outputConfigs
             .Aggregate(outputErrors, (errors, outputConfig) => outputConfig.Validate(errors));
-
-        if (processConfig.DataHandlingConfig != null && processConfig.DataHandlingConfig.OutputMapping != null)
-        {
-            outputConfigs.ForEach(outputConfig =>
-            {
-                var numberOfProcessOutput = processConfig.DataHandlingConfig.OutputMapping
-                    .Where(o => o.Value == outputConfig.Take)
-                    .Count();
-                if (numberOfProcessOutput == 0)
-                    outputErrors.Add(new PipelineValidationError(typeof(OutputConfig), $"illegal output take: '{outputConfig.Take}' in step '{stepId}'"));
-            });
-        }
 
         return outputErrors;
     }
