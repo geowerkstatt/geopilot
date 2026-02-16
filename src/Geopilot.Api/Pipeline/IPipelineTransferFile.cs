@@ -13,7 +13,7 @@ public interface IPipelineTransferFile
     /// <summary>
     /// Gets the original file name, including its extension.
     /// </summary>
-    string OrginalFileName { get; }
+    string OriginalFileName { get; }
 
     /// <summary>
     /// Gets the name of the file including file extension associated with the current object.

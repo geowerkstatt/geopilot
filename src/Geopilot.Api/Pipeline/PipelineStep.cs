@@ -74,25 +74,10 @@ public sealed class PipelineStep : IPipelineStep
 
             try
             {
-                var processRunMethods = Process.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(m => HasAttributeWithName(m, typeof(PipelineProcessRunAttribute).Name))
-                    .Where(m => m.ReturnType == typeof(Task<Dictionary<string, object>>))
-                    .Where(m => m?.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) as AsyncStateMachineAttribute != null)
-                    .Where(d => d != null);
+                var runMethod = GetProcessRunMethod();
 
-                if (processRunMethods.Count() > 1)
-                    {
-                    logger.LogError($"error in step '{this.Id}': multiple methods found with PipelineProcessRunAttribute. there should only be one. please consolidate the pipeline validation logic.");
-                    this.State = StepState.Failed;
-                }
-                else if (!processRunMethods.Any())
+                if (runMethod != null)
                 {
-                    logger.LogError($"error in step '{this.Id}': no method found with PipelineProcessRunAttribute. there should be exactly one. please consolidate the pipeline validation logic.");
-                    this.State = StepState.Failed;
-                }
-                else
-                {
-                    var runMethod = processRunMethods.First();
                     var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
                     var resultTask = runMethod.Invoke(Process, runParams);
                     if (resultTask != null)
@@ -124,6 +109,30 @@ public sealed class PipelineStep : IPipelineStep
         }
 
         return new StepResult();
+    }
+
+    private MethodInfo? GetProcessRunMethod()
+    {
+        var processRunMethods = Process.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(m => HasAttributeWithName(m, typeof(PipelineProcessRunAttribute).Name))
+                    .Where(m => m.ReturnType == typeof(Task<Dictionary<string, object>>))
+                    .Where(m => m?.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) as AsyncStateMachineAttribute != null)
+                    .Where(d => d != null);
+
+        if (processRunMethods.Count() > 1)
+        {
+            logger.LogError($"error in step '{this.Id}': multiple methods found with PipelineProcessRunAttribute. there should only be one. please consolidate the pipeline validation logic.");
+            return null;
+        }
+        else if (!processRunMethods.Any())
+        {
+            logger.LogError($"error in step '{this.Id}': no method found with PipelineProcessRunAttribute. there should be exactly one. please consolidate the pipeline validation logic.");
+            return null;
+        }
+        else
+        {
+            return processRunMethods.First();
+        }
     }
 
     private bool HasAttributeWithName(MethodInfo methodInfo, string attributeName)

@@ -37,7 +37,7 @@ public interface IPipeline : IDisposable
     /// Runs the pipeline with the specified input file.
     /// </summary>
     /// <param name="file">The input file to process.</param>
-    /// <param name="cancellationToken">Cancellation token to cancle the pipeline run.</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the pipeline run.</param>
     /// <returns>The context containing the results of the pipeline execution.</returns>
     Task<PipelineContext> Run(IPipelineTransferFile file, CancellationToken cancellationToken);
 }

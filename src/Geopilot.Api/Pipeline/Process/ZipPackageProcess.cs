@@ -41,14 +41,13 @@ internal class ZipPackageProcess
     }
 
     /// <summary>
-    /// Creates a ZIP archive from the provided input files and returns the resulting process data.
+    /// Creates a ZIP archive containing the specified input files and returns a dictionary mapping the output key to
+    /// the resulting ZIP file.
     /// </summary>
-    /// <remarks>Only objects in the input list that implement IPipelineTransferFile are included in the ZIP
-    /// archive. The method requires a valid data handling configuration to map the output ZIP package.</remarks>
-    /// <param name="input">A list of objects representing input files to be packaged. Each object must implement the IPipelineTransferFile
-    /// interface to be included in the ZIP archive.</param>
-    /// <returns>A ProcessData instance containing the ZIP archive created from the input files.</returns>
-    /// <exception cref="ArgumentException">Thrown if no valid input files are found in the input list, or if the data handling configuration is not set.</exception>
+    /// <param name="input">An array of input files to include in the ZIP archive. Each file must implement the IPipelineTransferFile interface.</param>
+    /// <returns>A dictionary containing a single entry that maps the output key to the generated ZIP file as a
+    /// PipelineTransferFile instance.</returns>
+    /// <exception cref="ArgumentException">Thrown if no input files are provided.</exception>
     [PipelineProcessRun]
     public async Task<Dictionary<string, object>> RunAsync(params IPipelineTransferFile[] input)
     {
@@ -60,12 +59,12 @@ internal class ZipPackageProcess
         }
 
         var zipTransferFile = new PipelineTransferFile(ArchiveFileName, Path.GetTempFileName().Replace(".tmp", ".zip"));
-        using var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create);
+        using (var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create))
         using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))
         {
             foreach (var file in input)
             {
-                var zipEntry = zipArchive.CreateEntry(file.OrginalFileName);
+                var zipEntry = zipArchive.CreateEntry(file.OriginalFileName);
                 using var zipEntryStream = zipEntry.Open();
                 using var fileStream = file.OpenFileStream();
                 fileStream.CopyTo(zipEntryStream);

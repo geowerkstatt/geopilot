@@ -22,6 +22,7 @@ public class PipelineIntegrationTest
     public void SetUp()
     {
         interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+        interlisValidatorMessageHandlerMock.Protected().Setup("Dispose", ItExpr.IsAny<bool>());
 
         var inMemorySettings = new List<KeyValuePair<string, string>>
         {
@@ -35,8 +36,14 @@ public class PipelineIntegrationTest
         #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
     }
 
+    [TestCleanup]
+    public void Cleanup()
+    {
+        interlisValidatorMessageHandlerMock.VerifyAll();
+    }
+
     [TestMethod]
-    public void RunTwoStepPipeline()
+    public async Task RunTwoStepPipeline()
     {
         var uploadStepId = "upload";
         var validationStepId = "validation";
@@ -44,7 +51,7 @@ public class PipelineIntegrationTest
         var uploadedFileAttribute = "ili_file";
 
         PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
-        var pipeline = factory.CreatePipeline("two_steps");
+        using var pipeline = factory.CreatePipeline("two_steps");
 
         using HttpResponseMessage uploadMockResponse = new()
         {
@@ -126,7 +133,7 @@ public class PipelineIntegrationTest
         Assert.HasCount(2, pipeline.Steps);
 
         PipelineTransferFile uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-        var context = Task.Run(() => pipeline.Run(uploadFile, CancellationToken.None)).GetAwaiter().GetResult();
+        var context = await pipeline.Run(uploadFile, CancellationToken.None);
 
         Assert.AreEqual(PipelineState.Success, pipeline.State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);

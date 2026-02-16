@@ -21,7 +21,7 @@ public class PipelineTransferFile : IPipelineTransferFile
     }
 
     /// <inheritdoc/>
-    public string OrginalFileName
+    public string OriginalFileName
     {
         get
         {

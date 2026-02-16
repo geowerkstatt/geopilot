@@ -23,7 +23,7 @@ public class ZipPackageProcessTest
         processResult.TryGetValue("zip_package", out var outputData);
         var zipArchive = outputData as IPipelineTransferFile;
         Assert.IsNotNull(zipArchive);
-        Assert.AreEqual("myPersonalZipArchive.zip", zipArchive.OrginalFileName);
+        Assert.AreEqual("myPersonalZipArchive.zip", zipArchive.OriginalFileName);
     }
 
     [TestMethod]
@@ -39,7 +39,7 @@ public class ZipPackageProcessTest
         processResult.TryGetValue("zip_package", out var outputData);
         var zipArchive = outputData as IPipelineTransferFile;
         Assert.IsNotNull(zipArchive);
-        Assert.AreEqual("archive.zip", zipArchive.OrginalFileName);
+        Assert.AreEqual("archive.zip", zipArchive.OriginalFileName);
     }
 
     [TestMethod]

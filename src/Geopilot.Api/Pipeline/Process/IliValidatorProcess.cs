@@ -105,8 +105,6 @@ internal class IliValidatorProcess : IDisposable
     [PipelineProcessRun]
     public async Task<Dictionary<string, object>> RunAsync(IPipelineTransferFile iliFile, CancellationToken cancellationToken)
     {
-        var outputData = new Dictionary<string, object>();
-
         logger.LogInformation("Validating transfer file <{File}>...", iliFile.FileName);
         var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.FileName, this.Profile, cancellationToken);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);

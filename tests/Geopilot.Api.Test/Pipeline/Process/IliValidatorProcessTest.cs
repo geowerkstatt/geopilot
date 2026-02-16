@@ -71,12 +71,12 @@ public class IliValidatorProcessTest
         Assert.IsNotNull(appLogData);
         var appLog = appLogData as IPipelineTransferFile;
         Assert.IsNotNull(appLog);
-        Assert.AreEqual("errorLog.log", appLog.OrginalFileName);
+        Assert.AreEqual("errorLog.log", appLog.OriginalFileName);
         processResult.TryGetValue("xtf_log", out var xtfLogData);
         Assert.IsNotNull(xtfLogData);
         var xtfLog = xtfLogData as IPipelineTransferFile;
         Assert.IsNotNull(xtfLog);
-        Assert.AreEqual("xtfLog.xtf", xtfLog.OrginalFileName);
+        Assert.AreEqual("xtfLog.xtf", xtfLog.OriginalFileName);
     }
 
     [TestMethod]
