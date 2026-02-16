@@ -12,7 +12,7 @@ using System.Reflection;
 namespace Geopilot.Api.Test.Pipeline.Process;
 
 [TestClass]
-public class IliValidatorProcessTest
+public class XtfValidatorProcessTest
 {
     private static Guid jobId = Guid.Parse("b98559c5-b374-4cbc-a797-1b5a13a297e7");
 
@@ -52,7 +52,7 @@ public class IliValidatorProcessTest
             StatusCode = HttpStatusCode.OK,
             Content = new StreamContent(xtfLogFile),
         };
-        using var process = IliValidatorProcessBuilder.Create()
+        using var process = XtfValidatorProcessBuilder.Create()
             .InputFile("file")
             .OutputErrorLog("error_log")
             .OutputXtfLog("xtf_log")
@@ -91,7 +91,7 @@ public class IliValidatorProcessTest
                 StatusUrl = "/api/v1/status/" + jobId.ToString(),
             }),
         };
-        using var process = IliValidatorProcessBuilder.Create()
+        using var process = XtfValidatorProcessBuilder.Create()
             .InputFile("file")
             .OutputErrorLog("error_log")
             .OutputXtfLog("xtf_log")
@@ -103,7 +103,7 @@ public class IliValidatorProcessTest
         Assert.AreEqual("Invalid transfer file", exception.Message);
     }
 
-    private class IliValidatorProcessBuilder
+    private class XtfValidatorProcessBuilder
     {
         private string inputFile;
         private string outputErrorLog;
@@ -116,60 +116,60 @@ public class IliValidatorProcessTest
         private HttpResponseMessage getAppLogMockResponse;
         private HttpResponseMessage getXtfLogMockResponse;
 
-        public static IliValidatorProcessBuilder Create()
+        public static XtfValidatorProcessBuilder Create()
         {
-            return new IliValidatorProcessBuilder();
+            return new XtfValidatorProcessBuilder();
         }
 
-        public IliValidatorProcessBuilder InputFile(string inputFile)
+        public XtfValidatorProcessBuilder InputFile(string inputFile)
         {
             this.inputFile = inputFile;
             return this;
         }
 
-        public IliValidatorProcessBuilder OutputErrorLog(string outputErrorLog)
+        public XtfValidatorProcessBuilder OutputErrorLog(string outputErrorLog)
         {
             this.outputErrorLog = outputErrorLog;
             return this;
         }
 
-        public IliValidatorProcessBuilder OutputXtfLog(string outputXtfLog)
+        public XtfValidatorProcessBuilder OutputXtfLog(string outputXtfLog)
         {
             this.outputXtfLog = outputXtfLog;
             return this;
         }
 
-        public IliValidatorProcessBuilder InterlisCheckServiceBaseUrl(string interlisCheckServiceBaseUrl)
+        public XtfValidatorProcessBuilder InterlisCheckServiceBaseUrl(string interlisCheckServiceBaseUrl)
         {
             this.interlisCheckServiceBaseUrl = interlisCheckServiceBaseUrl;
             return this;
         }
 
-        public IliValidatorProcessBuilder UploadMockResponse(HttpResponseMessage uploadMockResponse)
+        public XtfValidatorProcessBuilder UploadMockResponse(HttpResponseMessage uploadMockResponse)
         {
             this.uploadMockResponse = uploadMockResponse;
             return this;
         }
 
-        public IliValidatorProcessBuilder GetStatusMockResponse(HttpResponseMessage getStatusMockResponse)
+        public XtfValidatorProcessBuilder GetStatusMockResponse(HttpResponseMessage getStatusMockResponse)
         {
             this.getStatusMockResponse = getStatusMockResponse;
             return this;
         }
 
-        public IliValidatorProcessBuilder GetAppLogMockResponse(HttpResponseMessage getAppLogMockResponse)
+        public XtfValidatorProcessBuilder GetAppLogMockResponse(HttpResponseMessage getAppLogMockResponse)
         {
             this.getAppLogMockResponse = getAppLogMockResponse;
             return this;
         }
 
-        public IliValidatorProcessBuilder GetXtfLogMockResponse(HttpResponseMessage getXtfLogMockResponse)
+        public XtfValidatorProcessBuilder GetXtfLogMockResponse(HttpResponseMessage getXtfLogMockResponse)
         {
             this.getXtfLogMockResponse = getXtfLogMockResponse;
             return this;
         }
 
-        public IliValidatorProcess Build()
+        public XtfValidatorProcess Build()
         {
             var parameterization = new Api.Pipeline.Config.Parameterization()
             {
@@ -187,7 +187,7 @@ public class IliValidatorProcessTest
                 .AddInMemoryCollection(inMemorySettings)
                 .Build();
             #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-            var process = new IliValidatorProcess();
+            var process = new XtfValidatorProcess();
             process.Initialize(parameterization, configuration);
 
             var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
@@ -222,7 +222,7 @@ public class IliValidatorProcessTest
             #pragma warning disable CA2000 // Dispose objects before losing scope
             var httpClient = new HttpClient(interlisValidatorMessageHandlerMock.Object) { BaseAddress = new Uri(interlisCheckServiceBaseUrl) };
             #pragma warning restore CA2000 // Dispose objects before losing scope
-            typeof(IliValidatorProcess)
+            typeof(XtfValidatorProcess)
                 ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?.SetValue(process, httpClient);
             return process;

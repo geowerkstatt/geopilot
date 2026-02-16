@@ -13,7 +13,7 @@ namespace Geopilot.Api.Pipeline.Process;
 /// <summary>
 /// Process for validating ILI files.
 /// </summary>
-internal class IliValidatorProcess : IDisposable
+internal class XtfValidatorProcess : IDisposable
 {
     private enum LogType
     {
@@ -30,13 +30,13 @@ internal class IliValidatorProcess : IDisposable
 
     private static readonly JsonSerializerOptions JsonOptions;
 
-    private ILogger<IliValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<IliValidatorProcess>();
+    private ILogger<XtfValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<XtfValidatorProcess>();
 
     private Parameterization config = new Parameterization();
 
     private HttpClient httpClient = new();
 
-    static IliValidatorProcess()
+    static XtfValidatorProcess()
     {
         JsonOptions = new()
         {
@@ -46,7 +46,7 @@ internal class IliValidatorProcess : IDisposable
     }
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="IliValidatorProcess"/>.
+    /// Disposes the resources used by the <see cref="XtfValidatorProcess"/>.
     /// </summary>
     [PipelineProcessCleanup]
     public void Dispose()

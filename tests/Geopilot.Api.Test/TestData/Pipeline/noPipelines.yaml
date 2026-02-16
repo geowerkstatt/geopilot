@@ -1,6 +1,6 @@
 processes:
-  - id: ili_validator
-    implementation:  Geopilot.Api.Pipeline.Process.IliValidatorProcess
+  - id: xtf_validator
+    implementation:  Geopilot.Api.Pipeline.Process.XtfValidatorProcess
     default_config:
       only_translate_if_xtf_is_de: false
 pipelines:

@@ -1,6 +1,6 @@
 processes:
-  - id: ili_validator
-    implementation: Geopilot.Api.Pipeline.Process.IliValidatorProcess
+  - id: xtf_validator
+    implementation: Geopilot.Api.Pipeline.Process.XtfValidatorProcess
     default_config:
   - id: zip_package_process
     implementation: Geopilot.Api.Pipeline.Process.ZipPackageProcess
@@ -17,8 +17,8 @@ pipelines:
     steps:
       - id: not_unique
         display_name:
-          en: ILI Validation
-        process_id: ili_validator
+          en: XTF Validation
+        process_id: xtf_validator
         process_config_overwrites:
         input:
           - from: upload

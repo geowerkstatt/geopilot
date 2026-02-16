@@ -85,11 +85,11 @@ public class PipelineFactoryTest
             { "log_level", "DEBUG" },
             { "profile", "PROFILE-A" },
         };
-        var stepConfig = typeof(IliValidatorProcess)
+        var stepConfig = typeof(XtfValidatorProcess)
             ?.GetField("config", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.GetValue(stepProcess) as Dictionary<string, string>;
         CollectionAssert.AreEqual(expectedDefaultConfig, stepConfig, "process config not as expected");
-        Assert.IsNotNull(stepProcess as IliValidatorProcess, "process is not of type ILI Validator");
+        Assert.IsNotNull(stepProcess as XtfValidatorProcess, "process is not of type ILI Validator");
     }
 
     [TestMethod]
@@ -103,7 +103,7 @@ public class PipelineFactoryTest
         object stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
         var expectedDefaultConfig = new Parameterization();
-        var stepConfig = typeof(IliValidatorProcess)
+        var stepConfig = typeof(XtfValidatorProcess)
             ?.GetField("config", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.GetValue(stepProcess) as Parameterization;
         CollectionAssert.AreEqual(expectedDefaultConfig, stepConfig, "process config not as expected");

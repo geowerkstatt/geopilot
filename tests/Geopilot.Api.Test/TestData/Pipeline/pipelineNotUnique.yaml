@@ -1,12 +1,12 @@
 processes:
-  - id: ili_validator
-    implementation: Geopilot.Api.Pipeline.Process.IliValidatorProcess
+  - id: xtf_validator
+    implementation: Geopilot.Api.Pipeline.Process.XtfValidatorProcess
     default_config:
       log_level: INFO
 pipelines:
   - id: ili_validation
     display_name:
-      en: ILI Validation
+      en: XTF Validation
     parameters:
       upload_step: upload
       mapping:
@@ -15,8 +15,8 @@ pipelines:
     steps:
       - id: validation
         display_name:
-          en: ILI Validation 1
-        process_id: ili_validator
+          en: XTF Validation 1
+        process_id: xtf_validator
         process_config_overwrites:
           log_level: DEBUG
         input:
@@ -33,7 +33,7 @@ pipelines:
               - DOWNLOAD
   - id: ili_validation
     display_name:
-      en: ILI Validation 2
+      en: XTF Validation 2
     parameters:
       upload_step: upload
       mapping:
@@ -42,8 +42,8 @@ pipelines:
     steps:
       - id: validation
         display_name:
-          en: ILI Validation
-        process_id: ili_validator
+          en: XTF Validation
+        process_id: xtf_validator
         process_config_overwrites:
           log_level: DEBUG
         input:

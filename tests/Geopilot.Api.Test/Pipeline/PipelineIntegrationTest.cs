@@ -117,14 +117,14 @@ public class PipelineIntegrationTest
 
         pipeline.Steps
             .Select(s => s.Process)
-            .Where(p => p is IliValidatorProcess)
-            .Cast<IliValidatorProcess>()
+            .Where(p => p is XtfValidatorProcess)
+            .Cast<XtfValidatorProcess>()
             .ToList()
             .ForEach(p =>
             {
                 var httpClient = new HttpClient(interlisValidatorMessageHandlerMock.Object);
                 httpClient.BaseAddress = new Uri(interlisCheckServiceBaseUrl);
-                typeof(IliValidatorProcess)
+                typeof(XtfValidatorProcess)
                     ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
                     ?.SetValue(p, httpClient);
             });
