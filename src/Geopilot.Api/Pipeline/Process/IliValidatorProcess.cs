@@ -103,19 +103,20 @@ internal class IliValidatorProcess : IDisposable
     /// <returns>A ProcessData instance containing the results of the validation process.</returns>
     /// <exception cref="ArgumentException">Thrown if the input ILI file is invalid.</exception>
     [PipelineProcessRun]
-    public async Task<ProcessData> RunAsync(IPipelineTransferFile iliFile, CancellationToken cancellationToken)
+    public async Task<Dictionary<string, object>> RunAsync(IPipelineTransferFile iliFile, CancellationToken cancellationToken)
     {
-        var outputData = new ProcessData();
+        var outputData = new Dictionary<string, object>();
 
         logger.LogInformation("Validating transfer file <{File}>...", iliFile.FileName);
         var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.FileName, this.Profile, cancellationToken);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
         var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
 
-        outputData.AddData(OutputMappingErrorLog, new ProcessDataPart(logFiles[LogType.ErrorLog]));
-        outputData.AddData(OutputMappingXtfLog, new ProcessDataPart(logFiles[LogType.XtfLog]));
-
-        return outputData;
+        return new Dictionary<string, object>()
+        {
+            { OutputMappingErrorLog, logFiles[LogType.ErrorLog] },
+            { OutputMappingXtfLog, logFiles[LogType.XtfLog] },
+        };
     }
 
     private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineTransferFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)

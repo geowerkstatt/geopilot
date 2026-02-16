@@ -16,7 +16,7 @@ public sealed class PipelineStep : IPipelineStep
         Process
             .GetType()
             .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessCleanupAttribute), true).Length > 0)
+            .Where(m => HasAttributeWithName(m, typeof(PipelineProcessCleanupAttribute).Name))
             .ToList()
             .ForEach(m => m.Invoke(Process, null));
     }
@@ -75,8 +75,8 @@ public sealed class PipelineStep : IPipelineStep
             try
             {
                 var processRunMethods = Process.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(m => m.GetCustomAttributes(typeof(PipelineProcessRunAttribute), true).Length > 0)
-                    .Where(m => m.ReturnType == typeof(Task<ProcessData>))
+                    .Where(m => HasAttributeWithName(m, typeof(PipelineProcessRunAttribute).Name))
+                    .Where(m => m.ReturnType == typeof(Task<Dictionary<string, object>>))
                     .Where(m => m?.GetCustomAttribute(typeof(AsyncStateMachineAttribute)) as AsyncStateMachineAttribute != null)
                     .Where(d => d != null);
 
@@ -97,7 +97,7 @@ public sealed class PipelineStep : IPipelineStep
                     var resultTask = runMethod.Invoke(Process, runParams);
                     if (resultTask != null)
                     {
-                        var result = await (Task<ProcessData>)resultTask;
+                        var result = await (Task<Dictionary<string, object>>)resultTask;
                         var stepResult = CreateStepResult(result);
 
                         this.State = StepState.Success;
@@ -124,6 +124,11 @@ public sealed class PipelineStep : IPipelineStep
         }
 
         return new StepResult();
+    }
+
+    private bool HasAttributeWithName(MethodInfo methodInfo, string attributeName)
+    {
+        return methodInfo.GetCustomAttributes(true).Any(attr => attr.GetType().Name == attributeName);
     }
 
     private List<object> CreateProcessRunParamList(PipelineContext context, List<ParameterInfo> parameterInfos, CancellationToken cancellationToken)
@@ -185,16 +190,16 @@ public sealed class PipelineStep : IPipelineStep
         }
     }
 
-    private StepResult CreateStepResult(ProcessData outputProcessData)
+    private StepResult CreateStepResult(Dictionary<string, object> outputProcessData)
     {
         var stepResult = new StepResult();
         foreach (var outputConfig in OutputConfigs)
         {
-            if (outputConfig.Take != null && outputConfig.As != null && outputProcessData.Data.TryGetValue(outputConfig.Take, out var processDataPart))
+            if (outputConfig.Take != null && outputConfig.As != null && outputProcessData.TryGetValue(outputConfig.Take, out var processDataPart))
             {
                 var stepOutput = new StepOutput
                 {
-                    Data = processDataPart.Data,
+                    Data = processDataPart,
                     Action = outputConfig.Action ?? new HashSet<OutputAction>(),
                 };
                 stepResult.Outputs[outputConfig.As] = stepOutput;

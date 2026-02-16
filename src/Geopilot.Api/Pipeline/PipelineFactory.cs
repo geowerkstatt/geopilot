@@ -87,7 +87,7 @@ public class PipelineFactory : IPipelineFactory
     private void InitializeProcess(Type processType, object process, Parameterization processConfig)
     {
         var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => m.GetCustomAttributes(typeof(PipelineProcessInitializeAttribute), true).Length > 0)
+            .Where(m => HasAttributeWithName(m, typeof(PipelineProcessInitializeAttribute).Name))
             .ToList();
         initMethods
             .ForEach(m =>
@@ -98,6 +98,11 @@ public class PipelineFactory : IPipelineFactory
                     .ToArray();
                 m.Invoke(process, parameters);
             });
+    }
+
+    private bool HasAttributeWithName(MethodInfo methodInfo, string attributeName)
+    {
+        return methodInfo.GetCustomAttributes(true).Any(attr => attr.GetType().Name == attributeName);
     }
 
     private object? GenerateParameter(Type parameterType, Parameterization processConfig)

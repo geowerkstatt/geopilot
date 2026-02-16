@@ -9,17 +9,17 @@ public class PipelineStepTest
 {
     private class MockPipelineProcessSingleInput
     {
-        public MockPipelineProcessSingleInput(ProcessData outputData)
+        public MockPipelineProcessSingleInput(Dictionary<string, object> outputData)
         {
             this.outputData = outputData;
         }
 
-        private ProcessData outputData;
+        private Dictionary<string, object> outputData;
 
         public int NumberOfRunInvoced { get; set; }
 
         [PipelineProcessRun]
-        public async Task<ProcessData> RunAsync(string data, CancellationToken cancellationToken)
+        public async Task<Dictionary<string, object>> RunAsync(string data, CancellationToken cancellationToken)
         {
             Assert.IsNotNull(data);
             Assert.IsNotNull(cancellationToken);
@@ -30,17 +30,17 @@ public class PipelineStepTest
 
     private class MockPipelineProcessArrayInput
     {
-        public MockPipelineProcessArrayInput(ProcessData outputData)
+        public MockPipelineProcessArrayInput(Dictionary<string, object> outputData)
         {
             this.outputData = outputData;
         }
 
-        private ProcessData outputData;
+        private Dictionary<string, object> outputData;
 
         public int NumberOfRunInvoced { get; set; }
 
         [PipelineProcessRun]
-        public async Task<ProcessData> RunAsync(string[] data, CancellationToken cancellationToken)
+        public async Task<Dictionary<string, object>> RunAsync(string[] data, CancellationToken cancellationToken)
         {
             Assert.IsNotNull(data);
             Assert.IsNotEmpty(data, "data expected");
@@ -52,17 +52,17 @@ public class PipelineStepTest
 
     private class MockPipelineProcessManyDifferentInputTypesInput
     {
-        public MockPipelineProcessManyDifferentInputTypesInput(ProcessData outputData)
+        public MockPipelineProcessManyDifferentInputTypesInput(Dictionary<string, object> outputData)
         {
             this.outputData = outputData;
         }
 
-        private ProcessData outputData;
+        private Dictionary<string, object> outputData;
 
         public int NumberOfRunInvoced { get; set; }
 
         [PipelineProcessRun]
-        public async Task<ProcessData> RunAsync(string[] srtingData, int intData, bool booleanData, double doubleData, CancellationToken cancellationToken)
+        public async Task<Dictionary<string, object>> RunAsync(string[] srtingData, int intData, bool booleanData, double doubleData, CancellationToken cancellationToken)
         {
             NumberOfRunInvoced++;
             Assert.IsNotNull(srtingData);
@@ -80,7 +80,7 @@ public class PipelineStepTest
         public int NumberOfRunInvoced { get; set; }
 
         [PipelineProcessRun]
-        public async Task<ProcessData> RunAsync(string data)
+        public async Task<Dictionary<string, object>> RunAsync(string data)
         {
             ++NumberOfRunInvoced;
             throw new InvalidOperationException("Test exception during process run.");
@@ -122,8 +122,10 @@ public class PipelineStepTest
                 { "upload", uploadStepResult },
             },
         };
-        var processData = new ProcessData();
-        processData.AddData("error_log", new ProcessDataPart("some_data"));
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
@@ -181,8 +183,10 @@ public class PipelineStepTest
                 { "step_01", stepStepResult01 },
             },
         };
-        var processData = new ProcessData();
-        processData.AddData("error_log", new ProcessDataPart("some_data"));
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
 
         var processMock = new MockPipelineProcessArrayInput(processData);
 
@@ -261,8 +265,10 @@ public class PipelineStepTest
                 { "step_01", stepStepResult01 },
             },
         };
-        var processData = new ProcessData();
-        processData.AddData("error_log", new ProcessDataPart("some_data"));
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
 
         var processMock = new MockPipelineProcessManyDifferentInputTypesInput(processData);
 
@@ -321,7 +327,7 @@ public class PipelineStepTest
             },
         };
 
-        var processMock = new MockPipelineProcessSingleInput(new ProcessData());
+        var processMock = new MockPipelineProcessSingleInput(new Dictionary<string, object>());
 
         using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
 
@@ -372,7 +378,7 @@ public class PipelineStepTest
             },
         };
 
-        var processMock = new MockPipelineProcessSingleInput(new ProcessData());
+        var processMock = new MockPipelineProcessSingleInput(new Dictionary<string, object>());
 
         using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
 
@@ -473,8 +479,10 @@ public class PipelineStepTest
                 { "upload", uploadStepResult },
             },
         };
-        var processData = new ProcessData();
-        processData.AddData("error_log", new ProcessDataPart("some_data"));
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 

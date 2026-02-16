@@ -8,8 +8,8 @@ namespace Geopilot.Api.Pipeline.Process;
 /// Represents a pipeline process that handles packaging <see cref="IPipelineTransferFile"/> to a ZIP file which is also provided in a <see cref="IPipelineTransferFile"/>.
 /// </summary>
 /// <remarks>This class is intended for use within a data processing pipeline where ZIP package handling of <see cref="IPipelineTransferFile"/> is required.
-/// All <see cref="IPipelineTransferFile"/> provided in the input <see cref="ProcessData"/> will be included in the created ZIP archive. The resulting ZIP file is then made available as an output of the process.
-/// The ZIP archive is provided under the key 'zip_package' in the <see cref="ProcessData"/> output.</remarks>
+/// All <see cref="IPipelineTransferFile"/> provided in the input will be included in the created ZIP archive. The resulting ZIP file is then made available as an output of the process.
+/// The ZIP archive is provided under the key 'zip_package' in the output.</remarks>
 internal class ZipPackageProcess
 {
     private const string OutputMappingZipPackage = "zip_package";
@@ -50,7 +50,7 @@ internal class ZipPackageProcess
     /// <returns>A ProcessData instance containing the ZIP archive created from the input files.</returns>
     /// <exception cref="ArgumentException">Thrown if no valid input files are found in the input list, or if the data handling configuration is not set.</exception>
     [PipelineProcessRun]
-    public async Task<ProcessData> RunAsync(params IPipelineTransferFile[] input)
+    public async Task<Dictionary<string, object>> RunAsync(params IPipelineTransferFile[] input)
     {
         if (input.Length == 0)
         {
@@ -72,8 +72,9 @@ internal class ZipPackageProcess
             }
         }
 
-        var outputData = new ProcessData();
-        outputData.AddData(OutputMappingZipPackage, new ProcessDataPart(zipTransferFile));
-        return outputData;
+        return new Dictionary<string, object>()
+        {
+            { OutputMappingZipPackage, zipTransferFile },
+        };
     }
 }

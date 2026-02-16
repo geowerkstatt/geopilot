@@ -19,9 +19,9 @@ public class ZipPackageProcessTest
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
-        Assert.HasCount(1, processResult.Data);
-        processResult.Data.TryGetValue("zip_package", out var outputData);
-        var zipArchive = outputData?.Data as IPipelineTransferFile;
+        Assert.HasCount(1, processResult);
+        processResult.TryGetValue("zip_package", out var outputData);
+        var zipArchive = outputData as IPipelineTransferFile;
         Assert.IsNotNull(zipArchive);
         Assert.AreEqual("myPersonalZipArchive.zip", zipArchive.OrginalFileName);
     }
@@ -35,9 +35,9 @@ public class ZipPackageProcessTest
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
-        Assert.HasCount(1, processResult.Data);
-        processResult.Data.TryGetValue("zip_package", out var outputData);
-        var zipArchive = outputData?.Data as IPipelineTransferFile;
+        Assert.HasCount(1, processResult);
+        processResult.TryGetValue("zip_package", out var outputData);
+        var zipArchive = outputData as IPipelineTransferFile;
         Assert.IsNotNull(zipArchive);
         Assert.AreEqual("archive.zip", zipArchive.OrginalFileName);
     }

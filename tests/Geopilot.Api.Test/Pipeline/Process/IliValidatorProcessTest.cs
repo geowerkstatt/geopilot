@@ -66,15 +66,15 @@ public class IliValidatorProcessTest
 
         var processResult = Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
-        Assert.HasCount(2, processResult.Data);
-        processResult.Data.TryGetValue("error_log", out var appLogData);
+        Assert.HasCount(2, processResult);
+        processResult.TryGetValue("error_log", out var appLogData);
         Assert.IsNotNull(appLogData);
-        var appLog = appLogData.Data as IPipelineTransferFile;
+        var appLog = appLogData as IPipelineTransferFile;
         Assert.IsNotNull(appLog);
         Assert.AreEqual("errorLog.log", appLog.OrginalFileName);
-        processResult.Data.TryGetValue("xtf_log", out var xtfLogData);
+        processResult.TryGetValue("xtf_log", out var xtfLogData);
         Assert.IsNotNull(xtfLogData);
-        var xtfLog = xtfLogData.Data as IPipelineTransferFile;
+        var xtfLog = xtfLogData as IPipelineTransferFile;
         Assert.IsNotNull(xtfLog);
         Assert.AreEqual("xtfLog.xtf", xtfLog.OrginalFileName);
     }
