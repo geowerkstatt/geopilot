@@ -41,6 +41,12 @@ public class Mandate
     public string? InterlisValidationProfile { get; set; }
 
     /// <summary>
+    /// Gets or sets the unique identifier of the pipeline associated with this instance.
+    /// </summary>
+    [Column(TypeName = "varchar(128)")]
+    public string? PipelineId { get; set; }
+
+    /// <summary>
     /// The spatial extent of the mandate. The extent is a polygon in WGS84.
     /// Delivered data must be within the extent.
     /// </summary>

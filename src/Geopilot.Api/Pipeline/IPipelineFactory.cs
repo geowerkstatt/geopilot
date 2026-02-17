@@ -1,10 +1,18 @@
-﻿namespace Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Pipeline.Config;
+
+namespace Geopilot.Api.Pipeline;
 
 /// <summary>
 /// Factory interface for creating pipeline instances.
 /// </summary>
 public interface IPipelineFactory
 {
+    /// <summary>
+    /// Gets the collection of pipeline configurations associated with this instance.
+    /// </summary>
+    List<PipelineConfig> Pipelines { get; }
+
     /// <summary>
     /// Creates a pipeline instance with the specified id.
     /// </summary>

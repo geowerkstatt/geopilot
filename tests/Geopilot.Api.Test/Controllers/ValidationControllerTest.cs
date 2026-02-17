@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Stac.Api.Models.Cql2;
 using System.Collections.Immutable;
 
 namespace Geopilot.Api.Controllers;
