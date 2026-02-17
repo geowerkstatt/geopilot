@@ -51,7 +51,7 @@ volumes:
   - ./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml:/pipelines/pipelines.yaml:ro
 ```
 
-> **Wichtig:** Der Dateiname und Pfad der Pipeline-Konfiguration sind in `appsettings.json` und `docker-compose.yml` aufeinander abgestimmt. Bei einer Umbenennung oder Verschiebung der YAML-Datei müssen beide Stellen entsprechend angepasst werden.
+> **Wichtig:** Der Dateiname und Pfad der Pipeline-Konfiguration sind in `appsettings.json` und `docker-compose.yml` aufeinander abgestimmt. Bei einer Umbenennung oder Verschiebung der YAML-Datei müssen beide Stellen entsprechend angepasst werden. Bei Bedarf kann der Pfad auch über eine Umgebungsvariable in der `docker-compose.yml` überschrieben werden (z.B. `Pipeline__Definition: /custom/path/pipelines.yaml`).
 
 ### URLs Entwicklungsumgebung 🔗
 
