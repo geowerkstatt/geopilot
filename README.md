@@ -36,22 +36,21 @@ docker compose up -d
 
 geopilot verwendet eine YAML-Konfigurationsdatei, um den Validierungs- und Lieferprozess als Pipeline zu definieren. Diese Datei beschreibt die verfügbaren Prozesse (z.B. INTERLIS-Validierung), deren Konfiguration sowie die Schritte, die bei einer Datenlieferung ausgeführt werden. Ein Beispiel befindet sich unter [`src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml`](./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml).
 
-Der Pfad zur Pipeline-Konfiguration wird in den [Appsettings](./src/Geopilot.Api/appsettings.json) unter `Pipeline:Definition` festgelegt:
+Der Pfad zur Pipeline-Konfiguration kann auf zwei Arten festgelegt werden:
 
-```json
-"Pipeline": {
-  "Definition": "pipelines\\pipelines.yaml"
-}
-```
+- **Appsettings:** In den [Appsettings](./src/Geopilot.Api/appsettings.json) unter `Pipeline:Definition` (z.B. beim Betrieb ohne Docker).
+- **Umgebungsvariable:** Über `Pipeline__Definition` (z.B. in der [docker-compose.yml](./docker-compose.yml)), welche den Wert aus den Appsettings überschreibt.
 
-Beim Start mit Docker Compose wird die YAML-Datei als Volume in den Container gemountet (siehe [docker-compose.yml](./docker-compose.yml)):
+Beim Start mit Docker Compose wird die YAML-Datei als Volume in den Container gemountet und der Pfad per Umgebungsvariable gesetzt:
 
 ```yaml
+environment:
+  Pipeline__Definition: /pipelines/pipelines.yaml
 volumes:
   - ./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml:/pipelines/pipelines.yaml:ro
 ```
 
-> **Wichtig:** Der Dateiname und Pfad der Pipeline-Konfiguration sind in `appsettings.json` und `docker-compose.yml` aufeinander abgestimmt. Bei einer Umbenennung oder Verschiebung der YAML-Datei müssen beide Stellen entsprechend angepasst werden. Bei Bedarf kann der Pfad auch über eine Umgebungsvariable in der `docker-compose.yml` überschrieben werden (z.B. `Pipeline__Definition: /custom/path/pipelines.yaml`).
+> **Wichtig:** Der Pfad in der Umgebungsvariable `Pipeline__Definition` und der Mount-Pfad in `volumes` müssen übereinstimmen. Bei einer Umbenennung oder Verschiebung der YAML-Datei müssen beide Stellen entsprechend angepasst werden.
 
 ### URLs Entwicklungsumgebung 🔗
 
