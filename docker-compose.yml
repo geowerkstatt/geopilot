@@ -81,6 +81,7 @@ services:
     volumes:
       - ./src/Geopilot.Api/Uploads:/uploads
       - ./src/Geopilot.Api/Persistent:/assets
+      - ./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml:/pipelines/pipelines.yaml:ro
       - ./src/Geopilot.Frontend/devPublic:/public
       - ./certs:/https:ro
     extra_hosts:
