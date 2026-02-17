@@ -76,6 +76,7 @@ services:
       Auth__FullScope: "profile email openid geopilot.api"
       Auth__ApiServerScope: "geopilot.api"
       Validation__InterlisCheckServiceUrl: http://interlis-check-service:8080/
+      Pipeline__Definition: /pipelines/pipelines.yaml
       PUID: 1000
       PGID: 1000
     volumes:
