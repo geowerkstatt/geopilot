@@ -32,6 +32,27 @@ dotnet dev-certs https --export-path ".\certs\cert.pem" --no-password --format P
 docker compose up -d
 ```
 
+### Pipeline-Konfiguration
+
+geopilot verwendet eine YAML-Konfigurationsdatei, um den Validierungs- und Lieferprozess als Pipeline zu definieren. Diese Datei beschreibt die verfügbaren Prozesse (z.B. INTERLIS-Validierung), deren Konfiguration sowie die Schritte, die bei einer Datenlieferung ausgeführt werden. Ein Beispiel befindet sich unter [`src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml`](./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml).
+
+Der Pfad zur Pipeline-Konfiguration wird in den [Appsettings](./src/Geopilot.Api/appsettings.json) unter `Pipeline:Definition` festgelegt:
+
+```json
+"Pipeline": {
+  "Definition": "pipelines\\pipelines.yaml"
+}
+```
+
+Beim Start mit Docker Compose wird die YAML-Datei als Volume in den Container gemountet (siehe [docker-compose.yml](./docker-compose.yml)):
+
+```yaml
+volumes:
+  - ./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml:/pipelines/pipelines.yaml:ro
+```
+
+> **Wichtig:** Der Dateiname und Pfad der Pipeline-Konfiguration sind in `appsettings.json` und `docker-compose.yml` aufeinander abgestimmt. Bei einer Umbenennung oder Verschiebung der YAML-Datei müssen beide Stellen entsprechend angepasst werden.
+
 ### URLs Entwicklungsumgebung 🔗
 
 | URL                    | Project                                       | Reverse Proxy                                                             |
