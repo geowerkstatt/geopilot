@@ -75,6 +75,7 @@ describe("Mandate tests", () => {
       expect(location.pathname).to.eq(`/admin/mandates/0`);
     });
     setInput("name", randomMandateName);
+    setSelect("pipelineId", 0, 2);
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -108,6 +109,7 @@ describe("Mandate tests", () => {
 
     // Fields should not show errors before they are touched.
     hasError("name", false);
+    hasError("pipelineId", false);
     hasError("extent-bottom-left-longitude", false);
     hasError("extent-bottom-left-latitude", false);
     hasError("extent-upper-right-longitude", false);
@@ -146,11 +148,14 @@ describe("Mandate tests", () => {
     // Save should trigger validation and show errors if fields are not valid.
     cy.dataCy("save-button").click();
     cy.dataCy("save-button").should("be.disabled");
+    hasError("pipelineId", true);
     hasError("evaluatePrecursorDelivery", true);
     hasError("evaluatePartial", true);
     hasError("evaluateComment", true);
 
     // Fill out all required fields while checking if errors disappear.
+    setSelect("pipelineId", 0, 2);
+    hasError("pipelineId", false);
     setSelect("evaluatePrecursorDelivery", 0, 3);
     hasError("evaluatePrecursorDelivery", false);
     setSelect("evaluatePartial", 1, 2);
@@ -170,6 +175,7 @@ describe("Mandate tests", () => {
     // Resets all fields and validations.
     cy.dataCy("reset-button").click();
     hasError("name", false);
+    hasError("pipelineId", false);
     hasError("extent-bottom-left-longitude", false);
     hasError("extent-bottom-left-latitude", false);
     hasError("extent-upper-right-longitude", false);
@@ -191,6 +197,7 @@ describe("Mandate tests", () => {
 
     // Fill out the entire form
     setInput("name", randomMandateName);
+    setSelect("pipelineId", 0, 2);
     setAutocomplete("organisations", "Brown and Sons");
     setAutocomplete("fileTypes", ".xml");
     setAutocomplete("fileTypes", ".xtf");
@@ -232,6 +239,7 @@ describe("Mandate tests", () => {
     // Create new mandate for testing
     cy.dataCy("addMandate-button").click();
     setInput("name", randomMandateName);
+    setSelect("pipelineId", 0, 2);
     setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
     setAutocomplete("fileTypes", ".xml");
     setAutocomplete("fileTypes", ".xtf");
@@ -345,6 +353,7 @@ describe("Mandate tests", () => {
 
     // Fill in required fields.
     setInput("name", randomMandateName);
+    setSelect("pipelineId", 0, 2);
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");

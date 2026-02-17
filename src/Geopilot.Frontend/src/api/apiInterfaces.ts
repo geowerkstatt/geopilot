@@ -43,6 +43,7 @@ export interface Mandate {
   evaluatePartial?: FieldEvaluationType;
   evaluateComment?: FieldEvaluationType;
   interlisValidationProfile?: string;
+  pipelineId?: string;
 }
 
 export interface Organisation {
@@ -116,4 +117,13 @@ export interface ValidatorConfiguration {
 
 export interface StartJobRequest {
   mandateId?: number;
+}
+
+export interface PipelineSummary {
+  id: string;
+  displayName: Record<string, string>;
+}
+
+export interface AvailablePipelinesResponse {
+  pipelines: PipelineSummary[];
 }
