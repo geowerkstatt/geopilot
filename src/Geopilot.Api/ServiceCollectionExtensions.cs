@@ -31,31 +31,25 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The IServiceCollection to which the IPipelineFactory singleton will be added. Cannot be null.</param>
     /// <exception cref="InvalidOperationException">Thrown if the pipeline definition is missing from the configuration or if the pipeline configuration contains
     /// validation errors.</exception>
-    public static void RegisterPipelineFactory(this IServiceCollection services)
+    public static void AddPipelineFactory(this IServiceCollection services)
     {
         Func<IServiceProvider, IPipelineFactory> cofigurePipelineFactory = (IServiceProvider sp) =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
             var pipelineDefinition = configuration.GetValue<string>(pipelineDefinitionKey);
-            if (!string.IsNullOrWhiteSpace(pipelineDefinition))
-            {
-                var pipelineFactory = PipelineFactory.Builder()
-                .File(pipelineDefinition)
-                .Configuration(configuration)
-                .Build();
 
-                var validationErrors = pipelineFactory.PipelineProcessConfig.Validate();
-                if (validationErrors.HasErrors)
-                {
-                    throw new InvalidOperationException($"errors in pipeline '{pipelineDefinition}': {validationErrors.ErrorMessage}");
-                }
+            if (string.IsNullOrWhiteSpace(pipelineDefinition))
+                throw new InvalidOperationException($"Path to pipeline definition not specified. Define path to pipeline definition under <{pipelineDefinitionKey}>.");
 
-                return pipelineFactory;
-            }
-            else
-            {
-                throw new InvalidOperationException($"unknown pipeline definition. define pipeline under '{pipelineDefinitionKey}'.");
-            }
+            if (!File.Exists(pipelineDefinition))
+                throw new InvalidOperationException($"Pipeline definition file not found at path: {pipelineDefinition}");
+
+            var pipelineFactory = PipelineFactory.Builder()
+                    .File(pipelineDefinition)
+                    .Configuration(configuration)
+                    .Build();
+
+            return pipelineFactory;
         };
         services.AddSingleton<IPipelineFactory>(cofigurePipelineFactory);
     }
