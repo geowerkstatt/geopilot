@@ -159,7 +159,7 @@ builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
 builder.Services.AddHostedService<ValidationRunner>();
 builder.Services.AddHostedService<ValidationJobCleanupService>();
-builder.Services.RegisterPipelineFactory();
+builder.Services.AddPipelineFactory();
 
 builder.Services
     .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")
@@ -211,6 +211,9 @@ if (context.Database.GetPendingMigrations().Any())
 {
     context.MigrateDatabase();
 }
+
+// Validate pipeline configuration on startup and crash if configuration is invalid
+app.ValidatePipelineConfiguration();
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>
