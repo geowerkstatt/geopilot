@@ -4,11 +4,8 @@ using Geopilot.Api.Pipeline.Config;
 namespace Geopilot.Api.Pipeline;
 
 /// <summary>
-/// Defines the contract for a service that manages or executes processing pipelines.
+/// Provides methods for managing and retrieving pipelines.
 /// </summary>
-/// <remarks>Implementations of this interface typically provide methods for configuring, executing, or monitoring
-/// pipelines composed of multiple processing steps. The specific operations and usage patterns depend on the concrete
-/// implementation.</remarks>
 public interface IPipelineService
 {
     /// <summary>

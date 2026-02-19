@@ -75,7 +75,7 @@ describe("Mandate tests", () => {
       expect(location.pathname).to.eq(`/admin/mandates/0`);
     });
     setInput("name", randomMandateName);
-    setSelect("pipelineId", 0, 2);
+    setSelect("pipelineId", 0, 1);
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -154,7 +154,7 @@ describe("Mandate tests", () => {
     hasError("evaluateComment", true);
 
     // Fill out all required fields while checking if errors disappear.
-    setSelect("pipelineId", 0, 2);
+    setSelect("pipelineId", 0, 1);
     hasError("pipelineId", false);
     setSelect("evaluatePrecursorDelivery", 0, 3);
     hasError("evaluatePrecursorDelivery", false);
@@ -197,7 +197,7 @@ describe("Mandate tests", () => {
 
     // Fill out the entire form
     setInput("name", randomMandateName);
-    setSelect("pipelineId", 0, 2);
+    setSelect("pipelineId", 0, 1);
     setAutocomplete("organisations", "Brown and Sons");
     setAutocomplete("fileTypes", ".xml");
     setAutocomplete("fileTypes", ".xtf");
@@ -239,7 +239,7 @@ describe("Mandate tests", () => {
     // Create new mandate for testing
     cy.dataCy("addMandate-button").click();
     setInput("name", randomMandateName);
-    setSelect("pipelineId", 0, 2);
+    setSelect("pipelineId", 0, 1);
     setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
     setAutocomplete("fileTypes", ".xml");
     setAutocomplete("fileTypes", ".xtf");
@@ -353,7 +353,7 @@ describe("Mandate tests", () => {
 
     // Fill in required fields.
     setInput("name", randomMandateName);
-    setSelect("pipelineId", 0, 2);
+    setSelect("pipelineId", 0, 1);
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");

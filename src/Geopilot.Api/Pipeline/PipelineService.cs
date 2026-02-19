@@ -3,10 +3,8 @@
 namespace Geopilot.Api.Pipeline;
 
 /// <summary>
-/// Implements the contract for a service that manages or executes processing pipelines.
+/// Provides methods for managing and retrieving pipelines.
 /// </summary>
-/// <remarks>Concrete implementations of this class should provide methods for configuring, executing, or monitoring
-/// pipelines composed of multiple processing steps.</remarks>
 public class PipelineService : IPipelineService
 {
     private readonly ILogger<PipelineService> logger;

@@ -33,13 +33,7 @@ public class PipelineFactory : IPipelineFactory
     }
 
     /// <inheritdoc />
-    public List<PipelineConfig> Pipelines
-    {
-        get
-        {
-            return PipelineProcessConfig.Pipelines;
-        }
-    }
+    public List<PipelineConfig> Pipelines => PipelineProcessConfig.Pipelines;
 
     /// <inheritdoc />
     public IPipeline CreatePipeline(string id)

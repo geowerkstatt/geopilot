@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Authorization;
+using Geopilot.Api.Contracts;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Microsoft.AspNetCore.Authorization;
@@ -12,7 +13,6 @@ namespace Geopilot.Api.Controllers;
 /// </summary>
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
-[AllowAnonymous]
 public class PipelineController : ControllerBase
 {
     private readonly ILogger<PipelineController> logger;
@@ -35,18 +35,16 @@ public class PipelineController : ControllerBase
     /// <returns>An <see cref="IActionResult"/> containing an <see cref="AvailablePipelinesResponse"/> object with the available
     /// pipeline summaries. The response is returned with HTTP status code 200 (OK).</returns>
     [HttpGet]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
     [SwaggerResponse(StatusCodes.Status200OK, "The available pipelines.", typeof(AvailablePipelinesResponse), "application/json")]
     public async Task<IActionResult> GetAvailablePipelines()
     {
-        var response = new AvailablePipelinesResponse()
-        {
-            Pipelines = this.pipelineService.GetAvailablePipelines().Select(ToPipelineSumary).ToList(),
-        };
+        var response = new AvailablePipelinesResponse(this.pipelineService.GetAvailablePipelines().Select(ToPipelineSumary));
         return Ok(response);
     }
 
     private static PipelineSummary ToPipelineSumary(PipelineConfig pipeline)
     {
-        return new PipelineSummary() { Id = pipeline.Id, DisplayName = pipeline.DisplayName, };
+        return new PipelineSummary(pipeline.Id, pipeline.DisplayName);
     }
 }
