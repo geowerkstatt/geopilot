@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Models;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,7 @@ public class MandateController : ControllerBase
     private readonly Context context;
     private readonly IValidationService validationService;
     private readonly IEnumerable<IValidator> validators;
+    private readonly IPipelineService pipelineService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MandateController"/> class.
@@ -28,12 +30,19 @@ public class MandateController : ControllerBase
     /// <param name="context">Database context for getting mandates.</param>
     /// <param name="validationService">The validation service providing upload file information for filetype matching.</param>
     /// <param name="validators">The validator providing information about the INTERLIS validation.</param>
-    public MandateController(ILogger<MandateController> logger, Context context, IValidationService validationService, IEnumerable<IValidator> validators)
+    /// <param name="pipelineService">The pipeline service providing information about available pipelines for validation during creating or updating mandates.</param>
+    public MandateController(
+        ILogger<MandateController> logger,
+        Context context,
+        IValidationService validationService,
+        IEnumerable<IValidator> validators,
+        IPipelineService pipelineService)
     {
         this.logger = logger;
         this.context = context;
         this.validationService = validationService;
         this.validators = validators;
+        this.pipelineService = pipelineService;
     }
 
     /// <summary>
@@ -141,6 +150,9 @@ public class MandateController : ControllerBase
             if (!await IsValidInterlisProfile(mandate.InterlisValidationProfile))
                 return BadRequest($"INTERLIS validation profile <{mandate.InterlisValidationProfile}> does not exist.");
 
+            if (!IsValidPipeline(mandate.PipelineId))
+                return BadRequest($"Pipeline <{mandate.PipelineId}> does not exist.");
+
             var organisationIds = mandate.Organisations.Select(o => o.Id).ToList();
             mandate.Organisations = await context.Organisations
                 .Where(o => organisationIds.Contains(o.Id))
@@ -198,6 +210,9 @@ public class MandateController : ControllerBase
             if (!await IsValidInterlisProfile(mandate.InterlisValidationProfile))
                 return BadRequest($"INTERLIS validation profile <{mandate.InterlisValidationProfile}> does not exist.");
 
+            if (!IsValidPipeline(mandate.PipelineId))
+                return BadRequest($"Pipeline <{mandate.PipelineId}> does not exist.");
+
             context.Entry(existingMandate).CurrentValues.SetValues(mandate);
 
             var organisationIds = mandate.Organisations.Select(o => o.Id).ToList();
@@ -238,5 +253,13 @@ public class MandateController : ControllerBase
 
         var supportedProfiles = await interlisValidator.GetSupportedProfilesAsync();
         return supportedProfiles.Any(p => string.Equals(p.Id, profile, StringComparison.Ordinal));
+    }
+
+    private bool IsValidPipeline(string? pipelineId)
+    {
+        if (string.IsNullOrEmpty(pipelineId)) return false;
+
+        var pipeline = pipelineService.GetById(pipelineId);
+        return pipeline != null;
     }
 }

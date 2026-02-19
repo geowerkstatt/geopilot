@@ -88,6 +88,8 @@
   "organisations": "Organisationen",
   "organisationsLoadingError": "Beim Laden der Organisationen ist ein Fehler aufgetreten: {{error}}",
   "partialDelivery": "Teillieferung",
+  "pipeline": "Pipeline",
+  "pipelineLoadingError": "Beim Laden der Pipelines ist ein Fehler aufgetreten: {{error}}",
   "precursor": "Vorgänger",
   "privacyPolicy": "Datenschutz",
   "public": "Öffentlich",

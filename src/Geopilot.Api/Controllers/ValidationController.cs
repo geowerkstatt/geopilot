@@ -2,8 +2,6 @@
 using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
-using Geopilot.Api.Models;
-using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

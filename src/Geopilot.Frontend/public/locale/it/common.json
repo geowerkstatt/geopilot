@@ -88,6 +88,8 @@
   "organisations": "Organizzazioni",
   "organisationsLoadingError": "Si è verificato un errore durante il caricamento delle organizzazioni: {{error}}",
   "partialDelivery": "Consegna parziale",
+  "pipeline": "Pipeline",
+  "pipelineLoadingError": "Si è verificato un errore durante il caricamento delle pipeline: {{error}}",
   "precursor": "Precursore",
   "privacyPolicy": "Informativa sulla privacy",
   "public": "Pubblico",

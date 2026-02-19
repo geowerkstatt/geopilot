@@ -8,6 +8,7 @@ pipelines:
   - id: ili_validation
     display_name:
       en: XTF Validation
+      de: XTF Validierung
     parameters:
       upload_step: upload
       mapping:

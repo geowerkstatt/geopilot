@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using System.Reflection;
 using YamlDotNet.Serialization;
@@ -30,6 +31,9 @@ public class PipelineFactory : IPipelineFactory
         using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
         this.logger = factory.CreateLogger<PipelineFactory>();
     }
+
+    /// <inheritdoc />
+    public List<PipelineConfig> Pipelines => PipelineProcessConfig.Pipelines;
 
     /// <inheritdoc />
     public IPipeline CreatePipeline(string id)

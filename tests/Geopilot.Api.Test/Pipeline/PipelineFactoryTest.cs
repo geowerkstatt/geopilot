@@ -27,15 +27,15 @@ public class PipelineFactoryTest
         #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
     }
 
-    [TestMethod]
-    public void PipelineNotDefined()
+    [TestMethod(DisplayName = "Create Pipeline By Id But Pipeline Not Defined")]
+    public void CreatePipelineByIdButPipelineNotDefined()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("foo"));
         Assert.AreEqual("pipeline for 'foo' not found", exception.Message);
     }
 
-    [TestMethod]
+    [TestMethod(DisplayName = "Create Basic Pipeline")]
     public void CreateBasicPipeline()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
@@ -92,7 +92,7 @@ public class PipelineFactoryTest
         Assert.IsNotNull(stepProcess as XtfValidatorProcess, "process is not of type ILI Validator");
     }
 
-    [TestMethod]
+    [TestMethod(DisplayName = "Create Basic Pipeline No Process Config Overwrite")]
     public void CreateBasicPipelineNoProcessConfigOverwrite()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipelineNoProcessConfigOverwrite");

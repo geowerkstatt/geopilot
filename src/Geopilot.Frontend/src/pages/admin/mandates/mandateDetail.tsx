@@ -10,7 +10,14 @@ import {
   FormInput,
   FormSelect,
 } from "../../../components/form/form.ts";
-import { FieldEvaluationType, Mandate, Organisation, ValidatorConfiguration } from "../../../api/apiInterfaces.ts";
+import {
+  AvailablePipelinesResponse,
+  FieldEvaluationType,
+  Mandate,
+  Organisation,
+  PipelineSummary,
+  ValidatorConfiguration,
+} from "../../../api/apiInterfaces.ts";
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import { FieldValues } from "react-hook-form";
@@ -18,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import useFetch from "../../../hooks/useFetch.ts";
 import InterlisProfileFormSelect from "./interlisProfileFormSelect.tsx";
+import PipelineFormSelect from "./pipelineFormSelect.tsx";
 
 const MandateDetail = () => {
   const { t } = useTranslation();
@@ -26,6 +34,7 @@ const MandateDetail = () => {
 
   const [mandate, setMandate] = useState<Mandate>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
+  const [pipelines, setPipelines] = useState<PipelineSummary[]>();
   const [validators, setValidators] = useState<{ [key: string]: ValidatorConfiguration }>({});
 
   const interlisValidatorName = "INTERLIS";
@@ -43,6 +52,13 @@ const MandateDetail = () => {
       errorMessageLabel: "organisationsLoadingError",
     });
     setOrganisations(organisations);
+  }, [fetchApi]);
+
+  const loadPipelines = useCallback(async () => {
+    const pipelines = await fetchApi<AvailablePipelinesResponse>("/api/v1/pipeline", {
+      errorMessageLabel: "pipelinesLoadingError",
+    });
+    setPipelines(pipelines?.pipelines ?? []);
   }, [fetchApi]);
 
   const loadValidators = useCallback(async () => {
@@ -70,8 +86,9 @@ const MandateDetail = () => {
       });
     }
     loadOrganisations();
+    loadPipelines();
     loadValidators();
-  }, [id, loadValidators, loadMandate, loadOrganisations]);
+  }, [id, loadValidators, loadMandate, loadOrganisations, loadPipelines]);
 
   const prepareMandateForSave = (formData: FieldValues): Mandate => {
     const mandate = formData as Mandate;
@@ -119,6 +136,9 @@ const MandateDetail = () => {
               detailText: `${org.name} (ID: ${org.id})`,
             })}
           />
+        </FormContainer>
+        <FormContainer>
+          <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId} />
         </FormContainer>
         <FormContainer>
           <FormExtent fieldName={"coordinates"} label={"spatialExtent"} value={mandate?.coordinates} required={true} />

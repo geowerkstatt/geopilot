@@ -6,7 +6,6 @@ using Geopilot.Api.Conventions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Services;
-using Geopilot.Api.StacServices;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -153,6 +152,7 @@ builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 builder.Services.AddSingleton<IValidationJobStore, ValidationJobStore>();
 builder.Services.AddTransient<IValidationService, ValidationService>();
+builder.Services.AddTransient<IPipelineService, PipelineService>();
 builder.Services.AddTransient<IMandateService, MandateService>();
 builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
