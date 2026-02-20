@@ -18,7 +18,7 @@ public class ValidationOptions
     public TimeSpan JobCleanupInterval { get; set; }
 
     /// <summary>
-    /// The timeout durations for each validator.
+    /// The timeout durations for each pipeline.
     /// </summary>
-    public required Dictionary<string, TimeSpan> ValidatorTimeouts { get; set; }
+    public required Dictionary<string, TimeSpan> PipelineTimeouts { get; set; }
 }

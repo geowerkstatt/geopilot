@@ -139,7 +139,7 @@ internal class XtfValidatorProcess : IDisposable
         logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
 
         return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response, cancellationToken);
-     }
+    }
 
     private async Task<InterlisStatusResponse> PollStatusAsync(string statusUrl, CancellationToken cancellationToken)
     {
