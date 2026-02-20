@@ -25,6 +25,7 @@ namespace Geopilot.Api.Controllers
         private User editUser;
         private User adminUser;
         private Mandate unrestrictedMandate;
+        private Mandate noDeliveryMandate;
         private Mandate xtfMandate;
         private Mandate publicCsvMandate;
         private Mandate noOrganisationsMandate;
@@ -45,7 +46,8 @@ namespace Geopilot.Api.Controllers
 
             mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object, validatorMocks, pipelineServiceMock.Object);
 
-            unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
+            unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate), AllowDelivery = true };
+            noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noDeliveryMandate), AllowDelivery = false };
             xtfMandate = new Mandate
             {
                 FileTypes = new string[] { ".xtf" },
@@ -58,14 +60,16 @@ namespace Geopilot.Api.Controllers
                     new(8.046284, 47.388181),
                     new(8.046284, 47.392423),
                 }),
+                AllowDelivery = true,
             };
             xtfMandate.SetCoordinateListFromPolygon();
 
-            publicCsvMandate = new Mandate { FileTypes = new string[] { ".csv" }, Name = nameof(publicCsvMandate), IsPublic = true };
-            noOrganisationsMandate = new Mandate { FileTypes = new string[] { ".itf" }, Name = nameof(noOrganisationsMandate) };
-            noPermissionMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noPermissionMandate) };
+            publicCsvMandate = new Mandate { FileTypes = new string[] { ".csv" }, Name = nameof(publicCsvMandate), IsPublic = true, AllowDelivery = true, };
+            noOrganisationsMandate = new Mandate { FileTypes = new string[] { ".itf" }, Name = nameof(noOrganisationsMandate), AllowDelivery = true, };
+            noPermissionMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noPermissionMandate), AllowDelivery = true };
 
             context.Mandates.Add(unrestrictedMandate);
+            context.Mandates.Add(noDeliveryMandate);
             context.Mandates.Add(xtfMandate);
             context.Mandates.Add(publicCsvMandate);
             context.Mandates.Add(noOrganisationsMandate);
@@ -79,6 +83,7 @@ namespace Geopilot.Api.Controllers
 
             organisation = new Organisation { Name = "GAMMAHUNT" };
             organisation.Mandates.Add(unrestrictedMandate);
+            organisation.Mandates.Add(noDeliveryMandate);
             organisation.Mandates.Add(xtfMandate);
             organisation.Mandates.Add(publicCsvMandate);
             organisation.Users.Add(editUser);
@@ -103,6 +108,7 @@ namespace Geopilot.Api.Controllers
 
             Assert.IsNotNull(mandates);
             ContainsMandate(mandates, unrestrictedMandate);
+            ContainsMandate(mandates, noDeliveryMandate);
             ContainsMandate(mandates, xtfMandate);
             ContainsMandate(mandates, publicCsvMandate);
             DoesNotContainMandate(mandates, noOrganisationsMandate);
@@ -119,6 +125,7 @@ namespace Geopilot.Api.Controllers
 
             Assert.IsNotNull(mandates);
             ContainsMandate(mandates, unrestrictedMandate);
+            ContainsMandate(mandates, noDeliveryMandate);
             ContainsMandate(mandates, xtfMandate);
             ContainsMandate(mandates, publicCsvMandate);
             ContainsMandate(mandates, noOrganisationsMandate);
@@ -139,6 +146,7 @@ namespace Geopilot.Api.Controllers
 
             Assert.IsNotNull(mandates);
             ContainsMandate(mandates, unrestrictedMandate);
+            ContainsMandate(mandates, noDeliveryMandate);
             ContainsMandate(mandates, xtfMandate);
             DoesNotContainMandate(mandates, publicCsvMandate);
             DoesNotContainMandate(mandates, noOrganisationsMandate);
@@ -159,6 +167,7 @@ namespace Geopilot.Api.Controllers
 
             Assert.IsNotNull(mandates);
             ContainsMandate(mandates, unrestrictedMandate);
+            ContainsMandate(mandates, noDeliveryMandate);
             ContainsMandate(mandates, xtfMandate);
             ContainsMandate(mandates, noPermissionMandate);
             DoesNotContainMandate(mandates, noOrganisationsMandate);
@@ -175,6 +184,7 @@ namespace Geopilot.Api.Controllers
             ContainsMandate(mandates, publicCsvMandate);
             DoesNotContainMandate(mandates, xtfMandate);
             DoesNotContainMandate(mandates, unrestrictedMandate);
+            DoesNotContainMandate(mandates, noDeliveryMandate);
             DoesNotContainMandate(mandates, noOrganisationsMandate);
             DoesNotContainMandate(mandates, noPermissionMandate);
         }
@@ -193,6 +203,7 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(mandates);
             DoesNotContainMandate(mandates, publicCsvMandate);
             DoesNotContainMandate(mandates, unrestrictedMandate);
+            DoesNotContainMandate(mandates, noDeliveryMandate);
             DoesNotContainMandate(mandates, xtfMandate);
             DoesNotContainMandate(mandates, noOrganisationsMandate);
             DoesNotContainMandate(mandates, noPermissionMandate);
@@ -212,6 +223,7 @@ namespace Geopilot.Api.Controllers
 
             Assert.IsNotNull(mandates);
             ContainsMandate(mandates, unrestrictedMandate);
+            ContainsMandate(mandates, noDeliveryMandate);
             ContainsMandate(mandates, xtfMandate);
             DoesNotContainMandate(mandates, publicCsvMandate);
             DoesNotContainMandate(mandates, noOrganisationsMandate);
@@ -311,6 +323,7 @@ namespace Geopilot.Api.Controllers
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 InterlisValidationProfile = profile,
                 PipelineId = pipelineId,
+                AllowDelivery = true,
             };
 
             var result = await mandateController.Create(mandate);
@@ -335,6 +348,7 @@ namespace Geopilot.Api.Controllers
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 InterlisValidationProfile = profile,
+                AllowDelivery = true,
             };
 
             var result = await mandateController.Create(mandate);
@@ -361,6 +375,7 @@ namespace Geopilot.Api.Controllers
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 PipelineId = "NONEXISTENT",
+                AllowDelivery = true,
             };
 
             var result = await mandateController.Create(mandate);
@@ -383,6 +398,7 @@ namespace Geopilot.Api.Controllers
                 Name = "ACCORDIANWALK",
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate>(),
+                AllowDelivery = true,
             };
 
             var result = await mandateController.Create(mandate);
@@ -420,6 +436,7 @@ namespace Geopilot.Api.Controllers
                 InterlisValidationProfile = "DEFAULT",
                 Organisations = new List<Organisation> { new() { Id = 1 }, new() { Id = organisation.Id } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
+                AllowDelivery = true,
             };
 
             var mandateToUpdateResult = await mandateController.Create(mandate) as CreatedResult;
@@ -454,6 +471,7 @@ namespace Geopilot.Api.Controllers
             mandateToUpdate.Organisations = new List<Organisation> { new() { Id = 3 }, new() { Id = organisation.Id } };
             mandateToUpdate.Coordinates = new List<Models.Coordinate> { new() { X = 7.93, Y = 46.70 }, new() { X = 8.86, Y = 47.02 } };
             mandateToUpdate.Deliveries = new List<Delivery>();
+            mandateToUpdate.AllowDelivery = false;
 
             var updateResult = await mandateController.Edit(mandateToUpdate);
             var updatedMandate = ActionResultAssert.IsOkObjectResult<Mandate>(updateResult);
@@ -464,6 +482,7 @@ namespace Geopilot.Api.Controllers
             Assert.AreEqual(mandateToUpdate.Name, updatedMandate.Name);
             Assert.AreEqual(mandateToUpdate.InterlisValidationProfile, updatedMandate.InterlisValidationProfile);
             Assert.AreEqual(mandateToUpdate.PipelineId, updatedMandate.PipelineId);
+            Assert.AreEqual(mandateToUpdate.AllowDelivery, updatedMandate.AllowDelivery);
             CollectionAssert.AreEqual(mandateToUpdate.FileTypes, updatedMandate.FileTypes);
             CollectionAssert.AreEqual(mandateToUpdate.Coordinates, updatedMandate.Coordinates);
             Assert.HasCount(mandateToUpdate.Organisations.Count, updatedMandate.Organisations);
@@ -484,6 +503,7 @@ namespace Geopilot.Api.Controllers
                 Name = "PEARLFOLLOWER",
                 Organisations = new List<Organisation>() { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate>(),
+                AllowDelivery = true,
             };
             var result = await mandateController.Edit(mandate);
             ActionResultAssert.IsBadRequest(result);
@@ -505,6 +525,7 @@ namespace Geopilot.Api.Controllers
                 Organisations = new List<Organisation>() { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 InterlisValidationProfile = profile,
+                AllowDelivery = true,
             };
 
             var result = await mandateController.Edit(mandate);
@@ -534,6 +555,7 @@ namespace Geopilot.Api.Controllers
                 Organisations = new List<Organisation>() { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 PipelineId = pipelineId,
+                AllowDelivery = true,
             };
 
             var result = await mandateController.Edit(mandate);
@@ -558,7 +580,7 @@ namespace Geopilot.Api.Controllers
         private void ContainsMandate(IEnumerable<Mandate> mandates, Mandate mandate)
         {
             var found = mandates.FirstOrDefault(m => m.Id == mandate.Id);
-            Assert.IsNotNull(found);
+            Assert.IsNotNull(found, $"mandate with id '{mandate.Id}' and name '{mandate.Name}' not found");
             CompareMandates(mandate, found);
         }
 
@@ -573,7 +595,9 @@ namespace Geopilot.Api.Controllers
             Assert.AreEqual(expected.Id, actual.Id);
             Assert.AreEqual(expected.Name, actual.Name);
             Assert.AreEqual(expected.IsPublic, actual.IsPublic);
+            Assert.AreEqual(expected.AllowDelivery, actual.AllowDelivery);
             Assert.AreEqual(expected.InterlisValidationProfile, actual.InterlisValidationProfile);
+            Assert.AreEqual(expected.PipelineId, actual.PipelineId);
             CollectionAssert.AreEqual(expected.FileTypes, actual.FileTypes);
             CollectionAssert.AreEqual(expected.Deliveries, actual.Deliveries);
             CollectionAssert.AreEqual(expected.Coordinates, actual.Coordinates);

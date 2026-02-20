@@ -26,7 +26,7 @@ export const DeliveryValidationForm = () => {
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ jobId: validationResponse.jobId })).then(
         mandates => {
           if (mandates.length === 0) {
-            setStepError(DeliveryStepEnum.Submit, "noMandatesFound");
+            setStepError(DeliveryStepEnum.Validate, "noMandatesFound");
           }
           setMandates(mandates);
         },

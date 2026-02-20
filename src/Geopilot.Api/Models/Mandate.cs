@@ -29,6 +29,11 @@ public class Mandate
     public bool IsPublic { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether delivery is permitted.
+    /// </summary>
+    public bool AllowDelivery { get; set; }
+
+    /// <summary>
     /// List of file types that are allowed to be delivered. Include the period "." and support wildcards "*".
     /// </summary>
 #pragma warning disable CA1819 // Properties should not return arrays

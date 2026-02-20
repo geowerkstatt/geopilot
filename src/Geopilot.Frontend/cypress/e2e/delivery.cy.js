@@ -108,7 +108,7 @@ describe("Delivery tests", () => {
     addFile("deliveryFiles/ilimodels_valid.xml", true);
     uploadFile();
     stepIsActive("validate");
-    stepHasError("submit", true, "No suitable mandate was found for your delivery");
+    stepHasError("validate", true, "No suitable mandate was found for your delivery");
   });
 
   it("displays custom error messages when they don't match predefined errors", () => {
