@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Test.Pipeline.Process;
 

@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Test.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
+using Geopilot.PipelineCore.Pipeline.Process;
 using System.IO.Compression;
 
 namespace Geopilot.Api.Pipeline.Process;
@@ -17,7 +18,7 @@ internal class ZipPackageProcess
 
     private ILogger<ZipPackageProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<ZipPackageProcess>();
 
-    private Parameterization config = new Parameterization();
+    private Dictionary<string, string> config = new Dictionary<string, string>();
 
     private string ArchiveFileName
     {
@@ -35,7 +36,7 @@ internal class ZipPackageProcess
     /// </summary>
     /// <param name="config">The parameterization configuration for the process. provides the archive file name under the key 'archive_file_name'.</param>
     [PipelineProcessInitialize]
-    public void Initialize(Parameterization config)
+    public void Initialize(Dictionary<string, string> config)
     {
         this.config = config;
     }
