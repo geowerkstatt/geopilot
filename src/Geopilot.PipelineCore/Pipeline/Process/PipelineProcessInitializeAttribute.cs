@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline.Process;
+﻿namespace Geopilot.PipelineCore.Pipeline.Process;
 
 /// <summary>
 /// Attribute to mark methods for initialization within a pipeline process.
