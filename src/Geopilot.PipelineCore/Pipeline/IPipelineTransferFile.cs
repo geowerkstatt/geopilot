@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline;
+﻿namespace Geopilot.PipelineCore.Pipeline;
 
 /// <summary>
 /// Represents a file to be transferred as part of a pipeline process.

@@ -1,6 +1,6 @@
-﻿using Geopilot.Api.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 
-namespace Geopilot.Api.Test.Pipeline;
+namespace Geopilot.Api.Pipeline;
 
 /// <summary>
 /// Represents a test implementation of the IPilelineTransferFile interface.
