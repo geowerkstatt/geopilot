@@ -125,7 +125,6 @@ public class DeliveryControllerTest
     [TestMethod]
     public async Task CreateWithMandateThatDoesNotAllowDelivery()
     {
-        // This test case should verify that a delivery can be created for a public mandate even if the user is not explicitly linked to it via an organisation
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
         var publicMandate = context.Mandates.Add(new Mandate
         {
