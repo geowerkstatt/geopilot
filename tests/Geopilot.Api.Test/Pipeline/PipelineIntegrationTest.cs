@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Validation.Interlis;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using Moq.Protected;
