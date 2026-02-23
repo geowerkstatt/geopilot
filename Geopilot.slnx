@@ -18,5 +18,6 @@
     <Deploy />
   </Project>
   <Project Path="src/Geopilot.PipelineCore/Geopilot.PipelineCore.csproj" />
+  <Project Path="src/Geopilot.ProcessorPluginA/Geopilot.ProcessorPluginA.csproj" />
   <Project Path="tests/Geopilot.Api.Test/Geopilot.Api.Test.csproj" />
 </Solution>

@@ -1,0 +1,66 @@
+processes:
+  - id: xtf_validator
+    implementation: Geopilot.Api.Pipeline.Process.XtfValidatorProcess
+    default_config:
+      profile:
+      poll_interval: 500
+  - id: plugin_processor_a
+    implementation: Geopilot.ProcessorPluginA.Processors.MyProcessorA
+    default_config:
+      config_a: value_a
+      config_b: value_b
+  - id: plugin_processor_b
+    implementation: Geopilot.ProcessorPluginA.Processors.MyProcessorB
+pipelines:
+  - id: plugin_pipeline
+    display_name:
+      en: plugin pipeline
+    parameters:
+      upload_step: upload
+      mapping:
+        - file_extension: xtf
+          attribute: ili_file
+    steps:
+      - id: validation
+        display_name:
+          en: XTF Validation
+        process_id: xtf_validator
+        process_config_overwrites:
+          profile: DEFAULT
+        input:
+          - from: upload
+            take: ili_file
+            as: iliFile
+        output:
+          - take: error_log
+            as: error_log
+            action:
+          - take: xtf_log
+            as: xtf_log
+            action:
+              - DOWNLOAD
+      - id: plugin_step_a
+        display_name:
+          en: Plugin Step A
+        process_id: plugin_processor_a
+        process_config_overwrites:
+          config_a: hello
+          config_b: world
+        input:
+        output:
+          - take: output_a
+            as: output_a
+          - take: output_b
+            as: output_b
+      - id: plugin_step_b
+        display_name:
+          en: Plugin Step B
+        process_id: plugin_processor_b
+        process_config_overwrites:
+        input:
+          - from: validation
+            take: error_log
+            as: file
+        output:
+          - take: file_output
+            as: file_output
