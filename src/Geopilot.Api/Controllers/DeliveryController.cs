@@ -76,7 +76,7 @@ public class DeliveryController : ControllerBase
             .Include(m => m.Deliveries)
             .SingleOrDefault(m => m.Id == job.MandateId);
 
-        if (mandate is null || (!mandate.IsPublic && !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id)))
+        if (mandate is null || !mandate.AllowDelivery || (!mandate.IsPublic && !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id)))
         {
             logger.LogTrace($"Mandate with id <{job.MandateId}> not found.");
             return NotFound($"Mandate with id <{job.MandateId}> not found.");

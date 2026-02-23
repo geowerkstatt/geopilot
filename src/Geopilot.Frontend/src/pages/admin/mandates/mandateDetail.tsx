@@ -76,6 +76,7 @@ const MandateDetail = () => {
         id: 0,
         name: "",
         isPublic: false,
+        allowDelivery: false,
         organisations: [],
         fileTypes: [],
         coordinates: [
@@ -122,6 +123,7 @@ const MandateDetail = () => {
         </FormContainer>
         <FormContainer>
           <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
+          <FormCheckbox fieldName={"allowDelivery"} label={"delivery"} checked={mandate?.allowDelivery ?? false} />
         </FormContainer>
         <FormContainer>
           <FormAutocomplete<Organisation>

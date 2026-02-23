@@ -32,9 +32,8 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
 });
 
 // Gets the current steps while reusing previous steps if possible to keep their state (e.g. errors)
-const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, userLoggedIn: boolean) => {
+const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelivery: boolean) => {
   const newSteps: Map<DeliveryStepEnum, DeliveryStep> = new Map();
-
   newSteps.set(
     DeliveryStepEnum.Upload,
     previousSteps.get(DeliveryStepEnum.Upload) ?? { label: "upload", content: <DeliveryUpload /> },
@@ -49,7 +48,7 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, userLogged
     },
   );
 
-  if (userLoggedIn) {
+  if (showDelivery) {
     newSteps.set(
       DeliveryStepEnum.Submit,
       previousSteps.get(DeliveryStepEnum.Submit) ?? { label: "deliver", content: <DeliverySubmit /> },
@@ -75,7 +74,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const { fetchApi } = useFetch();
   const { user } = useGeopilotAuth();
   const prevUserIdRef = useRef<number | undefined>(user?.id);
-  const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), user !== null));
+  const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), false));
 
   const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = useMemo(
     () => ({
@@ -102,8 +101,10 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
   // Update steps depending on if user is logged in or not
   useEffect(() => {
-    setSteps(prevSteps => getSteps(prevSteps, user !== null));
-  }, [user]);
+    setSteps(prevSteps =>
+      getSteps(prevSteps, user != null && selectedMandate != null && selectedMandate.allowDelivery),
+    );
+  }, [user, selectedMandate]);
 
   const isActiveStep = (step: DeliveryStepEnum) => {
     const stepKeys = Array.from(steps.keys());

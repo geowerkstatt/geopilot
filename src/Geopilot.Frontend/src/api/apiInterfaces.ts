@@ -35,6 +35,7 @@ export interface Mandate {
   id: number;
   name: string;
   isPublic: boolean;
+  allowDelivery: boolean;
   fileTypes: string[];
   coordinates: Coordinate[];
   organisations: Organisation[];

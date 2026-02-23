@@ -132,7 +132,8 @@ internal static class ContextExtensions
             .Ignore(o => o.Coordinates)
             .RuleFor(o => o.Organisations, f => f.PickRandom(context.Organisations.ToList(), 1).ToList())
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>())
-            .RuleFor(o => o.IsPublic, f => false);
+            .RuleFor(o => o.IsPublic, f => false)
+            .RuleFor(o => o.AllowDelivery, f => true);
 
         Mandate SeedMandate(int seed) => mandateFaker.UseSeed(seed).Generate();
         context.Mandates.AddRange(Enumerable.Range(0, 9).Select(SeedMandate));
@@ -144,6 +145,7 @@ internal static class ContextExtensions
             InterlisValidationProfile = "DEFAULT",
             SpatialExtent = GetExtent(),
             IsPublic = true,
+            AllowDelivery = true,
         });
 
         context.SaveChanges();
