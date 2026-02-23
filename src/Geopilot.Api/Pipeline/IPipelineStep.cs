@@ -29,6 +29,8 @@ public interface IPipelineStep : IDisposable
     /// </summary>
     List<OutputConfig> OutputConfigs { get; }
 
+    List<StepConditionConfig> StepConditions { get; }
+
     /// <summary>
     /// The process to be executed for this step.
     /// </summary>

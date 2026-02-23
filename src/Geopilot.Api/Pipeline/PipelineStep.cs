@@ -1,6 +1,8 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Stac;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace Geopilot.Api.Pipeline;
 
@@ -32,6 +34,8 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public List<OutputConfig> OutputConfigs { get; }
 
+    public List<StepConditionConfig> StepConditions { get; }
+
     /// <inheritdoc/>
     public object Process { get; }
 
@@ -53,12 +57,14 @@ public sealed class PipelineStep : IPipelineStep
         Dictionary<string, string> displayName,
         List<InputConfig> inputConfig,
         List<OutputConfig> outputConfig,
+        List<StepConditionConfig> stepConditions,
         object process)
     {
         this.Id = id;
         this.DisplayName = displayName;
         this.InputConfig = inputConfig;
         this.OutputConfigs = outputConfig;
+        this.StepConditions = stepConditions;
         this.Process = process;
 
         this.State = StepState.Pending;
@@ -69,6 +75,8 @@ public sealed class PipelineStep : IPipelineStep
     {
         if (context != null)
         {
+            var preStepActions = EvaluatePreStepConditionActions(context);
+            // ToDo: handle pre step actions (this may impact the step result and/or the step state)
             this.State = StepState.Running;
 
             try
@@ -84,6 +92,8 @@ public sealed class PipelineStep : IPipelineStep
                         var result = await (Task<Dictionary<string, object>>)resultTask;
                         var stepResult = CreateStepResult(result);
 
+                        var postStepActions = EvaluatePostStepConditionActions(stepResult);
+                        // ToDo: handle post step actions (this may impact the step result and/or the step state)
                         this.State = StepState.Success;
 
                         return stepResult;
@@ -108,6 +118,57 @@ public sealed class PipelineStep : IPipelineStep
         }
 
         return new StepResult();
+    }
+
+    private HashSet<StepConditionAction> EvaluatePreStepConditionActions(PipelineContext context)
+    {
+        HashSet<StepConditionAction> actions = new HashSet<StepConditionAction>();
+        foreach (var condition in this.StepConditions)
+        {
+            if (context.StepResults.TryGetValue(condition.From, out var stepResult) && stepResult != null)
+            {
+                actions.AddRange(EvaluateStepConditionActions(stepResult.Outputs, condition));
+            }
+        }
+
+        return actions;
+    }
+
+    private HashSet<StepConditionAction> EvaluatePostStepConditionActions(StepResult stepResult)
+    {
+        HashSet<StepConditionAction> actions = new HashSet<StepConditionAction>();
+        foreach (var condition in this.StepConditions)
+        {
+            if (this.Id == condition.From)
+            {
+                actions.AddRange(EvaluateStepConditionActions(stepResult.Outputs, condition));
+            }
+        }
+
+        return actions;
+    }
+
+    private static HashSet<StepConditionAction> EvaluateStepConditionActions(Dictionary<string, StepOutput> stepResults, StepConditionConfig stepCondition)
+    {
+        HashSet<StepConditionAction> actions = new HashSet<StepConditionAction>();
+        if (stepCondition.Action != null && stepCondition.Action.Count > 0)
+        {
+            if (stepResults.TryGetValue(stepCondition.Take, out var output) && output != null)
+            {
+                var compare = output.Data.ToString();
+                Regex matcher = new Regex(stepCondition.Matches);
+                if (compare != null && matcher.IsMatch(compare))
+                {
+                    actions.AddRange(stepCondition.Action);
+                }
+            }
+            else
+            {
+                logger.LogError($"error in step '{this.Id}': step condition references output '{condition.Take}' which was not found in outputs of step '{condition.From}'. please consolidate the pipeline validation logic.");
+            }
+        }
+
+        return actions;
     }
 
     private MethodInfo? GetProcessRunMethod()

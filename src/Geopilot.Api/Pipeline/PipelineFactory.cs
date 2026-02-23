@@ -64,6 +64,7 @@ public class PipelineFactory : IPipelineFactory
             stepConfig.DisplayName,
             stepConfig.Input ?? new List<InputConfig>(),
             stepConfig.Output ?? new List<OutputConfig>(),
+            stepConfig.StepConditionConfigs ?? new List<StepConditionConfig>(),
             CreateProcess(stepConfig));
     }
 

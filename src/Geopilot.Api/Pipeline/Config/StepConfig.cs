@@ -42,4 +42,7 @@ public class StepConfig
     /// </summary>
     [YamlMember(Alias = "output")]
     public List<OutputConfig>? Output { get; set; }
+
+    [YamlMember(Alias = "if")]
+    public List<StepConditionConfig>? StepConditionConfigs{ get; set; }
 }

@@ -48,6 +48,10 @@ public sealed class Pipeline : IPipeline
             {
                 return PipelineState.Running;
             }
+            else if (stepStates.Contains(StepState.SuccessWithWarnings))
+            {
+                return PipelineState.SuccessWithWarnings;
+            }
             else if (stepStates.All(s => s == StepState.Success))
             {
                 return PipelineState.Success;

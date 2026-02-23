@@ -23,6 +23,8 @@ public enum StepState
     /// </summary>
     Success,
 
+    SuccessWithWarnings,
+
     /// <summary>
     /// Indicates that the process or operation has failed.
     /// </summary>
