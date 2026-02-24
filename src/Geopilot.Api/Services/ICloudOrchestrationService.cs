@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Exceptions;
 using Geopilot.Api.Validation;
 
 namespace Geopilot.Api.Services;
@@ -19,8 +20,8 @@ public interface ICloudOrchestrationService
     /// Runs preflight checks on uploaded cloud files including completeness verification and malware scanning.
     /// </summary>
     /// <param name="jobId">The job ID to run preflight checks for.</param>
-    /// <returns>The preflight check result.</returns>
-    Task<PreflightResponse> RunPreflightChecksAsync(Guid jobId);
+    /// <exception cref="CloudUploadPreflightException">Thrown when preflight checks fail.</exception>
+    Task RunPreflightChecksAsync(Guid jobId);
 
     /// <summary>
     /// Downloads cloud files to local storage and updates the job with local file information.
