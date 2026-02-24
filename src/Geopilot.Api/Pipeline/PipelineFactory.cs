@@ -1,7 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline.Process;
-using Itenso.TimePeriod;
-using System.Reflection;
+using Geopilot.Api.Pipeline.Process;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -19,14 +17,14 @@ public class PipelineFactory : IPipelineFactory
     /// </summary>
     public PipelineProcessConfig PipelineProcessConfig { get; }
 
-    private IConfiguration? configuration;
+    private IPipelineProcessFactory pipelineProcessFactory;
 
     private PipelineFactory(
         PipelineProcessConfig? pipelineProcessConfig,
-        IConfiguration? configuration)
+        IPipelineProcessFactory pipelineProcessFactory)
     {
         this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pipeline process configuration.");
-        this.configuration = configuration;
+        this.pipelineProcessFactory = pipelineProcessFactory;
 
         using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
         this.logger = factory.CreateLogger<PipelineFactory>();
@@ -64,82 +62,7 @@ public class PipelineFactory : IPipelineFactory
             stepConfig.DisplayName,
             stepConfig.Input ?? new List<InputConfig>(),
             stepConfig.Output ?? new List<OutputConfig>(),
-            CreateProcess(stepConfig));
-    }
-
-    private object CreateProcess(StepConfig stepConfig)
-    {
-        var processConfig = stepConfig.ProcessId != null ? PipelineProcessConfig.Processes.GetProcessConfig(stepConfig.ProcessId) : null;
-        if (processConfig != null)
-        {
-            var objectType = Type.GetType(processConfig.Implementation);
-            if (objectType != null)
-            {
-                var processInstance = Activator.CreateInstance(objectType);
-                if (processInstance != null)
-                {
-                    InitializeProcess(objectType, processInstance, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites));
-
-                    return processInstance;
-                }
-            }
-        }
-
-        throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
-    }
-
-    private void InitializeProcess(Type processType, object process, Dictionary<string, string> processConfig)
-    {
-        var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessInitializeAttribute)))
-            .ToList();
-        initMethods
-            .ForEach(m =>
-            {
-                var parameters = m.GetParameters()
-                    .Select(p => p.ParameterType)
-                    .Select(t => GenerateParameter(t, processConfig))
-                    .ToArray();
-                m.Invoke(process, parameters);
-            });
-    }
-
-    private object? GenerateParameter(Type parameterType, Dictionary<string, string> processConfig)
-    {
-        if (parameterType == typeof(IConfiguration))
-        {
-            return configuration;
-        }
-        else if (parameterType == typeof(Dictionary<string, string>))
-        {
-            return processConfig;
-        }
-        else
-        {
-            logger.LogWarning($"Process initialization: No suitable parameter found for type '{parameterType}' with name '{parameterType.Name}' Initializing with null.");
-            return null;
-        }
-    }
-
-    private Dictionary<string, string> GenerateProcessConfig(Parameterization? processDefaultConfig, Parameterization? processDefaultConfigOverwrites)
-    {
-        var mergedConfig = processDefaultConfig != null ? new Dictionary<string, string>(processDefaultConfig) : new Dictionary<string, string>();
-        if (processDefaultConfigOverwrites != null)
-        {
-            foreach (var overwrite in processDefaultConfigOverwrites)
-            {
-                if (mergedConfig.ContainsKey(overwrite.Key))
-                {
-                    mergedConfig[overwrite.Key] = overwrite.Value;
-                }
-                else
-                {
-                    this.logger.LogWarning("Attempted to overwrite non-existing process configuration '{Key}' ==> '{Value}'", overwrite.Key, overwrite.Value);
-                }
-            }
-        }
-
-        return mergedConfig;
+            pipelineProcessFactory.CreateProcess(stepConfig, PipelineProcessConfig.Processes));
     }
 
     /// <summary>
@@ -156,14 +79,7 @@ public class PipelineFactory : IPipelineFactory
     public class PipelineFactoryBuilder
     {
         private PipelineProcessConfig? pipelineProcessConfig;
-        private IConfiguration? configuration;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PipelineFactoryBuilder"/> class.
-        /// </summary>
-        public PipelineFactoryBuilder()
-        {
-        }
+        private IPipelineProcessFactory? pipelineProcessFactory;
 
         /// <summary>
         /// Configures the pipeline factory to use a YAML process definition.
@@ -189,12 +105,13 @@ public class PipelineFactory : IPipelineFactory
         }
 
         /// <summary>
-        /// Configures the pipeline factory to use an application configuration.
+        /// Sets the pipeline process factory to be used for creating pipeline processes.
         /// </summary>
-        /// <param name="configuration">The application configuration.</param>
-        public PipelineFactoryBuilder Configuration(IConfiguration configuration)
+        /// <param name="pipelineProcessFactory">The factory instance that will be used to create pipeline processes. Cannot be null.</param>
+        /// <returns>The current <see cref="PipelineFactoryBuilder"/> instance for method chaining.</returns>
+        public PipelineFactoryBuilder PipelineProcessFactory(IPipelineProcessFactory pipelineProcessFactory)
         {
-            this.configuration = configuration;
+            this.pipelineProcessFactory = pipelineProcessFactory;
             return this;
         }
 
@@ -203,7 +120,14 @@ public class PipelineFactory : IPipelineFactory
         /// </summary>
         public PipelineFactory Build()
         {
-            return new PipelineFactory(this.pipelineProcessConfig, this.configuration);
+            if (this.pipelineProcessFactory != null)
+            {
+                return new PipelineFactory(this.pipelineProcessConfig, pipelineProcessFactory);
+            }
+            else
+            {
+                throw new InvalidOperationException("Pipeline process factory is required to build a pipeline factory.");
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ using Geopilot.Api.Contracts;
 using Geopilot.Api.Conventions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
@@ -160,6 +161,7 @@ builder.Services.AddTransient<IAssetHandler, AssetHandler>();
 builder.Services.AddHostedService<ValidationRunner>();
 builder.Services.AddHostedService<ValidationJobCleanupService>();
 builder.Services.AddPipelineFactory();
+builder.Services.AddSingleton<IPipelineProcessFactory, PipelineProcessFactory>();
 
 builder.Services
     .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")

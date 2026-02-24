@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api;
-using Geopilot.Api.StacServices;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.StaticFiles;

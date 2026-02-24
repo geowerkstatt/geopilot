@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Process;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using System.Reflection;
@@ -53,7 +54,7 @@ public class PipelineValidationTest
         return PipelineFactory
             .Builder()
             .File(path)
-            .Configuration(new Mock<IConfiguration>().Object)
+            .PipelineProcessFactory(new Mock<IPipelineProcessFactory>().Object)
             .Build();
     }
 }

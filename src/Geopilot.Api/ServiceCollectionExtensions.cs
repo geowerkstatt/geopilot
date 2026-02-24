@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.StacServices;
 using Stac.Api.Interfaces;
 using Stac.Api.Models.Extensions.Sort.Context;
@@ -36,6 +37,7 @@ public static class ServiceCollectionExtensions
         Func<IServiceProvider, IPipelineFactory> cofigurePipelineFactory = (IServiceProvider sp) =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
+            var pipelineProcessFactory = sp.GetRequiredService<IPipelineProcessFactory>();
             var pipelineDefinition = configuration.GetValue<string>(pipelineDefinitionKey);
 
             if (string.IsNullOrWhiteSpace(pipelineDefinition))
@@ -46,7 +48,7 @@ public static class ServiceCollectionExtensions
 
             var pipelineFactory = PipelineFactory.Builder()
                     .File(pipelineDefinition)
-                    .Configuration(configuration)
+                    .PipelineProcessFactory(pipelineProcessFactory)
                     .Build();
 
             return pipelineFactory;
