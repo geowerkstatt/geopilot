@@ -1,4 +1,4 @@
-namespace Geopilot.Api.Services;
+﻿namespace Geopilot.Api.Services;
 
 /// <summary>
 /// Provides malware scanning for files in cloud storage.

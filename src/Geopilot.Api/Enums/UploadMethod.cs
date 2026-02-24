@@ -1,4 +1,4 @@
-namespace Geopilot.Api.Enums;
+﻿namespace Geopilot.Api.Enums;
 
 /// <summary>
 /// The method used to upload files for a validation job.

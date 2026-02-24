@@ -1,4 +1,4 @@
-namespace Geopilot.Api;
+﻿namespace Geopilot.Api;
 
 /// <summary>
 /// Configuration options for cloud storage uploads.

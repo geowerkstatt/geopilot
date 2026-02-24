@@ -1,4 +1,4 @@
-namespace Geopilot.Api.Contracts;
+﻿namespace Geopilot.Api.Contracts;
 
 /// <summary>
 /// Response containing presigned upload URLs for a cloud upload session.

@@ -1,4 +1,4 @@
-namespace Geopilot.Api.Services;
+﻿namespace Geopilot.Api.Services;
 
 /// <summary>
 /// Provides cloud storage operations for file uploads via presigned URLs.

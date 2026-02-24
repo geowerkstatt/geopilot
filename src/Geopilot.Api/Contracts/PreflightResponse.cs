@@ -1,4 +1,4 @@
-namespace Geopilot.Api.Contracts;
+﻿namespace Geopilot.Api.Contracts;
 
 /// <summary>
 /// Result of preflight checks on uploaded cloud files.
