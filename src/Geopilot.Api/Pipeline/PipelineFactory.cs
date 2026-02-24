@@ -1,6 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline.Process;
-using Itenso.TimePeriod;
 using System.Reflection;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -21,12 +20,23 @@ public class PipelineFactory : IPipelineFactory
 
     private IConfiguration? configuration;
 
+    private List<PluginSetting>? processorPlugins;
+
     private PipelineFactory(
         PipelineProcessConfig? pipelineProcessConfig,
         IConfiguration? configuration)
     {
         this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pipeline process configuration.");
         this.configuration = configuration;
+
+        if (this.configuration != null)
+        {
+            var configurationSection = this.configuration.GetSection("Pipeline");
+            if (configurationSection != null)
+            {
+                this.processorPlugins = this.configuration.GetSection("Pipeline:Plugins").Get<List<PluginSetting>>();
+            }
+        }
 
         using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
         this.logger = factory.CreateLogger<PipelineFactory>();
@@ -72,7 +82,7 @@ public class PipelineFactory : IPipelineFactory
         var processConfig = stepConfig.ProcessId != null ? PipelineProcessConfig.Processes.GetProcessConfig(stepConfig.ProcessId) : null;
         if (processConfig != null)
         {
-            var objectType = Type.GetType(processConfig.Implementation);
+            var objectType = GetProccessorType(processConfig.Implementation);
             if (objectType != null)
             {
                 var processInstance = Activator.CreateInstance(objectType);
@@ -86,6 +96,34 @@ public class PipelineFactory : IPipelineFactory
         }
 
         throw new InvalidOperationException($"failed to create process instance for '{stepConfig.ProcessId}'");
+    }
+
+    private Type? GetProccessorType(string implementation)
+    {
+        if (implementation.StartsWith("Geopilot.Api.Pipeline.Process", StringComparison.Ordinal))
+        {
+            return Type.GetType(implementation);
+        }
+        else if (processorPlugins != null)
+        {
+            var pluginAssemblies = processorPlugins
+                .Where(p => p.Packagenames != null && p.Packagenames.Count > 0 && !string.IsNullOrEmpty(p.AssemblyFile))
+                .Where(p => p.Packagenames.Any(n => implementation.StartsWith(n, StringComparison.Ordinal)))
+                .Select(p => p.AssemblyFile)
+                .ToList();
+            foreach (var assemblyFile in pluginAssemblies)
+            {
+                var assembly = Assembly.LoadFrom(assemblyFile);
+                var type = assembly.GetType(implementation);
+                if (type != null)
+                {
+                    return type;
+                }
+            }
+        }
+
+        logger.LogWarning($"For process implementation '{implementation}' no processor plugin configured. Cannot load process.");
+        return null;
     }
 
     private void InitializeProcess(Type processType, object process, Dictionary<string, string> processConfig)
