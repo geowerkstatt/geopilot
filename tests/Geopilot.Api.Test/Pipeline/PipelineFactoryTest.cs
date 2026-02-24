@@ -115,7 +115,7 @@ public class PipelineFactoryTest
         return PipelineFactory
             .Builder()
             .File(path)
-            .Configuration(configuration)
+            .PipelineProcessFactory(new PipelineProcessFactory(configuration))
             .Build();
     }
 
