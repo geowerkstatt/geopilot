@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using Geopilot.Api.Contracts;
 using Geopilot.Api.Enums;
 
 namespace Geopilot.Api.Validation;
