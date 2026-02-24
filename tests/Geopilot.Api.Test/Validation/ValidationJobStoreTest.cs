@@ -189,4 +189,39 @@ public class ValidationJobStoreTest
         // Try to add result for unregistered validator
         Assert.ThrowsExactly<ArgumentException>(() => store.AddValidatorResult(unregisteredValidator.Object, result));
     }
+
+    [TestMethod]
+    public void AddUploadInfoToJob()
+    {
+        var job = store.CreateJob();
+        var cloudFiles = ImmutableList.Create(
+            new CloudFileInfo("file1.xtf", "jobs/file1.xtf", 1024),
+            new CloudFileInfo("file2.xtf", "jobs/file2.xtf", 2048));
+
+        store.AddUploadInfoToJob(job.Id, UploadMethod.Cloud, cloudFiles);
+        var updated = store.GetJob(job.Id);
+
+        Assert.IsNotNull(updated);
+        Assert.AreEqual(UploadMethod.Cloud, updated.UploadMethod);
+        Assert.AreEqual(Status.Created, updated.Status);
+        Assert.IsNotNull(updated.CloudFiles);
+        Assert.HasCount(2, updated.CloudFiles);
+    }
+
+    [TestMethod]
+    public void AddUploadInfoToJobThrowsIfJobNotFound()
+    {
+        var cloudFiles = ImmutableList.Create(new CloudFileInfo("file.xtf", "jobs/file.xtf", 1024));
+        Assert.ThrowsExactly<ArgumentException>(() => store.AddUploadInfoToJob(Guid.NewGuid(), UploadMethod.Cloud, cloudFiles));
+    }
+
+    [TestMethod]
+    public void AddUploadInfoToJobThrowsIfStatusNotCreated()
+    {
+        var job = store.CreateJob();
+        store.AddFileToJob(job.Id, "a", "b");
+
+        var cloudFiles = ImmutableList.Create(new CloudFileInfo("file.xtf", "jobs/file.xtf", 1024));
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.AddUploadInfoToJob(job.Id, UploadMethod.Cloud, cloudFiles));
+    }
 }
