@@ -1,4 +1,6 @@
 ﻿using System.Collections.Immutable;
+using Geopilot.Api.Contracts;
+using Geopilot.Api.Enums;
 
 namespace Geopilot.Api.Validation;
 
@@ -12,7 +14,9 @@ public record class ValidationJob(
     int? MandateId,
     ImmutableDictionary<string, ValidatorResult?> ValidatorResults,
     Status Status,
-    DateTime CreatedAt)
+    DateTime CreatedAt,
+    UploadMethod UploadMethod = UploadMethod.Direct,
+    ImmutableList<CloudFileInfo>? CloudFiles = null)
 {
     /// <summary>
     /// Aggregates the status of all <see cref="ValidatorResults"/> and returns the aggregated <see cref="Status"/>.
