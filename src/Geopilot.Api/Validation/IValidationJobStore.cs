@@ -32,13 +32,13 @@ namespace Geopilot.Api.Validation
         ValidationJob CreateJob();
 
         /// <summary>
-        /// Adds cloud upload information to the specified job, transitioning its status to <see cref="Status.AwaitingUpload"/>.
+        /// Adds cloud upload information to the specified job. The job status remains <see cref="Status.Created"/>.
         /// </summary>
         /// <remarks>This method only succeeds if the job has the status <see cref="Status.Created"/>.</remarks>
         /// <param name="jobId">The id of the job to add upload info to.</param>
         /// <param name="uploadMethod">The upload method used for this job.</param>
         /// <param name="cloudFiles">The list of cloud file metadata.</param>
-        /// <returns>The updated job with upload info set and its status set to <see cref="Status.AwaitingUpload"/>.</returns>
+        /// <returns>The updated job with upload info set.</returns>
         /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
         /// <exception cref="InvalidOperationException">If the status of the job is not <see cref="Status.Created"/>.</exception>
         ValidationJob AddUploadInfoToJob(Guid jobId, UploadMethod uploadMethod, ImmutableList<CloudFileInfo> cloudFiles);

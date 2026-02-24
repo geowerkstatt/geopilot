@@ -11,12 +11,7 @@ public enum Status
     Created,
 
     /// <summary>
-    /// The job is awaiting file upload to cloud storage.
-    /// </summary>
-    AwaitingUpload,
-
-    /// <summary>
-    /// The job is verifying uploaded cloud files.
+    /// The job is verifying and staging uploaded cloud files.
     /// </summary>
     VerifyingUpload,
 

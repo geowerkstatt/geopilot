@@ -49,7 +49,6 @@ public class ValidationJobStore : IValidationJobStore
             {
                 UploadMethod = uploadMethod,
                 CloudFiles = cloudFiles,
-                Status = Status.AwaitingUpload,
             };
         };
 
