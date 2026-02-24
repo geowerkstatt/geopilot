@@ -1,6 +1,6 @@
-﻿using System.Collections.Immutable;
+﻿using Geopilot.Api.Enums;
+using System.Collections.Immutable;
 using System.Threading.Channels;
-using Geopilot.Api.Enums;
 
 namespace Geopilot.Api.Validation
 {

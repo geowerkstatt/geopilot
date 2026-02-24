@@ -1,6 +1,6 @@
-﻿using System.Collections.Immutable;
-using Geopilot.Api.Enums;
+﻿using Geopilot.Api.Enums;
 using Moq;
+using System.Collections.Immutable;
 
 namespace Geopilot.Api.Validation;
 
