@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using Geopilot.Api.Enums;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Threading.Channels;
 
@@ -34,6 +35,25 @@ public class ValidationJobStore : IValidationJobStore
         jobs[newJob.Id] = newJob; // Does not handle GUID collisions
 
         return newJob;
+    }
+
+    /// <inheritdoc/>
+    public ValidationJob AddUploadInfoToJob(Guid jobId, UploadMethod uploadMethod, ImmutableList<CloudFileInfo> cloudFiles)
+    {
+        var updateFunc = (Guid jobId, ValidationJob currentJob) =>
+        {
+            if (currentJob.Status != Status.Created)
+                throw new InvalidOperationException($"Cannot add upload info to job <{jobId}> because its status is <{currentJob.Status}> instead of <{Status.Created}>.");
+
+            return currentJob with
+            {
+                UploadMethod = uploadMethod,
+                CloudFiles = cloudFiles,
+                Status = Status.AwaitingUpload,
+            };
+        };
+
+        return jobs.AddOrUpdate(jobId, id => throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId)), updateFunc);
     }
 
     /// <inheritdoc/>
