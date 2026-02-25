@@ -1,4 +1,4 @@
-using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Enums;
 using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
@@ -17,7 +17,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     private readonly ICloudScanService cloudScanService;
     private readonly IValidationJobStore jobStore;
     private readonly IFileProvider fileProvider;
-    private readonly CloudStorageOptions options;
+    private readonly IOptions<CloudStorageOptions> options;
     private readonly ILogger<CloudOrchestrationService> logger;
 
     /// <summary>
@@ -35,7 +35,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         this.cloudScanService = cloudScanService;
         this.jobStore = jobStore;
         this.fileProvider = fileProvider;
-        this.options = options.Value;
+        this.options = options;
         this.logger = logger;
     }
 
@@ -49,7 +49,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
         var cloudFiles = new List<CloudFileInfo>();
         var fileUploadInfos = new List<FileUploadInfo>();
-        var expiresIn = TimeSpan.FromMinutes(options.PresignedUrlExpiryMinutes);
+        var expiresIn = TimeSpan.FromMinutes(options.Value.PresignedUrlExpiryMinutes);
 
         foreach (var file in request.Files)
         {
@@ -131,6 +131,8 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
     private void ValidateRequest(CloudUploadRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         if (request.Files == null || request.Files.Count == 0)
             throw new ArgumentException("At least one file must be specified.", nameof(request));
 
@@ -138,11 +140,11 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         if (request.Files.Count > 1)
             throw new ArgumentException("Only single file uploads are currently supported.", nameof(request));
 
-        if (request.Files.Count > options.MaxFilesPerJob)
-            throw new ArgumentException($"Too many files. Maximum is {options.MaxFilesPerJob}.", nameof(request));
+        if (request.Files.Count > options.Value.MaxFilesPerJob)
+            throw new ArgumentException($"Too many files. Maximum is {options.Value.MaxFilesPerJob}.", nameof(request));
 
-        var maxFileSizeBytes = (long)options.MaxFileSizeMB * 1024 * 1024;
-        var maxJobSizeBytes = (long)options.MaxJobSizeMB * 1024 * 1024;
+        var maxFileSizeBytes = (long)options.Value.MaxFileSizeMB * 1024 * 1024;
+        var maxJobSizeBytes = (long)options.Value.MaxJobSizeMB * 1024 * 1024;
         long totalSize = 0;
 
         foreach (var file in request.Files)
@@ -151,12 +153,12 @@ public class CloudOrchestrationService : ICloudOrchestrationService
                 throw new ArgumentException($"File '{file.FileName}' has invalid size.", nameof(request));
 
             if (file.Size > maxFileSizeBytes)
-                throw new ArgumentException($"File '{file.FileName}' exceeds the maximum file size of {options.MaxFileSizeMB} MB.", nameof(request));
+                throw new ArgumentException($"File '{file.FileName}' exceeds the maximum file size of {options.Value.MaxFileSizeMB} MB.", nameof(request));
 
             totalSize += file.Size;
         }
 
         if (totalSize > maxJobSizeBytes)
-            throw new ArgumentException($"Total upload size exceeds the maximum of {options.MaxJobSizeMB} MB.", nameof(request));
+            throw new ArgumentException($"Total upload size exceeds the maximum of {options.Value.MaxJobSizeMB} MB.", nameof(request));
     }
 }

@@ -1,4 +1,4 @@
-using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Contracts;
 
 namespace Geopilot.Api.Exceptions;
 
