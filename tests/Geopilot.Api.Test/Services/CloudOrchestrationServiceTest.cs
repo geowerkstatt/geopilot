@@ -130,7 +130,7 @@ public class CloudOrchestrationServiceTest
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
-            .ReturnsAsync(new List<(string Key, long Size)> { ($"uploads/{job.Id}/test.xtf", 1024) });
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{job.Id}/test.xtf", 1024, DateTime.UtcNow) });
 
         cloudScanServiceMock
             .Setup(s => s.CheckFilesAsync(It.IsAny<IReadOnlyList<string>>()))
@@ -150,7 +150,7 @@ public class CloudOrchestrationServiceTest
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
-            .ReturnsAsync(new List<(string Key, long Size)>());
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>());
 
         var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
         Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
@@ -163,7 +163,7 @@ public class CloudOrchestrationServiceTest
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
-            .ReturnsAsync(new List<(string Key, long Size)> { ($"uploads/{job.Id}/test.xtf", 512) });
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{job.Id}/test.xtf", 512, DateTime.UtcNow) });
 
         var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
         Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
@@ -176,7 +176,7 @@ public class CloudOrchestrationServiceTest
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
-            .ReturnsAsync(new List<(string Key, long Size)> { ($"uploads/{job.Id}/test.xtf", 1024) });
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{job.Id}/test.xtf", 1024, DateTime.UtcNow) });
 
         cloudScanServiceMock
             .Setup(s => s.CheckFilesAsync(It.IsAny<IReadOnlyList<string>>()))
@@ -221,11 +221,16 @@ public class CloudOrchestrationServiceTest
             .Setup(s => s.DownloadAsync($"uploads/{job.Id}/test.xtf", It.IsAny<Stream>()))
             .Returns(Task.CompletedTask);
 
+        cloudStorageServiceMock
+            .Setup(s => s.DeletePrefixAsync($"uploads/{job.Id}/"))
+            .Returns(Task.CompletedTask);
+
         var updated = await service.StageFilesLocallyAsync(job.Id);
 
         Assert.AreEqual("test.xtf", updated.OriginalFileName);
         Assert.AreEqual("random123.xtf", updated.TempFileName);
         Assert.AreEqual(Status.Ready, updated.Status);
+        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{job.Id}/"), Times.Once);
     }
 
     [TestMethod]
