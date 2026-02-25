@@ -93,9 +93,11 @@ services:
       Auth__FullScope: "profile email openid geopilot.api"
       Auth__ApiServerScope: "geopilot.api"
       Validation__InterlisCheckServiceUrl: http://interlis-check-service:8080/
+      CloudStorage__Enabled: true
       CloudStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
       CloudStorage__BucketName: uploads
       CloudStorage__AutoCreateContainer: true
+      ClamAV__Enabled: true
       ClamAV__Host: clamav
       ClamAV__Port: 3310
       Pipeline__Definition: /pipelines/pipelines.yaml

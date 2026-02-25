@@ -6,6 +6,11 @@
 public class CloudStorageOptions
 {
     /// <summary>
+    /// Whether cloud storage uploads are enabled. When disabled, only direct uploads are available.
+    /// </summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>
     /// The Azure Blob Storage connection string.
     /// </summary>
     public string? ConnectionString { get; set; }

@@ -6,6 +6,11 @@
 public class ClamAvOptions
 {
     /// <summary>
+    /// Whether ClamAV virus scanning is enabled. Requires cloud storage to be enabled.
+    /// </summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>
     /// The hostname of the ClamAV daemon.
     /// </summary>
     public string Host { get; set; } = "localhost";

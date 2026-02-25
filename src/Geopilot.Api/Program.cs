@@ -151,10 +151,22 @@ builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("Validation"));
 builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
-builder.Services.AddSingleton<ICloudStorageService, AzureBlobStorageService>();
-builder.Services.AddTransient<ICloudScanService, ClamAvScanService>();
-builder.Services.AddTransient<ICloudOrchestrationService, CloudOrchestrationService>();
-builder.Services.AddHostedService<CloudCleanupService>();
+
+if (builder.Configuration.GetValue<bool>("CloudStorage:Enabled"))
+{
+    builder.Services.AddSingleton<ICloudStorageService, AzureBlobStorageService>();
+    builder.Services.AddTransient<ICloudOrchestrationService, CloudOrchestrationService>();
+    builder.Services.AddHostedService<CloudCleanupService>();
+
+    if (builder.Configuration.GetValue<bool>("ClamAV:Enabled"))
+    {
+        builder.Services.AddTransient<ICloudScanService, ClamAvScanService>();
+    }
+    else
+    {
+        builder.Services.AddTransient<ICloudScanService, NoOpScanService>();
+    }
+}
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
