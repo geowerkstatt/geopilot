@@ -152,6 +152,7 @@ builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.AddSingleton<ICloudStorageService, AzureBlobStorageService>();
+builder.Services.AddTransient<ICloudScanService, ClamAvScanService>();
 builder.Services.AddTransient<ICloudOrchestrationService, CloudOrchestrationService>();
 builder.Services.AddHostedService<CloudCleanupService>();
 
