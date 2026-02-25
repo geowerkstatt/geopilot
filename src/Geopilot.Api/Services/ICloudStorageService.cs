@@ -25,8 +25,8 @@ public interface ICloudStorageService
     /// Lists files in cloud storage matching the specified prefix.
     /// </summary>
     /// <param name="prefix">The key prefix to filter by.</param>
-    /// <returns>A list of keys and their sizes.</returns>
-    Task<IReadOnlyList<(string Key, long Size)>> ListFilesAsync(string prefix);
+    /// <returns>A list of keys, sizes, and last modified timestamps.</returns>
+    Task<IReadOnlyList<(string Key, long Size, DateTime LastModified)>> ListFilesAsync(string prefix);
 
     /// <summary>
     /// Deletes a single file from cloud storage.
