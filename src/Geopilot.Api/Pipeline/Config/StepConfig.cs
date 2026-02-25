@@ -1,4 +1,5 @@
-﻿using YamlDotNet.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using YamlDotNet.Serialization;
 
 namespace Geopilot.Api.Pipeline.Config;
 
@@ -11,6 +12,7 @@ public class StepConfig
     /// The step identifier. It uniquely identifies the step within the given pipeline. It is used to reference this step from other configurations.
     /// </summary>
     [YamlMember(Alias = "id")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Step ID is required.")]
     public required string Id { get; set; }
 
     /// <summary>
@@ -23,6 +25,7 @@ public class StepConfig
     /// The process to execute in this step. References the <see cref="ProcessConfig.Id"/> of a defined process.
     /// </summary>
     [YamlMember(Alias = "process_id")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Process Reference is required.")]
     public string? ProcessId { get; set; }
 
     /// <summary>
@@ -41,5 +44,8 @@ public class StepConfig
     /// Configuration for output data handling in this step. Defines how to map data from the process to the output destinations.
     /// </summary>
     [YamlMember(Alias = "output")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Step Output is required.")]
+    [MinLength(1, ErrorMessage = "At least one Step Output is required.")]
+    [DuplicatedProperty(PropertyName = "As")]
     public List<OutputConfig>? Output { get; set; }
 }

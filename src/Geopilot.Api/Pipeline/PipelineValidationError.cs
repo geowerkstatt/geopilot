@@ -4,11 +4,14 @@ internal class PipelineValidationError
 {
     internal Type SourceObject { get; }
 
+    internal IEnumerable<string> MemberNames { get; }
+
     internal string Message { get; }
 
-    internal PipelineValidationError(Type sourceObject, string message)
+    internal PipelineValidationError(Type sourceObject, IEnumerable<string> memberNames, string message)
     {
-        Message = message;
-        SourceObject = sourceObject;
+        this.Message = message;
+        this.MemberNames = memberNames;
+        this.SourceObject = sourceObject;
     }
 }
