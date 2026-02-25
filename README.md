@@ -141,3 +141,31 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
 ```
 
 Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im Swagger UI die OpenID Konfiguration der Authority (`<authority-url>/.well-known/openid-configuration`) geladen und alle vom Identity Provider unterstützten Flows angezeigt.
+
+## Cloud Upload (optional)
+
+geopilot kann optional mit einem Cloud-Upload-Flow betrieben werden, bei dem Dateien über Presigned URLs direkt in einen Object Storage hochgeladen werden. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
+
+Die Architektur basiert auf den Interfaces `ICloudStorageService` und `ICloudScanService`. Andere Object-Storage-Anbieter mit Presigned-URL-Support (z.B. AWS S3) oder andere Scan-Dienste (z.B. AWS GuardDuty) können durch eigene Implementierungen dieser Interfaces integriert werden.
+
+Beide Features sind standardmässig deaktiviert. Ohne Konfiguration wird ausschliesslich der klassische direkte Upload verwendet.
+
+### Konfiguration
+
+```json5
+"CloudStorage": {
+    "Enabled": true,
+    "ConnectionString": "...",
+    "BucketName": "uploads",
+    "AutoCreateContainer": false // Nur für Entwicklung auf true setzen
+},
+"ClamAV": {
+    "Enabled": true,
+    "Host": "localhost",
+    "Port": 3310
+}
+```
+
+- **Cloud Storage deaktiviert (Standard):** Nur der direkte Upload (`/api/v1/validation`) ist verfügbar. ClamAV-Einstellungen werden ignoriert.
+- **Cloud Storage aktiviert, ClamAV deaktiviert:** Cloud-Upload funktioniert ohne Virenprüfung. Pro Upload wird eine Warnung geloggt.
+- **Cloud Storage aktiviert, ClamAV aktiviert:** Cloud-Upload mit Virenprüfung vor der Validierung.
