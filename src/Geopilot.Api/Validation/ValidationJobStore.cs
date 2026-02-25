@@ -56,12 +56,21 @@ public class ValidationJobStore : IValidationJobStore
     }
 
     /// <inheritdoc/>
+    public ValidationJob SetJobStatus(Guid jobId, Status status)
+    {
+        return jobs.AddOrUpdate(
+            jobId,
+            id => throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId)),
+            (id, currentJob) => currentJob with { Status = status });
+    }
+
+    /// <inheritdoc/>
     public ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName)
     {
         var updateFunc = (Guid jobId, ValidationJob currentJob) =>
         {
-            if (currentJob.Status != Status.Created)
-                throw new InvalidOperationException($"Cannot add file to job <{jobId}> because its status is <{currentJob.Status}> instead of <{Status.Created}>.");
+            if (currentJob.Status != Status.Created && currentJob.Status != Status.VerifyingUpload)
+                throw new InvalidOperationException($"Cannot add file to job <{jobId}> because its status is <{currentJob.Status}> instead of <{Status.Created}> or <{Status.VerifyingUpload}>.");
 
             return currentJob with
             {
