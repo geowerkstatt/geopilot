@@ -1,4 +1,5 @@
-﻿using YamlDotNet.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using YamlDotNet.Serialization;
 
 namespace Geopilot.Api.Pipeline.Config;
 
@@ -10,12 +11,14 @@ public class OutputConfig
     /// <summary>
     /// The attribute name to take the data from.
     /// </summary>
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Output take is required.")]
     [YamlMember(Alias = "take")]
     public required string Take { get; set; }
 
     /// <summary>
     /// The attribute name to map the output data to.
     /// </summary>
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Output as is required.")]
     [YamlMember(Alias = "as")]
     public required string As { get; set; }
 

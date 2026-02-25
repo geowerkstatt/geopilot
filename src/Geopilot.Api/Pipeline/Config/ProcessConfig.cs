@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Process;
+using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
 namespace Geopilot.Api.Pipeline.Config;
@@ -12,12 +13,14 @@ public class ProcessConfig
     /// The unique process identifier. Used to reference this process in <see cref="StepConfig"/>.
     /// </summary>
     [YamlMember(Alias = "id")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Process ID is required.")]
     public required string Id { get; set; }
 
     /// <summary>
     /// The implementation reference, a fully qualified class identifier for the process logic. Has to have exactly one public method with the <see cref="PipelineProcessRunAttribute"/> attribute which defines the method to be executed when the process is run in a pipeline step.
     /// </summary>
     [YamlMember(Alias = "implementation")]
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Process Implementation is required.")]
     public required string Implementation { get; set; }
 
     /// <summary>
