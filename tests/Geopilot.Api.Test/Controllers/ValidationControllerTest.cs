@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using Geopilot.Api.Contracts;
+using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
@@ -476,5 +477,67 @@ public sealed class ValidationControllerTest
         Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.AreEqual("The user is not authorized to start the job with the specified mandate.", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncReturnsPreflightResponseForCloudUploadPreflightException()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var startJobRequest = new StartJobRequest { MandateId = 1 };
+        var validationJob = new ValidationJob(
+            jobId,
+            null,
+            null,
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Created,
+            DateTime.Now);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, startJobRequest.MandateId, null))
+            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, "File 'test.xtf' was not uploaded."));
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as BadRequestObjectResult;
+
+        // Assert
+        Assert.IsInstanceOfType<BadRequestObjectResult>(response);
+        var preflightResponse = response!.Value as PreflightResponse;
+        Assert.IsNotNull(preflightResponse);
+        Assert.IsFalse(preflightResponse.Success);
+        Assert.AreEqual(PreflightFailureReason.IncompleteUpload, preflightResponse.FailureReason);
+        Assert.AreEqual("File 'test.xtf' was not uploaded.", preflightResponse.ErrorMessage);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncReturnsPreflightResponseForThreatDetected()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var startJobRequest = new StartJobRequest { MandateId = 1 };
+        var validationJob = new ValidationJob(
+            jobId,
+            null,
+            null,
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.Created,
+            DateTime.Now);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, startJobRequest.MandateId, null))
+            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.ThreatDetected, "The uploaded files could not be processed."));
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as BadRequestObjectResult;
+
+        // Assert
+        Assert.IsInstanceOfType<BadRequestObjectResult>(response);
+        var preflightResponse = response!.Value as PreflightResponse;
+        Assert.IsNotNull(preflightResponse);
+        Assert.IsFalse(preflightResponse.Success);
+        Assert.AreEqual(PreflightFailureReason.ThreatDetected, preflightResponse.FailureReason);
+        Assert.AreEqual("The uploaded files could not be processed.", preflightResponse.ErrorMessage);
     }
 }
