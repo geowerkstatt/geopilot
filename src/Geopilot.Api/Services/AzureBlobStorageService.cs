@@ -55,7 +55,7 @@ public class AzureBlobStorageService : ICloudStorageService
     {
         var results = new List<(string Key, long Size, DateTime LastModified)>();
 
-        await foreach (var blob in containerClient.GetBlobsAsync(prefix: prefix))
+        await foreach (var blob in containerClient.GetBlobsAsync(BlobTraits.None, BlobStates.None, prefix))
         {
             results.Add((blob.Name, blob.Properties.ContentLength ?? 0, blob.Properties.LastModified?.UtcDateTime ?? DateTime.MinValue));
         }
@@ -80,7 +80,7 @@ public class AzureBlobStorageService : ICloudStorageService
     /// <inheritdoc/>
     public async Task DeletePrefixAsync(string prefix)
     {
-        await foreach (var blob in containerClient.GetBlobsAsync(prefix: prefix))
+        await foreach (var blob in containerClient.GetBlobsAsync(BlobTraits.None, BlobStates.None, prefix))
         {
             await containerClient.DeleteBlobIfExistsAsync(blob.Name);
         }
@@ -91,7 +91,7 @@ public class AzureBlobStorageService : ICloudStorageService
     {
         long total = 0;
 
-        await foreach (var blob in containerClient.GetBlobsAsync(prefix: prefix))
+        await foreach (var blob in containerClient.GetBlobsAsync(BlobTraits.None, BlobStates.None, prefix))
         {
             total += blob.Properties.ContentLength ?? 0;
         }
