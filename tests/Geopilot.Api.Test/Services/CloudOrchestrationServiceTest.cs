@@ -1,4 +1,4 @@
-using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Enums;
 using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
@@ -19,7 +19,7 @@ public class CloudOrchestrationServiceTest
     private Mock<IFileProvider> fileProviderMock;
     private Mock<IOptions<CloudStorageOptions>> optionsMock;
     private Mock<ILogger<CloudOrchestrationService>> loggerMock;
-    private IValidationJobStore jobStore;
+    private ValidationJobStore jobStore;
     private CloudOrchestrationService service;
 
     [TestInitialize]
@@ -208,9 +208,11 @@ public class CloudOrchestrationServiceTest
         var job = CreateCloudJob("test.xtf", 1024);
 
         fileProviderMock.Setup(f => f.Initialize(job.Id));
+        using var stream = new MemoryStream();
+        using var fileHandle = new FileHandle("random123.xtf", stream);
         fileProviderMock
             .Setup(f => f.CreateFileWithRandomName(".xtf"))
-            .Returns(new FileHandle("random123.xtf", new MemoryStream()));
+            .Returns(fileHandle);
 
         cloudStorageServiceMock
             .Setup(s => s.DownloadAsync($"uploads/{job.Id}/test.xtf", It.IsAny<Stream>()))
