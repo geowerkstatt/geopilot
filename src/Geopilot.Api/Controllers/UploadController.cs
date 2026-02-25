@@ -17,12 +17,12 @@ namespace Geopilot.Api.Controllers;
 public class UploadController : ControllerBase
 {
     private readonly ILogger<UploadController> logger;
-    private readonly ICloudOrchestrationService orchestrationService;
+    private readonly ICloudOrchestrationService? orchestrationService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UploadController"/> class.
     /// </summary>
-    public UploadController(ILogger<UploadController> logger, ICloudOrchestrationService orchestrationService)
+    public UploadController(ILogger<UploadController> logger, ICloudOrchestrationService? orchestrationService = null)
     {
         this.logger = logger;
         this.orchestrationService = orchestrationService;
@@ -39,6 +39,9 @@ public class UploadController : ControllerBase
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected error.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> InitiateUploadAsync([FromBody] CloudUploadRequest request)
     {
+        if (orchestrationService == null)
+            return Problem("Cloud storage uploads are not enabled.", statusCode: StatusCodes.Status400BadRequest);
+
         try
         {
             logger.LogInformation("Cloud upload session initiated.");

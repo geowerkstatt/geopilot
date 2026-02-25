@@ -33,9 +33,9 @@ public class ValidationServiceTest
         validationService = new ValidationService(
             validationJobStoreMock.Object,
             mandateServiceMock.Object,
-            cloudOrchestrationServiceMock.Object,
             fileProviderMock.Object,
-            [validatorMock.Object]);
+            [validatorMock.Object],
+            cloudOrchestrationServiceMock.Object);
     }
 
     [TestCleanup]
@@ -114,7 +114,6 @@ public class ValidationServiceTest
         validationService = new ValidationService(
             validationJobStoreMock.Object,
             mandateServiceMock.Object,
-            cloudOrchestrationServiceMock.Object,
             fileProviderMock.Object,
             [supportedValidatorMock1.Object, supportedValidatorMock2.Object]);
 
@@ -214,7 +213,6 @@ public class ValidationServiceTest
         validationService = new ValidationService(
             validationJobStoreMock.Object,
             mandateServiceMock.Object,
-            cloudOrchestrationServiceMock.Object,
             fileProviderMock.Object,
             [mandateSpecificValidatorMock.Object, unsupportedValidatorMock.Object]);
 

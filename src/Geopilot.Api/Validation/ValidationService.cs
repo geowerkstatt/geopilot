@@ -16,7 +16,7 @@ public class ValidationService : IValidationService
 {
     private readonly IValidationJobStore jobStore;
     private readonly IMandateService mandateService;
-    private readonly ICloudOrchestrationService cloudOrchestrationService;
+    private readonly ICloudOrchestrationService? cloudOrchestrationService;
 
     private readonly IFileProvider fileProvider;
     private readonly IEnumerable<IValidator> validators;
@@ -24,7 +24,7 @@ public class ValidationService : IValidationService
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationService"/> class.
     /// </summary>
-    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, ICloudOrchestrationService cloudOrchestrationService, IFileProvider fileProvider, IEnumerable<IValidator> validators)
+    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IEnumerable<IValidator> validators, ICloudOrchestrationService? cloudOrchestrationService = null)
     {
         this.jobStore = validationJobStore;
         this.mandateService = mandateService;
@@ -63,6 +63,9 @@ public class ValidationService : IValidationService
 
         if (validationJob.UploadMethod == UploadMethod.Cloud)
         {
+            if (cloudOrchestrationService == null)
+                throw new InvalidOperationException("Cloud storage is not enabled.");
+
             await cloudOrchestrationService.RunPreflightChecksAsync(jobId);
             validationJob = await cloudOrchestrationService.StageFilesLocallyAsync(jobId);
         }
