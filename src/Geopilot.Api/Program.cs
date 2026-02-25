@@ -151,6 +151,7 @@ builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("Validation"));
 builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
 builder.Services.AddTransient<ICloudOrchestrationService, CloudOrchestrationService>();
+builder.Services.AddHostedService<CloudCleanupService>();
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
