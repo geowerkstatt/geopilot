@@ -47,6 +47,19 @@ services:
       db:
         condition: service_healthy
 
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - 10000:10000
+    volumes:
+      - ./config/azurite-start.sh:/azurite-start.sh:ro
+    entrypoint: ["/bin/sh", "/azurite-start.sh"]
+
+  clamav:
+    image: clamav/clamav
+    ports:
+      - 3310:3310
+
   interlis-check-service:
     image: ghcr.io/geowerkstatt/interlis-check-service:edge
     restart: unless-stopped
