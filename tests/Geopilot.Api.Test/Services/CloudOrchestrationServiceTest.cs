@@ -137,6 +137,10 @@ public class CloudOrchestrationServiceTest
             .ReturnsAsync(new ScanResult(true));
 
         await service.RunPreflightChecksAsync(job.Id);
+
+        var updatedJob = jobStore.GetJob(job.Id);
+        Assert.IsNotNull(updatedJob);
+        Assert.AreEqual(Status.VerifyingUpload, updatedJob.Status);
     }
 
     [TestMethod]
