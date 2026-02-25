@@ -6,6 +6,11 @@
 public class CloudStorageOptions
 {
     /// <summary>
+    /// The Azure Blob Storage connection string.
+    /// </summary>
+    public string? ConnectionString { get; set; }
+
+    /// <summary>
     /// The name of the cloud storage bucket.
     /// </summary>
     public string? BucketName { get; set; }
