@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.FileAccess;
+﻿using Geopilot.Api.Enums;
+using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Api.Validation.Interlis;
@@ -15,6 +16,7 @@ public class ValidationService : IValidationService
 {
     private readonly IValidationJobStore jobStore;
     private readonly IMandateService mandateService;
+    private readonly ICloudOrchestrationService cloudOrchestrationService;
 
     private readonly IFileProvider fileProvider;
     private readonly IEnumerable<IValidator> validators;
@@ -22,10 +24,11 @@ public class ValidationService : IValidationService
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationService"/> class.
     /// </summary>
-    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IEnumerable<IValidator> validators)
+    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, ICloudOrchestrationService cloudOrchestrationService, IFileProvider fileProvider, IEnumerable<IValidator> validators)
     {
         this.jobStore = validationJobStore;
         this.mandateService = mandateService;
+        this.cloudOrchestrationService = cloudOrchestrationService;
 
         this.fileProvider = fileProvider;
         this.validators = validators;
@@ -57,6 +60,12 @@ public class ValidationService : IValidationService
     public async Task<ValidationJob> StartJobAsync(Guid jobId, int mandateId, User? user)
     {
         var validationJob = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
+
+        if (validationJob.UploadMethod == UploadMethod.Cloud)
+        {
+            await cloudOrchestrationService.RunPreflightChecksAsync(jobId);
+            validationJob = await cloudOrchestrationService.StageFilesLocallyAsync(jobId);
+        }
 
         // Check if the user is allowed to start the job with the specified mandate
         var mandate = await mandateService.GetMandateForUser(mandateId, user);
