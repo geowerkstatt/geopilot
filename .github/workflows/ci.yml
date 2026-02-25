@@ -45,8 +45,8 @@ jobs:
         working-directory: ./src/Geopilot.Api
         run: dotnet tool run dotnet-ef migrations has-pending-model-changes
 
-      - name: Start test db
-        run: docker compose up -d --wait --wait-timeout 30 db
+      - name: Start test environment
+        run: docker compose up -d --wait --wait-timeout 120 db azurite clamav
 
       - name: Test
         run: dotnet test Geopilot.slnx -c Release --no-build --verbosity normal
