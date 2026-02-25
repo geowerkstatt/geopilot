@@ -128,6 +128,9 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         using var fileHandle = fileProvider.CreateFileWithRandomName(extension);
         await cloudStorageService.DownloadAsync(file.CloudKey, fileHandle.Stream);
 
+        var cloudPrefix = $"uploads/{jobId}/";
+        await cloudStorageService.DeletePrefixAsync(cloudPrefix);
+
         return jobStore.AddFileToJob(jobId, file.FileName, fileHandle.FileName);
     }
 
