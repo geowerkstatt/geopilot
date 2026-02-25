@@ -128,3 +128,20 @@ export interface PipelineSummary {
 export interface AvailablePipelinesResponse {
   pipelines: PipelineSummary[];
 }
+
+export interface UploadSettings {
+  enabled: boolean;
+  maxFileSizeMB: number;
+  maxFilesPerJob: number;
+  maxJobSizeMB: number;
+}
+
+export interface CloudUploadRequest {
+  files: { fileName: string; size: number }[];
+}
+
+export interface CloudUploadResponse {
+  jobId: string;
+  files: { fileName: string; uploadUrl: string }[];
+  expiresAt: string;
+}
