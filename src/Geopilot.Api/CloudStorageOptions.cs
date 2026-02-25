@@ -44,4 +44,9 @@ public class CloudStorageOptions
     /// The age in hours after which cloud files are eligible for cleanup. Default is 48 hours.
     /// </summary>
     public int CleanupAgeHours { get; set; } = 48;
+
+    /// <summary>
+    /// Whether to automatically create the blob container on startup. Should only be enabled in development.
+    /// </summary>
+    public bool AutoCreateContainer { get; set; }
 }

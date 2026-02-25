@@ -27,6 +27,9 @@ public class AzureBlobStorageService : ICloudStorageService
 
         var serviceClient = new BlobServiceClient(config.ConnectionString);
         containerClient = serviceClient.GetBlobContainerClient(config.BucketName);
+
+        if (config.AutoCreateContainer)
+            containerClient.CreateIfNotExists();
     }
 
     /// <inheritdoc/>

@@ -48,15 +48,13 @@ services:
         condition: service_healthy
 
   azurite:
-    image: mcr.microsoft.com/azure-storage/azurite
+    image: mcr.microsoft.com/azure-storage/azurite:latest
     ports:
       - 10000:10000
-    volumes:
-      - ./config/azurite-start.sh:/azurite-start.sh:ro
-    entrypoint: ["/bin/sh", "/azurite-start.sh"]
+    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck"
 
   clamav:
-    image: clamav/clamav
+    image: clamav/clamav:latest
     ports:
       - 3310:3310
 
@@ -91,6 +89,7 @@ services:
       Validation__InterlisCheckServiceUrl: http://interlis-check-service:8080/
       CloudStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
       CloudStorage__BucketName: uploads
+      CloudStorage__AutoCreateContainer: true
       ClamAV__Host: clamav
       ClamAV__Port: 3310
       Pipeline__Definition: /pipelines/pipelines.yaml
