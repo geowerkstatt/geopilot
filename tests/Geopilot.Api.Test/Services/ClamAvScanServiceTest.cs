@@ -6,7 +6,7 @@ using Moq;
 namespace Geopilot.Api.Test.Services;
 
 [TestClass]
-public class clClamAvScanServiceTest
+public class ClamAvScanServiceTest
 {
     private Mock<ICloudStorageService> cloudStorageServiceMock;
     private Mock<ILogger<ClamAvScanService>> loggerMock;
