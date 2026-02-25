@@ -1,6 +1,7 @@
 ﻿using Api;
 using Asp.Versioning;
 using Geopilot.Api.Contracts;
+using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
@@ -182,6 +183,11 @@ public class ValidationController : ControllerBase
             var validationJob = await validationService.StartJobAsync(jobId, startJobRequest.MandateId, user);
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
             return Ok(validationJob.ToResponse());
+        }
+        catch (CloudUploadPreflightException ex)
+        {
+            logger.LogTrace(ex, "Preflight checks failed for job <{JobId}>.", jobId);
+            return BadRequest(new PreflightResponse(false, ex.FailureReason, ex.Message));
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
         {
