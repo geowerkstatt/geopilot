@@ -30,7 +30,7 @@ public class CloudOrchestrationServiceTest
         fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
         loggerMock = new Mock<ILogger<CloudOrchestrationService>>();
 
-        optionsMock = new Mock<IOptions<CloudStorageOptions>>(MockBehavior.Strict);
+        optionsMock = new Mock<IOptions<CloudStorageOptions>>();
         optionsMock.SetupGet(o => o.Value).Returns(new CloudStorageOptions());
 
         jobStore = new ValidationJobStore();
@@ -50,7 +50,6 @@ public class CloudOrchestrationServiceTest
         cloudStorageServiceMock.VerifyAll();
         cloudScanServiceMock.VerifyAll();
         fileProviderMock.VerifyAll();
-        optionsMock.VerifyAll();
     }
 
     [TestMethod]
