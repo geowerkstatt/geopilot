@@ -76,6 +76,8 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         if (job.CloudFiles == null || job.CloudFiles.Count == 0)
             throw new InvalidOperationException($"Job <{jobId}> has no cloud files configured.");
 
+        jobStore.SetJobStatus(jobId, Status.VerifyingUpload);
+
         var cloudPrefix = $"uploads/{jobId}/";
         var uploadedFiles = await cloudStorageService.ListFilesAsync(cloudPrefix);
 
