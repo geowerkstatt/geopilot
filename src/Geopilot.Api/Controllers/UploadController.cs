@@ -3,6 +3,7 @@ using Geopilot.Api.Contracts;
 using Geopilot.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace Geopilot.Api.Controllers;
@@ -18,14 +19,31 @@ public class UploadController : ControllerBase
 {
     private readonly ILogger<UploadController> logger;
     private readonly ICloudOrchestrationService? orchestrationService;
+    private readonly CloudStorageOptions options;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UploadController"/> class.
     /// </summary>
-    public UploadController(ILogger<UploadController> logger, ICloudOrchestrationService? orchestrationService = null)
+    public UploadController(ILogger<UploadController> logger, IOptions<CloudStorageOptions> options, ICloudOrchestrationService? orchestrationService = null)
     {
         this.logger = logger;
+        this.options = options.Value;
         this.orchestrationService = orchestrationService;
+    }
+
+    /// <summary>
+    /// Returns the cloud upload settings.
+    /// </summary>
+    /// <returns>Configuration settings for cloud uploads.</returns>
+    [HttpGet]
+    [SwaggerResponse(StatusCodes.Status200OK, "The cloud upload settings.", typeof(UploadSettingsResponse), "application/json")]
+    public IActionResult GetUploadSettings()
+    {
+        return Ok(new UploadSettingsResponse(
+            options.Enabled,
+            options.MaxFileSizeMB,
+            options.MaxFilesPerJob,
+            options.MaxJobSizeMB));
     }
 
     /// <summary>
