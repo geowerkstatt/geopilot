@@ -191,6 +191,35 @@ public class ValidationJobStoreTest
     }
 
     [TestMethod]
+    public void SetJobStatus()
+    {
+        var job = store.CreateJob();
+        var updated = store.SetJobStatus(job.Id, Status.VerifyingUpload);
+
+        Assert.AreEqual(Status.VerifyingUpload, updated.Status);
+        Assert.AreEqual(job.Id, updated.Id);
+    }
+
+    [TestMethod]
+    public void SetJobStatusThrowsIfJobNotFound()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() => store.SetJobStatus(Guid.NewGuid(), Status.VerifyingUpload));
+    }
+
+    [TestMethod]
+    public void AddFileToJobSucceedsForVerifyingUploadStatus()
+    {
+        var job = store.CreateJob();
+        store.SetJobStatus(job.Id, Status.VerifyingUpload);
+
+        var updated = store.AddFileToJob(job.Id, "original.txt", "temp.txt");
+
+        Assert.AreEqual("original.txt", updated.OriginalFileName);
+        Assert.AreEqual("temp.txt", updated.TempFileName);
+        Assert.AreEqual(Status.Ready, updated.Status);
+    }
+
+    [TestMethod]
     public void AddUploadInfoToJob()
     {
         var job = store.CreateJob();
