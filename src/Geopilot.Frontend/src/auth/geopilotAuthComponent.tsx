@@ -8,7 +8,7 @@ import { useAuth } from "react-oidc-context";
 import { CookieSynchronizer } from "./cookieSynchronizer";
 
 export const GeopilotAuthContext = createContext<GeopilotAuthContextInterface>({
-  authEnabled: false,
+  authLoaded: false,
   isLoading: false,
   user: undefined,
   isAdmin: false,
@@ -38,8 +38,8 @@ const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
   const user = useUser();
   const apiSetting = useApiAuthConfiguration();
 
-  const authEnabled = !!(apiSetting && apiSetting.clientAudience && apiSetting.authority);
-  const isLoading = !((!!apiSetting && !authEnabled) || user !== undefined);
+  const authLoaded = !!(apiSetting && apiSetting.clientAudience && apiSetting.authority);
+  const isLoading = !((!!apiSetting && !authLoaded) || user !== undefined);
 
   const getLoginFunction = () => {
     if (!auth) return () => {};
@@ -53,7 +53,7 @@ const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
   return (
     <GeopilotAuthContext.Provider
       value={{
-        authEnabled: authEnabled,
+        authLoaded: authLoaded,
         isLoading: isLoading,
         user: user,
         isAdmin: !!user?.isAdmin,
