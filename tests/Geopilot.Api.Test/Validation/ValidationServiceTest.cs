@@ -1,4 +1,6 @@
-﻿using Geopilot.Api.FileAccess;
+﻿using Geopilot.Api.Enums;
+using Geopilot.Api.Exceptions;
+using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
@@ -12,6 +14,7 @@ public class ValidationServiceTest
 {
     private Mock<IFileProvider> fileProviderMock;
     private Mock<IValidator> validatorMock;
+    private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
     private Context context;
     private ValidationService validationService;
     private Mock<IMandateService> mandateServiceMock;
@@ -22,6 +25,7 @@ public class ValidationServiceTest
     {
         fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
         validatorMock = new Mock<IValidator>(MockBehavior.Strict);
+        cloudOrchestrationServiceMock = new Mock<ICloudOrchestrationService>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
         validationJobStoreMock = new Mock<IValidationJobStore>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
@@ -29,6 +33,7 @@ public class ValidationServiceTest
         validationService = new ValidationService(
             validationJobStoreMock.Object,
             mandateServiceMock.Object,
+            cloudOrchestrationServiceMock.Object,
             fileProviderMock.Object,
             [validatorMock.Object]);
     }
@@ -38,6 +43,7 @@ public class ValidationServiceTest
     {
         fileProviderMock.VerifyAll();
         validatorMock.VerifyAll();
+        cloudOrchestrationServiceMock.VerifyAll();
         validationJobStoreMock.VerifyAll();
         mandateServiceMock.VerifyAll();
         context.Dispose();
@@ -108,6 +114,7 @@ public class ValidationServiceTest
         validationService = new ValidationService(
             validationJobStoreMock.Object,
             mandateServiceMock.Object,
+            cloudOrchestrationServiceMock.Object,
             fileProviderMock.Object,
             [supportedValidatorMock1.Object, supportedValidatorMock2.Object]);
 
@@ -207,6 +214,7 @@ public class ValidationServiceTest
         validationService = new ValidationService(
             validationJobStoreMock.Object,
             mandateServiceMock.Object,
+            cloudOrchestrationServiceMock.Object,
             fileProviderMock.Object,
             [mandateSpecificValidatorMock.Object, unsupportedValidatorMock.Object]);
 
@@ -234,5 +242,85 @@ public class ValidationServiceTest
         // Cleanup for additional mocks
         mandateSpecificValidatorMock.VerifyAll();
         unsupportedValidatorMock.VerifyAll();
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncRunsPreflightAndStagingForCloudJob()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var mandate = new Mandate { Id = 1, Name = nameof(StartJobAsyncRunsPreflightAndStagingForCloudJob), FileTypes = [".xtf"] };
+        var user = new User { Id = 2, FullName = nameof(StartJobAsyncRunsPreflightAndStagingForCloudJob) };
+
+        var cloudJob = new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
+        var stagedJob = new ValidationJob(jobId, "test.xtf", "random.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now, UploadMethod.Cloud);
+        var startedJob = new ValidationJob(jobId, "test.xtf", "random.xtf", mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing, DateTime.Now, UploadMethod.Cloud);
+
+        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(cloudJob);
+        cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId)).Returns(Task.CompletedTask);
+        cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(jobId)).ReturnsAsync(stagedJob);
+        mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
+
+        validatorMock.Setup(x => x.GetSupportedFileExtensionsAsync()).ReturnsAsync([".xtf"]);
+
+        validationJobStoreMock
+            .Setup(x => x.StartJob(jobId, It.IsAny<ICollection<IValidator>>(), mandate.Id))
+            .Returns(startedJob);
+
+        // Act
+        var result = await validationService.StartJobAsync(jobId, mandate.Id, user);
+
+        // Assert
+        Assert.AreEqual(startedJob, result);
+        Assert.AreEqual(Status.Processing, result.Status);
+        cloudOrchestrationServiceMock.Verify(x => x.RunPreflightChecksAsync(jobId), Times.Once);
+        cloudOrchestrationServiceMock.Verify(x => x.StageFilesLocallyAsync(jobId), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncDoesNotRunPreflightForDirectUploadJob()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var mandate = new Mandate { Id = 1, Name = nameof(StartJobAsyncDoesNotRunPreflightForDirectUploadJob), FileTypes = [".xtf"] };
+        var user = new User { Id = 2, FullName = nameof(StartJobAsyncDoesNotRunPreflightForDirectUploadJob) };
+
+        var directJob = new ValidationJob(jobId, "original.xtf", "file.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
+        var startedJob = new ValidationJob(jobId, "original.xtf", "file.xtf", mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing, DateTime.Now);
+
+        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(directJob);
+        mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
+        validatorMock.Setup(x => x.GetSupportedFileExtensionsAsync()).ReturnsAsync([".xtf"]);
+        validationJobStoreMock
+            .Setup(x => x.StartJob(jobId, It.IsAny<ICollection<IValidator>>(), mandate.Id))
+            .Returns(startedJob);
+
+        // Act
+        var result = await validationService.StartJobAsync(jobId, mandate.Id, user);
+
+        // Assert
+        Assert.AreEqual(startedJob, result);
+        cloudOrchestrationServiceMock.Verify(x => x.RunPreflightChecksAsync(It.IsAny<Guid>()), Times.Never);
+        cloudOrchestrationServiceMock.Verify(x => x.StageFilesLocallyAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncPropagatesPreflightException()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var cloudJob = new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
+
+        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(cloudJob);
+        cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId))
+            .ThrowsAsync(new CloudUploadPreflightException(Contracts.PreflightFailureReason.IncompleteUpload, "File 'test.xtf' was not uploaded."));
+
+        // Act & Assert
+        var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(async () =>
+        {
+            await validationService.StartJobAsync(jobId, 1, null);
+        });
+
+        Assert.AreEqual(Contracts.PreflightFailureReason.IncompleteUpload, ex.FailureReason);
     }
 }
