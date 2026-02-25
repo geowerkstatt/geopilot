@@ -186,8 +186,19 @@ public class ValidationController : ControllerBase
         }
         catch (CloudUploadPreflightException ex)
         {
-            logger.LogTrace(ex, "Preflight checks failed for job <{JobId}>.", jobId);
-            return BadRequest(new PreflightResponse(false, ex.FailureReason, ex.Message));
+            string detail;
+            if (ex.FailureReason == PreflightFailureReason.ThreatDetected)
+            {
+                logger.LogError(ex, "Threat detected in upload for job <{JobId}>.", jobId);
+                detail = "The upload could not be processed.";
+            }
+            else
+            {
+                logger.LogWarning(ex, "Preflight checks failed for job <{JobId}>.", jobId);
+                detail = ex.Message;
+            }
+
+            return Problem(detail, statusCode: StatusCodes.Status400BadRequest);
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
         {
