@@ -73,8 +73,8 @@ public class AzureBlobStorageServiceTest
         var url = await service.GeneratePresignedUploadUrlAsync(key, null, expiresIn);
 
         Assert.IsNotNull(url);
-        Assert.Contains(url, key);
-        Assert.Contains(url, "sig=");
+        Assert.Contains(key, url);
+        Assert.Contains("sig=", url);
 
         // Verify the presigned URL actually works by uploading through it.
         using var httpClient = new HttpClient();
