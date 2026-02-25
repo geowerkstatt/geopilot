@@ -75,6 +75,18 @@ public class PipelineStepTest
         }
     }
 
+    private class MockPipelineProcessNullableTypesInput
+    {
+        public int NumberOfRunInvokations { get; set; }
+
+        [PipelineProcessRun]
+        public async Task<Dictionary<string, object>> RunAsync(int a, int? b, string c, string? d, int[] e, int?[] f, string[] g, string?[] h)
+        {
+            NumberOfRunInvokations++;
+            return [];
+        }
+    }
+
     private class MockPipelineProcessException
     {
         public int NumberOfRunInvoced { get; set; }
@@ -292,6 +304,101 @@ public class PipelineStepTest
     }
 
     [TestMethod]
+    public void SuccessfullStepRunWithNullableTypesInput()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("step_01", "int", "a"),
+            NewInputConfig("step_01", "null", "b"),
+            NewInputConfig("step_01", "string", "c"),
+            NewInputConfig("step_01", "null", "d"),
+            NewInputConfig("step_01", "int", "e"),
+            NewInputConfig("step_01", "int", "e"),
+            NewInputConfig("step_01", "null", "f"),
+            NewInputConfig("step_01", "int", "f"),
+            NewInputConfig("step_01", "string", "g"),
+            NewInputConfig("step_01", "string", "g"),
+            NewInputConfig("step_01", "null", "h"),
+            NewInputConfig("step_01", "string", "h"),
+        };
+        var stepStepResult01 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "int", new StepOutput { Action = new HashSet<OutputAction>(), Data = 42 } },
+                { "string", new StepOutput { Action = new HashSet<OutputAction>(), Data = "this is a string" } },
+                { "null", new StepOutput { Action = new HashSet<OutputAction>(), Data = null } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "step_01", stepStepResult01 },
+            },
+        };
+
+        var processMock = new MockPipelineProcessNullableTypesInput();
+
+        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], processMock);
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+        Assert.AreEqual(1, processMock.NumberOfRunInvokations, "Process Run method was not invoked exactly once.");
+    }
+
+    [TestMethod]
+    public void NullValuesForNonNullableParameters()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("step_01", "null", "a"),
+            NewInputConfig("step_01", "null", "b"),
+            NewInputConfig("step_01", "string", "c"),
+            NewInputConfig("step_01", "null", "d"),
+            NewInputConfig("step_01", "int", "e"),
+            NewInputConfig("step_01", "int", "e"),
+            NewInputConfig("step_01", "null", "f"),
+            NewInputConfig("step_01", "int", "f"),
+            NewInputConfig("step_01", "string", "g"),
+            NewInputConfig("step_01", "string", "g"),
+            NewInputConfig("step_01", "null", "h"),
+            NewInputConfig("step_01", "string", "h"),
+        };
+
+        var stepStepResult01 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "int", new StepOutput { Action = new HashSet<OutputAction>(), Data = 42 } },
+                { "string", new StepOutput { Action = new HashSet<OutputAction>(), Data = "this is a string" } },
+                { "null", new StepOutput { Action = new HashSet<OutputAction>(), Data = null } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "step_01", stepStepResult01 },
+            },
+        };
+
+        var processMock = new MockPipelineProcessNullableTypesInput();
+
+        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], processMock);
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+
+        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.AreEqual(0, processMock.NumberOfRunInvokations, "Process Run method was invoked.");
+    }
+
+    [TestMethod]
     public void ContextHasNoReferencingStepRusult()
     {
         var inputConfigs = new List<InputConfig>
@@ -339,7 +446,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
 
-        Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+        Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked.");
     }
 
     [TestMethod]
@@ -497,5 +604,15 @@ public class PipelineStepTest
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
 
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+    }
+
+    private InputConfig NewInputConfig(string from, string take, string asInput)
+    {
+        return new InputConfig
+        {
+            From = from,
+            Take = take,
+            As = asInput,
+        };
     }
 }
