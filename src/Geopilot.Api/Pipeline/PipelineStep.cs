@@ -201,14 +201,20 @@ public sealed class PipelineStep : IPipelineStep
             throw new InvalidOperationException(errorMessage);
         }
 
-        var objectArrayToInject = mappedValues
-            .Where(p => p == null || elementType.IsAssignableFrom(p.GetType()))
-            .ToArray();
+        var hasAnyNonAssignableValues = mappedValues.Any(p => p != null && !elementType.IsAssignableFrom(p.GetType()));
 
-        var arrayOfCorrectTypeToInject = Array.CreateInstance(elementType, objectArrayToInject.Length);
-        for (int i = 0; i < objectArrayToInject.Length; i++)
+        if (hasAnyNonAssignableValues)
         {
-            arrayOfCorrectTypeToInject.SetValue(objectArrayToInject[i], i);
+            var errorMessage = $"Error in step <{this.Id}>: at least one of the mapped input values was not assignable to the element type <{elementType.Name}> of parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}>.";
+            logger.LogError(errorMessage);
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        var mappedValuesArray = mappedValues.ToArray();
+        var arrayOfCorrectTypeToInject = Array.CreateInstance(elementType, mappedValuesArray.Length);
+        for (int i = 0; i < mappedValuesArray.Length; i++)
+        {
+            arrayOfCorrectTypeToInject.SetValue(mappedValuesArray[i], i);
         }
 
         if (!parameterInfo.ParameterType.IsAssignableFrom(arrayOfCorrectTypeToInject.GetType()))
