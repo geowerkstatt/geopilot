@@ -34,6 +34,7 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   jobId: undefined,
   validationResponse: undefined,
   isLoading: false,
+  isValidating: false,
   uploadFile: () => {},
   validateFile: () => {},
   submitDelivery: () => {},
@@ -75,6 +76,7 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [validationStarted, setValidationStarted] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File>();
   const [selectedMandate, setSelectedMandate] = useState<Mandate>();
@@ -213,7 +215,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         if (response.status === ValidationStatus.Processing) {
           setTimeout(() => pollValidationStatusUntilFinished(jobId, abortController), 2000);
         } else {
-          setIsLoading(false);
+          setIsValidating(false);
 
           if (response.status === ValidationStatus.Completed) {
             continueToNextStep();
@@ -244,9 +246,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     })
       .then(response => {
         setValidationResponse(response);
+        setIsLoading(false);
+        setIsValidating(true);
         pollValidationStatusUntilFinished(jobId, abortController);
       })
       .catch((error: ApiError) => {
+        setIsLoading(false);
         handleApiError(error, DeliveryStepEnum.Validate);
       });
   };
@@ -282,6 +287,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     abortControllers.forEach(controller => controller.abort());
     setAbortControllers([]);
     setIsLoading(false);
+    setIsValidating(false);
     setValidationStarted(false);
     setSelectedFile(undefined);
     setSelectedMandate(undefined);
@@ -320,6 +326,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         jobId,
         validationResponse,
         isLoading,
+        isValidating,
         uploadFile,
         validateFile,
         submitDelivery,

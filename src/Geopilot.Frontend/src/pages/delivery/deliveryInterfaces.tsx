@@ -40,6 +40,7 @@ export interface DeliveryContextInterface {
   jobId?: string;
   validationResponse?: ValidationResponse;
   isLoading: boolean;
+  isValidating: boolean;
   uploadFile: () => void;
   validateFile: (startJobRequest: StartJobRequest) => void;
   submitDelivery: (data: DeliverySubmitData) => void;
