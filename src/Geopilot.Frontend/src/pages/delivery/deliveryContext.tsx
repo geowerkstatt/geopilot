@@ -157,6 +157,19 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     [deliveryStepErrors, setStepError],
   );
 
+  const onUploadComplete = (id: string) => {
+    setJobId(id);
+    setSteps(prevSteps => {
+      const newSteps = new Map(prevSteps);
+      const step = newSteps.get(DeliveryStepEnum.Upload);
+      if (step) {
+        step.labelAddition = selectedFile?.name;
+      }
+      return newSteps;
+    });
+    continueToNextStep();
+  };
+
   const uploadFile = () => {
     if (selectedFile) {
       const abortController = new AbortController();
