@@ -7,11 +7,11 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { ValidationStatus } from "../../../api/apiInterfaces";
 
 export const DeliveryValidationResults = () => {
-  const { validationResponse, resetDelivery } = useContext(DeliveryContext);
+  const { jobId, validationResponse, resetDelivery } = useContext(DeliveryContext);
 
   const download = (fileName: string) => {
-    if (!validationResponse) return;
-    const url = `/api/v1/validation/${validationResponse.jobId}/files/${fileName}`;
+    if (!jobId) return;
+    const url = `/api/v1/validation/${jobId}/files/${fileName}`;
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = fileName;
