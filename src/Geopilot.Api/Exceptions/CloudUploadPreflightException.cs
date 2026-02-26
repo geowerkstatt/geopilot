@@ -1,11 +1,10 @@
-﻿using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Enums;
 
 namespace Geopilot.Api.Exceptions;
 
 /// <summary>
 /// The exception that is thrown when preflight checks for a cloud upload fail.
 /// </summary>
-[Serializable]
 public class CloudUploadPreflightException : Exception
 {
     /// <summary>
