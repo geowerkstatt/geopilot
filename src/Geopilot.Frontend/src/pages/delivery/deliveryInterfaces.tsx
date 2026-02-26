@@ -37,10 +37,11 @@ export interface DeliveryContextInterface {
   setSelectedFile: (file: File | undefined) => void;
   selectedMandate?: Mandate;
   setSelectedMandate: (mandate: Mandate | undefined) => void;
+  jobId?: string;
   validationResponse?: ValidationResponse;
   isLoading: boolean;
   uploadFile: () => void;
-  validateFile: (jobId: string, startJobRequest: StartJobRequest) => void;
+  validateFile: (startJobRequest: StartJobRequest) => void;
   submitDelivery: (data: DeliverySubmitData) => void;
   resetDelivery: () => void;
 }
