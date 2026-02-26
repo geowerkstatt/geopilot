@@ -6,13 +6,21 @@ import {
   DeliverySubmitData,
 } from "./deliveryInterfaces.tsx";
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, Mandate, StartJobRequest, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
+import {
+  ApiError,
+  Mandate,
+  StartJobRequest,
+  UploadSettings,
+  ValidationResponse,
+  ValidationStatus,
+} from "../../api/apiInterfaces.ts";
 import { DeliveryUpload } from "./deliveryUpload.tsx";
 import { DeliveryValidation } from "./validation/deliveryValidation.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
 import { DeliveryCompleted } from "./deliveryCompleted.tsx";
 import useFetch from "../../hooks/useFetch.ts";
+import useCloudUpload from "../../api/useCloudUpload.ts";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
