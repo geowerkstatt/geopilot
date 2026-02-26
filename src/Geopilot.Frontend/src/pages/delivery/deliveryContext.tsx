@@ -261,7 +261,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     fetchApi<ValidationResponse>("/api/v1/delivery", {
       method: "POST",
       body: JSON.stringify({
-        JobId: validationResponse?.jobId,
+        JobId: jobId,
         MandateId: data.mandate,
         PartialDelivery: data.isPartial,
         PrecursorDeliveryId: data.precursor,
