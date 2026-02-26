@@ -79,9 +79,41 @@ public class PipelineStepTest
     {
         public int NumberOfRunInvokations { get; set; }
 
+        public int NonNullableInt { get; set; }
+
+        public int? NullableInt { get; set; }
+
+        public string NonNullableString { get; set; }
+
+        public string? NullableString { get; set; }
+
+        public int[] ArrayOfNonNullableInts { get; set; }
+
+        public int?[] ArrayOfNullableInts { get; set; }
+
+        public string[] ArrayOfNonNullableStrings { get; set; }
+
+        public string?[] ArrayOfNullableStrings { get; set; }
+
         [PipelineProcessRun]
-        public async Task<Dictionary<string, object>> RunAsync(int a, int? b, string c, string? d, int[] e, int?[] f, string[] g, string?[] h)
+        public async Task<Dictionary<string, object>> RunAsync(
+            int nonNullableInt,
+            int? nullableInt,
+            string nonNullableString,
+            string? nullableString,
+            int[] arrayOfNonNullableInts,
+            int?[] arrayOfNullableInts,
+            string[] arrayOfNonNullableStrings,
+            string?[] arrayOfNullableStrings)
         {
+            NonNullableInt = nonNullableInt;
+            NullableInt = nullableInt;
+            NonNullableString = nonNullableString;
+            NullableString = nullableString;
+            ArrayOfNonNullableInts = arrayOfNonNullableInts;
+            ArrayOfNullableInts = arrayOfNullableInts;
+            ArrayOfNonNullableStrings = arrayOfNonNullableStrings;
+            ArrayOfNullableStrings = arrayOfNullableStrings;
             NumberOfRunInvokations++;
             return [];
         }
@@ -104,12 +136,7 @@ public class PipelineStepTest
     {
         var inputConfigs = new List<InputConfig>
         {
-            new InputConfig
-            {
-                From = "upload",
-                Take = "xtf_file",
-                As = "data",
-            },
+            NewInputConfig("upload", "xtf_file", "data"),
         };
         var outputConfigs = new List<OutputConfig>
         {
@@ -165,12 +192,7 @@ public class PipelineStepTest
     {
         var inputConfigs = new List<InputConfig>
         {
-            new InputConfig
-            {
-                From = "step_01",
-                Take = "data",
-                As = "data",
-            },
+            NewInputConfig("step_01", "data", "data"),
         };
         var outputConfigs = new List<OutputConfig>
         {
@@ -308,18 +330,18 @@ public class PipelineStepTest
     {
         var inputConfigs = new List<InputConfig>
         {
-            NewInputConfig("step_01", "int", "a"),
-            NewInputConfig("step_01", "null", "b"),
-            NewInputConfig("step_01", "string", "c"),
-            NewInputConfig("step_01", "null", "d"),
-            NewInputConfig("step_01", "int", "e"),
-            NewInputConfig("step_01", "int", "e"),
-            NewInputConfig("step_01", "null", "f"),
-            NewInputConfig("step_01", "int", "f"),
-            NewInputConfig("step_01", "string", "g"),
-            NewInputConfig("step_01", "string", "g"),
-            NewInputConfig("step_01", "null", "h"),
-            NewInputConfig("step_01", "string", "h"),
+            NewInputConfig("step_01", "int", "nonNullableInt"),
+            NewInputConfig("step_01", "null", "nullableInt"),
+            NewInputConfig("step_01", "string", "nonNullableString"),
+            NewInputConfig("step_01", "null", "nullableString"),
+            NewInputConfig("step_01", "int", "arrayOfNonNullableInts"),
+            NewInputConfig("step_01", "int", "arrayOfNonNullableInts"),
+            NewInputConfig("step_01", "null", "arrayOfNullableInts"),
+            NewInputConfig("step_01", "int", "arrayOfNullableInts"),
+            NewInputConfig("step_01", "string", "arrayOfNonNullableStrings"),
+            NewInputConfig("step_01", "string", "arrayOfNonNullableStrings"),
+            NewInputConfig("step_01", "null", "arrayOfNullableStrings"),
+            NewInputConfig("step_01", "string", "arrayOfNullableStrings"),
         };
         var stepStepResult01 = new StepResult()
         {
@@ -348,26 +370,43 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Success, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvokations, "Process Run method was not invoked exactly once.");
+        Assert.AreEqual(42, processMock.NonNullableInt);
+        Assert.IsNull(processMock.NullableInt);
+        Assert.AreEqual("this is a string", processMock.NonNullableString);
+        Assert.IsNull(processMock.NullableString);
+        CollectionAssert.AreEqual(new int[] { 42, 42 }, processMock.ArrayOfNonNullableInts);
+        CollectionAssert.AreEqual(new int?[] { null, 42 }, processMock.ArrayOfNullableInts);
+        CollectionAssert.AreEqual(new string[] { "this is a string", "this is a string" }, processMock.ArrayOfNonNullableStrings);
+        CollectionAssert.AreEqual(new string?[] { null, "this is a string" }, processMock.ArrayOfNullableStrings);
     }
 
     [TestMethod]
-    public void NullValuesForNonNullableParameters()
+    [DataRow("nonNullableInt")]
+    [DataRow("nonNullableString")]
+    [DataRow("arrayOfNonNullableInts")]
+    [DataRow("arrayOfNonNullableStrings")]
+    public void StepRunFailsIfNullValueForNonNullableParameter(string inputToSetNull)
     {
+        // Setup input configs with valid values for each parameter
         var inputConfigs = new List<InputConfig>
         {
-            NewInputConfig("step_01", "null", "a"),
-            NewInputConfig("step_01", "null", "b"),
-            NewInputConfig("step_01", "string", "c"),
-            NewInputConfig("step_01", "null", "d"),
-            NewInputConfig("step_01", "int", "e"),
-            NewInputConfig("step_01", "int", "e"),
-            NewInputConfig("step_01", "null", "f"),
-            NewInputConfig("step_01", "int", "f"),
-            NewInputConfig("step_01", "string", "g"),
-            NewInputConfig("step_01", "string", "g"),
-            NewInputConfig("step_01", "null", "h"),
-            NewInputConfig("step_01", "string", "h"),
+            NewInputConfig("step_01", "int", "nonNullableInt"),
+            NewInputConfig("step_01", "null", "nullableInt"),
+            NewInputConfig("step_01", "string", "nonNullableString"),
+            NewInputConfig("step_01", "null", "nullableString"),
+            NewInputConfig("step_01", "int", "arrayOfNonNullableInts"),
+            NewInputConfig("step_01", "int", "arrayOfNonNullableInts"),
+            NewInputConfig("step_01", "null", "arrayOfNullableInts"),
+            NewInputConfig("step_01", "int", "arrayOfNullableInts"),
+            NewInputConfig("step_01", "string", "arrayOfNonNullableStrings"),
+            NewInputConfig("step_01", "string", "arrayOfNonNullableStrings"),
+            NewInputConfig("step_01", "null", "arrayOfNullableStrings"),
+            NewInputConfig("step_01", "string", "arrayOfNullableStrings"),
         };
+
+        // Change the specified input parameter to null to test the failure case
+        var input = inputConfigs.First(i => i.As == inputToSetNull);
+        input.Take = "null";
 
         var stepStepResult01 = new StepResult()
         {
@@ -403,12 +442,7 @@ public class PipelineStepTest
     {
         var inputConfigs = new List<InputConfig>
         {
-            new InputConfig
-            {
-                From = "invalid_upload_reference",
-                Take = "xtf_file",
-                As = "data",
-            },
+            NewInputConfig("invalid_upload_reference", "xtf_file", "data"),
         };
         var outputConfigs = new List<OutputConfig>
         {
@@ -454,12 +488,7 @@ public class PipelineStepTest
     {
         var inputConfigs = new List<InputConfig>
         {
-            new InputConfig
-            {
-                From = "upload",
-                Take = "xtf_file_wrong_reference",
-                As = "file_to_validate",
-            },
+            NewInputConfig("upload", "xtf_file_wrong_reference", "file_to_validate"),
         };
         var outputConfigs = new List<OutputConfig>
         {
@@ -505,12 +534,7 @@ public class PipelineStepTest
     {
         var inputConfigs = new List<InputConfig>
         {
-            new InputConfig
-            {
-                From = "upload",
-                Take = "xtf_file",
-                As = "data",
-            },
+            NewInputConfig("upload", "xtf_file", "data"),
         };
         var outputConfigs = new List<OutputConfig>
         {
@@ -556,12 +580,7 @@ public class PipelineStepTest
     {
         var inputConfigs = new List<InputConfig>
         {
-            new InputConfig
-            {
-                From = "upload",
-                Take = "xtf_file",
-                As = "data",
-            },
+            NewInputConfig("upload", "xtf_file", "data"),
         };
         var outputConfigs = new List<OutputConfig>
         {
