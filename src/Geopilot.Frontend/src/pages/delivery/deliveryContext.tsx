@@ -227,10 +227,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
   };
 
-  const validateFile = (jobId: string, startJobRequest: StartJobRequest) => {
-    if (validationResponse?.status === ValidationStatus.Ready && !isLoading) {
-      setIsLoading(true);
-      setValidationStarted(true);
+  const validateFile = (startJobRequest: StartJobRequest) => {
+    if (!jobId || isLoading) return;
+    if (!uploadSettings?.enabled && validationResponse?.status !== ValidationStatus.Ready) return;
 
       const abortController = new AbortController();
       setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
