@@ -31,6 +31,7 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   setSelectedFile: () => {},
   selectedMandate: undefined,
   setSelectedMandate: () => {},
+  jobId: undefined,
   validationResponse: undefined,
   isLoading: false,
   uploadFile: () => {},
@@ -77,9 +78,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [validationStarted, setValidationStarted] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File>();
   const [selectedMandate, setSelectedMandate] = useState<Mandate>();
+  const [jobId, setJobId] = useState<string>();
   const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
+  const [uploadSettings, setUploadSettings] = useState<UploadSettings>();
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
+  const { cloudUpload } = useCloudUpload();
   const { user } = useGeopilotAuth();
   const prevUserIdRef = useRef<number | undefined>(user?.id);
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), false));
