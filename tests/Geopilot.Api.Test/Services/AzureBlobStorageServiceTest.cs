@@ -9,9 +9,9 @@ namespace Geopilot.Api.Test.Services;
 public class AzureBlobStorageServiceTest
 {
     private const string AzuriteConnectionString =
-        "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;" +
+        "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;" +
         "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" +
-        "BlobEndpoint=http://localhost:10000/devstoreaccount1;";
+        "BlobEndpoint=https://localhost:10000/devstoreaccount1;";
 
     private BlobContainerClient containerClient;
     private AzureBlobStorageService service;
