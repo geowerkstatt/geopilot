@@ -1,5 +1,10 @@
-﻿using System.Collections.Concurrent;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Validation;
@@ -10,11 +15,20 @@ namespace Geopilot.Api.Validation;
 public class ValidationJobStore : IValidationJobStore
 {
     private readonly ConcurrentDictionary<Guid, ValidationJob> jobs = new();
-    private readonly Channel<IValidator> validationQueue = Channel.CreateUnbounded<IValidator>();
-    private readonly ConcurrentDictionary<IValidator, Guid> validatorJobMap = new();
+    private readonly Channel<IPipeline> pipelineQueue = Channel.CreateUnbounded<IPipeline>();
+    private readonly ConcurrentDictionary<IPipeline, Guid> pipelineJobMap = new();
+    private readonly IServiceScopeFactory serviceScopeFactory;
 
     /// <inheritdoc/>
-    public ChannelReader<IValidator> ValidationQueue => validationQueue.Reader;
+    public ChannelReader<IPipeline> ValidationQueue => pipelineQueue.Reader;
+
+    /// <summary>
+    /// Initializes a new instance of the ValidationJobStore class using the specified service scope factory.
+    /// </summary>
+    public ValidationJobStore(IServiceScopeFactory serviceScopeFactory)
+    {
+        this.serviceScopeFactory = serviceScopeFactory;
+    }
 
     /// <inheritdoc/>
     public ValidationJob? GetJob(Guid jobId) => jobs.TryGetValue(jobId, out var job) ? job : null;
@@ -56,13 +70,12 @@ public class ValidationJobStore : IValidationJobStore
     }
 
     /// <inheritdoc/>
-    public ValidationJob StartJob(Guid jobId, ICollection<IValidator> validators, int mandateId)
+    public ValidationJob StartJob(Guid jobId, IPipeline pipeline, int mandateId)
     {
-        if (validators == null || validators.Count == 0)
-            throw new ArgumentException("At least one validator must be specified to start the validation.", nameof(validators));
+        ArgumentNullException.ThrowIfNull(pipeline);
 
-        // Create an immutable dictionary with all validator keys set and their result null
-        var validatorResults = validators.ToImmutableDictionary(v => v.Name, v => (ValidatorResult?)null);
+        // Create an immutable dictionary with a single entry for the pipeline of the mandate. Temporary solution until pipelines are fully integrated.
+        var validatorResults = ImmutableDictionary.Create<string, ValidatorResult?>().Add("INTERLIS", null);
 
         var updateFunc = (Guid jobId, ValidationJob job) =>
         {
@@ -79,32 +92,44 @@ public class ValidationJobStore : IValidationJobStore
 
         var updatedJob = jobs.AddOrUpdate(jobId, id => throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId)), updateFunc);
 
-        foreach (var validator in validators)
-        {
-            if (validationQueue.Writer.TryWrite(validator))
-                validatorJobMap[validator] = jobId;
-        }
+        if (pipelineQueue.Writer.TryWrite(pipeline))
+            pipelineJobMap[pipeline] = jobId;
 
         return updatedJob;
     }
 
     /// <inheritdoc/>
-    public ValidationJob AddValidatorResult(IValidator validator, ValidatorResult result)
+    public ValidationJob AddValidatorResult(IPipeline pipeline, ValidatorResult result)
     {
-        ArgumentNullException.ThrowIfNull(validator);
+        ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(result);
 
-        if (!validatorJobMap.TryGetValue(validator, out var jobId))
-            throw new ArgumentException("The specified validator is not associated with any job.", nameof(validator));
+        if (!pipelineJobMap.TryGetValue(pipeline, out var jobId))
+            throw new ArgumentException("The specified pipeline is not associated with any job.", nameof(pipeline));
+
+        using var scope = serviceScopeFactory.CreateScope();
+        var fileProvider = scope.ServiceProvider.GetRequiredService<IFileProvider>();
+        fileProvider.Initialize(jobId);
+
+        var mappedLogFiles = new Dictionary<string, string>();
+        foreach (var logFile in result.LogFiles)
+        {
+            using var fileHandle = fileProvider.CreateFileWithRandomName(Path.GetExtension(logFile.Value));
+            using var stream = File.OpenRead(logFile.Value);
+            stream.CopyTo(fileHandle.Stream);
+            mappedLogFiles[logFile.Key] = fileHandle.FileName;
+        }
+
+        result = result with { LogFiles = mappedLogFiles.ToImmutableDictionary() };
 
         var updateFunc = (Guid jobId, ValidationJob job) =>
         {
             if (job.Status != Status.Processing)
                 throw new InvalidOperationException($"Cannot add validator result to job <{jobId}> because its status is <{job.Status}> instead of <{Status.Processing}>.");
 
-            validatorJobMap.TryRemove(validator, out _);
+            pipelineJobMap.TryRemove(pipeline, out _);
 
-            var updatedResults = job.ValidatorResults.SetItem(validator.Name, result);
+            var updatedResults = job.ValidatorResults.SetItem("INTERLIS", result);
             var updatedStatus = ValidationJob.GetStatusFromResults(updatedResults);
             return job with { ValidatorResults = updatedResults, Status = updatedStatus };
         };
@@ -119,15 +144,14 @@ public class ValidationJobStore : IValidationJobStore
         if (job == null)
             return false;
 
-        // Remove all validators associated with this job from the map
-        var validatorsToRemove = validatorJobMap
+        // Remove all pipeline associations for the job being removed. Temporary solution until pipelines are fully integrated.
+        var entriesToRemove = pipelineJobMap
             .Where(kvp => kvp.Value == jobId)
-            .Select(kvp => kvp.Key)
-            .ToList();
+            .Select(kvp => kvp.Key);
 
-        foreach (var validator in validatorsToRemove)
+        foreach (var entry in entriesToRemove)
         {
-            validatorJobMap.TryRemove(validator, out _);
+            pipelineJobMap.TryRemove(entry, out _);
         }
 
         return jobs.TryRemove(jobId, out _);

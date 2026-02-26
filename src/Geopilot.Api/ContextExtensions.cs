@@ -141,6 +141,7 @@ internal static class ContextExtensions
         context.Mandates.Add(new Mandate()
         {
             Name = "Public Mandate",
+            PipelineId = "ili_validation",
             FileTypes = [".xtf"],
             InterlisValidationProfile = "DEFAULT",
             SpatialExtent = GetExtent(),

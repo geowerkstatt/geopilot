@@ -1,6 +1,8 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Services;
+using Geopilot.Api.Test.Pipeline;
 using Geopilot.Api.Validation.Interlis;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
@@ -17,18 +19,18 @@ public class ValidationService : IValidationService
     private readonly IMandateService mandateService;
 
     private readonly IFileProvider fileProvider;
-    private readonly IEnumerable<IValidator> validators;
+    private readonly IPipelineFactory pipelineFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationService"/> class.
     /// </summary>
-    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IEnumerable<IValidator> validators)
+    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IPipelineFactory pipelineFactory)
     {
         this.jobStore = validationJobStore;
         this.mandateService = mandateService;
+        this.pipelineFactory = pipelineFactory;
 
         this.fileProvider = fileProvider;
-        this.validators = validators;
     }
 
     /// <inheritdoc/>
@@ -60,49 +62,20 @@ public class ValidationService : IValidationService
 
         // Check if the user is allowed to start the job with the specified mandate
         var mandate = await mandateService.GetMandateForUser(mandateId, user);
-        if (mandate != null)
+        if (mandate != null && mandate.PipelineId != null && validationJob.TempFileName != null)
         {
-            // Check if the mandate supports the job file type
-            var jobFileType = Path.GetExtension(validationJob.OriginalFileName);
-            var mandateSupportsJobFileType = IsExtensionSupported(mandate.FileTypes, jobFileType);
-
-            if (mandateSupportsJobFileType)
+            fileProvider.Initialize(jobId);
+            var filePath = fileProvider.GetFilePath(validationJob.TempFileName);
+            if (filePath != null)
             {
-                var jobValidators = await GetConfiguredValidators(validationJob, mandate);
-                return jobStore.StartJob(jobId, jobValidators, mandateId);
+                var originalFileNameWithoutExtension = Path.GetFileNameWithoutExtension(validationJob.OriginalFileName ?? string.Empty);
+                var file = new PipelineTransferFile(originalFileNameWithoutExtension, filePath);
+                var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, file);
+                return jobStore.StartJob(jobId, pipeline, mandateId);
             }
         }
 
         throw new InvalidOperationException($"The job <{jobId}> could not be started with mandate <{mandateId}>.");
-    }
-
-    private async Task<List<IValidator>> GetConfiguredValidators(ValidationJob validationJob, Mandate? mandate)
-    {
-        // Get all supported validators and configure them for the job
-        var fileExtension = Path.GetExtension(validationJob.TempFileName);
-        var jobValidators = new List<IValidator>();
-        foreach (var validator in validators)
-        {
-            var supportedExtensions = await validator.GetSupportedFileExtensionsAsync();
-            if (IsExtensionSupported(supportedExtensions, fileExtension))
-            {
-                ConfigureValidator(validator, validationJob, mandate);
-                jobValidators.Add(validator);
-            }
-        }
-
-        return jobValidators;
-    }
-
-    private void ConfigureValidator(IValidator validator, ValidationJob validationJob, Mandate? mandate)
-    {
-        switch (validator)
-        {
-            case InterlisValidator interlisValidator:
-                fileProvider.Initialize(validationJob.Id);
-                interlisValidator.Configure(fileProvider, validationJob.TempFileName ?? string.Empty, mandate?.InterlisValidationProfile);
-                break;
-        }
     }
 
     /// <inheritdoc/>
@@ -115,10 +88,7 @@ public class ValidationService : IValidationService
     public async Task<ICollection<string>> GetSupportedFileExtensionsAsync()
     {
         var mandateFileExtensions = mandateService.GetFileExtensionsForMandates();
-        var validatorFileExtensions = await GetFileExtensionsForValidatorsAsync();
-
         return mandateFileExtensions
-            .Union(validatorFileExtensions)
             .OrderBy(ext => ext)
             .ToList();
     }
@@ -128,18 +98,6 @@ public class ValidationService : IValidationService
     {
         var extensions = await GetSupportedFileExtensionsAsync();
         return IsExtensionSupported(extensions, fileExtension);
-    }
-
-    private async Task<HashSet<string>> GetFileExtensionsForValidatorsAsync()
-    {
-        var tasks = validators.Select(validator => validator.GetSupportedFileExtensionsAsync());
-
-        var validatorFileExtensions = await Task.WhenAll(tasks);
-
-        return validatorFileExtensions
-            .SelectMany(ext => ext)
-            .Select(ext => ext.ToLowerInvariant())
-            .ToHashSet();
     }
 
     private static bool IsExtensionSupported(ICollection<string> supportedExtensions, string? fileExtension)

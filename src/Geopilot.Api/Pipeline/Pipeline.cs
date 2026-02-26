@@ -64,22 +64,29 @@ public sealed class Pipeline : IPipeline
     }
 
     /// <summary>
+    /// The file to be processed by the pipeline.
+    /// </summary>
+    private readonly IPipelineTransferFile file;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Pipeline"/> class.
     /// </summary>
     /// <param name="id">The unique name of the pipeline.</param>
     /// <param name="displayName">The pipelines display name. A human-readable name for the pipeline.</param>
     /// <param name="steps">The steps in the pipeline.</param>
     /// <param name="parameters">The parameters for the pipeline.</param>
-    public Pipeline(string id, Dictionary<string, string> displayName, List<IPipelineStep> steps, PipelineParametersConfig parameters)
+    /// <param name="file">The file to be processed by the pipeline.</param>
+    public Pipeline(string id, Dictionary<string, string> displayName, List<IPipelineStep> steps, PipelineParametersConfig parameters, IPipelineTransferFile file)
     {
         this.Id = id;
         this.DisplayName = displayName;
         this.Steps = steps;
         this.Parameters = parameters;
+        this.file = file;
     }
 
     /// <inheritdoc/>
-    public async Task<PipelineContext> Run(IPipelineTransferFile file, CancellationToken cancellationToken)
+    public async Task<PipelineContext> Run(CancellationToken cancellationToken)
     {
         var context = new PipelineContext()
         {
