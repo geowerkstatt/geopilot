@@ -1,9 +1,4 @@
-﻿namespace Geopilot.Api.Contracts;
-
-/// <summary>
-/// Result of preflight checks on uploaded cloud files.
-/// </summary>
-public record PreflightResponse(bool Success, PreflightFailureReason? FailureReason = null, string? ErrorMessage = null);
+﻿namespace Geopilot.Api.Enums;
 
 /// <summary>
 /// Reasons why preflight checks can fail.
