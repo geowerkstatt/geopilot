@@ -32,7 +32,7 @@ jobs:
           docker build --build-arg VERSION=$GITHUB_RUN_NUMBER --build-arg REVISION=${{ github.sha }} -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518 # v0.34.1
         env:
           ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Addresses https://github.com/aquasecurity/trivy-action/issues/389
         with:
@@ -64,7 +64,7 @@ jobs:
           echo "IMAGE_NAME=ghcr.io/$(echo ${GITHUB_REPOSITORY,,})" >> $GITHUB_ENV
 
       - name: Run Trivy vulnerability scanner on latest
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518 # v0.34.1
         env:
           ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -97,7 +97,7 @@ jobs:
           echo "IMAGE_NAME=ghcr.io/$(echo ${GITHUB_REPOSITORY,,})" >> $GITHUB_ENV
 
       - name: Run Trivy vulnerability scanner on custom tag
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518 # v0.34.1
         env:
           ACTIONS_RUNTIME_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
