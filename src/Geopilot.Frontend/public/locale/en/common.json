@@ -117,6 +117,7 @@
   "validationErrorFileTooLarge": "Maximum file size exceeded. (Error 413)",
   "validationErrorRequestMalformed": "Invalid or corrupted request to the validation server. (Error 400)",
   "validationErrorUnexpected": "Unexpected server error during processing. (Error 500)",
+  "validationErrorUploadFailed": "The file could not be uploaded. Please try again.",
   "validationForm": "Validation",
   "validationIsRunning": "The file is currently being validated with {{validators}}...",
   "validationProfile": "Validation profile",
