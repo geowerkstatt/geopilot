@@ -67,7 +67,7 @@ public class UploadController : ControllerBase
             logger.LogInformation("Cloud upload session initiated.");
             var response = await orchestrationService.InitiateUploadAsync(request);
             logger.LogInformation("Cloud upload session created for job <{JobId}>.", response.JobId);
-            return CreatedAtAction(nameof(InitiateUploadAsync), new { jobId = response.JobId }, response);
+            return StatusCode(StatusCodes.Status201Created, response);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
