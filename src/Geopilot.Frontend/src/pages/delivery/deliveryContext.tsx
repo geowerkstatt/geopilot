@@ -118,6 +118,10 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     );
   }, [user, selectedMandate]);
 
+  useEffect(() => {
+    fetchApi<UploadSettings>("/api/v2/upload").then(setUploadSettings);
+  }, [fetchApi]);
+
   const isActiveStep = (step: DeliveryStepEnum) => {
     const stepKeys = Array.from(steps.keys());
     return activeStep === stepKeys.indexOf(step);
