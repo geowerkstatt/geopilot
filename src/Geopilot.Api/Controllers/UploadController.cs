@@ -59,7 +59,7 @@ public class UploadController : ControllerBase
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected error.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> InitiateUploadAsync([FromBody] CloudUploadRequest request)
     {
-        if (orchestrationService == null)
+        if (!options.Enabled || orchestrationService == null)
             return Problem("Cloud storage uploads are not enabled.", statusCode: StatusCodes.Status400BadRequest);
 
         try
