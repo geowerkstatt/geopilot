@@ -30,6 +30,23 @@ public class AzureBlobStorageService : ICloudStorageService
 
         if (config.AutoCreateContainer)
             containerClient.CreateIfNotExists();
+
+        if (config.AllowedOrigins.Count > 0)
+        {
+            var corsRule = new BlobCorsRule
+            {
+                AllowedOrigins = string.Join(",", config.AllowedOrigins),
+                AllowedMethods = "GET,PUT,OPTIONS",
+                AllowedHeaders = "*",
+                ExposedHeaders = "ETag",
+                MaxAgeInSeconds = 3600,
+            };
+
+            var properties = serviceClient.GetProperties().Value;
+            properties.Cors.Clear();
+            properties.Cors.Add(corsRule);
+            serviceClient.SetProperties(properties);
+        }
     }
 
     /// <inheritdoc/>

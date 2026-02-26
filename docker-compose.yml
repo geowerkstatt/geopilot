@@ -99,6 +99,7 @@ services:
       CloudStorage__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://localhost:10000/devstoreaccount1;"
       CloudStorage__BucketName: uploads
       CloudStorage__AutoCreateContainer: true
+      CloudStorage__AllowedOrigins__0: https://localhost:5173
       ClamAV__Enabled: true
       ClamAV__Host: clamav
       ClamAV__Port: 3310

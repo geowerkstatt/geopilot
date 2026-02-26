@@ -54,4 +54,10 @@ public class CloudStorageOptions
     /// Whether to automatically create the blob container on startup. Should only be enabled in development.
     /// </summary>
     public bool AutoCreateContainer { get; set; }
+
+    /// <summary>
+    /// Allowed origins for CORS on the blob storage service. When set, configures CORS rules on the
+    /// storage account at startup to allow browser-based uploads via presigned URLs.
+    /// </summary>
+    public List<string> AllowedOrigins { get; set; } = [];
 }
