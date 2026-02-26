@@ -26,6 +26,8 @@ public class UploadController : ControllerBase
     /// </summary>
     public UploadController(ILogger<UploadController> logger, IOptions<CloudStorageOptions> options, ICloudOrchestrationService? orchestrationService = null)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         this.logger = logger;
         this.options = options.Value;
         this.orchestrationService = orchestrationService;
