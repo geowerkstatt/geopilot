@@ -285,6 +285,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setValidationStarted(false);
     setSelectedFile(undefined);
     setSelectedMandate(undefined);
+    setJobId(undefined);
     setValidationResponse(undefined);
     setActiveStep(0);
     setSteps(prevSteps => {
