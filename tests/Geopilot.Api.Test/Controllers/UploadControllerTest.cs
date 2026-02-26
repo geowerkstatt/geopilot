@@ -2,6 +2,7 @@
 using Geopilot.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Geopilot.Api.Controllers;
@@ -10,6 +11,7 @@ namespace Geopilot.Api.Controllers;
 public sealed class UploadControllerTest
 {
     private Mock<ILogger<UploadController>> loggerMock;
+    private Mock<IOptions<CloudStorageOptions>> optionsMock;
     private Mock<ICloudOrchestrationService> orchestrationServiceMock;
     private UploadController controller;
 
@@ -17,9 +19,11 @@ public sealed class UploadControllerTest
     public void Initialize()
     {
         loggerMock = new Mock<ILogger<UploadController>>();
+        optionsMock = new Mock<IOptions<CloudStorageOptions>>();
+        optionsMock.Setup(o => o.Value).Returns(new CloudStorageOptions());
         orchestrationServiceMock = new Mock<ICloudOrchestrationService>(MockBehavior.Strict);
 
-        controller = new UploadController(loggerMock.Object, orchestrationServiceMock.Object);
+        controller = new UploadController(loggerMock.Object, optionsMock.Object, orchestrationServiceMock.Object);
     }
 
     [TestCleanup]
