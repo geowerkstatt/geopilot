@@ -30,7 +30,7 @@ public class ValidationJobCleanupServiceTest
         {
             JobRetention = TimeSpan.FromHours(RetentionHours),
             JobCleanupInterval = TimeSpan.FromHours(24),
-            ValidatorTimeouts = new Dictionary<string, TimeSpan>(),
+            JobTimeout = TimeSpan.FromHours(12),
         };
 
         var optionsMock = new Mock<IOptions<ValidationOptions>>();

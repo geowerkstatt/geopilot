@@ -32,7 +32,7 @@ public class PipelineTest
 
         var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
 
-        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters);
+        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, Mock.Of<IPipelineTransferFile>());
 
         Assert.AreEqual(expectedState, pipeline.State);
     }
@@ -56,11 +56,11 @@ public class PipelineTest
 
         var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
 
-        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters);
-
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
-        var context = pipeline.Run(uploadFile, CancellationToken.None);
+        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, uploadFile);
+
+        var context = pipeline.Run(CancellationToken.None);
 
         firstStep.Verify(
             p => p.Run(It.Is<PipelineContext>(pc => pc.StepResults.Count == 1 && pc.StepResults.ContainsKey("upload")), It.IsAny<CancellationToken>()),

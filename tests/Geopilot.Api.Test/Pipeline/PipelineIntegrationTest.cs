@@ -51,7 +51,8 @@ public class PipelineIntegrationTest
         var uploadedFileAttribute = "ili_file";
 
         PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
-        using var pipeline = factory.CreatePipeline("two_steps");
+        PipelineTransferFile uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        using var pipeline = factory.CreatePipeline("two_steps", uploadFile);
 
         using HttpResponseMessage uploadMockResponse = new()
         {
@@ -132,8 +133,7 @@ public class PipelineIntegrationTest
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(2, pipeline.Steps);
 
-        PipelineTransferFile uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-        var context = await pipeline.Run(uploadFile, CancellationToken.None);
+        var context = await pipeline.Run(CancellationToken.None);
 
         Assert.AreEqual(PipelineState.Success, pipeline.State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
