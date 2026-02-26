@@ -13,8 +13,16 @@ import { useGeopilotAuth } from "../../../auth";
 import { isValidationFinished } from "../deliveryUtils";
 
 export const DeliveryValidationForm = () => {
-  const { resetDelivery, validateFile, jobId, validationResponse, setStepError, setSelectedMandate, isLoading, isValidating } =
-    useContext(DeliveryContext);
+  const {
+    resetDelivery,
+    validateFile,
+    jobId,
+    validationResponse,
+    setStepError,
+    setSelectedMandate,
+    isLoading,
+    isValidating,
+  } = useContext(DeliveryContext);
   const formMethods = useForm({ mode: "all" });
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
