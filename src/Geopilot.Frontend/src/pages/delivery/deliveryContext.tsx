@@ -317,6 +317,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         setSelectedFile,
         selectedMandate,
         setSelectedMandate,
+        jobId,
         validationResponse,
         isLoading,
         uploadFile,
