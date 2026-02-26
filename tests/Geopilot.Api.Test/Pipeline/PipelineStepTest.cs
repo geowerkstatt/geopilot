@@ -132,7 +132,7 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public void SuccessfullStepRunWithSingleInput()
+    public async Task SuccessfullStepRunWithSingleInput()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -172,7 +172,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.IsNotNull(stepResult);
 
@@ -188,7 +188,7 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public void SuccessfullStepRunWithArrayInput()
+    public async Task SuccessfullStepRunWithArrayInput()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -228,7 +228,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.IsNotNull(stepResult);
 
@@ -244,7 +244,7 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public void SuccessfullStepRunWithManyDifferentInputDataInput()
+    public async Task SuccessfullStepRunWithManyDifferentInputDataInput()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -290,7 +290,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.IsNotNull(stepResult);
 
@@ -306,7 +306,7 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public void SuccessfullStepRunWithNullableTypesInput()
+    public async Task SuccessfullStepRunWithNullableTypesInput()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -346,7 +346,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.AreEqual(StepState.Success, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvokations, "Process Run method was not invoked exactly once.");
@@ -365,7 +365,7 @@ public class PipelineStepTest
     [DataRow("nonNullableString")]
     [DataRow("arrayOfNonNullableInts")]
     [DataRow("arrayOfNonNullableStrings")]
-    public void StepRunFailsIfNullValueForNonNullableParameter(string inputToSetNull)
+    public async Task StepRunFailsIfNullValueForNonNullableParameter(string inputToSetNull)
     {
         // Setup input configs with valid values for each parameter
         var inputConfigs = new List<InputConfig>
@@ -411,14 +411,14 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvokations, "Process Run method was invoked.");
     }
 
     [TestMethod]
-    public void StepRunFailsIfInputDataIsOfWrongType()
+    public async Task StepRunFailsIfInputDataIsOfWrongType()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -448,14 +448,14 @@ public class PipelineStepTest
         using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], processMock);
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvokations, "Process Run method was invoked.");
     }
 
     [TestMethod]
-    public void StepRunFailsIfInputDataIsOfWrongTypeForArray()
+    public async Task StepRunFailsIfInputDataIsOfWrongTypeForArray()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -486,14 +486,14 @@ public class PipelineStepTest
         using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], processMock);
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvokations, "Process Run method was invoked.");
     }
 
     [TestMethod]
-    public void ContextHasNoReferencingStepRusult()
+    public async Task ContextHasNoReferencingStepRusult()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -529,7 +529,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.IsEmpty(stepResult.Outputs);
 
@@ -539,7 +539,7 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public void ContextHasNoReferencingStepOutput()
+    public async Task ContextHasNoReferencingStepOutput()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -575,17 +575,15 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.IsEmpty(stepResult.Outputs);
-
         Assert.AreEqual(StepState.Failed, pipelineStep.State);
-
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
 
     [TestMethod]
-    public void ExceptionDuringProcessRun()
+    public async Task ExceptionDuringProcessRun()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -621,7 +619,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.IsEmpty(stepResult.Outputs);
 
@@ -631,7 +629,7 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public void StepResultCouldNotBeCreated()
+    public async Task StepResultCouldNotBeCreated()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -671,7 +669,7 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.IsEmpty(stepResult.Outputs);
 
