@@ -20,7 +20,7 @@ public sealed class UploadControllerTest
     {
         loggerMock = new Mock<ILogger<UploadController>>();
         optionsMock = new Mock<IOptions<CloudStorageOptions>>();
-        optionsMock.Setup(o => o.Value).Returns(new CloudStorageOptions());
+        optionsMock.Setup(o => o.Value).Returns(new CloudStorageOptions { Enabled = true });
         orchestrationServiceMock = new Mock<ICloudOrchestrationService>(MockBehavior.Strict);
 
         controller = new UploadController(loggerMock.Object, optionsMock.Object, orchestrationServiceMock.Object);
@@ -47,9 +47,10 @@ public sealed class UploadControllerTest
 
         var result = await controller.InitiateUploadAsync(request);
 
-        Assert.IsInstanceOfType<CreatedAtActionResult>(result);
-        var createdResult = (CreatedAtActionResult)result;
-        Assert.AreEqual(expectedResponse, createdResult.Value);
+        Assert.IsInstanceOfType<ObjectResult>(result);
+        var objectResult = (ObjectResult)result;
+        Assert.AreEqual(201, objectResult.StatusCode);
+        Assert.AreEqual(expectedResponse, objectResult.Value);
     }
 
     [TestMethod]
