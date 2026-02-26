@@ -194,15 +194,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       })
         .then(response => {
           setValidationResponse(response);
-          setSteps(prevSteps => {
-            const newSteps = new Map(prevSteps);
-            const step = newSteps.get(DeliveryStepEnum.Upload);
-            if (step) {
-              step.labelAddition = selectedFile.name;
-            }
-            return newSteps;
-          });
-          continueToNextStep();
+          onUploadComplete(response.jobId);
         })
         .catch((error: ApiError) => {
           handleApiError(error, DeliveryStepEnum.Upload);
