@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NetTopologySuite.Geometries;
 using System.Collections.Immutable;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Geopilot.Api.Controllers
 {

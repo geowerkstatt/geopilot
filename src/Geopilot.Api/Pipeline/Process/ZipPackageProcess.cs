@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.IO.Compression;
 

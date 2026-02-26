@@ -60,4 +60,11 @@ public class PhysicalFileProvider : IFileProvider
         if (id == Guid.Empty) throw new ArgumentException("The specified id is not valid.", nameof(id));
         homeDirectory = Directory.CreateDirectory(directoryProvider.GetUploadDirectoryPath(id));
     }
+
+    /// <inheritdoc/>
+    public string? GetFilePath(string file)
+    {
+        var filePath = Path.Combine(HomeDirectory.FullName, file);
+        return File.Exists(filePath) ? filePath : null;
+    }
 }

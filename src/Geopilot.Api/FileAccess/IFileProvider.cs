@@ -48,4 +48,11 @@ public interface IFileProvider
     /// </summary>
     /// <param name="id">The specified folder id to be created.</param>
     void Initialize(Guid id);
+
+    /// <summary>
+    /// Gets the full file system path for the specified file name.
+    /// </summary>
+    /// <param name="file">The name of the file for which to retrieve the full path. Cannot be null or empty.</param>
+    /// <returns>A string containing the full file system path of the specified file. Returns null if the file does not exist.</returns>
+    string? GetFilePath(string file);
 }
