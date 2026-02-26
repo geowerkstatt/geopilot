@@ -171,10 +171,20 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   };
 
   const uploadFile = () => {
-    if (selectedFile) {
-      const abortController = new AbortController();
-      setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
-      setIsLoading(true);
+    if (!selectedFile) return;
+
+    const abortController = new AbortController();
+    setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
+    setIsLoading(true);
+
+    if (uploadSettings?.enabled) {
+      cloudUpload([selectedFile], abortController.signal)
+        .then(onUploadComplete)
+        .catch((error: ApiError) => {
+          handleApiError(error, DeliveryStepEnum.Upload);
+        })
+        .finally(() => setIsLoading(false));
+    } else {
       const formData = new FormData();
       formData.append("file", selectedFile, selectedFile.name);
       fetchApi<ValidationResponse>("/api/v1/validation", {
