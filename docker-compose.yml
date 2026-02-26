@@ -58,7 +58,7 @@ services:
     ports:
       - 3310:3310
     healthcheck:
-      test: "clamdcheck"
+      test: "clamdscan --ping 1"
       interval: 10s
       timeout: 5s
       retries: 30
