@@ -57,8 +57,14 @@ public class MandateService : IMandateService
     {
         var mandates = context.MandatesWithIncludes.AsNoTracking();
 
-        if (user != null)
-            mandates = FilterMandatesByUser(mandates, user);
+        if (user == null)
+        {
+            mandates = mandates.Where(m => m.IsPublic);
+        }
+        else if (!user.IsAdmin || jobId != null)
+        {
+            mandates = mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+        }
 
         if (jobId != null)
             mandates = FilterMandatesByJob(mandates, jobId.Value);
@@ -88,9 +94,4 @@ public class MandateService : IMandateService
         throw new InvalidOperationException($"Validation job with id <{jobId}> has no file associated.");
     }
 
-    private IQueryable<Mandate> FilterMandatesByUser(IQueryable<Mandate> mandates, User user)
-        {
-            return mandates
-            .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
-    }
 }
