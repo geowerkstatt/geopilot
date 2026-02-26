@@ -311,7 +311,7 @@ public class ValidationServiceTest
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(cloudJob);
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId))
-            .ThrowsAsync(new CloudUploadPreflightException(Contracts.PreflightFailureReason.IncompleteUpload, "File 'test.xtf' was not uploaded."));
+            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, "File 'test.xtf' was not uploaded."));
 
         // Act & Assert
         var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(async () =>
@@ -319,6 +319,6 @@ public class ValidationServiceTest
             await validationService.StartJobAsync(jobId, 1, null);
         });
 
-        Assert.AreEqual(Contracts.PreflightFailureReason.IncompleteUpload, ex.FailureReason);
+        Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
     }
 }
