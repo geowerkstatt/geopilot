@@ -1,4 +1,4 @@
-namespace Geopilot.Api.Contracts;
+﻿namespace Geopilot.Api.Contracts;
 
 /// <summary>
 /// The upload settings response schema.
