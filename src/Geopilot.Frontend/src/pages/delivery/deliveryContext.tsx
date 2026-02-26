@@ -231,22 +231,24 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     if (!jobId || isLoading) return;
     if (!uploadSettings?.enabled && validationResponse?.status !== ValidationStatus.Ready) return;
 
-      const abortController = new AbortController();
-      setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
+    setIsLoading(true);
+    setValidationStarted(true);
 
-      fetchApi<ValidationResponse>(`/api/v1/validation/${jobId}`, {
-        method: "PATCH",
-        body: JSON.stringify(startJobRequest),
-        signal: abortController.signal,
+    const abortController = new AbortController();
+    setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
+
+    fetchApi<ValidationResponse>(`/api/v1/validation/${jobId}`, {
+      method: "PATCH",
+      body: JSON.stringify(startJobRequest),
+      signal: abortController.signal,
+    })
+      .then(response => {
+        setValidationResponse(response);
+        pollValidationStatusUntilFinished(jobId, abortController);
       })
-        .then(response => {
-          setValidationResponse(response);
-          pollValidationStatusUntilFinished(jobId, abortController);
-        })
-        .catch((error: ApiError) => {
-          handleApiError(error, DeliveryStepEnum.Validate);
-        });
-    }
+      .catch((error: ApiError) => {
+        handleApiError(error, DeliveryStepEnum.Validate);
+      });
   };
 
   const submitDelivery = (data: DeliverySubmitData) => {
