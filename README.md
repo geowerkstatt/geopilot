@@ -175,7 +175,7 @@ docker compose up -d azurite clamav
 }
 ```
 
-Weitere optionale Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `PresignedUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) sind in `CloudStorageOptions.cs` dokumentiert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `CloudCleanupService` bereinigt.
+Weitere Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `PresignedUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) werden in `appsettings.json` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `CloudCleanupService` bereinigt.
 
 - **Cloud Storage deaktiviert (Standard):** Nur der direkte Upload (`/api/v1/validation`) ist verfügbar. ClamAV-Einstellungen werden ignoriert.
 - **Cloud Storage aktiviert, ClamAV deaktiviert:** Cloud-Upload funktioniert ohne Virenprüfung. Pro Upload wird eine Warnung geloggt.
