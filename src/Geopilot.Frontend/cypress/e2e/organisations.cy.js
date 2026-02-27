@@ -6,7 +6,7 @@ import {
   getFormField,
   hasError,
   removeAutocompleteValue,
-  setAutocomplete,
+  setNonFreeSoloAutocomplete,
   setInput,
 } from "./helpers/formHelpers.js";
 
@@ -54,7 +54,7 @@ describe("Organisations tests", () => {
     cy.location().should(location => {
       expect(location.pathname).to.eq(`/admin/organisations/0`);
     });
-    setAutocomplete("users", "Kelvin Spencer");
+    setNonFreeSoloAutocomplete("users", "Kelvin Spencer");
     cy.wait(500);
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("admin-users-nav").click();
@@ -101,7 +101,7 @@ describe("Organisations tests", () => {
     hasError("mandates", false);
     hasError("users", false);
 
-    setAutocomplete("users", "Kelvin Spencer");
+    setNonFreeSoloAutocomplete("users", "Kelvin Spencer");
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.enabled");
 
@@ -129,8 +129,8 @@ describe("Organisations tests", () => {
     cy.dataCy("save-button").should("be.disabled");
 
     setInput("name", randomOrganisationName);
-    setAutocomplete("mandates", "Fantastic Fresh Tuna");
-    setAutocomplete("users", "Nick Purdy");
+    setNonFreeSoloAutocomplete("mandates", "Fantastic Fresh Tuna");
+    setNonFreeSoloAutocomplete("users", "Nick Purdy");
 
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("save-button").click();
@@ -141,7 +141,7 @@ describe("Organisations tests", () => {
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
-    setAutocomplete("users", "Kelvin Spencer");
+    setNonFreeSoloAutocomplete("users", "Kelvin Spencer");
     cy.wait(500);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.enabled");
@@ -161,8 +161,8 @@ describe("Organisations tests", () => {
     // Create new organisation for testing
     cy.dataCy("addOrganisation-button").click();
     setInput("name", randomOrganisationName);
-    setAutocomplete("mandates", "Fantastic Fresh Tuna");
-    setAutocomplete("users", "Nick Purdy");
+    setNonFreeSoloAutocomplete("mandates", "Fantastic Fresh Tuna");
+    setNonFreeSoloAutocomplete("users", "Nick Purdy");
     cy.dataCy("backToOrganisations-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
     cy.wait("@saveNew");
@@ -202,9 +202,9 @@ describe("Organisations tests", () => {
     setInput("name", randomOrganisationName + " updated");
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.enabled");
-    setAutocomplete("mandates", "Incredible Plastic Ball");
+    setNonFreeSoloAutocomplete("mandates", "Incredible Plastic Ball");
     evaluateAutocomplete("mandates", ["Fantastic Fresh Tuna", "Incredible Plastic Ball"]);
-    setAutocomplete("users", "Regina Streich");
+    setNonFreeSoloAutocomplete("users", "Regina Streich");
     evaluateAutocomplete("users", ["Nick Purdy", "Regina Streich"]);
     removeAutocompleteValue("users", "Nick Purdy");
     evaluateAutocomplete("users", ["Regina Streich"]);

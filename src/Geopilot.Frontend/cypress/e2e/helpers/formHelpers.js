@@ -181,12 +181,13 @@ export const isCheckboxDisabled = (fieldName, isDisabled = true, parent) => {
 };
 
 /**
- * Sets the value for an autocomplete form element.
+ * Sets the value for an autocomplete form element, that is not free solo. Meaning the user must select from the provided dropdown.
+ * For free solo autocomplete, use setFreeSoloAutocomplete instead.
  * @param {string} fieldName The name of the autocomplete field.
  * @param {string} value The text to type into the input field.
  * @param {string} parent (optional) The parent of the form element.
  */
-export const setAutocomplete = (fieldName, value, parent) => {
+export const setNonFreeSoloAutocomplete = (fieldName, value, parent) => {
   const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
   cy.get(selector)
     .click()
@@ -195,6 +196,26 @@ export const setAutocomplete = (fieldName, value, parent) => {
         delay: 10,
       });
       cy.get('.MuiPaper-elevation [role="listbox"]').find('[role="option"]').first().click();
+    });
+};
+
+/**
+ * Sets the value for an autocomplete form element, that is free solo. Meaning the user can type any value, not just select from the provided dropdown.
+ * @param {string} fieldName The name of the autocomplete field.
+ * @param {string} value The text to type into the input field.
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const setFreeSoloAutocomplete = (fieldName, value, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
+  cy.get(selector)
+    .click()
+    .then(() => {
+      cy.focused().clear();
+      if (value.length > 0) {
+        cy.get(selector).type(value + "{enter}", {
+          delay: 10,
+        });
+      }
     });
 };
 
