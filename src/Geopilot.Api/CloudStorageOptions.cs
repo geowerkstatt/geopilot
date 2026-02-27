@@ -21,54 +21,54 @@ public class CloudStorageOptions
     public string? BucketName { get; set; }
 
     /// <summary>
-    /// The maximum file size in megabytes. Default is 2048 MB (2 GB).
+    /// The maximum file size in megabytes.
     /// </summary>
-    public int MaxFileSizeMB { get; set; } = 2048;
+    public int MaxFileSizeMB { get; set; }
 
     /// <summary>
-    /// The maximum number of files per job. Default is 50.
+    /// The maximum number of files per job.
     /// </summary>
-    public int MaxFilesPerJob { get; set; } = 50;
+    public int MaxFilesPerJob { get; set; }
 
     /// <summary>
-    /// The maximum total job size in megabytes. Default is 10240 MB (10 GB).
+    /// The maximum total job size in megabytes.
     /// </summary>
-    public int MaxJobSizeMB { get; set; } = 10240;
+    public int MaxJobSizeMB { get; set; }
 
     /// <summary>
-    /// The maximum total size of all active cloud uploads in megabytes. Default is 204800 MB (200 GB).
+    /// The maximum total size of all active cloud uploads in megabytes.
     /// </summary>
-    public int MaxGlobalActiveSizeMB { get; set; } = 204800;
+    public int MaxGlobalActiveSizeMB { get; set; }
 
     /// <summary>
-    /// The maximum number of active cloud upload jobs. Default is 100.
+    /// The maximum number of active cloud upload jobs.
     /// </summary>
-    public int MaxActiveJobs { get; set; } = 100;
+    public int MaxActiveJobs { get; set; }
 
     /// <summary>
-    /// The expiry time for presigned upload URLs in minutes. Default is 60 minutes.
+    /// The expiry time for presigned upload URLs in minutes.
     /// </summary>
-    public int PresignedUrlExpiryMinutes { get; set; } = 60;
+    public int PresignedUrlExpiryMinutes { get; set; }
 
     /// <summary>
-    /// The age in hours after which cloud files are eligible for cleanup. Default is 48 hours.
+    /// The age in hours after which cloud files are eligible for cleanup.
     /// </summary>
-    public int CleanupAgeHours { get; set; } = 48;
+    public int CleanupAgeHours { get; set; }
 
     /// <summary>
-    /// The interval in minutes between cleanup runs. Default is 15 minutes.
+    /// The interval in minutes between cleanup runs.
     /// </summary>
-    public int CleanupIntervalMinutes { get; set; } = 15;
+    public int CleanupIntervalMinutes { get; set; }
 
     /// <summary>
-    /// Maximum number of upload initiation requests per IP within the rate limit window. Default is 10.
+    /// Maximum number of upload initiation requests per IP within the rate limit window.
     /// </summary>
-    public int RateLimitRequests { get; set; } = 10;
+    public int RateLimitRequests { get; set; }
 
     /// <summary>
-    /// Rate limit window duration in minutes. Default is 1 minute.
+    /// Rate limit window duration in minutes.
     /// </summary>
-    public int RateLimitWindowMinutes { get; set; } = 1;
+    public int RateLimitWindowMinutes { get; set; }
 
     /// <summary>
     /// Whether to automatically create the blob container on startup. Should only be enabled in development.

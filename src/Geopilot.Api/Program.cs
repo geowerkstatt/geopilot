@@ -221,13 +221,14 @@ builder.Services
     .AddCheck<ValidationServiceHealthCheck>("Validators")
     .AddCheck<StorageHealthCheck>("Storage");
 
-var cloudStorageConfig = builder.Configuration.GetSection("CloudStorage");
+var cloudStorageConfig = builder.Configuration.GetSection("CloudStorage").Get<CloudStorageOptions>()
+    ?? throw new InvalidOperationException("CloudStorage configuration section is missing.");
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("uploadRateLimit", limiter =>
     {
-        limiter.PermitLimit = cloudStorageConfig.GetValue("RateLimitRequests", 10);
-        limiter.Window = TimeSpan.FromMinutes(cloudStorageConfig.GetValue("RateLimitWindowMinutes", 1));
+        limiter.PermitLimit = cloudStorageConfig.RateLimitRequests;
+        limiter.Window = TimeSpan.FromMinutes(cloudStorageConfig.RateLimitWindowMinutes);
         limiter.QueueLimit = 0;
     });
 
