@@ -14,4 +14,9 @@ public enum PreflightFailureReason
     /// A security threat was detected in the uploaded files.
     /// </summary>
     ThreatDetected,
+
+    /// <summary>
+    /// The uploaded file size exceeds the declared size.
+    /// </summary>
+    SizeExceeded,
 }

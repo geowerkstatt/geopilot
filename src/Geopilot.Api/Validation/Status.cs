@@ -16,6 +16,11 @@ public enum Status
     VerifyingUpload,
 
     /// <summary>
+    /// The upload was incomplete and the client may retry.
+    /// </summary>
+    UploadIncomplete,
+
+    /// <summary>
     /// The job is ready to be processed.
     /// </summary>
     Ready,
