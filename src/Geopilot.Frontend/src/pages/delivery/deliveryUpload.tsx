@@ -18,7 +18,7 @@ export const DeliveryUpload = () => {
   const { initialized, termsOfUse } = useAppSettings();
   const { fetchApi } = useFetch();
   const formMethods = useForm({ mode: "all" });
-  const { setStepError, selectedFile, setSelectedFile, isLoading, uploadFile, resetDelivery } =
+  const { setStepError, selectedFile, setSelectedFile, isLoading, uploadFile, uploadSettings, resetDelivery } =
     useContext(DeliveryContext);
 
   useEffect(() => {
@@ -50,6 +50,7 @@ export const DeliveryUpload = () => {
               fileExtensions={validationSettings?.allowedFileExtensions}
               disabled={isLoading}
               setFileError={setFileError}
+              maxFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxFileSizeMB : undefined}
             />
             <FlexRowSpaceBetweenBox>
               <FormCheckbox

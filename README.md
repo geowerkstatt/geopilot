@@ -62,6 +62,8 @@ volumes:
 | http://localhost:8080  | stac-browser (in docker-compose)              | -                                                                         |
 | http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
 | http://localhost:3080  | interlis-check-service (in docker-compose)    | -                                                                         |
+| https://localhost:10000 | Azurite Blob Storage (in docker-compose)      | -                                                                         |
+| http://localhost:3310  | ClamAV clamd (in docker-compose)               | -                                                                         |
 | http://localhost:4011  | Keycloak Server Administration                | -                                                                         |
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
@@ -141,3 +143,40 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
 ```
 
 Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im Swagger UI die OpenID Konfiguration der Authority (`<authority-url>/.well-known/openid-configuration`) geladen und alle vom Identity Provider unterstützten Flows angezeigt.
+
+## Cloud Upload (optional)
+
+geopilot kann optional mit einem Cloud-Upload-Flow betrieben werden, bei dem Dateien über Presigned URLs direkt in einen Object Storage hochgeladen werden. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
+
+Beide Features sind standardmässig deaktiviert. Ohne Konfiguration wird ausschliesslich der klassische direkte Upload verwendet.
+
+### Entwicklung
+
+Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1–2 Minuten für Virendefinitionen.
+
+```bash
+docker compose up -d azurite clamav
+```
+
+### Konfiguration
+
+```json5
+"CloudStorage": {
+    "Enabled": true,
+    "ConnectionString": "...",
+    "BucketName": "uploads",
+    "AutoCreateContainer": false, // Nur für Entwicklung auf true setzen
+    "AllowedOrigins": ["https://localhost:5173"] // CORS für Presigned-URL-Uploads
+},
+"ClamAV": {
+    "Enabled": true,
+    "Host": "localhost",
+    "Port": 3310
+}
+```
+
+Weitere Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `PresignedUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) werden in `appsettings.json` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `CloudCleanupService` bereinigt.
+
+- **Cloud Storage deaktiviert (Standard):** Nur der direkte Upload (`/api/v1/validation`) ist verfügbar. ClamAV-Einstellungen werden ignoriert.
+- **Cloud Storage aktiviert, ClamAV deaktiviert:** Cloud-Upload funktioniert ohne Virenprüfung. Pro Upload wird eine Warnung geloggt.
+- **Cloud Storage aktiviert, ClamAV aktiviert:** Cloud-Upload mit Virenprüfung vor der Validierung.

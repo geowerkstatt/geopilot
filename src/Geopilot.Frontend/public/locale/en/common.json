@@ -55,7 +55,7 @@
   "fieldOptional": "Is optional",
   "fieldRequired": "Is required",
   "fileDropzoneErrorChooseFile": "Please choose a valid file",
-  "fileDropzoneErrorFileTooLarge": "The selected file is larger than 100 MB",
+  "fileDropzoneErrorFileTooLarge": "The selected file exceeds the maximum file size",
   "fileDropzoneErrorNotSupported": "The file type is not supported",
   "fileDropzoneErrorTooManyFiles": "Only one file can be checked at a time",
   "fileTypes": "Formats",

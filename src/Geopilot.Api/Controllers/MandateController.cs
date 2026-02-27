@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Models;
 using Geopilot.Api.Pipeline;
+using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ public class MandateController : ControllerBase
 {
     private readonly ILogger<MandateController> logger;
     private readonly Context context;
-    private readonly IValidationService validationService;
+    private readonly IMandateService mandateService;
     private readonly IEnumerable<IValidator> validators;
     private readonly IPipelineService pipelineService;
 
@@ -28,19 +29,19 @@ public class MandateController : ControllerBase
     /// </summary>
     /// <param name="logger">Logger for the instance.</param>
     /// <param name="context">Database context for getting mandates.</param>
-    /// <param name="validationService">The validation service providing upload file information for filetype matching.</param>
+    /// <param name="mandateService">The mandate service providing mandate filtering and retrieval.</param>
     /// <param name="validators">The validator providing information about the INTERLIS validation.</param>
     /// <param name="pipelineService">The pipeline service providing information about available pipelines for validation during creating or updating mandates.</param>
     public MandateController(
         ILogger<MandateController> logger,
         Context context,
-        IValidationService validationService,
+        IMandateService mandateService,
         IEnumerable<IValidator> validators,
         IPipelineService pipelineService)
     {
         this.logger = logger;
         this.context = context;
-        this.validationService = validationService;
+        this.mandateService = mandateService;
         this.validators = validators;
         this.pipelineService = pipelineService;
     }
@@ -59,46 +60,14 @@ public class MandateController : ControllerBase
     {
         logger.LogInformation("Getting mandates for job with id <{JobId}>.", jobId);
 
-        var mandates = context.MandatesWithIncludes.AsNoTracking();
+        var user = User?.Identity?.IsAuthenticated == true
+            ? await context.GetUserByPrincipalAsync(User)
+            : null;
 
-        if (User?.Identity?.IsAuthenticated ?? false)
-        {
-            var user = await context.GetUserByPrincipalAsync(User);
-
-            if (!user.IsAdmin || jobId != default)
-            {
-                mandates = mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
-            }
-        }
-        else
-        {
-            mandates = mandates.Where(m => m.IsPublic);
-        }
-
-        if (jobId != default)
-        {
-            var job = validationService.GetJob(jobId);
-            if (job is null)
-            {
-                logger.LogTrace("Validation job with id <{JobId}> was not found.", jobId);
-                return Ok(Array.Empty<Mandate>());
-            }
-
-            if (string.IsNullOrEmpty(job.OriginalFileName))
-            {
-                logger.LogTrace("Validation job with id <{JobId}> has no associated file name.", jobId);
-                return Ok(Array.Empty<Mandate>());
-            }
-
-            logger.LogTrace("Filtering mandates for job with id <{JobId}>", jobId);
-            var extension = Path.GetExtension(job.OriginalFileName);
-            mandates = mandates.FilterMandatesByFileExtension(extension);
-        }
-
-        var result = await mandates.ToListAsync();
+        var result = await mandateService.GetMandatesAsync(user, jobId != default ? jobId : null);
         result.ForEach(m => m.SetCoordinateListFromPolygon());
 
-        logger.LogInformation($"Getting mandates for job with id <{jobId}> resulted in <{result.Count}> matching mandates.");
+        logger.LogInformation("Getting mandates for job with id <{JobId}> resulted in <{ResultCount}> matching mandates.", jobId, result.Count);
         return Ok(result);
     }
 

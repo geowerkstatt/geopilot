@@ -5,12 +5,9 @@ import { DeliveryValidationLoading } from "./deliveryValidationLoading";
 import { DeliveryValidationResults } from "./deliveryValidationResults";
 import { isValidationFinished } from "../deliveryUtils";
 import { FlexBox } from "../../../components/styledComponents";
-import { ValidationStatus } from "../../../api/apiInterfaces";
 
 export const DeliveryValidation = () => {
-  const { isLoading, validationResponse } = useContext(DeliveryContext);
-
-  const isValidating = isLoading && validationResponse?.status === ValidationStatus.Processing;
+  const { isValidating, validationResponse } = useContext(DeliveryContext);
 
   return (
     <FlexBox>

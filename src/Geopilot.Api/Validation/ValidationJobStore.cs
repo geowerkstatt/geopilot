@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using Geopilot.Api.Enums;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Threading.Channels;
 
@@ -37,12 +38,39 @@ public class ValidationJobStore : IValidationJobStore
     }
 
     /// <inheritdoc/>
-    public ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName)
+    public ValidationJob AddUploadInfoToJob(Guid jobId, UploadMethod uploadMethod, ImmutableList<CloudFileInfo> cloudFiles)
     {
         var updateFunc = (Guid jobId, ValidationJob currentJob) =>
         {
             if (currentJob.Status != Status.Created)
-                throw new InvalidOperationException($"Cannot add file to job <{jobId}> because its status is <{currentJob.Status}> instead of <{Status.Created}>.");
+                throw new InvalidOperationException($"Cannot add upload info to job <{jobId}> because its status is <{currentJob.Status}> instead of <{Status.Created}>.");
+
+            return currentJob with
+            {
+                UploadMethod = uploadMethod,
+                CloudFiles = cloudFiles,
+            };
+        };
+
+        return jobs.AddOrUpdate(jobId, id => throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId)), updateFunc);
+    }
+
+    /// <inheritdoc/>
+    public ValidationJob SetJobStatus(Guid jobId, Status status)
+    {
+        return jobs.AddOrUpdate(
+            jobId,
+            id => throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId)),
+            (id, currentJob) => currentJob with { Status = status });
+    }
+
+    /// <inheritdoc/>
+    public ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName)
+    {
+        var updateFunc = (Guid jobId, ValidationJob currentJob) =>
+        {
+            if (currentJob.Status != Status.Created && currentJob.Status != Status.VerifyingUpload)
+                throw new InvalidOperationException($"Cannot add file to job <{jobId}> because its status is <{currentJob.Status}> instead of <{Status.Created}> or <{Status.VerifyingUpload}>.");
 
             return currentJob with
             {
@@ -111,6 +139,9 @@ public class ValidationJobStore : IValidationJobStore
 
         return jobs.AddOrUpdate(jobId, id => throw new ArgumentException($"Job with id <{jobId}> not found."), updateFunc);
     }
+
+    /// <inheritdoc/>
+    public int GetActiveCloudJobCount() => jobs.Values.Count(j => j.UploadMethod == UploadMethod.Cloud);
 
     /// <inheritdoc/>
     public bool RemoveJob(Guid jobId)

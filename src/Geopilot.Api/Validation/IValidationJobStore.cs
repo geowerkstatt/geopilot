@@ -1,4 +1,6 @@
-﻿using System.Threading.Channels;
+﻿using Geopilot.Api.Enums;
+using System.Collections.Immutable;
+using System.Threading.Channels;
 
 namespace Geopilot.Api.Validation
 {
@@ -30,16 +32,37 @@ namespace Geopilot.Api.Validation
         ValidationJob CreateJob();
 
         /// <summary>
+        /// Adds cloud upload information to the specified job. The job status remains <see cref="Status.Created"/>.
+        /// </summary>
+        /// <remarks>This method only succeeds if the job has the status <see cref="Status.Created"/>.</remarks>
+        /// <param name="jobId">The id of the job to add upload info to.</param>
+        /// <param name="uploadMethod">The upload method used for this job.</param>
+        /// <param name="cloudFiles">The list of cloud file metadata.</param>
+        /// <returns>The updated job with upload info set.</returns>
+        /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
+        /// <exception cref="InvalidOperationException">If the status of the job is not <see cref="Status.Created"/>.</exception>
+        ValidationJob AddUploadInfoToJob(Guid jobId, UploadMethod uploadMethod, ImmutableList<CloudFileInfo> cloudFiles);
+
+        /// <summary>
+        /// Transitions the job to the specified <paramref name="status"/>.
+        /// </summary>
+        /// <param name="jobId">The id of the job to update.</param>
+        /// <param name="status">The new status for the job.</param>
+        /// <returns>The updated job with the new status.</returns>
+        /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
+        ValidationJob SetJobStatus(Guid jobId, Status status);
+
+        /// <summary>
         /// Adds the original and temporary file name to the specified job,
         /// signaling that the file for the job has been uploaded and thus updating its status to <see cref="Status.Ready"/>.
         /// </summary>
-        /// <remarks>This method only succeeds if the job has the status <see cref="Status.Created"/>, meaning no file has been added yet.</remarks>
+        /// <remarks>This method only succeeds if the job has the status <see cref="Status.Created"/> or <see cref="Status.VerifyingUpload"/>.</remarks>
         /// <param name="jobId">The id of the job to add the file to.</param>
         /// <param name="originalFileName">The original file name of the uploaded file.</param>
         /// <param name="tempFileName">The temporary, sanitized, internal file name of the uploaded file.</param>
         /// <returns>The updated job with the file names set and its status set to <see cref="Status.Ready"/>.</returns>
         /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
-        /// <exception cref="InvalidOperationException">If the status of the job is not <see cref="Status.Created"/>.</exception>
+        /// <exception cref="InvalidOperationException">If the status of the job is not <see cref="Status.Created"/> or <see cref="Status.VerifyingUpload"/>.</exception>
         ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName);
 
         /// <summary>
@@ -67,6 +90,12 @@ namespace Geopilot.Api.Validation
         /// <exception cref="ArgumentException">If the specified <paramref name="validator"/> is not associated with any job.</exception>
         /// <exception cref="InvalidOperationException">If the status of the job is not <see cref="Status.Processing"/>.</exception>
         ValidationJob AddValidatorResult(IValidator validator, ValidatorResult result);
+
+        /// <summary>
+        /// Gets the number of active cloud upload jobs in the store.
+        /// </summary>
+        /// <returns>The number of jobs with <see cref="UploadMethod.Cloud"/>.</returns>
+        int GetActiveCloudJobCount();
 
         /// <summary>
         /// Removes the job with the specified id from the store.

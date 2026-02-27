@@ -6,13 +6,21 @@ import {
   DeliverySubmitData,
 } from "./deliveryInterfaces.tsx";
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, Mandate, StartJobRequest, ValidationResponse, ValidationStatus } from "../../api/apiInterfaces.ts";
+import {
+  ApiError,
+  Mandate,
+  StartJobRequest,
+  UploadSettings,
+  ValidationResponse,
+  ValidationStatus,
+} from "../../api/apiInterfaces.ts";
 import { DeliveryUpload } from "./deliveryUpload.tsx";
 import { DeliveryValidation } from "./validation/deliveryValidation.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
 import { DeliveryCompleted } from "./deliveryCompleted.tsx";
 import useFetch from "../../hooks/useFetch.ts";
+import useCloudUpload from "../../hooks/useCloudUpload.ts";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
@@ -23,8 +31,11 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   setSelectedFile: () => {},
   selectedMandate: undefined,
   setSelectedMandate: () => {},
+  jobId: undefined,
+  uploadSettings: undefined,
   validationResponse: undefined,
   isLoading: false,
+  isValidating: false,
   uploadFile: () => {},
   validateFile: () => {},
   submitDelivery: () => {},
@@ -66,12 +77,16 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [validationStarted, setValidationStarted] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File>();
   const [selectedMandate, setSelectedMandate] = useState<Mandate>();
+  const [jobId, setJobId] = useState<string>();
   const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
+  const [uploadSettings, setUploadSettings] = useState<UploadSettings>();
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
+  const { cloudUpload } = useCloudUpload();
   const { user } = useGeopilotAuth();
   const prevUserIdRef = useRef<number | undefined>(user?.id);
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), false));
@@ -105,6 +120,10 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       getSteps(prevSteps, user != null && selectedMandate != null && selectedMandate.allowDelivery),
     );
   }, [user, selectedMandate]);
+
+  useEffect(() => {
+    fetchApi<UploadSettings>("/api/v2/upload").then(setUploadSettings);
+  }, [fetchApi]);
 
   const isActiveStep = (step: DeliveryStepEnum) => {
     const stepKeys = Array.from(steps.keys());
@@ -141,11 +160,34 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     [deliveryStepErrors, setStepError],
   );
 
+  const onUploadComplete = (id: string) => {
+    setJobId(id);
+    setSteps(prevSteps => {
+      const newSteps = new Map(prevSteps);
+      const step = newSteps.get(DeliveryStepEnum.Upload);
+      if (step) {
+        step.labelAddition = selectedFile?.name;
+      }
+      return newSteps;
+    });
+    continueToNextStep();
+  };
+
   const uploadFile = () => {
-    if (selectedFile) {
-      const abortController = new AbortController();
-      setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
-      setIsLoading(true);
+    if (!selectedFile) return;
+
+    const abortController = new AbortController();
+    setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
+    setIsLoading(true);
+
+    if (uploadSettings?.enabled) {
+      cloudUpload([selectedFile], abortController.signal)
+        .then(onUploadComplete)
+        .catch((error: ApiError) => {
+          handleApiError(error, DeliveryStepEnum.Upload);
+        })
+        .finally(() => setIsLoading(false));
+    } else {
       const formData = new FormData();
       formData.append("file", selectedFile, selectedFile.name);
       fetchApi<ValidationResponse>("/api/v1/validation", {
@@ -155,15 +197,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       })
         .then(response => {
           setValidationResponse(response);
-          setSteps(prevSteps => {
-            const newSteps = new Map(prevSteps);
-            const step = newSteps.get(DeliveryStepEnum.Upload);
-            if (step) {
-              step.labelAddition = selectedFile.name;
-            }
-            return newSteps;
-          });
-          continueToNextStep();
+          onUploadComplete(response.jobId);
         })
         .catch((error: ApiError) => {
           handleApiError(error, DeliveryStepEnum.Upload);
@@ -182,7 +216,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         if (response.status === ValidationStatus.Processing) {
           setTimeout(() => pollValidationStatusUntilFinished(jobId, abortController), 2000);
         } else {
-          setIsLoading(false);
+          setIsValidating(false);
 
           if (response.status === ValidationStatus.Completed) {
             continueToNextStep();
@@ -196,27 +230,31 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
   };
 
-  const validateFile = (jobId: string, startJobRequest: StartJobRequest) => {
-    if (validationResponse?.status === ValidationStatus.Ready && !isLoading) {
-      setIsLoading(true);
-      setValidationStarted(true);
+  const validateFile = (startJobRequest: StartJobRequest) => {
+    if (!jobId || isLoading) return;
+    if (!uploadSettings?.enabled && validationResponse?.status !== ValidationStatus.Ready) return;
 
-      const abortController = new AbortController();
-      setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
+    setIsLoading(true);
+    setValidationStarted(true);
 
-      fetchApi<ValidationResponse>(`/api/v1/validation/${jobId}`, {
-        method: "PATCH",
-        body: JSON.stringify(startJobRequest),
-        signal: abortController.signal,
+    const abortController = new AbortController();
+    setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
+
+    fetchApi<ValidationResponse>(`/api/v1/validation/${jobId}`, {
+      method: "PATCH",
+      body: JSON.stringify(startJobRequest),
+      signal: abortController.signal,
+    })
+      .then(response => {
+        setValidationResponse(response);
+        setIsLoading(false);
+        setIsValidating(true);
+        pollValidationStatusUntilFinished(jobId, abortController);
       })
-        .then(response => {
-          setValidationResponse(response);
-          pollValidationStatusUntilFinished(jobId, abortController);
-        })
-        .catch((error: ApiError) => {
-          handleApiError(error, DeliveryStepEnum.Validate);
-        });
-    }
+      .catch((error: ApiError) => {
+        setIsLoading(false);
+        handleApiError(error, DeliveryStepEnum.Validate);
+      });
   };
 
   const submitDelivery = (data: DeliverySubmitData) => {
@@ -229,7 +267,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     fetchApi<ValidationResponse>("/api/v1/delivery", {
       method: "POST",
       body: JSON.stringify({
-        JobId: validationResponse?.jobId,
+        JobId: jobId,
         MandateId: data.mandate,
         PartialDelivery: data.isPartial,
         PrecursorDeliveryId: data.precursor,
@@ -250,9 +288,11 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     abortControllers.forEach(controller => controller.abort());
     setAbortControllers([]);
     setIsLoading(false);
+    setIsValidating(false);
     setValidationStarted(false);
     setSelectedFile(undefined);
     setSelectedMandate(undefined);
+    setJobId(undefined);
     setValidationResponse(undefined);
     setActiveStep(0);
     setSteps(prevSteps => {
@@ -284,8 +324,11 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         setSelectedFile,
         selectedMandate,
         setSelectedMandate,
+        jobId,
+        uploadSettings,
         validationResponse,
         isLoading,
+        isValidating,
         uploadFile,
         validateFile,
         submitDelivery,

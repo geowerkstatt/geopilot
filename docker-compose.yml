@@ -47,6 +47,25 @@ services:
       db:
         condition: service_healthy
 
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    ports:
+      - 10000:10000
+    volumes:
+      - ./certs:/certs:ro
+    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck --cert /certs/cert.pem --key /certs/cert.key"
+
+  clamav:
+    image: clamav/clamav:latest
+    ports:
+      - 3310:3310
+    healthcheck:
+      test: "clamdscan --ping 1"
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
   interlis-check-service:
     image: ghcr.io/geowerkstatt/interlis-check-service:edge
     restart: unless-stopped
@@ -76,6 +95,14 @@ services:
       Auth__FullScope: "profile email openid geopilot.api"
       Auth__ApiServerScope: "geopilot.api"
       Validation__InterlisCheckServiceUrl: http://interlis-check-service:8080/
+      CloudStorage__Enabled: true
+      CloudStorage__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://localhost:10000/devstoreaccount1;"
+      CloudStorage__BucketName: uploads
+      CloudStorage__AutoCreateContainer: true
+      CloudStorage__AllowedOrigins__0: https://localhost:5173
+      ClamAV__Enabled: true
+      ClamAV__Host: clamav
+      ClamAV__Port: 3310
       Pipeline__Definition: /pipelines/pipelines.yaml
       PUID: 1000
       PGID: 1000
