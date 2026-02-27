@@ -13,10 +13,10 @@ public class ClamAvOptions
     /// <summary>
     /// The hostname of the ClamAV daemon.
     /// </summary>
-    public string Host { get; set; } = "localhost";
+    public string Host { get; set; } = string.Empty;
 
     /// <summary>
     /// The TCP port of the ClamAV daemon.
     /// </summary>
-    public int Port { get; set; } = 3310;
+    public int Port { get; set; }
 }
