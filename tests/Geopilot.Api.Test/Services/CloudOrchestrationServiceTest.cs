@@ -57,6 +57,8 @@ public class CloudOrchestrationServiceTest
     {
         var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
 
+        SetupGlobalLimitChecks();
+
         cloudStorageServiceMock
             .Setup(s => s.GeneratePresignedUploadUrlAsync(It.IsAny<string>(), null, It.IsAny<TimeSpan>()))
             .ReturnsAsync("https://storage.example.com/presigned-url");
@@ -246,11 +248,105 @@ public class CloudOrchestrationServiceTest
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.StageFilesLocallyAsync(job.Id));
     }
 
+    [TestMethod]
+    public async Task RunPreflightChecksAsyncThrowsForOversizedFile()
+    {
+        var job = CreateCloudJob("test.xtf", 1024);
+
+        cloudStorageServiceMock
+            .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{job.Id}/test.xtf", 2048, DateTime.UtcNow) });
+
+        cloudStorageServiceMock
+            .Setup(s => s.DeletePrefixAsync(It.IsAny<string>()))
+            .Returns(Task.CompletedTask);
+
+        var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
+        Assert.AreEqual(PreflightFailureReason.SizeExceeded, ex.FailureReason);
+
+        Assert.IsNull(jobStore.GetJob(job.Id));
+    }
+
+    [TestMethod]
+    public async Task RunPreflightChecksAsyncResetsStatusForIncompleteUpload()
+    {
+        var job = CreateCloudJob("test.xtf", 1024);
+
+        cloudStorageServiceMock
+            .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
+            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>());
+
+        var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
+        Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
+
+        var updatedJob = jobStore.GetJob(job.Id);
+        Assert.IsNotNull(updatedJob);
+        Assert.AreEqual(Status.UploadIncomplete, updatedJob.Status);
+    }
+
+    [TestMethod]
+    public async Task InitiateUploadAsyncSanitizesFileName()
+    {
+        var request = new CloudUploadRequest { Files = [new FileMetadata("../../etc/passwd", 1024)] };
+
+        SetupGlobalLimitChecks();
+
+        cloudStorageServiceMock
+            .Setup(s => s.GeneratePresignedUploadUrlAsync(It.Is<string>(k => k.EndsWith("/passwd")), null, It.IsAny<TimeSpan>()))
+            .ReturnsAsync("https://storage.example.com/presigned-url");
+
+        var response = await service.InitiateUploadAsync(request);
+
+        Assert.AreEqual("passwd", response.Files[0].FileName);
+
+        var job = jobStore.GetJob(response.JobId);
+        Assert.IsNotNull(job);
+        Assert.AreEqual("passwd", job.CloudFiles![0].FileName);
+        Assert.IsTrue(job.CloudFiles[0].CloudKey.EndsWith("/passwd"));
+    }
+
+    [TestMethod]
+    public async Task InitiateUploadAsyncThrowsWhenMaxActiveJobsReached()
+    {
+        var opts = new CloudStorageOptions { MaxActiveJobs = 1 };
+        optionsMock.SetupGet(o => o.Value).Returns(opts);
+
+        // Create one cloud job to hit the limit
+        var existingJob = jobStore.CreateJob();
+        jobStore.AddUploadInfoToJob(existingJob.Id, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("f.xtf", "uploads/f.xtf", 100)));
+
+        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.InitiateUploadAsync(request));
+    }
+
+    [TestMethod]
+    public async Task InitiateUploadAsyncThrowsWhenGlobalSizeLimitExceeded()
+    {
+        var opts = new CloudStorageOptions { MaxGlobalActiveSizeMB = 1 };
+        optionsMock.SetupGet(o => o.Value).Returns(opts);
+
+        cloudStorageServiceMock
+            .Setup(s => s.GetTotalSizeAsync("uploads/"))
+            .ReturnsAsync((long)1 * 1024 * 1024);
+
+        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
+
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.InitiateUploadAsync(request));
+    }
+
     private ValidationJob CreateCloudJob(string fileName, long size)
     {
         var job = jobStore.CreateJob();
         var cloudFiles = ImmutableList.Create(new CloudFileInfo(fileName, $"uploads/{job.Id}/{fileName}", size));
         jobStore.AddUploadInfoToJob(job.Id, UploadMethod.Cloud, cloudFiles);
         return jobStore.GetJob(job.Id)!;
+    }
+
+    private void SetupGlobalLimitChecks()
+    {
+        cloudStorageServiceMock
+            .Setup(s => s.GetTotalSizeAsync("uploads/"))
+            .ReturnsAsync(0L);
     }
 }
