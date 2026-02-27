@@ -22,7 +22,7 @@ public class CloudCleanupServiceTest
         jobStoreMock = new Mock<IValidationJobStore>(MockBehavior.Loose);
         loggerMock = new Mock<ILogger<CloudCleanupService>>();
 
-        cloudStorageOptions = new CloudStorageOptions { CleanupAgeHours = 48 };
+        cloudStorageOptions = new CloudStorageOptions { CleanupAgeHours = 48, MaxFileSizeMB = 2048 };
 
         var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
         optionsMock.Setup(o => o.Value).Returns(cloudStorageOptions);

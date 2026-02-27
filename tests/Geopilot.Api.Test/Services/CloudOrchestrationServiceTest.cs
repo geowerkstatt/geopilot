@@ -31,7 +31,15 @@ public class CloudOrchestrationServiceTest
         loggerMock = new Mock<ILogger<CloudOrchestrationService>>();
 
         optionsMock = new Mock<IOptions<CloudStorageOptions>>();
-        optionsMock.SetupGet(o => o.Value).Returns(new CloudStorageOptions());
+        optionsMock.SetupGet(o => o.Value).Returns(new CloudStorageOptions
+        {
+            MaxFileSizeMB = 2048,
+            MaxFilesPerJob = 12,
+            MaxJobSizeMB = 10240,
+            MaxGlobalActiveSizeMB = 204800,
+            MaxActiveJobs = 100,
+            PresignedUrlExpiryMinutes = 60,
+        });
 
         jobStore = new ValidationJobStore();
 
@@ -120,7 +128,7 @@ public class CloudOrchestrationServiceTest
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsForOversizedFile()
     {
-        var maxBytes = (long)new CloudStorageOptions().MaxFileSizeMB * 1024 * 1024;
+        var maxBytes = (long)optionsMock.Object.Value.MaxFileSizeMB * 1024 * 1024;
         var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", maxBytes + 1)] };
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.InitiateUploadAsync(request));
     }
@@ -316,7 +324,7 @@ public class CloudOrchestrationServiceTest
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsWhenMaxActiveJobsReached()
     {
-        var opts = new CloudStorageOptions { MaxActiveJobs = 1 };
+        var opts = new CloudStorageOptions { MaxFileSizeMB = 2048, MaxFilesPerJob = 12, MaxJobSizeMB = 10240, MaxActiveJobs = 1 };
         optionsMock.SetupGet(o => o.Value).Returns(opts);
 
         // Create one cloud job to hit the limit
@@ -331,7 +339,7 @@ public class CloudOrchestrationServiceTest
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsWhenGlobalSizeLimitExceeded()
     {
-        var opts = new CloudStorageOptions { MaxGlobalActiveSizeMB = 1 };
+        var opts = new CloudStorageOptions { MaxFileSizeMB = 2048, MaxFilesPerJob = 12, MaxJobSizeMB = 10240, MaxActiveJobs = 100, MaxGlobalActiveSizeMB = 1 };
         optionsMock.SetupGet(o => o.Value).Returns(opts);
 
         cloudStorageServiceMock

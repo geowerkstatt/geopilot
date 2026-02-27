@@ -20,7 +20,13 @@ public sealed class UploadControllerTest
     {
         loggerMock = new Mock<ILogger<UploadController>>();
         optionsMock = new Mock<IOptions<CloudStorageOptions>>();
-        optionsMock.Setup(o => o.Value).Returns(new CloudStorageOptions { Enabled = true });
+        optionsMock.Setup(o => o.Value).Returns(new CloudStorageOptions
+        {
+            Enabled = true,
+            MaxFileSizeMB = 2048,
+            MaxFilesPerJob = 12,
+            MaxJobSizeMB = 10240,
+        });
         orchestrationServiceMock = new Mock<ICloudOrchestrationService>(MockBehavior.Strict);
 
         controller = new UploadController(loggerMock.Object, optionsMock.Object, orchestrationServiceMock.Object);
