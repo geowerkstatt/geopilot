@@ -5,7 +5,7 @@ import {
   getFormField,
   isCheckboxDisabled,
   isDisabled,
-  setAutocomplete,
+  setNonFreeSoloAutocomplete,
   toggleCheckbox,
 } from "./helpers/formHelpers.js";
 import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
@@ -55,7 +55,7 @@ describe("Users tests", () => {
       expect(location.pathname).to.match(/\/admin\/users\/(?!0\b)\d+/);
     });
 
-    setAutocomplete("organisations", "Brown and Sons");
+    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Brown and Sons"]);
     cy.wait(500);
     cy.dataCy("reset-button").should("be.enabled");
@@ -69,7 +69,7 @@ describe("Users tests", () => {
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/users\/(?!0\b)\d+/);
     });
-    setAutocomplete("organisations", "Brown and Sons");
+    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
     toggleCheckbox("isAdmin");
     cy.dataCy("save-button").click();
     cy.dataCy("reset-button").should("be.disabled");

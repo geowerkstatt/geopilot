@@ -4,9 +4,10 @@ import {
   evaluateInput,
   evaluateSelect,
   hasError,
-  setAutocomplete,
+  setNonFreeSoloAutocomplete,
   setInput,
   setSelect,
+  setFreeSoloAutocomplete,
 } from "./helpers/formHelpers.js";
 import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
 
@@ -76,6 +77,7 @@ describe("Mandate tests", () => {
     });
     setInput("name", randomMandateName);
     setSelect("pipelineId", 0, 1);
+    setFreeSoloAutocomplete("fileTypes", ".xml");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -110,6 +112,7 @@ describe("Mandate tests", () => {
     // Fields should not show errors before they are touched.
     hasError("name", false);
     hasError("pipelineId", false);
+    hasError("fileTypes", false);
     hasError("extent-bottom-left-longitude", false);
     hasError("extent-bottom-left-latitude", false);
     hasError("extent-upper-right-longitude", false);
@@ -149,6 +152,7 @@ describe("Mandate tests", () => {
     cy.dataCy("save-button").click();
     cy.dataCy("save-button").should("be.disabled");
     hasError("pipelineId", true);
+    hasError("fileTypes", true);
     hasError("evaluatePrecursorDelivery", true);
     hasError("evaluatePartial", true);
     hasError("evaluateComment", true);
@@ -156,6 +160,9 @@ describe("Mandate tests", () => {
     // Fill out all required fields while checking if errors disappear.
     setSelect("pipelineId", 0, 1);
     hasError("pipelineId", false);
+    setFreeSoloAutocomplete("fileTypes", ".xml");
+    setFreeSoloAutocomplete("fileTypes", ".xtf");
+    evaluateAutocomplete("fileTypes", [".xml", ".xtf"]);
     setSelect("evaluatePrecursorDelivery", 0, 3);
     hasError("evaluatePrecursorDelivery", false);
     setSelect("evaluatePartial", 1, 2);
@@ -165,12 +172,8 @@ describe("Mandate tests", () => {
     cy.dataCy("save-button").should("be.enabled");
 
     // Fill out optional fields.
-    setSelect("interlisValidationProfile", 1, 2);
-    setAutocomplete("organisations", "Brown and Sons");
+    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Brown and Sons"]);
-    setAutocomplete("fileTypes", ".xml");
-    setAutocomplete("fileTypes", ".xtf");
-    evaluateAutocomplete("fileTypes", [".xml", ".xtf"]);
 
     // Resets all fields and validations.
     cy.dataCy("reset-button").click();
@@ -190,7 +193,6 @@ describe("Mandate tests", () => {
     evaluateInput("extent-bottom-left-latitude", "");
     evaluateInput("extent-upper-right-longitude", "");
     evaluateInput("extent-upper-right-latitude", "");
-    evaluateSelect("interlisValidationProfile", "");
     evaluateSelect("evaluatePrecursorDelivery", "");
     evaluateSelect("evaluatePartial", "");
     evaluateSelect("evaluateComment", "");
@@ -198,9 +200,9 @@ describe("Mandate tests", () => {
     // Fill out the entire form
     setInput("name", randomMandateName);
     setSelect("pipelineId", 0, 1);
-    setAutocomplete("organisations", "Brown and Sons");
-    setAutocomplete("fileTypes", ".xml");
-    setAutocomplete("fileTypes", ".xtf");
+    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
+    setFreeSoloAutocomplete("fileTypes", ".xml");
+    setFreeSoloAutocomplete("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -208,7 +210,6 @@ describe("Mandate tests", () => {
     setSelect("evaluatePrecursorDelivery", 0, 3);
     setSelect("evaluatePartial", 1, 2);
     setSelect("evaluateComment", 1, 3);
-    setSelect("interlisValidationProfile", 1, 2);
 
     // Save the mandate and check that we stay on the detail page of the new mandate.
     cy.dataCy("save-button").click();
@@ -222,7 +223,7 @@ describe("Mandate tests", () => {
     cy.dataCy("save-button").should("be.disabled");
 
     // Check that unsaved changes are not saved when navigating back to the list and choosing "reset" in the prompt.
-    setAutocomplete("fileTypes", ".itf");
+    setFreeSoloAutocomplete("fileTypes", ".itf");
     cy.wait(500);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("backToMandates-button").click();
@@ -240,9 +241,9 @@ describe("Mandate tests", () => {
     cy.dataCy("addMandate-button").click();
     setInput("name", randomMandateName);
     setSelect("pipelineId", 0, 1);
-    setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
-    setAutocomplete("fileTypes", ".xml");
-    setAutocomplete("fileTypes", ".xtf");
+    setNonFreeSoloAutocomplete("organisations", "Schumm, Runte and Macejkovic");
+    setFreeSoloAutocomplete("fileTypes", ".xml");
+    setFreeSoloAutocomplete("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -265,7 +266,7 @@ describe("Mandate tests", () => {
     cy.dataCy("save-button").should("be.disabled");
 
     // Make change and check if buttons are now enabled after change.
-    setAutocomplete("organisations", "Brown and Sons");
+    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Schumm, Runte and Macejkovic", "Brown and Sons"]);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.enabled");
@@ -294,7 +295,6 @@ describe("Mandate tests", () => {
 
     // Change other fields as well.
     setSelect("evaluatePartial", 0, 2);
-    setSelect("interlisValidationProfile", 1, 2);
 
     // Save
     cy.dataCy("save-button").click();
@@ -309,29 +309,6 @@ describe("Mandate tests", () => {
     cy.wait("@getMandates");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Schumm, Runte and Macejkovic");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");
-  });
-
-  it("can clear INTERLIS validation profile", () => {
-    // Open the first mandate in the list
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().click();
-    cy.location().should(location => {
-      expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
-    });
-
-    // Precondition: make sure the interlis profile select has a value other than empty string
-    evaluateSelect("interlisValidationProfile", value => value !== "");
-
-    // Clear the interlis profile by selecting the clear item (index 0)
-    setSelect("interlisValidationProfile", 0, 2);
-
-    // Save and reload after save has completed
-    cy.intercept({ url: "/api/v1/mandate", method: "PUT" }).as("updateMandate");
-    cy.dataCy("save-button").click();
-    cy.wait("@updateMandate");
-    cy.reload();
-
-    // Check that the clear of the interlis profile was persisted
-    evaluateSelect("interlisValidationProfile", "");
   });
 
   it("prevents multiple save requests while waiting for the API response", () => {
@@ -354,6 +331,7 @@ describe("Mandate tests", () => {
     // Fill in required fields.
     setInput("name", randomMandateName);
     setSelect("pipelineId", 0, 1);
+    setFreeSoloAutocomplete("fileTypes", ".xml");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
