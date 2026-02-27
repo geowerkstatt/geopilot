@@ -221,12 +221,13 @@ builder.Services
     .AddCheck<ValidationServiceHealthCheck>("Validators")
     .AddCheck<StorageHealthCheck>("Storage");
 
+var cloudStorageConfig = builder.Configuration.GetSection("CloudStorage");
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("uploadRateLimit", limiter =>
     {
-        limiter.PermitLimit = 10;
-        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.PermitLimit = cloudStorageConfig.GetValue("RateLimitRequests", 10);
+        limiter.Window = TimeSpan.FromMinutes(cloudStorageConfig.GetValue("RateLimitWindowMinutes", 1));
         limiter.QueueLimit = 0;
     });
 

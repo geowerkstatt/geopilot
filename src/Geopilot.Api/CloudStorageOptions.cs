@@ -61,6 +61,16 @@ public class CloudStorageOptions
     public int CleanupIntervalMinutes { get; set; } = 15;
 
     /// <summary>
+    /// Maximum number of upload initiation requests per IP within the rate limit window. Default is 10.
+    /// </summary>
+    public int RateLimitRequests { get; set; } = 10;
+
+    /// <summary>
+    /// Rate limit window duration in minutes. Default is 1 minute.
+    /// </summary>
+    public int RateLimitWindowMinutes { get; set; } = 1;
+
+    /// <summary>
     /// Whether to automatically create the blob container on startup. Should only be enabled in development.
     /// </summary>
     public bool AutoCreateContainer { get; set; }
