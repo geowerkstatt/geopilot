@@ -44,6 +44,16 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     {
         ValidateRequest(request);
 
+        var activeJobs = jobStore.GetActiveCloudJobCount();
+        if (activeJobs >= options.Value.MaxActiveJobs)
+            throw new InvalidOperationException($"Maximum number of active cloud upload jobs ({options.Value.MaxActiveJobs}) reached.");
+
+        var declaredTotalSize = request.Files.Sum(f => f.Size);
+        var maxGlobalBytes = (long)options.Value.MaxGlobalActiveSizeMB * 1024 * 1024;
+        var currentSize = await cloudStorageService.GetTotalSizeAsync("uploads/");
+        if (currentSize + declaredTotalSize > maxGlobalBytes)
+            throw new InvalidOperationException($"Global active upload size limit ({options.Value.MaxGlobalActiveSizeMB} MB) would be exceeded.");
+
         var job = jobStore.CreateJob();
         var cloudPrefix = $"uploads/{job.Id}/";
 
@@ -53,11 +63,12 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
         foreach (var file in request.Files)
         {
-            var cloudKey = $"{cloudPrefix}{file.FileName}";
+            var sanitizedName = Path.GetFileName(file.FileName);
+            var cloudKey = $"{cloudPrefix}{sanitizedName}";
             var presignedUrl = await cloudStorageService.GeneratePresignedUploadUrlAsync(cloudKey, null, expiresIn);
 
-            cloudFiles.Add(new CloudFileInfo(file.FileName, cloudKey, file.Size));
-            fileUploadInfos.Add(new FileUploadInfo(file.FileName, presignedUrl));
+            cloudFiles.Add(new CloudFileInfo(sanitizedName, cloudKey, file.Size));
+            fileUploadInfos.Add(new FileUploadInfo(sanitizedName, presignedUrl));
         }
 
         jobStore.AddUploadInfoToJob(job.Id, UploadMethod.Cloud, cloudFiles.ToImmutableList());
