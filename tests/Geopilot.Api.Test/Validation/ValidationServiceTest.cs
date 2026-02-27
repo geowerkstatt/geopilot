@@ -13,7 +13,6 @@ namespace Geopilot.Api.Test.Validation;
 public class ValidationServiceTest
 {
     private Mock<IFileProvider> fileProviderMock;
-    private Mock<IValidator> validatorMock;
     private Context context;
     private ValidationService validationService;
     private Mock<IMandateService> mandateServiceMock;
@@ -24,7 +23,6 @@ public class ValidationServiceTest
     public void Initialize()
     {
         fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
-        validatorMock = new Mock<IValidator>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
         validationJobStoreMock = new Mock<IValidationJobStore>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
@@ -41,7 +39,6 @@ public class ValidationServiceTest
     public void Cleanup()
     {
         fileProviderMock.VerifyAll();
-        validatorMock.VerifyAll();
         validationJobStoreMock.VerifyAll();
         mandateServiceMock.VerifyAll();
         context.Dispose();
