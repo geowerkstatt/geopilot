@@ -93,5 +93,4 @@ public class MandateService : IMandateService
 
         throw new InvalidOperationException($"Validation job with id <{jobId}> has no file associated.");
     }
-
 }

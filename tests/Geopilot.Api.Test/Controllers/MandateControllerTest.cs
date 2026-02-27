@@ -3,13 +3,13 @@ using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
+using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NetTopologySuite.Geometries;
 using System.Collections.Immutable;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Geopilot.Api.Controllers
 {
@@ -17,7 +17,7 @@ namespace Geopilot.Api.Controllers
     public class MandateControllerTest
     {
         private Mock<ILogger<MandateController>> loggerMock;
-        private Mock<IValidationService> validationServiceMock;
+        private Mock<IMandateService> mandateServiceMock;
         private Mock<IValidator> interlisValidatorMock;
         private Mock<IPipelineService> pipelineServiceMock;
         private Context context;
@@ -37,14 +37,14 @@ namespace Geopilot.Api.Controllers
         public void Initialize()
         {
             loggerMock = new Mock<ILogger<MandateController>>();
-            validationServiceMock = new Mock<IValidationService>();
+            mandateServiceMock = new Mock<IMandateService>();
             context = AssemblyInitialize.DbFixture.GetTestContext();
 
             interlisValidatorMock = new Mock<IValidator>();
             var validatorMocks = new List<IValidator> { interlisValidatorMock.Object };
             pipelineServiceMock = new Mock<IPipelineService>();
 
-            mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object, validatorMocks, pipelineServiceMock.Object);
+            mandateController = new MandateController(loggerMock.Object, context, mandateServiceMock.Object, validatorMocks, pipelineServiceMock.Object);
 
             unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate), AllowDelivery = true };
             noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noDeliveryMandate), AllowDelivery = false };
@@ -99,165 +99,64 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
-        public async Task GetAsNonAdminUser()
+        public async Task GetDelegatesToMandateService()
         {
             mandateController.SetupTestUser(editUser);
+            mandateServiceMock
+                .Setup(m => m.GetMandatesAsync(It.Is<User>(u => u.Id == editUser.Id), null))
+                .ReturnsAsync(new List<Mandate> { xtfMandate });
 
             var result = (await mandateController.Get()) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            ContainsMandate(mandates, unrestrictedMandate);
-            ContainsMandate(mandates, noDeliveryMandate);
-            ContainsMandate(mandates, xtfMandate);
-            ContainsMandate(mandates, publicCsvMandate);
-            DoesNotContainMandate(mandates, noOrganisationsMandate);
-            DoesNotContainMandate(mandates, noPermissionMandate);
+            Assert.HasCount(1, mandates);
+            mandateServiceMock.Verify(m => m.GetMandatesAsync(It.Is<User>(u => u.Id == editUser.Id), null), Times.Once);
         }
 
         [TestMethod]
-        public async Task GetAsAdminUser()
+        public async Task GetWithJobIdDelegatesToMandateService()
         {
-            mandateController.SetupTestUser(adminUser);
+            var jobId = Guid.NewGuid();
+            mandateController.SetupTestUser(editUser);
+            mandateServiceMock
+                .Setup(m => m.GetMandatesAsync(It.Is<User>(u => u.Id == editUser.Id), jobId))
+                .ReturnsAsync(new List<Mandate> { xtfMandate });
+
+            var result = (await mandateController.Get(jobId)) as OkObjectResult;
+            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+
+            Assert.IsNotNull(mandates);
+            Assert.HasCount(1, mandates);
+            mandateServiceMock.Verify(m => m.GetMandatesAsync(It.Is<User>(u => u.Id == editUser.Id), jobId), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task GetAsUnauthenticatedPassesNullUser()
+        {
+            mandateServiceMock
+                .Setup(m => m.GetMandatesAsync(null, null))
+                .ReturnsAsync(new List<Mandate> { publicCsvMandate });
 
             var result = (await mandateController.Get()) as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
 
             Assert.IsNotNull(mandates);
-            ContainsMandate(mandates, unrestrictedMandate);
-            ContainsMandate(mandates, noDeliveryMandate);
-            ContainsMandate(mandates, xtfMandate);
-            ContainsMandate(mandates, publicCsvMandate);
-            ContainsMandate(mandates, noOrganisationsMandate);
-            ContainsMandate(mandates, noPermissionMandate);
+            Assert.HasCount(1, mandates);
+            mandateServiceMock.Verify(m => m.GetMandatesAsync(null, null), Times.Once);
         }
 
         [TestMethod]
-        public async Task GetWithJobIdAsNonAdmin()
-        {
-            var jobId = Guid.NewGuid();
-            mandateController.SetupTestUser(editUser);
-            validationServiceMock
-                .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
-
-            var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
-
-            Assert.IsNotNull(mandates);
-            ContainsMandate(mandates, unrestrictedMandate);
-            ContainsMandate(mandates, noDeliveryMandate);
-            ContainsMandate(mandates, xtfMandate);
-            DoesNotContainMandate(mandates, publicCsvMandate);
-            DoesNotContainMandate(mandates, noOrganisationsMandate);
-            DoesNotContainMandate(mandates, noPermissionMandate);
-        }
-
-        [TestMethod]
-        public async Task GetWithJobIdAsAdmin()
-        {
-            var jobId = Guid.NewGuid();
-            mandateController.SetupTestUser(adminUser);
-            validationServiceMock
-                .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
-
-            var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
-
-            Assert.IsNotNull(mandates);
-            ContainsMandate(mandates, unrestrictedMandate);
-            ContainsMandate(mandates, noDeliveryMandate);
-            ContainsMandate(mandates, xtfMandate);
-            ContainsMandate(mandates, noPermissionMandate);
-            DoesNotContainMandate(mandates, noOrganisationsMandate);
-            DoesNotContainMandate(mandates, publicCsvMandate);
-        }
-
-        [TestMethod]
-        public async Task GetAsUnauthenticated()
-        {
-            var result = (await mandateController.Get()) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
-
-            Assert.IsNotNull(mandates);
-            ContainsMandate(mandates, publicCsvMandate);
-            DoesNotContainMandate(mandates, xtfMandate);
-            DoesNotContainMandate(mandates, unrestrictedMandate);
-            DoesNotContainMandate(mandates, noDeliveryMandate);
-            DoesNotContainMandate(mandates, noOrganisationsMandate);
-            DoesNotContainMandate(mandates, noPermissionMandate);
-        }
-
-        [TestMethod]
-        public async Task GetWithJobIdAsUnauthenticated()
-        {
-            var jobId = Guid.NewGuid();
-            validationServiceMock
-                .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
-
-            var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
-
-            Assert.IsNotNull(mandates);
-            DoesNotContainMandate(mandates, publicCsvMandate);
-            DoesNotContainMandate(mandates, unrestrictedMandate);
-            DoesNotContainMandate(mandates, noDeliveryMandate);
-            DoesNotContainMandate(mandates, xtfMandate);
-            DoesNotContainMandate(mandates, noOrganisationsMandate);
-            DoesNotContainMandate(mandates, noPermissionMandate);
-        }
-
-        [TestMethod]
-        public async Task GetWithJobIdIgnoresCase()
-        {
-            var jobId = Guid.NewGuid();
-            mandateController.SetupTestUser(editUser);
-            validationServiceMock
-                .Setup(m => m.GetJob(jobId))
-                .Returns(new ValidationJob(jobId, "Original.XTF", "tmp.XTF", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
-
-            var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
-
-            Assert.IsNotNull(mandates);
-            ContainsMandate(mandates, unrestrictedMandate);
-            ContainsMandate(mandates, noDeliveryMandate);
-            ContainsMandate(mandates, xtfMandate);
-            DoesNotContainMandate(mandates, publicCsvMandate);
-            DoesNotContainMandate(mandates, noOrganisationsMandate);
-        }
-
-        [TestMethod]
-        public async Task GetWithInvalidJobIdReturnsEmptyArray()
-        {
-            var jobId = Guid.NewGuid();
-            mandateController.SetupTestUser(editUser);
-            validationServiceMock
-                .Setup(m => m.GetJob(jobId))
-                .Returns(() => null);
-
-            var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
-
-            Assert.IsNotNull(mandates);
-            Assert.IsEmpty(mandates);
-        }
-
-        [TestMethod]
-        public async Task GetWithoutValidDbUserThrowsException()
-        {
-            mandateController.SetupTestUser(new User { AuthIdentifier = "NotRegisteredUserId" });
-            await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await mandateController.Get());
-        }
-
-        [TestMethod]
-        public async Task GetExtractsCorrectCoordinates()
+        public async Task GetSetsCoordinatesOnResults()
         {
             mandateController.SetupTestUser(adminUser);
+            mandateServiceMock
+                .Setup(m => m.GetMandatesAsync(It.IsAny<User>(), null))
+                .ReturnsAsync(new List<Mandate> { xtfMandate });
+
             var result = await mandateController.Get() as OkObjectResult;
             var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+
             Assert.IsNotNull(mandates);
             var xtfMandateDto = mandates.FirstOrDefault(m => m.Id == xtfMandate.Id);
             Assert.IsNotNull(xtfMandateDto);
@@ -265,6 +164,13 @@ namespace Geopilot.Api.Controllers
             Assert.AreEqual(47.388181, xtfMandateDto.Coordinates[0].Y);
             Assert.AreEqual(8.057055, xtfMandateDto.Coordinates[1].X);
             Assert.AreEqual(47.392423, xtfMandateDto.Coordinates[1].Y);
+        }
+
+        [TestMethod]
+        public async Task GetWithoutValidDbUserThrowsException()
+        {
+            mandateController.SetupTestUser(new User { AuthIdentifier = "NotRegisteredUserId" });
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await mandateController.Get());
         }
 
         [TestMethod]
@@ -444,6 +350,7 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(mandateToUpdate);
 
             var guid = Guid.NewGuid();
+            var validationServiceMock = new Mock<IValidationService>();
             validationServiceMock
                 .Setup(s => s.GetJob(guid))
                 .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip", mandateToUpdate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed, DateTime.Now));
@@ -573,21 +480,7 @@ namespace Geopilot.Api.Controllers
         {
             context.Dispose();
             loggerMock.VerifyAll();
-            validationServiceMock.VerifyAll();
             pipelineServiceMock.VerifyAll();
-        }
-
-        private void ContainsMandate(IEnumerable<Mandate> mandates, Mandate mandate)
-        {
-            var found = mandates.FirstOrDefault(m => m.Id == mandate.Id);
-            Assert.IsNotNull(found, $"mandate with id '{mandate.Id}' and name '{mandate.Name}' not found");
-            CompareMandates(mandate, found);
-        }
-
-        private void DoesNotContainMandate(IEnumerable<Mandate> mandates, Mandate mandate)
-        {
-            var found = mandates.FirstOrDefault(m => m.Id == mandate.Id);
-            Assert.IsNull(found);
         }
 
         private void CompareMandates(Mandate expected, Mandate actual)
