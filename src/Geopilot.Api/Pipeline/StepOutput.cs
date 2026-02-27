@@ -15,5 +15,5 @@ public class StepOutput
     /// <summary>
     /// The data produced by this step.
     /// </summary>
-    public required object Data { get; set; }
+    public required object? Data { get; set; }
 }

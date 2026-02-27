@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
 
 namespace Geopilot.Api.Pipeline;
@@ -132,21 +133,42 @@ public sealed class PipelineStep : IPipelineStep
         }
     }
 
-    private List<object> CreateProcessRunParamList(PipelineContext context, List<ParameterInfo> parameterInfos, CancellationToken cancellationToken)
+    private List<object?> CreateProcessRunParamList(PipelineContext context, List<ParameterInfo> parameterInfos, CancellationToken cancellationToken)
     {
         return parameterInfos
             .Select(i => GenerateParameter(i, context, cancellationToken))
             .ToList();
     }
 
-    private object GenerateParameter(ParameterInfo parameterInfo, PipelineContext context, CancellationToken cancellationToken)
+    private object? GenerateParameter(ParameterInfo parameterInfo, PipelineContext context, CancellationToken cancellationToken)
     {
+        // if the parameter is a cancellation token, inject the pipeline's cancellation token
         if (parameterInfo.ParameterType.IsAssignableFrom(cancellationToken.GetType()))
         {
             return cancellationToken;
         }
 
-        var mappedParameters = new List<object>();
+        // get all mapped values for the parameter based on the step's input config and the pipeline context
+        var mappedValues = CollectMappedValues(parameterInfo, context);
+
+        if (parameterInfo.ParameterType.IsArray)
+        {
+            return GenerateArrayParameter(parameterInfo, mappedValues);
+        }
+
+        if (mappedValues.Count == 1)
+        {
+            return GenerateSingleParameter(parameterInfo, mappedValues[0]);
+        }
+
+        var errorMessage = $"Error in step <{this.Id}>: could not find matching data for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method. please consolidate the pipeline validation logic.";
+        logger.LogError(errorMessage);
+        throw new InvalidOperationException(errorMessage);
+    }
+
+    private List<object?> CollectMappedValues(ParameterInfo parameterInfo, PipelineContext context)
+    {
+        var mappedValues = new List<object?>();
         foreach (var inputConfig in this.InputConfig)
         {
             if (context.StepResults.TryGetValue(inputConfig.From, out var stepResult))
@@ -155,40 +177,79 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     if (parameterInfo.Name == inputConfig.As)
                     {
-                        mappedParameters.Add(stepOutput.Data);
+                        mappedValues.Add(stepOutput.Data);
                     }
                 }
             }
         }
 
-        if (parameterInfo.ParameterType.IsArray)
-        {
-            var elementType = parameterInfo.ParameterType.GetElementType() ?? throw new InvalidOperationException("could not get type of element");
-            var parameterToInject = mappedParameters
-                .Where(p => elementType.IsAssignableFrom(p.GetType()))
-                .ToArray();
-            var parameterOfCorrectTypeToInject = Array.CreateInstance(elementType, parameterToInject.Length);
-            for (int i = 0; i < parameterToInject.Length; i++)
-            {
-                parameterOfCorrectTypeToInject.SetValue(parameterToInject[i], i);
-            }
+        return mappedValues;
+    }
 
-            if (parameterInfo.ParameterType.IsAssignableFrom(parameterOfCorrectTypeToInject.GetType()))
-            {
-                return parameterOfCorrectTypeToInject;
-            }
-        }
+    private Array? GenerateArrayParameter(ParameterInfo parameterInfo, List<object?> mappedValues)
+    {
+        var elementType = parameterInfo.ParameterType.GetElementType()
+            ?? throw new InvalidOperationException("Could not get type of element.");
 
-        if (mappedParameters.Count == 1 && parameterInfo.ParameterType.IsAssignableFrom(mappedParameters[0].GetType()))
+        var isElementNullable = IsArrayElementNullable(parameterInfo);
+        var hasNullValues = mappedValues.Any(p => p == null);
+
+        if (!isElementNullable && hasNullValues)
         {
-            return mappedParameters[0];
-        }
-        else
-        {
-            var errorMessage = $"error in step '{this.Id}': could not find matching data for parameter '{parameterInfo.Name}' of type '{parameterInfo.ParameterType.FullName}' in process run method. please consolidate the pipeline validation logic.";
+            var errorMessage = $"Error in step <{this.Id}>: parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> is a non-nullable array, but at least one input was null.";
             logger.LogError(errorMessage);
             throw new InvalidOperationException(errorMessage);
         }
+
+        var hasAnyNonAssignableValues = mappedValues.Any(p => p != null && !elementType.IsAssignableFrom(p.GetType()));
+
+        if (hasAnyNonAssignableValues)
+        {
+            var errorMessage = $"Error in step <{this.Id}>: at least one of the mapped input values was not assignable to the element type <{elementType.Name}> of parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}>.";
+            logger.LogError(errorMessage);
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        var mappedValuesArray = mappedValues.ToArray();
+        var arrayOfCorrectTypeToInject = Array.CreateInstance(elementType, mappedValuesArray.Length);
+        for (int i = 0; i < mappedValuesArray.Length; i++)
+        {
+            arrayOfCorrectTypeToInject.SetValue(mappedValuesArray[i], i);
+        }
+
+        if (!parameterInfo.ParameterType.IsAssignableFrom(arrayOfCorrectTypeToInject.GetType()))
+        {
+            var errorMessage = $"Error in step <{this.Id}>: the generated array of type <{arrayOfCorrectTypeToInject.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
+            logger.LogError(errorMessage);
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        return arrayOfCorrectTypeToInject;
+    }
+
+    private object? GenerateSingleParameter(ParameterInfo parameterInfo, object? mappedValue)
+    {
+        if (mappedValue == null)
+        {
+            var isNullable = IsParameterNullable(parameterInfo);
+
+            if (!isNullable)
+            {
+                var errorMessage = $"Error in step <{this.Id}>: the parameter <{parameterInfo.Name}> is non-nullable, but the mapped input value was null.";
+                logger.LogError(errorMessage);
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            return null;
+        }
+
+        if (!parameterInfo.ParameterType.IsAssignableFrom(mappedValue.GetType()))
+        {
+            var errorMessage = $"Error in step <{this.Id}>: the mapped input value of type <{mappedValue.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        return mappedValue;
     }
 
     private StepResult CreateStepResult(Dictionary<string, object> outputProcessData)
@@ -207,12 +268,23 @@ public sealed class PipelineStep : IPipelineStep
             }
             else
             {
-                var errMsg = $"error in step '{this.Id}': output config is missing 'take' or 'as', or output data not found in process data. this error should not occur. please consolidate the pipeline validation logic.";
+                var errMsg = $"Error in step <{this.Id}>: output config is missing 'take' or 'as', or output data not found in process data. this error should not occur. please consolidate the pipeline validation logic.";
                 logger.LogError(errMsg);
                 throw new InvalidOperationException(errMsg);
             }
         }
 
         return stepResult;
+    }
+
+    private static bool IsParameterNullable(ParameterInfo parameterInfo)
+    {
+        return new NullabilityInfoContext().Create(parameterInfo).WriteState is NullabilityState.Nullable;
+    }
+
+    private static bool IsArrayElementNullable(ParameterInfo arrayParameterInfo)
+    {
+        var nullabilityInfo = new NullabilityInfoContext().Create(arrayParameterInfo);
+        return nullabilityInfo.ElementType?.WriteState is NullabilityState.Nullable;
     }
 }
