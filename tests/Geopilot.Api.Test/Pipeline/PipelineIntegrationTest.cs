@@ -1,12 +1,14 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Validation.Interlis;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using Moq.Protected;
 using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
+using System.Text;
 
 namespace Geopilot.Api.Test.Pipeline;
 
@@ -15,6 +17,7 @@ public class PipelineIntegrationTest
 {
     private static Guid jobId = Guid.Parse("b98559c5-b374-4cbc-a797-1b5a13a297e7");
     private static string interlisCheckServiceBaseUrl = "http://localhost/";
+    private static string appConfig = "{\"Pipeline\":{\"Definition\":\"myPipeline.yaml\",\"Plugins\":[{\"Packagenames\":[\"foo\"],\"AssemblyFile\":\"bar\"},{\"Packagenames\":[\"foo\"],\"AssemblyFile\":\"you\"}]},\"Validation\":{\"InterlisCheckServiceUrl\":\"http://localhost/\"}}";
     private Mock<HttpMessageHandler> interlisValidatorMessageHandlerMock;
     private IConfiguration configuration;
 
@@ -24,14 +27,12 @@ public class PipelineIntegrationTest
         interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         interlisValidatorMessageHandlerMock.Protected().Setup("Dispose", ItExpr.IsAny<bool>());
 
-        var inMemorySettings = new List<KeyValuePair<string, string>>
-        {
-            new KeyValuePair<string, string>("Validation:InterlisCheckServiceUrl", interlisCheckServiceBaseUrl),
-        };
+        var appConfigByteArray = Encoding.UTF8.GetBytes(appConfig);
+        using var appConfigMemoryStream = new MemoryStream(appConfigByteArray);
 
         #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
         this.configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(inMemorySettings)
+            .AddJsonStream(appConfigMemoryStream)
             .Build();
         #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
     }
@@ -170,7 +171,7 @@ public class PipelineIntegrationTest
         return PipelineFactory
             .Builder()
             .File(path)
-            .Configuration(configuration)
+            .PipelineProcessFactory(new PipelineProcessFactory(configuration))
             .Build();
     }
 }

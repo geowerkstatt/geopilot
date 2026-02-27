@@ -102,10 +102,10 @@ public class PipelineFactoryTest
         var validationStep = pipeline.Steps[0];
         object stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
-        var expectedDefaultConfig = new Parameterization();
+        var expectedDefaultConfig = new Dictionary<string, string>();
         var stepConfig = typeof(XtfValidatorProcess)
             ?.GetField("config", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(stepProcess) as Parameterization;
+            ?.GetValue(stepProcess) as Dictionary<string, string>;
         CollectionAssert.AreEqual(expectedDefaultConfig, stepConfig, "process config not as expected");
     }
 
@@ -115,7 +115,7 @@ public class PipelineFactoryTest
         return PipelineFactory
             .Builder()
             .File(path)
-            .Configuration(configuration)
+            .PipelineProcessFactory(new PipelineProcessFactory(configuration))
             .Build();
     }
 
