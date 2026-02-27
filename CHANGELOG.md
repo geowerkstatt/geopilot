@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- Optional cloud upload via presigned URLs with Azure Blob Storage support.
+- Optional virus scanning with ClamAV for cloud uploads.
+
 ### Fixed
 
 - The application can start without needing the permission to install PostgreSQL extensions if PostGIS is already installed.
