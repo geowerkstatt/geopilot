@@ -36,7 +36,11 @@ const Delivery = () => {
                   <StepLabel
                     error={!!step.error}
                     StepIconComponent={props => (
-                      <StepperIcon index={index} stepIconProps={props} isLoading={index === activeStep && (isLoading || isValidating)} />
+                      <StepperIcon
+                        index={index}
+                        stepIconProps={props}
+                        isLoading={index === activeStep && (isLoading || isValidating)}
+                      />
                     )}>
                     {t(step.label)}
                     {step.labelAddition && step.labelAddition.length > 0 && (
