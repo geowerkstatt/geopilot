@@ -6,6 +6,7 @@
 
 - Optional cloud upload via presigned URLs with Azure Blob Storage support.
 - Optional virus scanning with ClamAV for cloud uploads.
+- Rate limiting and upload capacity limits for the cloud upload endpoint.
 
 ### Fixed
 
