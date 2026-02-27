@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { ApiError, CloudUploadResponse } from "./apiInterfaces";
 import useFetch from "../hooks/useFetch";
+import { ApiError, CloudUploadResponse } from "../api/apiInterfaces.ts";
 
 const useCloudUpload = () => {
   const { fetchApi } = useFetch();
