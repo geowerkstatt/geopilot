@@ -20,7 +20,7 @@ import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
 import { DeliveryCompleted } from "./deliveryCompleted.tsx";
 import useFetch from "../../hooks/useFetch.ts";
-import useCloudUpload from "../../api/useCloudUpload.ts";
+import useCloudUpload from "../../hooks/useCloudUpload.ts";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
