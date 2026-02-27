@@ -51,7 +51,7 @@ public class ValidationRunner : BackgroundService
                     throw new InvalidOperationException($"Pipeline <{pipeline.Id}> failed during execution.");
                 }
 
-                result = CreateValidatorResult(pipeline, pipelineContext);
+                result = MapToValidatorResult(pipeline, pipelineContext);
                 jobStore.AddValidatorResult(pipeline, result);
             }
             catch (Exception ex)
@@ -63,15 +63,15 @@ public class ValidationRunner : BackgroundService
         });
     }
 
-    private static ValidatorResult CreateValidatorResult(IPipeline pipeline, PipelineContext context)
+    private static ValidatorResult MapToValidatorResult(IPipeline pipeline, PipelineContext context)
     {
-        var status = PipelineStatusToValidatorResultStatus(pipeline.State, context);
+        var status = MapPipelineStatusToValidatorResultStatus(pipeline.State, context);
         var statusMessage = context.StepResults["validation"].Outputs["status_message"].Data as string;
         var logFiles = ExtractLogFiles(context);
         return new ValidatorResult(status, statusMessage, logFiles.ToImmutableDictionary());
     }
 
-    private static ValidatorResultStatus PipelineStatusToValidatorResultStatus(PipelineState pipelineState, PipelineContext context)
+    private static ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(PipelineState pipelineState, PipelineContext context)
     {
         if (context.StepResults["validation"].Outputs["validation_successful"].Data is bool isSuccessful && !isSuccessful)
         {

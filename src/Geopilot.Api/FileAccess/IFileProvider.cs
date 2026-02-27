@@ -50,7 +50,7 @@ public interface IFileProvider
     void Initialize(Guid id);
 
     /// <summary>
-    /// Gets the full file system path for the specified file name.
+    /// Gets the full file path for the specified file name.
     /// </summary>
     /// <param name="file">The name of the file for which to retrieve the full path. Cannot be null or empty.</param>
     /// <returns>A string containing the full file system path of the specified file. Returns null if the file does not exist.</returns>
