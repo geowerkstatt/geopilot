@@ -41,6 +41,11 @@ public class CloudStorageOptions
     public int MaxGlobalActiveSizeMB { get; set; } = 204800;
 
     /// <summary>
+    /// The maximum number of active cloud upload jobs. Default is 100.
+    /// </summary>
+    public int MaxActiveJobs { get; set; } = 100;
+
+    /// <summary>
     /// The expiry time for presigned upload URLs in minutes. Default is 60 minutes.
     /// </summary>
     public int PresignedUrlExpiryMinutes { get; set; } = 60;
@@ -49,6 +54,11 @@ public class CloudStorageOptions
     /// The age in hours after which cloud files are eligible for cleanup. Default is 48 hours.
     /// </summary>
     public int CleanupAgeHours { get; set; } = 48;
+
+    /// <summary>
+    /// The interval in minutes between cleanup runs. Default is 15 minutes.
+    /// </summary>
+    public int CleanupIntervalMinutes { get; set; } = 15;
 
     /// <summary>
     /// Whether to automatically create the blob container on startup. Should only be enabled in development.
