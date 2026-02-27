@@ -528,7 +528,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
         validationServiceMock.Setup(x => x.StartJobAsync(jobId, startJobRequest.MandateId, null))
-            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.ThreatDetected, "Eicar-Signature"));
+            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.ThreatDetected, "The uploaded files could not be processed."));
 
         // Act
         var response = await controller.StartJobAsync(jobId, startJobRequest);
@@ -539,7 +539,7 @@ public sealed class ValidationControllerTest
         Assert.AreEqual(400, objectResult.StatusCode);
         var problemDetails = objectResult.Value as ProblemDetails;
         Assert.IsNotNull(problemDetails);
-        Assert.AreEqual("The upload could not be processed.", problemDetails.Detail);
+        Assert.AreEqual("The uploaded files could not be processed.", problemDetails.Detail);
     }
 
     [TestMethod]
@@ -558,7 +558,7 @@ public sealed class ValidationControllerTest
 
         validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
         validationServiceMock.Setup(x => x.StartJobAsync(jobId, startJobRequest.MandateId, null))
-            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.SizeExceeded, "File exceeds declared size"));
+            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.SizeExceeded, "The uploaded files could not be processed."));
 
         var response = await controller.StartJobAsync(jobId, startJobRequest);
 
@@ -567,6 +567,6 @@ public sealed class ValidationControllerTest
         Assert.AreEqual(400, objectResult.StatusCode);
         var problemDetails = objectResult.Value as ProblemDetails;
         Assert.IsNotNull(problemDetails);
-        Assert.AreEqual("The upload could not be processed.", problemDetails.Detail);
+        Assert.AreEqual("The uploaded files could not be processed.", problemDetails.Detail);
     }
 }
