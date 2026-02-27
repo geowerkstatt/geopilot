@@ -141,6 +141,9 @@ public class ValidationJobStore : IValidationJobStore
     }
 
     /// <inheritdoc/>
+    public int GetActiveCloudJobCount() => jobs.Values.Count(j => j.UploadMethod == UploadMethod.Cloud);
+
+    /// <inheritdoc/>
     public bool RemoveJob(Guid jobId)
     {
         var job = GetJob(jobId);

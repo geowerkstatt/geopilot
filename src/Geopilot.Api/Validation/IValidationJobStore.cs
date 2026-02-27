@@ -92,6 +92,12 @@ namespace Geopilot.Api.Validation
         ValidationJob AddValidatorResult(IValidator validator, ValidatorResult result);
 
         /// <summary>
+        /// Gets the number of active cloud upload jobs in the store.
+        /// </summary>
+        /// <returns>The number of jobs with <see cref="UploadMethod.Cloud"/>.</returns>
+        int GetActiveCloudJobCount();
+
+        /// <summary>
         /// Removes the job with the specified id from the store.
         /// </summary>
         /// <param name="jobId">The id of the job to remove.</param>
