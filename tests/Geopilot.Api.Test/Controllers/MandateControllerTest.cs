@@ -18,7 +18,6 @@ namespace Geopilot.Api.Controllers
     {
         private Mock<ILogger<MandateController>> loggerMock;
         private Mock<IValidationService> validationServiceMock;
-        private Mock<IValidator> interlisValidatorMock;
         private Mock<IPipelineService> pipelineServiceMock;
         private Context context;
         private MandateController mandateController;
@@ -40,11 +39,9 @@ namespace Geopilot.Api.Controllers
             validationServiceMock = new Mock<IValidationService>();
             context = AssemblyInitialize.DbFixture.GetTestContext();
 
-            interlisValidatorMock = new Mock<IValidator>();
-            var validatorMocks = new List<IValidator> { interlisValidatorMock.Object };
             pipelineServiceMock = new Mock<IPipelineService>();
 
-            mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object, validatorMocks, pipelineServiceMock.Object);
+            mandateController = new MandateController(loggerMock.Object, context, validationServiceMock.Object, pipelineServiceMock.Object);
 
             unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate), AllowDelivery = true };
             noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noDeliveryMandate), AllowDelivery = false };
@@ -299,8 +296,6 @@ namespace Geopilot.Api.Controllers
         [DataRow("DEFAULT", "pipeline_id", DisplayName = "create mandate with profile and pipeline")]
         public async Task CreateMandate(string profile, string pipelineId)
         {
-            interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
-                .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" } });
             var pipelineStub = new PipelineConfig()
             {
                 Id = "Pipeline1",
@@ -321,7 +316,6 @@ namespace Geopilot.Api.Controllers
                 Name = "ACCORDIANWALK",
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
-                InterlisValidationProfile = profile,
                 PipelineId = pipelineId,
                 AllowDelivery = true,
             };
@@ -334,38 +328,8 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
-        [DataRow("NONEXISTING", DisplayName = "CreateMandateWithNonExistentProfile")]
-        [DataRow("", DisplayName = "CreateMandateWithProfileEmptyString")]
-        public async Task CreateMandateChecksProfileExists(string profile)
-        {
-            interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
-                .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" } });
-            mandateController.SetupTestUser(adminUser);
-            var mandate = new Mandate()
-            {
-                FileTypes = new string[] { ".*" },
-                Name = "ACCORDIANWALK",
-                Organisations = new List<Organisation> { new() { Id = 1 } },
-                Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
-                InterlisValidationProfile = profile,
-                AllowDelivery = true,
-            };
-
-            var result = await mandateController.Create(mandate);
-
-            ActionResultAssert.IsBadRequest(result);
-            var badRequestResult = result as BadRequestObjectResult;
-            Assert.IsNotNull(badRequestResult);
-            var errorMessage = badRequestResult.Value as string;
-            Assert.IsNotNull(errorMessage);
-            Assert.AreEqual($"INTERLIS validation profile <{profile}> does not exist.", errorMessage);
-        }
-
-        [TestMethod]
         public async Task CreateMandateChecksPipelineExists()
         {
-            interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
-                .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" } });
             pipelineServiceMock.Setup(v => v.GetById(It.IsAny<string>())).Returns(() => null);
             mandateController.SetupTestUser(adminUser);
             var mandate = new Mandate()
@@ -410,9 +374,6 @@ namespace Geopilot.Api.Controllers
         [DataRow("different-profile", "pipeline_id", DisplayName = "edit mandate with profile and pipeline")]
         public async Task EditMandate(string newProfile, string pipelineId)
         {
-            interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
-                .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" }, new Profile { Id = "different-profile" } });
-
             var pipelineStub = new PipelineConfig()
             {
                 Id = "Pipeline1",
@@ -433,7 +394,6 @@ namespace Geopilot.Api.Controllers
                 FileTypes = new string[] { ".*", ".zip" },
                 Name = "PEARLFOLLOWER",
                 PipelineId = pipelineId,
-                InterlisValidationProfile = "DEFAULT",
                 Organisations = new List<Organisation> { new() { Id = 1 }, new() { Id = organisation.Id } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 AllowDelivery = true,
@@ -465,7 +425,6 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(delivery);
 
             mandateToUpdate.Name = "ARKMUTANT";
-            mandateToUpdate.InterlisValidationProfile = newProfile;
             mandateToUpdate.PipelineId = pipelineId;
             mandateToUpdate.FileTypes = new string[] { ".zip", ".gpkg" };
             mandateToUpdate.Organisations = new List<Organisation> { new() { Id = 3 }, new() { Id = organisation.Id } };
@@ -480,7 +439,6 @@ namespace Geopilot.Api.Controllers
             Assert.HasCount(1, updatedMandate.Deliveries);
             Assert.AreEqual(delivery.Id, updatedMandate.Deliveries[0].Id);
             Assert.AreEqual(mandateToUpdate.Name, updatedMandate.Name);
-            Assert.AreEqual(mandateToUpdate.InterlisValidationProfile, updatedMandate.InterlisValidationProfile);
             Assert.AreEqual(mandateToUpdate.PipelineId, updatedMandate.PipelineId);
             Assert.AreEqual(mandateToUpdate.AllowDelivery, updatedMandate.AllowDelivery);
             CollectionAssert.AreEqual(mandateToUpdate.FileTypes, updatedMandate.FileTypes);
@@ -510,42 +468,10 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
-        [DataRow("NONEXISTING", DisplayName = "edit mandate with non existent profile")]
-        [DataRow("", DisplayName = "edit mandate with profile empty string")]
-        public async Task EditMandateChecksProfileExists(string profile)
-        {
-            interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
-                .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" } });
-            mandateController.SetupTestUser(adminUser);
-            var mandate = new Mandate()
-            {
-                Id = xtfMandate.Id,
-                FileTypes = new string[] { ".*", ".zip" },
-                Name = "PEARLFOLLOWER",
-                Organisations = new List<Organisation>() { new() { Id = 1 } },
-                Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
-                InterlisValidationProfile = profile,
-                AllowDelivery = true,
-            };
-
-            var result = await mandateController.Edit(mandate);
-
-            ActionResultAssert.IsBadRequest(result);
-            var badRequestResult = result as BadRequestObjectResult;
-            Assert.IsNotNull(badRequestResult);
-            var errorMessage = badRequestResult.Value as string;
-            Assert.IsNotNull(errorMessage);
-            Assert.AreEqual($"INTERLIS validation profile <{profile}> does not exist.", errorMessage);
-        }
-
-        [TestMethod]
         [DataRow("NONEXISTING", DisplayName = "edit mandate with non existent pipeline")]
         [DataRow(null, DisplayName = "edit mandate with pipeline empty string")]
         public async Task EditMandateChecksPipelineExists(string pipelineId)
         {
-            interlisValidatorMock.Setup(v => v.GetSupportedProfilesAsync())
-                .ReturnsAsync(new List<Profile> { new Profile { Id = "DEFAULT" } });
-
             mandateController.SetupTestUser(adminUser);
             var mandate = new Mandate()
             {
@@ -596,7 +522,6 @@ namespace Geopilot.Api.Controllers
             Assert.AreEqual(expected.Name, actual.Name);
             Assert.AreEqual(expected.IsPublic, actual.IsPublic);
             Assert.AreEqual(expected.AllowDelivery, actual.AllowDelivery);
-            Assert.AreEqual(expected.InterlisValidationProfile, actual.InterlisValidationProfile);
             Assert.AreEqual(expected.PipelineId, actual.PipelineId);
             CollectionAssert.AreEqual(expected.FileTypes, actual.FileTypes);
             CollectionAssert.AreEqual(expected.Deliveries, actual.Deliveries);

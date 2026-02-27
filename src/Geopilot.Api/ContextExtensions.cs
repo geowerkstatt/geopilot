@@ -123,7 +123,6 @@ internal static class ContextExtensions
             .RuleFor(o => o.Id, f => 0)
             .RuleFor(o => o.Name, f => f.Commerce.ProductName())
             .RuleFor(o => o.FileTypes, f => f.PickRandom(knownFileFormats, 4).Distinct().ToArray())
-            .RuleFor(o => o.InterlisValidationProfile, f => "DEFAULT")
             .RuleFor(o => o.PipelineId, f => "ili_validation")
             .RuleFor(o => o.EvaluatePrecursorDelivery, f => f.PickRandom<FieldEvaluationType>())
             .RuleFor(o => o.EvaluatePartial, f => f.PickRandom(FieldEvaluationType.NotEvaluated, FieldEvaluationType.Required))
@@ -143,7 +142,6 @@ internal static class ContextExtensions
             Name = "Public Mandate",
             PipelineId = "ili_validation",
             FileTypes = [".xtf"],
-            InterlisValidationProfile = "DEFAULT",
             SpatialExtent = GetExtent(),
             IsPublic = true,
             AllowDelivery = true,
