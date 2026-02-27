@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Geopilot.Api.Validation;
+using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api.Services;
 
@@ -8,6 +9,7 @@ namespace Geopilot.Api.Services;
 public class CloudCleanupService : BackgroundService
 {
     private readonly ICloudStorageService cloudStorageService;
+    private readonly IValidationJobStore jobStore;
     private readonly ILogger<CloudCleanupService> logger;
     private readonly CloudStorageOptions options;
     private readonly SemaphoreSlim cleanupSemaphore = new SemaphoreSlim(1);
@@ -17,12 +19,14 @@ public class CloudCleanupService : BackgroundService
     /// </summary>
     public CloudCleanupService(
         ICloudStorageService cloudStorageService,
+        IValidationJobStore jobStore,
         ILogger<CloudCleanupService> logger,
         IOptions<CloudStorageOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         this.cloudStorageService = cloudStorageService;
+        this.jobStore = jobStore;
         this.logger = logger;
         this.options = options.Value;
     }
@@ -34,7 +38,7 @@ public class CloudCleanupService : BackgroundService
     /// <returns>A task that represents the asynchronous execution of the cleanup service.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var interval = TimeSpan.FromHours(options.CleanupAgeHours / 2.0);
+        var interval = TimeSpan.FromMinutes(options.CleanupIntervalMinutes);
         logger.LogInformation("CloudCleanupService started. Cleanup interval: {Interval}.", interval);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -67,23 +71,58 @@ public class CloudCleanupService : BackgroundService
         {
             var maxAge = TimeSpan.FromHours(options.CleanupAgeHours);
             var cutoff = DateTime.UtcNow - maxAge;
+            var maxFileSizeBytes = (long)options.MaxFileSizeMB * 1024 * 1024;
             int deletedPrefixes = 0;
 
-            var allFiles = await cloudStorageService.ListFilesAsync("uploads/");
+            var uploadFiles = await cloudStorageService.ListFilesAsync("uploads/");
 
-            var staleJobIds = allFiles
-                .Where(f => f.LastModified < cutoff)
-                .Select(f => ExtractJobId(f.Key))
-                .Where(id => id != null)
-                .Select(id => id!.Value)
-                .Distinct()
+            var filesByJobId = uploadFiles
+                .GroupBy(f => ExtractJobId(f.Key))
                 .ToList();
 
-            foreach (var jobId in staleJobIds)
+            // Delete blobs with invalid paths (no valid GUID)
+            foreach (var file in filesByJobId.Where(g => g.Key == null).SelectMany(g => g))
             {
-                await cloudStorageService.DeletePrefixAsync($"uploads/{jobId}/");
-                deletedPrefixes++;
-                logger.LogTrace("Deleted cloud files for job <{JobId}>.", jobId);
+                await cloudStorageService.DeleteAsync(file.Key);
+                logger.LogTrace("Deleted invalid blob: {Key}.", file.Key);
+            }
+
+            foreach (var group in filesByJobId.Where(g => g.Key != null))
+            {
+                var jobId = group.Key!.Value;
+
+                if (group.Any(f => f.LastModified < cutoff))
+                {
+                    await cloudStorageService.DeletePrefixAsync($"uploads/{jobId}/");
+                    jobStore.RemoveJob(jobId);
+                    deletedPrefixes++;
+                    logger.LogTrace("Deleted stale cloud files for job <{JobId}>.", jobId);
+                    continue;
+                }
+
+                if (group.Any(f => f.Size > maxFileSizeBytes))
+                {
+                    await cloudStorageService.DeletePrefixAsync($"uploads/{jobId}/");
+                    jobStore.RemoveJob(jobId);
+                    deletedPrefixes++;
+                    logger.LogTrace("Deleted oversized cloud files for job <{JobId}>.", jobId);
+                    continue;
+                }
+
+                if (jobStore.GetJob(jobId) == null)
+                {
+                    await cloudStorageService.DeletePrefixAsync($"uploads/{jobId}/");
+                    deletedPrefixes++;
+                    logger.LogTrace("Deleted orphaned cloud files for job <{JobId}>.", jobId);
+                }
+            }
+
+            // Delete blobs outside the uploads/ prefix
+            var allFiles = await cloudStorageService.ListFilesAsync(string.Empty);
+            foreach (var file in allFiles.Where(f => !f.Key.StartsWith("uploads/", StringComparison.Ordinal)))
+            {
+                await cloudStorageService.DeleteAsync(file.Key);
+                logger.LogTrace("Deleted blob outside uploads/ prefix: {Key}.", file.Key);
             }
 
             logger.LogInformation("CloudCleanupService completed. Deleted prefixes: {Deleted}.", deletedPrefixes);
