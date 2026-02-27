@@ -69,7 +69,7 @@ jobs:
           provenance: mode=max
 
       - name: Generate docker image attestation
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
@@ -83,7 +83,7 @@ jobs:
           output-file: 'sbom.cyclonedx.json'
 
       - name: Generate SBOM attestation
-        uses: actions/attest-sbom@v3
+        uses: actions/attest-sbom@v4
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
