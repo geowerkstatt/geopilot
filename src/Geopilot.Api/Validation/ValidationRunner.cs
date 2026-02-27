@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Config;
+using Microsoft.Extensions.Options;
+using System.Collections.Immutable;
 
 namespace Geopilot.Api.Validation;
 
@@ -24,49 +28,79 @@ public class ValidationRunner : BackgroundService
     }
 
     /// <summary>
-    /// Processes <see cref="IValidator"/> instances retrieved from the <see cref="ValidationJobStore"/> in parallel.
+    /// Processes <see cref="IPipeline"/> instances retrieved from the <see cref="ValidationJobStore"/> in parallel.
     /// </summary>
-    /// <remarks>For every <see cref="IValidator"/> processed, a <see cref="ValidatorResult"/> is created and delivered to the <see cref="ValidationJobStore"/>.</remarks>
+    /// <remarks>For every <see cref="IPipeline"/> processed, a <see cref="ValidatorResult"/> is created and delivered to the <see cref="ValidationJobStore"/>.</remarks>
     /// <param name="stoppingToken">A <see cref="CancellationToken"/> that is used to signal the operation should stop.</param>
     /// <returns>A task that represents the asynchronous execution of the validation process.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await Parallel.ForEachAsync(jobStore.ValidationQueue.ReadAllAsync(stoppingToken), stoppingToken, async (validator, cancellationToken) =>
+        await Parallel.ForEachAsync(jobStore.ValidationQueue.ReadAllAsync(stoppingToken), stoppingToken, async (pipeline, cancellationToken) =>
         {
             ValidatorResult? result = null;
 
-            var validatorTimeout = validationOptions.ValidatorTimeouts.GetValueOrDefault(validator.Name, TimeSpan.FromHours(12));
-            using var timeoutCts = new CancellationTokenSource(validatorTimeout);
+            using var timeoutCts = new CancellationTokenSource(validationOptions.JobTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
             try
             {
-                result = await validator.ExecuteAsync(linkedCts.Token);
-            }
-            catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
-            {
-                logger.LogWarning("Validator <{Validator}> timed out.", validator.Name);
-                result = new ValidatorResult(ValidatorResultStatus.Failed, $"Validation timed out.");
-            }
-            catch (Exception ex) when (ex is ValidationFailedException)
-            {
-                logger.LogError(ex, "Validator <{Validator}> failed.", validator.Name);
-                result = new ValidatorResult(ValidatorResultStatus.Failed, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Validator <{Validator}> failed.", validator.Name);
-                result = new ValidatorResult(ValidatorResultStatus.Failed, $"An unexpected error occured while running validation with validator <{validator.Name}>.");
-            }
+                var pipelineContext = await pipeline.Run(linkedCts.Token);
 
-            try
-            {
-                jobStore.AddValidatorResult(validator, result);
+                if (pipeline.State == PipelineState.Failed)
+                {
+                    throw new InvalidOperationException($"Pipeline <{pipeline.Id}> failed during execution.");
+                }
+
+                result = MapToValidatorResult(pipeline, pipelineContext);
+                jobStore.AddValidatorResult(pipeline, result);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to add validation result for validator <{Validator}>.", validator.Name);
+                logger.LogError(ex, "Unexpected error while running pipeline <{Pipeline}>.", pipeline.Id);
+                result = new ValidatorResult(ValidatorResultStatus.Failed, $"An unexpected error occured while running pipeline <{pipeline.Id}>.");
+                jobStore.AddValidatorResult(pipeline, result);
             }
         });
+    }
+
+    private static ValidatorResult MapToValidatorResult(IPipeline pipeline, PipelineContext context)
+    {
+        var status = MapPipelineStatusToValidatorResultStatus(pipeline.State, context);
+        var statusMessage = context.StepResults["validation"].Outputs["status_message"].Data as string;
+        var logFiles = ExtractLogFiles(context);
+        return new ValidatorResult(status, statusMessage, logFiles.ToImmutableDictionary());
+    }
+
+    private static ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(PipelineState pipelineState, PipelineContext context)
+    {
+        if (context.StepResults["validation"].Outputs["validation_successful"].Data is bool isSuccessful && !isSuccessful)
+        {
+            return ValidatorResultStatus.CompletedWithErrors;
+        }
+
+        return pipelineState switch
+        {
+            PipelineState.Success => ValidatorResultStatus.Completed,
+            PipelineState.Failed => ValidatorResultStatus.Failed,
+            _ => throw new ArgumentOutOfRangeException(nameof(pipelineState), $"Unexpected pipeline state: {pipelineState}"),
+        };
+    }
+
+    private static Dictionary<string, string> ExtractLogFiles(PipelineContext context)
+    {
+        var logFiles = new Dictionary<string, string>();
+
+        foreach (var stepResult in context.StepResults.Values)
+        {
+            foreach (var (outputKey, output) in stepResult.Outputs)
+            {
+                if (output.Action.Contains(OutputAction.Download) && output.Data is IPipelineTransferFile transferFile)
+                {
+                    logFiles[outputKey] = transferFile.FilePath;
+                }
+            }
+        }
+
+        return logFiles;
     }
 }

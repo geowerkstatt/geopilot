@@ -161,19 +161,6 @@ builder.Services.AddHostedService<ValidationRunner>();
 builder.Services.AddHostedService<ValidationJobCleanupService>();
 builder.Services.AddPipelineFactory();
 
-builder.Services
-    .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")
-    .ConfigureHttpClient((services, httpClient) =>
-    {
-        var configuration = services.GetRequiredService<IConfiguration>();
-        var checkServiceUrl = configuration.GetValue<string>("Validation:InterlisCheckServiceUrl")
-            ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
-
-        httpClient.BaseAddress = new Uri(checkServiceUrl);
-        httpClient.DefaultRequestHeaders.Accept.Clear();
-        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-    });
-
 builder.Services.AddHttpClient<IGeopilotUserInfoService, GeopilotUserInfoService>();
 builder.Services.AddScoped<IGeopilotUserInfoService, GeopilotUserInfoService>();
 builder.Services.AddHttpContextAccessor();

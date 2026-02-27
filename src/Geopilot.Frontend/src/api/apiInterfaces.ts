@@ -43,7 +43,6 @@ export interface Mandate {
   evaluatePrecursorDelivery?: FieldEvaluationType;
   evaluatePartial?: FieldEvaluationType;
   evaluateComment?: FieldEvaluationType;
-  interlisValidationProfile?: string;
   pipelineId?: string;
 }
 
@@ -109,11 +108,6 @@ export interface LocalisedText {
 export interface Profile {
   id: string;
   titles: LocalisedText[];
-}
-
-export interface ValidatorConfiguration {
-  supportedFileExtensions: string[];
-  profiles: Profile[];
 }
 
 export interface StartJobRequest {

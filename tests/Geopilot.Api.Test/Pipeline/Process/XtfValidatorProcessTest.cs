@@ -66,7 +66,7 @@ public class XtfValidatorProcessTest
 
         var processResult = Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
-        Assert.HasCount(2, processResult);
+        Assert.HasCount(4, processResult);
         processResult.TryGetValue("error_log", out var appLogData);
         Assert.IsNotNull(appLogData);
         var appLog = appLogData as IPipelineTransferFile;
@@ -77,6 +77,13 @@ public class XtfValidatorProcessTest
         var xtfLog = xtfLogData as IPipelineTransferFile;
         Assert.IsNotNull(xtfLog);
         Assert.AreEqual("xtfLog.xtf", xtfLog.OriginalFileName);
+        processResult.TryGetValue("status_message", out var statusMessageData);
+        var statusMessage = statusMessageData as string;
+        Assert.IsNotNull(statusMessage);
+        Assert.AreEqual("Validation successful", statusMessage);
+        processResult.TryGetValue("validation_successful", out var validationSuccessfulData);
+        var validationSuccessful = validationSuccessfulData as bool?;
+        Assert.IsTrue(validationSuccessful);
     }
 
     [TestMethod]

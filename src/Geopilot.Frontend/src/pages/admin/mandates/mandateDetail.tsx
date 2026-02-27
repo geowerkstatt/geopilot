@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Typography } from "@mui/material";
-import { FlexRowSpaceBetweenBox, GeopilotBox } from "../../../components/styledComponents.ts";
+import { GeopilotBox } from "../../../components/styledComponents.ts";
 import {
   FormAutocomplete,
   FormCheckbox,
@@ -16,7 +16,6 @@ import {
   Mandate,
   Organisation,
   PipelineSummary,
-  ValidatorConfiguration,
 } from "../../../api/apiInterfaces.ts";
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
@@ -24,7 +23,6 @@ import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import useFetch from "../../../hooks/useFetch.ts";
-import InterlisProfileFormSelect from "./interlisProfileFormSelect.tsx";
 import PipelineFormSelect from "./pipelineFormSelect.tsx";
 
 const MandateDetail = () => {
@@ -35,9 +33,6 @@ const MandateDetail = () => {
   const [mandate, setMandate] = useState<Mandate>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>();
-  const [validators, setValidators] = useState<{ [key: string]: ValidatorConfiguration }>({});
-
-  const interlisValidatorName = "INTERLIS";
 
   const loadMandate = useCallback(
     async (id: string) => {
@@ -61,13 +56,6 @@ const MandateDetail = () => {
     setPipelines(pipelines?.pipelines ?? []);
   }, [fetchApi]);
 
-  const loadValidators = useCallback(async () => {
-    const validators = await fetchApi<{ [key: string]: ValidatorConfiguration }>("/api/v1/validator", {
-      errorMessageLabel: "validatorsLoadingError",
-    });
-    setValidators(validators ?? {});
-  }, [fetchApi]);
-
   useEffect(() => {
     if (id !== "0") {
       loadMandate(id);
@@ -88,8 +76,7 @@ const MandateDetail = () => {
     }
     loadOrganisations();
     loadPipelines();
-    loadValidators();
-  }, [id, loadValidators, loadMandate, loadOrganisations, loadPipelines]);
+  }, [id, loadMandate, loadOrganisations, loadPipelines]);
 
   const prepareMandateForSave = (formData: FieldValues): Mandate => {
     const mandate = formData as Mandate;
@@ -97,10 +84,6 @@ const MandateDetail = () => {
     mandate.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
-
-    if (mandate.interlisValidationProfile === "") {
-      mandate.interlisValidationProfile = undefined;
-    }
 
     return mandate;
   };
@@ -143,38 +126,19 @@ const MandateDetail = () => {
           <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId} />
         </FormContainer>
         <FormContainer>
-          <FormExtent fieldName={"coordinates"} label={"spatialExtent"} value={mandate?.coordinates} required={true} />
-        </FormContainer>
-      </GeopilotBox>
-      <GeopilotBox>
-        <Typography variant={"h3"} margin={0}>
-          {t("validationForm")}
-        </Typography>
-        <GeopilotBox>
-          <FlexRowSpaceBetweenBox>
-            <Typography variant={"h4"} margin={0}>
-              {interlisValidatorName}
-            </Typography>
-            <span>
-              <span>{t("fileTypes")}: </span>
-              <span>{validators[interlisValidatorName]?.supportedFileExtensions.join(", ") ?? ""}</span>
-            </span>
-          </FlexRowSpaceBetweenBox>
-          <FormContainer>
-            <InterlisProfileFormSelect
-              profiles={validators[interlisValidatorName]?.profiles}
-              selected={mandate?.interlisValidationProfile}
-            />
-          </FormContainer>
-        </GeopilotBox>
-        <FormContainer>
           <FormAutocomplete<string>
+            freeSolo
+            validator={v => /^\.(\*|[a-zA-Z0-9]+)$/i.test(v)}
+            errorMessage="invalidFileExtension"
             fieldName={"fileTypes"}
             label={"fileTypes"}
-            required={false}
-            values={validators[interlisValidatorName]?.supportedFileExtensions ?? []}
+            required={true}
+            values={[]}
             selected={mandate?.fileTypes}
           />
+        </FormContainer>
+        <FormContainer>
+          <FormExtent fieldName={"coordinates"} label={"spatialExtent"} value={mandate?.coordinates} required={true} />
         </FormContainer>
       </GeopilotBox>
       <GeopilotBox>

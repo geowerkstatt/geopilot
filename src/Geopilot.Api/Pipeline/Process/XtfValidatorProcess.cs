@@ -3,6 +3,7 @@ using Geopilot.Api.Test.Pipeline;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Immutable;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -23,6 +24,8 @@ internal class XtfValidatorProcess : IDisposable
 
     private const string OutputMappingErrorLog = "error_log";
     private const string OutputMappingXtfLog = "xtf_log";
+    private const string OutputMappingValidationSuccessful = "validation_successful";
+    private const string OutputMappingStatusMessage = "status_message";
     private const string ConfiguratiionKeyValidationProfile = "profile";
     private const string ConfiguratiionKeyPollInterval = "poll_interval";
     private const string InterlisCheckServiceBaseAddressConfiguration = "Validation:InterlisCheckServiceUrl";
@@ -103,18 +106,22 @@ internal class XtfValidatorProcess : IDisposable
     /// <returns>A ProcessData instance containing the results of the validation process.</returns>
     /// <exception cref="ArgumentException">Thrown if the input ILI file is invalid.</exception>
     [PipelineProcessRun]
-    public async Task<Dictionary<string, object>> RunAsync(IPipelineTransferFile iliFile, CancellationToken cancellationToken)
+    public async Task<Dictionary<string, object?>> RunAsync(IPipelineTransferFile iliFile, CancellationToken cancellationToken)
     {
         logger.LogInformation("Validating transfer file <{File}>...", iliFile.FileName);
         var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.FileName, this.Profile, cancellationToken);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
         var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
 
-        return new Dictionary<string, object>()
+        var outputs = new Dictionary<string, object?>
         {
-            { OutputMappingErrorLog, logFiles[LogType.ErrorLog] },
-            { OutputMappingXtfLog, logFiles[LogType.XtfLog] },
+            { OutputMappingValidationSuccessful, statusResponse.Status == InterlisStatusResponseStatus.Completed },
+            { OutputMappingStatusMessage, statusResponse.StatusMessage ?? string.Empty },
+            { OutputMappingErrorLog, logFiles.GetValueOrDefault(LogType.ErrorLog) },
+            { OutputMappingXtfLog, logFiles.GetValueOrDefault(LogType.XtfLog) },
         };
+
+        return outputs;
     }
 
     private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineTransferFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
@@ -139,7 +146,7 @@ internal class XtfValidatorProcess : IDisposable
         logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
 
         return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response, cancellationToken);
-     }
+    }
 
     private async Task<InterlisStatusResponse> PollStatusAsync(string statusUrl, CancellationToken cancellationToken)
     {
@@ -203,7 +210,6 @@ internal class XtfValidatorProcess : IDisposable
 
         using var logDownloadStream = await this.httpClient.GetStreamAsync(url, cancellationToken);
         var fileStream = File.Create(transferFile.FilePath);
-        logDownloadStream.Seek(0, SeekOrigin.Begin);
         logDownloadStream.CopyTo(fileStream);
         fileStream.Close();
 
