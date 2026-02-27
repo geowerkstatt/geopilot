@@ -109,7 +109,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
             if (uploaded.Size > expectedFile.ExpectedSize)
             {
-                logger.LogWarning("File '{FileName}' for job <{JobId}> exceeds declared size ({Actual} > {Expected}).", expectedFile.FileName, jobId, uploaded.Size, expectedFile.ExpectedSize);
+                logger.LogError("File '{FileName}' for job <{JobId}> exceeds declared size ({Actual} > {Expected}).", expectedFile.FileName, jobId, uploaded.Size, expectedFile.ExpectedSize);
 
                 await cloudStorageService.DeletePrefixAsync(cloudPrefix);
                 jobStore.RemoveJob(jobId);
@@ -123,7 +123,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
         if (!scanResult.IsClean)
         {
-            logger.LogWarning("Threat detected in cloud files for job <{JobId}>: {ThreatDetails}", jobId, scanResult.ThreatDetails);
+            logger.LogError("Threat detected in cloud files for job <{JobId}>: {ThreatDetails}", jobId, scanResult.ThreatDetails);
 
             await cloudStorageService.DeletePrefixAsync(cloudPrefix);
             jobStore.RemoveJob(jobId);
