@@ -68,50 +68,44 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public async Task<StepResult> Run(PipelineContext context, CancellationToken cancellationToken)
     {
-        if (context != null)
+        try
         {
+            ArgumentNullException.ThrowIfNull(context, nameof(context));
+
             this.State = StepState.Running;
+
+            var runMethod = GetProcessRunMethod();
+            var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
 
             try
             {
-                var runMethod = GetProcessRunMethod();
-
-                if (runMethod != null)
+                var resultTask = runMethod.Invoke(Process, runParams);
+                if (resultTask != null)
                 {
-                    var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
-                    var resultTask = runMethod.Invoke(Process, runParams);
-                    if (resultTask != null)
-                    {
-                        var result = await (Task<Dictionary<string, object>>)resultTask;
-                        var stepResult = CreateStepResult(result);
+                    var result = await (Task<Dictionary<string, object>>)resultTask;
+                    var stepResult = CreateStepResult(result);
 
-                        this.State = StepState.Success;
+                    this.State = StepState.Success;
 
-                        return stepResult;
-                    }
-                    else
-                    {
-                        this.State = StepState.Failed;
-                        logger.LogError($"error in step '{this.Id}': no result returned from process.");
-                    }
+                    return stepResult;
                 }
+
+                throw new PipelineRunException($"The process <{Process.GetType().Name}> did not return a value.");
             }
-            catch (Exception ex)
+            catch (TargetInvocationException ex)
             {
-                this.State = StepState.Failed;
-                logger.LogError(ex, $"error in step '{this.Id}': exception occurred during step execution: {ex.Message}.");
+                throw new PipelineRunException($"The process <{Process.GetType().Name}> threw an exception.", ex.InnerException ?? ex);
             }
         }
-        else
+        catch (Exception ex)
         {
             this.State = StepState.Failed;
-            logger.LogError($"error in step '{this.Id}': pipeline context is null.");
+            logger.LogError(ex, $"Error in step <{this.Id}>.");
+            throw;
         }
-
-        return new StepResult();
     }
 
-    private MethodInfo? GetProcessRunMethod()
+    private MethodInfo GetProcessRunMethod()
     {
         var processRunMethods = Process.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
                     .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessRunAttribute)))
@@ -119,13 +113,11 @@ public sealed class PipelineStep : IPipelineStep
 
         if (processRunMethods.Count() > 1)
         {
-            logger.LogError($"error in step '{this.Id}': multiple methods found with PipelineProcessRunAttribute. there should only be one. please consolidate the pipeline validation logic.");
-            return null;
+            throw new PipelineRunException($"Multiple methods found with PipelineProcessRunAttribute on process <{Process.GetType().Name}>.");
         }
         else if (!processRunMethods.Any())
         {
-            logger.LogError($"error in step '{this.Id}': no method found with PipelineProcessRunAttribute. there should be exactly one. please consolidate the pipeline validation logic.");
-            return null;
+            throw new PipelineRunException($"No method found with PipelineProcessRunAttribute on process <{Process.GetType().Name}>. There should be exactly one.");
         }
         else
         {
@@ -161,9 +153,8 @@ public sealed class PipelineStep : IPipelineStep
             return GenerateSingleParameter(parameterInfo, mappedValues[0]);
         }
 
-        var errorMessage = $"Error in step <{this.Id}>: could not find matching data for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method. please consolidate the pipeline validation logic.";
-        logger.LogError(errorMessage);
-        throw new InvalidOperationException(errorMessage);
+        var errorMessage = $"Could not find matching data for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method.";
+        throw new PipelineRunException(errorMessage);
     }
 
     private List<object?> CollectMappedValues(ParameterInfo parameterInfo, PipelineContext context)
@@ -186,7 +177,7 @@ public sealed class PipelineStep : IPipelineStep
         return mappedValues;
     }
 
-    private Array? GenerateArrayParameter(ParameterInfo parameterInfo, List<object?> mappedValues)
+    private Array GenerateArrayParameter(ParameterInfo parameterInfo, List<object?> mappedValues)
     {
         var elementType = parameterInfo.ParameterType.GetElementType()
             ?? throw new InvalidOperationException("Could not get type of element.");
@@ -196,18 +187,16 @@ public sealed class PipelineStep : IPipelineStep
 
         if (!isElementNullable && hasNullValues)
         {
-            var errorMessage = $"Error in step <{this.Id}>: parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> is a non-nullable array, but at least one input was null.";
-            logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
+            var errorMessage = $"Parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> is a non-nullable array, but at least one input was null.";
+            throw new PipelineRunException(errorMessage);
         }
 
         var hasAnyNonAssignableValues = mappedValues.Any(p => p != null && !elementType.IsAssignableFrom(p.GetType()));
 
         if (hasAnyNonAssignableValues)
         {
-            var errorMessage = $"Error in step <{this.Id}>: at least one of the mapped input values was not assignable to the element type <{elementType.Name}> of parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}>.";
-            logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
+            var errorMessage = $"At least one of the mapped input values was not assignable to the element type <{elementType.Name}> of parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}>.";
+            throw new PipelineRunException(errorMessage);
         }
 
         var mappedValuesArray = mappedValues.ToArray();
@@ -219,9 +208,8 @@ public sealed class PipelineStep : IPipelineStep
 
         if (!parameterInfo.ParameterType.IsAssignableFrom(arrayOfCorrectTypeToInject.GetType()))
         {
-            var errorMessage = $"Error in step <{this.Id}>: the generated array of type <{arrayOfCorrectTypeToInject.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
-            logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
+            var errorMessage = $"The generated array of type <{arrayOfCorrectTypeToInject.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
+            throw new PipelineRunException(errorMessage);
         }
 
         return arrayOfCorrectTypeToInject;
@@ -229,24 +217,16 @@ public sealed class PipelineStep : IPipelineStep
 
     private object? GenerateSingleParameter(ParameterInfo parameterInfo, object? mappedValue)
     {
-        if (mappedValue == null)
+        if (mappedValue == null && !IsParameterNullable(parameterInfo))
         {
-            var isNullable = IsParameterNullable(parameterInfo);
-
-            if (!isNullable)
-            {
-                var errorMessage = $"Error in step <{this.Id}>: the parameter <{parameterInfo.Name}> is non-nullable, but the mapped input value was null.";
-                logger.LogError(errorMessage);
-                throw new InvalidOperationException(errorMessage);
-            }
-
-            return null;
+            var errorMessage = $"The parameter <{parameterInfo.Name}> is non-nullable, but the mapped input value was null.";
+            throw new PipelineRunException(errorMessage);
         }
 
-        if (!parameterInfo.ParameterType.IsAssignableFrom(mappedValue.GetType()))
+        if (mappedValue != null && !parameterInfo.ParameterType.IsAssignableFrom(mappedValue.GetType()))
         {
-            var errorMessage = $"Error in step <{this.Id}>: the mapped input value of type <{mappedValue.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
-            throw new InvalidOperationException(errorMessage);
+            var errorMessage = $"The mapped input value of type <{mappedValue.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
+            throw new PipelineRunException(errorMessage);
         }
 
         return mappedValue;
@@ -268,9 +248,9 @@ public sealed class PipelineStep : IPipelineStep
             }
             else
             {
-                var errMsg = $"Error in step <{this.Id}>: output config is missing 'take' or 'as', or output data not found in process data. this error should not occur. please consolidate the pipeline validation logic.";
-                logger.LogError(errMsg);
-                throw new InvalidOperationException(errMsg);
+                var errorMessage = $"Output config is missing 'take' or 'as', or output data not found in process data. This error should not occur. Please consolidate the pipeline validation logic.";
+                logger.LogError(errorMessage);
+                throw new PipelineRunException(errorMessage);
             }
         }
 
