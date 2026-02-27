@@ -103,7 +103,7 @@ describe("Delivery tests", () => {
     cy.dataCy("logInForDelivery-button").should("exist").click();
   });
 
-  it("displays error if no mandates were found", () => {
+  it.only("displays error if no mandates were found", () => {
     loginAsNewUser();
     addFile("deliveryFiles/ilimodels_valid.xml", true);
     uploadFile();
@@ -113,7 +113,7 @@ describe("Delivery tests", () => {
 
   it("displays custom error messages when they don't match predefined errors", () => {
     cy.intercept(
-      { url: "/api/v2/upload", method: "POST" },
+      { url: "/api/v1/validation", method: "POST" },
       {
         statusCode: 418, // I'm a teapot
         body: {

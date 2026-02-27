@@ -15,7 +15,7 @@ export const addFile = (filePath, success) => {
 };
 
 export const uploadFile = () => {
-  cy.intercept("POST", "/api/v2/upload").as("upload");
+  cy.intercept("POST", "/api/v1/validation").as("upload");
   cy.dataCy("acceptTermsOfUse-formCheckbox").then($checkbox => {
     if (!$checkbox.hasClass("Mui-checked")) {
       cy.dataCy("upload-button").should("be.disabled");
