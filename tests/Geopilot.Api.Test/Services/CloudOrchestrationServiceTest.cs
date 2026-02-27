@@ -310,7 +310,7 @@ public class CloudOrchestrationServiceTest
         var job = jobStore.GetJob(response.JobId);
         Assert.IsNotNull(job);
         Assert.AreEqual("passwd", job.CloudFiles![0].FileName);
-        Assert.IsTrue(job.CloudFiles[0].CloudKey.EndsWith("/passwd"));
+        Assert.EndsWith("/passwd", job.CloudFiles[0].CloudKey);
     }
 
     [TestMethod]
@@ -336,7 +336,7 @@ public class CloudOrchestrationServiceTest
 
         cloudStorageServiceMock
             .Setup(s => s.GetTotalSizeAsync("uploads/"))
-            .ReturnsAsync((long)1 * 1024 * 1024);
+            .ReturnsAsync(1L * 1024 * 1024);
 
         var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
 

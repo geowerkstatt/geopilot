@@ -212,7 +212,7 @@ public class CloudCleanupServiceTest
     public async Task RunCleanupAsyncDeletesOversizedFiles()
     {
         var jobId = Guid.NewGuid();
-        var oversizedBytes = (long)cloudStorageOptions.MaxFileSizeMB * 1024 * 1024 + 1;
+        var oversizedBytes = ((long)cloudStorageOptions.MaxFileSizeMB * 1024 * 1024) + 1;
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync("uploads/"))
