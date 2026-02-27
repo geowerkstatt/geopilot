@@ -145,13 +145,16 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
         fileProvider.Initialize(jobId);
 
-        var file = job.CloudFiles[0];
-        var extension = Path.GetExtension(file.FileName);
+        ValidationJob updatedJob = job;
+        foreach (var file in job.CloudFiles)
+        {
+            var extension = Path.GetExtension(file.FileName);
 
-        using var fileHandle = fileProvider.CreateFileWithRandomName(extension);
-        await cloudStorageService.DownloadAsync(file.CloudKey, fileHandle.Stream);
+            using var fileHandle = fileProvider.CreateFileWithRandomName(extension);
+            await cloudStorageService.DownloadAsync(file.CloudKey, fileHandle.Stream);
 
-        var updatedJob = jobStore.AddFileToJob(jobId, file.FileName, fileHandle.FileName);
+            updatedJob = jobStore.AddFileToJob(jobId, file.FileName, fileHandle.FileName);
+        }
 
         var cloudPrefix = $"uploads/{jobId}/";
         await cloudStorageService.DeletePrefixAsync(cloudPrefix);
