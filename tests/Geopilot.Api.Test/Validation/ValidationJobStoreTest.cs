@@ -245,6 +245,30 @@ public class ValidationJobStoreTest
     }
 
     [TestMethod]
+    public void GetActiveCloudJobCountReturnsCorrectCount()
+    {
+        Assert.AreEqual(0, store.GetActiveCloudJobCount());
+
+        // Direct upload job should not be counted
+        store.CreateJob();
+        Assert.AreEqual(0, store.GetActiveCloudJobCount());
+
+        // Cloud upload job should be counted
+        var cloudJob = store.CreateJob();
+        store.AddUploadInfoToJob(cloudJob.Id, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("f.xtf", "key", 100)));
+        Assert.AreEqual(1, store.GetActiveCloudJobCount());
+
+        // Second cloud upload job
+        var cloudJob2 = store.CreateJob();
+        store.AddUploadInfoToJob(cloudJob2.Id, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("g.xtf", "key2", 200)));
+        Assert.AreEqual(2, store.GetActiveCloudJobCount());
+
+        // Removing a cloud job decreases count
+        store.RemoveJob(cloudJob.Id);
+        Assert.AreEqual(1, store.GetActiveCloudJobCount());
+    }
+
+    [TestMethod]
     public void AddUploadInfoToJobThrowsIfStatusNotCreated()
     {
         var job = store.CreateJob();
