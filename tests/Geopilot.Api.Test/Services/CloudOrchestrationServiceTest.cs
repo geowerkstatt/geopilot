@@ -156,6 +156,10 @@ public class CloudOrchestrationServiceTest
 
         var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
         Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
+
+        var updatedJob = jobStore.GetJob(job.Id);
+        Assert.IsNotNull(updatedJob);
+        Assert.AreEqual(Status.UploadIncomplete, updatedJob.Status);
     }
 
     [TestMethod]
@@ -169,6 +173,10 @@ public class CloudOrchestrationServiceTest
 
         var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
         Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
+
+        var updatedJob = jobStore.GetJob(job.Id);
+        Assert.IsNotNull(updatedJob);
+        Assert.AreEqual(Status.UploadIncomplete, updatedJob.Status);
     }
 
     [TestMethod]
