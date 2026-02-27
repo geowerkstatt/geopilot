@@ -62,6 +62,8 @@ volumes:
 | http://localhost:8080  | stac-browser (in docker-compose)              | -                                                                         |
 | http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
 | http://localhost:3080  | interlis-check-service (in docker-compose)    | -                                                                         |
+| https://localhost:10000 | Azurite Blob Storage (in docker-compose)      | -                                                                         |
+| http://localhost:3310  | ClamAV clamd (in docker-compose)               | -                                                                         |
 | http://localhost:4011  | Keycloak Server Administration                | -                                                                         |
 
 Das Auth-Token wird als Cookie im Frontend gespeichert und über den Reverse Proxy (in `vite.config.js`) ans API zur Authentifizierung weitergegeben.
@@ -150,6 +152,14 @@ Die Architektur basiert auf den Interfaces `ICloudStorageService` und `ICloudSca
 
 Beide Features sind standardmässig deaktiviert. Ohne Konfiguration wird ausschliesslich der klassische direkte Upload verwendet.
 
+### Entwicklung
+
+Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1–2 Minuten für Virendefinitionen.
+
+```bash
+docker compose up -d azurite clamav
+```
+
 ### Konfiguration
 
 ```json5
@@ -157,7 +167,8 @@ Beide Features sind standardmässig deaktiviert. Ohne Konfiguration wird ausschl
     "Enabled": true,
     "ConnectionString": "...",
     "BucketName": "uploads",
-    "AutoCreateContainer": false // Nur für Entwicklung auf true setzen
+    "AutoCreateContainer": false, // Nur für Entwicklung auf true setzen
+    "AllowedOrigins": ["https://localhost:5173"] // CORS für Presigned-URL-Uploads
 },
 "ClamAV": {
     "Enabled": true,
@@ -165,6 +176,8 @@ Beide Features sind standardmässig deaktiviert. Ohne Konfiguration wird ausschl
     "Port": 3310
 }
 ```
+
+Weitere optionale Limits (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `PresignedUrlExpiryMinutes`, `CleanupAgeHours`) sind in `CloudStorageOptions.cs` dokumentiert. Veraltete Uploads werden automatisch durch den `CloudCleanupService` bereinigt.
 
 - **Cloud Storage deaktiviert (Standard):** Nur der direkte Upload (`/api/v1/validation`) ist verfügbar. ClamAV-Einstellungen werden ignoriert.
 - **Cloud Storage aktiviert, ClamAV deaktiviert:** Cloud-Upload funktioniert ohne Virenprüfung. Pro Upload wird eine Warnung geloggt.
