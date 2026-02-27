@@ -1,8 +1,10 @@
-﻿using Asp.Versioning;
+﻿using System.Threading.RateLimiting;
+using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -54,8 +56,10 @@ public class UploadController : ControllerBase
     /// <param name="request">The upload request containing file metadata.</param>
     /// <returns>The upload response with presigned URLs and job information.</returns>
     [HttpPost]
+    [EnableRateLimiting("uploadRateLimit")]
     [SwaggerResponse(StatusCodes.Status201Created, "The cloud upload session was successfully created.", typeof(CloudUploadResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The request is invalid.", typeof(ProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status429TooManyRequests, "Too many requests.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected error.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> InitiateUploadAsync([FromBody] CloudUploadRequest request)
     {
