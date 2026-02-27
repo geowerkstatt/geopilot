@@ -185,21 +185,20 @@ public class ValidationController : ControllerBase
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
             return Ok(validationJob.ToResponse());
         }
+        catch (CloudUploadPreflightException ex) when (ex.FailureReason == PreflightFailureReason.ThreatDetected)
+        {
+            logger.LogError(ex, "Threat detected in upload for job <{JobId}>.", jobId);
+            return Problem("The upload could not be processed.", statusCode: StatusCodes.Status400BadRequest);
+        }
+        catch (CloudUploadPreflightException ex) when (ex.FailureReason == PreflightFailureReason.SizeExceeded)
+        {
+            logger.LogError(ex, "Uploaded file size exceeded declared size for job <{JobId}>.", jobId);
+            return Problem("The upload could not be processed.", statusCode: StatusCodes.Status400BadRequest);
+        }
         catch (CloudUploadPreflightException ex)
         {
-            string detail;
-            if (ex.FailureReason == PreflightFailureReason.ThreatDetected)
-            {
-                logger.LogError(ex, "Threat detected in upload for job <{JobId}>.", jobId);
-                detail = "The upload could not be processed.";
-            }
-            else
-            {
-                logger.LogWarning(ex, "Preflight checks failed for job <{JobId}>.", jobId);
-                detail = ex.Message;
-            }
-
-            return Problem(detail, statusCode: StatusCodes.Status400BadRequest);
+            logger.LogWarning(ex, "Preflight checks failed for job <{JobId}>.", jobId);
+            return Problem(ex.Message, statusCode: StatusCodes.Status400BadRequest);
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
         {
