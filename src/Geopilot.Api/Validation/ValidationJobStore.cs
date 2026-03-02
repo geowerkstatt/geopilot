@@ -104,20 +104,9 @@ public class ValidationJobStore : IValidationJobStore
         if (!pipelineJobMap.TryGetValue(pipeline, out var jobId))
             throw new ArgumentException("The specified pipeline is not associated with any job.", nameof(pipeline));
 
-        using var scope = serviceScopeFactory.CreateScope();
-        var fileProvider = scope.ServiceProvider.GetRequiredService<IFileProvider>();
-        fileProvider.Initialize(jobId);
+        var logFiles = CopyAndMapLogFiles(jobId, result.LogFiles);
 
-        var mappedLogFiles = new Dictionary<string, string>();
-        foreach (var logFile in result.LogFiles)
-        {
-            using var fileHandle = fileProvider.CreateFileWithRandomName(Path.GetExtension(logFile.Value));
-            using var stream = File.OpenRead(logFile.Value);
-            stream.CopyTo(fileHandle.Stream);
-            mappedLogFiles[logFile.Key] = fileHandle.FileName;
-        }
-
-        result = result with { LogFiles = mappedLogFiles.ToImmutableDictionary() };
+        result = result with { LogFiles = logFiles.ToImmutableDictionary() };
 
         var updateFunc = (Guid jobId, ValidationJob job) =>
         {
@@ -132,6 +121,29 @@ public class ValidationJobStore : IValidationJobStore
         };
 
         return jobs.AddOrUpdate(jobId, id => throw new ArgumentException($"Job with id <{jobId}> not found."), updateFunc);
+    }
+
+    /// <summary>
+    /// Copies all the files created by the pipeline run to the job's directory.
+    /// </summary>
+    /// <remarks>This is temporary code, only required because this version tries to integrate the new pipeline architecture into the legacy code.</remarks>
+    /// <returns>A new dictionary with the same keys, but the values are adjusted to the names of the files in the job's directory, instead of the temp paths created by the pipeline.</returns>
+    private Dictionary<string, string> CopyAndMapLogFiles(Guid jobId, ImmutableDictionary<string, string> logFiles)
+    {
+        using var scope = serviceScopeFactory.CreateScope();
+        var fileProvider = scope.ServiceProvider.GetRequiredService<IFileProvider>();
+        fileProvider.Initialize(jobId);
+
+        var mappedLogFiles = new Dictionary<string, string>();
+        foreach (var logFile in logFiles)
+        {
+            using var fileHandle = fileProvider.CreateFileWithRandomName(Path.GetExtension(logFile.Value));
+            using var stream = File.OpenRead(logFile.Value);
+            stream.CopyTo(fileHandle.Stream);
+            mappedLogFiles[logFile.Key] = fileHandle.FileName;
+        }
+
+        return mappedLogFiles;
     }
 
     /// <inheritdoc/>
