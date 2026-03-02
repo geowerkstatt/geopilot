@@ -3,7 +3,7 @@
 namespace Geopilot.Api.Pipeline.Config.Validation;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-internal sealed class ProcessReferenceAttribute : ValidationAttribute
+internal sealed class ValidProcessReferenceAttribute : ValidationAttribute
 {
     public override bool IsValid(object? value)
     {

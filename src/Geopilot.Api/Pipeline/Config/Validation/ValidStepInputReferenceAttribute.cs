@@ -1,11 +1,9 @@
-﻿using MathNet.Numerics.Distributions;
-using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.Eventing.Reader;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Geopilot.Api.Pipeline.Config.Validation;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-internal sealed class StepInputReferenceAttribute : ValidationAttribute
+internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
 {
     public override bool IsValid(object? value)
     {

@@ -13,12 +13,12 @@ internal static class PipelineExtensions
     internal static PipelineValidationErrors Validate(this PipelineProcessConfig pipelineProcessConfig, PipelineValidationErrors? inputErrors = null)
     {
         PipelineValidationErrors validationResults = new PipelineValidationErrors();
-        var isValid = ValidateReqursive(pipelineProcessConfig, validationResults);
+        var isValid = ValidateRecursive(pipelineProcessConfig, validationResults);
 
         return validationResults;
     }
 
-    private static bool ValidateReqursive(object obj, PipelineValidationErrors errors)
+    private static bool ValidateRecursive(object obj, PipelineValidationErrors errors)
     {
         bool isValid = true;
         if (obj == null)
@@ -47,7 +47,7 @@ internal static class PipelineExtensions
                     {
                         foreach (var item in enumerable)
                         {
-                            if (!ValidateReqursive(item, errors))
+                            if (!ValidateRecursive(item, errors))
                             {
                                 isValid = false;
                             }
@@ -55,7 +55,7 @@ internal static class PipelineExtensions
                     }
                     else
                     {
-                        if (!ValidateReqursive(value, errors))
+                        if (!ValidateRecursive(value, errors))
                         {
                             isValid = false;
                         }

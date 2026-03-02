@@ -46,6 +46,6 @@ public class StepConfig
     [YamlMember(Alias = "output")]
     [Required(AllowEmptyStrings = false, ErrorMessage = "Step Output is required.")]
     [MinLength(1, ErrorMessage = "At least one Step Output is required.")]
-    [DuplicatedProperty(PropertyName = "As")]
+    [NoDuplicates(PropertyName = "As")]
     public List<OutputConfig>? Output { get; set; }
 }

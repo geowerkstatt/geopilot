@@ -2,8 +2,8 @@
 
 namespace Geopilot.Api.Pipeline.Config;
 
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-internal sealed class DuplicatedPropertyAttribute : ValidationAttribute
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
+internal sealed class NoDuplicatesAttribute : ValidationAttribute
 {
     public string? PropertyName { get; set; }
 
@@ -16,7 +16,7 @@ internal sealed class DuplicatedPropertyAttribute : ValidationAttribute
 
         if (PropertyName == null)
         {
-            ErrorMessage = "PropertyName is required for DuplicatedPropertyAttribute.";
+            ErrorMessage = "PropertyName is required for NoDuplicatesAttribute.";
             return false;
         }
 

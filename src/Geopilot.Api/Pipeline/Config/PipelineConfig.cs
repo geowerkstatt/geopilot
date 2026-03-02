@@ -7,7 +7,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// <summary>
 /// Configuration for a pipeline.
 /// </summary>
-[StepInputReference]
+[ValidStepInputReference]
 public class PipelineConfig
 {
     /// <summary>
@@ -35,7 +35,7 @@ public class PipelineConfig
     /// </summary>
     [Required(ErrorMessage = "Pipeline Step is required.")]
     [MinLength(1, ErrorMessage = "At least one Pipeline Step is required.")]
-    [DuplicatedProperty(PropertyName = "Id")]
+    [NoDuplicates(PropertyName = "Id")]
     [YamlMember(Alias = "steps")]
     public required List<StepConfig> Steps { get; set; }
 }
