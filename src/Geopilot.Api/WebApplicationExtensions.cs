@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Process;
 using Microsoft.EntityFrameworkCore;
 
 namespace Geopilot.Api;
@@ -26,6 +27,35 @@ public static class WebApplicationExtensions
         if (validationErrors.HasErrors)
         {
             throw new InvalidOperationException($"errors in pipeline definition:{Environment.NewLine}{validationErrors.ErrorMessage}");
+        }
+
+        var pipelineProcessFactory = app.Services.GetRequiredService<IPipelineProcessFactory>();
+
+        var invalidProcessesErrors = pipelineFactory.PipelineProcessConfig.Pipelines
+            .SelectMany(p => p.Steps)
+            .Select(s =>
+            {
+                object? process = null;
+                try
+                {
+                    process = pipelineProcessFactory.CreateProcess(s, pipelineFactory.PipelineProcessConfig.Processes);
+                    if (process == null)
+                    {
+                        return $"step {s.Id}, process {s.ProcessId}";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return $"step {s.Id}, process {s.ProcessId}, error: {ex.Message}";
+                }
+
+                return null;
+            })
+            .Where(s => s != null)
+            .ToHashSet();
+        if (invalidProcessesErrors.Count > 0)
+        {
+            throw new InvalidOperationException($"Invalid pipeline processes found:{Environment.NewLine}{string.Join(Environment.NewLine, invalidProcessesErrors)}");
         }
     }
 }
