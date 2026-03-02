@@ -145,6 +145,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 
 builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("Validation"));
+builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");

@@ -20,7 +20,7 @@ namespace Geopilot.Api;
 /// services are registered and configured appropriately.</remarks>
 public static class ServiceCollectionExtensions
 {
-    private static string pipelineDefinitionKey = "Pipeline:Definition";
+    private static string pipelineKey = "Pipeline";
 
     /// <summary>
     /// Registers an IPipelineFactory implementation with the dependency injection container using the pipeline
@@ -38,16 +38,19 @@ public static class ServiceCollectionExtensions
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
             var pipelineProcessFactory = sp.GetRequiredService<IPipelineProcessFactory>();
-            var pipelineDefinition = configuration.GetValue<string>(pipelineDefinitionKey);
+            var pipelinePluginOptions = configuration.GetSection(pipelineKey).Get<PipelineOptions>();
 
-            if (string.IsNullOrWhiteSpace(pipelineDefinition))
-                throw new InvalidOperationException($"Path to pipeline definition not specified. Define path to pipeline definition under <{pipelineDefinitionKey}>.");
+            if (pipelinePluginOptions == null)
+                throw new InvalidOperationException($"pipeline options not specified. Define path to pipeline options under <{pipelineKey}>.");
 
-            if (!File.Exists(pipelineDefinition))
-                throw new InvalidOperationException($"Pipeline definition file not found at path: {pipelineDefinition}");
+            if (string.IsNullOrWhiteSpace(pipelinePluginOptions.Definition))
+                throw new InvalidOperationException($"Pipeline definition not specified. Define Definition <{pipelineKey}>.");
+
+            if (!File.Exists(pipelinePluginOptions.Definition))
+                throw new InvalidOperationException($"Pipeline definition file not found at path: {pipelinePluginOptions.Definition}");
 
             var pipelineFactory = PipelineFactory.Builder()
-                    .File(pipelineDefinition)
+                    .File(pipelinePluginOptions.Definition)
                     .PipelineProcessFactory(pipelineProcessFactory)
                     .Build();
 

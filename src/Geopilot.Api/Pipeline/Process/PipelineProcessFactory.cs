@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline.Process;
+using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -14,12 +15,43 @@ namespace Geopilot.Api.Pipeline.Process;
 /// extensibility via external assemblies. This factory is typically used in scenarios where pipeline steps are
 /// dynamically configured and require runtime resolution of their processing logic. Thread safety is not guaranteed; if
 /// used concurrently, external synchronization is required.</remarks>
-public class PipelineProcessFactory : AssemblyLoadContext, IPipelineProcessFactory
+public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 {
     private readonly ILogger<PipelineProcessFactory> logger;
 
     private IConfiguration configuration;
-    private HashSet<Assembly> processorPluginAssemblies;
+    private HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
+    private HashSet<AssemblyLoadContext> processorPluginLoadContexts = new HashSet<AssemblyLoadContext>();
+    private bool disposed;
+
+    /// <summary>
+    /// Disposes the resources used by the PipelineProcessFactory.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases resources and unloads assemblies.
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposed)
+        {
+            if (disposing)
+            {
+                processorPluginAssemblies.Clear();
+                foreach (var processorPluginLoadContext in processorPluginLoadContexts)
+                {
+                    processorPluginLoadContext.Unload();
+                }
+            }
+
+            disposed = true;
+        }
+    }
 
     /// <summary>
     /// Initializes a new instance of the PipelineProcessFactory class using the specified configuration settings.
@@ -27,26 +59,29 @@ public class PipelineProcessFactory : AssemblyLoadContext, IPipelineProcessFacto
     /// <remarks>The constructor loads plugin assemblies specified in the "Pipeline:Plugins" section of the
     /// configuration. Assemblies are loaded into a dedicated context, allowing for isolation and dynamic plugin
     /// management. If no plugins are configured, the factory will operate without any loaded assemblies.</remarks>
-    /// <param name="configuration">The configuration source containing pipeline and plugin settings. Cannot be null.</param>
-    public PipelineProcessFactory(IConfiguration configuration)
+    /// <param name="configuration">Configuration used to configure the processors.</param>
+    /// <param name="pipelinePluginOptions">Pipeline plugin options containing configuration settings. Cannot be null.</param>
+    public PipelineProcessFactory(IConfiguration configuration, IOptions<PipelineOptions> pipelinePluginOptions)
     {
         using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
         this.logger = factory.CreateLogger<PipelineProcessFactory>();
         this.configuration = configuration;
-        var processorPlugins = this.configuration.GetSection("Pipeline:Plugins").Get<List<string>>();
+        this.disposed = false;
+        ArgumentNullException.ThrowIfNull(pipelinePluginOptions);
+        ArgumentNullException.ThrowIfNull(pipelinePluginOptions.Value);
+        var processorPlugins = pipelinePluginOptions.Value.Plugins;
 
         if (processorPlugins != null)
         {
-            this.processorPluginAssemblies = processorPlugins
-                .Select(p =>
-                {
-                    if (Path.IsPathRooted(p))
-                        return p;
-                    else
-                        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, p));
-                })
-                .Select(LoadFromAssemblyPath)
-                .ToHashSet();
+            foreach (var assemblyPath in processorPlugins)
+            {
+                var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
+
+                var assemblyContext = new AssemblyLoadContext(assemblyFullPath);
+                var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
+                processorPluginAssemblies.Add(plugin);
+                processorPluginLoadContexts.Add(assemblyContext);
+            }
         }
         else
         {
@@ -127,7 +162,7 @@ public class PipelineProcessFactory : AssemblyLoadContext, IPipelineProcessFacto
         }
         else
         {
-            logger.LogWarning($"Process initialization: No suitable parameter found for type '{parameterType}' with name '{parameterType.Name}' Initializing with null.");
+            logger.LogWarning($"Process initialization: No suitable parameter found for parameter of type <{parameterType.Name}>. Initializing with null.");
             return null;
         }
     }

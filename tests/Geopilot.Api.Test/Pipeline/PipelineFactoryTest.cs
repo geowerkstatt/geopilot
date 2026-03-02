@@ -2,6 +2,8 @@
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using Moq;
 using System.Reflection;
 
 namespace Geopilot.Api.Test.Pipeline;
@@ -11,6 +13,8 @@ public class PipelineFactoryTest
 {
     private static string interlisCheckServiceBaseUrl = "http://localhost:3080/";
     private IConfiguration configuration;
+    private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
+    private PipelineProcessFactory pipelineProcessFactory;
 
     [TestInitialize]
     public void SetUp()
@@ -25,6 +29,11 @@ public class PipelineFactoryTest
             .AddInMemoryCollection(inMemorySettings)
             .Build();
         #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+
+        pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
+        var pipelineOptions = new PipelineOptions() { Definition = "" };
+        pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
+        this.pipelineProcessFactory = new PipelineProcessFactory(configuration, pipelineOptionsMock.Object);
     }
 
     [TestMethod(DisplayName = "Create Pipeline By Id But Pipeline Not Defined")]
@@ -112,10 +121,11 @@ public class PipelineFactoryTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
+
         return PipelineFactory
             .Builder()
             .File(path)
-            .PipelineProcessFactory(new PipelineProcessFactory(configuration))
+            .PipelineProcessFactory(this.pipelineProcessFactory)
             .Build();
     }
 

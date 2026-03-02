@@ -3,6 +3,7 @@ using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using System.Net;
@@ -17,9 +18,11 @@ public class PipelineIntegrationTest
 {
     private static Guid jobId = Guid.Parse("b98559c5-b374-4cbc-a797-1b5a13a297e7");
     private static string interlisCheckServiceBaseUrl = "http://localhost/";
-    private static string appConfig = "{\"Pipeline\":{\"Definition\":\"myPipeline.yaml\",\"Plugins\":[{\"Packagenames\":[\"foo\"],\"AssemblyFile\":\"bar\"},{\"Packagenames\":[\"foo\"],\"AssemblyFile\":\"you\"}]},\"Validation\":{\"InterlisCheckServiceUrl\":\"http://localhost/\"}}";
+    private static string appConfig = "{\"Validation\":{\"InterlisCheckServiceUrl\":\"http://localhost/\"}}";
     private Mock<HttpMessageHandler> interlisValidatorMessageHandlerMock;
     private IConfiguration configuration;
+    private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
+    private PipelineProcessFactory pipelineProcessFactory;
 
     [TestInitialize]
     public void SetUp()
@@ -35,12 +38,18 @@ public class PipelineIntegrationTest
             .AddJsonStream(appConfigMemoryStream)
             .Build();
         #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+
+        pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
+        var pipelineOptions = new PipelineOptions() { Definition = "myPipeline.yaml", Plugins = new List<string>() };
+        pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
+        this.pipelineProcessFactory = new PipelineProcessFactory(configuration, pipelineOptionsMock.Object);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
         interlisValidatorMessageHandlerMock.VerifyAll();
+        pipelineOptionsMock.VerifyAll();
     }
 
     [TestMethod]
@@ -171,7 +180,7 @@ public class PipelineIntegrationTest
         return PipelineFactory
             .Builder()
             .File(path)
-            .PipelineProcessFactory(new PipelineProcessFactory(configuration))
+            .PipelineProcessFactory(this.pipelineProcessFactory)
             .Build();
     }
 }
