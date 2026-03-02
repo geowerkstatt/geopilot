@@ -38,4 +38,14 @@ public class PipelineConfig
     [NoDuplicates(PropertyName = "Id")]
     [YamlMember(Alias = "steps")]
     public required List<StepConfig> Steps { get; set; }
+
+    /// <summary>
+    /// Conditions to control whether a pipeline may be delivered or not.
+    /// </summary>
+    /// <remarks>The condition is typically specified as a string expression evaluated at runtime. If the
+    /// condition evaluates to <see langword="true"/>, pipeline data will be delivered; otherwise not.
+    /// The expression typically references the pipeline context data. And evaluates to <see langword="true"/> or
+    /// <see langword="false"/> based on the current state of the pipeline.</remarks>
+    [YamlMember(Alias = "delivery_condition")]
+    public string? DeliveryCondition { get; set; }
 }
