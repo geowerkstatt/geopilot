@@ -38,6 +38,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Geopilot.PipelineCore\Geopilot.PipelineCore.csproj">
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Migrations\" />
   </ItemGroup>
 

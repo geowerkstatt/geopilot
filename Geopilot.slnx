@@ -17,5 +17,6 @@
     <Build />
     <Deploy />
   </Project>
+  <Project Path="src/Geopilot.PipelineCore/Geopilot.PipelineCore.csproj" />
   <Project Path="tests/Geopilot.Api.Test/Geopilot.Api.Test.csproj" />
 </Solution>

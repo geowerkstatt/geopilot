@@ -1,6 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Pipeline.Process;
-using Swashbuckle.AspNetCore.SwaggerGen;
+using Geopilot.PipelineCore.Pipeline.Process;
 using System.Reflection;
 
 namespace Geopilot.Api.Pipeline;

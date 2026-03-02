@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline.Process;
+﻿namespace Geopilot.PipelineCore.Pipeline.Process;
 
 /// <summary>
 /// Attribute to mark a method as a cleanup method for a pipeline process.

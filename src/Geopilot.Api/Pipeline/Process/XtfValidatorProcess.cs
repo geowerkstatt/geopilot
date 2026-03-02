@@ -1,7 +1,7 @@
-﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Test.Pipeline;
-using Geopilot.Api.Validation;
+﻿using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
+using Geopilot.PipelineCore.Pipeline;
+using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Http.Headers;
@@ -32,7 +32,7 @@ internal class XtfValidatorProcess : IDisposable
 
     private ILogger<XtfValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<XtfValidatorProcess>();
 
-    private Parameterization config = new Parameterization();
+    private Dictionary<string, string> config = new Dictionary<string, string>();
 
     private HttpClient httpClient = new();
 
@@ -62,7 +62,7 @@ internal class XtfValidatorProcess : IDisposable
     /// must contain a valid service URL at value "Validation:InterlisCheckServiceUrl".</param>
     /// <exception cref="InvalidOperationException">Thrown if the configuration does not provide a valid INTERLIS check service base address.</exception>
     [PipelineProcessInitialize]
-    public void Initialize(Parameterization config, IConfiguration configuration)
+    public void Initialize(Dictionary<string, string> config, IConfiguration configuration)
     {
         this.config = config;
 
