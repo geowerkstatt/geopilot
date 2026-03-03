@@ -92,10 +92,15 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// <inheritdoc />
     public object CreateProcess(StepConfig stepConfig, List<ProcessConfig> processes)
     {
-        var processConfig = stepConfig != null && stepConfig.ProcessId != null ? processes.GetProcessConfig(stepConfig.ProcessId) : null;
+        ArgumentNullException.ThrowIfNull(stepConfig);
+
+        var processConfig = stepConfig.ProcessId != null ? processes.GetProcessConfig(stepConfig.ProcessId) : null;
+
+        string processImplementation = "unknown";
         if (processConfig != null)
         {
-            var objectType = GetProccessorType(processConfig.Implementation);
+            processImplementation = processConfig.Implementation;
+            var objectType = GetProccessorType(processImplementation);
             if (objectType != null)
             {
                 var processInstance = Activator.CreateInstance(objectType);
@@ -109,7 +114,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
 
         var processId = stepConfig != null ? stepConfig.ProcessId : string.Empty;
-        throw new InvalidOperationException($"failed to create process instance for '{processId}'");
+        throw new InvalidOperationException($"Failed to create process instance for step <{stepConfig?.Id}> with process ID <{processId}> and implementation <{processImplementation}>.");
     }
 
     private Type? GetProccessorType(string implementation)
