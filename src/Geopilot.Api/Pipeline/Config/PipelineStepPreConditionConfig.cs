@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using YamlDotNet.Serialization;
+﻿using YamlDotNet.Serialization;
 
 namespace Geopilot.Api.Pipeline.Config;
 
