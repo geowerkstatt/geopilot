@@ -59,6 +59,8 @@ services:
     image: clamav/clamav:latest
     ports:
       - 3310:3310
+    volumes:
+      - ./config/clamd.conf:/etc/clamav/clamd.conf:ro
     healthcheck:
       test: "clamdscan --ping 1"
       interval: 10s

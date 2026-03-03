@@ -3,8 +3,9 @@
 namespace Geopilot.Api.Validation;
 
 /// <summary>
-/// Represents the result of one validation by an <see cref="IValidator"/> as part of a validation job.
+/// Represents the result of a validation as part of a validation job.
 /// </summary>
+/// <remarks>Used to be returned by IValidator implementations, but validators were replaced with pipelines.</remarks>
 public record class ValidatorResult(
     ValidatorResultStatus Status,
     string? StatusMessage,

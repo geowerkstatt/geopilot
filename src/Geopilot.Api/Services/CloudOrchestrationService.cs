@@ -73,6 +73,8 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
         jobStore.AddUploadInfoToJob(job.Id, UploadMethod.Cloud, cloudFiles.ToImmutableList());
 
+        logger.LogInformation("Initiated cloud upload for job <{JobId}> with {FileCount} file(s).", job.Id, request.Files.Count);
+
         return new CloudUploadResponse(job.Id, fileUploadInfos, DateTime.UtcNow.Add(expiresIn));
     }
 
@@ -88,6 +90,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
             throw new InvalidOperationException($"Job <{jobId}> has no cloud files configured.");
 
         jobStore.SetJobStatus(jobId, Status.VerifyingUpload);
+        logger.LogInformation("Starting preflight checks for job <{JobId}>.", jobId);
 
         var cloudPrefix = $"uploads/{jobId}/";
         var uploadedFiles = await cloudStorageService.ListFilesAsync(cloudPrefix);
@@ -143,6 +146,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         if (job.CloudFiles == null || job.CloudFiles.Count == 0)
             throw new InvalidOperationException($"Job <{jobId}> has no cloud files to stage.");
 
+        logger.LogInformation("Staging cloud files locally for job <{JobId}>.", jobId);
         fileProvider.Initialize(jobId);
 
         ValidationJob updatedJob = job;
@@ -158,6 +162,8 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
         var cloudPrefix = $"uploads/{jobId}/";
         await cloudStorageService.DeletePrefixAsync(cloudPrefix);
+
+        logger.LogInformation("Cloud files staged locally and cleaned up for job <{JobId}>.", jobId);
 
         return updatedJob;
     }

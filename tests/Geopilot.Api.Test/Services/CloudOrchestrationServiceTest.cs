@@ -4,6 +4,7 @@ using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -41,7 +42,7 @@ public class CloudOrchestrationServiceTest
             PresignedUrlExpiryMinutes = 60,
         });
 
-        jobStore = new ValidationJobStore();
+        jobStore = new ValidationJobStore(Mock.Of<IServiceScopeFactory>());
 
         service = new CloudOrchestrationService(
             cloudStorageServiceMock.Object,

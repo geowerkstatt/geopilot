@@ -10,6 +10,7 @@ public class ClamAvScanServiceTest
 {
     private Mock<ICloudStorageService> cloudStorageServiceMock;
     private Mock<ILogger<ClamAvScanService>> loggerMock;
+    private Mock<IOptions<CloudStorageOptions>> cloudStorageOptionsMock;
     private ClamAvScanService service;
 
     // EICAR is a standard antivirus test string — not actual malware,
@@ -22,10 +23,13 @@ public class ClamAvScanServiceTest
         cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
         loggerMock = new Mock<ILogger<ClamAvScanService>>();
 
-        var options = new Mock<IOptions<ClamAvOptions>>();
-        options.Setup(o => o.Value).Returns(new ClamAvOptions { Host = "localhost", Port = 3310 });
+        var clamAvOptions = new Mock<IOptions<ClamAvOptions>>();
+        clamAvOptions.Setup(o => o.Value).Returns(new ClamAvOptions { Host = "localhost", Port = 3310 });
 
-        service = new ClamAvScanService(cloudStorageServiceMock.Object, options.Object, loggerMock.Object);
+        cloudStorageOptionsMock = new Mock<IOptions<CloudStorageOptions>>();
+        cloudStorageOptionsMock.Setup(o => o.Value).Returns(new CloudStorageOptions { MaxFileSizeMB = 2048 });
+
+        service = new ClamAvScanService(cloudStorageServiceMock.Object, clamAvOptions.Object, cloudStorageOptionsMock.Object, loggerMock.Object);
     }
 
     [TestCleanup]
@@ -41,7 +45,7 @@ public class ClamAvScanServiceTest
         options.Setup(o => o.Value).Returns(new ClamAvOptions { Host = "", Port = 3310 });
 
         Assert.ThrowsExactly<InvalidOperationException>(() =>
-            new ClamAvScanService(cloudStorageServiceMock.Object, options.Object, loggerMock.Object));
+            new ClamAvScanService(cloudStorageServiceMock.Object, options.Object, cloudStorageOptionsMock.Object, loggerMock.Object));
     }
 
     [TestMethod]
@@ -51,7 +55,7 @@ public class ClamAvScanServiceTest
         options.Setup(o => o.Value).Returns(new ClamAvOptions { Host = "localhost", Port = 0 });
 
         Assert.ThrowsExactly<InvalidOperationException>(() =>
-            new ClamAvScanService(cloudStorageServiceMock.Object, options.Object, loggerMock.Object));
+            new ClamAvScanService(cloudStorageServiceMock.Object, options.Object, cloudStorageOptionsMock.Object, loggerMock.Object));
     }
 
     [TestMethod]
@@ -61,7 +65,7 @@ public class ClamAvScanServiceTest
         options.Setup(o => o.Value).Returns(new ClamAvOptions { Host = "localhost", Port = 70000 });
 
         Assert.ThrowsExactly<InvalidOperationException>(() =>
-            new ClamAvScanService(cloudStorageServiceMock.Object, options.Object, loggerMock.Object));
+            new ClamAvScanService(cloudStorageServiceMock.Object, options.Object, cloudStorageOptionsMock.Object, loggerMock.Object));
     }
 
     [TestMethod]
@@ -120,6 +124,25 @@ public class ClamAvScanServiceTest
 
         Assert.IsTrue(result.IsClean);
         Assert.IsNull(result.ThreatDetails);
+    }
+
+    [TestMethod]
+    public async Task CheckFilesAsyncRespectsMaxFileSizeFromCloudStorageOptions()
+    {
+        var clamAvOptions = new Mock<IOptions<ClamAvOptions>>();
+        clamAvOptions.Setup(o => o.Value).Returns(new ClamAvOptions { Host = "localhost", Port = 3310 });
+
+        var cloudStorageOptions = new Mock<IOptions<CloudStorageOptions>>();
+        cloudStorageOptions.Setup(o => o.Value).Returns(new CloudStorageOptions { MaxFileSizeMB = 1 });
+
+        var restrictedService = new ClamAvScanService(
+            cloudStorageServiceMock.Object, clamAvOptions.Object, cloudStorageOptions.Object, loggerMock.Object);
+
+        var oversizedContent = new byte[(1 * 1024 * 1024) + 1];
+        SetupDownload("uploads/job1/large.xtf", oversizedContent);
+
+        await Assert.ThrowsExactlyAsync<nClam.MaxStreamSizeExceededException>(
+            () => restrictedService.CheckFilesAsync(["uploads/job1/large.xtf"]));
     }
 
     private void SetupDownload(string key, byte[] content)

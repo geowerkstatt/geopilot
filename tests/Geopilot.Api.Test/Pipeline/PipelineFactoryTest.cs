@@ -1,7 +1,10 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using Moq;
 using System.Reflection;
 
 namespace Geopilot.Api.Test.Pipeline;
@@ -11,6 +14,8 @@ public class PipelineFactoryTest
 {
     private static string interlisCheckServiceBaseUrl = "http://localhost:3080/";
     private IConfiguration configuration;
+    private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
+    private PipelineProcessFactory pipelineProcessFactory;
 
     [TestInitialize]
     public void SetUp()
@@ -25,13 +30,18 @@ public class PipelineFactoryTest
             .AddInMemoryCollection(inMemorySettings)
             .Build();
         #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+
+        pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
+        var pipelineOptions = new PipelineOptions() { Definition = "" };
+        pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
+        this.pipelineProcessFactory = new PipelineProcessFactory(configuration, pipelineOptionsMock.Object);
     }
 
     [TestMethod(DisplayName = "Create Pipeline By Id But Pipeline Not Defined")]
     public void CreatePipelineByIdButPipelineNotDefined()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("foo"));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("foo", Mock.Of<IPipelineTransferFile>()));
         Assert.AreEqual("pipeline for 'foo' not found", exception.Message);
     }
 
@@ -39,7 +49,7 @@ public class PipelineFactoryTest
     public void CreateBasicPipeline()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
-        using var pipeline = factory.CreatePipeline("ili_validation");
+        using var pipeline = factory.CreatePipeline("ili_validation", Mock.Of<IPipelineTransferFile>());
         Assert.AreEqual(PipelineState.Pending, pipeline.State, "pipeline state not as expected");
         Assert.AreEqual(StepState.Pending, pipeline.Steps[0].State, "step state not as expected");
         Assert.IsNotNull(pipeline, "pipeline not created");
@@ -96,26 +106,27 @@ public class PipelineFactoryTest
     public void CreateBasicPipelineNoProcessConfigOverwrite()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipelineNoProcessConfigOverwrite");
-        using var pipeline = factory.CreatePipeline("ili_validation");
+        using var pipeline = factory.CreatePipeline("ili_validation", Mock.Of<IPipelineTransferFile>());
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(1, pipeline.Steps);
         var validationStep = pipeline.Steps[0];
         object stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
-        var expectedDefaultConfig = new Parameterization();
+        var expectedDefaultConfig = new Dictionary<string, string>();
         var stepConfig = typeof(XtfValidatorProcess)
             ?.GetField("config", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(stepProcess) as Parameterization;
+            ?.GetValue(stepProcess) as Dictionary<string, string>;
         CollectionAssert.AreEqual(expectedDefaultConfig, stepConfig, "process config not as expected");
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
+
         return PipelineFactory
             .Builder()
             .File(path)
-            .Configuration(configuration)
+            .PipelineProcessFactory(this.pipelineProcessFactory)
             .Build();
     }
 

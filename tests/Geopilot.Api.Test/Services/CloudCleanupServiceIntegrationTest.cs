@@ -1,6 +1,7 @@
 ﻿using Azure.Storage.Blobs;
 using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -39,7 +40,7 @@ public class CloudCleanupServiceIntegrationTest
         containerClient.CreateIfNotExists();
 
         storageService = new AzureBlobStorageService(optionsMock.Object);
-        jobStore = new ValidationJobStore();
+        jobStore = new ValidationJobStore(Mock.Of<IServiceScopeFactory>());
 
         cleanupService = new CloudCleanupService(
             storageService,

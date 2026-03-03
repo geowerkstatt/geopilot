@@ -12,25 +12,28 @@ public class ClamAvScanService : ICloudScanService
 {
     private readonly ICloudStorageService cloudStorageService;
     private readonly ClamAvOptions options;
+    private readonly long maxStreamSize;
     private readonly ILogger<ClamAvScanService> logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ClamAvScanService"/> class.
     /// </summary>
-    public ClamAvScanService(ICloudStorageService cloudStorageService, IOptions<ClamAvOptions> options, ILogger<ClamAvScanService> logger)
+    public ClamAvScanService(ICloudStorageService cloudStorageService, IOptions<ClamAvOptions> clamAvOptions, IOptions<CloudStorageOptions> cloudStorageOptions, ILogger<ClamAvScanService> logger)
     {
-        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(clamAvOptions);
+        ArgumentNullException.ThrowIfNull(cloudStorageOptions);
 
         this.cloudStorageService = cloudStorageService;
         this.logger = logger;
 
-        var config = options.Value;
+        var config = clamAvOptions.Value;
         if (string.IsNullOrWhiteSpace(config.Host))
             throw new InvalidOperationException("ClamAV:Host is not configured.");
         if (config.Port <= 0 || config.Port > 65535)
             throw new InvalidOperationException("ClamAV:Port must be between 1 and 65535.");
 
         this.options = config;
+        maxStreamSize = (long)cloudStorageOptions.Value.MaxFileSizeMB * 1024 * 1024;
     }
 
     /// <inheritdoc/>
@@ -40,6 +43,8 @@ public class ClamAvScanService : ICloudScanService
 
         if (keys.Count == 0)
             return new ScanResult(true);
+
+        logger.LogInformation("Starting ClamAV scan for {FileCount} file(s).", keys.Count);
 
         var threats = new List<string>();
 
@@ -61,7 +66,7 @@ public class ClamAvScanService : ICloudScanService
         await cloudStorageService.DownloadAsync(key, fileStream);
         fileStream.Position = 0;
 
-        var clam = new ClamClient(options.Host, options.Port);
+        var clam = new ClamClient(options.Host, options.Port) { MaxStreamSize = maxStreamSize };
         var result = await clam.SendAndScanFileAsync(fileStream);
 
         logger.LogDebug("ClamAV scan for {Key}: {Result} (raw: {RawResult})", key, result.Result, result.RawResult);

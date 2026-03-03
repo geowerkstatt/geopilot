@@ -5,6 +5,7 @@ using Geopilot.Api.Contracts;
 using Geopilot.Api.Conventions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
@@ -150,6 +151,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 
 builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("Validation"));
+builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 
@@ -184,19 +186,7 @@ builder.Services.AddTransient<IAssetHandler, AssetHandler>();
 builder.Services.AddHostedService<ValidationRunner>();
 builder.Services.AddHostedService<ValidationJobCleanupService>();
 builder.Services.AddPipelineFactory();
-
-builder.Services
-    .AddHttpClient<IValidator, InterlisValidator>("INTERLIS_VALIDATOR_HTTP_CLIENT")
-    .ConfigureHttpClient((services, httpClient) =>
-    {
-        var configuration = services.GetRequiredService<IConfiguration>();
-        var checkServiceUrl = configuration.GetValue<string>("Validation:InterlisCheckServiceUrl")
-            ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
-
-        httpClient.BaseAddress = new Uri(checkServiceUrl);
-        httpClient.DefaultRequestHeaders.Accept.Clear();
-        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-    });
+builder.Services.AddSingleton<IPipelineProcessFactory, PipelineProcessFactory>();
 
 builder.Services.AddHttpClient<IGeopilotUserInfoService, GeopilotUserInfoService>();
 builder.Services.AddScoped<IGeopilotUserInfoService, GeopilotUserInfoService>();
@@ -261,7 +251,6 @@ app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "geopilot API v1.0");
-    options.SwaggerEndpoint("/swagger/v2/swagger.json", "geopilot API v2.0");
 
     options.OAuthClientId(builder.Configuration["Auth:ClientAudience"]);
     options.OAuth2RedirectUrl($"{builder.Configuration["Auth:ApiOrigin"]}/swagger/oauth2-redirect.html");

@@ -11,12 +11,14 @@ namespace Geopilot.Api.Services;
 public class AzureBlobStorageService : ICloudStorageService
 {
     private readonly BlobContainerClient containerClient;
+    private readonly ILogger<AzureBlobStorageService> logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureBlobStorageService"/> class.
     /// </summary>
-    public AzureBlobStorageService(IOptions<CloudStorageOptions> options)
+    public AzureBlobStorageService(IOptions<CloudStorageOptions> options, ILogger<AzureBlobStorageService> logger)
     {
+        this.logger = logger;
         ArgumentNullException.ThrowIfNull(options);
 
         var config = options.Value;
@@ -87,6 +89,7 @@ public class AzureBlobStorageService : ICloudStorageService
     public async Task DownloadAsync(string key, Stream destination)
     {
         var blobClient = containerClient.GetBlobClient(key);
+        logger.LogInformation("Downloading blob {Key}.", key);
         await blobClient.DownloadToAsync(destination);
     }
 
@@ -100,6 +103,7 @@ public class AzureBlobStorageService : ICloudStorageService
     /// <inheritdoc/>
     public async Task DeletePrefixAsync(string prefix)
     {
+        logger.LogInformation("Deleting blobs with prefix {Prefix}.", prefix);
         await foreach (var blob in containerClient.GetBlobsAsync(BlobTraits.None, BlobStates.None, prefix, CancellationToken.None))
         {
             await containerClient.DeleteBlobIfExistsAsync(blob.Name);
