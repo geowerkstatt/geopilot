@@ -31,28 +31,22 @@ public static class WebApplicationExtensions
 
         var pipelineProcessFactory = app.Services.GetRequiredService<IPipelineProcessFactory>();
 
-        var invalidProcessesErrors = pipelineFactory.PipelineProcessConfig.Pipelines
-            .SelectMany(p => p.Steps)
-            .Select(s =>
+        var invalidProcessesErrors = new HashSet<string>();
+        foreach (var pipeline in pipelineFactory.PipelineProcessConfig.Pipelines)
+        {
+            foreach (var step in pipeline.Steps)
             {
-                object? process = null;
                 try
                 {
-                    process = pipelineProcessFactory.CreateProcess(s, pipelineFactory.PipelineProcessConfig.Processes);
-                    if (process == null)
-                    {
-                        return $"step {s.Id}, process {s.ProcessId}";
-                    }
+                    pipelineProcessFactory.CreateProcess(step, pipelineFactory.PipelineProcessConfig.Processes);
                 }
                 catch (Exception ex)
                 {
-                    return $"step {s.Id}, process {s.ProcessId}, error: {ex.Message}";
+                    invalidProcessesErrors.Add($"pipeline {pipeline.Id}, step {step.Id}, process {step.ProcessId}, error: {ex.Message}");
                 }
+            }
+        }
 
-                return null;
-            })
-            .Where(s => s != null)
-            .ToHashSet();
         if (invalidProcessesErrors.Count > 0)
         {
             throw new InvalidOperationException($"Invalid pipeline processes found:{Environment.NewLine}{string.Join(Environment.NewLine, invalidProcessesErrors)}");
