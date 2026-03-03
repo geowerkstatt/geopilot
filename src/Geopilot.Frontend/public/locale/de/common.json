@@ -119,7 +119,6 @@
   "validationErrorRequestMalformed": "Ungültige oder beschädigte Anfrage an den Validierunsserver. (Fehler 400)",
   "validationErrorUnexpected": "Unerwarteter Serverfehler beim Verarbeiten. (Fehler 500)",
   "validationIsRunning": "Die Datei wird gerade mit {{validators}} validiert...",
-  "verifyingFiles": "Dateien werden überprüft...",
   "validationProfile": "Prüfprofil",
   "validatorsLoadingError": "Beim Laden der Validatoren ist ein Fehler aufgetreten: {{error}}",
   "version": "Version"

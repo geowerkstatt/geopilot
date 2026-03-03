@@ -119,7 +119,6 @@
   "validationErrorRequestMalformed": "Requête invalide ou corrompue au serveur de validation. (Erreur 400)",
   "validationErrorUnexpected": "Erreur inattendue du serveur lors du traitement. (Erreur 500)",
   "validationIsRunning": "Le fichier est en cours de validation avec {{validators}}...",
-  "verifyingFiles": "Vérification des fichiers...",
   "validationProfile": "Profil de validation",
   "validatorsLoadingError": "Une erreur s'est produite lors du chargement des validateurs: {{error}}",
   "version": "Version"

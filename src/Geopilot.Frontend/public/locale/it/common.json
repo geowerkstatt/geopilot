@@ -119,7 +119,6 @@
   "validationErrorRequestMalformed": "Richiesta non valida o danneggiata al server di convalida. (Errore 400)",
   "validationErrorUnexpected": "Errore imprevisto del server durante l'elaborazione. (Errore 500)",
   "validationIsRunning": "Il file è in corso di validazione con {{validators}}...",
-  "verifyingFiles": "Verifica dei file in corso...",
   "validationProfile": "Profilo di convalida",
   "validatorsLoadingError": "Si è verificato un errore durante il caricamento dei validatori: {{error}}",
   "version": "Versione"
