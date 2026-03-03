@@ -33,6 +33,11 @@ public interface IPipeline : IDisposable
     PipelineState State { get; }
 
     /// <summary>
+    /// Gets the pipeline delivery configuration used for processing messages.
+    /// </summary>
+    PipelineDelivery Delivery { get; }
+
+    /// <summary>
     /// Runs the pipeline with the specified input file.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token to cancel the pipeline run.</param>

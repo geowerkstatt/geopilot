@@ -36,7 +36,7 @@ public class PipelineTest
 
         var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
 
-        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, Mock.Of<IPipelineTransferFile>());
+        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, null, Mock.Of<IPipelineTransferFile>());
 
         Assert.AreEqual(expectedState, pipeline.State, "pipeline state not as expected");
     }
@@ -62,9 +62,13 @@ public class PipelineTest
 
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
-        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, uploadFile);
+        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, null, uploadFile);
+
+        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
 
         var context = pipeline.Run(CancellationToken.None);
+
+        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed after running the pipeline");
 
         firstStep.Verify(
             p => p.Run(It.Is<PipelineContext>(pc => pc.StepResults.Count == 1 && pc.StepResults.ContainsKey("upload")), It.IsAny<CancellationToken>()),
@@ -75,9 +79,41 @@ public class PipelineTest
             Times.Never());
     }
 
-    private FileHandle CreateTestFileHandle(string file)
+    [TestMethod]
+    public void PreventPipelineDeliveryIfConditionFails()
     {
-        var stream = File.Open(file, FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
-        return new FileHandle(file, stream);
+        var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
+        var inputConfigs = new List<InputConfig>();
+        var outputConfigs = new List<OutputConfig>();
+
+        var step = new Mock<IPipelineStep>();
+
+        step.SetupProperty(s => s.State, StepState.Pending);
+        step.SetupGet(s => s.Id).Returns("step_id");
+        StepResult stepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>()
+            {
+                { "output1", new StepOutput() { Data = "my_step_data", Action = new HashSet<OutputAction>(), } },
+            },
+        };
+        step.Setup(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(stepResult));
+
+        var steps = new List<IPipelineStep> { step.Object };
+
+        var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
+
+        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+
+        string deliveryCondition = "[step_id.output1] != 'my_step_data'";
+
+        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, deliveryCondition, uploadFile);
+
+        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
+
+        var context = pipeline.Run(CancellationToken.None);
+
+        Assert.AreEqual(PipelineDelivery.Prevent, pipeline.Delivery, "pipeline delivery should be prevented after running the pipeline");
     }
 }

@@ -14,8 +14,8 @@ public interface IConditionEvaluator
     /// <remarks>The evaluation depends on the variables and state available in the provided pipeline context.</remarks>
     /// <param name="expression">The condition expression to evaluate. Must be a valid logical expression supported by the pipeline.
     /// Parameters of this expression reference to the pipeline context data.</param>
-    /// <param name="context">The pipeline context that provides data for evaluating the condition. Cannot be null.</param>
+    /// <param name="expressionParameters">The expression parameters containing a key the parameter name in the format 'stepId.resultId' and as value the parameters value.</param>
     /// <returns>true if the condition evaluates to true in the given context; otherwise, false. It the referenced expression parameters are not present, false.</returns>
     /// <exception cref="ArgumentNullException">Thrown if the expression is syntacticall invalid.</exception>"
-    Task<bool> EvaluateConditionAsync(string expression, PipelineContext context);
+    Task<bool> EvaluateConditionAsync(string expression, Dictionary<string, object?> expressionParameters);
 }

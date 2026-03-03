@@ -1,6 +1,6 @@
-﻿using NCalc;
+﻿using Bogus.DataSets;
+using NCalc;
 using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace Geopilot.Api.Pipeline;
 
@@ -12,9 +12,6 @@ namespace Geopilot.Api.Pipeline;
 /// decision-making in pipeline workflows.</remarks>
 public class ConditionEvaluator : IConditionEvaluator
 {
-    private static char parameterSeparator = '.';
-    private static string parameterPattern = "^(\\w+)[" + parameterSeparator + "](\\w+)$";
-
     private readonly ILogger<ConditionEvaluator> logger;
 
     /// <summary>
@@ -27,34 +24,16 @@ public class ConditionEvaluator : IConditionEvaluator
     }
 
     /// <inheritdoc />
-    public async Task<bool> EvaluateConditionAsync(string expression, PipelineContext context)
+    public async Task<bool> EvaluateConditionAsync(string expression, Dictionary<string, object?> expressionParameters)
     {
         var matematicalExpression = new AsyncExpression(expression, ExpressionOptions.AllowNullParameter);
-        matematicalExpression.EvaluateParameterAsync += async (name, args) =>
-        {
-            var match = Regex.Match(name, parameterPattern);
-            if (match.Success)
+
+        matematicalExpression.GetParameterNames()
+            .ForEach(paramName =>
             {
-                var parameterSplit = name.Split(parameterSeparator, 2, StringSplitOptions.RemoveEmptyEntries);
-                var stepId = parameterSplit[0];
-                if (context.StepResults.TryGetValue(stepId, out var stepResult))
-                {
-                    var outputId = parameterSplit[1];
-                    if (stepResult.Outputs.TryGetValue(outputId, out var output))
-                    {
-                        args.Result = output.Data;
-                    }
-                    else
-                    {
-                        logger.LogWarning($"Output '{outputId}' was not found in step '{stepId}'.");
-                    }
-                }
-                else
-                {
-                    logger.LogWarning($"step '{stepId}' was not found in the pipeline context.");
-                }
-            }
-        };
+                if (expressionParameters.TryGetValue(paramName, out var parameterValue))
+                    matematicalExpression.Parameters[paramName] = parameterValue;
+            });
 
         var expressionResult = await matematicalExpression.EvaluateAsync();
         if (expressionResult is bool)

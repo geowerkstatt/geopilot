@@ -19,7 +19,7 @@ public class PipelineStepPreConditionConfig
     /// The expression typically references the pipeline context data. And evaluates to <see langword="true"/> or
     /// <see langword="false"/> based on the current state of the pipeline.</remarks>
     [YamlMember(Alias = "skip_condition")]
-    public required string SkipCondition { get; set; }
+    public string? SkipCondition { get; set; }
 
     /// <summary>
     /// Gets or sets the boolean expression that determines when an operation is considered to have failed.
@@ -29,5 +29,5 @@ public class PipelineStepPreConditionConfig
     /// The expression typically references the pipeline context data. And evaluates to <see langword="true"/> or
     /// <see langword="false"/> based on the current state of the pipeline.</remarks>
     [YamlMember(Alias = "fail_condition")]
-    public required string FailCondition { get; set; }
+    public string? FailCondition { get; set; }
 }
