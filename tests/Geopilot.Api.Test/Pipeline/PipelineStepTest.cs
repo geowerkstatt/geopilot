@@ -414,7 +414,7 @@ public class PipelineStepTest
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
         Assert.Contains("non-nullable", exception.Message);
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvokations, "Process Run method was invoked.");
     }
 
@@ -452,7 +452,7 @@ public class PipelineStepTest
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
         Assert.AreEqual("The mapped input value of type <System.String> was not assignable to parameter <booleanData> of type <System.Boolean>.", exception.Message);
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvokations, "Process Run method was invoked.");
     }
 
@@ -491,7 +491,7 @@ public class PipelineStepTest
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
         Assert.AreEqual("At least one of the mapped input values was not assignable to the element type <String> of parameter <stringData> of type <System.String[]>.", exception.Message);
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvokations, "Process Run method was invoked.");
     }
 
@@ -535,7 +535,7 @@ public class PipelineStepTest
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
         Assert.AreEqual("Could not find matching data for parameter <data> of type <System.String> in process run method.", exception.Message);
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked.");
     }
 
@@ -579,7 +579,7 @@ public class PipelineStepTest
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
         Assert.AreEqual("Could not find matching data for parameter <data> of type <System.String> in process run method.", exception.Message);
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
 
@@ -625,7 +625,7 @@ public class PipelineStepTest
         Assert.AreEqual("The process <MockPipelineProcessException> threw an exception.", exception.Message);
         Assert.AreEqual(typeof(InvalidOperationException), exception.InnerException?.GetType());
         Assert.AreEqual("Test exception during process run.", exception.InnerException?.Message);
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
 
@@ -673,7 +673,7 @@ public class PipelineStepTest
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
         Assert.AreEqual("Output config is missing 'take' or 'as', or the process output (referenced by 'take') was not found in the output of the process. This error should not occur. Please consolidate the pipeline validation logic.", exception.Message);
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
 

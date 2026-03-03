@@ -39,7 +39,7 @@ public sealed class Pipeline : IPipeline
             {
                 return PipelineState.Pending;
             }
-            else if (stepStates.Contains(StepState.Failed))
+            else if (stepStates.Contains(StepState.Error))
             {
                 return PipelineState.Failed;
             }
@@ -47,7 +47,7 @@ public sealed class Pipeline : IPipeline
             {
                 return PipelineState.Running;
             }
-            else if (stepStates.All(s => s == StepState.Success))
+            else if (stepStates.All(s => s == StepState.Success || s == StepState.Skipped))
             {
                 return PipelineState.Success;
             }

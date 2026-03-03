@@ -14,6 +14,11 @@ public enum StepState
     Pending,
 
     /// <summary>
+    /// Indicates that the process or operation was skipped.
+    /// </summary>
+    Skipped,
+
+    /// <summary>
     /// Indicates that the process or operation is currently running.
     /// </summary>
     Running,
@@ -26,5 +31,5 @@ public enum StepState
     /// <summary>
     /// Indicates that the process or operation has failed.
     /// </summary>
-    Failed,
+    Error,
 }

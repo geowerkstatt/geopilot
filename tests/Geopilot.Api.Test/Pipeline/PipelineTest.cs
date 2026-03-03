@@ -10,12 +10,15 @@ namespace Geopilot.Api.Test.Pipeline;
 public class PipelineTest
 {
     [TestMethod(DisplayName = "Pipeline State Test")]
-    [DataRow(PipelineState.Pending, new[] { StepState.Pending, StepState.Pending })]
-    [DataRow(PipelineState.Running, new[] { StepState.Running, StepState.Pending })]
-    [DataRow(PipelineState.Pending, new StepState[0])]
-    [DataRow(PipelineState.Failed, new[] { StepState.Success, StepState.Failed, StepState.Pending })]
-    [DataRow(PipelineState.Running, new[] { StepState.Success, StepState.Running })]
-    [DataRow(PipelineState.Running, new[] { StepState.Success, StepState.Pending })]
+    [DataRow(PipelineState.Pending, new[] { StepState.Pending, StepState.Pending }, DisplayName = "all steps pending")]
+    [DataRow(PipelineState.Running, new[] { StepState.Running, StepState.Pending }, DisplayName = "steps pending and running")]
+    [DataRow(PipelineState.Running, new[] { StepState.Skipped, StepState.Running, StepState.Pending }, DisplayName = "steps pending, running and skipped")]
+    [DataRow(PipelineState.Pending, new StepState[0], DisplayName = "no steps")]
+    [DataRow(PipelineState.Failed, new[] { StepState.Success, StepState.Error, StepState.Pending }, DisplayName = "failed steps")]
+    [DataRow(PipelineState.Running, new[] { StepState.Success, StepState.Running }, DisplayName = "running steps")]
+    [DataRow(PipelineState.Running, new[] { StepState.Success, StepState.Pending }, DisplayName = "success and running steps (edge case)")]
+    [DataRow(PipelineState.Success, new[] { StepState.Success, StepState.Success }, DisplayName = "all steps success")]
+    [DataRow(PipelineState.Success, new[] { StepState.Success, StepState.Skipped, StepState.Success }, DisplayName = "all steps success or skipped")]
     public void PipelineStateTest(PipelineState expectedState, IEnumerable<StepState> stepStates)
     {
         var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
@@ -35,7 +38,7 @@ public class PipelineTest
 
         using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, Mock.Of<IPipelineTransferFile>());
 
-        Assert.AreEqual(expectedState, pipeline.State);
+        Assert.AreEqual(expectedState, pipeline.State, "pipeline state not as expected");
     }
 
     [TestMethod]
@@ -48,7 +51,7 @@ public class PipelineTest
         var firstStep = new Mock<IPipelineStep>();
         firstStep.SetupSequence(s => s.State)
             .Returns(StepState.Pending)
-            .Returns(StepState.Failed);
+            .Returns(StepState.Error);
 
         var secondStep = new Mock<IPipelineStep>();
         secondStep.SetupProperty(s => s.State, StepState.Pending);

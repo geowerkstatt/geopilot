@@ -98,7 +98,7 @@ public sealed class PipelineStep : IPipelineStep
         }
         catch (Exception ex)
         {
-            this.State = StepState.Failed;
+            this.State = StepState.Error;
             logger.LogError(ex, $"Error in step <{this.Id}>.");
             throw;
         }
