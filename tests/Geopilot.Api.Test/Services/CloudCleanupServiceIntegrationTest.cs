@@ -39,7 +39,7 @@ public class CloudCleanupServiceIntegrationTest
         containerClient = blobServiceClient.GetBlobContainerClient(containerName);
         containerClient.CreateIfNotExists();
 
-        storageService = new AzureBlobStorageService(optionsMock.Object);
+        storageService = new AzureBlobStorageService(optionsMock.Object, Mock.Of<ILogger<AzureBlobStorageService>>());
         jobStore = new ValidationJobStore(Mock.Of<IServiceScopeFactory>());
 
         cleanupService = new CloudCleanupService(

@@ -1,5 +1,6 @@
 ﻿using Azure.Storage.Blobs;
 using Geopilot.Api.Services;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
@@ -32,7 +33,7 @@ public class AzureBlobStorageServiceTest
         containerClient = blobServiceClient.GetBlobContainerClient(containerName);
         containerClient.CreateIfNotExists();
 
-        service = new AzureBlobStorageService(optionsMock.Object);
+        service = new AzureBlobStorageService(optionsMock.Object, Mock.Of<ILogger<AzureBlobStorageService>>());
     }
 
     [TestCleanup]
@@ -48,7 +49,7 @@ public class AzureBlobStorageServiceTest
         var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
         optionsMock.Setup(o => o.Value).Returns(options);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => new AzureBlobStorageService(optionsMock.Object));
+        Assert.ThrowsExactly<InvalidOperationException>(() => new AzureBlobStorageService(optionsMock.Object, Mock.Of<ILogger<AzureBlobStorageService>>()));
     }
 
     [TestMethod]
@@ -58,7 +59,7 @@ public class AzureBlobStorageServiceTest
         var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
         optionsMock.Setup(o => o.Value).Returns(options);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => new AzureBlobStorageService(optionsMock.Object));
+        Assert.ThrowsExactly<InvalidOperationException>(() => new AzureBlobStorageService(optionsMock.Object, Mock.Of<ILogger<AzureBlobStorageService>>()));
     }
 
     [TestMethod]
