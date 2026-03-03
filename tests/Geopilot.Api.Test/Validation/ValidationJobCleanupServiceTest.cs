@@ -4,8 +4,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Collections.Immutable;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Geopilot.Api.Test.Validation;
 
@@ -30,7 +28,7 @@ public class ValidationJobCleanupServiceTest
         {
             JobRetention = TimeSpan.FromHours(RetentionHours),
             JobCleanupInterval = TimeSpan.FromHours(24),
-            ValidatorTimeouts = new Dictionary<string, TimeSpan>(),
+            JobTimeout = TimeSpan.FromHours(12),
         };
 
         var optionsMock = new Mock<IOptions<ValidationOptions>>();

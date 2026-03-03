@@ -20,7 +20,6 @@ public class MandateController : ControllerBase
     private readonly ILogger<MandateController> logger;
     private readonly Context context;
     private readonly IValidationService validationService;
-    private readonly IEnumerable<IValidator> validators;
     private readonly IPipelineService pipelineService;
 
     /// <summary>
@@ -29,19 +28,16 @@ public class MandateController : ControllerBase
     /// <param name="logger">Logger for the instance.</param>
     /// <param name="context">Database context for getting mandates.</param>
     /// <param name="validationService">The validation service providing upload file information for filetype matching.</param>
-    /// <param name="validators">The validator providing information about the INTERLIS validation.</param>
     /// <param name="pipelineService">The pipeline service providing information about available pipelines for validation during creating or updating mandates.</param>
     public MandateController(
         ILogger<MandateController> logger,
         Context context,
         IValidationService validationService,
-        IEnumerable<IValidator> validators,
         IPipelineService pipelineService)
     {
         this.logger = logger;
         this.context = context;
         this.validationService = validationService;
-        this.validators = validators;
         this.pipelineService = pipelineService;
     }
 
@@ -147,9 +143,6 @@ public class MandateController : ControllerBase
             if (!mandate.SetPolygonFromCoordinates())
                 return BadRequest("Invalid coordinates for spatial extent.");
 
-            if (!await IsValidInterlisProfile(mandate.InterlisValidationProfile))
-                return BadRequest($"INTERLIS validation profile <{mandate.InterlisValidationProfile}> does not exist.");
-
             if (!IsValidPipeline(mandate.PipelineId))
                 return BadRequest($"Pipeline <{mandate.PipelineId}> does not exist.");
 
@@ -207,9 +200,6 @@ public class MandateController : ControllerBase
             if (!mandate.SetPolygonFromCoordinates())
                 return BadRequest("Invalid coordinates for spatial extent.");
 
-            if (!await IsValidInterlisProfile(mandate.InterlisValidationProfile))
-                return BadRequest($"INTERLIS validation profile <{mandate.InterlisValidationProfile}> does not exist.");
-
             if (!IsValidPipeline(mandate.PipelineId))
                 return BadRequest($"Pipeline <{mandate.PipelineId}> does not exist.");
 
@@ -242,17 +232,6 @@ public class MandateController : ControllerBase
             logger.LogError(e, $"An error occured while updating the mandate.");
             return Problem(e.Message);
         }
-    }
-
-    private async Task<bool> IsValidInterlisProfile(string? profile)
-    {
-        if (profile == null) return true;
-
-        var interlisValidator = validators.FirstOrDefault();
-        if (interlisValidator == null) return false;
-
-        var supportedProfiles = await interlisValidator.GetSupportedProfilesAsync();
-        return supportedProfiles.Any(p => string.Equals(p.Id, profile, StringComparison.Ordinal));
     }
 
     private bool IsValidPipeline(string? pipelineId)

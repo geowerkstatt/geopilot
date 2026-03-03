@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Geopilot.Api;
+﻿namespace Geopilot.Api;
 
 /// <summary>
 /// Configuration options for running and managing validation jobs.
@@ -18,7 +16,7 @@ public class ValidationOptions
     public TimeSpan JobCleanupInterval { get; set; }
 
     /// <summary>
-    /// The timeout durations for each validator.
+    /// The duration after which a job should time out if it has not completed.
     /// </summary>
-    public required Dictionary<string, TimeSpan> ValidatorTimeouts { get; set; }
+    public required TimeSpan JobTimeout { get; set; }
 }

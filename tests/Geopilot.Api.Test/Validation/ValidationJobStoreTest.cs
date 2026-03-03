@@ -1,16 +1,31 @@
-﻿using Moq;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 
 namespace Geopilot.Api.Validation;
 
 [TestClass]
 public class ValidationJobStoreTest
 {
+    private Mock<IServiceScopeFactory> serviceScopeFactoryMock;
+    private Mock<IFileProvider> fileProviderMock;
+
     private ValidationJobStore store;
 
     [TestInitialize]
     public void Initialize()
     {
-        store = new ValidationJobStore();
+        serviceScopeFactoryMock = new Mock<IServiceScopeFactory>(MockBehavior.Loose);
+        fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
+
+        store = new ValidationJobStore(serviceScopeFactoryMock.Object);
+
+        var serviceScopeMock = new Mock<IServiceScope>(MockBehavior.Loose);
+        var serviceProviderMock = new Mock<IServiceProvider>(MockBehavior.Loose);
+        serviceScopeFactoryMock.Setup(x => x.CreateScope()).Returns(serviceScopeMock.Object);
+        serviceScopeMock.SetupGet(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
+        serviceProviderMock.Setup(p => p.GetService(typeof(IFileProvider))).Returns(fileProviderMock.Object);
     }
 
     [TestMethod]
@@ -77,114 +92,59 @@ public class ValidationJobStoreTest
         var mandateId = 123;
         store.AddFileToJob(job.Id, "a", "b");
 
-        var validator1 = new Mock<IValidator>();
-        validator1.SetupGet(v => v.Name).Returns("v1");
-        var validator2 = new Mock<IValidator>();
-        validator2.SetupGet(v => v.Name).Returns("v2");
+        var pipeline = new Mock<IPipeline>();
 
-        var validators = new List<IValidator> { validator1.Object, validator2.Object };
-        store.StartJob(job.Id, validators, mandateId);
+        store.StartJob(job.Id, pipeline.Object, mandateId);
         var updated = store.GetJob(job.Id);
 
         Assert.IsNotNull(updated);
         Assert.AreEqual(Status.Processing, updated.Status);
         Assert.AreEqual(mandateId, updated.MandateId);
-        Assert.HasCount(2, updated.ValidatorResults);
-        Assert.IsTrue(updated.ValidatorResults.ContainsKey("v1"));
-        Assert.IsTrue(updated.ValidatorResults.ContainsKey("v2"));
+        Assert.HasCount(1, updated.ValidatorResults);
 
-        // Check that validators are in the queue
+        // Check that pipeline is in the queue once
         var queue = store.ValidationQueue;
-        var readValidators = new List<IValidator>();
-        while (queue.TryRead(out var v))
-            readValidators.Add(v);
+        var readPipelines = new List<IPipeline>();
+        while (queue.TryRead(out var p))
+            readPipelines.Add(p);
 
-        Assert.HasCount(2, readValidators);
-        Assert.Contains(validator1.Object, readValidators);
-        Assert.Contains(validator2.Object, readValidators);
-    }
-
-    [TestMethod]
-    public void StartJobThrowsIfNoValidators()
-    {
-        var job = store.CreateJob();
-        store.AddFileToJob(job.Id, "a", "b");
-        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(job.Id, new List<IValidator>(), 0));
+        Assert.HasCount(1, readPipelines);
+        Assert.Contains(pipeline.Object, readPipelines);
     }
 
     [TestMethod]
     public void StartJobThrowsIfJobNotFound()
     {
-        var validator = new Mock<IValidator>();
-        validator.SetupGet(v => v.Name).Returns("v1");
-        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(Guid.NewGuid(), new List<IValidator> { validator.Object }, 0));
+        var pipeline = new Mock<IPipeline>();
+        Assert.ThrowsExactly<ArgumentException>(() => store.StartJob(Guid.NewGuid(), pipeline.Object, 0));
     }
 
     [TestMethod]
     public void StartJobThrowsIfStatusNotReady()
     {
         var job = store.CreateJob();
-        var validator = new Mock<IValidator>();
-        validator.SetupGet(v => v.Name).Returns("v1");
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.StartJob(job.Id, new List<IValidator> { validator.Object }, 0));
+        var pipeline = new Mock<IPipeline>();
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.StartJob(job.Id, pipeline.Object, 0));
     }
 
     [TestMethod]
     public void AddValidatorResult()
     {
         var job = store.CreateJob();
-        store.AddFileToJob(job.Id, "a", "b");
+        store.AddFileToJob(job.Id, "original.xtf", "temp.xtf");
 
-        var validator = new Mock<IValidator>();
-        validator.SetupGet(v => v.Name).Returns("v1");
-        var validators = new List<IValidator> { validator.Object };
-        store.StartJob(job.Id, validators, 0);
+        fileProviderMock.Setup(p => p.Initialize(job.Id));
+        fileProviderMock.Setup(p => p.CreateFileWithRandomName(".xtf"));
+
+        var pipeline = new Mock<IPipeline>();
+        store.StartJob(job.Id, pipeline.Object, 0);
 
         var result = new ValidatorResult(ValidatorResultStatus.Completed, "some message");
-        store.AddValidatorResult(validator.Object, result);
+        store.AddValidatorResult(pipeline.Object, result);
         var updated = store.GetJob(job.Id);
 
         Assert.IsNotNull(updated);
         Assert.AreEqual(Status.Completed, updated.Status);
-        Assert.AreEqual(result, updated.ValidatorResults["v1"]);
-    }
-
-    [TestMethod]
-    public void AddValidatorResultThrowsForSameValidatorTwice()
-    {
-        var job = store.CreateJob();
-        store.AddFileToJob(job.Id, "a", "b");
-
-        var validator = new Mock<IValidator>();
-        validator.SetupGet(v => v.Name).Returns("v1");
-        var validators = new List<IValidator> { validator.Object };
-        store.StartJob(job.Id, validators, 0);
-
-        // Complete the job
-        var result = new ValidatorResult(ValidatorResultStatus.Completed, "some message");
-        store.AddValidatorResult(validator.Object, result);
-
-        // Try to add again, should throw
-        Assert.ThrowsExactly<ArgumentException>(() => store.AddValidatorResult(validator.Object, result));
-    }
-
-    [TestMethod]
-    public void AddValidatorResultThrowsForUnregisteredValidator()
-    {
-        var job = store.CreateJob();
-        store.AddFileToJob(job.Id, "a", "b");
-
-        var registeredValidator = new Mock<IValidator>();
-        registeredValidator.SetupGet(v => v.Name).Returns("registeredValidator");
-        var validators = new List<IValidator> { registeredValidator.Object };
-        store.StartJob(job.Id, validators, 0);
-
-        var unregisteredValidator = new Mock<IValidator>();
-        unregisteredValidator.SetupGet(v => v.Name).Returns("unregisteredValidator");
-
-        var result = new ValidatorResult(ValidatorResultStatus.Completed, "some message");
-
-        // Try to add result for unregistered validator
-        Assert.ThrowsExactly<ArgumentException>(() => store.AddValidatorResult(unregisteredValidator.Object, result));
+        Assert.AreEqual(result.StatusMessage, updated.ValidatorResults["INTERLIS"]?.StatusMessage);
     }
 }

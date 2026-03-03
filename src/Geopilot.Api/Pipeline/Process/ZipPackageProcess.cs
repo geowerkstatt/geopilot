@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.IO.Compression;
 
@@ -9,8 +8,8 @@ namespace Geopilot.Api.Pipeline.Process;
 /// Represents a pipeline process that handles packaging <see cref="IPipelineTransferFile"/> to a ZIP file which is also provided in a <see cref="IPipelineTransferFile"/>.
 /// </summary>
 /// <remarks>This class is intended for use within a data processing pipeline where ZIP package handling of <see cref="IPipelineTransferFile"/> is required.
-/// All <see cref="IPipelineTransferFile"/> provided in the input will be included in the created ZIP archive. The resulting ZIP file is then made available as an output of the process.
-/// The ZIP archive is provided under the key 'zip_package' in the output.</remarks>
+/// All non-null <see cref="IPipelineTransferFile"/> provided in the input will be included in the created ZIP archive. The resulting ZIP file is then made available as an output of the process.
+/// The ZIP archive is provided under the key 'zip_package' in the output. If no valid input files are provided, null is returned.</remarks>
 internal class ZipPackageProcess
 {
     private const string OutputMappingZipPackage = "zip_package";
@@ -47,32 +46,43 @@ internal class ZipPackageProcess
     /// </summary>
     /// <param name="input">An array of input files to include in the ZIP archive. Each file must implement the IPipelineTransferFile interface.</param>
     /// <returns>A dictionary containing a single entry that maps the output key to the generated ZIP file as a
-    /// PipelineTransferFile instance.</returns>
+    /// PipelineTransferFile instance, or null if no valid input files were provided.</returns>
     /// <exception cref="ArgumentException">Thrown if no input files are provided.</exception>
     [PipelineProcessRun]
-    public async Task<Dictionary<string, object>> RunAsync(params IPipelineTransferFile[] input)
+    public async Task<Dictionary<string, object?>> RunAsync(params IPipelineTransferFile?[] input)
     {
         if (input.Length == 0)
         {
-            var errorMessage = "ZipPackageProcess: No valid input files found.";
+            var errorMessage = "ZipPackageProcess: No input files provided.";
             logger.LogError(errorMessage);
             throw new ArgumentException(errorMessage);
         }
 
-        var zipTransferFile = new PipelineTransferFile(ArchiveFileName, Path.GetTempFileName().Replace(".tmp", ".zip"));
-        using (var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create))
-        using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))
+        // Filter out null values, by casting to non-nullable IPipelineTransferFile
+        var validFiles = input.OfType<IPipelineTransferFile>().ToArray();
+        PipelineTransferFile? zipTransferFile = null;
+
+        if (validFiles.Length == 0)
         {
-            foreach (var file in input)
+            logger.LogWarning("ZipPackageProcess: No valid input files found. Returning null.");
+        }
+        else
+        {
+            zipTransferFile = new PipelineTransferFile(ArchiveFileName, Path.GetTempFileName().Replace(".tmp", ".zip"));
+            using (var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create))
+            using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))
             {
-                var zipEntry = zipArchive.CreateEntry(file.OriginalFileName);
-                using var zipEntryStream = zipEntry.Open();
-                using var fileStream = file.OpenFileStream();
-                fileStream.CopyTo(zipEntryStream);
+                foreach (var file in validFiles)
+                {
+                    var zipEntry = zipArchive.CreateEntry(file.OriginalFileName);
+                    using var zipEntryStream = zipEntry.Open();
+                    using var fileStream = file.OpenFileStream();
+                    fileStream.CopyTo(zipEntryStream);
+                }
             }
         }
 
-        return new Dictionary<string, object>()
+        return new Dictionary<string, object?>()
         {
             { OutputMappingZipPackage, zipTransferFile },
         };

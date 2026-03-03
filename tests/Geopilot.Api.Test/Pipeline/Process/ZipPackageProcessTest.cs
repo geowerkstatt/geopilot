@@ -44,12 +44,44 @@ public class ZipPackageProcessTest
     }
 
     [TestMethod]
-    public void NoInputFilesProvided()
+    public async Task NoInputFilesProvided()
     {
         var parameterization = new Parameterization();
         var process = new ZipPackageProcess();
         process.Initialize(parameterization);
-        var exception = Assert.Throws<ArgumentException>(() => Task.Run(() => process.RunAsync(Array.Empty<IPipelineTransferFile>())).GetAwaiter().GetResult());
-        Assert.AreEqual("ZipPackageProcess: No valid input files found.", exception.Message);
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(Array.Empty<IPipelineTransferFile>()));
+        Assert.AreEqual("ZipPackageProcess: No input files provided.", exception.Message);
+    }
+
+    [TestMethod]
+    public async Task AllInputFilesAreNull()
+    {
+        var parameterization = new Parameterization();
+        var process = new ZipPackageProcess();
+        process.Initialize(parameterization);
+        var processResult = await process.RunAsync(new IPipelineTransferFile?[] { null, null, null });
+        Assert.IsNotNull(processResult);
+        Assert.HasCount(1, processResult);
+        processResult.TryGetValue("zip_package", out var outputData);
+        Assert.IsNull(outputData);
+    }
+
+    [TestMethod]
+    public async Task MixedNullAndValidInputFiles()
+    {
+        var parameterization = new Parameterization()
+            {
+                { "archive_file_name", "mixedArchive" },
+            };
+        var process = new ZipPackageProcess();
+        process.Initialize(parameterization);
+        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var processResult = await process.RunAsync(new IPipelineTransferFile?[] { null, uploadFile, null });
+        Assert.IsNotNull(processResult);
+        Assert.HasCount(1, processResult);
+        processResult.TryGetValue("zip_package", out var outputData);
+        var zipArchive = outputData as IPipelineTransferFile;
+        Assert.IsNotNull(zipArchive);
+        Assert.AreEqual("mixedArchive.zip", zipArchive.OriginalFileName);
     }
 }

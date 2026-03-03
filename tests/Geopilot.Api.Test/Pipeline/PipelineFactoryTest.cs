@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -40,7 +41,7 @@ public class PipelineFactoryTest
     public void CreatePipelineByIdButPipelineNotDefined()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("foo"));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("foo", Mock.Of<IPipelineTransferFile>()));
         Assert.AreEqual("pipeline for 'foo' not found", exception.Message);
     }
 
@@ -48,7 +49,7 @@ public class PipelineFactoryTest
     public void CreateBasicPipeline()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
-        using var pipeline = factory.CreatePipeline("ili_validation");
+        using var pipeline = factory.CreatePipeline("ili_validation", Mock.Of<IPipelineTransferFile>());
         Assert.AreEqual(PipelineState.Pending, pipeline.State, "pipeline state not as expected");
         Assert.AreEqual(StepState.Pending, pipeline.Steps[0].State, "step state not as expected");
         Assert.IsNotNull(pipeline, "pipeline not created");
@@ -105,7 +106,7 @@ public class PipelineFactoryTest
     public void CreateBasicPipelineNoProcessConfigOverwrite()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipelineNoProcessConfigOverwrite");
-        using var pipeline = factory.CreatePipeline("ili_validation");
+        using var pipeline = factory.CreatePipeline("ili_validation", Mock.Of<IPipelineTransferFile>());
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(1, pipeline.Steps);
         var validationStep = pipeline.Steps[0];

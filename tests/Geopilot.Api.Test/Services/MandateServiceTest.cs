@@ -2,9 +2,6 @@
 using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Geopilot.Api.Test.Services;
 
