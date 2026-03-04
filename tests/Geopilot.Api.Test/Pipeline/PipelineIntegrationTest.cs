@@ -146,6 +146,7 @@ public class PipelineIntegrationTest
         var context = await pipeline.Run(CancellationToken.None);
 
         Assert.AreEqual(PipelineState.Success, pipeline.State);
+        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[1].State);
 
@@ -167,7 +168,7 @@ public class PipelineIntegrationTest
         Assert.HasCount(3, stepResults);
         Assert.IsTrue(stepResults.ContainsKey(validationStepId));
         var validationSetpResult = stepResults[validationStepId];
-        Assert.HasCount(2, validationSetpResult.Outputs, "validation step has not the expected number of data");
+        Assert.HasCount(3, validationSetpResult.Outputs, "validation step has not the expected number of data");
 
         Assert.IsTrue(stepResults.ContainsKey(zipPackageStepId));
         var zipPackageStepResult = stepResults[zipPackageStepId];
