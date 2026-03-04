@@ -65,24 +65,25 @@ public class ValidationRunner : BackgroundService
 
     private static ValidatorResult MapToValidatorResult(IPipeline pipeline, PipelineContext context)
     {
-        var status = MapPipelineStatusToValidatorResultStatus(pipeline.State, context);
+        var status = MapPipelineStatusToValidatorResultStatus(pipeline, context);
         var statusMessage = context.StepResults["validation"].Outputs["status_message"].Data as string;
         var logFiles = ExtractLogFiles(context);
         return new ValidatorResult(status, statusMessage, logFiles.ToImmutableDictionary());
     }
 
-    private static ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(PipelineState pipelineState, PipelineContext context)
+    private static ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(IPipeline pipeline, PipelineContext context)
     {
-        if (context.StepResults["validation"].Outputs["validation_successful"].Data is bool isSuccessful && !isSuccessful)
+        if (pipeline.Delivery == PipelineDelivery.Prevent)
         {
             return ValidatorResultStatus.CompletedWithErrors;
         }
 
+        var pipelineState = pipeline.State;
         return pipelineState switch
         {
             PipelineState.Success => ValidatorResultStatus.Completed,
             PipelineState.Failed => ValidatorResultStatus.Failed,
-            _ => throw new ArgumentOutOfRangeException(nameof(pipelineState), $"Unexpected pipeline state: {pipelineState}"),
+            _ => throw new InvalidOperationException($"Unexpected pipeline state: {pipelineState}"),
         };
     }
 
