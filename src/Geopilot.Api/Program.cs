@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
@@ -93,6 +94,11 @@ builder.Services.AddSwaggerGen(options =>
         Version = "1.0",
         Title = $"geopilot API Documentation",
     });
+    options.SwaggerDoc("v2", new OpenApiInfo
+    {
+        Version = "2.0",
+        Title = $"geopilot API Documentation",
+    });
 
     // Include existing documentation in Swagger UI.
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
@@ -146,6 +152,24 @@ builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 
 builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("Validation"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
+builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
+builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
+
+if (builder.Configuration.GetValue<bool>("CloudStorage:Enabled"))
+{
+    builder.Services.AddSingleton<ICloudStorageService, AzureBlobStorageService>();
+    builder.Services.AddTransient<ICloudOrchestrationService, CloudOrchestrationService>();
+    builder.Services.AddHostedService<CloudCleanupService>();
+
+    if (builder.Configuration.GetValue<bool>("ClamAV:Enabled"))
+    {
+        builder.Services.AddTransient<ICloudScanService, ClamAvScanService>();
+    }
+    else
+    {
+        builder.Services.AddTransient<ICloudScanService, NoOpScanService>();
+    }
+}
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
@@ -186,6 +210,24 @@ builder.Services
     .AddDbContextCheck<Context>("Database")
     .AddCheck<ValidationServiceHealthCheck>("Validators")
     .AddCheck<StorageHealthCheck>("Storage");
+
+var cloudStorageConfig = builder.Configuration.GetSection("CloudStorage").Get<CloudStorageOptions>()
+    ?? throw new InvalidOperationException("CloudStorage configuration section is missing.");
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("uploadRateLimit", limiter =>
+    {
+        limiter.PermitLimit = cloudStorageConfig.RateLimitRequests;
+        limiter.Window = TimeSpan.FromMinutes(cloudStorageConfig.RateLimitWindowMinutes);
+        limiter.QueueLimit = 0;
+    });
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", cancellationToken);
+    };
+});
 
 // Set the maximum request body size to 100MB
 const int MaxRequestBodySize = 104857600;
@@ -265,6 +307,7 @@ app.Use(async (context, next) =>
 });
 
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

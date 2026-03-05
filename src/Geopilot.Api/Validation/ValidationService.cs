@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.FileAccess;
+﻿using Geopilot.Api.Enums;
+using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Services;
@@ -13,6 +14,7 @@ public class ValidationService : IValidationService
 {
     private readonly IValidationJobStore jobStore;
     private readonly IMandateService mandateService;
+    private readonly ICloudOrchestrationService? cloudOrchestrationService;
 
     private readonly IFileProvider fileProvider;
     private readonly IPipelineFactory pipelineFactory;
@@ -20,11 +22,12 @@ public class ValidationService : IValidationService
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationService"/> class.
     /// </summary>
-    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IPipelineFactory pipelineFactory)
+    public ValidationService(IValidationJobStore validationJobStore, IMandateService mandateService, IFileProvider fileProvider, IPipelineFactory pipelineFactory, ICloudOrchestrationService? cloudOrchestrationService = null)
     {
         this.jobStore = validationJobStore;
         this.mandateService = mandateService;
         this.pipelineFactory = pipelineFactory;
+        this.cloudOrchestrationService = cloudOrchestrationService;
 
         this.fileProvider = fileProvider;
     }
@@ -55,6 +58,15 @@ public class ValidationService : IValidationService
     public async Task<ValidationJob> StartJobAsync(Guid jobId, int mandateId, User? user)
     {
         var validationJob = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
+
+        if (validationJob.UploadMethod == UploadMethod.Cloud)
+        {
+            if (cloudOrchestrationService == null)
+                throw new InvalidOperationException("Cloud storage is not enabled.");
+
+            await cloudOrchestrationService.RunPreflightChecksAsync(jobId);
+            validationJob = await cloudOrchestrationService.StageFilesLocallyAsync(jobId);
+        }
 
         // Check if the user is allowed to start the job with the specified mandate
         var mandate = await mandateService.GetMandateForUser(mandateId, user);

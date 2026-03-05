@@ -6,12 +6,15 @@ import { useTranslation } from "react-i18next";
 import { geopilotTheme } from "../appTheme";
 import { FlexRowBox } from "./styledComponents.ts";
 
+const defaultMaxFileSizeMB = 100;
+
 interface FileDropzoneProps {
   selectedFile?: File;
   setSelectedFile: (file: File | undefined) => void;
   fileExtensions?: string[];
   disabled?: boolean;
   setFileError: (error: string | undefined) => void;
+  maxFileSizeMB?: number;
 }
 
 export const FileDropzone: FC<FileDropzoneProps> = ({
@@ -20,6 +23,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   fileExtensions,
   disabled,
   setFileError,
+  maxFileSizeMB = defaultMaxFileSizeMB,
 }) => {
   const { t } = useTranslation();
   const [acceptsAllFileTypes, setAcceptsAllFileTypes] = useState<boolean>(true);
@@ -76,7 +80,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
     maxFiles: 1,
-    maxSize: 104857600,
+    maxSize: maxFileSizeMB * 1024 * 1024,
     accept: acceptsAllFileTypes
       ? undefined
       : {
@@ -126,7 +130,8 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
           </Typography>
           {fileExtensions && fileExtensions.length > 0 && (
             <Typography variant="caption" className={disabled ? "Mui-disabled" : ""}>
-              {getAcceptedFileTypesText()}&nbsp;(max. 100 MB)
+              {getAcceptedFileTypesText()}&nbsp;(max.{" "}
+              {maxFileSizeMB >= 1024 ? `${(maxFileSizeMB / 1024).toFixed(0)} GB` : `${maxFileSizeMB} MB`})
             </Typography>
           )}
         </>
