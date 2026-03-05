@@ -66,4 +66,58 @@ internal static class PipelineExtensions
 
         return isValid;
     }
+
+    internal static Dictionary<string, object?> ToExpressionParameters(this PipelineContext pipelineContext)
+    {
+        return pipelineContext.ToExpressionParameters(null, null);
+    }
+
+    internal static Dictionary<string, object?> ToExpressionParameters(
+        this PipelineContext pipelineContext,
+        string? stepId,
+        StepResult? stepResult)
+    {
+        var expressionParameters = new Dictionary<string, object?>();
+
+        foreach (var stepResultKeyValuePair in pipelineContext.StepResults)
+        {
+            var currentStepId = stepResultKeyValuePair.Key;
+            var currentStepResult = stepResultKeyValuePair.Value;
+            if (!string.IsNullOrEmpty(currentStepId) && currentStepResult != null)
+            {
+                expressionParameters = AppendExpressionParameters(expressionParameters, currentStepId, currentStepResult.Outputs);
+            }
+        }
+
+        if (stepId != null && stepResult != null)
+        {
+            expressionParameters = AppendExpressionParameters(expressionParameters, stepId, stepResult.Outputs);
+        }
+
+        return expressionParameters;
+    }
+
+    private static Dictionary<string, object?> AppendExpressionParameters(
+        Dictionary<string, object?> src,
+        string stepId,
+        Dictionary<string, StepOutput> outputs)
+    {
+        Dictionary<string, object?> cpy = new Dictionary<string, object?>(src);
+        foreach (var output in outputs)
+        {
+            var resultKey = output.Key;
+            var resultValue = output.Value.Data;
+            if (!string.IsNullOrEmpty(resultKey))
+            {
+                cpy[ToParameterKey(stepId, resultKey)] = resultValue;
+            }
+        }
+
+        return cpy;
+    }
+
+    private static string ToParameterKey(string stepId, string resultKey)
+    {
+        return $"{stepId}.{resultKey}";
+    }
 }

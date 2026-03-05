@@ -33,10 +33,15 @@ public sealed class PipelineStep : IPipelineStep
     public List<OutputConfig> OutputConfigs { get; }
 
     /// <inheritdoc/>
+    public PipelineStepConditionsConfig? StepConditions { get; }
+
+    /// <inheritdoc/>
     public object Process { get; }
 
     /// <inheritdoc/>
     public StepState State { get; set; }
+
+    private readonly ConditionEvaluator conditionEvaluator = new ConditionEvaluator();
 
     private ILogger<PipelineStep> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<PipelineStep>();
 
@@ -47,18 +52,21 @@ public sealed class PipelineStep : IPipelineStep
     /// <param name="displayName">The display name for the step.</param>
     /// <param name="inputConfig">The input configuration for the step.</param>
     /// <param name="outputConfig">The output configuration for the step.</param>
+    /// <param name="stepConditions">The step conditions for the step.</param>
     /// <param name="process">The process associated with the step.</param>
     public PipelineStep(
         string id,
         Dictionary<string, string> displayName,
         List<InputConfig> inputConfig,
         List<OutputConfig> outputConfig,
+        PipelineStepConditionsConfig? stepConditions,
         object process)
     {
         this.Id = id;
         this.DisplayName = displayName;
         this.InputConfig = inputConfig;
         this.OutputConfigs = outputConfig;
+        this.StepConditions = stepConditions;
         this.Process = process;
 
         this.State = StepState.Pending;
@@ -69,38 +77,105 @@ public sealed class PipelineStep : IPipelineStep
     {
         try
         {
-            ArgumentNullException.ThrowIfNull(context, nameof(context));
+            if (this.StepConditions != null)
+            {
+                if (await this.FailStep(this.StepConditions.Pre, context))
+                {
+                    this.State = StepState.Error;
+                    logger.LogInformation($"step '{this.Id}' failed due to pre-condition.");
+                    return new StepResult();
+                }
+                else if (await this.SkipStepExecution(this.StepConditions.Pre, context))
+                {
+                    this.State = StepState.Skipped;
+                    logger.LogInformation($"step '{this.Id}' skipped due to pre-condition.");
+                    return new StepResult();
+                }
+            }
 
             this.State = StepState.Running;
 
-            var runMethod = GetProcessRunMethod();
-            var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
+            var stepResult = await ExecuteProcess(context, cancellationToken);
 
-            var resultTask = runMethod.Invoke(Process, runParams) as Task<Dictionary<string, object>>;
-
-            if (resultTask == null)
+            if (this.StepConditions != null && await this.FailStep(this.StepConditions.Post, context, stepResult))
             {
-                throw new PipelineRunException($"The process <{Process.GetType().Name}> did not return a task.");
+                this.State = StepState.Error;
+                logger.LogInformation($"step '{this.Id}' failed due to post-condition.");
+            }
+            else
+            {
+                this.State = StepState.Success;
             }
 
-            try
-            {
-                await resultTask;
-            }
-            catch (Exception ex)
-            {
-                throw new PipelineRunException($"The process <{Process.GetType().Name}> threw an exception.", ex);
-            }
-
-            var stepResult = CreateStepResult(resultTask.Result);
-            this.State = StepState.Success;
             return stepResult;
         }
         catch (Exception ex)
         {
-            this.State = StepState.Failed;
+            this.State = StepState.Error;
             logger.LogError(ex, $"Error in step <{this.Id}>.");
             throw;
+        }
+    }
+
+    private async Task<StepResult> ExecuteProcess(PipelineContext context, CancellationToken cancellationToken)
+    {
+        var runMethod = GetProcessRunMethod();
+        var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
+        var resultTask = runMethod.Invoke(Process, runParams) as Task<Dictionary<string, object>>;
+
+        if (resultTask == null)
+        {
+            throw new PipelineRunException($"The process <{Process.GetType().Name}> did not return a task.");
+        }
+
+        try
+        {
+            await resultTask;
+        }
+        catch (Exception ex)
+        {
+            throw new PipelineRunException($"The process <{Process.GetType().Name}> threw an exception.", ex);
+        }
+
+        return CreateStepResult(resultTask.Result);
+    }
+
+    private async Task<bool> SkipStepExecution(PipelineStepPreConditionConfig? condition, PipelineContext context)
+    {
+        if (condition != null && condition.SkipCondition != null)
+        {
+            var expressionParameters = context.ToExpressionParameters();
+            return await this.conditionEvaluator.EvaluateConditionAsync(condition.SkipCondition, expressionParameters);
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    private async Task<bool> FailStep(PipelineStepPreConditionConfig? condition, PipelineContext context)
+    {
+        if (condition != null && condition.FailCondition != null)
+        {
+            var expressionParameters = context.ToExpressionParameters();
+            return await this.conditionEvaluator.EvaluateConditionAsync(condition.FailCondition, expressionParameters);
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    private async Task<bool> FailStep(PipelineStepPostConditionConfig? condition, PipelineContext context, StepResult stepResult)
+    {
+        if (condition != null && condition.FailCondition != null)
+        {
+            var expressionParameters = context.ToExpressionParameters(this.Id, stepResult);
+            return await this.conditionEvaluator.EvaluateConditionAsync(condition.FailCondition, expressionParameters);
+        }
+        else
+        {
+            return false;
         }
     }
 

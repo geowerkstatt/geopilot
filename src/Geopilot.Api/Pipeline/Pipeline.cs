@@ -16,6 +16,8 @@ public sealed class Pipeline : IPipeline
         Steps.ForEach(step => step.Dispose());
     }
 
+    private readonly ConditionEvaluator conditionEvaluator = new ConditionEvaluator();
+
     /// <inheritdoc/>
     public string Id { get; }
 
@@ -24,6 +26,8 @@ public sealed class Pipeline : IPipeline
 
     /// <inheritdoc/>
     public PipelineParametersConfig Parameters { get; }
+
+    private string? deliveryCondition;
 
     /// <inheritdoc/>
     public List<IPipelineStep> Steps { get; }
@@ -39,7 +43,7 @@ public sealed class Pipeline : IPipeline
             {
                 return PipelineState.Pending;
             }
-            else if (stepStates.Contains(StepState.Failed))
+            else if (stepStates.Contains(StepState.Error))
             {
                 return PipelineState.Failed;
             }
@@ -47,7 +51,7 @@ public sealed class Pipeline : IPipeline
             {
                 return PipelineState.Running;
             }
-            else if (stepStates.All(s => s == StepState.Success))
+            else if (stepStates.All(s => s == StepState.Success || s == StepState.Skipped))
             {
                 return PipelineState.Success;
             }
@@ -62,6 +66,9 @@ public sealed class Pipeline : IPipeline
         }
     }
 
+    /// <inheritdoc/>
+    public PipelineDelivery Delivery { get; set; } = PipelineDelivery.Allow;
+
     /// <summary>
     /// The file to be processed by the pipeline.
     /// </summary>
@@ -74,13 +81,21 @@ public sealed class Pipeline : IPipeline
     /// <param name="displayName">The pipelines display name. A human-readable name for the pipeline.</param>
     /// <param name="steps">The steps in the pipeline.</param>
     /// <param name="parameters">The parameters for the pipeline.</param>
+    /// <param name="deliveryCondition">Expression to determine when the pipeline step data can be delivered.</param>
     /// <param name="file">The file to be processed by the pipeline.</param>
-    public Pipeline(string id, Dictionary<string, string> displayName, List<IPipelineStep> steps, PipelineParametersConfig parameters, IPipelineTransferFile file)
+    public Pipeline(
+        string id,
+        Dictionary<string, string> displayName,
+        List<IPipelineStep> steps,
+        PipelineParametersConfig parameters,
+        string? deliveryCondition,
+        IPipelineTransferFile file)
     {
         this.Id = id;
         this.DisplayName = displayName;
         this.Steps = steps;
         this.Parameters = parameters;
+        this.deliveryCondition = deliveryCondition;
         this.file = file;
     }
 
@@ -106,7 +121,26 @@ public sealed class Pipeline : IPipeline
             context.StepResults[step.Id] = stepResult;
         }
 
+        await this.EvaluateDeliveryCondition(context);
+
         return context;
+    }
+
+    private async Task EvaluateDeliveryCondition(PipelineContext context)
+    {
+        if (!string.IsNullOrEmpty(this.deliveryCondition))
+        {
+            var expressionParameters = context.ToExpressionParameters();
+            var allowDelivery = await this.conditionEvaluator.EvaluateConditionAsync(this.deliveryCondition, expressionParameters);
+            if (allowDelivery)
+                this.Delivery = PipelineDelivery.Allow;
+            else
+                this.Delivery = PipelineDelivery.Prevent;
+        }
+        else
+        {
+            this.Delivery = PipelineDelivery.Allow;
+        }
     }
 
     private StepResult CreateUploadStepResult(IPipelineTransferFile file)

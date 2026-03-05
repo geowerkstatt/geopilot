@@ -41,7 +41,7 @@ public class PipelineFactory : IPipelineFactory
 
         if (pipelineConfig != null)
         {
-            return new Pipeline(pipelineConfig.Id, pipelineConfig.DisplayName, CreateSteps(pipelineConfig), pipelineConfig.Parameters, file);
+            return new Pipeline(pipelineConfig.Id, pipelineConfig.DisplayName, CreateSteps(pipelineConfig), pipelineConfig.Parameters, pipelineConfig.DeliveryCondition, file);
         }
         else
         {
@@ -63,6 +63,7 @@ public class PipelineFactory : IPipelineFactory
             stepConfig.DisplayName,
             stepConfig.Input ?? new List<InputConfig>(),
             stepConfig.Output ?? new List<OutputConfig>(),
+            stepConfig.Conditions,
             pipelineProcessFactory.CreateProcess(stepConfig, PipelineProcessConfig.Processes));
     }
 

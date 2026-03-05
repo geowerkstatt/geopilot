@@ -13,6 +13,7 @@ pipelines:
       mapping:
         - file_extension: xtf
           attribute: ili_file
+    delivery_condition: "[validation.successful]"
     steps:
       - id: validation
         display_name:
@@ -36,4 +37,4 @@ pipelines:
           - take: status_message
             as: status_message
           - take: validation_successful
-            as: validation_successful
+            as: successful

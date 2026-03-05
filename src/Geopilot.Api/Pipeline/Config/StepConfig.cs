@@ -48,4 +48,10 @@ public class StepConfig
     [MinLength(1, ErrorMessage = "At least one Step Output is required.")]
     [NoDuplicates(PropertyName = "As")]
     public List<OutputConfig>? Output { get; set; }
+
+    /// <summary>
+    /// Gets or sets the conditions that determine whether the pipeline step should execute or fail.
+    /// </summary>
+    [YamlMember(Alias = "conditions")]
+    public PipelineStepConditionsConfig? Conditions { get; set; }
 }

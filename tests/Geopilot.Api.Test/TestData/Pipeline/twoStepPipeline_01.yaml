@@ -17,6 +17,7 @@ pipelines:
       mapping:
         - file_extension: xtf
           attribute: ili_file
+    delivery_condition: "[validation.successful]"
     steps:
       - id: validation
         display_name:
@@ -36,11 +37,19 @@ pipelines:
             as: xtf_log
             action:
               - DOWNLOAD
+          - take: validation_successful
+            as: successful
       - id: zip_package
         display_name:
           en: Zip Package
         process_id: zip_package_process
         process_config_overwrites:
+        conditions:
+          pre:
+            skip_condition: "[validation.error_log] == null && [validation.xtf_log] == null"
+            fail_condition: "[validation.error_log] == null && [validation.xtf_log] == null"
+          post:
+            fail_condition: "[zip_package.archive] == null"
         input:
           - from: validation
             take: error_log
@@ -53,6 +62,6 @@ pipelines:
             as: input
         output:
           - take: zip_package
-            as: zip_package
+            as: archive
             action:
               - DOWNLOAD
