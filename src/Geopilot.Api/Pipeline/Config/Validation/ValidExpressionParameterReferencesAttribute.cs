@@ -106,13 +106,13 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
         var stepId = parameterParts[0];
         var resultId = parameterParts[1];
 
-        var hasReferenceFromAStep = HasStep(stepId, resultId, currentStep?.Id, allSteps);
-        var hasReferenceFromPipelineParameters = HasStep(stepId, resultId, pipelineParameters);
+        var isValidStepOutputReference = IsValidStepOutputReference(stepId, resultId, currentStep?.Id, allSteps);
+        var isValidPipelineParamReference = IsValidPipelineParamReference(stepId, resultId, pipelineParameters);
 
-        return hasReferenceFromAStep || hasReferenceFromPipelineParameters;
+        return isValidStepOutputReference || isValidPipelineParamReference;
     }
 
-    private static bool HasStep(string stepId, string take, string? currentStepId, List<StepConfig> allSteps)
+    private static bool IsValidStepOutputReference(string stepId, string take, string? currentStepId, List<StepConfig> allSteps)
     {
         if (allSteps != null)
         {
@@ -140,7 +140,7 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
         }
     }
 
-    private static bool HasStep(string stepId, string attribute, PipelineParametersConfig pipelineParameters)
+    private static bool IsValidPipelineParamReference(string stepId, string attribute, PipelineParametersConfig pipelineParameters)
     {
         if (pipelineParameters != null &&
             pipelineParameters.Mappings != null &&
