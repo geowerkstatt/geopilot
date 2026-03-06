@@ -17,6 +17,7 @@ namespace Geopilot.Api.Pipeline.Process;
 /// used concurrently, external synchronization is required.</remarks>
 public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 {
+    private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PipelineProcessFactory> logger;
     private readonly PipelineOptions pipelineOptions;
 
@@ -61,10 +62,12 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// management. If no plugins are configured, the factory will operate without any loaded assemblies.</remarks>
     /// <param name="pipelinePluginOptions">Pipeline plugin options containing configuration settings. Cannot be null.</param>
     /// <param name="logger">Logger instance for logging factory operations. Cannot be null.</param>
-    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILogger<PipelineProcessFactory> logger)
+    /// <param name="loggerFactory">Logger factory for creating loggers for process instances. Cannot be null.</param>
+    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILogger<PipelineProcessFactory> logger, ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(pipelinePluginOptions);
 
+        this.loggerFactory = loggerFactory;
         this.logger = logger;
         this.pipelineOptions = pipelinePluginOptions.Value;
         var processorPlugins = pipelineOptions.Plugins;
@@ -162,8 +165,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
         else if (parameterInfo.ParameterType == typeof(ILogger))
         {
-            using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
-            return factory.CreateLogger(processType);
+            return loggerFactory.CreateLogger(processType);
         }
         else if (!string.IsNullOrEmpty(parameterInfo.Name) && processConfig.TryGetValue(parameterInfo.Name, out var parameterStringValue))
         {

@@ -36,7 +36,8 @@ public class PipelineFactoryTest
         pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
         var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
-        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object);
+        var loggerFactoryMock = new Mock<ILoggerFactory>();
+        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object, loggerFactoryMock.Object);
     }
 
     [TestMethod(DisplayName = "Create Pipeline By Id But Pipeline Not Defined")]

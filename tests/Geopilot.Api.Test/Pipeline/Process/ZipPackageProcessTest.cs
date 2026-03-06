@@ -1,6 +1,8 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Geopilot.Api.Test.Pipeline.Process;
 
@@ -11,7 +13,7 @@ public class ZipPackageProcessTest
     public void SunnyDay()
     {
         var process = new ZipPackageProcess();
-        process.Initialize("myPersonalZipArchive");
+        process.Initialize("myPersonalZipArchive", new Mock<ILogger<ZipPackageProcessTest>>().Object);
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
@@ -59,7 +61,7 @@ public class ZipPackageProcessTest
     public async Task MixedNullAndValidInputFiles()
     {
         var process = new ZipPackageProcess();
-        process.Initialize("mixedArchive");
+        process.Initialize("mixedArchive", new Mock<ILogger<ZipPackageProcessTest>>().Object);
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processResult = await process.RunAsync(new IPipelineTransferFile?[] { null, uploadFile, null });
         Assert.IsNotNull(processResult);

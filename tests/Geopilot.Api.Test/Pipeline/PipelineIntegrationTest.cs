@@ -3,7 +3,6 @@ using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -48,7 +47,9 @@ public class PipelineIntegrationTest
         pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
         var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
-        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object);
+        var loggerFactoryMock = new Mock<ILoggerFactory>();
+        loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object, loggerFactoryMock.Object);
     }
 
     [TestCleanup]
