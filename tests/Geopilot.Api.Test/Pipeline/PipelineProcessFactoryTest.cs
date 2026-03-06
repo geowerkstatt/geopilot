@@ -13,6 +13,7 @@ public class PipelineProcessFactoryTest
 {
     private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
     private Mock<ILogger<PipelineProcessFactory>> loggerMock;
+    private Mock<ILoggerFactory> loggerFactoryMock;
     private PipelineProcessFactory pipelineProcessFactory;
 
     [TestInitialize]
@@ -20,6 +21,7 @@ public class PipelineProcessFactoryTest
     {
         pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
+        loggerFactoryMock = new Mock<ILoggerFactory>();
     }
 
     [TestCleanup]
@@ -62,7 +64,7 @@ public class PipelineProcessFactoryTest
         };
 
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object);
+        pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
         var stepConfig = new StepConfig()

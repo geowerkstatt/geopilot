@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Contracts;
-using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.IO.Compression;
 
@@ -16,7 +15,7 @@ internal class ZipPackageProcess
     private const string OutputMappingZipPackage = "zip_package";
     private const string DefaultArchiveFileName = "archive";
 
-    private ILogger<ZipPackageProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<ZipPackageProcess>();
+    private ILogger logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<ZipPackageProcess>();
 
     private string archiveFileName = DefaultArchiveFileName;
 
@@ -24,9 +23,11 @@ internal class ZipPackageProcess
     /// Initializes the pipeline process with the specified configuration settings.
     /// </summary>
     /// <param name="archiveFileName">The ZIP file name to use for the output archive without file extension. If null, the default name 'archive' will be used.</param>
+    /// <param name="logger">Logger instance for logging messages during the initialization process.</param>
     [PipelineProcessInitialize]
-    public void Initialize(string? archiveFileName)
+    public void Initialize(string? archiveFileName, ILogger logger)
     {
+        this.logger = logger;
         if (!string.IsNullOrEmpty(archiveFileName))
         {
             this.archiveFileName = archiveFileName;

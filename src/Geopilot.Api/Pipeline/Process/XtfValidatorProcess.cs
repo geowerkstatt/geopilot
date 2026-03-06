@@ -30,7 +30,7 @@ internal class XtfValidatorProcess : IDisposable
 
     private static readonly JsonSerializerOptions JsonOptions;
 
-    private ILogger<XtfValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<XtfValidatorProcess>();
+    private ILogger logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<XtfValidatorProcess>();
 
     private HttpClient httpClient = new();
 
@@ -61,8 +61,9 @@ internal class XtfValidatorProcess : IDisposable
     /// <param name="checkServiceBaseUrl">Base URL for the Interlis check service.</param>
     /// <param name="validationProfile">Optional validation profile to use for the validation process.</param>
     /// <param name="pollInterval">Optional polling interval in milliseconds for checking the validation status. If not provided, a default of 2000ms will be used.</param>
+    /// <param name="logger">Logger instance for logging messages during the validation process.</param>
     [PipelineProcessInitialize]
-    public void Initialize(string checkServiceBaseUrl, string? validationProfile, int? pollInterval)
+    public void Initialize(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, ILogger logger)
     {
         this.httpClient.BaseAddress = new Uri(checkServiceBaseUrl);
         this.httpClient.DefaultRequestHeaders.Accept.Clear();
@@ -73,6 +74,8 @@ internal class XtfValidatorProcess : IDisposable
 
         if (pollInterval != null)
             this.pollInterval = TimeSpan.FromMilliseconds((double)pollInterval);
+
+        this.logger = logger;
     }
 
     /// <summary>

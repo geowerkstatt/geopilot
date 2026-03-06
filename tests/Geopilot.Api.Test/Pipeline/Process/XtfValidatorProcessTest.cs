@@ -3,6 +3,7 @@ using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using System.Net;
@@ -179,7 +180,7 @@ public class XtfValidatorProcessTest
         public XtfValidatorProcess Build()
         {
             var process = new XtfValidatorProcess();
-            process.Initialize(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval);
+            process.Initialize(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval, new Mock<ILogger<XtfValidatorProcessTest>>().Object);
 
             var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
             interlisValidatorMessageHandlerMock
