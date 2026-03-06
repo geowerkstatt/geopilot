@@ -67,6 +67,10 @@ public class PipelineIntegrationTest
         var uploadedFileAttribute = "ili_file";
 
         PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
+
         PipelineTransferFile uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         using var pipeline = factory.CreatePipeline("two_steps", uploadFile);
 
