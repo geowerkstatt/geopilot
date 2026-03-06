@@ -50,7 +50,7 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
 
         errorMessages.AddRange(GetExpressionErrorMessages(stepToValidate.Conditions?.Pre?.SkipCondition, pipeline, stepToValidate, "Step-Pre-Skip-Condition"));
         errorMessages.AddRange(GetExpressionErrorMessages(stepToValidate.Conditions?.Pre?.FailCondition, pipeline, stepToValidate, "Step-Pre-Fail-Condition"));
-        errorMessages.AddRange(GetExpressionErrorMessages(stepToValidate.Conditions?.Post?.FailCondition, pipeline, stepToValidate, "Step-Post-Fail-Condition"));
+        errorMessages.AddRange(GetExpressionErrorMessages(stepToValidate.Conditions?.Post?.FailCondition, pipeline, null, "Step-Post-Fail-Condition"));
 
         return errorMessages;
     }

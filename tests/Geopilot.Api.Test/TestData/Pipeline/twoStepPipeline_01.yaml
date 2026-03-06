@@ -31,10 +31,10 @@ pipelines:
             as: iliFile
         output:
           - take: error_log
-            as: error_log
+            as: errorlog
             action:
           - take: xtf_log
-            as: xtf_log
+            as: xtflog
             action:
               - DOWNLOAD
           - take: validation_successful
@@ -46,16 +46,16 @@ pipelines:
         process_config_overwrites:
         conditions:
           pre:
-            skip_condition: "[validation.error_log] == null && [validation.xtf_log] == null"
-            fail_condition: "[validation.error_log] == null && [validation.xtf_log] == null"
+            skip_condition: "[validation.errorlog] == null && [validation.xtflog] == null"
+            fail_condition: "[validation.errorlog] == null && [validation.xtflog] == null"
           post:
             fail_condition: "[zip_package.archive] == null"
         input:
           - from: validation
-            take: error_log
+            take: errorlog
             as: input
           - from: validation
-            take: xtf_log
+            take: xtflog
             as: input
           - from: upload
             take: ili_file
