@@ -17,6 +17,7 @@ namespace Geopilot.Api.Pipeline.Process;
 /// used concurrently, external synchronization is required.</remarks>
 public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 {
+    private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PipelineProcessFactory> logger;
     private readonly PipelineOptions pipelineOptions;
 
@@ -61,10 +62,12 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// management. If no plugins are configured, the factory will operate without any loaded assemblies.</remarks>
     /// <param name="pipelinePluginOptions">Pipeline plugin options containing configuration settings. Cannot be null.</param>
     /// <param name="logger">Logger instance for logging factory operations. Cannot be null.</param>
-    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILogger<PipelineProcessFactory> logger)
+    /// <param name="loggerFactory">Logger factory for creating loggers for process instances. Cannot be null.</param>
+    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILogger<PipelineProcessFactory> logger, ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(pipelinePluginOptions);
 
+        this.loggerFactory = loggerFactory;
         this.logger = logger;
         this.pipelineOptions = pipelinePluginOptions.Value;
         var processorPlugins = pipelineOptions.Plugins;
@@ -147,25 +150,52 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             .ForEach(m =>
             {
                 var parameters = m.GetParameters()
-                    .Select(p => p.ParameterType)
-                    .Select(t => GenerateParameter(t, processParams))
+                    .Select(p => GenerateParameter(p, processType, processParams))
                     .ToArray();
                 m.Invoke(process, parameters);
             });
     }
 
-    private object? GenerateParameter(Type parameterType, Parameterization processConfig)
+    private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig)
     {
-        if (parameterType == typeof(Dictionary<string, string>))
+        if (parameterInfo.ParameterType.IsAssignableFrom(processConfig.GetType()))
         {
             object param = processConfig; // Only required because of a compiler warning. Won't be necessary as soon as there is another mapped parameter type.
             return param;
         }
-        else
+        else if (parameterInfo.ParameterType == typeof(ILogger))
         {
-            logger.LogWarning($"Process initialization: No suitable parameter found for parameter of type <{parameterType.Name}>. Initializing with null.");
-            return null;
+            return loggerFactory.CreateLogger(processType);
         }
+        else if (!string.IsNullOrEmpty(parameterInfo.Name) && processConfig.TryGetValue(parameterInfo.Name, out var parameterStringValue))
+        {
+            if (parameterInfo.ParameterType == typeof(string))
+            {
+                return parameterStringValue;
+            }
+            else if (int.TryParse(parameterStringValue, out var parameterIntValue) && parameterInfo.ParameterType.IsAssignableFrom(parameterIntValue.GetType()))
+            {
+                return parameterIntValue;
+            }
+            else if (double.TryParse(parameterStringValue, out var parameterDoubleValue) && parameterInfo.ParameterType.IsAssignableFrom(parameterDoubleValue.GetType()))
+            {
+                return parameterDoubleValue;
+            }
+            else if (bool.TryParse(parameterStringValue, out var parameterBoolValue) && parameterInfo.ParameterType.IsAssignableFrom(parameterBoolValue.GetType()))
+            {
+                return parameterBoolValue;
+            }
+        }
+
+        if (IsParameterNullable(parameterInfo))
+            return null;
+        else
+            throw new InvalidOperationException($"Process initialization: No suitable parameter found for parameter of type <{parameterInfo.ParameterType.Name}> and name <{parameterInfo.Name}>. Parameter is not nullable, cannot initialize process.");
+    }
+
+    private static bool IsParameterNullable(ParameterInfo parameterInfo)
+    {
+        return new NullabilityInfoContext().Create(parameterInfo).WriteState is NullabilityState.Nullable;
     }
 
     private Parameterization GetMergedParameterization(Parameterization? processBaseConfig, Parameterization? processDefaultConfig, Parameterization? processDefaultConfigOverwrites)

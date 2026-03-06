@@ -2,7 +2,6 @@
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -28,7 +27,7 @@ public class PipelineFactoryTest
                 {
                     "Geopilot.Api.Pipeline.Process.XtfValidatorProcess", new Parameterization()
                     {
-                        { "InterlisCheckServiceUrl", interlisCheckServiceBaseUrl },
+                        { "checkServiceBaseUrl", interlisCheckServiceBaseUrl },
                     }
                 },
             },
@@ -37,7 +36,8 @@ public class PipelineFactoryTest
         pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
         var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
-        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object);
+        var loggerFactoryMock = new Mock<ILoggerFactory>();
+        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object, loggerFactoryMock.Object);
     }
 
     [TestMethod(DisplayName = "Create Pipeline By Id But Pipeline Not Defined")]
@@ -93,16 +93,18 @@ public class PipelineFactoryTest
         AssertOutputConfig(expectedOutputConfig_1, outputConfig_1);
         object stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
-        var expectedDefaultConfig = new Dictionary<string, string>()
-        {
-            { "InterlisCheckServiceUrl", interlisCheckServiceBaseUrl },
-            { "log_level", "DEBUG" },
-            { "profile", "PROFILE-A" },
-        };
-        var stepConfig = typeof(XtfValidatorProcess)
-            ?.GetField("config", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(stepProcess) as Dictionary<string, string>;
-        CollectionAssert.AreEqual(expectedDefaultConfig, stepConfig, "process config not as expected");
+        var configuratedValidationProfile = typeof(XtfValidatorProcess)
+            ?.GetField("validationProfile", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(stepProcess) as string;
+        var configuratedHttpClient = typeof(XtfValidatorProcess)
+            ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(stepProcess) as HttpClient;
+        var configuratedPollInterval = typeof(XtfValidatorProcess)
+            ?.GetField("pollInterval", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(stepProcess);
+        Assert.AreEqual("PROFILE-A", configuratedValidationProfile, "configurated validation profile not as expected");
+        Assert.AreEqual("http://localhost:3080/", configuratedHttpClient?.BaseAddress?.ToString(), "configurated HTTP client base address not as expected");
+        Assert.AreEqual(TimeSpan.FromSeconds(2), configuratedPollInterval, "configurated poll interval not as expected");
         Assert.IsNotNull(stepProcess as XtfValidatorProcess, "process is not of type ILI Validator");
     }
 
@@ -116,14 +118,18 @@ public class PipelineFactoryTest
         var validationStep = pipeline.Steps[0];
         object stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
-        var expectedDefaultConfig = new Dictionary<string, string>()
-        {
-            { "InterlisCheckServiceUrl", interlisCheckServiceBaseUrl },
-        };
-        var stepConfig = typeof(XtfValidatorProcess)
-            ?.GetField("config", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(stepProcess) as Dictionary<string, string>;
-        CollectionAssert.AreEqual(expectedDefaultConfig, stepConfig, "process config not as expected");
+        var configuratedValidationProfile = typeof(XtfValidatorProcess)
+            ?.GetField("validationProfile", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(stepProcess) as string;
+        var configuratedHttpClient = typeof(XtfValidatorProcess)
+            ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(stepProcess) as HttpClient;
+        var configuratedPollInterval = typeof(XtfValidatorProcess)
+            ?.GetField("pollInterval", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(stepProcess);
+        Assert.AreEqual("", configuratedValidationProfile, "configurated validation profile not as expected");
+        Assert.AreEqual("http://localhost:3080/", configuratedHttpClient?.BaseAddress?.ToString(), "configurated HTTP client base address not as expected");
+        Assert.AreEqual(TimeSpan.FromSeconds(2), configuratedPollInterval, "configurated poll interval not as expected");
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)
