@@ -3,6 +3,7 @@ using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using System.Reflection;
@@ -13,28 +14,30 @@ namespace Geopilot.Api.Test.Pipeline;
 public class PipelineFactoryTest
 {
     private static string interlisCheckServiceBaseUrl = "http://localhost:3080/";
-    private IConfiguration configuration;
     private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
     private PipelineProcessFactory pipelineProcessFactory;
 
     [TestInitialize]
     public void SetUp()
     {
-        var inMemorySettings = new List<KeyValuePair<string, string>>
+        var pipelineOptions = new PipelineOptions()
         {
-            new KeyValuePair<string, string>("Validation:InterlisCheckServiceUrl", interlisCheckServiceBaseUrl),
+            Definition = "",
+            ProcessConfigs = new Dictionary<string, Parameterization>()
+            {
+                {
+                    "Geopilot.Api.Pipeline.Process.XtfValidatorProcess", new Parameterization()
+                    {
+                        { "InterlisCheckServiceUrl", interlisCheckServiceBaseUrl },
+                    }
+                },
+            },
         };
 
-        #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-        this.configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(inMemorySettings)
-            .Build();
-        #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-
         pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
-        var pipelineOptions = new PipelineOptions() { Definition = "" };
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        this.pipelineProcessFactory = new PipelineProcessFactory(configuration, pipelineOptionsMock.Object);
+        var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
+        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object);
     }
 
     [TestMethod(DisplayName = "Create Pipeline By Id But Pipeline Not Defined")]
@@ -92,6 +95,7 @@ public class PipelineFactoryTest
         Assert.IsNotNull(stepProcess, "step process not created");
         var expectedDefaultConfig = new Dictionary<string, string>()
         {
+            { "InterlisCheckServiceUrl", interlisCheckServiceBaseUrl },
             { "log_level", "DEBUG" },
             { "profile", "PROFILE-A" },
         };
@@ -112,7 +116,10 @@ public class PipelineFactoryTest
         var validationStep = pipeline.Steps[0];
         object stepProcess = validationStep.Process;
         Assert.IsNotNull(stepProcess, "step process not created");
-        var expectedDefaultConfig = new Dictionary<string, string>();
+        var expectedDefaultConfig = new Dictionary<string, string>()
+        {
+            { "InterlisCheckServiceUrl", interlisCheckServiceBaseUrl },
+        };
         var stepConfig = typeof(XtfValidatorProcess)
             ?.GetField("config", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.GetValue(stepProcess) as Dictionary<string, string>;

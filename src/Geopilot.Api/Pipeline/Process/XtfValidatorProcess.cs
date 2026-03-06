@@ -26,9 +26,9 @@ internal class XtfValidatorProcess : IDisposable
     private const string OutputMappingXtfLog = "xtf_log";
     private const string OutputMappingValidationSuccessful = "validation_successful";
     private const string OutputMappingStatusMessage = "status_message";
-    private const string ConfiguratiionKeyValidationProfile = "profile";
+    private const string ConfigurationKeyValidationProfile = "profile";
+    private const string ConfigurationKeyCheckServiceUrl = "InterlisCheckServiceUrl";
     private const string ConfiguratiionKeyPollInterval = "poll_interval";
-    private const string InterlisCheckServiceBaseAddressConfiguration = "Validation:InterlisCheckServiceUrl";
     private const string UploadUrl = "/api/v1/upload";
 
     private static readonly JsonSerializerOptions JsonOptions;
@@ -60,16 +60,21 @@ internal class XtfValidatorProcess : IDisposable
     /// <summary>
     /// Initializes the pipeline process with the specified configuration settings.
     /// </summary>
-    /// <param name="config">A dictionary containing configuration key-value pairs to be used for initialization. Cannot be null.<para>'profile': optional profile to run the validation with.</para><para>'poll_interval': optional polling interval for the validation process.</para></param>
-    /// <param name="configuration">The configuration source used to retrieve the base address for the INTERLIS check service. Cannot be null and
-    /// must contain a valid service URL at value "Validation:InterlisCheckServiceUrl".</param>
+    /// <param name="config">
+    /// A dictionary containing configuration key-value pairs to be used for initialization. Cannot be null.
+    /// <para>'profile': optional profile to run the validation with.</para><para>'poll_interval': optional polling interval for the validation process.</para>
+    /// </param>
     /// <exception cref="InvalidOperationException">Thrown if the configuration does not provide a valid INTERLIS check service base address.</exception>
     [PipelineProcessInitialize]
-    public void Initialize(Dictionary<string, string> config, IConfiguration configuration)
+    public void Initialize(Dictionary<string, string> config)
     {
         this.config = config;
 
-        var checkServiceUrl = configuration.GetValue<string>(InterlisCheckServiceBaseAddressConfiguration) ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
+        if (!config.TryGetValue(ConfigurationKeyCheckServiceUrl, out var checkServiceUrl))
+        {
+            throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
+        }
+
         this.httpClient.BaseAddress = new Uri(checkServiceUrl);
 
         this.httpClient.DefaultRequestHeaders.Accept.Clear();
@@ -80,7 +85,7 @@ internal class XtfValidatorProcess : IDisposable
     {
         get
         {
-            if (this.config.TryGetValue(ConfiguratiionKeyValidationProfile, out var profile))
+            if (this.config.TryGetValue(ConfigurationKeyValidationProfile, out var profile))
                 return profile;
             else
                 return string.Empty;
