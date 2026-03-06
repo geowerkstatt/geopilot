@@ -39,7 +39,7 @@ public class PipelineIntegrationTest
                 {
                     "Geopilot.Api.Pipeline.Process.XtfValidatorProcess", new Parameterization()
                     {
-                        { "InterlisCheckServiceUrl", interlisCheckServiceBaseUrl },
+                        { "checkServiceBaseUrl", interlisCheckServiceBaseUrl },
                     }
                 },
             },
@@ -182,7 +182,12 @@ public class PipelineIntegrationTest
 
         Assert.IsTrue(stepResults.ContainsKey(zipPackageStepId));
         var zipPackageStepResult = stepResults[zipPackageStepId];
-        Assert.HasCount(1, zipPackageStepResult.Outputs, "dummy step has not the expected number of data");
+        Assert.HasCount(1, zipPackageStepResult.Outputs, "ZIP package step has not the expected number of data");
+        zipPackageStepResult.Outputs.TryGetValue("archive", out StepOutput? zipFileStepOutput);
+        Assert.IsNotNull(zipFileStepOutput, "No ZIP package in output");
+        var zipFile = zipFileStepOutput.Data as IPipelineTransferFile;
+        Assert.IsNotNull(zipFile, "No ZIP file in output");
+        Assert.AreEqual("myPersonalZipArchive.zip", zipFile.OriginalFileName, "ZIP file has not the expected name");
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)

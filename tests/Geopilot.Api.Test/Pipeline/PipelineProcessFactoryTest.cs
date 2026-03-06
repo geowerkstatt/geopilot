@@ -35,26 +35,20 @@ public class PipelineProcessFactoryTest
         // Base config (lowest priority) - defined in PipelineOptions.ProcessConfigs
         var baseConfig = new Parameterization()
         {
-            { "InterlisCheckServiceUrl", "http://base.test/" }, // Required parameter for XtfValidatorProcess
-            { "BaseOnly", "base_value" },           // Should remain unchanged (only in base)
-            { "BaseAndDefault", "base_value" },     // Should be overwritten by default config
-            { "BaseDefaultAndOverwrite", "base_value" }, // Should be overwritten by default, then by overwrite
-            { "BaseAndOverwrite", "base_value" },   // Overwrite attempts to change this, but cannot (not in default config)
+            { "checkServiceBaseUrl", "http://base.test/" }, // Required parameter for XtfValidatorProcess
         };
 
         // Default config (medium priority) - defined in ProcessConfig.DefaultConfig
         var defaultConfig = new Parameterization()
         {
-            { "BaseAndDefault", "default_value" },  // Overwrites base config
-            { "BaseDefaultAndOverwrite", "default_value" }, // Overwrites base, will be overwritten again
-            { "DefaultOnly", "default_only_value" }, // Only in default config
+            { "pollInterval", "2000" }, // Can override (exists in default config)
+            { "validationProfile", "DEFAULT_PROFILE" },  // defines a parameter only in default config
         };
 
         // Overwrites (highest priority) - can only override keys present in default config
         var overwrites = new Parameterization()
         {
-            { "BaseDefaultAndOverwrite", "overwrite_value" }, // Can override (exists in default config)
-            { "BaseAndOverwrite", "overwrite_value" },        // Cannot override (not in default config) - should log warning
+            { "pollInterval", "1000" }, // Can override (exists in default config)
         };
 
         // Set up PipelineOptions with base configuration
@@ -100,40 +94,19 @@ public class PipelineProcessFactoryTest
         Assert.IsInstanceOfType<XtfValidatorProcess>(process, "Process should be of type XtfValidatorProcess");
 
         // Use reflection to access the private config field
-        var configField = typeof(XtfValidatorProcess).GetField("config", BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.IsNotNull(configField, "Config field should exist");
+        var configuredHttpClient = typeof(XtfValidatorProcess)
+            ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(process) as HttpClient;
+        Assert.AreEqual("http://base.test/", configuredHttpClient?.BaseAddress?.ToString(), "Check Service Base Url not as expected");
 
-        var mergedConfig = configField.GetValue(process) as Dictionary<string, string>;
-        Assert.IsNotNull(mergedConfig, "Merged config should not be null");
+        var configuredValidationProfile = typeof(XtfValidatorProcess)
+            ?.GetField("validationProfile", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(process) as string;
+        Assert.AreEqual("DEFAULT_PROFILE", configuredValidationProfile, "Check Service validation profile not as expected");
 
-        // Verify configuration hierarchy is correctly applied
-        Assert.HasCount(6, mergedConfig, "Merged config should contain 6 parameters");
-
-        // 0. Required parameter from base config (not overridden)
-        Assert.IsTrue(mergedConfig.ContainsKey("InterlisCheckServiceUrl"), "InterlisCheckServiceUrl should be present");
-        Assert.AreEqual("http://base.test/", mergedConfig["InterlisCheckServiceUrl"], "InterlisCheckServiceUrl should have base value");
-
-        // 1. Value from base config only (not overridden)
-        Assert.IsTrue(mergedConfig.ContainsKey("BaseOnly"), "BaseOnly should be present");
-        Assert.AreEqual("base_value", mergedConfig["BaseOnly"], "BaseOnly should have base value");
-
-        // 2. Value overridden by default config
-        Assert.IsTrue(mergedConfig.ContainsKey("BaseAndDefault"), "BaseAndDefault should be present");
-        Assert.AreEqual("default_value", mergedConfig["BaseAndDefault"], "BaseAndDefault should have default value");
-
-        // 3. Value overridden by both default and overwrite config (highest priority wins)
-        Assert.IsTrue(mergedConfig.ContainsKey("BaseDefaultAndOverwrite"), "BaseDefaultAndOverwrite should be present");
-        Assert.AreEqual("overwrite_value", mergedConfig["BaseDefaultAndOverwrite"], "BaseDefaultAndOverwrite should have overwrite value");
-
-        // 4. Value from default config only
-        Assert.IsTrue(mergedConfig.ContainsKey("DefaultOnly"), "DefaultOnly should be present");
-        Assert.AreEqual("default_only_value", mergedConfig["DefaultOnly"], "DefaultOnly should have default only value");
-
-        // 5. Value from base config - overwrite attempt ignored (not in default config)
-        Assert.IsTrue(mergedConfig.ContainsKey("BaseAndOverwrite"), "BaseAndOverwrite should be present");
-        Assert.AreEqual("base_value", mergedConfig["BaseAndOverwrite"], "BaseAndOverwrite should retain base value (overwrite ignored)");
-
-        // Verify that warning was logged for invalid overwrite attempt
-        loggerMock.VerifyMessageContains(LogLevel.Warning, "BaseAndOverwrite", "overwrite_value");
+        var configuredPollInterval = typeof(XtfValidatorProcess)
+            ?.GetField("pollInterval", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(process);
+        Assert.AreEqual(TimeSpan.FromMilliseconds(1000.0), configuredPollInterval, "Check Service poll intervall not as expected");
     }
 }
