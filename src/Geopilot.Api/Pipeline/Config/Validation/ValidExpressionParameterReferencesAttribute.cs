@@ -12,11 +12,11 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
     private static char parameterSeparator = '.';
     private static string parameterPattern = "^(\\w+)[" + parameterSeparator + "](\\w+)$";
 
-    public override bool IsValid(object? value)
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
         if (value is not PipelineConfig pipeline)
         {
-            return false;
+            return new ValidationResult("validation object is not of type PipelineConfig");
         }
 
         var allSteps = pipeline.Steps ?? new List<StepConfig>();
@@ -34,12 +34,11 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
 
         if (errorMessages.Count > 0)
         {
-            this.ErrorMessage = string.Join(Environment.NewLine, errorMessages);
-            return false;
+            return new ValidationResult(string.Join(Environment.NewLine, errorMessages));
         }
         else
         {
-            return true;
+            return ValidationResult.Success;
         }
     }
 

@@ -2,6 +2,7 @@
 using Geopilot.Api.Pipeline.Process;
 using Moq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Geopilot.Api.Test.Pipeline;
 
@@ -29,13 +30,13 @@ public class PipelineValidationTest
     [DataRow("noPipelineFileMappingExtension", new string[] { "FileMappingsConfig (FileExtension): Pipeline Parameter File Extension is required." }, DisplayName = "Pipeline has no File Mapping Extension")]
     [DataRow("noPipelineFileMappingAttribute", new string[] { "PipelineConfig: Step 'validation' has an input reference to 'upload' with attribute 'ili_file' that cannot be found in previous steps or pipeline parameters.", "FileMappingsConfig (Attribute): Pipeline Parameter File Attribute is required." }, DisplayName = "Pipeline has no File Mapping Attribute")]
     [DataRow("stepWithInvalidProcessReference", new string[] { "PipelineProcessConfig: One or more steps reference a process that is not defined in the processes collection: invalid_reference." }, DisplayName = "Step has invalid process reference")]
-    [DataRow("pipelineNotUnique", new string[] { "PipelineProcessConfig (Pipelines): Duplicate Id found: ili_validation." }, DisplayName = "Pipeline has duplicate ids")]
-    [DataRow("processNotUnique", new string[] { "PipelineProcessConfig (Processes): Duplicate Id found: xtf_validator." }, DisplayName = "Process has duplicate ids")]
-    [DataRow("stepNotUnique", new string[] { "PipelineConfig (Steps): Duplicate Id found: not_unique." }, DisplayName = "Step has duplicate ids")]
+    [DataRow("pipelineNotUnique", new string[] { "PipelineProcessConfig: Duplicate Id found: ili_validation." }, DisplayName = "Pipeline has duplicate ids")]
+    [DataRow("processNotUnique", new string[] { "PipelineProcessConfig: Duplicate Id found: xtf_validator." }, DisplayName = "Process has duplicate ids")]
+    [DataRow("stepNotUnique", new string[] { "PipelineConfig: Duplicate Id found: not_unique." }, DisplayName = "Step has duplicate ids")]
     [DataRow("invalidStepInputFromReference_01", new string[] { "PipelineConfig: Step 'validation' has an input reference to 'zip' with attribute 'zip_package' that cannot be found in previous steps or pipeline parameters." }, DisplayName = "Step has invalid input 'from' reference (invalid process reference)")]
     [DataRow("invalidStepInputFromReference_02", new string[] { "PipelineConfig: Step 'validation' has an input reference to 'invalidUploadStep' with attribute 'ili_file' that cannot be found in previous steps or pipeline parameters." }, DisplayName = "Step has invalid input 'from' reference (invalid upload reference)")]
     [DataRow("invalidStepInputTakeReference", new string[] { "PipelineConfig: Step 'zip_package' has an input reference to 'validation' with attribute 'invalid_reference' that cannot be found in previous steps or pipeline parameters." }, DisplayName = "Step has invalid input 'take' reference")]
-    [DataRow("notUniqueOutputAs", new string[] { "StepConfig (Output): Duplicate As found: error." }, DisplayName = "Step has not unique output 'as' reference")]
+    [DataRow("notUniqueOutputAs", new string[] { "StepConfig: Duplicate As found: error." }, DisplayName = "Step has not unique output 'as' reference")]
     [DataRow("invalidFileExtension", new string[] { "FileMappingsConfig (FileExtension): invalid file extension" }, DisplayName = "Step has invalid file extension")]
     [DataRow("invalidStepPreSkipCondition_01", new string[] { "PipelineConfig: pipeline 'ili_validation', step 'validation', invalid expression '[upload.foo] != null' on field Step-Pre-Skip-Condition, parameter 'upload.foo' is not valid" }, DisplayName = "Step pre skip condition is not valid (invalid parameter reference)")]
     [DataRow("invalidStepPreSkipCondition_02", new string[] { "PipelineConfig: pipeline 'ili_validation', step 'validation', invalid expression '([upload.ili_file]' on field Step-Pre-Skip-Condition: Error parsing the expression." }, DisplayName = "Step pre skip condition is not valid (invalid expression)")]
@@ -45,6 +46,7 @@ public class PipelineValidationTest
     [DataRow("invalidStepPreFailCondition_03", new string[] { "PipelineConfig: pipeline 'two_steps', step 'validation', invalid expression '[zip_package_process.archive] != null' on field Step-Pre-Fail-Condition, parameter 'zip_package_process.archive' is not valid" }, DisplayName = "Step pre fail condition is not valid (invalid forward parameter reference)")]
     [DataRow("invalidPipelineDeliveryCondition_01", new string[] { "PipelineConfig: pipeline 'ili_validation', invalid expression '[upload.foo] != null' on field Pipeline-Delivery-Condition, parameter 'upload.foo' is not valid" }, DisplayName = "Pipeline delivery condition is not valid (invalid parameter reference)")]
     [DataRow("invalidPipelineDeliveryCondition_02", new string[] { "PipelineConfig: pipeline 'ili_validation, invalid expression '([upload.ili_file]' on field Pipeline-Delivery-Condition: Error parsing the expression." }, DisplayName = "Pipeline delivery condition is not valid (invalid expression)")]
+
     public void PipelineValidation(string pipelineFile, string[] expectedErrorMessages)
     {
         PipelineFactory factory = CreatePipelineFactory(pipelineFile);

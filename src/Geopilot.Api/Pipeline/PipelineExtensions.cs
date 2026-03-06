@@ -1,6 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using System.ComponentModel.DataAnnotations;
-using System.Runtime.CompilerServices;
 
 namespace Geopilot.Api.Pipeline;
 
@@ -11,7 +10,6 @@ internal static class PipelineExtensions
         return processes.FirstOrDefault(p => p.Id == processName);
     }
 
-    [MethodImpl(MethodImplOptions.Synchronized)]
     internal static PipelineValidationErrors Validate(this PipelineProcessConfig pipelineProcessConfig, PipelineValidationErrors? inputErrors = null)
     {
         PipelineValidationErrors validationResults = new PipelineValidationErrors();
