@@ -59,7 +59,7 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
     {
         if (outputConfig != null)
         {
-            return outputConfig.Any(o => o.Take == take);
+            return outputConfig.Any(o => o.As == take);
         }
         else
         {

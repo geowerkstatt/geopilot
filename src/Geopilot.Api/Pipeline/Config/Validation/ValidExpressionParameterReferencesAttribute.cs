@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 namespace Geopilot.Api.Pipeline.Config.Validation;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-internal sealed class ValidExpressionParameterReferences : ValidationAttribute
+internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAttribute
 {
     private static char parameterSeparator = '.';
     private static string parameterPattern = "^(\\w+)[" + parameterSeparator + "](\\w+)$";
@@ -130,7 +130,7 @@ internal sealed class ValidExpressionParameterReferences : ValidationAttribute
     {
         if (outputConfig != null)
         {
-            return outputConfig.Any(o => o.Take == take);
+            return outputConfig.Any(o => o.As == take);
         }
         else
         {
