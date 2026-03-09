@@ -93,5 +93,6 @@ export default defineConfig({
       cert: fs.existsSync(certFilePath) ? fs.readFileSync(certFilePath) : null,
     },
   },
+  html: { cspNonce: "__CSP_NONCE__" },
   assetsInclude: ["**/*.md"],
 });
