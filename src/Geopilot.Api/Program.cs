@@ -262,7 +262,7 @@ app.Use(async (context, next) =>
         {
             context.Response.Headers.Append(
                 "Content-Security-Policy",
-                "script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none';");
+                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; object-src 'none'; base-uri 'none';");
         }
 
         await next(context);
@@ -298,7 +298,7 @@ app.MapFallback(async context =>
     var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
     context.Response.Headers.Append(
         "Content-Security-Policy",
-        $"script-src 'strict-dynamic' 'nonce-{nonce}' 'unsafe-inline' http: https:; style-src 'nonce-{nonce}'; object-src 'none'; base-uri 'none';");
+        $"default-src 'self'; script-src 'strict-dynamic' 'nonce-{nonce}' 'unsafe-inline' http: https:; style-src 'nonce-{nonce}'; object-src 'none'; base-uri 'none';");
     context.Response.ContentType = "text/html";
     await context.Response.WriteAsync(indexHtmlTemplate.Replace("__CSP_NONCE__", nonce));
 }).AllowAnonymous();
