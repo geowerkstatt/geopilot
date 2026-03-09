@@ -93,6 +93,7 @@ export default defineConfig({
       cert: fs.existsSync(certFilePath) ? fs.readFileSync(certFilePath) : null,
     },
   },
+  // Placeholder is replaced with a per-request nonce in Program.cs
   html: { cspNonce: "__CSP_NONCE__" },
   assetsInclude: ["**/*.md"],
 });
