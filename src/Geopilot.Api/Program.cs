@@ -276,3 +276,5 @@ app.MapReverseProxy();
 app.MapFallbackToFile("index.html").AllowAnonymous();
 
 app.Run();
+
+public partial class Program { }
