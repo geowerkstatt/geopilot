@@ -1,8 +1,8 @@
+﻿using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Geopilot.Api.Authorization;
 
@@ -71,9 +71,11 @@ internal static class JwtTestTokenBuilder
     public static string CreateWrongIssuerToken() =>
         CreateToken(AdminSub, "https://wrong-issuer", Audience, Credentials);
 
-    public static string CreateWrongKeyToken() =>
-        CreateToken(AdminSub, Issuer, Audience,
-            new SigningCredentials(new RsaSecurityKey(WrongRsaKey), SecurityAlgorithms.RsaSha256));
+    public static string CreateWrongKeyToken()
+    {
+        var wrongCreds = new SigningCredentials(new RsaSecurityKey(WrongRsaKey), SecurityAlgorithms.RsaSha256);
+        return CreateToken(AdminSub, Issuer, Audience, wrongCreds);
+    }
 
     public static string CreateTamperedToken()
     {
@@ -95,8 +97,6 @@ internal static class JwtTestTokenBuilder
     public static string CreateHS256KeyConfusionToken()
     {
         var publicKeyBytes = RsaKey.ExportSubjectPublicKeyInfo();
-        var hmacKey = new SymmetricSecurityKey(publicKeyBytes);
-        var hmacCreds = new SigningCredentials(hmacKey, SecurityAlgorithms.HmacSha256);
 
         var header = Base64UrlEncode(Encoding.UTF8.GetBytes("{\"alg\":\"HS256\",\"typ\":\"JWT\"}"));
         var payload = Base64UrlEncode(Encoding.UTF8.GetBytes(BuildClaimsPayload(AdminSub)));
