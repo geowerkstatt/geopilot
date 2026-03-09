@@ -277,4 +277,9 @@ app.MapFallbackToFile("index.html").AllowAnonymous();
 
 app.Run();
 
-public partial class Program { }
+/// <summary>
+/// Exposes the compiler-generated Program class for integration testing with WebApplicationFactory.
+/// </summary>
+public partial class Program
+{
+}
