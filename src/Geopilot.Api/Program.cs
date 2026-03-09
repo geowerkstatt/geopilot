@@ -258,6 +258,13 @@ app.Use(async (context, next) =>
     }
     else
     {
+        if (context.Request.Path.StartsWithSegments("/browser"))
+        {
+            context.Response.Headers.Append(
+                "Content-Security-Policy",
+                "script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none';");
+        }
+
         await next(context);
     }
 });
