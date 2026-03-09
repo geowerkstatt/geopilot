@@ -1,5 +1,4 @@
-using System.IdentityModel.Tokens.Jwt;
-using Geopilot.Api.Authorization;
+﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
@@ -10,10 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Moq;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Geopilot.Api.Authorization;
 
-internal sealed class JwtTestApp : WebApplicationFactory<Program>
+internal sealed class JwtTestApp : WebApplicationFactory<Context>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -56,20 +56,24 @@ internal sealed class JwtTestApp : WebApplicationFactory<Program>
                     var sub = jwt.Subject;
 
                     if (sub == JwtTestTokenBuilder.AdminSub)
+                    {
                         return Task.FromResult<UserInfoResponse?>(new UserInfoResponse
                         {
                             Sub = JwtTestTokenBuilder.AdminSub,
                             Email = "admin@geopilot.ch",
                             Name = "Andreas Admin",
                         });
+                    }
 
                     if (sub == JwtTestTokenBuilder.UserSub)
+                    {
                         return Task.FromResult<UserInfoResponse?>(new UserInfoResponse
                         {
                             Sub = JwtTestTokenBuilder.UserSub,
                             Email = "user@geopilot.ch",
                             Name = "Ursula User",
                         });
+                    }
 
                     return Task.FromResult<UserInfoResponse?>(null);
                 });
