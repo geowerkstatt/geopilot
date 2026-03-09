@@ -18,12 +18,15 @@ internal sealed class JwtTestApp : WebApplicationFactory<Context>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
+        builder.UseSolutionRelativeContentRoot("src/Geopilot.Api", "*.slnx");
 
         builder.ConfigureAppConfiguration((ctx, config) =>
         {
+            var pipelineDefinition = Path.Combine(ctx.HostingEnvironment.ContentRootPath, "PipelineDefinitions", "basicPipeline_01.yaml");
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:Context"] = TestDatabaseFixture.ConnectionString,
+                ["Pipeline:Definition"] = pipelineDefinition,
             });
         });
 

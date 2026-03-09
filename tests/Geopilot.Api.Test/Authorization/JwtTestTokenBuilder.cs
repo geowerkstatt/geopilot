@@ -60,7 +60,7 @@ internal static class JwtTestTokenBuilder
         CreateToken(UserSub, Issuer, Audience, Credentials);
 
     public static string CreateExpiredToken() =>
-        CreateToken(AdminSub, Issuer, Audience, Credentials, expires: DateTime.UtcNow.AddHours(-1));
+        CreateToken(AdminSub, Issuer, Audience, Credentials, expires: DateTime.UtcNow.AddHours(-1), notBefore: DateTime.UtcNow.AddHours(-2));
 
     public static string CreateFutureNbfToken() =>
         CreateToken(AdminSub, Issuer, Audience, Credentials, notBefore: DateTime.UtcNow.AddHours(1));
