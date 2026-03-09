@@ -378,6 +378,18 @@ public class PipelineProcessFactoryTest
                 },
                 "Conflict in process configuration overwrite: The key 'mandatoryString' is not defined in process default configuration, so it cannot be overwritten. Please ensure that only existing default configuration keys are overwritten."
             ];
+            yield return [
+                "don't initialize mandatory configuration",
+                new Parameterization()
+                {
+                    { "mandatoryString", "mandatory string value" },
+                    { "mandatoryInt", "123" },
+                    { "mandatoryDouble", "123.456" },
+                },
+                new Parameterization() { },
+                new Parameterization() { },
+                "Process initialization: No suitable parameter found for parameter of type <Boolean> and name <mandatoryBoolean>. Parameter is not nullable, cannot initialize process."
+            ];
         }
     }
 
