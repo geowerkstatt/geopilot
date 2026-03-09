@@ -291,17 +291,20 @@ app.MapHealthChecks("/health")
 
 app.MapReverseProxy();
 
-var indexHtmlTemplate = File.ReadAllText(Path.Combine(app.Environment.WebRootPath, "index.html"));
-var authorityOrigin = new Uri(builder.Configuration["Auth:Authority"]!).GetLeftPart(UriPartial.Authority);
-
-app.MapFallback(async context =>
+if (!app.Environment.IsDevelopment())
 {
-    var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
-    context.Response.Headers.Append(
-        "Content-Security-Policy",
-        $"default-src 'self'; script-src 'strict-dynamic' 'nonce-{nonce}'; style-src 'nonce-{nonce}'; object-src 'none'; base-uri 'none'; connect-src 'self' {authorityOrigin}; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script';");
-    context.Response.ContentType = "text/html";
-    await context.Response.WriteAsync(indexHtmlTemplate.Replace("__CSP_NONCE__", nonce));
-}).AllowAnonymous();
+    var indexHtmlTemplate = File.ReadAllText(Path.Combine(app.Environment.WebRootPath, "index.html"));
+    var authorityOrigin = new Uri(builder.Configuration["Auth:Authority"]!).GetLeftPart(UriPartial.Authority);
+
+    app.MapFallback(async context =>
+    {
+        var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+        context.Response.Headers.Append(
+            "Content-Security-Policy",
+            $"default-src 'self'; script-src 'strict-dynamic' 'nonce-{nonce}'; style-src 'nonce-{nonce}'; object-src 'none'; base-uri 'none'; connect-src 'self' {authorityOrigin}; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script';");
+        context.Response.ContentType = "text/html";
+        await context.Response.WriteAsync(indexHtmlTemplate.Replace("__CSP_NONCE__", nonce));
+    }).AllowAnonymous();
+}
 
 app.Run();
