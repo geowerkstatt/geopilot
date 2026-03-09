@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Moq;
@@ -32,21 +33,21 @@ internal sealed class JwtTestApp : WebApplicationFactory<Context>
 
         builder.ConfigureTestServices(services =>
         {
+            // Only replace OIDC discovery with our test signing key.
+            // All TokenValidationParameters from Program.cs remain untouched,
+            // so attack tests verify the production validation config.
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
-                options.Authority = null;
-                options.Configuration = new OpenIdConnectConfiguration();
-                options.TokenValidationParameters = new TokenValidationParameters
+                var oidcConfig = new OpenIdConnectConfiguration
                 {
-                    ValidIssuer = JwtTestTokenBuilder.Issuer,
-                    ValidAudience = JwtTestTokenBuilder.Audience,
-                    IssuerSigningKey = JwtTestTokenBuilder.SigningKey,
-                    ValidateIssuerSigningKey = true,
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero,
+                    Issuer = JwtTestTokenBuilder.Issuer,
                 };
+                oidcConfig.SigningKeys.Add(JwtTestTokenBuilder.SigningKey);
+
+                // Replace OIDC discovery with our static test config. Must override
+                // ConfigurationManager (not just Configuration) because the framework's
+                // PostConfigure already created one from the production Authority.
+                options.ConfigurationManager = new StaticConfigurationManager<OpenIdConnectConfiguration>(oidcConfig);
             });
 
             var mockUserInfo = new Mock<IGeopilotUserInfoService>();
