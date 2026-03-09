@@ -48,6 +48,9 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 {
                     processorPluginLoadContext.Unload();
                 }
+
+                processorPluginLoadContexts.Clear();
+                processorPluginAssemblies.Clear();
             }
 
             disposed = true;
@@ -78,15 +81,11 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             {
                 var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
 
-                var assemblyContext = new AssemblyLoadContext(assemblyFullPath);
+                var assemblyContext = new AssemblyLoadContext(assemblyFullPath, isCollectible: true);
                 var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
                 processorPluginAssemblies.Add(plugin);
                 processorPluginLoadContexts.Add(assemblyContext);
             }
-        }
-        else
-        {
-            this.processorPluginAssemblies = new HashSet<Assembly>();
         }
     }
 
@@ -216,7 +215,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             foreach (var config in processDefaultConfig)
             {
-                mergedParams[config.Key] = config.Value;
+                if (processBaseConfig != null && processBaseConfig.ContainsKey(config.Key))
+                    throw new InvalidOperationException($"Conflict in process configuration: The key '{config.Key}' is defined in both process base configuration and process default configuration. Please resolve this conflict by ensuring that base configuration can't be overwritten.");
+                else
+                    mergedParams[config.Key] = config.Value;
             }
         }
 
@@ -225,14 +227,11 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             foreach (var overwrite in processDefaultConfigOverwrites)
             {
-                if (processDefaultConfig != null && processDefaultConfig.ContainsKey(overwrite.Key))
-                {
-                    mergedParams[overwrite.Key] = overwrite.Value;
-                }
-                else
-                {
-                    this.logger.LogWarning("Attempted to overwrite a process configuration that is not defined in default configuration of process: '{Key}' ==> '{Value}'", overwrite.Key, overwrite.Value);
-                }
+                if (processBaseConfig != null && processBaseConfig.ContainsKey(overwrite.Key))
+                    throw new InvalidOperationException($"Conflict in process configuration overwrite: The key '{overwrite.Key}' is defined in both process base configuration and process overwrite configuration. Please resolve this conflict by ensuring that base configuration can't be overwritten.");
+                if (processDefaultConfig == null || !processDefaultConfig.ContainsKey(overwrite.Key))
+                    throw new InvalidOperationException($"Conflict in process configuration overwrite: The key '{overwrite.Key}' is not defined in process default configuration, so it cannot be overwritten. Please ensure that only existing default configuration keys are overwritten.");
+                mergedParams[overwrite.Key] = overwrite.Value;
             }
         }
 

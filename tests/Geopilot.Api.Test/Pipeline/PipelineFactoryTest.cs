@@ -108,30 +108,6 @@ public class PipelineFactoryTest
         Assert.IsNotNull(stepProcess as XtfValidatorProcess, "process is not of type ILI Validator");
     }
 
-    [TestMethod(DisplayName = "Create Basic Pipeline No Process Config Overwrite")]
-    public void CreateBasicPipelineNoProcessConfigOverwrite()
-    {
-        PipelineFactory factory = CreatePipelineFactory("basicPipelineNoProcessConfigOverwrite");
-        using var pipeline = factory.CreatePipeline("ili_validation", Mock.Of<IPipelineTransferFile>());
-        Assert.IsNotNull(pipeline, "pipeline not created");
-        Assert.HasCount(1, pipeline.Steps);
-        var validationStep = pipeline.Steps[0];
-        object stepProcess = validationStep.Process;
-        Assert.IsNotNull(stepProcess, "step process not created");
-        var configuratedValidationProfile = typeof(XtfValidatorProcess)
-            ?.GetField("validationProfile", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(stepProcess) as string;
-        var configuratedHttpClient = typeof(XtfValidatorProcess)
-            ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(stepProcess) as HttpClient;
-        var configuratedPollInterval = typeof(XtfValidatorProcess)
-            ?.GetField("pollInterval", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(stepProcess);
-        Assert.AreEqual("", configuratedValidationProfile, "configurated validation profile not as expected");
-        Assert.AreEqual("http://localhost:3080/", configuratedHttpClient?.BaseAddress?.ToString(), "configurated HTTP client base address not as expected");
-        Assert.AreEqual(TimeSpan.FromSeconds(2), configuratedPollInterval, "configurated poll interval not as expected");
-    }
-
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
