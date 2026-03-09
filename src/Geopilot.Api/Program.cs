@@ -19,6 +19,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -216,8 +217,18 @@ app.UseSwaggerUI(options =>
 });
 
 app.UseHttpsRedirection();
-app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        if (string.Equals(ctx.File.Name, "index.html", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Context.Response.StatusCode = StatusCodes.Status404NotFound;
+            ctx.Context.Response.ContentLength = 0;
+            ctx.Context.Response.Body = Stream.Null;
+        }
+    },
+});
 
 app.UseRouting();
 
@@ -247,6 +258,13 @@ app.Use(async (context, next) =>
     }
     else
     {
+        if (context.Request.Path.StartsWithSegments("/browser"))
+        {
+            context.Response.Headers.Append(
+                "Content-Security-Policy",
+                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';");
+        }
+
         await next(context);
     }
 });
@@ -273,7 +291,22 @@ app.MapHealthChecks("/health")
 
 app.MapReverseProxy();
 
-app.MapFallbackToFile("index.html").AllowAnonymous();
+var indexHtmlPath = Path.Combine(app.Environment.WebRootPath, "index.html");
+if (File.Exists(indexHtmlPath))
+{
+    var indexHtmlTemplate = File.ReadAllText(indexHtmlPath);
+    var authorityOrigin = new Uri(builder.Configuration["Auth:Authority"]!).GetLeftPart(UriPartial.Authority);
+
+    app.MapFallback(async context =>
+    {
+        var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+        context.Response.Headers.Append(
+            "Content-Security-Policy",
+            $"default-src 'self'; script-src 'strict-dynamic' 'nonce-{nonce}'; style-src 'nonce-{nonce}'; object-src 'none'; base-uri 'none'; connect-src 'self' {authorityOrigin}; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script';");
+        context.Response.ContentType = "text/html";
+        await context.Response.WriteAsync(indexHtmlTemplate.Replace("__CSP_NONCE__", nonce));
+    }).AllowAnonymous();
+}
 
 app.Run();
 
