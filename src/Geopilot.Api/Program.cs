@@ -284,6 +284,16 @@ app.MapHealthChecks("/health")
 
 app.MapReverseProxy();
 
-app.MapFallbackToFile("index.html").AllowAnonymous();
+var indexHtmlTemplate = File.ReadAllText(Path.Combine(app.Environment.WebRootPath, "index.html"));
+
+app.MapFallback(async context =>
+{
+    var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+    context.Response.Headers.Append(
+        "Content-Security-Policy",
+        $"script-src 'strict-dynamic' 'nonce-{nonce}' 'unsafe-inline' http: https:; style-src 'nonce-{nonce}'; object-src 'none'; base-uri 'none';");
+    context.Response.ContentType = "text/html";
+    await context.Response.WriteAsync(indexHtmlTemplate.Replace("__CSP_NONCE__", nonce));
+}).AllowAnonymous();
 
 app.Run();
