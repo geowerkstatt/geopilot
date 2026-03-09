@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
@@ -179,24 +180,15 @@ public class XtfValidatorProcessTest
 
         public XtfValidatorProcess Build()
         {
-            var parameterization = new Api.Pipeline.Config.Parameterization()
+            var parameterization = new Parameterization()
             {
                 { "profile", this.validationProfile },
                 { "poll_interval", $"{this.pollInterval}" },
+                { "InterlisCheckServiceUrl", $"{this.interlisCheckServiceBaseUrl}" },
             };
 
-            var inMemorySettings = new List<KeyValuePair<string, string>>
-            {
-                new KeyValuePair<string, string>("Validation:InterlisCheckServiceUrl", this.interlisCheckServiceBaseUrl),
-            };
-
-            #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-            var configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(inMemorySettings)
-                .Build();
-            #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
             var process = new XtfValidatorProcess();
-            process.Initialize(parameterization, configuration);
+            process.Initialize(parameterization);
 
             var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
             interlisValidatorMessageHandlerMock

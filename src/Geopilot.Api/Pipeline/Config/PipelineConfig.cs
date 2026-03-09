@@ -8,6 +8,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// Configuration for a pipeline.
 /// </summary>
 [ValidStepInputReference]
+[ValidExpressionParameterReferences]
 public class PipelineConfig
 {
     /// <summary>

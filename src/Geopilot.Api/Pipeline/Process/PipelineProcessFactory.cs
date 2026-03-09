@@ -18,8 +18,8 @@ namespace Geopilot.Api.Pipeline.Process;
 public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 {
     private readonly ILogger<PipelineProcessFactory> logger;
+    private readonly PipelineOptions pipelineOptions;
 
-    private IConfiguration configuration;
     private HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
     private HashSet<AssemblyLoadContext> processorPluginLoadContexts = new HashSet<AssemblyLoadContext>();
     private bool disposed;
@@ -59,17 +59,15 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// <remarks>The constructor loads plugin assemblies specified in the "Pipeline:Plugins" section of the
     /// configuration. Assemblies are loaded into a dedicated context, allowing for isolation and dynamic plugin
     /// management. If no plugins are configured, the factory will operate without any loaded assemblies.</remarks>
-    /// <param name="configuration">Configuration used to configure the processors.</param>
     /// <param name="pipelinePluginOptions">Pipeline plugin options containing configuration settings. Cannot be null.</param>
-    public PipelineProcessFactory(IConfiguration configuration, IOptions<PipelineOptions> pipelinePluginOptions)
+    /// <param name="logger">Logger instance for logging factory operations. Cannot be null.</param>
+    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILogger<PipelineProcessFactory> logger)
     {
-        using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
-        this.logger = factory.CreateLogger<PipelineProcessFactory>();
-        this.configuration = configuration;
-        this.disposed = false;
         ArgumentNullException.ThrowIfNull(pipelinePluginOptions);
-        ArgumentNullException.ThrowIfNull(pipelinePluginOptions.Value);
-        var processorPlugins = pipelinePluginOptions.Value.Plugins;
+
+        this.logger = logger;
+        this.pipelineOptions = pipelinePluginOptions.Value;
+        var processorPlugins = pipelineOptions.Plugins;
 
         if (processorPlugins != null)
         {
@@ -106,8 +104,9 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 var processInstance = Activator.CreateInstance(objectType);
                 if (processInstance != null)
                 {
-                    InitializeProcess(objectType, processInstance, GenerateProcessConfig(processConfig.DefaultConfig, stepConfig != null ? stepConfig.ProcessConfigOverwrites : new Parameterization()));
-
+                    var processBaseConfig = pipelineOptions.ProcessConfigs.GetValueOrDefault(processConfig.Implementation);
+                    var processParameterization = GetMergedParameterization(processBaseConfig, processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
+                    InitializeProcess(objectType, processInstance, processParameterization);
                     return processInstance;
                 }
             }
@@ -139,7 +138,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         return null;
     }
 
-    private void InitializeProcess(Type processType, object process, Dictionary<string, string> processConfig)
+    private void InitializeProcess(Type processType, object process, Parameterization processParams)
     {
         var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessInitializeAttribute)))
@@ -149,21 +148,18 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             {
                 var parameters = m.GetParameters()
                     .Select(p => p.ParameterType)
-                    .Select(t => GenerateParameter(t, processConfig))
+                    .Select(t => GenerateParameter(t, processParams))
                     .ToArray();
                 m.Invoke(process, parameters);
             });
     }
 
-    private object? GenerateParameter(Type parameterType, Dictionary<string, string> processConfig)
+    private object? GenerateParameter(Type parameterType, Parameterization processConfig)
     {
-        if (parameterType == typeof(IConfiguration))
+        if (parameterType == typeof(Dictionary<string, string>))
         {
-            return configuration;
-        }
-        else if (parameterType == typeof(Dictionary<string, string>))
-        {
-            return processConfig;
+            object param = processConfig; // Only required because of a compiler warning. Won't be necessary as soon as there is another mapped parameter type.
+            return param;
         }
         else
         {
@@ -172,24 +168,44 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
     }
 
-    private Dictionary<string, string> GenerateProcessConfig(Parameterization? processDefaultConfig, Parameterization? processDefaultConfigOverwrites)
+    private Parameterization GetMergedParameterization(Parameterization? processBaseConfig, Parameterization? processDefaultConfig, Parameterization? processDefaultConfigOverwrites)
     {
-        var mergedConfig = processDefaultConfig != null ? new Dictionary<string, string>(processDefaultConfig) : new Dictionary<string, string>();
+        var mergedParams = new Parameterization();
+
+        // Start with processBaseConfig (lowest priority)
+        if (processBaseConfig != null)
+        {
+            foreach (var config in processBaseConfig)
+            {
+                mergedParams[config.Key] = config.Value;
+            }
+        }
+
+        // Merge processDefaultConfig (medium priority)
+        if (processDefaultConfig != null)
+        {
+            foreach (var config in processDefaultConfig)
+            {
+                mergedParams[config.Key] = config.Value;
+            }
+        }
+
+        // Apply processDefaultConfigOverwrites (highest priority)
         if (processDefaultConfigOverwrites != null)
         {
             foreach (var overwrite in processDefaultConfigOverwrites)
             {
-                if (mergedConfig.ContainsKey(overwrite.Key))
+                if (processDefaultConfig != null && processDefaultConfig.ContainsKey(overwrite.Key))
                 {
-                    mergedConfig[overwrite.Key] = overwrite.Value;
+                    mergedParams[overwrite.Key] = overwrite.Value;
                 }
                 else
                 {
-                    this.logger.LogWarning("Attempted to overwrite non-existing process configuration '{Key}' ==> '{Value}'", overwrite.Key, overwrite.Value);
+                    this.logger.LogWarning("Attempted to overwrite a process configuration that is not defined in default configuration of process: '{Key}' ==> '{Value}'", overwrite.Key, overwrite.Value);
                 }
             }
         }
 
-        return mergedConfig;
+        return mergedParams;
     }
 }

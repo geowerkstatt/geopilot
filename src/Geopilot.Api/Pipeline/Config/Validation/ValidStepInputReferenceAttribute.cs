@@ -5,27 +5,36 @@ namespace Geopilot.Api.Pipeline.Config.Validation;
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
 {
-    public override bool IsValid(object? value)
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
         if (value is not PipelineConfig pipeline)
         {
-            return false;
+            return new ValidationResult("validation object is not of type PipelineConfig");
         }
 
         var allSteps = pipeline.Steps ?? new List<StepConfig>();
         if (allSteps == null || allSteps.Count == 0)
         {
-            return true;
+            return ValidationResult.Success;
         }
 
-        return allSteps.All(s => Validate(s, pipeline.Parameters, allSteps));
+        var errorMessages = allSteps.SelectMany(s => GetErrorMessages(s, pipeline.Parameters, allSteps)).ToList();
+
+        if (errorMessages.Count > 0)
+        {
+            return new ValidationResult(string.Join(Environment.NewLine, errorMessages));
+        }
+        else
+        {
+            return ValidationResult.Success;
+        }
     }
 
-    private bool Validate(StepConfig stepToValidate, PipelineParametersConfig pipelineParameters, List<StepConfig> allSteps)
+    private List<string> GetErrorMessages(StepConfig stepToValidate, PipelineParametersConfig pipelineParameters, List<StepConfig> allSteps)
     {
         if (stepToValidate.Input == null)
         {
-            return true;
+            return new List<string>();
         }
 
         var errorMessages = new List<string>();
@@ -39,15 +48,7 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
             }
         }
 
-        if (errorMessages.Count == 0)
-        {
-            return true;
-        }
-        else
-        {
-            this.ErrorMessage = string.Join(Environment.NewLine, errorMessages);
-            return false;
-        }
+        return errorMessages;
     }
 
     private bool HasStep(string stepId, string take, string currentStepId, List<StepConfig> allSteps)
@@ -59,7 +60,7 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
     {
         if (outputConfig != null)
         {
-            return outputConfig.Any(o => o.Take == take);
+            return outputConfig.Any(o => o.As == take);
         }
         else
         {

@@ -7,17 +7,16 @@ internal sealed class NoDuplicatesAttribute : ValidationAttribute
 {
     public string? PropertyName { get; set; }
 
-    public override bool IsValid(object? value)
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
         if (value is not IEnumerable<object> collectionWithIds)
         {
-            return false;
+            return new ValidationResult("validation object is not of type IEnumerable<object>");
         }
 
         if (PropertyName == null)
         {
-            ErrorMessage = "PropertyName is required for NoDuplicatesAttribute.";
-            return false;
+            return new ValidationResult("PropertyName is required for NoDuplicatesAttribute.");
         }
 
         var duplicatedIds = collectionWithIds
@@ -37,14 +36,14 @@ internal sealed class NoDuplicatesAttribute : ValidationAttribute
             })
             .Where(group => group.Count() > 1)
             .Select(group => group.Key);
+
         if (duplicatedIds.Any())
         {
-            ErrorMessage = $"Duplicate {PropertyName} found: {string.Join(", ", duplicatedIds)}.";
-            return false;
+            return new ValidationResult($"Duplicate {PropertyName} found: {string.Join(", ", duplicatedIds)}.");
         }
         else
         {
-            return true;
+            return ValidationResult.Success;
         }
     }
 }
