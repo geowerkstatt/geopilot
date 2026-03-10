@@ -221,7 +221,7 @@ public class JwtSecurityTest
     }
 
     [TestMethod]
-    public void EndpointDiscoveryFindsExpectedEndpointCount()
+    public void EndpointDiscoveryFindsEndpoints()
     {
         var allEndpoints = EndpointDiscovery.GetProtectedEndpoints()
             .Concat(EndpointDiscovery.GetAnonymousEndpoints())
