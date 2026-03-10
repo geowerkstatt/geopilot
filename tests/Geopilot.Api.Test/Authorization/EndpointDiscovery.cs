@@ -96,6 +96,74 @@ internal static class EndpointDiscovery
                 }
             }
         }
+
+        foreach (var endpoint in DiscoverStacEndpoints(anonymous))
+        {
+            yield return endpoint;
+        }
+    }
+
+    private static IEnumerable<(string HttpMethod, string Url, string? Policy, string Description)> DiscoverStacEndpoints(bool anonymous)
+    {
+        const string stacRoutePrefix = "/api/stac";
+
+        var stacControllers = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(a =>
+            {
+                try { return a.GetTypes(); }
+                catch { return Array.Empty<Type>(); }
+            })
+            .Where(t => !t.IsAbstract && !t.IsInterface
+                && typeof(ControllerBase).IsAssignableFrom(t)
+                && t.FullName?.StartsWith("Stac.", StringComparison.Ordinal) == true);
+
+        foreach (var controller in stacControllers)
+        {
+            var classRouteAttr = controller.GetCustomAttribute<RouteAttribute>();
+            var classRoute = classRouteAttr?.Template ?? string.Empty;
+            var classAllowAnonymous = controller.GetCustomAttribute<AllowAnonymousAttribute>() != null;
+            var controllerName = controller.Name.Replace("Controller", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
+
+            var methods = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            foreach (var method in methods)
+            {
+                var httpMethodAttrs = method.GetCustomAttributes()
+                    .OfType<HttpMethodAttribute>()
+                    .ToList();
+
+                if (httpMethodAttrs.Count == 0)
+                    continue;
+
+                var methodAllowAnonymous = method.GetCustomAttribute<AllowAnonymousAttribute>() != null;
+                var isAnonymous = classAllowAnonymous || methodAllowAnonymous;
+
+                if (anonymous != isAnonymous)
+                    continue;
+
+                var policy = isAnonymous ? null : GeopilotPolicies.Admin;
+                var description = $"{controller.Name}.{method.Name}";
+
+                foreach (var httpMethodAttr in httpMethodAttrs)
+                {
+                    var httpMethod = httpMethodAttr.HttpMethods.First();
+                    var methodTemplate = httpMethodAttr.Template;
+                    var combinedTemplate = CombineTemplates(classRoute, methodTemplate);
+                    var route = BuildRoute(stacRoutePrefix, combinedTemplate, controllerName);
+
+                    yield return (httpMethod, route, policy, description);
+                }
+            }
+        }
+    }
+
+    private static string? CombineTemplates(string classRoute, string? methodTemplate)
+    {
+        if (string.IsNullOrEmpty(classRoute))
+            return methodTemplate;
+        if (string.IsNullOrEmpty(methodTemplate))
+            return classRoute;
+        return $"{classRoute}/{methodTemplate}";
     }
 
     private static string BuildRoute(string prefix, string? template, string controllerName)
