@@ -265,7 +265,11 @@ public sealed class PipelineStep : IPipelineStep
             throw new PipelineRunException(errorMessage);
         }
 
-        var hasAnyNonAssignableValues = mappedValues.Any(p => p != null && !elementType.IsAssignableFrom(p.GetType()));
+        var mappedValuesArray = mappedValues
+            .SelectMany(p => p is IEnumerable<object?> enumerable ? enumerable : new List<object?> { p })
+            .ToArray();
+
+        var hasAnyNonAssignableValues = mappedValuesArray.Any(p => p != null && !elementType.IsAssignableFrom(p.GetType()));
 
         if (hasAnyNonAssignableValues)
         {
@@ -273,7 +277,6 @@ public sealed class PipelineStep : IPipelineStep
             throw new PipelineRunException(errorMessage);
         }
 
-        var mappedValuesArray = mappedValues.ToArray();
         var arrayOfCorrectTypeToInject = Array.CreateInstance(elementType, mappedValuesArray.Length);
         for (int i = 0; i < mappedValuesArray.Length; i++)
         {
