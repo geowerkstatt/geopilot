@@ -1,8 +1,8 @@
 processes:
   - id: xtf_validator
-    implementation: Geopilot.Api.Pipeline.Process.XtfValidatorProcess
+    implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
   - id: zip_package_process
-    implementation: Geopilot.Api.Pipeline.Process.ZipPackageProcess
+    implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
 pipelines:
   - id: two_steps
     display_name:

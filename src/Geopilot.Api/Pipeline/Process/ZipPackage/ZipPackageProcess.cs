@@ -2,7 +2,7 @@
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.IO.Compression;
 
-namespace Geopilot.Api.Pipeline.Process;
+namespace Geopilot.Api.Pipeline.Process.ZipPackage;
 
 /// <summary>
 /// Represents a pipeline process that handles packaging <see cref="IPipelineTransferFile"/> to a ZIP file which is also provided in a <see cref="IPipelineTransferFile"/>.

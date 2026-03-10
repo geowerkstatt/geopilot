@@ -1,11 +1,11 @@
 processes:
   - id: xtf_validator
-    implementation: Geopilot.Api.Pipeline.Process.XtfValidatorProcess
+    implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile: DEFAULT
       pollInterval: 500
   - id: zip_package_process
-    implementation: Geopilot.Api.Pipeline.Process.ZipPackageProcess
+    implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
     default_config:
       archiveFileName: myPersonalZipArchive
 pipelines:

@@ -9,7 +9,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Geopilot.Api.Pipeline.Process;
+namespace Geopilot.Api.Pipeline.Process.XtfValidation;
 
 /// <summary>
 /// Process for validating ILI files.
