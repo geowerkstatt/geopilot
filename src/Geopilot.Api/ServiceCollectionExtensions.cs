@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
             var pipelineProcessFactory = sp.GetRequiredService<IPipelineProcessFactory>();
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
             var pipelinePluginOptions = configuration.GetSection(pipelineKey).Get<PipelineOptions>();
 
             if (pipelinePluginOptions == null)
@@ -52,6 +53,7 @@ public static class ServiceCollectionExtensions
             var pipelineFactory = PipelineFactory.Builder()
                     .File(pipelinePluginOptions.Definition)
                     .PipelineProcessFactory(pipelineProcessFactory)
+                    .LoggerFactory(loggerFactory)
                     .Build();
 
             return pipelineFactory;
