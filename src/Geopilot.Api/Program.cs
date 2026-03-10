@@ -291,10 +291,10 @@ app.MapHealthChecks("/health")
 
 app.MapReverseProxy();
 
-var indexHtmlPath = Path.Combine(app.Environment.WebRootPath, "index.html");
-if (File.Exists(indexHtmlPath))
+var webRootPath = app.Environment.WebRootPath;
+if (webRootPath != null && File.Exists(Path.Combine(webRootPath, "index.html")))
 {
-    var indexHtmlTemplate = File.ReadAllText(indexHtmlPath);
+    var indexHtmlTemplate = File.ReadAllText(Path.Combine(webRootPath, "index.html"));
     var authorityOrigin = new Uri(builder.Configuration["Auth:Authority"]!).GetLeftPart(UriPartial.Authority);
 
     app.MapFallback(async context =>
