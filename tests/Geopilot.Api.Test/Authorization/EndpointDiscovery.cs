@@ -77,6 +77,7 @@ internal static class EndpointDiscovery
                 }
                 else
                 {
+                    // Mirrors DefaultPolicy = adminPolicy and FallbackPolicy = adminPolicy in Program.cs.
                     policy = GeopilotPolicies.Admin;
                 }
 
