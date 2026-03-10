@@ -43,7 +43,6 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             if (disposing)
             {
-                processorPluginAssemblies.Clear();
                 foreach (var processorPluginLoadContext in processorPluginLoadContexts)
                 {
                     processorPluginLoadContext.Unload();
@@ -156,12 +155,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
     private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig)
     {
-        if (parameterInfo.ParameterType.IsAssignableFrom(processConfig.GetType()))
-        {
-            object param = processConfig; // Only required because of a compiler warning. Won't be necessary as soon as there is another mapped parameter type.
-            return param;
-        }
-        else if (parameterInfo.ParameterType == typeof(ILogger))
+        if (parameterInfo.ParameterType == typeof(ILogger))
         {
             return loggerFactory.CreateLogger(processType);
         }

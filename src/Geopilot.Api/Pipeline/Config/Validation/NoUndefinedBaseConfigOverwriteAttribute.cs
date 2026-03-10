@@ -33,7 +33,7 @@ internal sealed class NoUndefinedBaseConfigOverwriteAttribute : ValidationAttrib
                 {
                     if (!defaultConfig.ContainsKey(stepOverwrites.Key))
                     {
-                        errorMessages.Add($"'Step '{step.Id}' in pipeline '{pipeline.Id}' is trying to overwrite process config parameter '{stepOverwrites.Key}' which is not defined in the default config.");
+                        errorMessages.Add($"Step '{step.Id}' in pipeline '{pipeline.Id}' is trying to overwrite process config parameter '{stepOverwrites.Key}' which is not defined in the default config.");
                     }
                 }
             }
@@ -49,9 +49,9 @@ internal sealed class NoUndefinedBaseConfigOverwriteAttribute : ValidationAttrib
         }
     }
 
-    private Parameterization GetDefaultConfig(string stepId, List<ProcessConfig> processes)
+    private Parameterization GetDefaultConfig(string stepProcessId, List<ProcessConfig> processes)
     {
-        var process = processes.FirstOrDefault(p => processes.Any(s => s.Id == stepId));
+        var process = processes.FirstOrDefault(p => p.Id == stepProcessId);
         if (process != null && process?.DefaultConfig != null)
             return process.DefaultConfig;
         else

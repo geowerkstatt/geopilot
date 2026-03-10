@@ -1,12 +1,13 @@
 ﻿using Geopilot.Api.Pipeline;
 using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Geopilot.Api.Test.Pipeline;
 
 [TestClass]
 public class ConditionEvaluatorTest
 {
-    private readonly ConditionEvaluator conditionEvaluator = new ConditionEvaluator(LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<ConditionEvaluator>());
+    private readonly ConditionEvaluator conditionEvaluator = new ConditionEvaluator(Mock.Of<ILogger<ConditionEvaluatorTest>>());
 
     [TestMethod(DisplayName = "Evaluate a simple boolean condition with no parameters")]
     [DataRow("1 == 1")]

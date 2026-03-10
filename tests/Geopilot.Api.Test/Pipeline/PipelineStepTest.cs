@@ -17,7 +17,6 @@ public class PipelineStepTest
     {
         loggerFactoryMock = new Mock<ILoggerFactory>();
         var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
-        loggerFactoryMock = new Mock<ILoggerFactory>();
         loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
     }
 
@@ -250,7 +249,7 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessArrayInput(processData, 2);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -306,7 +305,7 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessArrayInput(processData, 2);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -371,7 +370,7 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessArrayInput(processData, 3);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
