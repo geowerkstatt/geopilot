@@ -10,7 +10,6 @@ using Moq.Protected;
 using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
-using System.Text;
 
 namespace Geopilot.Api.Test.Pipeline;
 
@@ -22,6 +21,8 @@ public class PipelineIntegrationTest
     private Mock<HttpMessageHandler> interlisValidatorMessageHandlerMock;
     private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
     private PipelineProcessFactory pipelineProcessFactory;
+    private Mock<ILogger> loggerMock;
+    private Mock<ILoggerFactory> loggerFactoryMock;
 
     [TestInitialize]
     public void SetUp()
@@ -46,10 +47,10 @@ public class PipelineIntegrationTest
 
         pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
-        var loggerFactoryMock = new Mock<ILoggerFactory>();
+        loggerMock = new Mock<ILogger>();
+        loggerFactoryMock = new Mock<ILoggerFactory>();
         loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
-        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object, loggerFactoryMock.Object);
+        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
     }
 
     [TestCleanup]
@@ -198,6 +199,7 @@ public class PipelineIntegrationTest
             .Builder()
             .File(path)
             .PipelineProcessFactory(this.pipelineProcessFactory)
+            .LoggerFactory(this.loggerFactoryMock.Object)
             .Build();
     }
 }

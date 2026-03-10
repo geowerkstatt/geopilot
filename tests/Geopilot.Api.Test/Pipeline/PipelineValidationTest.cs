@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System.Reflection;
 
@@ -58,11 +59,15 @@ public class PipelineValidationTest
 
     private PipelineFactory CreatePipelineFactory(string filename)
     {
+        var loggerFactoryMock = new Mock<ILoggerFactory>();
+        var loggerMock = new Mock<ILogger>();
+        loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
         return PipelineFactory
             .Builder()
             .File(path)
             .PipelineProcessFactory(new Mock<IPipelineProcessFactory>().Object)
+            .LoggerFactory(loggerFactoryMock.Object)
             .Build();
     }
 }

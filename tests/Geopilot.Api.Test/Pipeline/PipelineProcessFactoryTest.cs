@@ -62,7 +62,7 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object, loggerFactoryMock.Object);
+        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
         var stepConfig = new StepConfig()
@@ -275,7 +275,7 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object, loggerFactoryMock.Object);
+        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
         var stepConfig = new StepConfig()
@@ -418,7 +418,7 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object, loggerFactoryMock.Object);
+        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
         var stepConfig = new StepConfig()

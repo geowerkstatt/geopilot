@@ -12,15 +12,15 @@ namespace Geopilot.Api.Pipeline;
 /// decision-making in pipeline workflows.</remarks>
 public class ConditionEvaluator : IConditionEvaluator
 {
-    private readonly ILogger<ConditionEvaluator> logger;
+    private readonly ILogger logger;
 
     /// <summary>
     /// Initializes a new instance of the ConditionEvaluator class.
+    /// <param name="logger">The logger to use for logging.</param>
     /// </summary>
-    public ConditionEvaluator()
+    public ConditionEvaluator(ILogger logger)
     {
-        using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
-        this.logger = factory.CreateLogger<ConditionEvaluator>();
+        this.logger = logger;
     }
 
     /// <inheritdoc />

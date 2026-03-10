@@ -18,7 +18,7 @@ namespace Geopilot.Api.Pipeline.Process;
 public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 {
     private readonly ILoggerFactory loggerFactory;
-    private readonly ILogger<PipelineProcessFactory> logger;
+    private readonly ILogger logger;
     private readonly PipelineOptions pipelineOptions;
 
     private HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
@@ -64,14 +64,13 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// configuration. Assemblies are loaded into a dedicated context, allowing for isolation and dynamic plugin
     /// management. If no plugins are configured, the factory will operate without any loaded assemblies.</remarks>
     /// <param name="pipelinePluginOptions">Pipeline plugin options containing configuration settings. Cannot be null.</param>
-    /// <param name="logger">Logger instance for logging factory operations. Cannot be null.</param>
     /// <param name="loggerFactory">Logger factory for creating loggers for process instances. Cannot be null.</param>
-    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILogger<PipelineProcessFactory> logger, ILoggerFactory loggerFactory)
+    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(pipelinePluginOptions);
 
         this.loggerFactory = loggerFactory;
-        this.logger = logger;
+        this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
         this.pipelineOptions = pipelinePluginOptions.Value;
         var processorPlugins = pipelineOptions.Plugins;
 

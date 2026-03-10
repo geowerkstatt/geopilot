@@ -15,6 +15,7 @@ public class PipelineFactoryTest
     private static string interlisCheckServiceBaseUrl = "http://localhost:3080/";
     private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
     private PipelineProcessFactory pipelineProcessFactory;
+    private Mock<ILoggerFactory> loggerFactory;
 
     [TestInitialize]
     public void SetUp()
@@ -36,8 +37,8 @@ public class PipelineFactoryTest
         pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
         var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
-        var loggerFactoryMock = new Mock<ILoggerFactory>();
-        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object, loggerFactoryMock.Object);
+        loggerFactory = new Mock<ILoggerFactory>();
+        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactory.Object);
     }
 
     [TestMethod(DisplayName = "Create Pipeline By Id But Pipeline Not Defined")]
@@ -116,6 +117,7 @@ public class PipelineFactoryTest
             .Builder()
             .File(path)
             .PipelineProcessFactory(this.pipelineProcessFactory)
+            .LoggerFactory(this.loggerFactory.Object)
             .Build();
     }
 
