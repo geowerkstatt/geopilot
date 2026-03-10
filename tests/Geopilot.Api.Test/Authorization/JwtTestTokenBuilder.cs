@@ -28,12 +28,7 @@ internal static class JwtTestTokenBuilder
         DateTime? notBefore = null)
     {
         var now = DateTime.UtcNow;
-        var (email, name) = sub switch
-        {
-            AdminSub => ("admin@geopilot.ch", "Andreas Admin"),
-            UserSub => ("user@geopilot.ch", "Ursula User"),
-            _ => ("unknown@geopilot.ch", "Unknown User"),
-        };
+        var (email, name) = GetUserClaims(sub);
 
         var claims = new[]
         {
@@ -108,15 +103,17 @@ internal static class JwtTestTokenBuilder
         return $"{signingInput}.{Base64UrlEncode(signature)}";
     }
 
+    private static (string Email, string Name) GetUserClaims(string sub) => sub switch
+    {
+        AdminSub => ("admin@geopilot.ch", "Andreas Admin"),
+        UserSub => ("user@geopilot.ch", "Ursula User"),
+        _ => ("unknown@geopilot.ch", "Unknown User"),
+    };
+
     private static string BuildClaimsPayload(string sub)
     {
         var now = DateTimeOffset.UtcNow;
-        var (email, name) = sub switch
-        {
-            AdminSub => ("admin@geopilot.ch", "Andreas Admin"),
-            UserSub => ("user@geopilot.ch", "Ursula User"),
-            _ => ("unknown@geopilot.ch", "Unknown User"),
-        };
+        var (email, name) = GetUserClaims(sub);
 
         return $"{{\"sub\":\"{sub}\",\"email\":\"{email}\",\"name\":\"{name}\"," +
                $"\"nbf\":{now.ToUnixTimeSeconds()},\"exp\":{now.AddHours(1).ToUnixTimeSeconds()}," +
