@@ -111,7 +111,7 @@ internal static class EndpointDiscovery
             .SelectMany(a =>
             {
                 try { return a.GetTypes(); }
-                catch { return Array.Empty<Type>(); }
+                catch (ReflectionTypeLoadException ex) { return ex.Types.Where(t => t != null).Select(t => t!); }
             })
             .Where(t => !t.IsAbstract && !t.IsInterface
                 && typeof(ControllerBase).IsAssignableFrom(t)
