@@ -101,13 +101,22 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             var objectType = GetProccessorType(processImplementation);
             if (objectType != null)
             {
-                var processInstance = Activator.CreateInstance(objectType);
-                if (processInstance != null)
+                var constructors = objectType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+                if (constructors.Length == 1 && constructors[0] != null)
                 {
+                    ConstructorInfo constructor = constructors[0];
                     var processBaseConfig = pipelineOptions.ProcessConfigs.GetValueOrDefault(processConfig.Implementation);
                     var processParameterization = GetMergedParameterization(processBaseConfig, processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
-                    InitializeProcess(objectType, processInstance, processParameterization);
-                    return processInstance;
+                    var parameters = constructor.GetParameters()
+                        .Select(p => GenerateParameter(p, objectType, processParameterization))
+                        .ToArray();
+                    var processInstance = Activator.CreateInstance(objectType, parameters);
+                    if (processInstance != null)
+                        return processInstance;
+                }
+                else
+                {
+                    logger.LogError($"We need exactly one public constructor for a creating process instance bur for {processConfig.Implementation} there are {constructors.Length}");
                 }
             }
         }
@@ -136,21 +145,6 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         logger.LogWarning($"For process implementation '{implementation}' no processor plugin configured. Cannot load process.");
         return null;
-    }
-
-    private void InitializeProcess(Type processType, object process, Parameterization processParams)
-    {
-        var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessInitializeAttribute)))
-            .ToList();
-        initMethods
-            .ForEach(m =>
-            {
-                var parameters = m.GetParameters()
-                    .Select(p => GenerateParameter(p, processType, processParams))
-                    .ToArray();
-                m.Invoke(process, parameters);
-            });
     }
 
     private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig)

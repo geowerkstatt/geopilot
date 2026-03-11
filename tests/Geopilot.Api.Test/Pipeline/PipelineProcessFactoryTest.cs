@@ -157,17 +157,7 @@ public class PipelineProcessFactoryTest
                 },
                 new Parameterization() { },
                 new Parameterization() { },
-                new ManyDifferentInitialzationAttributesTestProcess()
-                {
-                    MandatoryString = "mandatory string value",
-                    OptionalString = null,
-                    MandatoryInt = 123,
-                    OptionalInt = null,
-                    MandatoryDouble = 123.456,
-                    OptionalDouble = null,
-                    MandatoryBoolean = true,
-                    OptionalBoolean = null,
-                }
+                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", null, 123, null, 123.456, null, true, null, Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>())
             ];
             yield return [
                 "default config with mandatory fields",
@@ -180,17 +170,7 @@ public class PipelineProcessFactoryTest
                     { "mandatoryBoolean", "true" },
                 },
                 new Parameterization() { },
-                new ManyDifferentInitialzationAttributesTestProcess()
-                {
-                    MandatoryString = "mandatory string value",
-                    OptionalString = null,
-                    MandatoryInt = 123,
-                    OptionalInt = null,
-                    MandatoryDouble = 123.456,
-                    OptionalDouble = null,
-                    MandatoryBoolean = true,
-                    OptionalBoolean = null,
-                }
+                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", null, 123, null, 123.456, null, true, null, Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
             ];
             yield return [
                 "default config with mandatory fields overwritten in overwrite config",
@@ -209,17 +189,7 @@ public class PipelineProcessFactoryTest
                     { "mandatoryDouble", "456.789" },
                     { "mandatoryBoolean", "false" },
                 },
-                new ManyDifferentInitialzationAttributesTestProcess()
-                {
-                    MandatoryString = "overwritten mandatory string value",
-                    OptionalString = null,
-                    MandatoryInt = 456,
-                    OptionalInt = null,
-                    MandatoryDouble = 456.789,
-                    OptionalDouble = null,
-                    MandatoryBoolean = false,
-                    OptionalBoolean = null,
-                }
+                new ManyDifferentInitialzationAttributesTestProcess("overwritten mandatory string value", null, 456, null, 456.789, null, false, null, Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
             ];
             yield return [
                 "default config with all fields",
@@ -236,17 +206,7 @@ public class PipelineProcessFactoryTest
                     { "optionalBoolean", "true" },
                 },
                 new Parameterization() { },
-                new ManyDifferentInitialzationAttributesTestProcess()
-                {
-                    MandatoryString = "mandatory string value",
-                    OptionalString = "optional string value",
-                    MandatoryInt = 123,
-                    OptionalInt = 234,
-                    MandatoryDouble = 345.678,
-                    OptionalDouble = 456.789,
-                    MandatoryBoolean = true,
-                    OptionalBoolean = true,
-                }
+                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", "optional string value", 123, 234, 345.678, 456.789, true, true, Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
             ];
         }
     }

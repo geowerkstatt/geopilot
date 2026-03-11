@@ -15,23 +15,22 @@ internal class ZipPackageProcess
     private const string OutputMappingZipPackage = "zip_package";
     private const string DefaultArchiveFileName = "archive";
 
-    private ILogger logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<ZipPackageProcess>();
+    private ILogger logger;
 
-    private string archiveFileName = DefaultArchiveFileName;
+    private string archiveFileName;
 
     /// <summary>
-    /// Initializes the pipeline process with the specified configuration settings.
+    /// Creates a new instance of the <see cref="ZipPackageProcess"/> class with the specified configuration settings.
     /// </summary>
     /// <param name="archiveFileName">The ZIP file name to use for the output archive without file extension. If null, the default name 'archive' will be used.</param>
     /// <param name="logger">Logger instance for logging messages during the initialization process.</param>
-    [PipelineProcessInitialize]
-    public void Initialize(string? archiveFileName, ILogger logger)
+    public ZipPackageProcess(string? archiveFileName, ILogger logger)
     {
         this.logger = logger;
         if (!string.IsNullOrEmpty(archiveFileName))
-        {
             this.archiveFileName = archiveFileName;
-        }
+        else
+            this.archiveFileName = DefaultArchiveFileName;
     }
 
     /// <summary>

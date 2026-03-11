@@ -30,12 +30,12 @@ internal class XtfValidatorProcess : IDisposable
 
     private static readonly JsonSerializerOptions JsonOptions;
 
-    private ILogger logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<XtfValidatorProcess>();
+    private ILogger logger;
 
     private HttpClient httpClient = new();
 
-    private string validationProfile = string.Empty;
-    private TimeSpan pollInterval = TimeSpan.FromSeconds(2);
+    private string validationProfile;
+    private TimeSpan pollInterval;
 
     static XtfValidatorProcess()
     {
@@ -47,23 +47,13 @@ internal class XtfValidatorProcess : IDisposable
     }
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="XtfValidatorProcess"/>.
-    /// </summary>
-    [PipelineProcessCleanup]
-    public void Dispose()
-    {
-        this.httpClient.Dispose();
-    }
-
-    /// <summary>
-    /// Initializes the pipeline process with the specified configuration settings.
+    /// Create a new instance of the <see cref="XtfValidatorProcess"/> class.
     /// </summary>
     /// <param name="checkServiceBaseUrl">Base URL for the Interlis check service.</param>
     /// <param name="validationProfile">Optional validation profile to use for the validation process.</param>
     /// <param name="pollInterval">Optional polling interval in milliseconds for checking the validation status. If not provided, a default of 2000ms will be used.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
-    [PipelineProcessInitialize]
-    public void Initialize(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, ILogger logger)
+    public XtfValidatorProcess(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, ILogger logger)
     {
         this.httpClient.BaseAddress = new Uri(checkServiceBaseUrl);
         this.httpClient.DefaultRequestHeaders.Accept.Clear();
@@ -71,11 +61,24 @@ internal class XtfValidatorProcess : IDisposable
 
         if (!string.IsNullOrEmpty(validationProfile))
             this.validationProfile = validationProfile;
+        else
+            this.validationProfile = string.Empty;
 
         if (pollInterval != null)
             this.pollInterval = TimeSpan.FromMilliseconds((double)pollInterval);
+        else
+            this.pollInterval = TimeSpan.FromSeconds(2);
 
         this.logger = logger;
+    }
+
+    /// <summary>
+    /// Disposes the resources used by the <see cref="XtfValidatorProcess"/>.
+    /// </summary>
+    [PipelineProcessCleanup]
+    public void Dispose()
+    {
+        this.httpClient.Dispose();
     }
 
     /// <summary>

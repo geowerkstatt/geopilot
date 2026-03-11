@@ -12,8 +12,7 @@ public class ZipPackageProcessTest
     [TestMethod]
     public void SunnyDay()
     {
-        var process = new ZipPackageProcess();
-        process.Initialize("myPersonalZipArchive", Mock.Of<ILogger<ZipPackageProcessTest>>());
+        var process = new ZipPackageProcess("myPersonalZipArchive", Mock.Of<ILogger<ZipPackageProcessTest>>());
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
@@ -27,7 +26,7 @@ public class ZipPackageProcessTest
     [TestMethod]
     public void NoArchiveFileNameProvided()
     {
-        var process = new ZipPackageProcess();
+        var process = new ZipPackageProcess(null, Mock.Of<ILogger<ZipPackageProcessTest>>());
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
@@ -41,7 +40,7 @@ public class ZipPackageProcessTest
     [TestMethod]
     public async Task NoInputFilesProvided()
     {
-        var process = new ZipPackageProcess();
+        var process = new ZipPackageProcess(null, Mock.Of<ILogger<ZipPackageProcessTest>>());
         var exception = await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(Array.Empty<IPipelineTransferFile>()));
         Assert.AreEqual("ZipPackageProcess: No input files provided.", exception.Message);
     }
@@ -49,7 +48,7 @@ public class ZipPackageProcessTest
     [TestMethod]
     public async Task AllInputFilesAreNull()
     {
-        var process = new ZipPackageProcess();
+        var process = new ZipPackageProcess(null, Mock.Of<ILogger<ZipPackageProcessTest>>());
         var processResult = await process.RunAsync(new IPipelineTransferFile?[] { null, null, null });
         Assert.IsNotNull(processResult);
         Assert.HasCount(1, processResult);
@@ -60,8 +59,7 @@ public class ZipPackageProcessTest
     [TestMethod]
     public async Task MixedNullAndValidInputFiles()
     {
-        var process = new ZipPackageProcess();
-        process.Initialize("mixedArchive", Mock.Of<ILogger<ZipPackageProcessTest>>());
+        var process = new ZipPackageProcess("mixedArchive", Mock.Of<ILogger<ZipPackageProcessTest>>());
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processResult = await process.RunAsync(new IPipelineTransferFile?[] { null, uploadFile, null });
         Assert.IsNotNull(processResult);
