@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Geopilot.Api.Pipeline.Process.XtfValidation;
 using Geopilot.Api.Test.Pipeline.Process;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -57,7 +58,7 @@ public class PipelineProcessFactoryTest
             Plugins = testDllFullPath != null ? [testDllFullPath] : [],
             ProcessConfigs = new Dictionary<string, Parameterization>()
             {
-                { "Geopilot.Api.Pipeline.Process.XtfValidatorProcess", baseConfig },
+                { "Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess", baseConfig },
             },
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
@@ -80,7 +81,7 @@ public class PipelineProcessFactoryTest
         var processConfig = new ProcessConfig()
         {
             Id = "test_process",
-            Implementation = "Geopilot.Api.Pipeline.Process.XtfValidatorProcess",
+            Implementation = "Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess",
             DefaultConfig = defaultConfig,
         };
 

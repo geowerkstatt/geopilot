@@ -1,5 +1,5 @@
 processes:
-  - implementation: Geopilot.Api.Pipeline.Process.XtfValidatorProcess
+  - implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
 pipelines:
   - id: ili_validation
     display_name:

@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Geopilot.Api.Pipeline.Process.XtfValidation;
 using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
@@ -37,7 +38,7 @@ public class PipelineIntegrationTest
             ProcessConfigs = new Dictionary<string, Parameterization>()
             {
                 {
-                    "Geopilot.Api.Pipeline.Process.XtfValidatorProcess", new Parameterization()
+                    "Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess", new Parameterization()
                     {
                         { "checkServiceBaseUrl", interlisCheckServiceBaseUrl },
                     }
