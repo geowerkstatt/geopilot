@@ -46,7 +46,7 @@ public class PipelineValidationTest
     [DataRow("invalidStepPreFailCondition_03", new string[] { "PipelineConfig: pipeline 'two_steps', step 'validation', invalid expression '[zip_package_process.archive] != null' on field Step-Pre-Fail-Condition, parameter 'zip_package_process.archive' is not valid" }, DisplayName = "Step pre fail condition is not valid (invalid forward parameter reference)")]
     [DataRow("invalidPipelineDeliveryCondition_01", new string[] { "PipelineConfig: pipeline 'ili_validation', invalid expression '[upload.foo] != null' on field Pipeline-Delivery-Condition, parameter 'upload.foo' is not valid" }, DisplayName = "Pipeline delivery condition is not valid (invalid parameter reference)")]
     [DataRow("invalidPipelineDeliveryCondition_02", new string[] { "PipelineConfig: pipeline 'ili_validation, invalid expression '([upload.ili_file]' on field Pipeline-Delivery-Condition: Error parsing the expression." }, DisplayName = "Pipeline delivery condition is not valid (invalid expression)")]
-    [DataRow("overwriteUndefinedBaseConfig", new string[] { "PipelineProcessConfig: 'Step 'validation' in pipeline 'ili_validation' is trying to overwrite process config parameter 'validationProfile' which is not defined in the default config." }, DisplayName = "overwrite a undefined base config parameter")]
+    [DataRow("overwriteUndefinedBaseConfig", new string[] { "PipelineProcessConfig: Step 'validation' in pipeline 'ili_validation' is trying to overwrite process config parameter 'validationProfile' which is not defined in the default config." }, DisplayName = "overwrite a undefined base config parameter")]
 
     public void PipelineValidation(string pipelineFile, string[] expectedErrorMessages)
     {
