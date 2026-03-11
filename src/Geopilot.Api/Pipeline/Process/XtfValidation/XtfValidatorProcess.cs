@@ -75,7 +75,6 @@ internal class XtfValidatorProcess : IDisposable
     /// <summary>
     /// Disposes the resources used by the <see cref="XtfValidatorProcess"/>.
     /// </summary>
-    [PipelineProcessCleanup]
     public void Dispose()
     {
         this.httpClient.Dispose();
