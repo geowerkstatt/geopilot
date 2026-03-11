@@ -3,7 +3,6 @@ using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -11,7 +10,6 @@ using Moq.Protected;
 using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
-using System.Text;
 
 namespace Geopilot.Api.Test.Pipeline;
 
@@ -23,6 +21,8 @@ public class PipelineIntegrationTest
     private Mock<HttpMessageHandler> interlisValidatorMessageHandlerMock;
     private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
     private PipelineProcessFactory pipelineProcessFactory;
+    private Mock<ILogger> loggerMock;
+    private Mock<ILoggerFactory> loggerFactoryMock;
 
     [TestInitialize]
     public void SetUp()
@@ -39,7 +39,7 @@ public class PipelineIntegrationTest
                 {
                     "Geopilot.Api.Pipeline.Process.XtfValidatorProcess", new Parameterization()
                     {
-                        { "InterlisCheckServiceUrl", interlisCheckServiceBaseUrl },
+                        { "checkServiceBaseUrl", interlisCheckServiceBaseUrl },
                     }
                 },
             },
@@ -47,8 +47,10 @@ public class PipelineIntegrationTest
 
         pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
-        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerMock.Object);
+        loggerMock = new Mock<ILogger>();
+        loggerFactoryMock = new Mock<ILoggerFactory>();
+        loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
     }
 
     [TestCleanup]
@@ -182,7 +184,12 @@ public class PipelineIntegrationTest
 
         Assert.IsTrue(stepResults.ContainsKey(zipPackageStepId));
         var zipPackageStepResult = stepResults[zipPackageStepId];
-        Assert.HasCount(1, zipPackageStepResult.Outputs, "dummy step has not the expected number of data");
+        Assert.HasCount(1, zipPackageStepResult.Outputs, "ZIP package step has not the expected number of data");
+        zipPackageStepResult.Outputs.TryGetValue("archive", out StepOutput? zipFileStepOutput);
+        Assert.IsNotNull(zipFileStepOutput, "No ZIP package in output");
+        var zipFile = zipFileStepOutput.Data as IPipelineTransferFile;
+        Assert.IsNotNull(zipFile, "No ZIP file in output");
+        Assert.AreEqual("myPersonalZipArchive.zip", zipFile.OriginalFileName, "ZIP file has not the expected name");
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)
@@ -192,6 +199,7 @@ public class PipelineIntegrationTest
             .Builder()
             .File(path)
             .PipelineProcessFactory(this.pipelineProcessFactory)
+            .LoggerFactory(this.loggerFactoryMock.Object)
             .Build();
     }
 }

@@ -41,9 +41,9 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public StepState State { get; set; }
 
-    private readonly ConditionEvaluator conditionEvaluator = new ConditionEvaluator();
+    private readonly ConditionEvaluator conditionEvaluator;
 
-    private ILogger<PipelineStep> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<PipelineStep>();
+    private ILogger logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PipelineStep"/> class.
@@ -54,13 +54,15 @@ public sealed class PipelineStep : IPipelineStep
     /// <param name="outputConfig">The output configuration for the step.</param>
     /// <param name="stepConditions">The step conditions for the step.</param>
     /// <param name="process">The process associated with the step.</param>
+    /// <param name="loggerFactory">The logger factory to use for logging.</param>
     public PipelineStep(
         string id,
         Dictionary<string, string> displayName,
         List<InputConfig> inputConfig,
         List<OutputConfig> outputConfig,
         PipelineStepConditionsConfig? stepConditions,
-        object process)
+        object process,
+        ILoggerFactory loggerFactory)
     {
         this.Id = id;
         this.DisplayName = displayName;
@@ -68,6 +70,8 @@ public sealed class PipelineStep : IPipelineStep
         this.OutputConfigs = outputConfig;
         this.StepConditions = stepConditions;
         this.Process = process;
+        this.logger = loggerFactory.CreateLogger<PipelineStep>();
+        this.conditionEvaluator = new ConditionEvaluator(loggerFactory.CreateLogger<ConditionEvaluator>());
 
         this.State = StepState.Pending;
     }

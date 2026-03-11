@@ -16,7 +16,7 @@ public sealed class Pipeline : IPipeline
         Steps.ForEach(step => step.Dispose());
     }
 
-    private readonly ConditionEvaluator conditionEvaluator = new ConditionEvaluator();
+    private readonly ConditionEvaluator conditionEvaluator;
 
     /// <inheritdoc/>
     public string Id { get; }
@@ -83,13 +83,15 @@ public sealed class Pipeline : IPipeline
     /// <param name="parameters">The parameters for the pipeline.</param>
     /// <param name="deliveryCondition">Expression to determine when the pipeline step data can be delivered.</param>
     /// <param name="file">The file to be processed by the pipeline.</param>
+    /// <param name="loggerFactory">The logger factory to use for logging.</param>
     public Pipeline(
         string id,
         Dictionary<string, string> displayName,
         List<IPipelineStep> steps,
         PipelineParametersConfig parameters,
         string? deliveryCondition,
-        IPipelineTransferFile file)
+        IPipelineTransferFile file,
+        ILoggerFactory loggerFactory)
     {
         this.Id = id;
         this.DisplayName = displayName;
@@ -97,6 +99,7 @@ public sealed class Pipeline : IPipeline
         this.Parameters = parameters;
         this.deliveryCondition = deliveryCondition;
         this.file = file;
+        this.conditionEvaluator = new ConditionEvaluator(loggerFactory.CreateLogger<ConditionEvaluator>());
     }
 
     /// <inheritdoc/>

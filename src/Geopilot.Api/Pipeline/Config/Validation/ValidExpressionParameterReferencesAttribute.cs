@@ -1,5 +1,4 @@
-﻿using Itenso.TimePeriod;
-using NCalc;
+﻿using NCalc;
 using NCalc.Exceptions;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;

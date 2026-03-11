@@ -17,7 +17,8 @@ namespace Geopilot.Api.Pipeline.Process;
 /// used concurrently, external synchronization is required.</remarks>
 public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 {
-    private readonly ILogger<PipelineProcessFactory> logger;
+    private readonly ILoggerFactory loggerFactory;
+    private readonly ILogger logger;
     private readonly PipelineOptions pipelineOptions;
 
     private HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
@@ -42,11 +43,13 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             if (disposing)
             {
-                processorPluginAssemblies.Clear();
                 foreach (var processorPluginLoadContext in processorPluginLoadContexts)
                 {
                     processorPluginLoadContext.Unload();
                 }
+
+                processorPluginLoadContexts.Clear();
+                processorPluginAssemblies.Clear();
             }
 
             disposed = true;
@@ -60,12 +63,13 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// configuration. Assemblies are loaded into a dedicated context, allowing for isolation and dynamic plugin
     /// management. If no plugins are configured, the factory will operate without any loaded assemblies.</remarks>
     /// <param name="pipelinePluginOptions">Pipeline plugin options containing configuration settings. Cannot be null.</param>
-    /// <param name="logger">Logger instance for logging factory operations. Cannot be null.</param>
-    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILogger<PipelineProcessFactory> logger)
+    /// <param name="loggerFactory">Logger factory for creating loggers for process instances. Cannot be null.</param>
+    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(pipelinePluginOptions);
 
-        this.logger = logger;
+        this.loggerFactory = loggerFactory;
+        this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
         this.pipelineOptions = pipelinePluginOptions.Value;
         var processorPlugins = pipelineOptions.Plugins;
 
@@ -75,15 +79,11 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             {
                 var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
 
-                var assemblyContext = new AssemblyLoadContext(assemblyFullPath);
+                var assemblyContext = new AssemblyLoadContext(assemblyFullPath, isCollectible: true);
                 var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
                 processorPluginAssemblies.Add(plugin);
                 processorPluginLoadContexts.Add(assemblyContext);
             }
-        }
-        else
-        {
-            this.processorPluginAssemblies = new HashSet<Assembly>();
         }
     }
 
@@ -147,25 +147,47 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             .ForEach(m =>
             {
                 var parameters = m.GetParameters()
-                    .Select(p => p.ParameterType)
-                    .Select(t => GenerateParameter(t, processParams))
+                    .Select(p => GenerateParameter(p, processType, processParams))
                     .ToArray();
                 m.Invoke(process, parameters);
             });
     }
 
-    private object? GenerateParameter(Type parameterType, Parameterization processConfig)
+    private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig)
     {
-        if (parameterType == typeof(Dictionary<string, string>))
+        if (parameterInfo.ParameterType == typeof(ILogger))
         {
-            object param = processConfig; // Only required because of a compiler warning. Won't be necessary as soon as there is another mapped parameter type.
-            return param;
+            return loggerFactory.CreateLogger(processType);
         }
-        else
+        else if (!string.IsNullOrEmpty(parameterInfo.Name) && processConfig.TryGetValue(parameterInfo.Name, out var parameterStringValue))
         {
-            logger.LogWarning($"Process initialization: No suitable parameter found for parameter of type <{parameterType.Name}>. Initializing with null.");
+            if (parameterInfo.ParameterType == typeof(string))
+            {
+                return parameterStringValue;
+            }
+            else if (int.TryParse(parameterStringValue, out var parameterIntValue) && parameterInfo.ParameterType.IsAssignableFrom(parameterIntValue.GetType()))
+            {
+                return parameterIntValue;
+            }
+            else if (double.TryParse(parameterStringValue, out var parameterDoubleValue) && parameterInfo.ParameterType.IsAssignableFrom(parameterDoubleValue.GetType()))
+            {
+                return parameterDoubleValue;
+            }
+            else if (bool.TryParse(parameterStringValue, out var parameterBoolValue) && parameterInfo.ParameterType.IsAssignableFrom(parameterBoolValue.GetType()))
+            {
+                return parameterBoolValue;
+            }
+        }
+
+        if (IsParameterNullable(parameterInfo))
             return null;
-        }
+        else
+            throw new InvalidOperationException($"Process initialization: No suitable parameter found for parameter of type <{parameterInfo.ParameterType.Name}> and name <{parameterInfo.Name}>. Parameter is not nullable, cannot initialize process.");
+    }
+
+    private static bool IsParameterNullable(ParameterInfo parameterInfo)
+    {
+        return new NullabilityInfoContext().Create(parameterInfo).WriteState is NullabilityState.Nullable;
     }
 
     private Parameterization GetMergedParameterization(Parameterization? processBaseConfig, Parameterization? processDefaultConfig, Parameterization? processDefaultConfigOverwrites)
@@ -186,7 +208,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             foreach (var config in processDefaultConfig)
             {
-                mergedParams[config.Key] = config.Value;
+                if (processBaseConfig != null && processBaseConfig.ContainsKey(config.Key))
+                    throw new InvalidOperationException($"Conflict in process configuration: The key '{config.Key}' is defined in both process base configuration and process default configuration. Please resolve this conflict by ensuring that base configuration can't be overwritten.");
+                else
+                    mergedParams[config.Key] = config.Value;
             }
         }
 
@@ -195,14 +220,11 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             foreach (var overwrite in processDefaultConfigOverwrites)
             {
-                if (processDefaultConfig != null && processDefaultConfig.ContainsKey(overwrite.Key))
-                {
-                    mergedParams[overwrite.Key] = overwrite.Value;
-                }
-                else
-                {
-                    this.logger.LogWarning("Attempted to overwrite a process configuration that is not defined in default configuration of process: '{Key}' ==> '{Value}'", overwrite.Key, overwrite.Value);
-                }
+                if (processBaseConfig != null && processBaseConfig.ContainsKey(overwrite.Key))
+                    throw new InvalidOperationException($"Conflict in process configuration overwrite: The key '{overwrite.Key}' is defined in both process base configuration and process overwrite configuration. Please resolve this conflict by ensuring that base configuration can't be overwritten.");
+                if (processDefaultConfig == null || !processDefaultConfig.ContainsKey(overwrite.Key))
+                    throw new InvalidOperationException($"Conflict in process configuration overwrite: The key '{overwrite.Key}' is not defined in process default configuration, so it cannot be overwritten. Please ensure that only existing default configuration keys are overwritten.");
+                mergedParams[overwrite.Key] = overwrite.Value;
             }
         }
 
