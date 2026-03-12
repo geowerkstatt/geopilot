@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -94,26 +95,27 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         var processConfig = stepConfig.ProcessId != null ? processes.GetProcessConfig(stepConfig.ProcessId) : null;
 
-        string processImplementation = "unknown";
-        if (processConfig != null)
-        {
-            processImplementation = processConfig.Implementation;
-            var objectType = GetProccessorType(processImplementation);
-            if (objectType != null)
-            {
-                var processInstance = Activator.CreateInstance(objectType);
-                if (processInstance != null)
-                {
-                    var processBaseConfig = pipelineOptions.ProcessConfigs.GetValueOrDefault(processConfig.Implementation);
-                    var processParameterization = GetMergedParameterization(processBaseConfig, processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
-                    InitializeProcess(objectType, processInstance, processParameterization);
-                    return processInstance;
-                }
-            }
-        }
+        if (processConfig == null)
+            throw new InvalidOperationException($"No process config found for process ID <{stepConfig.ProcessId}>.");
+
+        var objectType = GetProccessorType(processConfig.Implementation) ?? throw new InvalidOperationException($"Process <{processConfig.Implementation}> is unknown");
+
+        var constructors = objectType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+        if (constructors.Length != 1)
+            throw new InvalidOperationException($"Process <{processConfig.Implementation}> has {constructors.Length} public constructors. A Process must have exactly one public constructor.");
+
+        ConstructorInfo constructor = constructors[0];
+        var processBaseConfig = pipelineOptions.ProcessConfigs.GetValueOrDefault(processConfig.Implementation);
+        var processParameterization = GetMergedParameterization(processBaseConfig, processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
+        var parameters = constructor.GetParameters()
+            .Select(p => GenerateParameter(p, objectType, processParameterization))
+            .ToArray();
+        var processInstance = Activator.CreateInstance(objectType, parameters);
+        if (processInstance != null)
+            return processInstance;
 
         var processId = stepConfig != null ? stepConfig.ProcessId : string.Empty;
-        throw new InvalidOperationException($"Failed to create process instance for step <{stepConfig?.Id}> with process ID <{processId}> and implementation <{processImplementation}>.");
+        throw new InvalidOperationException($"Failed to create process instance for step <{stepConfig?.Id}> with process ID <{processId}> and implementation <{processConfig.Implementation}>.");
     }
 
     private Type? GetProccessorType(string implementation)
@@ -136,21 +138,6 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         logger.LogWarning($"For process implementation '{implementation}' no processor plugin configured. Cannot load process.");
         return null;
-    }
-
-    private void InitializeProcess(Type processType, object process, Parameterization processParams)
-    {
-        var initMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessInitializeAttribute)))
-            .ToList();
-        initMethods
-            .ForEach(m =>
-            {
-                var parameters = m.GetParameters()
-                    .Select(p => GenerateParameter(p, processType, processParams))
-                    .ToArray();
-                m.Invoke(process, parameters);
-            });
     }
 
     private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig)

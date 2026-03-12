@@ -23,8 +23,7 @@ public class ManyDifferentInitialzationAttributesTestProcess
 
     public bool? OptionalBoolean { get; set; }
 
-    [PipelineProcessInitialize]
-    public void Initialize(
+    public ManyDifferentInitialzationAttributesTestProcess(
         string mandatoryString,
         string? optionalString,
         int mandatoryInt,

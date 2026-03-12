@@ -12,12 +12,8 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public void Dispose()
     {
-        Process
-            .GetType()
-            .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessCleanupAttribute)))
-            .ToList()
-            .ForEach(m => m.Invoke(Process, null));
+        if (Process is IDisposable disposableProcess)
+            disposableProcess.Dispose();
     }
 
     /// <inheritdoc/>
