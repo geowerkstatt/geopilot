@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api.FileAccess;
+﻿using Microsoft.Extensions.Options;
+
+namespace Geopilot.Api.FileAccess;
 
 /// <summary>
 /// Provides access to the upload and asset directories.
@@ -11,15 +13,21 @@ public class DirectoryProvider : IDirectoryProvider
     /// <inheritdoc/>
     public string AssetDirectory { get; }
 
+    /// <inheritdoc/>
+    public string PipelineDirectory { get; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DirectoryProvider"/> class.
     /// </summary>
-    public DirectoryProvider(IConfiguration configuration)
+    public DirectoryProvider(IOptions<FileAccessOptions> fileAccessOptions)
     {
-        UploadDirectory = configuration.GetValue<string>("Storage:UploadDirectory")
-            ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
-        AssetDirectory = configuration.GetValue<string>("Storage:AssetsDirectory")
-            ?? throw new InvalidOperationException("Missing root directory for persisted assets, the value can be configured as \"Storage:AssetsDirectory\"");
+        var fileAccess = fileAccessOptions.Value;
+
+        if (fileAccess == null)
+            throw new InvalidOperationException("Missing file Access Options \"Storage\"");
+
+        UploadDirectory = fileAccess.UploadDirectory ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
+        AssetDirectory = fileAccess.AssetsDirectory ?? throw new InvalidOperationException("Missing root directory for persisted assets, the value can be configured as \"Storage:AssetsDirectory\"");
     }
 
     /// <inheritdoc/>
