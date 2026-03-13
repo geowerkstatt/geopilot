@@ -12,12 +12,8 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public void Dispose()
     {
-        Process
-            .GetType()
-            .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessCleanupAttribute)))
-            .ToList()
-            .ForEach(m => m.Invoke(Process, null));
+        if (Process is IDisposable disposableProcess)
+            disposableProcess.Dispose();
     }
 
     /// <inheritdoc/>
@@ -33,12 +29,17 @@ public sealed class PipelineStep : IPipelineStep
     public List<OutputConfig> OutputConfigs { get; }
 
     /// <inheritdoc/>
+    public PipelineStepConditionsConfig? StepConditions { get; }
+
+    /// <inheritdoc/>
     public object Process { get; }
 
     /// <inheritdoc/>
     public StepState State { get; set; }
 
-    private ILogger<PipelineStep> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<PipelineStep>();
+    private readonly ConditionEvaluator conditionEvaluator;
+
+    private ILogger logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PipelineStep"/> class.
@@ -47,19 +48,26 @@ public sealed class PipelineStep : IPipelineStep
     /// <param name="displayName">The display name for the step.</param>
     /// <param name="inputConfig">The input configuration for the step.</param>
     /// <param name="outputConfig">The output configuration for the step.</param>
+    /// <param name="stepConditions">The step conditions for the step.</param>
     /// <param name="process">The process associated with the step.</param>
+    /// <param name="loggerFactory">The logger factory to use for logging.</param>
     public PipelineStep(
         string id,
         Dictionary<string, string> displayName,
         List<InputConfig> inputConfig,
         List<OutputConfig> outputConfig,
-        object process)
+        PipelineStepConditionsConfig? stepConditions,
+        object process,
+        ILoggerFactory loggerFactory)
     {
         this.Id = id;
         this.DisplayName = displayName;
         this.InputConfig = inputConfig;
         this.OutputConfigs = outputConfig;
+        this.StepConditions = stepConditions;
         this.Process = process;
+        this.logger = loggerFactory.CreateLogger<PipelineStep>();
+        this.conditionEvaluator = new ConditionEvaluator(loggerFactory.CreateLogger<ConditionEvaluator>());
 
         this.State = StepState.Pending;
     }
@@ -67,50 +75,111 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public async Task<StepResult> Run(PipelineContext context, CancellationToken cancellationToken)
     {
-        if (context != null)
+        try
         {
-            this.State = StepState.Running;
-
-            try
+            if (this.StepConditions != null)
             {
-                var runMethod = GetProcessRunMethod();
-
-                if (runMethod != null)
+                if (await this.FailStep(this.StepConditions.Pre, context))
                 {
-                    var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
-                    var resultTask = runMethod.Invoke(Process, runParams);
-                    if (resultTask != null)
-                    {
-                        var result = await (Task<Dictionary<string, object>>)resultTask;
-                        var stepResult = CreateStepResult(result);
-
-                        this.State = StepState.Success;
-
-                        return stepResult;
-                    }
-                    else
-                    {
-                        this.State = StepState.Failed;
-                        logger.LogError($"error in step '{this.Id}': no result returned from process.");
-                    }
+                    this.State = StepState.Error;
+                    logger.LogInformation($"step '{this.Id}' failed due to pre-condition.");
+                    return new StepResult();
+                }
+                else if (await this.SkipStepExecution(this.StepConditions.Pre, context))
+                {
+                    this.State = StepState.Skipped;
+                    logger.LogInformation($"step '{this.Id}' skipped due to pre-condition.");
+                    return new StepResult();
                 }
             }
-            catch (Exception ex)
+
+            this.State = StepState.Running;
+
+            var stepResult = await ExecuteProcess(context, cancellationToken);
+
+            if (this.StepConditions != null && await this.FailStep(this.StepConditions.Post, context, stepResult))
             {
-                this.State = StepState.Failed;
-                logger.LogError(ex, $"error in step '{this.Id}': exception occurred during step execution: {ex.Message}.");
+                this.State = StepState.Error;
+                logger.LogInformation($"step '{this.Id}' failed due to post-condition.");
             }
+            else
+            {
+                this.State = StepState.Success;
+            }
+
+            return stepResult;
+        }
+        catch (Exception ex)
+        {
+            this.State = StepState.Error;
+            logger.LogError(ex, $"Error in step <{this.Id}>.");
+            throw;
+        }
+    }
+
+    private async Task<StepResult> ExecuteProcess(PipelineContext context, CancellationToken cancellationToken)
+    {
+        var runMethod = GetProcessRunMethod();
+        var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
+        var resultTask = runMethod.Invoke(Process, runParams) as Task<Dictionary<string, object>>;
+
+        if (resultTask == null)
+        {
+            throw new PipelineRunException($"The process <{Process.GetType().Name}> did not return a task.");
+        }
+
+        try
+        {
+            await resultTask;
+        }
+        catch (Exception ex)
+        {
+            throw new PipelineRunException($"The process <{Process.GetType().Name}> threw an exception.", ex);
+        }
+
+        return CreateStepResult(resultTask.Result);
+    }
+
+    private async Task<bool> SkipStepExecution(PipelineStepPreConditionConfig? condition, PipelineContext context)
+    {
+        if (condition != null && condition.SkipCondition != null)
+        {
+            var expressionParameters = context.ToExpressionParameters();
+            return await this.conditionEvaluator.EvaluateConditionAsync(condition.SkipCondition, expressionParameters);
         }
         else
         {
-            this.State = StepState.Failed;
-            logger.LogError($"error in step '{this.Id}': pipeline context is null.");
+            return false;
         }
-
-        return new StepResult();
     }
 
-    private MethodInfo? GetProcessRunMethod()
+    private async Task<bool> FailStep(PipelineStepPreConditionConfig? condition, PipelineContext context)
+    {
+        if (condition != null && condition.FailCondition != null)
+        {
+            var expressionParameters = context.ToExpressionParameters();
+            return await this.conditionEvaluator.EvaluateConditionAsync(condition.FailCondition, expressionParameters);
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    private async Task<bool> FailStep(PipelineStepPostConditionConfig? condition, PipelineContext context, StepResult stepResult)
+    {
+        if (condition != null && condition.FailCondition != null)
+        {
+            var expressionParameters = context.ToExpressionParameters(this.Id, stepResult);
+            return await this.conditionEvaluator.EvaluateConditionAsync(condition.FailCondition, expressionParameters);
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    private MethodInfo GetProcessRunMethod()
     {
         var processRunMethods = Process.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
                     .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessRunAttribute)))
@@ -118,13 +187,11 @@ public sealed class PipelineStep : IPipelineStep
 
         if (processRunMethods.Count() > 1)
         {
-            logger.LogError($"error in step '{this.Id}': multiple methods found with PipelineProcessRunAttribute. there should only be one. please consolidate the pipeline validation logic.");
-            return null;
+            throw new PipelineRunException($"Multiple methods found with PipelineProcessRunAttribute on process <{Process.GetType().Name}>.");
         }
         else if (!processRunMethods.Any())
         {
-            logger.LogError($"error in step '{this.Id}': no method found with PipelineProcessRunAttribute. there should be exactly one. please consolidate the pipeline validation logic.");
-            return null;
+            throw new PipelineRunException($"No method found with PipelineProcessRunAttribute on process <{Process.GetType().Name}>. There should be exactly one.");
         }
         else
         {
@@ -160,9 +227,8 @@ public sealed class PipelineStep : IPipelineStep
             return GenerateSingleParameter(parameterInfo, mappedValues[0]);
         }
 
-        var errorMessage = $"Error in step <{this.Id}>: could not find matching data for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method. please consolidate the pipeline validation logic.";
-        logger.LogError(errorMessage);
-        throw new InvalidOperationException(errorMessage);
+        var errorMessage = $"Could not find matching data for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method.";
+        throw new PipelineRunException(errorMessage);
     }
 
     private List<object?> CollectMappedValues(ParameterInfo parameterInfo, PipelineContext context)
@@ -185,7 +251,7 @@ public sealed class PipelineStep : IPipelineStep
         return mappedValues;
     }
 
-    private Array? GenerateArrayParameter(ParameterInfo parameterInfo, List<object?> mappedValues)
+    private Array GenerateArrayParameter(ParameterInfo parameterInfo, List<object?> mappedValues)
     {
         var elementType = parameterInfo.ParameterType.GetElementType()
             ?? throw new InvalidOperationException("Could not get type of element.");
@@ -195,21 +261,22 @@ public sealed class PipelineStep : IPipelineStep
 
         if (!isElementNullable && hasNullValues)
         {
-            var errorMessage = $"Error in step <{this.Id}>: parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> is a non-nullable array, but at least one input was null.";
-            logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
+            var errorMessage = $"Parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> is a non-nullable array, but at least one input was null.";
+            throw new PipelineRunException(errorMessage);
         }
 
-        var hasAnyNonAssignableValues = mappedValues.Any(p => p != null && !elementType.IsAssignableFrom(p.GetType()));
+        var mappedValuesArray = mappedValues
+            .SelectMany(p => p is IEnumerable<object?> enumerable ? enumerable : new List<object?> { p })
+            .ToArray();
+
+        var hasAnyNonAssignableValues = mappedValuesArray.Any(p => p != null && !elementType.IsAssignableFrom(p.GetType()));
 
         if (hasAnyNonAssignableValues)
         {
-            var errorMessage = $"Error in step <{this.Id}>: at least one of the mapped input values was not assignable to the element type <{elementType.Name}> of parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}>.";
-            logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
+            var errorMessage = $"At least one of the mapped input values was not assignable to the element type <{elementType.Name}> of parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}>.";
+            throw new PipelineRunException(errorMessage);
         }
 
-        var mappedValuesArray = mappedValues.ToArray();
         var arrayOfCorrectTypeToInject = Array.CreateInstance(elementType, mappedValuesArray.Length);
         for (int i = 0; i < mappedValuesArray.Length; i++)
         {
@@ -218,9 +285,8 @@ public sealed class PipelineStep : IPipelineStep
 
         if (!parameterInfo.ParameterType.IsAssignableFrom(arrayOfCorrectTypeToInject.GetType()))
         {
-            var errorMessage = $"Error in step <{this.Id}>: the generated array of type <{arrayOfCorrectTypeToInject.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
-            logger.LogError(errorMessage);
-            throw new InvalidOperationException(errorMessage);
+            var errorMessage = $"The generated array of type <{arrayOfCorrectTypeToInject.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
+            throw new PipelineRunException(errorMessage);
         }
 
         return arrayOfCorrectTypeToInject;
@@ -228,24 +294,16 @@ public sealed class PipelineStep : IPipelineStep
 
     private object? GenerateSingleParameter(ParameterInfo parameterInfo, object? mappedValue)
     {
-        if (mappedValue == null)
+        if (mappedValue == null && !IsParameterNullable(parameterInfo))
         {
-            var isNullable = IsParameterNullable(parameterInfo);
-
-            if (!isNullable)
-            {
-                var errorMessage = $"Error in step <{this.Id}>: the parameter <{parameterInfo.Name}> is non-nullable, but the mapped input value was null.";
-                logger.LogError(errorMessage);
-                throw new InvalidOperationException(errorMessage);
-            }
-
-            return null;
+            var errorMessage = $"The parameter <{parameterInfo.Name}> is non-nullable, but the mapped input value was null.";
+            throw new PipelineRunException(errorMessage);
         }
 
-        if (!parameterInfo.ParameterType.IsAssignableFrom(mappedValue.GetType()))
+        if (mappedValue != null && !parameterInfo.ParameterType.IsAssignableFrom(mappedValue.GetType()))
         {
-            var errorMessage = $"Error in step <{this.Id}>: the mapped input value of type <{mappedValue.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
-            throw new InvalidOperationException(errorMessage);
+            var errorMessage = $"The mapped input value of type <{mappedValue.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
+            throw new PipelineRunException(errorMessage);
         }
 
         return mappedValue;
@@ -267,9 +325,9 @@ public sealed class PipelineStep : IPipelineStep
             }
             else
             {
-                var errMsg = $"Error in step <{this.Id}>: output config is missing 'take' or 'as', or output data not found in process data. this error should not occur. please consolidate the pipeline validation logic.";
-                logger.LogError(errMsg);
-                throw new InvalidOperationException(errMsg);
+                var errorMessage = $"Output config is missing 'take' or 'as', or the process output (referenced by 'take') was not found in the output of the process. This error should not occur. Please consolidate the pipeline validation logic.";
+                logger.LogError(errorMessage);
+                throw new PipelineRunException(errorMessage);
             }
         }
 

@@ -1,12 +1,25 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
+using Geopilot.Api.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline.Process;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Geopilot.Api.Test.Pipeline;
 
 [TestClass]
 public class PipelineStepTest
 {
+    private Mock<ILoggerFactory> loggerFactoryMock;
+
+    [TestInitialize]
+    public void SetUp()
+    {
+        loggerFactoryMock = new Mock<ILoggerFactory>();
+        var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
+        loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+    }
+
     private class MockPipelineProcessSingleInput
     {
         public MockPipelineProcessSingleInput(Dictionary<string, object> outputData)
@@ -30,12 +43,14 @@ public class PipelineStepTest
 
     private class MockPipelineProcessArrayInput
     {
-        public MockPipelineProcessArrayInput(Dictionary<string, object> outputData)
+        public MockPipelineProcessArrayInput(Dictionary<string, object> outputData, int expectedNumberOfInputData)
         {
             this.outputData = outputData;
+            this.expectedNumberOfInputData = expectedNumberOfInputData;
         }
 
         private Dictionary<string, object> outputData;
+        private int expectedNumberOfInputData;
 
         public int NumberOfRunInvoced { get; set; }
 
@@ -44,6 +59,7 @@ public class PipelineStepTest
         {
             Assert.IsNotNull(data);
             Assert.IsNotEmpty(data, "data expected");
+            Assert.HasCount(expectedNumberOfInputData, data, "not matching expected count for input data");
             Assert.IsNotNull(cancellationToken);
             NumberOfRunInvoced++;
             return this.outputData;
@@ -132,7 +148,7 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public void SuccessfullStepRunWithSingleInput()
+    public async Task SuccessfullStepRunWithSingleInput()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -168,11 +184,11 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.IsNotNull(stepResult);
 
@@ -188,7 +204,72 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public void SuccessfullStepRunWithArrayInput()
+    public async Task SuccessfullStepRunWithArrayInputFromSingleSources()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("step_01", "data", "data"),
+            NewInputConfig("step_02", "data", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var stepStepResult01 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some data from step 01" } },
+            },
+        };
+        var stepStepResult02 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some data from step 02" } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "step_01", stepStepResult01 },
+                { "step_02", stepStepResult02 },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+
+        var processMock = new MockPipelineProcessArrayInput(processData, 2);
+
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        // Assert that the returned StepResult contains the correct content
+        Assert.HasCount(1, stepResult.Outputs);
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_output"));
+        Assert.IsEmpty(stepResult.Outputs["my_output"].Action);
+        Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+    }
+
+    [TestMethod]
+    public async Task SuccessfullStepRunWithArrayInputFromOneSingleArray()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -207,7 +288,7 @@ public class PipelineStepTest
         {
             Outputs = new Dictionary<string, StepOutput>
             {
-                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some data from step 01" } },
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = new string[] { "data 01 from step 01", "data 02 from step 01" } } },
             },
         };
         var pipelineContext = new PipelineContext()
@@ -222,13 +303,13 @@ public class PipelineStepTest
             { "error_log", "some_data" },
         };
 
-        var processMock = new MockPipelineProcessArrayInput(processData);
+        var processMock = new MockPipelineProcessArrayInput(processData, 2);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.IsNotNull(stepResult);
 
@@ -244,7 +325,137 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public void SuccessfullStepRunWithManyDifferentInputDataInput()
+    public async Task SuccessfullStepRunWithArrayInputFromOneArrayAndOneSigleParameter()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("step_01", "data", "data"),
+            NewInputConfig("step_02", "data", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var stepStepResult01 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = new string[] { "data 01 from step 01", "data 02 from step 01" } } },
+            },
+        };
+        var stepStepResult02 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = "data 01 from step 02" } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "step_01", stepStepResult01 },
+                { "step_02", stepStepResult02 },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+
+        var processMock = new MockPipelineProcessArrayInput(processData, 3);
+
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        // Assert that the returned StepResult contains the correct content
+        Assert.HasCount(1, stepResult.Outputs);
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_output"));
+        Assert.IsEmpty(stepResult.Outputs["my_output"].Action);
+        Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+    }
+
+    [TestMethod]
+    public async Task SuccessfullStepRunWithArrayInputFromTwoArrays()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("step_01", "data", "data"),
+            NewInputConfig("step_02", "data", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var stepStepResult01 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = new string[] { "data 01 from step 01", "data 02 from step 01" } } },
+            },
+        };
+        var stepStepResult02 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = new string[] { "data 01 from step 02", "data 02 from step 02" } } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "step_01", stepStepResult01 },
+                { "step_02", stepStepResult02 },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+
+        var processMock = new MockPipelineProcessArrayInput(processData, 4);
+
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        // Assert that the returned StepResult contains the correct content
+        Assert.HasCount(1, stepResult.Outputs);
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_output"));
+        Assert.IsEmpty(stepResult.Outputs["my_output"].Action);
+        Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+    }
+
+    [TestMethod]
+    public async Task SuccessfullStepRunWithManyDifferentInputDataInput()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -286,11 +497,11 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessManyDifferentInputTypesInput(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.IsNotNull(stepResult);
 
@@ -306,7 +517,7 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public void SuccessfullStepRunWithNullableTypesInput()
+    public async Task SuccessfullStepRunWithNullableTypesInput()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -342,11 +553,11 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessNullableTypesInput();
 
-        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], processMock);
+        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.AreEqual(StepState.Success, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvokations, "Process Run method was not invoked exactly once.");
@@ -365,7 +576,7 @@ public class PipelineStepTest
     [DataRow("nonNullableString")]
     [DataRow("arrayOfNonNullableInts")]
     [DataRow("arrayOfNonNullableStrings")]
-    public void StepRunFailsIfNullValueForNonNullableParameter(string inputToSetNull)
+    public async Task StepRunFailsIfNullValueForNonNullableParameter(string inputToSetNull)
     {
         // Setup input configs with valid values for each parameter
         var inputConfigs = new List<InputConfig>
@@ -407,18 +618,19 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessNullableTypesInput();
 
-        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], processMock);
+        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.Contains("non-nullable", exception.Message);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvokations, "Process Run method was invoked.");
     }
 
     [TestMethod]
-    public void StepRunFailsIfInputDataIsOfWrongType()
+    public async Task StepRunFailsIfInputDataIsOfWrongType()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -445,17 +657,18 @@ public class PipelineStepTest
             },
         };
         var processMock = new MockPipelineProcessManyDifferentInputTypesInput([]);
-        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], processMock);
+        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], null, processMock, loggerFactoryMock.Object);
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.AreEqual("The mapped input value of type <System.String> was not assignable to parameter <booleanData> of type <System.Boolean>.", exception.Message);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvokations, "Process Run method was invoked.");
     }
 
     [TestMethod]
-    public void StepRunFailsIfInputDataIsOfWrongTypeForArray()
+    public async Task StepRunFailsIfInputDataIsOfWrongTypeForArray()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -483,17 +696,18 @@ public class PipelineStepTest
             },
         };
         var processMock = new MockPipelineProcessManyDifferentInputTypesInput([]);
-        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], processMock);
+        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], null, processMock, loggerFactoryMock.Object);
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+        Assert.AreEqual("At least one of the mapped input values was not assignable to the element type <String> of parameter <stringData> of type <System.String[]>.", exception.Message);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvokations, "Process Run method was invoked.");
     }
 
     [TestMethod]
-    public void ContextHasNoReferencingStepRusult()
+    public async Task ContextHasNoReferencingStepResult()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -525,21 +739,19 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(new Dictionary<string, object>());
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
-        Assert.IsEmpty(stepResult.Outputs);
-
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
-
+        Assert.AreEqual("Could not find matching data for parameter <data> of type <System.String> in process run method.", exception.Message);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked.");
     }
 
     [TestMethod]
-    public void ContextHasNoReferencingStepOutput()
+    public async Task ContextHasNoReferencingStepOutput()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -571,21 +783,19 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(new Dictionary<string, object>());
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
-        Assert.IsEmpty(stepResult.Outputs);
-
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
-
+        Assert.AreEqual("Could not find matching data for parameter <data> of type <System.String> in process run method.", exception.Message);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
 
     [TestMethod]
-    public void ExceptionDuringProcessRun()
+    public async Task ExceptionDuringProcessRun()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -617,21 +827,21 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessException();
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
-        Assert.IsEmpty(stepResult.Outputs);
-
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
-
+        Assert.AreEqual("The process <MockPipelineProcessException> threw an exception.", exception.Message);
+        Assert.AreEqual(typeof(InvalidOperationException), exception.InnerException?.GetType());
+        Assert.AreEqual("Test exception during process run.", exception.InnerException?.Message);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
 
     [TestMethod]
-    public void StepResultCouldNotBeCreated()
+    public async Task StepResultCouldNotBeCreated()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -667,15 +877,217 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, processMock);
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock, loggerFactoryMock.Object);
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
-        var stepResult = Task.Run(() => pipelineStep.Run(pipelineContext, CancellationToken.None)).GetAwaiter().GetResult();
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
-        Assert.IsEmpty(stepResult.Outputs);
+        Assert.AreEqual("Output config is missing 'take' or 'as', or the process output (referenced by 'take') was not found in the output of the process. This error should not occur. Please consolidate the pipeline validation logic.", exception.Message);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+    }
 
-        Assert.AreEqual(StepState.Failed, pipelineStep.State);
+    [TestMethod]
+    public async Task StepShouldFailBecauseOfPreCondition()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("upload", "xtf_file", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var uploadStepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "xtf_file", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some_data" } },
+            },
+        };
+        var aPreviousStepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "some_random_data", new StepOutput { Action = new HashSet<OutputAction>(), Data = 123 } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "upload", uploadStepResult },
+                { "aPreviousStep", aPreviousStepResult },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Pre = new PipelineStepPreConditionConfig()
+            {
+                SkipCondition = "[aPreviousStep.some_random_data] == 123",
+                FailCondition = "[aPreviousStep.some_random_data] == 123",
+            },
+            Post = null,
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, stepConditions, processMock, loggerFactoryMock.Object);
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
+
+        Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
+    }
+
+    [TestMethod]
+    public async Task StepShouldBeSkipedBecauseOfPreCondition()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("upload", "xtf_file", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var uploadStepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "xtf_file", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some_data" } },
+            },
+        };
+        var aPreviousStepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "some_random_data", new StepOutput { Action = new HashSet<OutputAction>(), Data = 123 } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "upload", uploadStepResult },
+                { "aPreviousStep", aPreviousStepResult },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Pre = new PipelineStepPreConditionConfig()
+            {
+                SkipCondition = "[aPreviousStep.some_random_data] == 123",
+                FailCondition = null,
+            },
+            Post = null,
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, stepConditions, processMock, loggerFactoryMock.Object);
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Skipped, pipelineStep.State);
+
+        Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
+    }
+
+    [TestMethod]
+    public async Task StepShouldFailBecauseOfPostCondition()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("upload", "xtf_file", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var uploadStepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "xtf_file", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some_data" } },
+            },
+        };
+        var aPreviousStepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "some_random_data", new StepOutput { Action = new HashSet<OutputAction>(), Data = 123 } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "upload", uploadStepResult },
+                { "aPreviousStep", aPreviousStepResult },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Pre = new PipelineStepPreConditionConfig()
+            {
+                SkipCondition = "[aPreviousStep.some_random_data] == 124",
+                FailCondition = "[aPreviousStep.some_random_data] == 124",
+            },
+            Post = new PipelineStepPostConditionConfig()
+            {
+                FailCondition = "[my_step.my_output] == 'some_data'",
+            },
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, stepConditions, processMock, loggerFactoryMock.Object);
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
 
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }

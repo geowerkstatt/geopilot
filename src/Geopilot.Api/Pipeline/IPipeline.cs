@@ -33,9 +33,16 @@ public interface IPipeline : IDisposable
     PipelineState State { get; }
 
     /// <summary>
+    /// Gets the pipeline delivery configuration used for processing messages.
+    /// </summary>
+    PipelineDelivery Delivery { get; }
+
+    /// <summary>
     /// Runs the pipeline with the specified input file.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token to cancel the pipeline run.</param>
     /// <returns>The context containing the results of the pipeline execution.</returns>
+    /// <exception cref="PipelineRunException">The pipeline run failed due to a misconfigured pipeline or an misbehaving process.</exception>
+    /// <exception cref="OperationCanceledException">The pipeline run was cancelled.</exception>
     Task<PipelineContext> Run(CancellationToken cancellationToken);
 }

@@ -8,6 +8,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// Configuration for a pipeline.
 /// </summary>
 [ValidStepInputReference]
+[ValidExpressionParameterReferences]
 public class PipelineConfig
 {
     /// <summary>
@@ -38,4 +39,16 @@ public class PipelineConfig
     [NoDuplicates(PropertyName = "Id")]
     [YamlMember(Alias = "steps")]
     public required List<StepConfig> Steps { get; set; }
+
+    /// <summary>
+    /// Condition to control in which cases a delivery is allowed and not allowed, based on the results of the pipeline run.
+    /// </summary>
+    /// <remarks>
+    /// The condition is typically specified as a string expression and references the pipeline context data.
+    /// The expression is evaluated at runtime and has to evaluate to <see langword="true"/> or <see langword="false"/>.
+    /// If the condition evaluates to <see langword="true"/>, delivery of the pipeline data is allowed.
+    /// If the condition evaluates to <see langword="false"/> or any other non-boolean value, delivery of the pipeline data is not allowed.
+    /// </remarks>
+    [YamlMember(Alias = "delivery_condition")]
+    public string? DeliveryCondition { get; set; }
 }

@@ -9,7 +9,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Geopilot.Api.Pipeline.Process;
+namespace Geopilot.Api.Pipeline.Process.XtfValidation;
 
 /// <summary>
 /// Process for validating ILI files.
@@ -26,18 +26,16 @@ internal class XtfValidatorProcess : IDisposable
     private const string OutputMappingXtfLog = "xtf_log";
     private const string OutputMappingValidationSuccessful = "validation_successful";
     private const string OutputMappingStatusMessage = "status_message";
-    private const string ConfiguratiionKeyValidationProfile = "profile";
-    private const string ConfiguratiionKeyPollInterval = "poll_interval";
-    private const string InterlisCheckServiceBaseAddressConfiguration = "Validation:InterlisCheckServiceUrl";
     private const string UploadUrl = "/api/v1/upload";
 
     private static readonly JsonSerializerOptions JsonOptions;
 
-    private ILogger<XtfValidatorProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<XtfValidatorProcess>();
-
-    private Dictionary<string, string> config = new Dictionary<string, string>();
+    private ILogger logger;
 
     private HttpClient httpClient = new();
+
+    private string validationProfile;
+    private TimeSpan pollInterval;
 
     static XtfValidatorProcess()
     {
@@ -49,53 +47,37 @@ internal class XtfValidatorProcess : IDisposable
     }
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="XtfValidatorProcess"/>.
+    /// Create a new instance of the <see cref="XtfValidatorProcess"/> class.
     /// </summary>
-    [PipelineProcessCleanup]
-    public void Dispose()
+    /// <param name="checkServiceBaseUrl">Base URL for the Interlis check service.</param>
+    /// <param name="validationProfile">Optional validation profile to use for the validation process.</param>
+    /// <param name="pollInterval">Optional polling interval in milliseconds for checking the validation status. If not provided, a default of 2000ms will be used.</param>
+    /// <param name="logger">Logger instance for logging messages during the validation process.</param>
+    public XtfValidatorProcess(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, ILogger logger)
     {
-        this.httpClient.Dispose();
+        this.httpClient.BaseAddress = new Uri(checkServiceBaseUrl);
+        this.httpClient.DefaultRequestHeaders.Accept.Clear();
+        this.httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        if (!string.IsNullOrEmpty(validationProfile))
+            this.validationProfile = validationProfile;
+        else
+            this.validationProfile = string.Empty;
+
+        if (pollInterval != null)
+            this.pollInterval = TimeSpan.FromMilliseconds((double)pollInterval);
+        else
+            this.pollInterval = TimeSpan.FromSeconds(2);
+
+        this.logger = logger;
     }
 
     /// <summary>
-    /// Initializes the pipeline process with the specified configuration settings.
+    /// Disposes the resources used by the <see cref="XtfValidatorProcess"/>.
     /// </summary>
-    /// <param name="config">A dictionary containing configuration key-value pairs to be used for initialization. Cannot be null.<para>'profile': optional profile to run the validation with.</para><para>'poll_interval': optional polling interval for the validation process.</para></param>
-    /// <param name="configuration">The configuration source used to retrieve the base address for the INTERLIS check service. Cannot be null and
-    /// must contain a valid service URL at value "Validation:InterlisCheckServiceUrl".</param>
-    /// <exception cref="InvalidOperationException">Thrown if the configuration does not provide a valid INTERLIS check service base address.</exception>
-    [PipelineProcessInitialize]
-    public void Initialize(Dictionary<string, string> config, IConfiguration configuration)
+    public void Dispose()
     {
-        this.config = config;
-
-        var checkServiceUrl = configuration.GetValue<string>(InterlisCheckServiceBaseAddressConfiguration) ?? throw new InvalidOperationException("Missing InterlisCheckServiceUrl to validate INTERLIS transfer files.");
-        this.httpClient.BaseAddress = new Uri(checkServiceUrl);
-
-        this.httpClient.DefaultRequestHeaders.Accept.Clear();
-        this.httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-    }
-
-    private string Profile
-    {
-        get
-        {
-            if (this.config.TryGetValue(ConfiguratiionKeyValidationProfile, out var profile))
-                return profile;
-            else
-                return string.Empty;
-        }
-    }
-
-    private TimeSpan PollInterval
-    {
-        get
-        {
-            if (this.config != null && this.config.TryGetValue(ConfiguratiionKeyPollInterval, out var pollIntervalStr) && int.TryParse(pollIntervalStr, out var pollInterval))
-                return TimeSpan.FromMilliseconds(pollInterval);
-            else
-                return TimeSpan.FromSeconds(2);
-        }
+        this.httpClient.Dispose();
     }
 
     /// <summary>
@@ -109,7 +91,7 @@ internal class XtfValidatorProcess : IDisposable
     public async Task<Dictionary<string, object?>> RunAsync(IPipelineTransferFile iliFile, CancellationToken cancellationToken)
     {
         logger.LogInformation("Validating transfer file <{File}>...", iliFile.FileName);
-        var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.FileName, this.Profile, cancellationToken);
+        var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.FileName, this.validationProfile, cancellationToken);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
         var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
 
@@ -162,7 +144,7 @@ internal class XtfValidatorProcess : IDisposable
                 return statusResponse;
             }
 
-            await Task.Delay(PollInterval, cancellationToken);
+            await Task.Delay(this.pollInterval, cancellationToken);
         }
 
         throw new OperationCanceledException();

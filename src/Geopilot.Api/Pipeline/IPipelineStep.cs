@@ -28,6 +28,11 @@ public interface IPipelineStep : IDisposable
     List<OutputConfig> OutputConfigs { get; }
 
     /// <summary>
+    /// Gets the configuration settings that define the conditions under which the pipeline step is executed, skiped or failed.
+    /// </summary>
+    PipelineStepConditionsConfig? StepConditions { get; }
+
+    /// <summary>
     /// The process to be executed for this step.
     /// </summary>
     object Process { get; }

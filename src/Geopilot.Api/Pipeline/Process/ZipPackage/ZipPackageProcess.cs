@@ -2,7 +2,7 @@
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.IO.Compression;
 
-namespace Geopilot.Api.Pipeline.Process;
+namespace Geopilot.Api.Pipeline.Process.ZipPackage;
 
 /// <summary>
 /// Represents a pipeline process that handles packaging <see cref="IPipelineTransferFile"/> to a ZIP file which is also provided in a <see cref="IPipelineTransferFile"/>.
@@ -13,31 +13,24 @@ namespace Geopilot.Api.Pipeline.Process;
 internal class ZipPackageProcess
 {
     private const string OutputMappingZipPackage = "zip_package";
-    private const string ConfiguratiionKeyArchiveFileName = "archive_file_name";
+    private const string DefaultArchiveFileName = "archive";
 
-    private ILogger<ZipPackageProcess> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<ZipPackageProcess>();
+    private ILogger logger;
 
-    private Dictionary<string, string> config = new Dictionary<string, string>();
-
-    private string ArchiveFileName
-    {
-        get
-        {
-            if (this.config != null && this.config.TryGetValue(ConfiguratiionKeyArchiveFileName, out var profile))
-                return profile;
-            else
-                return "archive";
-        }
-    }
+    private string archiveFileName;
 
     /// <summary>
-    /// Initializes the pipeline process with the specified configuration settings.
+    /// Creates a new instance of the <see cref="ZipPackageProcess"/> class with the specified configuration settings.
     /// </summary>
-    /// <param name="config">The parameterization configuration for the process. provides the archive file name under the key 'archive_file_name'.</param>
-    [PipelineProcessInitialize]
-    public void Initialize(Dictionary<string, string> config)
+    /// <param name="archiveFileName">The ZIP file name to use for the output archive without file extension. If null, the default name 'archive' will be used.</param>
+    /// <param name="logger">Logger instance for logging messages during the initialization process.</param>
+    public ZipPackageProcess(string? archiveFileName, ILogger logger)
     {
-        this.config = config;
+        this.logger = logger;
+        if (!string.IsNullOrEmpty(archiveFileName))
+            this.archiveFileName = archiveFileName;
+        else
+            this.archiveFileName = DefaultArchiveFileName;
     }
 
     /// <summary>
@@ -68,7 +61,7 @@ internal class ZipPackageProcess
         }
         else
         {
-            zipTransferFile = new PipelineTransferFile(ArchiveFileName, Path.GetTempFileName().Replace(".tmp", ".zip"));
+            zipTransferFile = new PipelineTransferFile(this.archiveFileName, Path.GetTempFileName().Replace(".tmp", ".zip"));
             using (var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create))
             using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))
             {

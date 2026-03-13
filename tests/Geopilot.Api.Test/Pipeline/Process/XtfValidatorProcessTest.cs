@@ -1,9 +1,9 @@
 ﻿using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Process;
+using Geopilot.Api.Pipeline.Process.XtfValidation;
 using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using System.Net;
@@ -179,24 +179,7 @@ public class XtfValidatorProcessTest
 
         public XtfValidatorProcess Build()
         {
-            var parameterization = new Api.Pipeline.Config.Parameterization()
-            {
-                { "profile", this.validationProfile },
-                { "poll_interval", $"{this.pollInterval}" },
-            };
-
-            var inMemorySettings = new List<KeyValuePair<string, string>>
-            {
-                new KeyValuePair<string, string>("Validation:InterlisCheckServiceUrl", this.interlisCheckServiceBaseUrl),
-            };
-
-            #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-            var configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(inMemorySettings)
-                .Build();
-            #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-            var process = new XtfValidatorProcess();
-            process.Initialize(parameterization, configuration);
+            var process = new XtfValidatorProcess(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval, Mock.Of<ILogger<XtfValidatorProcessTest>>());
 
             var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
             interlisValidatorMessageHandlerMock

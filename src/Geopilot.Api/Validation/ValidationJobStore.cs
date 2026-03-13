@@ -185,13 +185,15 @@ public class ValidationJobStore : IValidationJobStore
             return false;
 
         // Remove all pipeline associations for the job being removed. Temporary solution until pipelines are fully integrated.
-        var entriesToRemove = pipelineJobMap
+        var pipelinesToRemove = pipelineJobMap
             .Where(kvp => kvp.Value == jobId)
             .Select(kvp => kvp.Key);
 
-        foreach (var entry in entriesToRemove)
+        foreach (var pipelineToRemove in pipelinesToRemove)
         {
-            pipelineJobMap.TryRemove(entry, out _);
+            var removed = pipelineJobMap.TryRemove(pipelineToRemove, out _);
+            if (removed && pipelineToRemove != null)
+                pipelineToRemove.Dispose();
         }
 
         return jobs.TryRemove(jobId, out _);

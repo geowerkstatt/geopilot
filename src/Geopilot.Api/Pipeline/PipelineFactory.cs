@@ -11,7 +11,8 @@ namespace Geopilot.Api.Pipeline;
 /// </summary>
 public class PipelineFactory : IPipelineFactory
 {
-    private readonly ILogger<PipelineFactory> logger;
+    private readonly ILogger logger;
+    private readonly ILoggerFactory loggerFactory;
 
     /// <summary>
     /// The pipeline process configuration used to create pipelines.
@@ -22,13 +23,14 @@ public class PipelineFactory : IPipelineFactory
 
     private PipelineFactory(
         PipelineProcessConfig? pipelineProcessConfig,
-        IPipelineProcessFactory pipelineProcessFactory)
+        IPipelineProcessFactory pipelineProcessFactory,
+        ILoggerFactory loggerFactory)
     {
         this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pipeline process configuration.");
         this.pipelineProcessFactory = pipelineProcessFactory;
 
-        using ILoggerFactory factory = LoggerFactory.Create(builder => builder.AddConsole());
-        this.logger = factory.CreateLogger<PipelineFactory>();
+        this.loggerFactory = loggerFactory;
+        this.logger = loggerFactory.CreateLogger<PipelineFactory>();
     }
 
     /// <inheritdoc />
@@ -41,7 +43,7 @@ public class PipelineFactory : IPipelineFactory
 
         if (pipelineConfig != null)
         {
-            return new Pipeline(pipelineConfig.Id, pipelineConfig.DisplayName, CreateSteps(pipelineConfig), pipelineConfig.Parameters, file);
+            return new Pipeline(pipelineConfig.Id, pipelineConfig.DisplayName, CreateSteps(pipelineConfig), pipelineConfig.Parameters, pipelineConfig.DeliveryCondition, file, this.loggerFactory);
         }
         else
         {
@@ -63,7 +65,9 @@ public class PipelineFactory : IPipelineFactory
             stepConfig.DisplayName,
             stepConfig.Input ?? new List<InputConfig>(),
             stepConfig.Output ?? new List<OutputConfig>(),
-            pipelineProcessFactory.CreateProcess(stepConfig, PipelineProcessConfig.Processes));
+            stepConfig.Conditions,
+            pipelineProcessFactory.CreateProcess(stepConfig, PipelineProcessConfig.Processes),
+            loggerFactory);
     }
 
     /// <summary>
@@ -81,6 +85,7 @@ public class PipelineFactory : IPipelineFactory
     {
         private PipelineProcessConfig? pipelineProcessConfig;
         private IPipelineProcessFactory? pipelineProcessFactory;
+        private ILoggerFactory? loggerFactory;
 
         /// <summary>
         /// Configures the pipeline factory to use a YAML process definition.
@@ -117,13 +122,24 @@ public class PipelineFactory : IPipelineFactory
         }
 
         /// <summary>
+        /// Sets the logger factory to be used for creating pipeline processes.
+        /// </summary>
+        /// <param name="loggerFactory">The factory instance that will be used to create loggers. Cannot be null.</param>
+        /// <returns>The current <see cref="PipelineFactoryBuilder"/> instance for method chaining.</returns>
+        public PipelineFactoryBuilder LoggerFactory(ILoggerFactory loggerFactory)
+        {
+            this.loggerFactory = loggerFactory;
+            return this;
+        }
+
+        /// <summary>
         /// Builds a new instance of the <see cref="PipelineFactory"/>.
         /// </summary>
         public PipelineFactory Build()
         {
-            if (this.pipelineProcessFactory != null)
+            if (this.pipelineProcessFactory != null && this.loggerFactory != null)
             {
-                return new PipelineFactory(this.pipelineProcessConfig, pipelineProcessFactory);
+                return new PipelineFactory(this.pipelineProcessConfig, pipelineProcessFactory, loggerFactory);
             }
             else
             {

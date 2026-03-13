@@ -1,15 +1,16 @@
 ﻿using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Geopilot.Api.Pipeline.Process.XtfValidation;
 using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
 using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
-using System.Text;
 
 namespace Geopilot.Api.Test.Pipeline;
 
@@ -18,11 +19,11 @@ public class PipelineIntegrationTest
 {
     private static Guid jobId = Guid.Parse("b98559c5-b374-4cbc-a797-1b5a13a297e7");
     private static string interlisCheckServiceBaseUrl = "http://localhost/";
-    private static string appConfig = "{\"Validation\":{\"InterlisCheckServiceUrl\":\"http://localhost/\"}}";
     private Mock<HttpMessageHandler> interlisValidatorMessageHandlerMock;
-    private IConfiguration configuration;
     private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
     private PipelineProcessFactory pipelineProcessFactory;
+    private Mock<ILogger> loggerMock;
+    private Mock<ILoggerFactory> loggerFactoryMock;
 
     [TestInitialize]
     public void SetUp()
@@ -30,19 +31,27 @@ public class PipelineIntegrationTest
         interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
         interlisValidatorMessageHandlerMock.Protected().Setup("Dispose", ItExpr.IsAny<bool>());
 
-        var appConfigByteArray = Encoding.UTF8.GetBytes(appConfig);
-        using var appConfigMemoryStream = new MemoryStream(appConfigByteArray);
-
-        #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-        this.configuration = new ConfigurationBuilder()
-            .AddJsonStream(appConfigMemoryStream)
-            .Build();
-        #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+        var pipelineOptions = new PipelineOptions()
+        {
+            Definition = "myPipeline.yaml",
+            Plugins = new List<string>(),
+            ProcessConfigs = new Dictionary<string, Parameterization>()
+            {
+                {
+                    "Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess", new Parameterization()
+                    {
+                        { "checkServiceBaseUrl", interlisCheckServiceBaseUrl },
+                    }
+                },
+            },
+        };
 
         pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
-        var pipelineOptions = new PipelineOptions() { Definition = "myPipeline.yaml", Plugins = new List<string>() };
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        this.pipelineProcessFactory = new PipelineProcessFactory(configuration, pipelineOptionsMock.Object);
+        loggerMock = new Mock<ILogger>();
+        loggerFactoryMock = new Mock<ILoggerFactory>();
+        loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
     }
 
     [TestCleanup]
@@ -61,6 +70,10 @@ public class PipelineIntegrationTest
         var uploadedFileAttribute = "ili_file";
 
         PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
+
         PipelineTransferFile uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         using var pipeline = factory.CreatePipeline("two_steps", uploadFile);
 
@@ -146,6 +159,7 @@ public class PipelineIntegrationTest
         var context = await pipeline.Run(CancellationToken.None);
 
         Assert.AreEqual(PipelineState.Success, pipeline.State);
+        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[1].State);
 
@@ -167,11 +181,16 @@ public class PipelineIntegrationTest
         Assert.HasCount(3, stepResults);
         Assert.IsTrue(stepResults.ContainsKey(validationStepId));
         var validationSetpResult = stepResults[validationStepId];
-        Assert.HasCount(2, validationSetpResult.Outputs, "validation step has not the expected number of data");
+        Assert.HasCount(3, validationSetpResult.Outputs, "validation step has not the expected number of data");
 
         Assert.IsTrue(stepResults.ContainsKey(zipPackageStepId));
         var zipPackageStepResult = stepResults[zipPackageStepId];
-        Assert.HasCount(1, zipPackageStepResult.Outputs, "dummy step has not the expected number of data");
+        Assert.HasCount(1, zipPackageStepResult.Outputs, "ZIP package step has not the expected number of data");
+        zipPackageStepResult.Outputs.TryGetValue("archive", out StepOutput? zipFileStepOutput);
+        Assert.IsNotNull(zipFileStepOutput, "No ZIP package in output");
+        var zipFile = zipFileStepOutput.Data as IPipelineTransferFile;
+        Assert.IsNotNull(zipFile, "No ZIP file in output");
+        Assert.AreEqual("myPersonalZipArchive.zip", zipFile.OriginalFileName, "ZIP file has not the expected name");
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)
@@ -181,6 +200,7 @@ public class PipelineIntegrationTest
             .Builder()
             .File(path)
             .PipelineProcessFactory(this.pipelineProcessFactory)
+            .LoggerFactory(this.loggerFactoryMock.Object)
             .Build();
     }
 }

@@ -1,13 +1,13 @@
 processes:
   - id: xtf_validator
-    implementation: Geopilot.Api.Pipeline.Process.XtfValidatorProcess
+    implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
     default_config:
-      profile:
-      poll_interval: 500
+      validationProfile: DEFAULT
+      pollInterval: 500
   - id: zip_package_process
-    implementation: Geopilot.Api.Pipeline.Process.ZipPackageProcess
+    implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
     default_config:
-      archive_file_name: myPersonalZipArchive
+      archiveFileName: myPersonalZipArchive
 pipelines:
   - id: two_steps
     display_name:
@@ -17,42 +17,49 @@ pipelines:
       mapping:
         - file_extension: xtf
           attribute: ili_file
+    delivery_condition: "[validation.successful]"
     steps:
       - id: validation
         display_name:
           en: XTF Validation
         process_id: xtf_validator
-        process_config_overwrites:
-          profile: DEFAULT
         input:
           - from: upload
             take: ili_file
             as: iliFile
         output:
           - take: error_log
-            as: error_log
+            as: errorlog
             action:
           - take: xtf_log
-            as: xtf_log
+            as: xtflog
             action:
               - DOWNLOAD
+          - take: validation_successful
+            as: successful
       - id: zip_package
         display_name:
           en: Zip Package
         process_id: zip_package_process
         process_config_overwrites:
+        conditions:
+          pre:
+            skip_condition: "[validation.errorlog] == null && [validation.xtflog] == null"
+            fail_condition: "[validation.errorlog] == null && [validation.xtflog] == null"
+          post:
+            fail_condition: "[zip_package.archive] == null"
         input:
           - from: validation
-            take: error_log
+            take: errorlog
             as: input
           - from: validation
-            take: xtf_log
+            take: xtflog
             as: input
           - from: upload
             take: ili_file
             as: input
         output:
           - take: zip_package
-            as: zip_package
+            as: archive
             action:
               - DOWNLOAD
