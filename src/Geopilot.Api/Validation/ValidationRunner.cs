@@ -60,6 +60,10 @@ public class ValidationRunner : BackgroundService
                 result = new ValidatorResult(ValidatorResultStatus.Failed, $"An unexpected error occured while running pipeline <{pipeline.Id}>.");
                 jobStore.AddValidatorResult(pipeline, result);
             }
+            finally
+            {
+                pipeline.Dispose();
+            }
         });
     }
 
@@ -67,7 +71,7 @@ public class ValidationRunner : BackgroundService
     {
         var status = MapPipelineStatusToValidatorResultStatus(pipeline, context);
         var statusMessage = context.StepResults["validation"].Outputs["status_message"].Data as string;
-        var logFiles = ExtractLogFiles(context);
+        var logFiles = ExtractDownloadFiles(context);
         return new ValidatorResult(status, statusMessage, logFiles.ToImmutableDictionary());
     }
 
@@ -87,7 +91,7 @@ public class ValidationRunner : BackgroundService
         };
     }
 
-    private static Dictionary<string, string> ExtractLogFiles(PipelineContext context)
+    private static Dictionary<string, string> ExtractDownloadFiles(PipelineContext context)
     {
         var logFiles = new Dictionary<string, string>();
 
