@@ -17,7 +17,8 @@ public interface IPipelineProcessFactory
     /// <param name="stepConfig">The configuration settings for the step to be executed. Cannot be null.</param>
     /// <param name="processes">A list of process configurations that define the processes to be created. Cannot be null or empty.</param>
     /// <param name="pipelineDirectory">The directory path where the pipeline can store temporary files or resources needed for process execution. Cannot be null or empty.</param>
+    /// <param name="jobId">The unique identifier for the job associated with the pipeline execution, used for logging and tracking purposes.</param>
     /// <returns>An object representing the created process instance. The exact type and structure of the returned object depend
     /// on the implementation.</returns>
-    public object CreateProcess(StepConfig stepConfig, List<ProcessConfig> processes, string pipelineDirectory);
+    public object CreateProcess(StepConfig stepConfig, List<ProcessConfig> processes, string pipelineDirectory, Guid jobId);
 }

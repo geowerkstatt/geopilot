@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Pipeline.Process.XtfValidation;
-using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.IO.Compression;
 
@@ -20,6 +19,7 @@ internal class ZipPackageProcess
 
     private string archiveFileName;
     private IPipelineFileManager pipelineFileManager;
+    private Guid jobId;
 
     /// <summary>
     /// Creates a new instance of the <see cref="ZipPackageProcess"/> class with the specified configuration settings.
@@ -27,7 +27,8 @@ internal class ZipPackageProcess
     /// <param name="archiveFileName">The ZIP file name to use for the output archive without file extension. If null, the default name 'archive' will be used.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the ZIP packaging process.</param>
     /// <param name="logger">Logger instance for logging messages during the initialization process.</param>
-    public ZipPackageProcess(string? archiveFileName, IPipelineFileManager pipelineFileManager, ILogger logger)
+    /// <param name="jobId">The unique identifier for the current job, used for logging and tracking purposes.</param>
+    public ZipPackageProcess(string? archiveFileName, IPipelineFileManager pipelineFileManager, ILogger logger, Guid jobId)
     {
         this.logger = logger;
         if (!string.IsNullOrEmpty(archiveFileName))
@@ -35,6 +36,7 @@ internal class ZipPackageProcess
         else
             this.archiveFileName = DefaultArchiveFileName;
         this.pipelineFileManager = pipelineFileManager;
+        this.jobId = jobId;
     }
 
     /// <summary>
@@ -50,7 +52,7 @@ internal class ZipPackageProcess
     {
         if (input.Length == 0)
         {
-            var errorMessage = "ZipPackageProcess: No input files provided.";
+            var errorMessage = $"ZipPackageProcess: No input files provided (job: {jobId}).";
             logger.LogError(errorMessage);
             throw new ArgumentException(errorMessage);
         }
@@ -61,7 +63,7 @@ internal class ZipPackageProcess
 
         if (validFiles.Length == 0)
         {
-            logger.LogWarning("ZipPackageProcess: No valid input files found. Returning null.");
+            logger.LogWarning($"ZipPackageProcess: No valid input files found (job: {jobId}). Returning null.");
         }
         else
         {

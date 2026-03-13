@@ -78,6 +78,9 @@ public sealed class Pipeline : IPipeline
     /// </summary>
     private readonly IPipelineTransferFile file;
 
+    private ILogger logger;
+    private Guid jobId;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="Pipeline"/> class.
     /// </summary>
@@ -89,7 +92,8 @@ public sealed class Pipeline : IPipeline
     /// <param name="file">The file to be processed by the pipeline.</param>
     /// <param name="loggerFactory">The logger factory to use for logging.</param>
     /// <param name="pipelineDirectory">The directory for the pipeline to use for storing temporary files. The pipeline is responsible for cleaning up the temporary files during dispose.</param>
-    public Pipeline(
+    /// <param name="jobId">The job id associated with the pipeline execution, used for logging and tracking purposes.</param>
+    private Pipeline(
         string id,
         Dictionary<string, string> displayName,
         List<IPipelineStep> steps,
@@ -97,7 +101,8 @@ public sealed class Pipeline : IPipeline
         string? deliveryCondition,
         IPipelineTransferFile file,
         ILoggerFactory loggerFactory,
-        string pipelineDirectory)
+        string pipelineDirectory,
+        Guid jobId)
     {
         this.Id = id;
         this.DisplayName = displayName;
@@ -107,11 +112,14 @@ public sealed class Pipeline : IPipeline
         this.file = file;
         this.conditionEvaluator = new ConditionEvaluator(loggerFactory.CreateLogger<ConditionEvaluator>());
         this.pipelineFileDirectory = pipelineDirectory;
+        this.logger = loggerFactory.CreateLogger<Pipeline>();
+        this.jobId = jobId;
     }
 
     /// <inheritdoc/>
     public async Task<PipelineContext> Run(CancellationToken cancellationToken)
     {
+        logger.LogInformation($"starting pipeline {this.Id} for job >{this.jobId}<");
         var context = new PipelineContext()
         {
             StepResults = new Dictionary<string, StepResult>(),
@@ -133,6 +141,7 @@ public sealed class Pipeline : IPipeline
 
         await this.EvaluateDeliveryCondition(context);
 
+        logger.LogInformation($"all steps in pipeline {this.Id} for job >{this.jobId}< executed");
         return context;
     }
 
@@ -173,5 +182,96 @@ public sealed class Pipeline : IPipeline
         }
 
         return stepResult;
+    }
+
+    internal static PipelineBuilder Builder() => new PipelineBuilder();
+
+    internal class PipelineBuilder
+    {
+        private string? id;
+        private Dictionary<string, string>? displayName;
+        private List<IPipelineStep>? steps;
+        private PipelineParametersConfig? parameters;
+        private string? deliveryCondition;
+        private IPipelineTransferFile? file;
+        private ILoggerFactory? loggerFactory;
+        private string? pipelineDirectory;
+        private Guid? jobId;
+
+        public PipelineBuilder Id(string id)
+        {
+            this.id = id;
+            return this;
+        }
+
+        public PipelineBuilder DisplayName(Dictionary<string, string> displayName)
+        {
+            this.displayName = displayName;
+            return this;
+        }
+
+        public PipelineBuilder Steps(List<IPipelineStep>? steps)
+        {
+            this.steps = steps;
+            return this;
+        }
+
+        public PipelineBuilder Parameters(PipelineParametersConfig parameters)
+        {
+            this.parameters = parameters;
+            return this;
+        }
+
+        public PipelineBuilder DeliveryCondition(string? deliveryCondition)
+        {
+            this.deliveryCondition = deliveryCondition;
+            return this;
+        }
+
+        public PipelineBuilder File(IPipelineTransferFile file)
+        {
+            this.file = file;
+            return this;
+        }
+
+        public PipelineBuilder LoggerFactory(ILoggerFactory loggerFactory)
+        {
+            this.loggerFactory = loggerFactory;
+            return this;
+        }
+
+        public PipelineBuilder PipelineDirectory(string pipelineDirectory)
+        {
+            this.pipelineDirectory = pipelineDirectory;
+            return this;
+        }
+
+        public PipelineBuilder JobId(Guid jobId)
+        {
+            this.jobId = jobId;
+            return this;
+        }
+
+        public Pipeline Build()
+        {
+            if (id == null)
+                throw new InvalidOperationException("Pipeline Id must be provided.");
+            if (displayName == null)
+                throw new InvalidOperationException("Pipeline DisplayName must be provided.");
+            if (steps == null)
+                throw new InvalidOperationException("Pipeline Steps must be provided.");
+            if (parameters == null)
+                throw new InvalidOperationException("Pipeline Parameters must be provided.");
+            if (file == null)
+                throw new InvalidOperationException("Pipeline File must be provided.");
+            if (loggerFactory == null)
+                throw new InvalidOperationException("LoggerFactory must be provided.");
+            if (pipelineDirectory == null)
+                throw new InvalidOperationException("Pipeline Directory must be provided.");
+            if (jobId == null)
+                throw new InvalidOperationException("Pipeline JobId must be provided.");
+
+            return new Pipeline(id, displayName, steps, parameters, deliveryCondition, file, loggerFactory, pipelineDirectory, jobId.Value);
+        }
     }
 }

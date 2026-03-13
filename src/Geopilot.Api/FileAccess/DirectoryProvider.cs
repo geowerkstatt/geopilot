@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using System.IO;
 
 namespace Geopilot.Api.FileAccess;
 

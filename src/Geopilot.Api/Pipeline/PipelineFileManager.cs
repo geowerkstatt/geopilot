@@ -18,7 +18,7 @@ public class PipelineFileManager : IPipelineFileManager
             Directory.CreateDirectory(this.basePath);
         }
         else
-        {
+{
             this.basePath = basePath;
         }
 

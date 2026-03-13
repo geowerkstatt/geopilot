@@ -48,15 +48,17 @@ public class PipelineFactory : IPipelineFactory
         if (pipelineConfig != null)
         {
             var pipelineTempDirectory = directoryProvider.GetPipelineDirectoryPath(jobId);
-            return new Pipeline(
-                pipelineConfig.Id,
-                pipelineConfig.DisplayName,
-                CreateSteps(pipelineConfig, pipelineTempDirectory),
-                pipelineConfig.Parameters,
-                pipelineConfig.DeliveryCondition,
-                file,
-                this.loggerFactory,
-                pipelineTempDirectory);
+            return Pipeline.Builder()
+                .Id(pipelineConfig.Id)
+                .DisplayName(pipelineConfig.DisplayName)
+                .Steps(CreateSteps(pipelineConfig, pipelineTempDirectory, jobId))
+                .Parameters(pipelineConfig.Parameters)
+                .DeliveryCondition(pipelineConfig.DeliveryCondition)
+                .File(file)
+                .LoggerFactory(this.loggerFactory)
+                .PipelineDirectory(pipelineTempDirectory)
+                .JobId(jobId)
+                .Build();
         }
         else
         {
@@ -64,47 +66,36 @@ public class PipelineFactory : IPipelineFactory
         }
     }
 
-    private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, string pipelineTempDirectory)
+    private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, string pipelineTempDirectory, Guid jobId)
     {
         return pipelineConfig.Steps
-            .Select(s => CreateStep(s, pipelineTempDirectory) as IPipelineStep)
+            .Select(s => CreateStep(s, pipelineTempDirectory, jobId) as IPipelineStep)
             .ToList();
     }
 
-    private PipelineStep CreateStep(StepConfig stepConfig, string pipelineTempDirectory)
+    private PipelineStep CreateStep(StepConfig stepConfig, string pipelineTempDirectory, Guid jobId)
     {
-        return new PipelineStep(
-            stepConfig.Id,
-            stepConfig.DisplayName,
-            stepConfig.Input ?? new List<InputConfig>(),
-            stepConfig.Output ?? new List<OutputConfig>(),
-            stepConfig.Conditions,
-            pipelineProcessFactory.CreateProcess(stepConfig, PipelineProcessConfig.Processes, pipelineTempDirectory),
-            loggerFactory);
+        return PipelineStep.Builder()
+            .Id(stepConfig.Id)
+            .DisplayName(stepConfig.DisplayName)
+            .InputConfig(stepConfig.Input ?? new List<InputConfig>())
+            .OutputConfig(stepConfig.Output ?? new List<OutputConfig>())
+            .StepConditions(stepConfig.Conditions)
+            .Process(pipelineProcessFactory.CreateProcess(stepConfig, PipelineProcessConfig.Processes, pipelineTempDirectory, jobId))
+            .LoggerFactory(loggerFactory)
+            .JobId(jobId)
+            .Build();
     }
 
-    /// <summary>
-    /// Creates a new instance of the <see cref="PipelineFactoryBuilder"/>.
-    /// </summary>
-    public static PipelineFactoryBuilder Builder()
-    {
-        return new PipelineFactoryBuilder();
-    }
+    internal static PipelineFactoryBuilder Builder() => new PipelineFactoryBuilder();
 
-    /// <summary>
-    /// Builder for creating instances of <see cref="PipelineFactory"/>.
-    /// </summary>
-    public class PipelineFactoryBuilder
+    internal class PipelineFactoryBuilder
     {
         private PipelineProcessConfig? pipelineProcessConfig;
         private IPipelineProcessFactory? pipelineProcessFactory;
         private ILoggerFactory? loggerFactory;
         private IDirectoryProvider? directoryProvider;
 
-        /// <summary>
-        /// Configures the pipeline factory to use a YAML process definition.
-        /// </summary>
-        /// <param name="processDefinition">The YAML process definition.</param>
         public PipelineFactoryBuilder Yaml(string processDefinition)
         {
             var deserializer = new DeserializerBuilder()
@@ -114,62 +105,40 @@ public class PipelineFactory : IPipelineFactory
             return this;
         }
 
-        /// <summary>
-        /// Configures the pipeline factory to use a file-based YAML process definition.
-        /// </summary>
-        /// <param name="path">The file path to the YAML process definition.</param>
         public PipelineFactoryBuilder File(string path)
         {
             var yaml = System.IO.File.ReadAllText(path);
             return Yaml(yaml);
         }
 
-        /// <summary>
-        /// Sets the pipeline process factory to be used for creating pipeline processes.
-        /// </summary>
-        /// <param name="pipelineProcessFactory">The factory instance that will be used to create pipeline processes. Cannot be null.</param>
-        /// <returns>The current <see cref="PipelineFactoryBuilder"/> instance for method chaining.</returns>
         public PipelineFactoryBuilder PipelineProcessFactory(IPipelineProcessFactory pipelineProcessFactory)
         {
             this.pipelineProcessFactory = pipelineProcessFactory;
             return this;
         }
 
-        /// <summary>
-        /// Sets the logger factory to be used for creating pipeline processes.
-        /// </summary>
-        /// <param name="loggerFactory">The factory instance that will be used to create loggers. Cannot be null.</param>
-        /// <returns>The current <see cref="PipelineFactoryBuilder"/> instance for method chaining.</returns>
         public PipelineFactoryBuilder LoggerFactory(ILoggerFactory loggerFactory)
         {
             this.loggerFactory = loggerFactory;
             return this;
         }
 
-        /// <summary>
-        /// Sets the directory provider to be used for accessing file system directories.
-        /// </summary>
-        /// <param name="directoryProvider">The directory provider instance to use. Cannot be null.</param>
-        /// <returns>The current <see cref="PipelineFactoryBuilder"/> instance for method chaining.</returns>
         public PipelineFactoryBuilder DirectoryProvider(IDirectoryProvider? directoryProvider)
         {
             this.directoryProvider = directoryProvider;
             return this;
         }
 
-        /// <summary>
-        /// Builds a new instance of the <see cref="PipelineFactory"/>.
-        /// </summary>
         public PipelineFactory Build()
         {
-            if (this.pipelineProcessFactory != null && this.loggerFactory != null && this.directoryProvider != null)
-            {
-                return new PipelineFactory(pipelineProcessConfig, pipelineProcessFactory, loggerFactory, directoryProvider);
-            }
-            else
-            {
-                throw new InvalidOperationException($"Pipeline factory could not be created. Missing required dependencies: Pipeline Process Factory: {this.pipelineProcessFactory != null}, Logger Factory: {this.loggerFactory != null}, Directory Provider: {this.directoryProvider != null}.");
-            }
+            if (this.pipelineProcessFactory == null)
+                throw new InvalidOperationException("Pipeline process factory is required but was not provided.");
+            if (this.loggerFactory == null)
+                throw new InvalidOperationException("Logger factory is required but was not provided.");
+            if (this.directoryProvider == null)
+                throw new InvalidOperationException("Directory provider is required but was not provided.");
+
+            return new PipelineFactory(pipelineProcessConfig, pipelineProcessFactory, loggerFactory, directoryProvider);
         }
     }
 }

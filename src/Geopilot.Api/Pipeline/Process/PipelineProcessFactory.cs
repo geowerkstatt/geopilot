@@ -1,7 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -89,7 +87,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     }
 
     /// <inheritdoc />
-    public object CreateProcess(StepConfig stepConfig, List<ProcessConfig> processes, string pipelineDirectory)
+    public object CreateProcess(StepConfig stepConfig, List<ProcessConfig> processes, string pipelineDirectory, Guid jobId)
     {
         ArgumentNullException.ThrowIfNull(stepConfig);
 
@@ -108,7 +106,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         var processBaseConfig = pipelineOptions.ProcessConfigs.GetValueOrDefault(processConfig.Implementation);
         var processParameterization = GetMergedParameterization(processBaseConfig, processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
         var parameters = constructor.GetParameters()
-            .Select(p => GenerateParameter(p, objectType, processParameterization, pipelineDirectory))
+            .Select(p => GenerateParameter(p, objectType, processParameterization, pipelineDirectory, jobId))
             .ToArray();
         var processInstance = Activator.CreateInstance(objectType, parameters);
         if (processInstance != null)
@@ -140,7 +138,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         return null;
     }
 
-    private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory)
+    private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory, Guid jobId)
     {
         if (parameterInfo.ParameterType == typeof(ILogger))
         {
@@ -149,6 +147,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         else if (parameterInfo.ParameterType == typeof(IPipelineFileManager))
         {
             return new PipelineFileManager(pipelineDirectory, processType);
+        }
+        else if (parameterInfo.ParameterType == typeof(Guid) && parameterInfo.Name == "jobId")
+        {
+            return jobId;
         }
         else if (!string.IsNullOrEmpty(parameterInfo.Name) && processConfig.TryGetValue(parameterInfo.Name, out var parameterStringValue))
         {

@@ -88,7 +88,7 @@ public class PipelineProcessFactoryTest
         var processes = new List<ProcessConfig> { processConfig };
 
         // Act: Create process which triggers configuration merging
-        var process = pipelineProcessFactory.CreateProcess(stepConfig, processes, Path.GetTempPath());
+        var process = pipelineProcessFactory.CreateProcess(stepConfig, processes, Path.GetTempPath(), Guid.NewGuid());
 
         // Assert: Verify the merged configuration
         Assert.IsNotNull(process, "Process should be created");
@@ -261,7 +261,7 @@ public class PipelineProcessFactoryTest
         var processes = new List<ProcessConfig> { processConfig };
 
         // Act: Create process which triggers configuration merging
-        var process = pipelineProcessFactory.CreateProcess(stepConfig, processes, Path.GetTempPath());
+        var process = pipelineProcessFactory.CreateProcess(stepConfig, processes, Path.GetTempPath(), Guid.NewGuid());
 
         // Assert: Verify the merged configuration
         Assert.IsNotNull(process, "Process should be created");
@@ -403,7 +403,7 @@ public class PipelineProcessFactoryTest
 
         var processes = new List<ProcessConfig> { processConfig };
 
-        var exception = Assert.Throws<InvalidOperationException>(() => pipelineProcessFactory.CreateProcess(stepConfig, processes, Path.GetTempPath()));
+        var exception = Assert.Throws<InvalidOperationException>(() => pipelineProcessFactory.CreateProcess(stepConfig, processes, Path.GetTempPath(), Guid.NewGuid()));
         Assert.AreEqual(expectedExceptionMessage, exception.Message, "Exception Message not as expected");
     }
 }

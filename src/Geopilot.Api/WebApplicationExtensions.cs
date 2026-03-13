@@ -1,6 +1,5 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
-using Microsoft.EntityFrameworkCore;
 
 namespace Geopilot.Api;
 
@@ -38,7 +37,7 @@ public static class WebApplicationExtensions
             {
                 try
                 {
-                    pipelineProcessFactory.CreateProcess(step, pipelineFactory.PipelineProcessConfig.Processes, Path.GetTempPath());
+                    pipelineProcessFactory.CreateProcess(step, pipelineFactory.PipelineProcessConfig.Processes, Path.GetTempPath(), Guid.NewGuid());
                 }
                 catch (Exception ex)
                 {
