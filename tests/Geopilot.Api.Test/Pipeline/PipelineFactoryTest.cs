@@ -1,10 +1,12 @@
-﻿using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Pipeline.Process.XtfValidation;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System.Reflection;
 
@@ -46,7 +48,7 @@ public class PipelineFactoryTest
     public void CreatePipelineByIdButPipelineNotDefined()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("foo", Mock.Of<IPipelineTransferFile>()));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("foo", Mock.Of<IPipelineTransferFile>(), Guid.NewGuid()));
         Assert.AreEqual("pipeline for 'foo' not found", exception.Message);
     }
 
@@ -54,7 +56,7 @@ public class PipelineFactoryTest
     public void CreateBasicPipeline()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
-        using var pipeline = factory.CreatePipeline("ili_validation", Mock.Of<IPipelineTransferFile>());
+        using var pipeline = factory.CreatePipeline("ili_validation", Mock.Of<IPipelineTransferFile>(), Guid.NewGuid());
         Assert.AreEqual(PipelineState.Pending, pipeline.State, "pipeline state not as expected");
         Assert.AreEqual(StepState.Pending, pipeline.Steps[0].State, "step state not as expected");
         Assert.IsNotNull(pipeline, "pipeline not created");
@@ -114,11 +116,19 @@ public class PipelineFactoryTest
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
 
+        var fileAccessOptions = new FileAccessOptions()
+        {
+            UploadDirectory = Path.Combine(Path.GetTempPath(), "Upload"),
+            AssetsDirectory = Path.Combine(Path.GetTempPath(), "Asset"),
+            PipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline"),
+        };
+
         return PipelineFactory
             .Builder()
             .File(path)
             .PipelineProcessFactory(this.pipelineProcessFactory)
             .LoggerFactory(this.loggerFactory.Object)
+            .DirectoryProvider(new DirectoryProvider(Options.Create(fileAccessOptions)))
             .Build();
     }
 

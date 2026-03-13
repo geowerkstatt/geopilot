@@ -1,10 +1,22 @@
 ﻿namespace Geopilot.Api.FileAccess;
 
+/// <summary>
+/// Represents configuration options for directories.
+/// </summary>
 public class FileAccessOptions
 {
-    public string UploadDirectory { get; }
+    /// <summary>
+    /// Gets or sets the root directory for file uploads. This is the base path where uploaded files will be stored.
+    /// </summary>
+    public string? UploadDirectory { get; set; }
 
-    public string AssetsDirectory { get; }
+    /// <summary>
+    /// Gets or sets the directory for storing asset files.
+    /// </summary>
+    public string? AssetsDirectory { get; set; }
 
-    public string PipelineDirectory { get; }
+    /// <summary>
+    /// Gets or sets the directory for storing pipeline files.
+    /// </summary>
+    public string? PipelineDirectory { get; set; }
 }

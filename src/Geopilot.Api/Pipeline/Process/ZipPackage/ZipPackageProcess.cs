@@ -1,4 +1,5 @@
-﻿using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.Api.Pipeline.Process.XtfValidation;
+using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.IO.Compression;
 
@@ -18,19 +19,22 @@ internal class ZipPackageProcess
     private ILogger logger;
 
     private string archiveFileName;
+    private IPipelineFileManager pipelineFileManager;
 
     /// <summary>
     /// Creates a new instance of the <see cref="ZipPackageProcess"/> class with the specified configuration settings.
     /// </summary>
     /// <param name="archiveFileName">The ZIP file name to use for the output archive without file extension. If null, the default name 'archive' will be used.</param>
+    /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the ZIP packaging process.</param>
     /// <param name="logger">Logger instance for logging messages during the initialization process.</param>
-    public ZipPackageProcess(string? archiveFileName, ILogger logger)
+    public ZipPackageProcess(string? archiveFileName, IPipelineFileManager pipelineFileManager, ILogger logger)
     {
         this.logger = logger;
         if (!string.IsNullOrEmpty(archiveFileName))
             this.archiveFileName = archiveFileName;
         else
             this.archiveFileName = DefaultArchiveFileName;
+        this.pipelineFileManager = pipelineFileManager;
     }
 
     /// <summary>
@@ -61,7 +65,9 @@ internal class ZipPackageProcess
         }
         else
         {
-            zipTransferFile = new PipelineTransferFile(this.archiveFileName, Path.GetTempFileName().Replace(".tmp", ".zip"));
+            var directory = pipelineFileManager.GenerateProcessorDirectory(typeof(ZipPackageProcess));
+            var fileName = pipelineFileManager.GenerateTempFileName("archive", ".zip");
+            zipTransferFile = new PipelineTransferFile(this.archiveFileName, Path.Combine(directory, fileName));
             using (var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create))
             using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))
             {

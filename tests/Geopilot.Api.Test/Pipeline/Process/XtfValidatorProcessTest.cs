@@ -179,7 +179,8 @@ public class XtfValidatorProcessTest
 
         public XtfValidatorProcess Build()
         {
-            var process = new XtfValidatorProcess(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+            var pipelineFileManager = new PipelineFileManager(Path.GetTempPath());
+            var process = new XtfValidatorProcess(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
 
             var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
             interlisValidatorMessageHandlerMock

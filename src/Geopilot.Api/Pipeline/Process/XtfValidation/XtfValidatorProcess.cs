@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Validation;
+﻿using Geopilot.Api.Pipeline.Process.ZipPackage;
+using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
@@ -36,6 +37,7 @@ internal class XtfValidatorProcess : IDisposable
 
     private string validationProfile;
     private TimeSpan pollInterval;
+    private IPipelineFileManager pipelineFileManager;
 
     static XtfValidatorProcess()
     {
@@ -52,8 +54,9 @@ internal class XtfValidatorProcess : IDisposable
     /// <param name="checkServiceBaseUrl">Base URL for the Interlis check service.</param>
     /// <param name="validationProfile">Optional validation profile to use for the validation process.</param>
     /// <param name="pollInterval">Optional polling interval in milliseconds for checking the validation status. If not provided, a default of 2000ms will be used.</param>
+    /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
-    public XtfValidatorProcess(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, ILogger logger)
+    public XtfValidatorProcess(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, IPipelineFileManager pipelineFileManager, ILogger logger)
     {
         this.httpClient.BaseAddress = new Uri(checkServiceBaseUrl);
         this.httpClient.DefaultRequestHeaders.Accept.Clear();
@@ -70,6 +73,7 @@ internal class XtfValidatorProcess : IDisposable
             this.pollInterval = TimeSpan.FromSeconds(2);
 
         this.logger = logger;
+        this.pipelineFileManager = pipelineFileManager;
     }
 
     /// <summary>
@@ -178,13 +182,14 @@ internal class XtfValidatorProcess : IDisposable
     private async Task<KeyValuePair<LogType, IPipelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType, CancellationToken cancellationToken)
     {
         PipelineTransferFile transferFile;
+        var directory = pipelineFileManager.GenerateProcessorDirectory(typeof(XtfValidatorProcess));
         switch (logType)
         {
             case LogType.ErrorLog:
-                transferFile = new PipelineTransferFile("errorLog", Path.GetTempFileName().Replace(".tmp", ".log"));
+                transferFile = new PipelineTransferFile("errorLog", Path.Combine(directory, pipelineFileManager.GenerateTempFileName("errorLog", "log")));
                 break;
             case LogType.XtfLog:
-                transferFile = new PipelineTransferFile("xtfLog", Path.GetTempFileName().Replace(".tmp", ".xtf"));
+                transferFile = new PipelineTransferFile("xtfLog", Path.Combine(directory, pipelineFileManager.GenerateTempFileName("xtfLog", "xtf")));
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported log type: {logType}");

@@ -78,7 +78,7 @@ public class ValidationService : IValidationService
             {
                 var originalFileNameWithoutExtension = Path.GetFileNameWithoutExtension(validationJob.OriginalFileName ?? string.Empty);
                 var file = new PipelineTransferFile(originalFileNameWithoutExtension, filePath);
-                var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, file);
+                var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, file, jobId);
                 return jobStore.StartJob(jobId, pipeline, mandateId);
             }
         }

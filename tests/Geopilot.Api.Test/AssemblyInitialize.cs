@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.FileAccess;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api;
 
@@ -17,16 +18,18 @@ public sealed class AssemblyInitialize
 
         var uploadDirectory = Path.Combine(testContext.DeploymentDirectory, "Upload");
         var assetDirectory = Path.Combine(testContext.DeploymentDirectory, "Asset");
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                { "Storage:UploadDirectory", uploadDirectory },
-                { "Storage:AssetsDirectory", assetDirectory },
-            })
-            .Build();
+        var pipelineDirectory = Path.Combine(testContext.DeploymentDirectory, "Pipeline");
 
-        TestDirectoryProvider = new DirectoryProvider(configuration);
+        var fileAccessOptions = new FileAccessOptions()
+        {
+            UploadDirectory = uploadDirectory,
+            AssetsDirectory = assetDirectory,
+            PipelineDirectory = assetDirectory,
+        };
+
+        TestDirectoryProvider = new DirectoryProvider(Options.Create(fileAccessOptions));
         Console.WriteLine($"UploadDirectory: {uploadDirectory}");
         Console.WriteLine($"AssetDirectory: {assetDirectory}");
+        Console.WriteLine($"PipelineDirectory: {pipelineDirectory}");
     }
 }

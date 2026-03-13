@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Pipeline.Process.XtfValidation;
@@ -75,7 +76,7 @@ public class PipelineIntegrationTest
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
         PipelineTransferFile uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-        using var pipeline = factory.CreatePipeline("two_steps", uploadFile);
+        using var pipeline = factory.CreatePipeline("two_steps", uploadFile, Guid.NewGuid());
 
         using HttpResponseMessage uploadMockResponse = new()
         {
@@ -196,11 +197,18 @@ public class PipelineIntegrationTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
+        var fileAccessOptions = new FileAccessOptions()
+        {
+            UploadDirectory = Path.Combine(Path.GetTempPath(), "Upload"),
+            AssetsDirectory = Path.Combine(Path.GetTempPath(), "Asset"),
+            PipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline"),
+        };
         return PipelineFactory
             .Builder()
             .File(path)
             .PipelineProcessFactory(this.pipelineProcessFactory)
             .LoggerFactory(this.loggerFactoryMock.Object)
+            .DirectoryProvider(new DirectoryProvider(Options.Create(fileAccessOptions)))
             .Build();
     }
 }

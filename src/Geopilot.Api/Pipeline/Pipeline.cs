@@ -14,9 +14,13 @@ public sealed class Pipeline : IPipeline
     public void Dispose()
     {
         Steps.ForEach(step => step.Dispose());
+
+        if (Path.Exists(pipelineFileDirectory))
+            Directory.Delete(pipelineFileDirectory, true);
     }
 
     private readonly ConditionEvaluator conditionEvaluator;
+    private readonly string pipelineFileDirectory;
 
     /// <inheritdoc/>
     public string Id { get; }
@@ -84,6 +88,7 @@ public sealed class Pipeline : IPipeline
     /// <param name="deliveryCondition">Expression to determine when the pipeline step data can be delivered.</param>
     /// <param name="file">The file to be processed by the pipeline.</param>
     /// <param name="loggerFactory">The logger factory to use for logging.</param>
+    /// <param name="pipelineDirectory">The directory for the pipeline to use for storing temporary files. The pipeline is responsible for cleaning up the temporary files during dispose.</param>
     public Pipeline(
         string id,
         Dictionary<string, string> displayName,
@@ -91,7 +96,8 @@ public sealed class Pipeline : IPipeline
         PipelineParametersConfig parameters,
         string? deliveryCondition,
         IPipelineTransferFile file,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        string pipelineDirectory)
     {
         this.Id = id;
         this.DisplayName = displayName;
@@ -100,6 +106,7 @@ public sealed class Pipeline : IPipeline
         this.deliveryCondition = deliveryCondition;
         this.file = file;
         this.conditionEvaluator = new ConditionEvaluator(loggerFactory.CreateLogger<ConditionEvaluator>());
+        this.pipelineFileDirectory = pipelineDirectory;
     }
 
     /// <inheritdoc/>

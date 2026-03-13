@@ -16,6 +16,11 @@ public interface IDirectoryProvider
     string AssetDirectory { get; }
 
     /// <summary>
+    /// Gets the root directory for Pipeline Files.
+    /// </summary>
+    string PipelineDirectory { get; }
+
+    /// <summary>
     /// Gets the upload directory for the specified <paramref name="jobId"/>.
     /// </summary>
     /// <returns>The path of the upload directory.</returns>
@@ -26,4 +31,10 @@ public interface IDirectoryProvider
     /// </summary>
     /// <returns>The path of the asset directory.</returns>
     string GetAssetDirectoryPath(Guid jobId);
+
+    /// <summary>
+    /// Gets the pipeline directory for the specified <paramref name="jobId"/>.
+    /// </summary>
+    /// <returns>The path of the pipeline directory.</returns>
+    string GetPipelineDirectoryPath(Guid jobId);
 }

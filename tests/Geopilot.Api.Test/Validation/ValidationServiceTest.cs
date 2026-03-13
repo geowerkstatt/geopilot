@@ -125,10 +125,10 @@ public class ValidationServiceTest
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.GetFilePath(tempFileName)).Returns(tempFilePath);
 
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.Is<IPipelineTransferFile>(file =>
-                file.OriginalFileName == originalFileName &&
-                file.FileName == tempFileName &&
-                file.FilePath == tempFilePath)))
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(
+            pipelineId,
+            It.Is<IPipelineTransferFile>(file => file.OriginalFileName == originalFileName && file.FileName == tempFileName && file.FilePath == tempFilePath),
+            It.IsAny<Guid>()))
             .Returns(pipeline.Object);
 
         // Act

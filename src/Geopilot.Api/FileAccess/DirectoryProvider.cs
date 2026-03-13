@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using System.IO;
 
 namespace Geopilot.Api.FileAccess;
 
@@ -21,6 +22,9 @@ public class DirectoryProvider : IDirectoryProvider
     /// </summary>
     public DirectoryProvider(IOptions<FileAccessOptions> fileAccessOptions)
     {
+        if (fileAccessOptions == null)
+            throw new InvalidOperationException("Missing file Access Options");
+
         var fileAccess = fileAccessOptions.Value;
 
         if (fileAccess == null)
@@ -28,6 +32,7 @@ public class DirectoryProvider : IDirectoryProvider
 
         UploadDirectory = fileAccess.UploadDirectory ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
         AssetDirectory = fileAccess.AssetsDirectory ?? throw new InvalidOperationException("Missing root directory for persisted assets, the value can be configured as \"Storage:AssetsDirectory\"");
+        PipelineDirectory = fileAccess.PipelineDirectory ?? throw new InvalidOperationException("Missing root pipeline directory, the value can be configured as \"Storage:PipelineDirectory\"");
     }
 
     /// <inheritdoc/>
@@ -40,5 +45,11 @@ public class DirectoryProvider : IDirectoryProvider
     public string GetUploadDirectoryPath(Guid jobId)
     {
         return Path.Combine(UploadDirectory, jobId.ToString());
+    }
+
+    /// <inheritdoc/>
+    public string GetPipelineDirectoryPath(Guid jobId)
+    {
+        return Path.Combine(PipelineDirectory, jobId.ToString());
     }
 }

@@ -1,6 +1,8 @@
-﻿using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using System.Reflection;
 
@@ -64,11 +66,18 @@ public class PipelineValidationTest
         var loggerMock = new Mock<ILogger>();
         loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
+        var fileAccessOptions = new FileAccessOptions()
+        {
+            UploadDirectory = Path.Combine(Path.GetTempPath(), "Upload"),
+            AssetsDirectory = Path.Combine(Path.GetTempPath(), "Asset"),
+            PipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline"),
+        };
         return PipelineFactory
             .Builder()
             .File(path)
             .PipelineProcessFactory(new Mock<IPipelineProcessFactory>().Object)
             .LoggerFactory(loggerFactoryMock.Object)
+            .DirectoryProvider(new DirectoryProvider(Options.Create(fileAccessOptions)))
             .Build();
     }
 }

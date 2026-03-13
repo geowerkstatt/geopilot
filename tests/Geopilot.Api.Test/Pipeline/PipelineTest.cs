@@ -1,10 +1,7 @@
-﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Geopilot.Api.Test.Pipeline;
@@ -47,7 +44,15 @@ public class PipelineTest
 
         var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
 
-        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, null, Mock.Of<IPipelineTransferFile>(), loggerFactory.Object);
+        using var pipeline = new Api.Pipeline.Pipeline(
+            "test_pipeline",
+            pipelineDisplayName,
+            steps,
+            pipelineParameters,
+            null,
+            Mock.Of<IPipelineTransferFile>(),
+            loggerFactory.Object,
+            Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()));
 
         Assert.AreEqual(expectedState, pipeline.State, "pipeline state not as expected");
     }
@@ -73,7 +78,15 @@ public class PipelineTest
 
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
-        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, null, uploadFile, loggerFactory.Object);
+        using var pipeline = new Api.Pipeline.Pipeline(
+            "test_pipeline",
+            pipelineDisplayName,
+            steps,
+            pipelineParameters,
+            null,
+            uploadFile,
+            loggerFactory.Object,
+            Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()));
 
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
 
@@ -119,7 +132,15 @@ public class PipelineTest
 
         string deliveryCondition = "[step_id.output1] != 'my_step_data'";
 
-        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, deliveryCondition, uploadFile, loggerFactory.Object);
+        using var pipeline = new Api.Pipeline.Pipeline(
+            "test_pipeline",
+            pipelineDisplayName,
+            steps,
+            pipelineParameters,
+            deliveryCondition,
+            uploadFile,
+            loggerFactory.Object,
+            Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()));
 
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
 

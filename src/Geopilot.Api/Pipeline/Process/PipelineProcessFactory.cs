@@ -89,7 +89,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     }
 
     /// <inheritdoc />
-    public object CreateProcess(StepConfig stepConfig, List<ProcessConfig> processes)
+    public object CreateProcess(StepConfig stepConfig, List<ProcessConfig> processes, string pipelineDirectory)
     {
         ArgumentNullException.ThrowIfNull(stepConfig);
 
@@ -108,7 +108,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         var processBaseConfig = pipelineOptions.ProcessConfigs.GetValueOrDefault(processConfig.Implementation);
         var processParameterization = GetMergedParameterization(processBaseConfig, processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
         var parameters = constructor.GetParameters()
-            .Select(p => GenerateParameter(p, objectType, processParameterization))
+            .Select(p => GenerateParameter(p, objectType, processParameterization, pipelineDirectory))
             .ToArray();
         var processInstance = Activator.CreateInstance(objectType, parameters);
         if (processInstance != null)
@@ -140,11 +140,15 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         return null;
     }
 
-    private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig)
+    private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory)
     {
         if (parameterInfo.ParameterType == typeof(ILogger))
         {
             return loggerFactory.CreateLogger(processType);
+        }
+        else if (parameterInfo.ParameterType == typeof(IPipelineFileManager))
+        {
+            return new PipelineFileManager(pipelineDirectory);
         }
         else if (!string.IsNullOrEmpty(parameterInfo.Name) && processConfig.TryGetValue(parameterInfo.Name, out var parameterStringValue))
         {

@@ -38,7 +38,7 @@ public static class WebApplicationExtensions
             {
                 try
                 {
-                    pipelineProcessFactory.CreateProcess(step, pipelineFactory.PipelineProcessConfig.Processes);
+                    pipelineProcessFactory.CreateProcess(step, pipelineFactory.PipelineProcessConfig.Processes, Path.GetTempPath());
                 }
                 catch (Exception ex)
                 {
