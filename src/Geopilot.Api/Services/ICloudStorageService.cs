@@ -22,6 +22,13 @@ public interface ICloudStorageService
     Task DownloadAsync(string key, Stream destination);
 
     /// <summary>
+    /// Opens a readable stream to a file in cloud storage without buffering the entire file in memory.
+    /// The caller is responsible for disposing the returned stream.
+    /// </summary>
+    /// <param name="key">The storage key of the file to read.</param>
+    Task<Stream> OpenReadAsync(string key);
+
+    /// <summary>
     /// Lists files in cloud storage matching the specified prefix.
     /// </summary>
     /// <param name="prefix">The key prefix to filter by.</param>
