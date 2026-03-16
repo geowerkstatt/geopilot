@@ -148,7 +148,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
         else if (parameterInfo.ParameterType == typeof(IPipelineFileManager))
         {
-            return new PipelineFileManager(pipelineDirectory);
+            return new PipelineFileManager(pipelineDirectory, processType);
         }
         else if (!string.IsNullOrEmpty(parameterInfo.Name) && processConfig.TryGetValue(parameterInfo.Name, out var parameterStringValue))
         {

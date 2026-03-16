@@ -65,9 +65,8 @@ internal class ZipPackageProcess
         }
         else
         {
-            var directory = pipelineFileManager.GenerateProcessorDirectory(typeof(ZipPackageProcess));
             var fileName = pipelineFileManager.GenerateTempFileName("archive", ".zip");
-            zipTransferFile = new PipelineTransferFile(this.archiveFileName, Path.Combine(directory, fileName));
+            zipTransferFile = new PipelineTransferFile(this.archiveFileName, fileName);
             using (var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create))
             using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))
             {

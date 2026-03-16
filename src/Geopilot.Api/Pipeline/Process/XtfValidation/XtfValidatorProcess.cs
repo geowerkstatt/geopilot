@@ -182,14 +182,13 @@ internal class XtfValidatorProcess : IDisposable
     private async Task<KeyValuePair<LogType, IPipelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType, CancellationToken cancellationToken)
     {
         PipelineTransferFile transferFile;
-        var directory = pipelineFileManager.GenerateProcessorDirectory(typeof(XtfValidatorProcess));
         switch (logType)
         {
             case LogType.ErrorLog:
-                transferFile = new PipelineTransferFile("errorLog", Path.Combine(directory, pipelineFileManager.GenerateTempFileName("errorLog", "log")));
+                transferFile = new PipelineTransferFile("errorLog", pipelineFileManager.GenerateTempFileName("errorLog", "log"));
                 break;
             case LogType.XtfLog:
-                transferFile = new PipelineTransferFile("xtfLog", Path.Combine(directory, pipelineFileManager.GenerateTempFileName("xtfLog", "xtf")));
+                transferFile = new PipelineTransferFile("xtfLog", pipelineFileManager.GenerateTempFileName("xtfLog", "xtf"));
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported log type: {logType}");
