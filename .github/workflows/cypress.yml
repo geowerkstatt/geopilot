@@ -26,7 +26,7 @@ jobs:
         uses: ./.github/actions/setup-dev-certs
 
       - name: Start db and api's
-        run: docker compose up --wait
+        run: docker compose -f docker-compose.yml -f docker-compose.cypress.yml up --wait
 
       - name: Cypress run
         uses: cypress-io/github-action@v7
