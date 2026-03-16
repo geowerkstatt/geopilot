@@ -12,7 +12,7 @@ public class ZipPackageProcessTest
     [TestMethod]
     public void SunnyDay()
     {
-        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), typeof(ZipPackageProcess));
+        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var process = new ZipPackageProcess("myPersonalZipArchive", pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), Guid.NewGuid());
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
@@ -27,7 +27,7 @@ public class ZipPackageProcessTest
     [TestMethod]
     public void NoArchiveFileNameProvided()
     {
-        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), typeof(ZipPackageProcess));
+        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var process = new ZipPackageProcess(null, pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), Guid.NewGuid());
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
@@ -42,7 +42,7 @@ public class ZipPackageProcessTest
     [TestMethod]
     public async Task NoInputFilesProvided()
     {
-        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), typeof(ZipPackageProcess));
+        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var jobId = Guid.NewGuid();
         var process = new ZipPackageProcess(null, pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), jobId);
         var exception = await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(Array.Empty<IPipelineTransferFile>()));
@@ -52,7 +52,7 @@ public class ZipPackageProcessTest
     [TestMethod]
     public async Task AllInputFilesAreNull()
     {
-        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), typeof(ZipPackageProcess));
+        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var jobId = Guid.NewGuid();
         var process = new ZipPackageProcess(null, pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), jobId);
         var processResult = await process.RunAsync(new IPipelineTransferFile?[] { null, null, null });
@@ -65,7 +65,7 @@ public class ZipPackageProcessTest
     [TestMethod]
     public async Task MixedNullAndValidInputFiles()
     {
-        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), typeof(ZipPackageProcess));
+        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var process = new ZipPackageProcess("mixedArchive", pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), Guid.NewGuid());
         var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
         var processResult = await process.RunAsync(new IPipelineTransferFile?[] { null, uploadFile, null });

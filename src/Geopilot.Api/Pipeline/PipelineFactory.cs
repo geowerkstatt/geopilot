@@ -81,7 +81,12 @@ public class PipelineFactory : IPipelineFactory
             .InputConfig(stepConfig.Input ?? new List<InputConfig>())
             .OutputConfig(stepConfig.Output ?? new List<OutputConfig>())
             .StepConditions(stepConfig.Conditions)
-            .Process(pipelineProcessFactory.CreateProcess(stepConfig, PipelineProcessConfig.Processes, pipelineTempDirectory, jobId))
+            .Process(pipelineProcessFactory.Builder()
+                .StepConfig(stepConfig)
+                .Processes(PipelineProcessConfig.Processes)
+                .PipelineDirectory(pipelineTempDirectory)
+                .JobId(jobId)
+                .Build())
             .LoggerFactory(loggerFactory)
             .JobId(jobId)
             .Build();

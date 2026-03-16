@@ -37,7 +37,13 @@ public static class WebApplicationExtensions
             {
                 try
                 {
-                    pipelineProcessFactory.CreateProcess(step, pipelineFactory.PipelineProcessConfig.Processes, Path.GetTempPath(), Guid.NewGuid());
+                    pipelineProcessFactory
+                        .Builder()
+                        .StepConfig(step)
+                        .Processes(pipelineFactory.PipelineProcessConfig.Processes)
+                        .PipelineDirectory(Path.GetTempPath())
+                        .JobId(Guid.NewGuid())
+                        .Build();
                 }
                 catch (Exception ex)
                 {
