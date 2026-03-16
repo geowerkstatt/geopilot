@@ -27,12 +27,9 @@ public class DirectoryProvider : IDirectoryProvider
 
         var fileAccess = fileAccessOptions.Value;
 
-        if (fileAccess == null)
-            throw new InvalidOperationException("Missing file Access Options \"Storage\"");
-
-        UploadDirectory = fileAccess.UploadDirectory ?? throw new InvalidOperationException("Missing root directory for file uploads, the value can be configured as \"Storage:UploadDirectory\"");
-        AssetDirectory = fileAccess.AssetsDirectory ?? throw new InvalidOperationException("Missing root directory for persisted assets, the value can be configured as \"Storage:AssetsDirectory\"");
-        PipelineDirectory = fileAccess.PipelineDirectory ?? throw new InvalidOperationException("Missing root pipeline directory, the value can be configured as \"Storage:PipelineDirectory\"");
+        UploadDirectory = fileAccess.UploadDirectory;
+        AssetDirectory = fileAccess.AssetsDirectory;
+        PipelineDirectory = fileAccess.PipelineDirectory;
     }
 
     /// <inheritdoc/>

@@ -153,7 +153,10 @@ builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
-builder.Services.Configure<FileAccessOptions>(builder.Configuration.GetSection("Storage"));
+builder.Services.AddOptions<FileAccessOptions>()
+    .BindConfiguration(FileAccessOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 if (builder.Configuration.GetValue<bool>("CloudStorage:Enabled"))
 {
