@@ -14,7 +14,7 @@ public class ZipPackageProcessTest
     {
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var process = new ZipPackageProcess("myPersonalZipArchive", pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), Guid.NewGuid());
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
         var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(1, processResult);
@@ -29,7 +29,7 @@ public class ZipPackageProcessTest
     {
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var process = new ZipPackageProcess(null, pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), Guid.NewGuid());
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
         var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(1, processResult);
@@ -67,7 +67,7 @@ public class ZipPackageProcessTest
     {
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var process = new ZipPackageProcess("mixedArchive", pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), Guid.NewGuid());
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
         var processResult = await process.RunAsync(new IPipelineTransferFile?[] { null, uploadFile, null });
         Assert.IsNotNull(processResult);
         Assert.HasCount(1, processResult);

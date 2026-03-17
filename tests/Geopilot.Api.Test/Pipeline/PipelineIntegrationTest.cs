@@ -75,7 +75,7 @@ public class PipelineIntegrationTest
         var validationErrors = factory.PipelineProcessConfig.Validate();
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
-        PipelineTransferFile uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        PipelineTransferFile uploadFile = new PipelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
         using var pipeline = factory.CreatePipeline("two_steps", uploadFile, Guid.NewGuid());
 
         using HttpResponseMessage uploadMockResponse = new()
@@ -176,7 +176,7 @@ public class PipelineIntegrationTest
         Assert.IsNotNull(uploadedFileStepOutput.Data);
         var uploadedFile = uploadedFileStepOutput.Data as IPipelineTransferFile;
         Assert.IsNotNull(uploadedFile);
-        Assert.AreEqual(uploadFile.FilePath, uploadedFile.FilePath);
+        Assert.AreEqual(uploadFile.OriginalFileName, uploadedFile.OriginalFileName);
 
         // Assert if StepResults from executed PipelineSteps are in the PipelineContext
         Assert.HasCount(3, stepResults);

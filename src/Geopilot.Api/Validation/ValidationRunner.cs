@@ -93,7 +93,7 @@ public class ValidationRunner : BackgroundService
 
     private static Dictionary<string, string> ExtractDownloadFiles(PipelineContext context)
     {
-        var logFiles = new Dictionary<string, string>();
+        var downloadFiles = new Dictionary<string, string>();
 
         foreach (var stepResult in context.StepResults.Values)
         {
@@ -101,11 +101,18 @@ public class ValidationRunner : BackgroundService
             {
                 if (output.Action.Contains(OutputAction.Download) && output.Data is IPipelineTransferFile transferFile)
                 {
-                    logFiles[outputKey] = transferFile.FilePath;
+                    string tempFileName = Path.GetTempFileName().Replace(".tmp", "." + transferFile.FileExtension);
+                    using (Stream outStream = File.OpenWrite(tempFileName))
+                    using (Stream inStream = transferFile.OpenReadFileStream())
+                    {
+                        inStream.CopyTo(outStream);
+                    }
+
+                    downloadFiles[outputKey] = tempFileName;
                 }
             }
         }
 
-        return logFiles;
+        return downloadFiles;
     }
 }

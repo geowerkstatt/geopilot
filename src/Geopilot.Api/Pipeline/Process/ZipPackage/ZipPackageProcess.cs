@@ -67,16 +67,17 @@ internal class ZipPackageProcess
         }
         else
         {
-            var fileName = pipelineFileManager.GenerateTempFileName("archive", ".zip");
-            zipTransferFile = new PipelineTransferFile(this.archiveFileName, fileName);
-            using (var zipArchiveFileStream = new FileStream(zipTransferFile.FilePath, FileMode.Create))
+            var fullFileName = pipelineFileManager.GenerateTempFileName(archiveFileName, "zip");
+            zipTransferFile = new PipelineTransferFile(fullFileName, archiveFileName + ".zip");
+
+            using (var zipArchiveFileStream = zipTransferFile.OpenWriteFileStream())
             using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))
             {
                 foreach (var file in validFiles)
                 {
                     var zipEntry = zipArchive.CreateEntry(file.OriginalFileName);
                     using var zipEntryStream = zipEntry.Open();
-                    using var fileStream = file.OpenFileStream();
+                    using var fileStream = file.OpenReadFileStream();
                     fileStream.CopyTo(zipEntryStream);
                 }
             }

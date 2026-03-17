@@ -63,7 +63,7 @@ public class XtfValidatorProcessTest
             .GetAppLogMockResponse(getAppLogMockResponse)
             .GetXtfLogMockResponse(getXtfLogMockResponse)
             .Build();
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
 
         var processResult = Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
@@ -106,7 +106,7 @@ public class XtfValidatorProcessTest
             .InterlisCheckServiceBaseUrl("http://localhost/")
             .UploadMockResponse(uploadMockResponse)
             .Build();
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
         var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult());
         Assert.AreEqual("Invalid transfer file", exception.Message);
     }

@@ -97,8 +97,8 @@ internal class XtfValidatorProcess : IDisposable
     [PipelineProcessRun]
     public async Task<Dictionary<string, object?>> RunAsync(IPipelineTransferFile iliFile, CancellationToken cancellationToken)
     {
-        logger.LogInformation($"Validating transfer file <{iliFile.FileName}> (job: {jobId})...");
-        var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.FileName, this.validationProfile, cancellationToken);
+        logger.LogInformation($"Validating transfer file <{iliFile.OriginalFileName}> (job: {jobId})...");
+        var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.OriginalFileName, this.validationProfile, cancellationToken);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
         var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
 
@@ -115,7 +115,7 @@ internal class XtfValidatorProcess : IDisposable
 
     private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineTransferFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
     {
-        using var fileStream = file.OpenFileStream() ?? throw new ArgumentException("Invalid input ILI file stream.");
+        using var fileStream = file.OpenReadFileStream() ?? throw new ArgumentException("Invalid input ILI file stream.");
         using var streamContent = new StreamContent(fileStream);
         using var profileStringContent = new StringContent(interlisValidationProfile ?? string.Empty);
         using var formData = new MultipartFormDataContent
@@ -184,23 +184,29 @@ internal class XtfValidatorProcess : IDisposable
 
     private async Task<KeyValuePair<LogType, IPipelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType, CancellationToken cancellationToken)
     {
-        PipelineTransferFile transferFile;
+        string fullFileName;
+        string originalFileName;
         switch (logType)
         {
             case LogType.ErrorLog:
-                transferFile = new PipelineTransferFile("errorLog", pipelineFileManager.GenerateTempFileName("errorLog", "log"));
+                originalFileName = "errorLog.log";
+                fullFileName = pipelineFileManager.GenerateTempFileName("errorLog", "log");
                 break;
             case LogType.XtfLog:
-                transferFile = new PipelineTransferFile("xtfLog", pipelineFileManager.GenerateTempFileName("xtfLog", "xtf"));
+                originalFileName = "xtfLog.xtf";
+                fullFileName = pipelineFileManager.GenerateTempFileName("xtfLog", "xtf");
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported log type: {logType}");
         }
 
-        using var logDownloadStream = await this.httpClient.GetStreamAsync(url, cancellationToken);
-        var fileStream = File.Create(transferFile.FilePath);
-        logDownloadStream.CopyTo(fileStream);
-        fileStream.Close();
+        var transferFile = new PipelineTransferFile(fullFileName, originalFileName);
+
+        using (Stream logDownloadStream = await this.httpClient.GetStreamAsync(url, cancellationToken))
+        using (FileStream fileStream = transferFile.OpenWriteFileStream())
+        {
+            logDownloadStream.CopyTo(fileStream);
+        }
 
         return new KeyValuePair<LogType, IPipelineTransferFile>(logType, transferFile);
     }

@@ -166,7 +166,7 @@ public sealed class Pipeline : IPipeline
     {
         var stepResult = new StepResult();
 
-        var fileExtension = Path.GetExtension(file.FileName).TrimStart('.');
+        var fileExtension = file.FileExtension;
         foreach (var mapping in this.Parameters.Mappings)
         {
             if (string.Equals(fileExtension, mapping.FileExtension, StringComparison.OrdinalIgnoreCase))

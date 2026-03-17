@@ -10,61 +10,52 @@ public class PipelineTransferFile : IPipelineTransferFile
     /// <summary>
     /// Initializes a new instance of the PilelineTestTransferFile class with the specified file path.
     /// </summary>
-    /// <param name="filePath">The full path to the file to be transferred. Cannot be null or empty.</param>
-    /// <param name="originalFileNameWithoutExtension">The original file name without its extension. Cannot be null or empty.</param>
-    public PipelineTransferFile(string originalFileNameWithoutExtension, string filePath)
+    /// <param name="filePath">The full qualified file name.</param>
+    /// <param name="originalFileName">The original file name with extension. Cannot be null or empty.</param>
+    public PipelineTransferFile(string filePath, string originalFileName)
     {
-        ArgumentException.ThrowIfNullOrEmpty(originalFileNameWithoutExtension, nameof(originalFileNameWithoutExtension));
         ArgumentException.ThrowIfNullOrEmpty(filePath, nameof(filePath));
-        this.FilePath = filePath;
-        this.OriginalFileNameWithoutExtension = originalFileNameWithoutExtension;
+        ArgumentException.ThrowIfNullOrEmpty(originalFileName, nameof(originalFileName));
+        this.OriginalFileName = originalFileName;
+        this.filePath = filePath;
     }
 
+    private readonly string filePath;
+
     /// <inheritdoc/>
-    public string OriginalFileName
+    public string OriginalFileName { get; private set; }
+
+    /// <inheritdoc/>
+    public string OriginalFileNameWithoutExtension
     {
         get
         {
-            return OriginalFileNameWithoutExtension + Extension;
+            return Path.GetFileNameWithoutExtension(OriginalFileName);
         }
     }
 
     /// <inheritdoc/>
-    public string FileName
+    public string FileExtension
     {
         get
         {
-            return Path.GetFileName(FilePath);
+            var extension = Path.GetExtension(OriginalFileName);
+            if (!string.IsNullOrEmpty(extension) && extension.StartsWith('.'))
+                return extension.Substring(1);
+            else
+                return extension;
         }
     }
 
     /// <inheritdoc/>
-    public string FileNameWithoutExtension
+    public FileStream OpenReadFileStream()
     {
-        get
-        {
-            return Path.GetFileNameWithoutExtension(FilePath);
-        }
+        return File.OpenRead(this.filePath);
     }
 
     /// <inheritdoc/>
-    public string Extension
+    public FileStream OpenWriteFileStream()
     {
-        get
-        {
-            return Path.GetExtension(FilePath);
-        }
-    }
-
-    /// <inheritdoc/>
-    public string FilePath { get; set; }
-
-    /// <inheritdoc/>
-    public string OriginalFileNameWithoutExtension { get; set; }
-
-    /// <inheritdoc/>
-    public Stream OpenFileStream()
-    {
-        return File.Open(FilePath, FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
+        return File.Open(this.filePath, FileMode.CreateNew);
     }
 }
