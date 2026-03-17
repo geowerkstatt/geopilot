@@ -10,7 +10,7 @@ public class XtfValidatorErrorTreeProcessTest
     [TestMethod]
     public async Task SunnyDay()
     {
-        var process = new XtfValidatorErrorTreeProcess();
+        var process = new XtfValidatorErrorTreeProcess(Guid.NewGuid());
 
         var uploadFile = new PipelineTransferFile("ErrorLogWithErrors", "TestData/DownloadFiles/ilicop/errorLogWithErrors.xtf");
         var processResult = await process.RunAsync(uploadFile).ConfigureAwait(false);

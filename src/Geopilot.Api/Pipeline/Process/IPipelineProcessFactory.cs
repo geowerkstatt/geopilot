@@ -11,13 +11,8 @@ namespace Geopilot.Api.Pipeline.Process;
 public interface IPipelineProcessFactory
 {
     /// <summary>
-    /// Creates and initializes a new process based on the specified step configuration and a list of process
-    /// configurations.
+    /// Creates and returns a new pipeline process builder for configuring the steps and behavior of a pipeline process.
     /// </summary>
-    /// <param name="stepConfig">The configuration settings for the step to be executed. Cannot be null.</param>
-    /// <param name="processes">A list of process configurations that define the processes to be created. Cannot be null or empty.</param>
-    /// <param name="pipelineDirectory">The directory path where the pipeline can store temporary files or resources needed for process execution. Cannot be null or empty.</param>
-    /// <returns>An object representing the created process instance. The exact type and structure of the returned object depend
-    /// on the implementation.</returns>
-    public object CreateProcess(StepConfig stepConfig, List<ProcessConfig> processes, string pipelineDirectory);
+    /// <returns>An instance of IPipelineProcessBuilder that can be used to define and customize the pipeline process.</returns>
+    public IPipelineProcessBuilder Builder();
 }
