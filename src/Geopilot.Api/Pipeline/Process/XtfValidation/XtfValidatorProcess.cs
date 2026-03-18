@@ -37,7 +37,6 @@ internal class XtfValidatorProcess : IDisposable
     private string validationProfile;
     private TimeSpan pollInterval;
     private IPipelineFileManager pipelineFileManager;
-    private Guid jobId;
 
     static XtfValidatorProcess()
     {
@@ -56,8 +55,7 @@ internal class XtfValidatorProcess : IDisposable
     /// <param name="pollInterval">Optional polling interval in milliseconds for checking the validation status. If not provided, a default of 2000ms will be used.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
-    /// <param name="jobId">The unique identifier for the current job.</param>
-    public XtfValidatorProcess(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, IPipelineFileManager pipelineFileManager, ILogger logger, Guid jobId)
+    public XtfValidatorProcess(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, IPipelineFileManager pipelineFileManager, ILogger logger)
     {
         this.httpClient.BaseAddress = new Uri(checkServiceBaseUrl);
         this.httpClient.DefaultRequestHeaders.Accept.Clear();
@@ -75,7 +73,6 @@ internal class XtfValidatorProcess : IDisposable
 
         this.logger = logger;
         this.pipelineFileManager = pipelineFileManager;
-        this.jobId = jobId;
     }
 
     /// <summary>
@@ -96,7 +93,7 @@ internal class XtfValidatorProcess : IDisposable
     [PipelineProcessRun]
     public async Task<Dictionary<string, object?>> RunAsync(IPipelineFile iliFile, CancellationToken cancellationToken)
     {
-        logger.LogInformation($"Validating transfer file <{iliFile.OriginalFileName}> (job: {jobId})...");
+        logger.LogInformation($"Validating transfer file <{iliFile.OriginalFileName}>...");
         var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.OriginalFileName, this.validationProfile, cancellationToken);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
         var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
@@ -127,11 +124,11 @@ internal class XtfValidatorProcess : IDisposable
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
             var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(JsonOptions, cancellationToken);
-            logger.LogError($"Upload of transfer file <{transferFile}> to interlis-check-service failed (job: {jobId}).");
+            logger.LogError($"Upload of transfer file <{transferFile}> to interlis-check-service failed.");
             throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
         }
 
-        logger.LogInformation($"Uploaded transfer file <{transferFile}> to interlis-check-service. Status code <{response.StatusCode}> (job: {jobId}).");
+        logger.LogInformation($"Uploaded transfer file <{transferFile}> to interlis-check-service. Status code <{response.StatusCode}>.");
 
         return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response, cancellationToken);
     }

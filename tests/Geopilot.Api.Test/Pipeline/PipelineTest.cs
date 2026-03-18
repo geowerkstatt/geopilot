@@ -10,12 +10,13 @@ namespace Geopilot.Api.Test.Pipeline;
 public class PipelineTest
 {
     private Mock<ILoggerFactory> loggerFactory;
+    private Mock<ILogger<Api.Pipeline.Pipeline>> loggerMock;
 
     [TestInitialize]
     public void SetUp()
     {
         loggerFactory = new Mock<ILoggerFactory>();
-        var loggerMock = new Mock<ILogger<Api.Pipeline.Pipeline>>();
+        loggerMock = new Mock<ILogger<Api.Pipeline.Pipeline>>();
         loggerFactory
             .Setup(lf => lf.CreateLogger(It.IsAny<string>()))
             .Returns(loggerMock.Object);
@@ -55,7 +56,7 @@ public class PipelineTest
             .Steps(steps)
             .Parameters(pipelineParameters)
             .File(Mock.Of<IPipelineFile>())
-            .LoggerFactory(loggerFactory.Object)
+            .Logger(loggerMock.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
             .JobId(Guid.NewGuid())
             .Build();
@@ -91,7 +92,7 @@ public class PipelineTest
             .Steps(steps)
             .Parameters(pipelineParameters)
             .File(uploadFile)
-            .LoggerFactory(loggerFactory.Object)
+            .Logger(loggerMock.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
             .JobId(Guid.NewGuid())
             .Build();
@@ -149,7 +150,7 @@ public class PipelineTest
             .JobId(Guid.NewGuid())
             .DeliveryCondition(deliveryCondition)
             .File(uploadFile)
-            .LoggerFactory(loggerFactory.Object)
+            .Logger(loggerMock.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
             .Build();
 

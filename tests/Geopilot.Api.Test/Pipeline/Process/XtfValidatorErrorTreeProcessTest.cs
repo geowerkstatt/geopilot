@@ -19,7 +19,7 @@ public class XtfValidatorErrorTreeProcessTest
                 var filePath = Path.Combine(Path.GetTempPath(), $"{originalFileName}_{Guid.NewGuid()}.{fileExtension}");
                 return new PipelineFile(filePath, originalFileName + "." + fileExtension);
             });
-        var process = new XtfValidatorErrorTreeProcess(pipelineFileManagerMock.Object, Guid.NewGuid());
+        var process = new XtfValidatorErrorTreeProcess(pipelineFileManagerMock.Object);
 
         var uploadFile = new PipelineFile("TestData/DownloadFiles/ilicop/errorLogWithErrors.xtf", "errorLogWithErrors.xtf");
         var processResult = await process.RunAsync(uploadFile).ConfigureAwait(false);

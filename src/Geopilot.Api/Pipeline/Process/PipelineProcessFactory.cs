@@ -100,6 +100,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         private readonly HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
         private readonly PipelineOptions pipelineOptions;
 
+        private string? pipelineId;
         private StepConfig? stepConfig;
         private List<ProcessConfig>? processes;
         private string? pipelineDirectory;
@@ -124,6 +125,13 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             this.loggerFactory = loggerFactory;
             this.logger = loggerFactory.CreateLogger<PipelineProcessBuilder>();
             this.pipelineOptions = pipelineOptions;
+        }
+
+        /// <inheritdoc />
+        public IPipelineProcessBuilder PipelineId(string pipelineId)
+        {
+            this.pipelineId = pipelineId;
+            return this;
         }
 
         /// <inheritdoc />
@@ -212,15 +220,17 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             if (parameterInfo.ParameterType == typeof(ILogger))
             {
-                return loggerFactory.CreateLogger(processType);
+                return PipelineLogger
+                    .Builder()
+                    .Logger(loggerFactory.CreateLogger(processType))
+                    .PipelineId(pipelineId ?? string.Empty)
+                    .StepId(stepConfig?.Id ?? string.Empty)
+                    .JobId(jobId)
+                    .Build();
             }
             else if (parameterInfo.ParameterType == typeof(IPipelineFileManager))
             {
-                return new PipelineFileManager(pipelineDirectory, this.stepConfig?.Id ?? throw new InvalidOperationException());
-            }
-            else if (parameterInfo.ParameterType == typeof(Guid) && parameterInfo.Name == "jobId")
-            {
-                return jobId;
+                return new PipelineFileManager(pipelineDirectory, this.stepConfig?.Id ?? throw new InvalidOperationException("Step Id must be provided."));
             }
             else if (!string.IsNullOrEmpty(parameterInfo.Name) && processConfig.TryGetValue(parameterInfo.Name, out var parameterStringValue))
             {

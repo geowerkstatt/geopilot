@@ -48,6 +48,7 @@ public class PipelineFactory : IPipelineFactory
         if (pipelineConfig != null)
         {
             var pipelineTempDirectory = directoryProvider.GetPipelineDirectoryPath(jobId);
+
             return Pipeline.Builder()
                 .Id(pipelineConfig.Id)
                 .DisplayName(pipelineConfig.DisplayName)
@@ -55,7 +56,12 @@ public class PipelineFactory : IPipelineFactory
                 .Parameters(pipelineConfig.Parameters)
                 .DeliveryCondition(pipelineConfig.DeliveryCondition)
                 .File(file)
-                .LoggerFactory(this.loggerFactory)
+                .Logger(PipelineLogger
+                    .Builder()
+                    .Logger(loggerFactory.CreateLogger<Pipeline>())
+                    .PipelineId(id)
+                    .JobId(jobId)
+                    .Build())
                 .PipelineDirectory(pipelineTempDirectory)
                 .JobId(jobId)
                 .Build();
@@ -69,11 +75,11 @@ public class PipelineFactory : IPipelineFactory
     private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, string pipelineTempDirectory, Guid jobId)
     {
         return pipelineConfig.Steps
-            .Select(s => CreateStep(s, pipelineTempDirectory, jobId) as IPipelineStep)
+            .Select(s => CreateStep(s, pipelineConfig.Id, pipelineTempDirectory, jobId) as IPipelineStep)
             .ToList();
     }
 
-    private PipelineStep CreateStep(StepConfig stepConfig, string pipelineTempDirectory, Guid jobId)
+    private PipelineStep CreateStep(StepConfig stepConfig, string pipelineId, string pipelineTempDirectory, Guid jobId)
     {
         return PipelineStep.Builder()
             .Id(stepConfig.Id)
@@ -82,13 +88,19 @@ public class PipelineFactory : IPipelineFactory
             .OutputConfig(stepConfig.Output ?? new List<OutputConfig>())
             .StepConditions(stepConfig.Conditions)
             .Process(pipelineProcessFactory.Builder()
+                .PipelineId(pipelineId)
                 .StepConfig(stepConfig)
                 .Processes(PipelineProcessConfig.Processes)
                 .PipelineDirectory(pipelineTempDirectory)
                 .JobId(jobId)
                 .Build())
-            .LoggerFactory(loggerFactory)
-            .JobId(jobId)
+            .Logger(PipelineLogger
+                    .Builder()
+                    .Logger(loggerFactory.CreateLogger<PipelineStep>())
+                    .StepId(stepConfig.Id)
+                    .PipelineId(pipelineId)
+                    .JobId(jobId)
+                    .Build())
             .Build();
     }
 

@@ -11,12 +11,13 @@ namespace Geopilot.Api.Test.Pipeline;
 public class PipelineStepTest
 {
     private Mock<ILoggerFactory> loggerFactoryMock;
+    private Mock<ILogger<PipelineProcessFactory>> loggerMock;
 
     [TestInitialize]
     public void SetUp()
     {
         loggerFactoryMock = new Mock<ILoggerFactory>();
-        var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
+        loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
         loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
     }
 
@@ -191,8 +192,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig(outputConfigs)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -265,8 +265,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig(outputConfigs)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -330,8 +329,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig(outputConfigs)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -404,8 +402,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig(outputConfigs)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -478,8 +475,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig(outputConfigs)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -549,8 +545,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig(outputConfigs)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -614,8 +609,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig([])
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -688,9 +682,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig([])
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -738,8 +730,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig([])
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -787,8 +778,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig([])
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -839,8 +829,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig(outputConfigs)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -892,8 +881,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig(outputConfigs)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -945,8 +933,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig(outputConfigs)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -1004,8 +991,7 @@ public class PipelineStepTest
             .InputConfig(inputConfigs)
             .OutputConfig(outputConfigs)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -1079,8 +1065,7 @@ public class PipelineStepTest
             .OutputConfig(outputConfigs)
             .StepConditions(stepConditions)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -1156,8 +1141,7 @@ public class PipelineStepTest
             .OutputConfig(outputConfigs)
             .StepConditions(stepConditions)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
@@ -1236,8 +1220,7 @@ public class PipelineStepTest
             .OutputConfig(outputConfigs)
             .StepConditions(stepConditions)
             .Process(processMock)
-            .LoggerFactory(loggerFactoryMock.Object)
-            .JobId(Guid.NewGuid())
+            .Logger(loggerMock.Object)
             .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);

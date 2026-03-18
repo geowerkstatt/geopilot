@@ -40,6 +40,7 @@ public class PipelineFactoryTest
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
         var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
         loggerFactory = new Mock<ILoggerFactory>();
+        loggerFactory.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
         this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactory.Object);
     }
 

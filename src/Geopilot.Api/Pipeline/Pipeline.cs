@@ -92,7 +92,7 @@ public sealed class Pipeline : IPipeline
     /// <param name="parameters">The parameters for the pipeline.</param>
     /// <param name="deliveryCondition">Expression to determine when the pipeline step data can be delivered.</param>
     /// <param name="file">The file to be processed by the pipeline.</param>
-    /// <param name="loggerFactory">The logger factory to use for logging.</param>
+    /// <param name="logger">The logger to use for logging.</param>
     /// <param name="pipelineDirectory">The directory for the pipeline to use for storing temporary files. The pipeline is responsible for cleaning up the temporary files during dispose.</param>
     /// <param name="jobId">The job id associated with the pipeline execution, used for logging and tracking purposes.</param>
     private Pipeline(
@@ -102,7 +102,7 @@ public sealed class Pipeline : IPipeline
         PipelineParametersConfig parameters,
         string? deliveryCondition,
         IPipelineFile file,
-        ILoggerFactory loggerFactory,
+        ILogger logger,
         string pipelineDirectory,
         Guid jobId)
     {
@@ -112,16 +112,16 @@ public sealed class Pipeline : IPipeline
         this.Parameters = parameters;
         this.deliveryCondition = deliveryCondition;
         this.file = file;
-        this.conditionEvaluator = new ConditionEvaluator(loggerFactory.CreateLogger<ConditionEvaluator>());
+        this.conditionEvaluator = new ConditionEvaluator(logger);
         this.pipelineFileDirectory = pipelineDirectory;
-        this.logger = loggerFactory.CreateLogger<Pipeline>();
+        this.logger = logger;
         this.JobId = jobId;
     }
 
     /// <inheritdoc/>
     public async Task<PipelineContext> Run(CancellationToken cancellationToken)
     {
-        logger.LogInformation($"starting pipeline {this.Id} for job >{this.JobId}<");
+        logger.LogInformation($"starting pipeline");
         var context = new PipelineContext()
         {
             StepResults = new Dictionary<string, StepResult>(),
@@ -143,7 +143,7 @@ public sealed class Pipeline : IPipeline
 
         await this.EvaluateDeliveryCondition(context);
 
-        logger.LogInformation($"all steps in pipeline {this.Id} for job >{this.JobId}< executed");
+        logger.LogInformation($"all steps in pipeline executed");
         return context;
     }
 
@@ -196,7 +196,7 @@ public sealed class Pipeline : IPipeline
         private PipelineParametersConfig? parameters;
         private string? deliveryCondition;
         private IPipelineFile? file;
-        private ILoggerFactory? loggerFactory;
+        private ILogger? logger;
         private string? pipelineDirectory;
         private Guid? jobId;
 
@@ -236,9 +236,9 @@ public sealed class Pipeline : IPipeline
             return this;
         }
 
-        public PipelineBuilder LoggerFactory(ILoggerFactory loggerFactory)
+        public PipelineBuilder Logger(ILogger logger)
         {
-            this.loggerFactory = loggerFactory;
+            this.logger = logger;
             return this;
         }
 
@@ -266,14 +266,14 @@ public sealed class Pipeline : IPipeline
                 throw new InvalidOperationException("Pipeline Parameters must be provided.");
             if (file == null)
                 throw new InvalidOperationException("Pipeline File must be provided.");
-            if (loggerFactory == null)
-                throw new InvalidOperationException("LoggerFactory must be provided.");
+            if (logger == null)
+                throw new InvalidOperationException("Logger must be provided.");
             if (pipelineDirectory == null)
                 throw new InvalidOperationException("Pipeline Directory must be provided.");
             if (jobId == null)
                 throw new InvalidOperationException("Pipeline JobId must be provided.");
 
-            return new Pipeline(id, displayName, steps, parameters, deliveryCondition, file, loggerFactory, pipelineDirectory, jobId.Value);
+            return new Pipeline(id, displayName, steps, parameters, deliveryCondition, file, logger, pipelineDirectory, jobId.Value);
         }
     }
 }

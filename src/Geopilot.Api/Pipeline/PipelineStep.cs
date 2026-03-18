@@ -41,8 +41,6 @@ public sealed class PipelineStep : IPipelineStep
 
     private ILogger logger;
 
-    private Guid? jobId;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="PipelineStep"/> class.
     /// </summary>
@@ -52,8 +50,7 @@ public sealed class PipelineStep : IPipelineStep
     /// <param name="outputConfig">The output configuration for the step.</param>
     /// <param name="stepConditions">The step conditions for the step.</param>
     /// <param name="process">The process associated with the step.</param>
-    /// <param name="loggerFactory">The logger factory to use for logging.</param>
-    /// <param name="jobId">The job id for the current pipeline run. This is used for logging purposes.</param>
+    /// <param name="logger">The logger to use for logging.</param>
     private PipelineStep(
         string id,
         Dictionary<string, string> displayName,
@@ -61,8 +58,7 @@ public sealed class PipelineStep : IPipelineStep
         List<OutputConfig> outputConfig,
         PipelineStepConditionsConfig? stepConditions,
         object process,
-        ILoggerFactory loggerFactory,
-        Guid jobId)
+        ILogger logger)
     {
         this.Id = id;
         this.DisplayName = displayName;
@@ -70,16 +66,15 @@ public sealed class PipelineStep : IPipelineStep
         this.OutputConfigs = outputConfig;
         this.StepConditions = stepConditions;
         this.Process = process;
-        this.logger = loggerFactory.CreateLogger<PipelineStep>();
-        this.conditionEvaluator = new ConditionEvaluator(loggerFactory.CreateLogger<ConditionEvaluator>());
-        this.jobId = jobId;
+        this.logger = logger;
+        this.conditionEvaluator = new ConditionEvaluator(logger);
         this.State = StepState.Pending;
     }
 
     /// <inheritdoc/>
     public async Task<StepResult> Run(PipelineContext context, CancellationToken cancellationToken)
     {
-        logger.LogInformation($"run step <{this.Id}> for job <{this.jobId}>.");
+        logger.LogInformation($"run step.");
         try
         {
             if (this.StepConditions != null)
@@ -87,13 +82,13 @@ public sealed class PipelineStep : IPipelineStep
                 if (await this.FailStep(this.StepConditions.Pre, context))
                 {
                     this.State = StepState.Error;
-                    logger.LogInformation($"step <{this.Id}> for job <{this.jobId}> failed due to pre-condition.");
+                    logger.LogInformation($"step failed due to pre-condition.");
                     return new StepResult();
                 }
                 else if (await this.SkipStepExecution(this.StepConditions.Pre, context))
                 {
                     this.State = StepState.Skipped;
-                    logger.LogInformation($"step <{this.Id}> for job <{this.jobId}> skipped due to pre-condition.");
+                    logger.LogInformation($"step skipped due to pre-condition.");
                     return new StepResult();
                 }
             }
@@ -105,12 +100,12 @@ public sealed class PipelineStep : IPipelineStep
             if (this.StepConditions != null && await this.FailStep(this.StepConditions.Post, context, stepResult))
             {
                 this.State = StepState.Error;
-                logger.LogInformation($"step <{this.Id}> for job <{this.jobId}> failed due to post-condition.");
+                logger.LogInformation($"failed due to post-condition.");
             }
             else
             {
                 this.State = StepState.Success;
-                logger.LogInformation($"step <{this.Id}> for job <{this.jobId}> run successfull.");
+                logger.LogInformation($"run successfull.");
             }
 
             return stepResult;
@@ -118,7 +113,7 @@ public sealed class PipelineStep : IPipelineStep
         catch (Exception ex)
         {
             this.State = StepState.Error;
-            logger.LogError(ex, $"Error in step <{this.Id}> for job <{this.jobId}>.");
+            logger.LogError(ex, $"Error in step.");
             throw;
         }
     }
@@ -364,8 +359,7 @@ public sealed class PipelineStep : IPipelineStep
         private List<OutputConfig>? outputConfig;
         private PipelineStepConditionsConfig? stepConditions;
         private object? process;
-        private ILoggerFactory? loggerFactory;
-        private Guid? jobId;
+        private ILogger? logger;
 
         public PipelineStepBuilder Id(string id)
         {
@@ -403,15 +397,9 @@ public sealed class PipelineStep : IPipelineStep
             return this;
         }
 
-        public PipelineStepBuilder LoggerFactory(ILoggerFactory loggerFactory)
+        public PipelineStepBuilder Logger(ILogger logger)
         {
-            this.loggerFactory = loggerFactory;
-            return this;
-        }
-
-        public PipelineStepBuilder JobId(Guid jobId)
-        {
-            this.jobId = jobId;
+            this.logger = logger;
             return this;
         }
 
@@ -427,12 +415,10 @@ public sealed class PipelineStep : IPipelineStep
                 throw new InvalidOperationException("outputConfig is required to build a PipelineStep.");
             if (process == null)
                 throw new InvalidOperationException("process is required to build a PipelineStep.");
-            if (loggerFactory == null)
-                throw new InvalidOperationException("loggerFactory is required to build a PipelineStep.");
-            if (jobId == null)
-                throw new InvalidOperationException("jobId is required to build a PipelineStep.");
+            if (logger == null)
+                throw new InvalidOperationException("logger is required to build a PipelineStep.");
 
-            return new PipelineStep(id, displayName, inputConfig, outputConfig, stepConditions, process, loggerFactory, jobId.Value);
+            return new PipelineStep(id, displayName, inputConfig, outputConfig, stepConditions, process, logger);
         }
     }
 }

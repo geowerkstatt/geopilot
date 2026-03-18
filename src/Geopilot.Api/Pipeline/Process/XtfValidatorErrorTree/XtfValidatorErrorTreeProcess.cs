@@ -12,7 +12,6 @@ internal class XtfValidatorErrorTreeProcess
     private const string OutputMappingJsonErrorLogFile = "json_error_tree_file";
 
     private static readonly JsonSerializerOptions JsonOptions;
-    private readonly Guid jobId;
     private readonly IPipelineFileManager pipelineFileManager;
 
     static XtfValidatorErrorTreeProcess()
@@ -21,10 +20,9 @@ internal class XtfValidatorErrorTreeProcess
         JsonOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     }
 
-    public XtfValidatorErrorTreeProcess(IPipelineFileManager pipelineFileManager, Guid jobId)
+    public XtfValidatorErrorTreeProcess(IPipelineFileManager pipelineFileManager)
     {
         this.pipelineFileManager = pipelineFileManager;
-        this.jobId = jobId;
     }
 
     [PipelineProcessRun]

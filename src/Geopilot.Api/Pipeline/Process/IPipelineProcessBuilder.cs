@@ -12,6 +12,15 @@ namespace Geopilot.Api.Pipeline.Process;
 public interface IPipelineProcessBuilder
 {
     /// <summary>
+    /// Sets the unique identifier for the pipeline to be processed.
+    /// </summary>
+    /// <remarks>Call this method at the beginning of pipeline configuration to specify which pipeline is
+    /// being built.</remarks>
+    /// <param name="pipelineId">The unique identifier for the pipeline. This value must not be null or empty.</param>
+    /// <returns>An instance of IPipelineProcessBuilder that can be used to further configure the pipeline.</returns>
+    IPipelineProcessBuilder PipelineId(string pipelineId);
+
+    /// <summary>
     /// Configures the pipeline step with the specified settings.
     /// </summary>
     /// <remarks>Call this method before executing the pipeline to ensure the step is properly configured.
