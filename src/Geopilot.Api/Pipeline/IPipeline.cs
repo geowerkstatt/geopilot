@@ -38,6 +38,11 @@ public interface IPipeline : IDisposable
     PipelineDelivery Delivery { get; }
 
     /// <summary>
+    /// The unique identifier for the job associated with this pipeline execution, used for logging and tracking purposes.
+    /// </summary>
+    Guid JobId { get; }
+
+    /// <summary>
     /// Runs the pipeline with the specified input file.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token to cancel the pipeline run.</param>

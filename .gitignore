@@ -408,3 +408,4 @@ src/Geopilot.Frontend/cypress/screenshots
 
 # Local dev-certs output
 certs/
+/src/Geopilot.Api/TempPipelineFiles/0dfca96d-297a-406f-806e-bf976de60bbc/validation
