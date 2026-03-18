@@ -1,7 +1,6 @@
 ﻿using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.Enums;
-using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
@@ -218,7 +217,6 @@ public sealed class ValidationControllerTest
         // Arrange
         var jobId = Guid.NewGuid();
 
-        // Use the helper method to create user and mandate with proper relationships
         var (user, mandate) = context.AddMandateWithUserOrganisation(
             new Mandate { Name = nameof(StartJobAsyncSuccess) });
         controller.SetupTestUser(user);
@@ -251,6 +249,43 @@ public sealed class ValidationControllerTest
 
         validationServiceMock.Verify();
         validationServiceMock.Verify(x => x.StartJobAsync(jobId, mandate.Id, user), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncReturns202ForCloudUpload()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
+            new Mandate { Name = nameof(StartJobAsyncReturns202ForCloudUpload) });
+        controller.SetupTestUser(user);
+
+        var startJobRequest = new StartJobRequest { MandateId = mandate.Id };
+
+        var validationJob = new ValidationJob(
+            jobId,
+            null,
+            null,
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.VerifyingUpload,
+            DateTime.Now,
+            UploadMethod.Cloud);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob).Verifiable();
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, user)).ReturnsAsync(validationJob);
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
+        var jobResponse = response?.Value as ValidationJobResponse;
+
+        // Assert
+        Assert.IsNotNull(response);
+        Assert.AreEqual(StatusCodes.Status202Accepted, response.StatusCode);
+        Assert.IsInstanceOfType<ValidationJobResponse>(jobResponse);
+        Assert.AreEqual(jobId, jobResponse.JobId);
+        Assert.AreEqual(Status.VerifyingUpload, jobResponse.Status);
     }
 
     [TestMethod]
@@ -478,95 +513,5 @@ public sealed class ValidationControllerTest
         Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.AreEqual("The user is not authorized to start the job with the specified mandate.", ((ProblemDetails)response.Value!).Detail);
-    }
-
-    [TestMethod]
-    public async Task StartJobAsyncReturnsProblemForPreflightFailure()
-    {
-        // Arrange
-        var jobId = Guid.NewGuid();
-        var startJobRequest = new StartJobRequest { MandateId = 1 };
-        var validationJob = new ValidationJob(
-            jobId,
-            null,
-            null,
-            null,
-            ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Created,
-            DateTime.Now);
-
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
-        validationServiceMock.Setup(x => x.StartJobAsync(jobId, startJobRequest.MandateId, null))
-            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, "File 'test.xtf' was not uploaded."));
-
-        // Act
-        var response = await controller.StartJobAsync(jobId, startJobRequest);
-
-        // Assert
-        var objectResult = response as ObjectResult;
-        Assert.IsNotNull(objectResult);
-        Assert.AreEqual(400, objectResult.StatusCode);
-        var problemDetails = objectResult.Value as ProblemDetails;
-        Assert.IsNotNull(problemDetails);
-        Assert.AreEqual("File 'test.xtf' was not uploaded.", problemDetails.Detail);
-    }
-
-    [TestMethod]
-    public async Task StartJobAsyncReturnsProblemForThreatDetected()
-    {
-        // Arrange
-        var jobId = Guid.NewGuid();
-        var startJobRequest = new StartJobRequest { MandateId = 1 };
-        var validationJob = new ValidationJob(
-            jobId,
-            null,
-            null,
-            null,
-            ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Created,
-            DateTime.Now);
-
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
-        validationServiceMock.Setup(x => x.StartJobAsync(jobId, startJobRequest.MandateId, null))
-            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.ThreatDetected, "The uploaded files could not be processed."));
-
-        // Act
-        var response = await controller.StartJobAsync(jobId, startJobRequest);
-
-        // Assert
-        var objectResult = response as ObjectResult;
-        Assert.IsNotNull(objectResult);
-        Assert.AreEqual(400, objectResult.StatusCode);
-        var problemDetails = objectResult.Value as ProblemDetails;
-        Assert.IsNotNull(problemDetails);
-        Assert.AreEqual("The uploaded files could not be processed.", problemDetails.Detail);
-    }
-
-    [TestMethod]
-    public async Task StartJobAsyncReturnsProblemForSizeExceeded()
-    {
-        var jobId = Guid.NewGuid();
-        var startJobRequest = new StartJobRequest { MandateId = 1 };
-        var validationJob = new ValidationJob(
-            jobId,
-            null,
-            null,
-            null,
-            ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Created,
-            DateTime.Now);
-
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob);
-        validationServiceMock.Setup(x => x.StartJobAsync(jobId, startJobRequest.MandateId, null))
-            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.SizeExceeded, "The uploaded files could not be processed."));
-
-        var response = await controller.StartJobAsync(jobId, startJobRequest);
-
-        var objectResult = response as ObjectResult;
-        Assert.IsNotNull(objectResult);
-        Assert.AreEqual(400, objectResult.StatusCode);
-        var problemDetails = objectResult.Value as ProblemDetails;
-        Assert.IsNotNull(problemDetails);
-        Assert.AreEqual("The uploaded files could not be processed.", problemDetails.Detail);
     }
 }

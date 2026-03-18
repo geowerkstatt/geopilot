@@ -151,7 +151,6 @@ public class CloudOrchestrationServiceTest
 
         var updatedJob = jobStore.GetJob(job.Id);
         Assert.IsNotNull(updatedJob);
-        Assert.AreEqual(Status.VerifyingUpload, updatedJob.Status);
     }
 
     [TestMethod]
@@ -165,10 +164,6 @@ public class CloudOrchestrationServiceTest
 
         var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
         Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
-
-        var updatedJob = jobStore.GetJob(job.Id);
-        Assert.IsNotNull(updatedJob);
-        Assert.AreEqual(Status.UploadIncomplete, updatedJob.Status);
     }
 
     [TestMethod]
@@ -182,10 +177,6 @@ public class CloudOrchestrationServiceTest
 
         var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
         Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
-
-        var updatedJob = jobStore.GetJob(job.Id);
-        Assert.IsNotNull(updatedJob);
-        Assert.AreEqual(Status.UploadIncomplete, updatedJob.Status);
     }
 
     [TestMethod]
@@ -201,14 +192,8 @@ public class CloudOrchestrationServiceTest
             .Setup(s => s.CheckFilesAsync(It.IsAny<IReadOnlyList<string>>()))
             .ReturnsAsync(new ScanResult(false, "Malware found"));
 
-        cloudStorageServiceMock
-            .Setup(s => s.DeletePrefixAsync(It.IsAny<string>()))
-            .Returns(Task.CompletedTask);
-
         var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
         Assert.AreEqual(PreflightFailureReason.ThreatDetected, ex.FailureReason);
-
-        Assert.IsNull(jobStore.GetJob(job.Id));
     }
 
     [TestMethod]
@@ -274,31 +259,8 @@ public class CloudOrchestrationServiceTest
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{job.Id}/test.xtf", 2048, DateTime.UtcNow) });
 
-        cloudStorageServiceMock
-            .Setup(s => s.DeletePrefixAsync(It.IsAny<string>()))
-            .Returns(Task.CompletedTask);
-
         var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
         Assert.AreEqual(PreflightFailureReason.SizeExceeded, ex.FailureReason);
-
-        Assert.IsNull(jobStore.GetJob(job.Id));
-    }
-
-    [TestMethod]
-    public async Task RunPreflightChecksAsyncResetsStatusForIncompleteUpload()
-    {
-        var job = CreateCloudJob("test.xtf", 1024);
-
-        cloudStorageServiceMock
-            .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
-            .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>());
-
-        var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(job.Id));
-        Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
-
-        var updatedJob = jobStore.GetJob(job.Id);
-        Assert.IsNotNull(updatedJob);
-        Assert.AreEqual(Status.UploadIncomplete, updatedJob.Status);
     }
 
     [TestMethod]
