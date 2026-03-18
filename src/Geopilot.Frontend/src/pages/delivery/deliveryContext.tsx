@@ -213,7 +213,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     })
       .then(response => {
         setValidationResponse(response);
-        if (response.status === ValidationStatus.Processing) {
+        if (response.status === ValidationStatus.Processing || response.status === ValidationStatus.VerifyingUpload) {
           setTimeout(() => pollValidationStatusUntilFinished(jobId, abortController), 2000);
         } else {
           setIsValidating(false);
