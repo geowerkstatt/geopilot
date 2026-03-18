@@ -127,7 +127,7 @@ public class ValidationServiceTest
 
         pipelineFactoryMock.Setup(x => x.CreatePipeline(
             pipelineId,
-            It.Is<IPipelineTransferFile>(file => file.OriginalFileName == originalFileName && file.FileName == tempFileName && file.FilePath == tempFilePath),
+            It.Is<IPipelineTransferFile>(file => file.OriginalFileName == originalFileName),
             It.IsAny<Guid>()))
             .Returns(pipeline.Object);
 

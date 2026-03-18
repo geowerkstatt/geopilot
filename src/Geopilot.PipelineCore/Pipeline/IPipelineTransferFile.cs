@@ -16,28 +16,21 @@ public interface IPipelineTransferFile
     string OriginalFileName { get; }
 
     /// <summary>
-    /// Gets the name of the file including file extension associated with the current object.
-    /// </summary>
-    string FileName { get; }
-
-    /// <summary>
-    /// Gets the name of the file without its extension.
-    /// </summary>
-    string FileNameWithoutExtension { get; }
-
-    /// <summary>
-    /// The full path of the file associated with the current object.
-    /// </summary>
-    string FilePath { get; }
-
-    /// <summary>
     /// Gets the file extension of the file associated with the current object.
     /// </summary>
-    string Extension { get; }
+    string FileExtension { get; }
 
     /// <summary>
-    /// Opens a stream to read the contents of the file associated with the current object.
+    /// Opens a filestream to read the contents of the file associated with the current object.
     /// </summary>
-    /// <returns>A stream for reading the file contents.</returns>
-    Stream OpenFileStream();
+    /// <returns>A filestream for reading the file contents.</returns>
+    /// <exception cref="DirectoryNotFoundException">Thrown if the file does not exist.</exception>
+    FileStream OpenReadFileStream();
+
+    /// <summary>
+    /// Opens a filestream  to write the file.
+    /// </summary>
+    /// <returns>A filestream for writing the file contents.</returns>
+    /// <exception cref="Exception">Thrown if the file already exists. Overwriting not allowed.</exception>
+    FileStream OpenWriteFileStream();
 }

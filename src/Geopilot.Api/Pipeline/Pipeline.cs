@@ -71,6 +71,9 @@ public sealed class Pipeline : IPipeline
     }
 
     /// <inheritdoc/>
+    public Guid JobId { get; }
+
+    /// <inheritdoc/>
     public PipelineDelivery Delivery { get; set; } = PipelineDelivery.Allow;
 
     /// <summary>
@@ -79,7 +82,6 @@ public sealed class Pipeline : IPipeline
     private readonly IPipelineTransferFile file;
 
     private ILogger logger;
-    private Guid jobId;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Pipeline"/> class.
@@ -113,13 +115,13 @@ public sealed class Pipeline : IPipeline
         this.conditionEvaluator = new ConditionEvaluator(loggerFactory.CreateLogger<ConditionEvaluator>());
         this.pipelineFileDirectory = pipelineDirectory;
         this.logger = loggerFactory.CreateLogger<Pipeline>();
-        this.jobId = jobId;
+        this.JobId = jobId;
     }
 
     /// <inheritdoc/>
     public async Task<PipelineContext> Run(CancellationToken cancellationToken)
     {
-        logger.LogInformation($"starting pipeline {this.Id} for job >{this.jobId}<");
+        logger.LogInformation($"starting pipeline {this.Id} for job >{this.JobId}<");
         var context = new PipelineContext()
         {
             StepResults = new Dictionary<string, StepResult>(),
@@ -141,7 +143,7 @@ public sealed class Pipeline : IPipeline
 
         await this.EvaluateDeliveryCondition(context);
 
-        logger.LogInformation($"all steps in pipeline {this.Id} for job >{this.jobId}< executed");
+        logger.LogInformation($"all steps in pipeline {this.Id} for job >{this.JobId}< executed");
         return context;
     }
 
@@ -166,7 +168,7 @@ public sealed class Pipeline : IPipeline
     {
         var stepResult = new StepResult();
 
-        var fileExtension = Path.GetExtension(file.FileName).TrimStart('.');
+        var fileExtension = file.FileExtension;
         foreach (var mapping in this.Parameters.Mappings)
         {
             if (string.Equals(fileExtension, mapping.FileExtension, StringComparison.OrdinalIgnoreCase))

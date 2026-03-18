@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
+
+namespace Geopilot.Api.Pipeline;
 
 /// <summary>
 /// Manages temporary files for pipeline processing.
@@ -7,10 +9,10 @@
 public interface IPipelineFileManager
 {
     /// <summary>
-    /// Generates a temporary file name for a given file type, and file extension. The file name is unique and can be used to store intermediate results during pipeline processing.
+    /// Generates a transfer file using the specified file type, file extension, and original file name.
     /// </summary>
-    /// <param name="fileType">The type of the file. This is a string that describes the purpose or content of the file, such as 'input', 'output', 'log', etc. The file name will be prefixed with this file type.</param>
-    /// <param name="fileExtension">The File extension without leading dot.</param>
-    /// <returns>Path of the format 'fileType_GUID.fileExtension'.</returns>
-    string GenerateTempFileName(string fileType, string fileExtension);
+    /// <param name="originalFileName">The original name of the file without file extension.</param>
+    /// <param name="fileExtension">The file extension to use for the generated file, without the leading dot (for example, "txt").</param>
+    /// <returns>An instance of IPipelineTransferFile that represents the generated transfer file.</returns>
+    IPipelineTransferFile GenerateTransferFile(string originalFileName, string fileExtension);
 }

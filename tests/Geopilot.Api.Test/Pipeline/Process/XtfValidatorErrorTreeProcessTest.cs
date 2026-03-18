@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree;
+using Moq;
 using Newtonsoft.Json;
 
 namespace Geopilot.Api.Test.Pipeline.Process;
@@ -10,9 +11,17 @@ public class XtfValidatorErrorTreeProcessTest
     [TestMethod]
     public async Task SunnyDay()
     {
-        var process = new XtfValidatorErrorTreeProcess(Guid.NewGuid());
+        var pipelineFileManagerMock = new Mock<IPipelineFileManager>();
 
-        var uploadFile = new PipelineTransferFile("ErrorLogWithErrors", "TestData/DownloadFiles/ilicop/errorLogWithErrors.xtf");
+        pipelineFileManagerMock.Setup(m => m.GenerateTransferFile(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((string originalFileName, string fileExtension) =>
+            {
+                var filePath = Path.Combine(Path.GetTempPath(), $"{originalFileName}_{Guid.NewGuid()}.{fileExtension}");
+                return new PipelineTransferFile(filePath, originalFileName + "." + fileExtension);
+            });
+        var process = new XtfValidatorErrorTreeProcess(pipelineFileManagerMock.Object, Guid.NewGuid());
+
+        var uploadFile = new PipelineTransferFile("TestData/DownloadFiles/ilicop/errorLogWithErrors.xtf", "errorLogWithErrors.xtf");
         var processResult = await process.RunAsync(uploadFile).ConfigureAwait(false);
         Assert.IsNotNull(processResult);
 
