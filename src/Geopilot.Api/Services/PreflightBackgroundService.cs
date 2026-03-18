@@ -35,14 +35,14 @@ public class PreflightBackgroundService : BackgroundService
     {
         await foreach (var request in preflightQueue.ReadAllAsync(stoppingToken))
         {
-            await ProcessRequestAsync(request);
+            await ProcessRequestAsync(request, stoppingToken);
         }
     }
 
     /// <summary>
     /// Processes a single preflight request: runs checks, stages files, and creates the pipeline.
     /// </summary>
-    public async Task ProcessRequestAsync(PreflightRequest request)
+    internal async Task ProcessRequestAsync(PreflightRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -70,7 +70,7 @@ public class PreflightBackgroundService : BackgroundService
             Models.User? user = null;
             if (request.UserAuthId != null)
             {
-                user = await context.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == request.UserAuthId);
+                user = await context.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == request.UserAuthId, cancellationToken);
             }
 
             var mandate = await mandateService.GetMandateForUser(request.MandateId, user);
