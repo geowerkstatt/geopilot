@@ -3,7 +3,8 @@
 namespace Geopilot.Api.Services;
 
 /// <summary>
-/// Registers an unbounded in-memory channel for queueing cloud preflight work.
+/// Registers a bounded in-memory channel (capacity 50) for queueing cloud preflight work.
+/// When the channel is full, producers wait until space is available.
 /// </summary>
 public static class PreflightChannelExtensions
 {
@@ -12,7 +13,10 @@ public static class PreflightChannelExtensions
     /// </summary>
     public static IServiceCollection AddPreflightChannel(this IServiceCollection services)
     {
-        var channel = Channel.CreateUnbounded<PreflightRequest>();
+        var channel = Channel.CreateBounded<PreflightRequest>(new BoundedChannelOptions(50)
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+        });
         services.AddSingleton(channel.Reader);
         services.AddSingleton(channel.Writer);
         return services;
