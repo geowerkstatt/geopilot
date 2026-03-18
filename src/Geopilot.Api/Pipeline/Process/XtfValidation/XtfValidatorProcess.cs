@@ -98,10 +98,18 @@ internal class XtfValidatorProcess : IDisposable
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
         var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
 
+        var statusMessage = new Dictionary<string, string>
+        {
+            { "de", statusResponse.StatusMessage ?? string.Empty },
+            { "fr", statusResponse.StatusMessage ?? string.Empty },
+            { "it", statusResponse.StatusMessage ?? string.Empty },
+            { "en", statusResponse.StatusMessage ?? string.Empty },
+        };
+
         var outputs = new Dictionary<string, object?>
         {
             { OutputMappingValidationSuccessful, statusResponse.Status == InterlisStatusResponseStatus.Completed },
-            { OutputMappingStatusMessage, statusResponse.StatusMessage ?? string.Empty },
+            { OutputMappingStatusMessage, statusMessage },
             { OutputMappingErrorLog, logFiles.GetValueOrDefault(LogType.ErrorLog) },
             { OutputMappingXtfLog, logFiles.GetValueOrDefault(LogType.XtfLog) },
         };
