@@ -89,7 +89,6 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         if (job.CloudFiles == null || job.CloudFiles.Count == 0)
             throw new InvalidOperationException($"Job <{jobId}> has no cloud files configured.");
 
-        jobStore.SetJobStatus(jobId, Status.VerifyingUpload);
         logger.LogInformation("Starting preflight checks for job <{JobId}>.", jobId);
 
         var cloudPrefix = $"uploads/{jobId}/";
@@ -100,23 +99,17 @@ public class CloudOrchestrationService : ICloudOrchestrationService
             var uploaded = uploadedFiles.FirstOrDefault(f => f.Key == expectedFile.CloudKey);
             if (uploaded == default)
             {
-                jobStore.SetJobStatus(jobId, Status.UploadIncomplete);
                 throw new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, $"File '{expectedFile.FileName}' was not uploaded.");
             }
 
             if (uploaded.Size < expectedFile.ExpectedSize)
             {
-                jobStore.SetJobStatus(jobId, Status.UploadIncomplete);
                 throw new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, $"File '{expectedFile.FileName}' is incomplete.");
             }
 
             if (uploaded.Size > expectedFile.ExpectedSize)
             {
                 logger.LogError("File '{FileName}' for job <{JobId}> exceeds declared size ({Actual} > {Expected}).", expectedFile.FileName, jobId, uploaded.Size, expectedFile.ExpectedSize);
-
-                await cloudStorageService.DeletePrefixAsync(cloudPrefix);
-                jobStore.RemoveJob(jobId);
-
                 throw new CloudUploadPreflightException(PreflightFailureReason.SizeExceeded, "The uploaded files could not be processed.");
             }
         }
@@ -127,10 +120,6 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         if (!scanResult.IsClean)
         {
             logger.LogError("Threat detected in cloud files for job <{JobId}>: {ThreatDetails}", jobId, scanResult.ThreatDetails);
-
-            await cloudStorageService.DeletePrefixAsync(cloudPrefix);
-            jobStore.RemoveJob(jobId);
-
             throw new CloudUploadPreflightException(PreflightFailureReason.ThreatDetected, "The uploaded files could not be processed.");
         }
     }
