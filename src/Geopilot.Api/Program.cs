@@ -340,6 +340,13 @@ if (File.Exists(indexHtmlPath))
     var indexHtmlTemplate = File.ReadAllText(indexHtmlPath);
     var authorityOrigin = new Uri(builder.Configuration["Auth:Authority"]!).GetLeftPart(UriPartial.Authority);
     var blobEndpoint = builder.Configuration["CloudStorage:BlobEndpoint"];
+    if (!string.IsNullOrWhiteSpace(blobEndpoint))
+    {
+        if (!Uri.TryCreate(blobEndpoint, UriKind.Absolute, out var blobUri))
+            throw new InvalidOperationException($"CloudStorage:BlobEndpoint '{blobEndpoint}' is not a valid absolute URI.");
+        blobEndpoint = blobUri.GetLeftPart(UriPartial.Authority);
+    }
+
     var connectSrc = string.IsNullOrWhiteSpace(blobEndpoint)
         ? $"'self' {authorityOrigin}"
         : $"'self' {authorityOrigin} {blobEndpoint}";
