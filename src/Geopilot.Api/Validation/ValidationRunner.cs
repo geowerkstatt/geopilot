@@ -109,7 +109,7 @@ public class ValidationRunner : BackgroundService
         {
             foreach (var (outputKey, output) in stepResult.Outputs)
             {
-                if (output.Action.Contains(OutputAction.Download) && output.Data is IPipelineTransferFile transferFile)
+                if (output.Action.Contains(OutputAction.Download) && output.Data is IPipelineFile transferFile)
                 {
                     using (FileHandle fileHandle = fileProvider.CreateFileWithRandomName(transferFile.FileExtension))
                     using (Stream inStream = transferFile.OpenReadFileStream())

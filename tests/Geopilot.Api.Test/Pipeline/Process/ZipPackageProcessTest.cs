@@ -14,12 +14,12 @@ public class ZipPackageProcessTest
     {
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var process = new ZipPackageProcess("myPersonalZipArchive", pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), Guid.NewGuid());
-        var uploadFile = new PipelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
-        var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
+        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
+        var processResult = Task.Run(() => process.RunAsync(new IPipelineFile[] { uploadFile })).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(1, processResult);
         processResult.TryGetValue("zip_package", out var outputData);
-        var zipArchive = outputData as IPipelineTransferFile;
+        var zipArchive = outputData as IPipelineFile;
         Assert.IsNotNull(zipArchive);
         Assert.AreEqual("myPersonalZipArchive.zip", zipArchive.OriginalFileName);
     }
@@ -29,12 +29,12 @@ public class ZipPackageProcessTest
     {
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var process = new ZipPackageProcess(null, pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), Guid.NewGuid());
-        var uploadFile = new PipelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
-        var processResult = Task.Run(() => process.RunAsync(new IPipelineTransferFile[] { uploadFile })).GetAwaiter().GetResult();
+        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
+        var processResult = Task.Run(() => process.RunAsync(new IPipelineFile[] { uploadFile })).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(1, processResult);
         processResult.TryGetValue("zip_package", out var outputData);
-        var zipArchive = outputData as IPipelineTransferFile;
+        var zipArchive = outputData as IPipelineFile;
         Assert.IsNotNull(zipArchive);
         Assert.AreEqual("archive.zip", zipArchive.OriginalFileName);
     }
@@ -45,7 +45,7 @@ public class ZipPackageProcessTest
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var jobId = Guid.NewGuid();
         var process = new ZipPackageProcess(null, pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), jobId);
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(Array.Empty<IPipelineTransferFile>()));
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(Array.Empty<IPipelineFile>()));
         Assert.AreEqual($"ZipPackageProcess: No input files provided (job: {jobId}).", exception.Message);
     }
 
@@ -55,7 +55,7 @@ public class ZipPackageProcessTest
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var jobId = Guid.NewGuid();
         var process = new ZipPackageProcess(null, pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), jobId);
-        var processResult = await process.RunAsync(new IPipelineTransferFile?[] { null, null, null });
+        var processResult = await process.RunAsync(new IPipelineFile?[] { null, null, null });
         Assert.IsNotNull(processResult);
         Assert.HasCount(1, processResult);
         processResult.TryGetValue("zip_package", out var outputData);
@@ -67,12 +67,12 @@ public class ZipPackageProcessTest
     {
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
         var process = new ZipPackageProcess("mixedArchive", pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>(), Guid.NewGuid());
-        var uploadFile = new PipelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
-        var processResult = await process.RunAsync(new IPipelineTransferFile?[] { null, uploadFile, null });
+        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
+        var processResult = await process.RunAsync(new IPipelineFile?[] { null, uploadFile, null });
         Assert.IsNotNull(processResult);
         Assert.HasCount(1, processResult);
         processResult.TryGetValue("zip_package", out var outputData);
-        var zipArchive = outputData as IPipelineTransferFile;
+        var zipArchive = outputData as IPipelineFile;
         Assert.IsNotNull(zipArchive);
         Assert.AreEqual("mixedArchive.zip", zipArchive.OriginalFileName);
     }

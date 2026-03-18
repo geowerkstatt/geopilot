@@ -54,7 +54,7 @@ public class PipelineTest
             .DisplayName(pipelineDisplayName)
             .Steps(steps)
             .Parameters(pipelineParameters)
-            .File(Mock.Of<IPipelineTransferFile>())
+            .File(Mock.Of<IPipelineFile>())
             .LoggerFactory(loggerFactory.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
             .JobId(Guid.NewGuid())
@@ -82,7 +82,7 @@ public class PipelineTest
 
         var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
 
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
         using var pipeline = Api.Pipeline.Pipeline
             .Builder()
@@ -136,7 +136,7 @@ public class PipelineTest
 
         var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
 
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
         string deliveryCondition = "[step_id.output1] != 'my_step_data'";
 

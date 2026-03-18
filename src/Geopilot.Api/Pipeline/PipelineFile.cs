@@ -5,14 +5,14 @@ namespace Geopilot.Api.Pipeline;
 /// <summary>
 /// Represents a test implementation of the IPilelineTransferFile interface.
 /// </summary>
-public class PipelineTransferFile : IPipelineTransferFile
+public class PipelineFile : IPipelineFile
 {
     /// <summary>
     /// Initializes a new instance of the PilelineTestTransferFile class with the specified file path.
     /// </summary>
     /// <param name="filePath">The full qualified file name.</param>
     /// <param name="originalFileName">The original file name with extension. Cannot be null or empty.</param>
-    public PipelineTransferFile(string filePath, string originalFileName)
+    public PipelineFile(string filePath, string originalFileName)
     {
         ArgumentException.ThrowIfNullOrEmpty(filePath, nameof(filePath));
         ArgumentException.ThrowIfNullOrEmpty(originalFileName, nameof(originalFileName));

@@ -5,10 +5,10 @@ using System.IO.Compression;
 namespace Geopilot.Api.Pipeline.Process.ZipPackage;
 
 /// <summary>
-/// Represents a pipeline process that handles packaging <see cref="IPipelineTransferFile"/> to a ZIP file which is also provided in a <see cref="IPipelineTransferFile"/>.
+/// Represents a pipeline process that handles packaging <see cref="IPipelineFile"/> to a ZIP file which is also provided in a <see cref="IPipelineFile"/>.
 /// </summary>
-/// <remarks>This class is intended for use within a data processing pipeline where ZIP package handling of <see cref="IPipelineTransferFile"/> is required.
-/// All non-null <see cref="IPipelineTransferFile"/> provided in the input will be included in the created ZIP archive. The resulting ZIP file is then made available as an output of the process.
+/// <remarks>This class is intended for use within a data processing pipeline where ZIP package handling of <see cref="IPipelineFile"/> is required.
+/// All non-null <see cref="IPipelineFile"/> provided in the input will be included in the created ZIP archive. The resulting ZIP file is then made available as an output of the process.
 /// The ZIP archive is provided under the key 'zip_package' in the output. If no valid input files are provided, null is returned.</remarks>
 internal class ZipPackageProcess
 {
@@ -48,7 +48,7 @@ internal class ZipPackageProcess
     /// PipelineTransferFile instance, or null if no valid input files were provided.</returns>
     /// <exception cref="ArgumentException">Thrown if no input files are provided.</exception>
     [PipelineProcessRun]
-    public async Task<Dictionary<string, object?>> RunAsync(params IPipelineTransferFile?[] input)
+    public async Task<Dictionary<string, object?>> RunAsync(params IPipelineFile?[] input)
     {
         if (input.Length == 0)
         {
@@ -58,8 +58,8 @@ internal class ZipPackageProcess
         }
 
         // Filter out null values, by casting to non-nullable IPipelineTransferFile
-        var validFiles = input.OfType<IPipelineTransferFile>().ToArray();
-        IPipelineTransferFile? zipTransferFile = null;
+        var validFiles = input.OfType<IPipelineFile>().ToArray();
+        IPipelineFile? zipTransferFile = null;
 
         if (validFiles.Length == 0)
         {
@@ -67,7 +67,7 @@ internal class ZipPackageProcess
         }
         else
         {
-            zipTransferFile = pipelineFileManager.GenerateTransferFile(archiveFileName, "zip");
+            zipTransferFile = pipelineFileManager.GeneratePipelineFile(archiveFileName, "zip");
 
             using (var zipArchiveFileStream = zipTransferFile.OpenWriteFileStream())
             using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))

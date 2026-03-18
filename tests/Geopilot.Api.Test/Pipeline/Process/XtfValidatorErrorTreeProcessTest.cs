@@ -13,21 +13,21 @@ public class XtfValidatorErrorTreeProcessTest
     {
         var pipelineFileManagerMock = new Mock<IPipelineFileManager>();
 
-        pipelineFileManagerMock.Setup(m => m.GenerateTransferFile(It.IsAny<string>(), It.IsAny<string>()))
+        pipelineFileManagerMock.Setup(m => m.GeneratePipelineFile(It.IsAny<string>(), It.IsAny<string>()))
             .Returns((string originalFileName, string fileExtension) =>
             {
                 var filePath = Path.Combine(Path.GetTempPath(), $"{originalFileName}_{Guid.NewGuid()}.{fileExtension}");
-                return new PipelineTransferFile(filePath, originalFileName + "." + fileExtension);
+                return new PipelineFile(filePath, originalFileName + "." + fileExtension);
             });
         var process = new XtfValidatorErrorTreeProcess(pipelineFileManagerMock.Object, Guid.NewGuid());
 
-        var uploadFile = new PipelineTransferFile("TestData/DownloadFiles/ilicop/errorLogWithErrors.xtf", "errorLogWithErrors.xtf");
+        var uploadFile = new PipelineFile("TestData/DownloadFiles/ilicop/errorLogWithErrors.xtf", "errorLogWithErrors.xtf");
         var processResult = await process.RunAsync(uploadFile).ConfigureAwait(false);
         Assert.IsNotNull(processResult);
 
         var errorLog = processResult["error_tree"] as List<ErrorTree>;
         var jsonErrorLog = processResult["json_error_tree"] as string;
-        var jsonErrorLogFile = processResult["json_error_tree_file"] as PipelineTransferFile;
+        var jsonErrorLogFile = processResult["json_error_tree_file"] as PipelineFile;
 
         Assert.IsNotEmpty(errorLog);
         Assert.IsNotEmpty(jsonErrorLog);

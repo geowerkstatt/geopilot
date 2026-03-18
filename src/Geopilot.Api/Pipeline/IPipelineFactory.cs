@@ -21,5 +21,5 @@ public interface IPipelineFactory
     /// <param name="jobId">Job-Id for the pipeline.</param>
     /// <returns>A <see cref="Pipeline"/> instance.</returns>
     /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
-    IPipeline CreatePipeline(string id, IPipelineTransferFile file, Guid jobId);
+    IPipeline CreatePipeline(string id, IPipelineFile file, Guid jobId);
 }

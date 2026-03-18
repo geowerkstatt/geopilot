@@ -1,9 +1,9 @@
 ﻿namespace Geopilot.PipelineCore.Pipeline;
 
 /// <summary>
-/// Represents a file to be transferred as part of a pipeline process.
+/// Represents a pipeline file as part of a pipeline process.
 /// </summary>
-public interface IPipelineTransferFile
+public interface IPipelineFile
 {
     /// <summary>
     /// The original file name without its extension.

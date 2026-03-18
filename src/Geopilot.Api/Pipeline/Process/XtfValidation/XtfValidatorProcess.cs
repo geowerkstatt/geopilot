@@ -94,7 +94,7 @@ internal class XtfValidatorProcess : IDisposable
     /// <returns>A ProcessData instance containing the results of the validation process.</returns>
     /// <exception cref="ArgumentException">Thrown if the input ILI file is invalid.</exception>
     [PipelineProcessRun]
-    public async Task<Dictionary<string, object?>> RunAsync(IPipelineTransferFile iliFile, CancellationToken cancellationToken)
+    public async Task<Dictionary<string, object?>> RunAsync(IPipelineFile iliFile, CancellationToken cancellationToken)
     {
         logger.LogInformation($"Validating transfer file <{iliFile.OriginalFileName}> (job: {jobId})...");
         var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.OriginalFileName, this.validationProfile, cancellationToken);
@@ -112,7 +112,7 @@ internal class XtfValidatorProcess : IDisposable
         return outputs;
     }
 
-    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineTransferFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
+    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
     {
         using var fileStream = file.OpenReadFileStream() ?? throw new ArgumentException("Invalid input ILI file stream.");
         using var streamContent = new StreamContent(fileStream);
@@ -156,9 +156,9 @@ internal class XtfValidatorProcess : IDisposable
         throw new OperationCanceledException();
     }
 
-    private async Task<Dictionary<LogType, IPipelineTransferFile>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse, CancellationToken cancellationToken)
+    private async Task<Dictionary<LogType, IPipelineFile>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse, CancellationToken cancellationToken)
     {
-        var tasks = new List<Task<KeyValuePair<LogType, IPipelineTransferFile>>>();
+        var tasks = new List<Task<KeyValuePair<LogType, IPipelineFile>>>();
 
         if (statusResponse.LogUrl != null)
         {
@@ -181,16 +181,16 @@ internal class XtfValidatorProcess : IDisposable
         }
     }
 
-    private async Task<KeyValuePair<LogType, IPipelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType, CancellationToken cancellationToken)
+    private async Task<KeyValuePair<LogType, IPipelineFile>> DownloadLogAsFileAsync(string url, LogType logType, CancellationToken cancellationToken)
     {
-        IPipelineTransferFile transferFile;
+        IPipelineFile transferFile;
         switch (logType)
         {
             case LogType.ErrorLog:
-                transferFile = pipelineFileManager.GenerateTransferFile("errorLog", "log");
+                transferFile = pipelineFileManager.GeneratePipelineFile("errorLog", "log");
                 break;
             case LogType.XtfLog:
-                transferFile = pipelineFileManager.GenerateTransferFile("xtfLog", "xtf");
+                transferFile = pipelineFileManager.GeneratePipelineFile("xtfLog", "xtf");
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported log type: {logType}");
@@ -202,7 +202,7 @@ internal class XtfValidatorProcess : IDisposable
             logDownloadStream.CopyTo(fileStream);
         }
 
-        return new KeyValuePair<LogType, IPipelineTransferFile>(logType, transferFile);
+        return new KeyValuePair<LogType, IPipelineFile>(logType, transferFile);
     }
 
     private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)

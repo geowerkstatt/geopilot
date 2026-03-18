@@ -14,5 +14,5 @@ public interface IPipelineFileManager
     /// <param name="originalFileName">The original name of the file without file extension.</param>
     /// <param name="fileExtension">The file extension to use for the generated file, without the leading dot (for example, "txt").</param>
     /// <returns>An instance of IPipelineTransferFile that represents the generated transfer file.</returns>
-    IPipelineTransferFile GenerateTransferFile(string originalFileName, string fileExtension);
+    IPipelineFile GeneratePipelineFile(string originalFileName, string fileExtension);
 }

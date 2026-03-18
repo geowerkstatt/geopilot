@@ -79,7 +79,7 @@ public sealed class Pipeline : IPipeline
     /// <summary>
     /// The file to be processed by the pipeline.
     /// </summary>
-    private readonly IPipelineTransferFile file;
+    private readonly IPipelineFile file;
 
     private ILogger logger;
 
@@ -101,7 +101,7 @@ public sealed class Pipeline : IPipeline
         List<IPipelineStep> steps,
         PipelineParametersConfig parameters,
         string? deliveryCondition,
-        IPipelineTransferFile file,
+        IPipelineFile file,
         ILoggerFactory loggerFactory,
         string pipelineDirectory,
         Guid jobId)
@@ -164,7 +164,7 @@ public sealed class Pipeline : IPipeline
         }
     }
 
-    private StepResult CreateUploadStepResult(IPipelineTransferFile file)
+    private StepResult CreateUploadStepResult(IPipelineFile file)
     {
         var stepResult = new StepResult();
 
@@ -195,7 +195,7 @@ public sealed class Pipeline : IPipeline
         private List<IPipelineStep>? steps;
         private PipelineParametersConfig? parameters;
         private string? deliveryCondition;
-        private IPipelineTransferFile? file;
+        private IPipelineFile? file;
         private ILoggerFactory? loggerFactory;
         private string? pipelineDirectory;
         private Guid? jobId;
@@ -230,7 +230,7 @@ public sealed class Pipeline : IPipeline
             return this;
         }
 
-        public PipelineBuilder File(IPipelineTransferFile file)
+        public PipelineBuilder File(IPipelineFile file)
         {
             this.file = file;
             return this;

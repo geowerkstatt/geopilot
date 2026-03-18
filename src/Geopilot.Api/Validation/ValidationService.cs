@@ -76,7 +76,7 @@ public class ValidationService : IValidationService
             var filePath = fileProvider.GetFilePath(validationJob.TempFileName);
             if (filePath != null)
             {
-                var file = new PipelineTransferFile(filePath, validationJob.OriginalFileName ?? "unknown");
+                var file = new PipelineFile(filePath, validationJob.OriginalFileName ?? "unknown");
                 var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, file, jobId);
                 return jobStore.StartJob(jobId, pipeline, mandateId);
             }

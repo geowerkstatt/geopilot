@@ -25,9 +25,9 @@ public class PipelineFileManager : IPipelineFileManager
     }
 
     /// <inheritdoc />
-    public IPipelineTransferFile GenerateTransferFile(string originalFileName, string fileExtension)
+    public IPipelineFile GeneratePipelineFile(string originalFileName, string fileExtension)
     {
         var filePath = Path.Combine(this.basePath, $"{originalFileName}_{Guid.NewGuid().ToString()}.{fileExtension}");
-        return new PipelineTransferFile(filePath, originalFileName + "." + fileExtension);
+        return new PipelineFile(filePath, originalFileName + "." + fileExtension);
     }
 }

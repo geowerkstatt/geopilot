@@ -75,7 +75,7 @@ public class PipelineIntegrationTest
         var validationErrors = factory.PipelineProcessConfig.Validate();
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
-        PipelineTransferFile uploadFile = new PipelineTransferFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
+        PipelineFile uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
         using var pipeline = factory.CreatePipeline("two_steps", uploadFile, Guid.NewGuid());
 
         using HttpResponseMessage uploadMockResponse = new()
@@ -174,7 +174,7 @@ public class PipelineIntegrationTest
         var uploadedFileStepOutput = uploadStepResult.Outputs[uploadedFileAttribute];
 
         Assert.IsNotNull(uploadedFileStepOutput.Data);
-        var uploadedFile = uploadedFileStepOutput.Data as IPipelineTransferFile;
+        var uploadedFile = uploadedFileStepOutput.Data as IPipelineFile;
         Assert.IsNotNull(uploadedFile);
         Assert.AreEqual(uploadFile.OriginalFileName, uploadedFile.OriginalFileName);
 
@@ -189,7 +189,7 @@ public class PipelineIntegrationTest
         Assert.HasCount(1, zipPackageStepResult.Outputs, "ZIP package step has not the expected number of data");
         zipPackageStepResult.Outputs.TryGetValue("archive", out StepOutput? zipFileStepOutput);
         Assert.IsNotNull(zipFileStepOutput, "No ZIP package in output");
-        var zipFile = zipFileStepOutput.Data as IPipelineTransferFile;
+        var zipFile = zipFileStepOutput.Data as IPipelineFile;
         Assert.IsNotNull(zipFile, "No ZIP file in output");
         Assert.AreEqual("myPersonalZipArchive.zip", zipFile.OriginalFileName, "ZIP file has not the expected name");
     }

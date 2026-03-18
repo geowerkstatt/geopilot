@@ -216,7 +216,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             }
             else if (parameterInfo.ParameterType == typeof(IPipelineFileManager))
             {
-                return new PipelineFileManager(pipelineDirectory, this.stepConfig?.Id ?? processType.Name);
+                return new PipelineFileManager(pipelineDirectory, this.stepConfig?.Id ?? throw new InvalidOperationException());
             }
             else if (parameterInfo.ParameterType == typeof(Guid) && parameterInfo.Name == "jobId")
             {
