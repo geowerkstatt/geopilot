@@ -56,7 +56,7 @@ services:
     command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck --cert /certs/cert.pem --key /certs/cert.key"
 
   clamav:
-    image: clamav/clamav:1.5.1
+    image: clamav/clamav:latest
     ports:
       - 3310:3310
     volumes:
