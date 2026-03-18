@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Pipeline.Process.ZipPackage;
-using Geopilot.Api.Validation;
+﻿using Geopilot.Api.Validation;
 using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
@@ -184,23 +183,18 @@ internal class XtfValidatorProcess : IDisposable
 
     private async Task<KeyValuePair<LogType, IPipelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType, CancellationToken cancellationToken)
     {
-        string fullFileName;
-        string originalFileName;
+        IPipelineTransferFile transferFile;
         switch (logType)
         {
             case LogType.ErrorLog:
-                originalFileName = "errorLog.log";
-                fullFileName = pipelineFileManager.GenerateTempFileName("errorLog", "log");
+                transferFile = pipelineFileManager.GenerateTransferFile("errorLog", "log");
                 break;
             case LogType.XtfLog:
-                originalFileName = "xtfLog.xtf";
-                fullFileName = pipelineFileManager.GenerateTempFileName("xtfLog", "xtf");
+                transferFile = pipelineFileManager.GenerateTransferFile("xtfLog", "xtf");
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported log type: {logType}");
         }
-
-        var transferFile = new PipelineTransferFile(fullFileName, originalFileName);
 
         using (Stream logDownloadStream = await this.httpClient.GetStreamAsync(url, cancellationToken))
         using (FileStream fileStream = transferFile.OpenWriteFileStream())

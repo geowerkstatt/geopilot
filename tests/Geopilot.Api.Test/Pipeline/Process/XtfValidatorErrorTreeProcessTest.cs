@@ -12,8 +12,13 @@ public class XtfValidatorErrorTreeProcessTest
     public async Task SunnyDay()
     {
         var pipelineFileManagerMock = new Mock<IPipelineFileManager>();
-        pipelineFileManagerMock.Setup(m => m.GenerateTempFileName(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns((string fileType, string fileExtension) => Path.Combine(Path.GetTempPath(), $"temp_{fileType}_{Guid.NewGuid()}{fileExtension}"));
+
+        pipelineFileManagerMock.Setup(m => m.GenerateTransferFile(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns((string originalFileName, string fileExtension) =>
+            {
+                var filePath = Path.Combine(Path.GetTempPath(), $"{originalFileName}_{Guid.NewGuid()}.{fileExtension}");
+                return new PipelineTransferFile(filePath, originalFileName + "." + fileExtension);
+            });
         var process = new XtfValidatorErrorTreeProcess(pipelineFileManagerMock.Object, Guid.NewGuid());
 
         var uploadFile = new PipelineTransferFile("TestData/DownloadFiles/ilicop/errorLogWithErrors.xtf", "errorLogWithErrors.xtf");

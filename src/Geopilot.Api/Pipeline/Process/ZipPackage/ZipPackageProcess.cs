@@ -59,7 +59,7 @@ internal class ZipPackageProcess
 
         // Filter out null values, by casting to non-nullable IPipelineTransferFile
         var validFiles = input.OfType<IPipelineTransferFile>().ToArray();
-        PipelineTransferFile? zipTransferFile = null;
+        IPipelineTransferFile? zipTransferFile = null;
 
         if (validFiles.Length == 0)
         {
@@ -67,8 +67,7 @@ internal class ZipPackageProcess
         }
         else
         {
-            var fullFileName = pipelineFileManager.GenerateTempFileName(archiveFileName, "zip");
-            zipTransferFile = new PipelineTransferFile(fullFileName, archiveFileName + ".zip");
+            zipTransferFile = pipelineFileManager.GenerateTransferFile(archiveFileName, "zip");
 
             using (var zipArchiveFileStream = zipTransferFile.OpenWriteFileStream())
             using (var zipArchive = new ZipArchive(zipArchiveFileStream, ZipArchiveMode.Create, true))

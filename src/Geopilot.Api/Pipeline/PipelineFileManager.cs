@@ -1,4 +1,7 @@
-﻿namespace Geopilot.Api.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
+using Microsoft.VisualBasic.FileIO;
+
+namespace Geopilot.Api.Pipeline;
 
 /// <inheritdoc />
 public class PipelineFileManager : IPipelineFileManager
@@ -22,8 +25,9 @@ public class PipelineFileManager : IPipelineFileManager
     }
 
     /// <inheritdoc />
-    public string GenerateTempFileName(string fileType, string fileExtension)
+    public IPipelineTransferFile GenerateTransferFile(string originalFileName, string fileExtension)
     {
-        return Path.Combine(this.basePath, $"{fileType}_{Guid.NewGuid().ToString()}.{fileExtension}");
+        var filePath = Path.Combine(this.basePath, $"{originalFileName}_{Guid.NewGuid().ToString()}.{fileExtension}");
+        return new PipelineTransferFile(filePath, originalFileName + "." + fileExtension);
     }
 }

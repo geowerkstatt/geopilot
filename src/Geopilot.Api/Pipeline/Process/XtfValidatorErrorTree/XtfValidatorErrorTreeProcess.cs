@@ -30,7 +30,7 @@ internal class XtfValidatorErrorTreeProcess
     [PipelineProcessRun]
     public async Task<Dictionary<string, object?>> RunAsync(IPipelineTransferFile xtfLog)
     {
-        var xtfLogFileStream = xtfLog.OpenReadFileStream();
+        using var xtfLogFileStream = xtfLog.OpenReadFileStream();
 
         var xtfErrors = XtfLogParser.Parse(new StreamReader(xtfLogFileStream));
 
@@ -38,13 +38,11 @@ internal class XtfValidatorErrorTreeProcess
         var errorLog = errorTreeMapper.Map();
         var jsonErrorLog = JsonSerializer.Serialize(errorLog, JsonOptions);
 
-        var fullFileName = pipelineFileManager.GenerateTempFileName("errorTree", "json");
-
-        var jsonErrorLogFile = new PipelineTransferFile(fullFileName, "errorTree.json");
+        var jsonErrorLogFile = pipelineFileManager.GenerateTransferFile("errorTree", "json");
 
         using (FileStream fileStream = jsonErrorLogFile.OpenWriteFileStream())
+        using (StreamWriter streamWriter = new(fileStream))
         {
-            await using StreamWriter streamWriter = new(fileStream);
             await streamWriter.WriteAsync(jsonErrorLog);
         }
 
