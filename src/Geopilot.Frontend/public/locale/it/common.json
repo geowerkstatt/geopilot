@@ -118,6 +118,7 @@
   "validationErrorFileTooLarge": "Dimensione massima del file superata. (Errore 413)",
   "validationErrorRequestMalformed": "Richiesta non valida o danneggiata al server di convalida. (Errore 400)",
   "validationErrorUnexpected": "Errore imprevisto del server durante l'elaborazione. (Errore 500)",
+  "validationIsBeingVerified": "Il caricamento è in fase di verifica...",
   "validationIsRunning": "Il file è in corso di validazione con {{validators}}...",
   "validationProfile": "Profilo di convalida",
   "validatorsLoadingError": "Si è verificato un errore durante il caricamento dei validatori: {{error}}",
