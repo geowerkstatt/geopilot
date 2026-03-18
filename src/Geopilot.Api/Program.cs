@@ -159,6 +159,8 @@ if (builder.Configuration.GetValue<bool>("CloudStorage:Enabled"))
     builder.Services.AddSingleton<ICloudStorageService, AzureBlobStorageService>();
     builder.Services.AddTransient<ICloudOrchestrationService, CloudOrchestrationService>();
     builder.Services.AddHostedService<CloudCleanupService>();
+    builder.Services.AddPreflightChannel();
+    builder.Services.AddHostedService<PreflightBackgroundService>();
 
     if (builder.Configuration.GetValue<bool>("ClamAV:Enabled"))
     {
