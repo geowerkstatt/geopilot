@@ -12,6 +12,7 @@ internal class XtfValidatorErrorTreeProcess
     private const string OutputMappingJsonErrorLogFile = "json_error_tree_file";
 
     private static readonly JsonSerializerOptions JsonOptions;
+    private readonly IPipelineFileManager pipelineFileManager;
 
     static XtfValidatorErrorTreeProcess()
     {
@@ -19,21 +20,29 @@ internal class XtfValidatorErrorTreeProcess
         JsonOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     }
 
-    [PipelineProcessRun]
-    public async Task<Dictionary<string, object?>> RunAsync(IPipelineTransferFile xtfLog)
+    public XtfValidatorErrorTreeProcess(IPipelineFileManager pipelineFileManager)
     {
-        var xtfLogFileStream = xtfLog.OpenFileStream();
+        this.pipelineFileManager = pipelineFileManager;
+    }
+
+    [PipelineProcessRun]
+    public async Task<Dictionary<string, object?>> RunAsync(IPipelineFile xtfLog)
+    {
+        using var xtfLogFileStream = xtfLog.OpenReadFileStream();
 
         var xtfErrors = XtfLogParser.Parse(new StreamReader(xtfLogFileStream));
 
         var errorTreeMapper = new LogErrorToErrorTreeMapper(xtfErrors);
         var errorLog = errorTreeMapper.Map();
         var jsonErrorLog = JsonSerializer.Serialize(errorLog, JsonOptions);
-        var jsonErrorLogFile = new PipelineTransferFile("errorTree", Path.GetTempFileName().Replace(".tmp", ".json"));
 
-        using FileStream fileStream = File.OpenWrite(jsonErrorLogFile.FilePath);
-        await using StreamWriter streamWriter = new(fileStream);
-        await streamWriter.WriteAsync(jsonErrorLog);
+        var jsonErrorLogFile = pipelineFileManager.GeneratePipelineFile("errorTree", "json");
+
+        using (FileStream fileStream = jsonErrorLogFile.OpenWriteFileStream())
+        using (StreamWriter streamWriter = new(fileStream))
+        {
+            await streamWriter.WriteAsync(jsonErrorLog);
+        }
 
         return new Dictionary<string, object?>()
         {

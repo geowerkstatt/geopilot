@@ -63,19 +63,19 @@ public class XtfValidatorProcessTest
             .GetAppLogMockResponse(getAppLogMockResponse)
             .GetXtfLogMockResponse(getXtfLogMockResponse)
             .Build();
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
 
         var processResult = Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(4, processResult);
         processResult.TryGetValue("error_log", out var appLogData);
         Assert.IsNotNull(appLogData);
-        var appLog = appLogData as IPipelineTransferFile;
+        var appLog = appLogData as IPipelineFile;
         Assert.IsNotNull(appLog);
         Assert.AreEqual("errorLog.log", appLog.OriginalFileName);
         processResult.TryGetValue("xtf_log", out var xtfLogData);
         Assert.IsNotNull(xtfLogData);
-        var xtfLog = xtfLogData as IPipelineTransferFile;
+        var xtfLog = xtfLogData as IPipelineFile;
         Assert.IsNotNull(xtfLog);
         Assert.AreEqual("xtfLog.xtf", xtfLog.OriginalFileName);
         processResult.TryGetValue("status_message", out var statusMessageData);
@@ -106,7 +106,7 @@ public class XtfValidatorProcessTest
             .InterlisCheckServiceBaseUrl("http://localhost/")
             .UploadMockResponse(uploadMockResponse)
             .Build();
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
         var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult());
         Assert.AreEqual("Invalid transfer file", exception.Message);
     }
@@ -179,7 +179,8 @@ public class XtfValidatorProcessTest
 
         public XtfValidatorProcess Build()
         {
-            var process = new XtfValidatorProcess(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+            var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
+            var process = new XtfValidatorProcess(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
 
             var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
             interlisValidatorMessageHandlerMock

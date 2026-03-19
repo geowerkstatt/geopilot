@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Enums;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
+using Microsoft.AspNetCore.Http.HttpResults;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Threading.Channels;
@@ -132,9 +133,7 @@ public class ValidationJobStore : IValidationJobStore
         if (!pipelineJobMap.TryGetValue(pipeline, out var jobId))
             throw new ArgumentException("The specified pipeline is not associated with any job.", nameof(pipeline));
 
-        var logFiles = CopyAndMapLogFiles(jobId, result.LogFiles);
-
-        result = result with { LogFiles = logFiles.ToImmutableDictionary() };
+        result = result with { LogFiles = result.LogFiles };
 
         var updateFunc = (Guid jobId, ValidationJob job) =>
         {
@@ -153,29 +152,6 @@ public class ValidationJobStore : IValidationJobStore
 
     /// <inheritdoc/>
     public int GetActiveCloudJobCount() => jobs.Values.Count(j => j.UploadMethod == UploadMethod.Cloud);
-
-    /// <summary>
-    /// Copies all the files created by the pipeline run to the job's directory.
-    /// </summary>
-    /// <remarks>This is temporary code, only required because this version tries to integrate the new pipeline architecture into the legacy code.</remarks>
-    /// <returns>A new dictionary with the same keys, but the values are adjusted to the names of the files in the job's directory, instead of the temp paths created by the pipeline.</returns>
-    private Dictionary<string, string> CopyAndMapLogFiles(Guid jobId, ImmutableDictionary<string, string> logFiles)
-    {
-        using var scope = serviceScopeFactory.CreateScope();
-        var fileProvider = scope.ServiceProvider.GetRequiredService<IFileProvider>();
-        fileProvider.Initialize(jobId);
-
-        var mappedLogFiles = new Dictionary<string, string>();
-        foreach (var logFile in logFiles)
-        {
-            using var fileHandle = fileProvider.CreateFileWithRandomName(Path.GetExtension(logFile.Value));
-            using var stream = File.OpenRead(logFile.Value);
-            stream.CopyTo(fileHandle.Stream);
-            mappedLogFiles[logFile.Key] = fileHandle.FileName;
-        }
-
-        return mappedLogFiles;
-    }
 
     /// <inheritdoc/>
     public bool RemoveJob(Guid jobId)

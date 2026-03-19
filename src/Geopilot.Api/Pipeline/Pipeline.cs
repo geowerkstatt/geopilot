@@ -14,9 +14,13 @@ public sealed class Pipeline : IPipeline
     public void Dispose()
     {
         Steps.ForEach(step => step.Dispose());
+
+        if (Path.Exists(pipelineFileDirectory))
+            Directory.Delete(pipelineFileDirectory, true);
     }
 
     private readonly ConditionEvaluator conditionEvaluator;
+    private readonly string pipelineFileDirectory;
 
     /// <inheritdoc/>
     public string Id { get; }
@@ -67,12 +71,17 @@ public sealed class Pipeline : IPipeline
     }
 
     /// <inheritdoc/>
+    public Guid JobId { get; }
+
+    /// <inheritdoc/>
     public PipelineDelivery Delivery { get; set; } = PipelineDelivery.Allow;
 
     /// <summary>
     /// The file to be processed by the pipeline.
     /// </summary>
-    private readonly IPipelineTransferFile file;
+    private readonly IPipelineFile file;
+
+    private ILogger logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Pipeline"/> class.
@@ -83,15 +92,19 @@ public sealed class Pipeline : IPipeline
     /// <param name="parameters">The parameters for the pipeline.</param>
     /// <param name="deliveryCondition">Expression to determine when the pipeline step data can be delivered.</param>
     /// <param name="file">The file to be processed by the pipeline.</param>
-    /// <param name="loggerFactory">The logger factory to use for logging.</param>
-    public Pipeline(
+    /// <param name="logger">The logger to use for logging.</param>
+    /// <param name="pipelineDirectory">The directory for the pipeline to use for storing temporary files. The pipeline is responsible for cleaning up the temporary files during dispose.</param>
+    /// <param name="jobId">The job id associated with the pipeline execution, used for logging and tracking purposes.</param>
+    private Pipeline(
         string id,
         Dictionary<string, string> displayName,
         List<IPipelineStep> steps,
         PipelineParametersConfig parameters,
         string? deliveryCondition,
-        IPipelineTransferFile file,
-        ILoggerFactory loggerFactory)
+        IPipelineFile file,
+        ILogger logger,
+        string pipelineDirectory,
+        Guid jobId)
     {
         this.Id = id;
         this.DisplayName = displayName;
@@ -99,12 +112,16 @@ public sealed class Pipeline : IPipeline
         this.Parameters = parameters;
         this.deliveryCondition = deliveryCondition;
         this.file = file;
-        this.conditionEvaluator = new ConditionEvaluator(loggerFactory.CreateLogger<ConditionEvaluator>());
+        this.conditionEvaluator = new ConditionEvaluator(logger);
+        this.pipelineFileDirectory = pipelineDirectory;
+        this.logger = logger;
+        this.JobId = jobId;
     }
 
     /// <inheritdoc/>
     public async Task<PipelineContext> Run(CancellationToken cancellationToken)
     {
+        logger.LogInformation($"starting pipeline");
         var context = new PipelineContext()
         {
             StepResults = new Dictionary<string, StepResult>(),
@@ -126,6 +143,7 @@ public sealed class Pipeline : IPipeline
 
         await this.EvaluateDeliveryCondition(context);
 
+        logger.LogInformation($"all steps in pipeline executed");
         return context;
     }
 
@@ -146,11 +164,11 @@ public sealed class Pipeline : IPipeline
         }
     }
 
-    private StepResult CreateUploadStepResult(IPipelineTransferFile file)
+    private StepResult CreateUploadStepResult(IPipelineFile file)
     {
         var stepResult = new StepResult();
 
-        var fileExtension = Path.GetExtension(file.FileName).TrimStart('.');
+        var fileExtension = file.FileExtension;
         foreach (var mapping in this.Parameters.Mappings)
         {
             if (string.Equals(fileExtension, mapping.FileExtension, StringComparison.OrdinalIgnoreCase))
@@ -166,5 +184,96 @@ public sealed class Pipeline : IPipeline
         }
 
         return stepResult;
+    }
+
+    internal static PipelineBuilder Builder() => new PipelineBuilder();
+
+    internal class PipelineBuilder
+    {
+        private string? id;
+        private Dictionary<string, string>? displayName;
+        private List<IPipelineStep>? steps;
+        private PipelineParametersConfig? parameters;
+        private string? deliveryCondition;
+        private IPipelineFile? file;
+        private ILogger? logger;
+        private string? pipelineDirectory;
+        private Guid? jobId;
+
+        public PipelineBuilder Id(string id)
+        {
+            this.id = id;
+            return this;
+        }
+
+        public PipelineBuilder DisplayName(Dictionary<string, string> displayName)
+        {
+            this.displayName = displayName;
+            return this;
+        }
+
+        public PipelineBuilder Steps(List<IPipelineStep>? steps)
+        {
+            this.steps = steps;
+            return this;
+        }
+
+        public PipelineBuilder Parameters(PipelineParametersConfig parameters)
+        {
+            this.parameters = parameters;
+            return this;
+        }
+
+        public PipelineBuilder DeliveryCondition(string? deliveryCondition)
+        {
+            this.deliveryCondition = deliveryCondition;
+            return this;
+        }
+
+        public PipelineBuilder File(IPipelineFile file)
+        {
+            this.file = file;
+            return this;
+        }
+
+        public PipelineBuilder Logger(ILogger logger)
+        {
+            this.logger = logger;
+            return this;
+        }
+
+        public PipelineBuilder PipelineDirectory(string pipelineDirectory)
+        {
+            this.pipelineDirectory = pipelineDirectory;
+            return this;
+        }
+
+        public PipelineBuilder JobId(Guid jobId)
+        {
+            this.jobId = jobId;
+            return this;
+        }
+
+        public Pipeline Build()
+        {
+            if (id == null)
+                throw new InvalidOperationException("Pipeline Id must be provided.");
+            if (displayName == null)
+                throw new InvalidOperationException("Pipeline DisplayName must be provided.");
+            if (steps == null)
+                throw new InvalidOperationException("Pipeline Steps must be provided.");
+            if (parameters == null)
+                throw new InvalidOperationException("Pipeline Parameters must be provided.");
+            if (file == null)
+                throw new InvalidOperationException("Pipeline File must be provided.");
+            if (logger == null)
+                throw new InvalidOperationException("Logger must be provided.");
+            if (pipelineDirectory == null)
+                throw new InvalidOperationException("Pipeline Directory must be provided.");
+            if (jobId == null)
+                throw new InvalidOperationException("Pipeline JobId must be provided.");
+
+            return new Pipeline(id, displayName, steps, parameters, deliveryCondition, file, logger, pipelineDirectory, jobId.Value);
+        }
     }
 }

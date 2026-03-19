@@ -125,10 +125,10 @@ public class ValidationServiceTest
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.GetFilePath(tempFileName)).Returns(tempFilePath);
 
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.Is<IPipelineTransferFile>(file =>
-                file.OriginalFileName == originalFileName &&
-                file.FileName == tempFileName &&
-                file.FilePath == tempFilePath)))
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(
+            pipelineId,
+            It.Is<IPipelineFile>(file => file.OriginalFileName == originalFileName),
+            It.IsAny<Guid>()))
             .Returns(pipeline.Object);
 
         // Act
@@ -210,7 +210,7 @@ public class ValidationServiceTest
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.GetFilePath(stagedJob.TempFileName!)).Returns(tempFilePath);
 
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<IPipelineTransferFile>()))
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<IPipelineFile>(), It.IsAny<Guid>()))
             .Returns(pipeline.Object);
 
         validationJobStoreMock
@@ -248,7 +248,7 @@ public class ValidationServiceTest
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.GetFilePath(directJob.TempFileName!)).Returns(tempFilePath);
 
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<IPipelineTransferFile>()))
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<IPipelineFile>(), It.IsAny<Guid>()))
             .Returns(pipeline.Object);
 
         validationJobStoreMock
