@@ -18,7 +18,6 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using System.Reflection;
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -334,32 +333,6 @@ app.MapHealthChecks("/health")
 
 app.MapReverseProxy();
 
-var indexHtmlPath = !string.IsNullOrEmpty(app.Environment.WebRootPath) ? Path.Combine(app.Environment.WebRootPath, "index.html") : null;
-if (!string.IsNullOrEmpty(indexHtmlPath) && File.Exists(indexHtmlPath))
-{
-    var indexHtmlTemplate = File.ReadAllText(indexHtmlPath);
-    var authorityOrigin = new Uri(builder.Configuration["Auth:Authority"]!).GetLeftPart(UriPartial.Authority);
-    var blobEndpoint = builder.Configuration["CloudStorage:BlobEndpoint"];
-    if (!string.IsNullOrWhiteSpace(blobEndpoint))
-    {
-        if (!Uri.TryCreate(blobEndpoint, UriKind.Absolute, out var blobUri))
-            throw new InvalidOperationException($"CloudStorage:BlobEndpoint '{blobEndpoint}' is not a valid absolute URI.");
-        blobEndpoint = blobUri.GetLeftPart(UriPartial.Authority);
-    }
-
-    var connectSrc = string.IsNullOrWhiteSpace(blobEndpoint)
-        ? $"'self' {authorityOrigin}"
-        : $"'self' {authorityOrigin} {blobEndpoint}";
-
-    app.MapFallback(async context =>
-    {
-        var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
-        context.Response.Headers.Append(
-            "Content-Security-Policy",
-            $"default-src 'self'; script-src 'strict-dynamic' 'nonce-{nonce}'; style-src 'nonce-{nonce}'; object-src 'none'; base-uri 'none'; connect-src {connectSrc}; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script';");
-        context.Response.ContentType = "text/html";
-        await context.Response.WriteAsync(indexHtmlTemplate.Replace("__CSP_NONCE__", nonce));
-    }).AllowAnonymous();
-}
+app.MapSpaFallback(builder.Configuration);
 
 app.Run();
