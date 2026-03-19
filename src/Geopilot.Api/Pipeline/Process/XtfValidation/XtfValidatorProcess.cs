@@ -36,6 +36,7 @@ internal class XtfValidatorProcess : IDisposable
 
     private string validationProfile;
     private TimeSpan pollInterval;
+    private IPipelineFileManager pipelineFileManager;
 
     static XtfValidatorProcess()
     {
@@ -52,8 +53,9 @@ internal class XtfValidatorProcess : IDisposable
     /// <param name="checkServiceBaseUrl">Base URL for the Interlis check service.</param>
     /// <param name="validationProfile">Optional validation profile to use for the validation process.</param>
     /// <param name="pollInterval">Optional polling interval in milliseconds for checking the validation status. If not provided, a default of 2000ms will be used.</param>
+    /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
-    public XtfValidatorProcess(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, ILogger logger)
+    public XtfValidatorProcess(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, IPipelineFileManager pipelineFileManager, ILogger logger)
     {
         this.httpClient.BaseAddress = new Uri(checkServiceBaseUrl);
         this.httpClient.DefaultRequestHeaders.Accept.Clear();
@@ -70,6 +72,7 @@ internal class XtfValidatorProcess : IDisposable
             this.pollInterval = TimeSpan.FromSeconds(2);
 
         this.logger = logger;
+        this.pipelineFileManager = pipelineFileManager;
     }
 
     /// <summary>
@@ -88,17 +91,25 @@ internal class XtfValidatorProcess : IDisposable
     /// <returns>A ProcessData instance containing the results of the validation process.</returns>
     /// <exception cref="ArgumentException">Thrown if the input ILI file is invalid.</exception>
     [PipelineProcessRun]
-    public async Task<Dictionary<string, object?>> RunAsync(IPipelineTransferFile iliFile, CancellationToken cancellationToken)
+    public async Task<Dictionary<string, object?>> RunAsync(IPipelineFile iliFile, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Validating transfer file <{File}>...", iliFile.FileName);
-        var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.FileName, this.validationProfile, cancellationToken);
+        logger.LogInformation($"Validating transfer file <{iliFile.OriginalFileName}>...");
+        var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.OriginalFileName, this.validationProfile, cancellationToken);
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
         var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
+
+        var statusMessage = new Dictionary<string, string>
+        {
+            { "de", statusResponse.StatusMessage ?? string.Empty },
+            { "fr", statusResponse.StatusMessage ?? string.Empty },
+            { "it", statusResponse.StatusMessage ?? string.Empty },
+            { "en", statusResponse.StatusMessage ?? string.Empty },
+        };
 
         var outputs = new Dictionary<string, object?>
         {
             { OutputMappingValidationSuccessful, statusResponse.Status == InterlisStatusResponseStatus.Completed },
-            { OutputMappingStatusMessage, statusResponse.StatusMessage ?? string.Empty },
+            { OutputMappingStatusMessage, statusMessage },
             { OutputMappingErrorLog, logFiles.GetValueOrDefault(LogType.ErrorLog) },
             { OutputMappingXtfLog, logFiles.GetValueOrDefault(LogType.XtfLog) },
         };
@@ -106,9 +117,9 @@ internal class XtfValidatorProcess : IDisposable
         return outputs;
     }
 
-    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineTransferFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
+    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
     {
-        using var fileStream = file.OpenFileStream() ?? throw new ArgumentException("Invalid input ILI file stream.");
+        using var fileStream = file.OpenReadFileStream() ?? throw new ArgumentException("Invalid input ILI file stream.");
         using var streamContent = new StreamContent(fileStream);
         using var profileStringContent = new StringContent(interlisValidationProfile ?? string.Empty);
         using var formData = new MultipartFormDataContent
@@ -121,11 +132,11 @@ internal class XtfValidatorProcess : IDisposable
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
             var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(JsonOptions, cancellationToken);
-            logger.LogError("Upload of transfer file <{TransferFile}> to interlis-check-service failed.", transferFile);
+            logger.LogError($"Upload of transfer file <{transferFile}> to interlis-check-service failed.");
             throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
         }
 
-        logger.LogInformation("Uploaded transfer file <{TransferFile}> to interlis-check-service. Status code <{StatusCode}>.", transferFile, response.StatusCode);
+        logger.LogInformation($"Uploaded transfer file <{transferFile}> to interlis-check-service. Status code <{response.StatusCode}>.");
 
         return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response, cancellationToken);
     }
@@ -150,9 +161,9 @@ internal class XtfValidatorProcess : IDisposable
         throw new OperationCanceledException();
     }
 
-    private async Task<Dictionary<LogType, IPipelineTransferFile>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse, CancellationToken cancellationToken)
+    private async Task<Dictionary<LogType, IPipelineFile>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse, CancellationToken cancellationToken)
     {
-        var tasks = new List<Task<KeyValuePair<LogType, IPipelineTransferFile>>>();
+        var tasks = new List<Task<KeyValuePair<LogType, IPipelineFile>>>();
 
         if (statusResponse.LogUrl != null)
         {
@@ -175,27 +186,28 @@ internal class XtfValidatorProcess : IDisposable
         }
     }
 
-    private async Task<KeyValuePair<LogType, IPipelineTransferFile>> DownloadLogAsFileAsync(string url, LogType logType, CancellationToken cancellationToken)
+    private async Task<KeyValuePair<LogType, IPipelineFile>> DownloadLogAsFileAsync(string url, LogType logType, CancellationToken cancellationToken)
     {
-        PipelineTransferFile transferFile;
+        IPipelineFile transferFile;
         switch (logType)
         {
             case LogType.ErrorLog:
-                transferFile = new PipelineTransferFile("errorLog", Path.GetTempFileName().Replace(".tmp", ".log"));
+                transferFile = pipelineFileManager.GeneratePipelineFile("errorLog", "log");
                 break;
             case LogType.XtfLog:
-                transferFile = new PipelineTransferFile("xtfLog", Path.GetTempFileName().Replace(".tmp", ".xtf"));
+                transferFile = pipelineFileManager.GeneratePipelineFile("xtfLog", "xtf");
                 break;
             default:
                 throw new InvalidOperationException($"Unsupported log type: {logType}");
         }
 
-        using var logDownloadStream = await this.httpClient.GetStreamAsync(url, cancellationToken);
-        var fileStream = File.Create(transferFile.FilePath);
-        logDownloadStream.CopyTo(fileStream);
-        fileStream.Close();
+        using (Stream logDownloadStream = await this.httpClient.GetStreamAsync(url, cancellationToken))
+        using (FileStream fileStream = transferFile.OpenWriteFileStream())
+        {
+            logDownloadStream.CopyTo(fileStream);
+        }
 
-        return new KeyValuePair<LogType, IPipelineTransferFile>(logType, transferFile);
+        return new KeyValuePair<LogType, IPipelineFile>(logType, transferFile);
     }
 
     private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)

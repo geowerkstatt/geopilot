@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
@@ -14,16 +15,22 @@ public class ValidationRunner : BackgroundService
     private readonly ILogger<ValidationRunner> logger;
     private readonly IValidationJobStore jobStore;
     private readonly ValidationOptions validationOptions;
+    private readonly IServiceScopeFactory serviceScopeFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationRunner"/> class.
     /// </summary>
-    public ValidationRunner(ILogger<ValidationRunner> logger, IValidationJobStore jobStore, IOptions<ValidationOptions> validationOptions)
+    public ValidationRunner(
+        ILogger<ValidationRunner> logger,
+        IValidationJobStore jobStore,
+        IServiceScopeFactory serviceScopeFactory,
+        IOptions<ValidationOptions> validationOptions)
     {
         ArgumentNullException.ThrowIfNull(validationOptions);
 
         this.logger = logger;
         this.jobStore = jobStore;
+        this.serviceScopeFactory = serviceScopeFactory;
         this.validationOptions = validationOptions.Value;
     }
 
@@ -67,12 +74,27 @@ public class ValidationRunner : BackgroundService
         });
     }
 
-    private static ValidatorResult MapToValidatorResult(IPipeline pipeline, PipelineContext context)
+    private ValidatorResult MapToValidatorResult(IPipeline pipeline, PipelineContext context)
     {
         var status = MapPipelineStatusToValidatorResultStatus(pipeline, context);
-        var statusMessage = context.StepResults["validation"].Outputs["status_message"].Data as string;
-        var logFiles = ExtractDownloadFiles(context);
-        return new ValidatorResult(status, statusMessage, logFiles.ToImmutableDictionary());
+        var files = ExtractPersistentFiles(pipeline.JobId, context);
+        return new ValidatorResult(status, GetStatusMessage(context), files.ToImmutableDictionary());
+    }
+
+    private string GetStatusMessage(PipelineContext context)
+    {
+        if (context.StepResults.TryGetValue("validation", out var validationStepResult))
+        {
+            return validationStepResult.Outputs
+                .Select(o => o.Value)
+                .Where(o => o.Action.Contains(OutputAction.StatusMessage))
+                .Select(o => o.Data)
+                .Cast<Dictionary<string, string>>()
+                .Select(m => m.Values.FirstOrDefault())
+                .FirstOrDefault() ?? "";
+        }
+
+        return "";
     }
 
     private static ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(IPipeline pipeline, PipelineContext context)
@@ -91,21 +113,29 @@ public class ValidationRunner : BackgroundService
         };
     }
 
-    private static Dictionary<string, string> ExtractDownloadFiles(PipelineContext context)
+    private Dictionary<string, string> ExtractPersistentFiles(Guid jobId, PipelineContext context)
     {
-        var logFiles = new Dictionary<string, string>();
+        var downloadFiles = new Dictionary<string, string>();
+        using var scope = serviceScopeFactory.CreateScope();
+        var fileProvider = scope.ServiceProvider.GetRequiredService<IFileProvider>();
+        fileProvider.Initialize(jobId);
 
         foreach (var stepResult in context.StepResults.Values)
         {
             foreach (var (outputKey, output) in stepResult.Outputs)
             {
-                if (output.Action.Contains(OutputAction.Download) && output.Data is IPipelineTransferFile transferFile)
+                if ((output.Action.Contains(OutputAction.Download) || output.Action.Contains(OutputAction.Delivery)) && output.Data is IPipelineFile transferFile)
                 {
-                    logFiles[outputKey] = transferFile.FilePath;
+                    using (FileHandle fileHandle = fileProvider.CreateFileWithRandomName(transferFile.FileExtension))
+                    using (Stream inStream = transferFile.OpenReadFileStream())
+                    {
+                        inStream.CopyTo(fileHandle.Stream);
+                        downloadFiles[outputKey] = fileHandle.FileName;
+                    }
                 }
             }
         }
 
-        return logFiles;
+        return downloadFiles;
     }
 }

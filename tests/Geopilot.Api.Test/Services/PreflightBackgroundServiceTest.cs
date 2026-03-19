@@ -91,7 +91,7 @@ public class PreflightBackgroundServiceTest
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, It.Is<User>(u => u.AuthIdentifier == userAuthId))).ReturnsAsync(mandate);
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.GetFilePath("random.xtf")).Returns("path/to/random.xtf");
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.Is<IPipelineTransferFile>(f => f.OriginalFileNameWithoutExtension == "test" && f.FilePath == "path/to/random.xtf"))).Returns(pipeline.Object);
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.Is<IPipelineFile>(f => f.OriginalFileName == "test.xtf"), jobId)).Returns(pipeline.Object);
         jobStoreMock.Setup(x => x.StartJob(jobId, pipeline.Object, mandateId)).Returns(startedJob);
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, mandateId, userAuthId));
@@ -122,7 +122,7 @@ public class PreflightBackgroundServiceTest
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, null)).ReturnsAsync(mandate);
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.GetFilePath("random.xtf")).Returns("path/to/random.xtf");
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.Is<IPipelineTransferFile>(f => f.OriginalFileNameWithoutExtension == "test" && f.FilePath == "path/to/random.xtf"))).Returns(pipeline.Object);
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.Is<IPipelineFile>(f => f.OriginalFileName == "test.xtf"), jobId)).Returns(pipeline.Object);
         jobStoreMock.Setup(x => x.StartJob(jobId, pipeline.Object, mandateId)).Returns(startedJob);
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, mandateId, null));

@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Pipeline.Process.XtfValidation;
@@ -74,8 +75,8 @@ public class PipelineIntegrationTest
         var validationErrors = factory.PipelineProcessConfig.Validate();
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
-        PipelineTransferFile uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-        using var pipeline = factory.CreatePipeline("two_steps", uploadFile);
+        PipelineFile uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
+        using var pipeline = factory.CreatePipeline("two_steps", uploadFile, Guid.NewGuid());
 
         using HttpResponseMessage uploadMockResponse = new()
         {
@@ -173,9 +174,9 @@ public class PipelineIntegrationTest
         var uploadedFileStepOutput = uploadStepResult.Outputs[uploadedFileAttribute];
 
         Assert.IsNotNull(uploadedFileStepOutput.Data);
-        var uploadedFile = uploadedFileStepOutput.Data as IPipelineTransferFile;
+        var uploadedFile = uploadedFileStepOutput.Data as IPipelineFile;
         Assert.IsNotNull(uploadedFile);
-        Assert.AreEqual(uploadFile.FilePath, uploadedFile.FilePath);
+        Assert.AreEqual(uploadFile.OriginalFileName, uploadedFile.OriginalFileName);
 
         // Assert if StepResults from executed PipelineSteps are in the PipelineContext
         Assert.HasCount(3, stepResults);
@@ -188,7 +189,7 @@ public class PipelineIntegrationTest
         Assert.HasCount(1, zipPackageStepResult.Outputs, "ZIP package step has not the expected number of data");
         zipPackageStepResult.Outputs.TryGetValue("archive", out StepOutput? zipFileStepOutput);
         Assert.IsNotNull(zipFileStepOutput, "No ZIP package in output");
-        var zipFile = zipFileStepOutput.Data as IPipelineTransferFile;
+        var zipFile = zipFileStepOutput.Data as IPipelineFile;
         Assert.IsNotNull(zipFile, "No ZIP file in output");
         Assert.AreEqual("myPersonalZipArchive.zip", zipFile.OriginalFileName, "ZIP file has not the expected name");
     }
@@ -196,11 +197,18 @@ public class PipelineIntegrationTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
+        var fileAccessOptions = new FileAccessOptions()
+        {
+            UploadDirectory = Path.Combine(Path.GetTempPath(), "Upload"),
+            AssetsDirectory = Path.Combine(Path.GetTempPath(), "Asset"),
+            PipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline"),
+        };
         return PipelineFactory
             .Builder()
             .File(path)
             .PipelineProcessFactory(this.pipelineProcessFactory)
             .LoggerFactory(this.loggerFactoryMock.Object)
+            .DirectoryProvider(new DirectoryProvider(Options.Create(fileAccessOptions)))
             .Build();
     }
 }

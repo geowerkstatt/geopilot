@@ -1,6 +1,5 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 
 namespace Geopilot.Api;
@@ -39,7 +38,13 @@ public static class WebApplicationExtensions
             {
                 try
                 {
-                    pipelineProcessFactory.CreateProcess(step, pipelineFactory.PipelineProcessConfig.Processes);
+                    pipelineProcessFactory
+                        .Builder()
+                        .StepConfig(step)
+                        .Processes(pipelineFactory.PipelineProcessConfig.Processes)
+                        .PipelineDirectory(Path.GetTempPath())
+                        .JobId(Guid.NewGuid())
+                        .Build();
                 }
                 catch (Exception ex)
                 {
@@ -60,6 +65,7 @@ public static class WebApplicationExtensions
     public static void MapSpaFallback(this WebApplication app, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(app, nameof(app));
+        ArgumentNullException.ThrowIfNull(configuration, nameof(configuration));
 
         var indexHtmlPath = !string.IsNullOrEmpty(app.Environment.WebRootPath) ? Path.Combine(app.Environment.WebRootPath, "index.html") : null;
         if (string.IsNullOrEmpty(indexHtmlPath) || !File.Exists(indexHtmlPath))

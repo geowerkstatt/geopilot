@@ -54,34 +54,31 @@ public class XtfValidatorProcessTest
             Content = new StreamContent(xtfLogFile),
         };
         using var process = XtfValidatorProcessBuilder.Create()
-            .InputFile("file")
-            .OutputErrorLog("error_log")
-            .OutputXtfLog("xtf_log")
             .InterlisCheckServiceBaseUrl("http://localhost/")
             .UploadMockResponse(uploadMockResponse)
             .GetStatusMockResponse(getStatusMockResponse)
             .GetAppLogMockResponse(getAppLogMockResponse)
             .GetXtfLogMockResponse(getXtfLogMockResponse)
             .Build();
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
 
         var processResult = Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
         Assert.HasCount(4, processResult);
         processResult.TryGetValue("error_log", out var appLogData);
         Assert.IsNotNull(appLogData);
-        var appLog = appLogData as IPipelineTransferFile;
+        var appLog = appLogData as IPipelineFile;
         Assert.IsNotNull(appLog);
         Assert.AreEqual("errorLog.log", appLog.OriginalFileName);
         processResult.TryGetValue("xtf_log", out var xtfLogData);
         Assert.IsNotNull(xtfLogData);
-        var xtfLog = xtfLogData as IPipelineTransferFile;
+        var xtfLog = xtfLogData as IPipelineFile;
         Assert.IsNotNull(xtfLog);
         Assert.AreEqual("xtfLog.xtf", xtfLog.OriginalFileName);
         processResult.TryGetValue("status_message", out var statusMessageData);
-        var statusMessage = statusMessageData as string;
+        var statusMessage = statusMessageData as Dictionary<string, string>;
         Assert.IsNotNull(statusMessage);
-        Assert.AreEqual("Validation successful", statusMessage);
+        CollectionAssert.AreEqual(new Dictionary<string, string>() { { "de", "Validation successful" }, { "fr", "Validation successful" }, { "it", "Validation successful" }, { "en", "Validation successful" } }, statusMessage);
         processResult.TryGetValue("validation_successful", out var validationSuccessfulData);
         var validationSuccessful = validationSuccessfulData as bool?;
         Assert.IsTrue(validationSuccessful);
@@ -100,22 +97,16 @@ public class XtfValidatorProcessTest
             }),
         };
         using var process = XtfValidatorProcessBuilder.Create()
-            .InputFile("file")
-            .OutputErrorLog("error_log")
-            .OutputXtfLog("xtf_log")
             .InterlisCheckServiceBaseUrl("http://localhost/")
             .UploadMockResponse(uploadMockResponse)
             .Build();
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
         var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult());
         Assert.AreEqual("Invalid transfer file", exception.Message);
     }
 
     private class XtfValidatorProcessBuilder
     {
-        private string inputFile;
-        private string outputErrorLog;
-        private string outputXtfLog;
         private string interlisCheckServiceBaseUrl;
         private string validationProfile = "DEFAULT";
         private int pollInterval = 500;
@@ -127,24 +118,6 @@ public class XtfValidatorProcessTest
         public static XtfValidatorProcessBuilder Create()
         {
             return new XtfValidatorProcessBuilder();
-        }
-
-        public XtfValidatorProcessBuilder InputFile(string inputFile)
-        {
-            this.inputFile = inputFile;
-            return this;
-        }
-
-        public XtfValidatorProcessBuilder OutputErrorLog(string outputErrorLog)
-        {
-            this.outputErrorLog = outputErrorLog;
-            return this;
-        }
-
-        public XtfValidatorProcessBuilder OutputXtfLog(string outputXtfLog)
-        {
-            this.outputXtfLog = outputXtfLog;
-            return this;
         }
 
         public XtfValidatorProcessBuilder InterlisCheckServiceBaseUrl(string interlisCheckServiceBaseUrl)
@@ -179,7 +152,8 @@ public class XtfValidatorProcessTest
 
         public XtfValidatorProcess Build()
         {
-            var process = new XtfValidatorProcess(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+            var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
+            var process = new XtfValidatorProcess(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
 
             var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
             interlisValidatorMessageHandlerMock

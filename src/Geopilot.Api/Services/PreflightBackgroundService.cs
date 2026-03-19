@@ -86,9 +86,8 @@ public class PreflightBackgroundService : BackgroundService
                 throw new InvalidOperationException($"Could not resolve file path for job <{request.JobId}>.");
             }
 
-            var originalFileNameWithoutExtension = Path.GetFileNameWithoutExtension(stagedJob.OriginalFileName ?? string.Empty);
-            var file = new PipelineTransferFile(originalFileNameWithoutExtension, filePath);
-            var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, file);
+            var file = new PipelineFile(filePath, stagedJob.OriginalFileName ?? "unknown");
+            var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, file, request.JobId);
             jobStore.StartJob(request.JobId, pipeline, request.MandateId);
 
             logger.LogInformation("Preflight complete for job <{JobId}>. Pipeline queued.", request.JobId);
