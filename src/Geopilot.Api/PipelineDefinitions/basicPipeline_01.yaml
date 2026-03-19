@@ -28,12 +28,14 @@ pipelines:
           - take: error_log
             as: error_log
             action:
-              - DOWNLOAD
+              - Download
           - take: xtf_log
             as: xtf_log
             action:
-              - DOWNLOAD
+              - Download
           - take: status_message
             as: status_message
+            action:
+              - StatusMessage
           - take: validation_successful
             as: successful

@@ -77,9 +77,24 @@ public class ValidationRunner : BackgroundService
     private ValidatorResult MapToValidatorResult(IPipeline pipeline, PipelineContext context)
     {
         var status = MapPipelineStatusToValidatorResultStatus(pipeline, context);
-        var statusMessage = context.StepResults["validation"].Outputs["status_message"].Data as string;
         var logFiles = ExtractDownloadFiles(pipeline.JobId, context);
-        return new ValidatorResult(status, statusMessage, logFiles.ToImmutableDictionary());
+        return new ValidatorResult(status, GetStatusMessage(context), logFiles.ToImmutableDictionary());
+    }
+
+    private string GetStatusMessage(PipelineContext context)
+    {
+        if (context.StepResults.TryGetValue("validation", out var validationStepResult))
+        {
+            return validationStepResult.Outputs
+                .Select(o => o.Value)
+                .Where(o => o.Action.Contains(OutputAction.StatusMessage))
+                .Select(o => o.Data)
+                .Cast<Dictionary<string, string>>()
+                .Select(m => m.Values.FirstOrDefault())
+                .FirstOrDefault() ?? "";
+        }
+
+        return "";
     }
 
     private static ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(IPipeline pipeline, PipelineContext context)

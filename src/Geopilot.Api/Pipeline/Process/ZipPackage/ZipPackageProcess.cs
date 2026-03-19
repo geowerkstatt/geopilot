@@ -1,5 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
+using System.Globalization;
 using System.IO.Compression;
 
 namespace Geopilot.Api.Pipeline.Process.ZipPackage;
@@ -14,6 +15,23 @@ internal class ZipPackageProcess
 {
     private const string OutputMappingZipPackage = "zip_package";
     private const string DefaultArchiveFileName = "archive";
+    private const string OutputMappingStatusMessage = "status_message";
+
+    private static readonly Dictionary<string, string> SuccessfulStatusMessageFormat = new Dictionary<string, string>
+        {
+            { "de", "ZIP Paket mit {0} Datei(en) erstellt." },
+            { "fr", "Un paquet ZIP contenant {0} fichier(s) a été créé." },
+            { "it", "È stato creato un pacchetto ZIP contenente {0} file." },
+            { "en", "ZIP package containing {0} file(s) created." },
+        };
+
+    private static readonly Dictionary<string, string> NoFilesStatusMessage = new Dictionary<string, string>
+        {
+            { "de", "ZIP Archiv nicht erstellt, keine gültigen Eingabedateien gefunden." },
+            { "fr", "Archive ZIP non créée, aucun fichier d'entrée valide trouvé." },
+            { "it", "Archivio ZIP non creato, nessun file di input valido trovato." },
+            { "en", "ZIP archive not created, no valid input files found." },
+        };
 
     private ILogger logger;
 
@@ -58,8 +76,10 @@ internal class ZipPackageProcess
         var validFiles = input.OfType<IPipelineFile>().ToArray();
         IPipelineFile? zipTransferFile = null;
 
+        Dictionary<string, string> statusMessage;
         if (validFiles.Length == 0)
         {
+            statusMessage = NoFilesStatusMessage;
             logger.LogWarning($"ZipPackageProcess: No valid input files found. Returning null.");
         }
         else
@@ -77,11 +97,16 @@ internal class ZipPackageProcess
                     fileStream.CopyTo(zipEntryStream);
                 }
             }
+
+            statusMessage = SuccessfulStatusMessageFormat
+                .Select(msg => new KeyValuePair<string, string>(msg.Key, string.Format(CultureInfo.InvariantCulture, msg.Value, validFiles.Length)))
+                .ToDictionary(msg => msg.Key, msg => msg.Value);
         }
 
         return new Dictionary<string, object?>()
         {
             { OutputMappingZipPackage, zipTransferFile },
+            { OutputMappingStatusMessage, statusMessage },
         };
     }
 }

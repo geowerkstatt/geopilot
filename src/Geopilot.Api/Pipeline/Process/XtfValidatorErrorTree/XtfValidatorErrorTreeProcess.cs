@@ -10,6 +10,15 @@ internal class XtfValidatorErrorTreeProcess
     private const string OutputMappingErrorLog = "error_tree";
     private const string OutputMappingJsonErrorLog = "json_error_tree";
     private const string OutputMappingJsonErrorLogFile = "json_error_tree_file";
+    private const string OutputMappingStatusMessage = "status_message";
+
+    private static readonly Dictionary<string, string> SuccessfulStatusMessage = new Dictionary<string, string>
+        {
+            { "de", "Error Tree erstellt" },
+            { "fr", "Arbre d'erreurs créé" },
+            { "it", "Albero degli errori creato" },
+            { "en", "Error tree created" },
+        };
 
     private static readonly JsonSerializerOptions JsonOptions;
     private readonly IPipelineFileManager pipelineFileManager;
@@ -49,6 +58,7 @@ internal class XtfValidatorErrorTreeProcess
             { OutputMappingErrorLog, errorLog },
             { OutputMappingJsonErrorLog, jsonErrorLog },
             { OutputMappingJsonErrorLogFile, jsonErrorLogFile },
+            { OutputMappingStatusMessage, SuccessfulStatusMessage },
         };
     }
 }
