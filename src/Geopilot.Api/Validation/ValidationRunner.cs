@@ -77,8 +77,8 @@ public class ValidationRunner : BackgroundService
     private ValidatorResult MapToValidatorResult(IPipeline pipeline, PipelineContext context)
     {
         var status = MapPipelineStatusToValidatorResultStatus(pipeline, context);
-        var logFiles = ExtractDownloadFiles(pipeline.JobId, context);
-        return new ValidatorResult(status, GetStatusMessage(context), logFiles.ToImmutableDictionary());
+        var files = ExtractPersistentFiles(pipeline.JobId, context);
+        return new ValidatorResult(status, GetStatusMessage(context), files.ToImmutableDictionary());
     }
 
     private string GetStatusMessage(PipelineContext context)
@@ -113,7 +113,7 @@ public class ValidationRunner : BackgroundService
         };
     }
 
-    private Dictionary<string, string> ExtractDownloadFiles(Guid jobId, PipelineContext context)
+    private Dictionary<string, string> ExtractPersistentFiles(Guid jobId, PipelineContext context)
     {
         var downloadFiles = new Dictionary<string, string>();
         using var scope = serviceScopeFactory.CreateScope();
@@ -124,7 +124,7 @@ public class ValidationRunner : BackgroundService
         {
             foreach (var (outputKey, output) in stepResult.Outputs)
             {
-                if (output.Action.Contains(OutputAction.Download) && output.Data is IPipelineFile transferFile)
+                if ((output.Action.Contains(OutputAction.Download) || output.Action.Contains(OutputAction.Delivery)) && output.Data is IPipelineFile transferFile)
                 {
                     using (FileHandle fileHandle = fileProvider.CreateFileWithRandomName(transferFile.FileExtension))
                     using (Stream inStream = transferFile.OpenReadFileStream())
