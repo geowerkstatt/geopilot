@@ -8,6 +8,9 @@ pipelines:
   - id: ili_validation
     display_name:
       en: XTF Validation
+      de: XTF Validierung
+      it: Validazione XTF
+      fr: Validation XTF
     parameters:
       upload_step: upload
       mapping:
@@ -18,6 +21,9 @@ pipelines:
       - id: validation
         display_name:
           en: XTF Validation
+          de: XTF Validierung
+          it: Validazione XTF
+          fr: Validation XTF
         process_id: xtf_validator
         process_config_overwrites:
         input:
@@ -29,10 +35,12 @@ pipelines:
             as: error_log
             action:
               - Download
+              - Delivery
           - take: xtf_log
             as: xtf_log
             action:
               - Download
+              - Delivery
           - take: status_message
             as: status_message
             action:
