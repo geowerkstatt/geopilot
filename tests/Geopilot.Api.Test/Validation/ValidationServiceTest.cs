@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api.Enums;
-using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Pipeline;
@@ -8,6 +7,7 @@ using Geopilot.Api.Validation;
 using Geopilot.PipelineCore.Pipeline;
 using Moq;
 using System.Collections.Immutable;
+using System.Threading.Channels;
 
 namespace Geopilot.Api.Test.Validation;
 
@@ -21,6 +21,7 @@ public class ValidationServiceTest
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IValidationJobStore> validationJobStoreMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
+    private Channel<PreflightRequest> preflightQueue;
 
     [TestInitialize]
     public void Initialize()
@@ -31,13 +32,15 @@ public class ValidationServiceTest
         validationJobStoreMock = new Mock<IValidationJobStore>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         pipelineFactoryMock = new Mock<IPipelineFactory>(MockBehavior.Strict);
+        preflightQueue = Channel.CreateUnbounded<PreflightRequest>();
 
         validationService = new ValidationService(
             validationJobStoreMock.Object,
             mandateServiceMock.Object,
             fileProviderMock.Object,
             pipelineFactoryMock.Object,
-            cloudOrchestrationServiceMock.Object);
+            cloudOrchestrationServiceMock.Object,
+            preflightQueue.Writer);
     }
 
     [TestCleanup]
@@ -186,45 +189,38 @@ public class ValidationServiceTest
     }
 
     [TestMethod]
-    public async Task StartJobAsyncRunsPreflightAndStagingForCloudJob()
+    public async Task StartJobAsyncQueuesPreflightForCloudJob()
     {
         // Arrange
         var jobId = Guid.NewGuid();
-        var mandate = new Mandate { Id = 1, Name = nameof(StartJobAsyncRunsPreflightAndStagingForCloudJob), FileTypes = [".xtf"] };
-        var user = new User { Id = 2, FullName = nameof(StartJobAsyncRunsPreflightAndStagingForCloudJob) };
+        var mandateId = 1;
+        var pipelineId = "pipeline1";
+        var mandate = new Mandate { Id = mandateId, Name = nameof(StartJobAsyncQueuesPreflightForCloudJob), FileTypes = [".xtf"], PipelineId = pipelineId };
+        var user = new User { Id = 2, FullName = nameof(StartJobAsyncQueuesPreflightForCloudJob), AuthIdentifier = "auth-123" };
 
         var cloudJob = new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
-        var stagedJob = new ValidationJob(jobId, "test.xtf", "random.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now, UploadMethod.Cloud);
-        var startedJob = new ValidationJob(jobId, "test.xtf", "random.xtf", mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing, DateTime.Now, UploadMethod.Cloud);
+        var verifyingJob = new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.VerifyingUpload, DateTime.Now, UploadMethod.Cloud);
 
-        var pipelineId = "pipeline1";
-        mandate.PipelineId = pipelineId;
-        var tempFilePath = $"path/to/{stagedJob.TempFileName}";
-        var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
-
-        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(cloudJob);
-        cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId)).Returns(Task.CompletedTask);
-        cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(jobId)).ReturnsAsync(stagedJob);
-        mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
-
-        fileProviderMock.Setup(x => x.Initialize(jobId));
-        fileProviderMock.Setup(x => x.GetFilePath(stagedJob.TempFileName!)).Returns(tempFilePath);
-
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<IPipelineFile>(), It.IsAny<Guid>()))
-            .Returns(pipeline.Object);
-
-        validationJobStoreMock
-            .Setup(x => x.StartJob(jobId, pipeline.Object, mandate.Id))
-            .Returns(startedJob);
+        validationJobStoreMock.SetupSequence(x => x.GetJob(jobId))
+            .Returns(cloudJob)
+            .Returns(verifyingJob);
+        mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user)).ReturnsAsync(mandate);
+        validationJobStoreMock.Setup(x => x.SetJobStatus(jobId, Status.VerifyingUpload)).Returns(verifyingJob);
 
         // Act
-        var result = await validationService.StartJobAsync(jobId, mandate.Id, user);
+        var result = await validationService.StartJobAsync(jobId, mandateId, user);
 
         // Assert
-        Assert.AreEqual(startedJob, result);
-        Assert.AreEqual(Status.Processing, result.Status);
-        cloudOrchestrationServiceMock.Verify(x => x.RunPreflightChecksAsync(jobId), Times.Once);
-        cloudOrchestrationServiceMock.Verify(x => x.StageFilesLocallyAsync(jobId), Times.Once);
+        Assert.AreEqual(Status.VerifyingUpload, result.Status);
+
+        // Verify a PreflightRequest was written to the channel
+        Assert.IsTrue(preflightQueue.Reader.TryRead(out var request));
+        Assert.AreEqual(jobId, request.JobId);
+        Assert.AreEqual(mandateId, request.MandateId);
+        Assert.AreEqual("auth-123", request.UserAuthId);
+
+        cloudOrchestrationServiceMock.Verify(x => x.RunPreflightChecksAsync(It.IsAny<Guid>()), Times.Never);
+        cloudOrchestrationServiceMock.Verify(x => x.StageFilesLocallyAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -265,22 +261,49 @@ public class ValidationServiceTest
     }
 
     [TestMethod]
-    public async Task StartJobAsyncPropagatesPreflightException()
+    public async Task StartJobAsyncValidatesMandateBeforeQueuingCloudJob()
     {
         // Arrange
+        var jobId = Guid.NewGuid();
+        var mandateId = 1;
+        var cloudJob = new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
+
+        validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(cloudJob);
+        mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, It.IsAny<User?>())).ReturnsAsync((Mandate?)null);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
+        {
+            await validationService.StartJobAsync(jobId, mandateId, null);
+        });
+
+        Assert.AreEqual($"The job <{jobId}> could not be started with mandate <{mandateId}>.", ex.Message);
+
+        // Verify nothing was queued
+        Assert.IsFalse(preflightQueue.Reader.TryRead(out _));
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncThrowsWhenCloudStorageDisabled()
+    {
+        // Arrange — service without cloud dependencies
+        var serviceWithoutCloud = new ValidationService(
+            validationJobStoreMock.Object,
+            mandateServiceMock.Object,
+            fileProviderMock.Object,
+            pipelineFactoryMock.Object);
+
         var jobId = Guid.NewGuid();
         var cloudJob = new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(cloudJob);
-        cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId))
-            .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, "File 'test.xtf' was not uploaded."));
 
         // Act & Assert
-        var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(async () =>
+        var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
         {
-            await validationService.StartJobAsync(jobId, 1, null);
+            await serviceWithoutCloud.StartJobAsync(jobId, 1, null);
         });
 
-        Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
+        Assert.AreEqual("Cloud storage is not enabled.", ex.Message);
     }
 }

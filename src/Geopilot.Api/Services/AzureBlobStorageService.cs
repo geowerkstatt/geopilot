@@ -94,6 +94,14 @@ public class AzureBlobStorageService : ICloudStorageService
     }
 
     /// <inheritdoc/>
+    public async Task<Stream> OpenReadAsync(string key)
+    {
+        var blobClient = containerClient.GetBlobClient(key);
+        logger.LogInformation("Opening read stream for blob {Key}.", key);
+        return await blobClient.OpenReadAsync();
+    }
+
+    /// <inheritdoc/>
     public async Task DeleteAsync(string key)
     {
         var blobClient = containerClient.GetBlobClient(key);

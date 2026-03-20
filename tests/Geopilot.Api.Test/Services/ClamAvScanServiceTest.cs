@@ -148,10 +148,7 @@ public class ClamAvScanServiceTest
     private void SetupDownload(string key, byte[] content)
     {
         cloudStorageServiceMock
-            .Setup(s => s.DownloadAsync(key, It.IsAny<Stream>()))
-            .Returns<string, Stream>(async (_, destination) =>
-            {
-                await destination.WriteAsync(content);
-            });
+            .Setup(s => s.OpenReadAsync(key))
+            .ReturnsAsync(new MemoryStream(content));
     }
 }

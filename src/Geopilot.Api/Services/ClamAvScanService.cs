@@ -62,9 +62,7 @@ public class ClamAvScanService : ICloudScanService
 
     private async Task<string?> ScanSingleFileAsync(string key)
     {
-        using var fileStream = new MemoryStream();
-        await cloudStorageService.DownloadAsync(key, fileStream);
-        fileStream.Position = 0;
+        using var fileStream = await cloudStorageService.OpenReadAsync(key);
 
         var clam = new ClamClient(options.Host, options.Port) { MaxStreamSize = maxStreamSize };
         var result = await clam.SendAndScanFileAsync(fileStream);

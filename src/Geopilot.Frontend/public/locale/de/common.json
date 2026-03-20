@@ -118,6 +118,7 @@
   "validationErrorFileTooLarge": "Maximale Dateigrösse überschritten. (Fehler 413)",
   "validationErrorRequestMalformed": "Ungültige oder beschädigte Anfrage an den Validierunsserver. (Fehler 400)",
   "validationErrorUnexpected": "Unerwarteter Serverfehler beim Verarbeiten. (Fehler 500)",
+  "validationIsBeingVerified": "Der Upload wird überprüft...",
   "validationIsRunning": "Die Datei wird gerade mit {{validators}} validiert...",
   "validationProfile": "Prüfprofil",
   "validatorsLoadingError": "Beim Laden der Validatoren ist ein Fehler aufgetreten: {{error}}",

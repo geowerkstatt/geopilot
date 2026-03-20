@@ -71,6 +71,12 @@ public class CloudStorageOptions
     public int RateLimitWindowMinutes { get; set; }
 
     /// <summary>
+    /// The public-facing origin of the blob storage endpoint (e.g., "https://localhost:10000").
+    /// Added to the Content-Security-Policy connect-src directive to allow browser-based uploads via presigned URLs.
+    /// </summary>
+    public string? BlobEndpoint { get; set; }
+
+    /// <summary>
     /// Whether to automatically create the blob container on startup. Should only be enabled in development.
     /// </summary>
     public bool AutoCreateContainer { get; set; }

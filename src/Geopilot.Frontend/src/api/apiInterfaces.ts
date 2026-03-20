@@ -81,6 +81,7 @@ export interface ValidationSettings {
 
 export enum ValidationStatus {
   Created = "created",
+  VerifyingUpload = "verifyingUpload",
   Ready = "ready",
   Processing = "processing",
   Completed = "completed",

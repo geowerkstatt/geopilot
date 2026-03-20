@@ -118,6 +118,7 @@
   "validationErrorFileTooLarge": "Taille maximale du fichier dépassée. (Erreur 413)",
   "validationErrorRequestMalformed": "Requête invalide ou corrompue au serveur de validation. (Erreur 400)",
   "validationErrorUnexpected": "Erreur inattendue du serveur lors du traitement. (Erreur 500)",
+  "validationIsBeingVerified": "Le téléversement est en cours de vérification...",
   "validationIsRunning": "Le fichier est en cours de validation avec {{validators}}...",
   "validationProfile": "Profil de validation",
   "validatorsLoadingError": "Une erreur s'est produite lors du chargement des validateurs: {{error}}",
