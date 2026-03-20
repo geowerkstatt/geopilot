@@ -11,7 +11,10 @@ namespace Geopilot.Api.Test.Services;
 [TestClass]
 public class CloudCleanupServiceIntegrationTest
 {
-    private static readonly string AzuriteConnectionString = BuildAzuriteConnectionString();
+    private const string AzuriteConnectionString =
+        "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;" +
+        "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" +
+        "BlobEndpoint=https://localhost:10000/devstoreaccount1;";
 
     private BlobContainerClient containerClient;
     private AzureBlobStorageService storageService;
@@ -129,13 +132,5 @@ public class CloudCleanupServiceIntegrationTest
         var blobClient = containerClient.GetBlobClient(key);
         using var stream = new MemoryStream(content);
         await blobClient.UploadAsync(stream, overwrite: true);
-    }
-
-    private static string BuildAzuriteConnectionString()
-    {
-        var protocol = Environment.GetEnvironmentVariable("AZURITE_PROTOCOL") ?? "https";
-        return $"DefaultEndpointsProtocol={protocol};AccountName=devstoreaccount1;" +
-            "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;" +
-            $"BlobEndpoint={protocol}://localhost:10000/devstoreaccount1;";
     }
 }
