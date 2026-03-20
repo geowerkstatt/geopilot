@@ -1,12 +1,26 @@
 ﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
+using Geopilot.Api.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline.Process;
+using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace Geopilot.Api.Test.Pipeline;
 
 [TestClass]
 public class PipelineStepTest
 {
+    private Mock<ILoggerFactory> loggerFactoryMock;
+    private Mock<ILogger<PipelineProcessFactory>> loggerMock;
+
+    [TestInitialize]
+    public void SetUp()
+    {
+        loggerFactoryMock = new Mock<ILoggerFactory>();
+        loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
+        loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+    }
+
     private class MockPipelineProcessSingleInput
     {
         public MockPipelineProcessSingleInput(Dictionary<string, object> outputData)
@@ -30,12 +44,14 @@ public class PipelineStepTest
 
     private class MockPipelineProcessArrayInput
     {
-        public MockPipelineProcessArrayInput(Dictionary<string, object> outputData)
+        public MockPipelineProcessArrayInput(Dictionary<string, object> outputData, int expectedNumberOfInputData)
         {
             this.outputData = outputData;
+            this.expectedNumberOfInputData = expectedNumberOfInputData;
         }
 
         private Dictionary<string, object> outputData;
+        private int expectedNumberOfInputData;
 
         public int NumberOfRunInvoced { get; set; }
 
@@ -44,6 +60,7 @@ public class PipelineStepTest
         {
             Assert.IsNotNull(data);
             Assert.IsNotEmpty(data, "data expected");
+            Assert.HasCount(expectedNumberOfInputData, data, "not matching expected count for input data");
             Assert.IsNotNull(cancellationToken);
             NumberOfRunInvoced++;
             return this.outputData;
@@ -168,7 +185,15 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -188,7 +213,80 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public async Task SuccessfullStepRunWithArrayInput()
+    public async Task SuccessfullStepRunWithArrayInputFromSingleSources()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("step_01", "data", "data"),
+            NewInputConfig("step_02", "data", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var stepStepResult01 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some data from step 01" } },
+            },
+        };
+        var stepStepResult02 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some data from step 02" } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "step_01", stepStepResult01 },
+                { "step_02", stepStepResult02 },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+
+        var processMock = new MockPipelineProcessArrayInput(processData, 2);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        // Assert that the returned StepResult contains the correct content
+        Assert.HasCount(1, stepResult.Outputs);
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_output"));
+        Assert.IsEmpty(stepResult.Outputs["my_output"].Action);
+        Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+    }
+
+    [TestMethod]
+    public async Task SuccessfullStepRunWithArrayInputFromOneSingleArray()
     {
         var inputConfigs = new List<InputConfig>
         {
@@ -207,7 +305,7 @@ public class PipelineStepTest
         {
             Outputs = new Dictionary<string, StepOutput>
             {
-                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some data from step 01" } },
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = new string[] { "data 01 from step 01", "data 02 from step 01" } } },
             },
         };
         var pipelineContext = new PipelineContext()
@@ -222,9 +320,163 @@ public class PipelineStepTest
             { "error_log", "some_data" },
         };
 
-        var processMock = new MockPipelineProcessArrayInput(processData);
+        var processMock = new MockPipelineProcessArrayInput(processData, 2);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        // Assert that the returned StepResult contains the correct content
+        Assert.HasCount(1, stepResult.Outputs);
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_output"));
+        Assert.IsEmpty(stepResult.Outputs["my_output"].Action);
+        Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+    }
+
+    [TestMethod]
+    public async Task SuccessfullStepRunWithArrayInputFromOneArrayAndOneSigleParameter()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("step_01", "data", "data"),
+            NewInputConfig("step_02", "data", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var stepStepResult01 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = new string[] { "data 01 from step 01", "data 02 from step 01" } } },
+            },
+        };
+        var stepStepResult02 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = "data 01 from step 02" } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "step_01", stepStepResult01 },
+                { "step_02", stepStepResult02 },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+
+        var processMock = new MockPipelineProcessArrayInput(processData, 3);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        // Assert that the returned StepResult contains the correct content
+        Assert.HasCount(1, stepResult.Outputs);
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_output"));
+        Assert.IsEmpty(stepResult.Outputs["my_output"].Action);
+        Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+    }
+
+    [TestMethod]
+    public async Task SuccessfullStepRunWithArrayInputFromTwoArrays()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("step_01", "data", "data"),
+            NewInputConfig("step_02", "data", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var stepStepResult01 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = new string[] { "data 01 from step 01", "data 02 from step 01" } } },
+            },
+        };
+        var stepStepResult02 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = new string[] { "data 01 from step 02", "data 02 from step 02" } } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "step_01", stepStepResult01 },
+                { "step_02", stepStepResult02 },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+
+        var processMock = new MockPipelineProcessArrayInput(processData, 4);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -286,7 +538,15 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessManyDifferentInputTypesInput(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -342,7 +602,15 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessNullableTypesInput();
 
-        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], null, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName([])
+            .InputConfig(inputConfigs)
+            .OutputConfig([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -407,7 +675,15 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessNullableTypesInput();
 
-        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], null, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName([])
+            .InputConfig(inputConfigs)
+            .OutputConfig([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -446,7 +722,17 @@ public class PipelineStepTest
             },
         };
         var processMock = new MockPipelineProcessManyDifferentInputTypesInput([]);
-        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], null, processMock);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName([])
+            .InputConfig(inputConfigs)
+            .OutputConfig([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
@@ -485,7 +771,15 @@ public class PipelineStepTest
             },
         };
         var processMock = new MockPipelineProcessManyDifferentInputTypesInput([]);
-        using var pipelineStep = new PipelineStep("my_step", [], inputConfigs, [], null, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName([])
+            .InputConfig(inputConfigs)
+            .OutputConfig([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
@@ -528,7 +822,15 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(new Dictionary<string, object>());
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -572,7 +874,15 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(new Dictionary<string, object>());
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -616,7 +926,15 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessException();
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -666,7 +984,15 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, null, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -731,7 +1057,16 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, stepConditions, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -798,7 +1133,16 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, stepConditions, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 
@@ -868,7 +1212,16 @@ public class PipelineStepTest
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
-        using var pipelineStep = new PipelineStep("my_step", new Dictionary<string, string>() { { "de", "my step" } }, inputConfigs, outputConfigs, stepConditions, processMock);
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
 
         Assert.AreEqual(StepState.Pending, pipelineStep.State);
 

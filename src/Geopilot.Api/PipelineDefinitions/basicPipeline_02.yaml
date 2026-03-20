@@ -1,0 +1,153 @@
+processes:
+  - id: xtf_validator
+    implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
+    default_config:
+      validationProfile: DEFAULT
+      pollInterval: 1000
+  - id: zip_packager
+    implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
+    default_config:
+      archiveFileName: archive
+  - id: xtf_error_tree
+    implementation: Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree.XtfValidatorErrorTreeProcess
+pipelines:
+  - id: ili_validation
+    display_name:
+      en: XTF Validation
+      de: XTF Validierung
+      it: Validazione XTF
+      fr: Validation XTF
+    parameters:
+      upload_step: upload
+      mapping:
+        - file_extension: xtf
+          attribute: ili_file
+    delivery_condition: "[validation.successful]"
+    steps:
+      - id: validation
+        display_name:
+          en: XTF Validation
+          de: XTF Validierung
+          it: Validazione XTF
+          fr: Validation XTF
+        process_id: xtf_validator
+        process_config_overwrites:
+          validationProfile: null
+        input:
+          - from: upload
+            take: ili_file
+            as: iliFile
+        output:
+          - take: error_log
+            as: error_log
+            action:
+              - Download
+              - Delivery
+          - take: xtf_log
+            as: xtf_log
+            action:
+              - Download
+              - Delivery
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+          - take: validation_successful
+            as: successful
+  - id: ili_validation_with_error_tree
+    display_name:
+      en: XTF Validation with Error Tree
+      de: XTF Validierung mit Error Tree
+      it: Validazione XTF con albero degli errori
+      fr: Validation XTF avec arbre des erreurs
+    parameters:
+      upload_step: upload
+      mapping:
+        - file_extension: xtf
+          attribute: ili_file
+    delivery_condition: "[validation.successful]"
+    steps:
+      - id: validation
+        display_name:
+          en: XTF Validation
+          de: XTF Validierung
+          it: Validazione XTF
+          fr: Validation XTF
+        process_id: xtf_validator
+        process_config_overwrites:
+          validationProfile: null
+        input:
+          - from: upload
+            take: ili_file
+            as: iliFile
+        output:
+          - take: error_log
+            as: error_log
+            action:
+              - Download
+              - Delivery
+          - take: xtf_log
+            as: xtf_log
+            action:
+              - Download
+              - Delivery
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+          - take: validation_successful
+            as: successful
+      - id: error_tree
+        display_name:
+          en: Error Tree
+          de: Error Tree
+          it: Albero degli errori
+          fr: Arbre des erreurs
+        process_id: xtf_error_tree
+        conditions:
+          pre:
+            skip_condition: "[validation.successful]"
+        input:
+          - from: validation
+            take: xtf_log
+            as: xtfLog
+        output:
+          - take: json_error_tree_file
+            as: error_tree
+            action:
+              - Download
+              - Delivery
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+      - id: zip_packaging
+        display_name:
+          en: ZIP Packaging
+          de: ZIP Packet
+          it: Creazione ZIP
+          fr: Création ZIP
+        process_id: zip_packager
+        input:
+          - from: upload
+            take: ili_file
+            as: input
+          - from: validation
+            take: xtf_log
+            as: input
+          - from: validation
+            take: error_log
+            as: input
+          - from: error_tree
+            take: error_tree
+            as: input
+        output:
+          - take: zip_package
+            as: archive
+            action:
+              - Download
+              - Delivery
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage

@@ -157,7 +157,8 @@ public class ValidationController : ControllerBase
     /// <param name="startJobRequest"><see cref="StartJobRequest"/> containing all information to start the job.</param>
     /// <returns>The started validation job.</returns>
     [HttpPatch("{jobId}")]
-    [SwaggerResponse(StatusCodes.Status200OK, "The validation job was successfully started.", typeof(ValidationJob), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "The validation job was successfully started.", typeof(ValidationJobResponse), "application/json")]
+    [SwaggerResponse(StatusCodes.Status202Accepted, "The cloud upload preflight has been queued for background processing.", typeof(ValidationJobResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request, or the mandate is not valid for the user/job.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected error while starting the job.", typeof(ProblemDetails), "application/json")]
@@ -181,6 +182,10 @@ public class ValidationController : ControllerBase
             logger.LogInformation("Starting job <{JobId}> with mandate <{MandateId}> for user <{AuthIdentifier}>.", jobId, startJobRequest.MandateId, user?.AuthIdentifier ?? "Unauthenticated");
             var validationJob = await validationService.StartJobAsync(jobId, startJobRequest.MandateId, user);
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
+
+            if (validationJob.UploadMethod == Enums.UploadMethod.Cloud)
+                return Accepted(validationJob.ToResponse());
+
             return Ok(validationJob.ToResponse());
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)

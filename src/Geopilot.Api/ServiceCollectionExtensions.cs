@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.StacServices;
 using Stac.Api.Interfaces;
@@ -38,6 +39,8 @@ public static class ServiceCollectionExtensions
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
             var pipelineProcessFactory = sp.GetRequiredService<IPipelineProcessFactory>();
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            var directoryProvider = sp.GetRequiredService<IDirectoryProvider>();
             var pipelinePluginOptions = configuration.GetSection(pipelineKey).Get<PipelineOptions>();
 
             if (pipelinePluginOptions == null)
@@ -52,6 +55,8 @@ public static class ServiceCollectionExtensions
             var pipelineFactory = PipelineFactory.Builder()
                     .File(pipelinePluginOptions.Definition)
                     .PipelineProcessFactory(pipelineProcessFactory)
+                    .LoggerFactory(loggerFactory)
+                    .DirectoryProvider(directoryProvider)
                     .Build();
 
             return pipelineFactory;

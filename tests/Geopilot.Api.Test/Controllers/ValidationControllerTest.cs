@@ -1,5 +1,6 @@
 ﻿using Asp.Versioning;
 using Geopilot.Api.Contracts;
+using Geopilot.Api.Enums;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Validation;
@@ -216,7 +217,6 @@ public sealed class ValidationControllerTest
         // Arrange
         var jobId = Guid.NewGuid();
 
-        // Use the helper method to create user and mandate with proper relationships
         var (user, mandate) = context.AddMandateWithUserOrganisation(
             new Mandate { Name = nameof(StartJobAsyncSuccess) });
         controller.SetupTestUser(user);
@@ -249,6 +249,43 @@ public sealed class ValidationControllerTest
 
         validationServiceMock.Verify();
         validationServiceMock.Verify(x => x.StartJobAsync(jobId, mandate.Id, user), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task StartJobAsyncReturns202ForCloudUpload()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
+            new Mandate { Name = nameof(StartJobAsyncReturns202ForCloudUpload) });
+        controller.SetupTestUser(user);
+
+        var startJobRequest = new StartJobRequest { MandateId = mandate.Id };
+
+        var validationJob = new ValidationJob(
+            jobId,
+            null,
+            null,
+            null,
+            ImmutableDictionary<string, ValidatorResult?>.Empty,
+            Status.VerifyingUpload,
+            DateTime.Now,
+            UploadMethod.Cloud);
+
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(validationJob).Verifiable();
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, user)).ReturnsAsync(validationJob);
+
+        // Act
+        var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
+        var jobResponse = response?.Value as ValidationJobResponse;
+
+        // Assert
+        Assert.IsNotNull(response);
+        Assert.AreEqual(StatusCodes.Status202Accepted, response.StatusCode);
+        Assert.IsInstanceOfType<ValidationJobResponse>(jobResponse);
+        Assert.AreEqual(jobId, jobResponse.JobId);
+        Assert.AreEqual(Status.VerifyingUpload, jobResponse.Status);
     }
 
     [TestMethod]

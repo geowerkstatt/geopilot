@@ -1,7 +1,7 @@
-﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline;
+﻿using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Geopilot.Api.Test.Pipeline;
@@ -9,6 +9,19 @@ namespace Geopilot.Api.Test.Pipeline;
 [TestClass]
 public class PipelineTest
 {
+    private Mock<ILoggerFactory> loggerFactory;
+    private Mock<ILogger<Api.Pipeline.Pipeline>> loggerMock;
+
+    [TestInitialize]
+    public void SetUp()
+    {
+        loggerFactory = new Mock<ILoggerFactory>();
+        loggerMock = new Mock<ILogger<Api.Pipeline.Pipeline>>();
+        loggerFactory
+            .Setup(lf => lf.CreateLogger(It.IsAny<string>()))
+            .Returns(loggerMock.Object);
+    }
+
     [TestMethod(DisplayName = "Pipeline State Test")]
     [DataRow(PipelineState.Pending, new[] { StepState.Pending, StepState.Pending }, DisplayName = "all steps pending")]
     [DataRow(PipelineState.Running, new[] { StepState.Running, StepState.Pending }, DisplayName = "steps pending and running")]
@@ -36,7 +49,17 @@ public class PipelineTest
 
         var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
 
-        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, null, Mock.Of<IPipelineTransferFile>());
+        using var pipeline = Api.Pipeline.Pipeline
+            .Builder()
+            .Id("test_pipeline")
+            .DisplayName(pipelineDisplayName)
+            .Steps(steps)
+            .Parameters(pipelineParameters)
+            .File(Mock.Of<IPipelineFile>())
+            .Logger(loggerMock.Object)
+            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
+            .JobId(Guid.NewGuid())
+            .Build();
 
         Assert.AreEqual(expectedState, pipeline.State, "pipeline state not as expected");
     }
@@ -60,9 +83,19 @@ public class PipelineTest
 
         var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
 
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
-        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, null, uploadFile);
+        using var pipeline = Api.Pipeline.Pipeline
+            .Builder()
+            .Id("test_pipeline")
+            .DisplayName(pipelineDisplayName)
+            .Steps(steps)
+            .Parameters(pipelineParameters)
+            .File(uploadFile)
+            .Logger(loggerMock.Object)
+            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
+            .JobId(Guid.NewGuid())
+            .Build();
 
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
 
@@ -104,11 +137,22 @@ public class PipelineTest
 
         var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
 
-        var uploadFile = new PipelineTransferFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
         string deliveryCondition = "[step_id.output1] != 'my_step_data'";
 
-        using var pipeline = new Api.Pipeline.Pipeline("test_pipeline", pipelineDisplayName, steps, pipelineParameters, deliveryCondition, uploadFile);
+        using var pipeline = Api.Pipeline.Pipeline
+            .Builder()
+            .Id("test_pipeline")
+            .DisplayName(pipelineDisplayName)
+            .Steps(steps)
+            .Parameters(pipelineParameters)
+            .JobId(Guid.NewGuid())
+            .DeliveryCondition(deliveryCondition)
+            .File(uploadFile)
+            .Logger(loggerMock.Object)
+            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
+            .Build();
 
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
 

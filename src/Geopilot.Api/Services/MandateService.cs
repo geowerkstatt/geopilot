@@ -57,8 +57,14 @@ public class MandateService : IMandateService
     {
         var mandates = context.MandatesWithIncludes.AsNoTracking();
 
-        if (user != null)
-            mandates = FilterMandatesByUser(mandates, user);
+        if (user == null)
+        {
+            mandates = mandates.Where(m => m.IsPublic);
+        }
+        else if (!user.IsAdmin || jobId != null)
+        {
+            mandates = mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+        }
 
         if (jobId != null)
             mandates = FilterMandatesByJob(mandates, jobId.Value);
@@ -69,15 +75,22 @@ public class MandateService : IMandateService
     private IQueryable<Mandate> FilterMandatesByJob(IQueryable<Mandate> mandates, Guid jobId)
     {
         var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
-        var fileName = job.OriginalFileName ?? throw new InvalidOperationException($"Validation job with id <{jobId}> has no file associated.");
 
-        var extension = Path.GetExtension(fileName);
-        return mandates.FilterMandatesByFileExtension(extension);
-    }
-
-    private IQueryable<Mandate> FilterMandatesByUser(IQueryable<Mandate> mandates, User user)
+        if (job.OriginalFileName != null)
         {
-            return mandates
-            .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
+            return mandates.FilterMandatesByFileExtension(Path.GetExtension(job.OriginalFileName));
+        }
+
+        if (job.CloudFiles is { Count: > 0 })
+        {
+            foreach (var extension in job.CloudFiles.Select(f => Path.GetExtension(f.FileName)).Distinct())
+            {
+                mandates = mandates.FilterMandatesByFileExtension(extension);
+            }
+
+            return mandates;
+        }
+
+        throw new InvalidOperationException($"Validation job with id <{jobId}> has no file associated.");
     }
 }

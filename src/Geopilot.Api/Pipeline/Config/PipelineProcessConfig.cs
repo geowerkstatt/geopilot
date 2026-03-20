@@ -9,6 +9,7 @@ namespace Geopilot.Api.Pipeline.Config;
 /// The steps in <see cref="PipelineConfig"/> reference to the <see cref="ProcessConfig"/> by its name."/>.
 /// </summary>
 [ValidProcessReference]
+[NoUndefinedBaseConfigOverwrite]
 public class PipelineProcessConfig
 {
     /// <summary>

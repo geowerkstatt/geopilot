@@ -1,6 +1,6 @@
 processes:
   - id: xtf_validator
-    implementation:  Geopilot.Api.Pipeline.Process.XtfValidatorProcess
+    implementation:  Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
     default_config:
       only_translate_if_xtf_is_de: false
 pipelines:

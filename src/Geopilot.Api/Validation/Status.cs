@@ -11,6 +11,11 @@ public enum Status
     Created,
 
     /// <summary>
+    /// The job is verifying and staging uploaded cloud files.
+    /// </summary>
+    VerifyingUpload,
+
+    /// <summary>
     /// The job is ready to be processed.
     /// </summary>
     Ready,
@@ -31,7 +36,8 @@ public enum Status
     CompletedWithErrors,
 
     /// <summary>
-    /// The job failed.
+    /// The job failed. For cloud uploads this may indicate an incomplete upload,
+    /// a file size exceeding the declared size, or a security threat detected during scanning.
     /// </summary>
     Failed,
 }

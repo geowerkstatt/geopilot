@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Typography } from "@mui/material";
 import { FlexRowSpaceBetweenBox } from "../../../components/styledComponents.ts";
 import { CancelButton } from "../../../components/buttons.tsx";
+import { ValidationStatus } from "../../../api/apiInterfaces.ts";
 
 export const DeliveryValidationLoading = () => {
   const { t } = useTranslation();
@@ -16,9 +17,14 @@ export const DeliveryValidationLoading = () => {
     return keys.slice(0, -1).join(", ") + " " + t("and") + " " + keys[keys.length - 1];
   };
 
+  const message =
+    validationResponse?.status === ValidationStatus.VerifyingUpload
+      ? t("validationIsBeingVerified")
+      : t("validationIsRunning", { validators: getValidationKeysString() });
+
   return (
     <FlexRowSpaceBetweenBox>
-      <Typography variant="body1">{t("validationIsRunning", { validators: getValidationKeysString() })}</Typography>
+      <Typography variant="body1">{message}</Typography>
       <CancelButton onClick={() => resetDelivery()} />
     </FlexRowSpaceBetweenBox>
   );

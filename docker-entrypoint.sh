@@ -21,6 +21,12 @@ echo -n "Fix permissions for mounted volumes ..." && \
   chmod -R g+rwXs $PublicAssetsOverride && \
   echo "done!"
 
+# Trust additional CA certificates if present (for Azurite HTTPS in development).
+for pem in /https/*.pem; do
+  [ -f "$pem" ] && cp "$pem" "/usr/local/share/ca-certificates/$(basename "$pem" .pem).crt"
+done
+update-ca-certificates 2>/dev/null
+
 # Override public assets in app's public directory.
 (cp -R $PublicAssetsOverride/* $HOME/wwwroot/ || true)
 
