@@ -78,23 +78,35 @@ public class ValidationRunner : BackgroundService
     {
         var status = MapPipelineStatusToValidatorResultStatus(pipeline, context);
         var files = ExtractPersistentFiles(pipeline.JobId, context);
-        return new ValidatorResult(status, GetStatusMessage(context), files.ToImmutableDictionary());
+        return new ValidatorResult(status, GetStatusMessage(pipeline, context), files.ToImmutableDictionary());
     }
 
-    private string GetStatusMessage(PipelineContext context)
+    private string GetStatusMessage(IPipeline pipeline, PipelineContext context)
     {
-        if (context.StepResults.TryGetValue("validation", out var validationStepResult))
-        {
-            return validationStepResult.Outputs
-                .Select(o => o.Value)
-                .Where(o => o.Action.Contains(OutputAction.StatusMessage))
-                .Select(o => o.Data)
-                .Cast<Dictionary<string, string>>()
-                .Select(m => m.Values.FirstOrDefault())
-                .FirstOrDefault() ?? "";
-        }
+        var statusMessages = context.StepResults
+            .SelectMany(r =>
+            {
+                var messages = new List<string>();
+                foreach (var output in r.Value.Outputs)
+                {
+                    var pipelineStep = pipeline.Steps
+                        .Where(s => s.Id == r.Key)
+                        .FirstOrDefault();
+                    if (pipelineStep != null && output.Value.Action.Contains(OutputAction.StatusMessage) && output.Value.Data is Dictionary<string, string> statusMessage)
+                        messages.Add(GetLocalizedName(pipelineStep.DisplayName) + ": " + GetLocalizedName(statusMessage));
+                }
 
-        return "";
+                return messages;
+            })
+            .ToList();
+        if (statusMessages != null && statusMessages.Count > 0)
+            return string.Join(" - ", statusMessages);
+        return string.Empty;
+    }
+
+    private static string GetLocalizedName(Dictionary<string, string> displayName)
+    {
+        return displayName.TryGetValue("en", out string? name) ? name : displayName.FirstOrDefault().Value;
     }
 
     private static ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(IPipeline pipeline, PipelineContext context)
