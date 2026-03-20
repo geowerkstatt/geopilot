@@ -28,6 +28,7 @@ internal sealed class JwtTestApp : WebApplicationFactory<Context>
             {
                 ["ConnectionStrings:Context"] = TestDatabaseFixture.ConnectionString,
                 ["Pipeline:Definition"] = pipelineDefinition,
+                ["CloudStorage:Enabled"] = "false",
             });
         });
 
