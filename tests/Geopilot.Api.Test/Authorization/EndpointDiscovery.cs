@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
+using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
@@ -85,12 +87,14 @@ internal static class EndpointDiscovery
                     continue;
 
                 var controllerName = controller.Name.Replace("Controller", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
+                var versions = controller.GetCustomAttribute<ApiVersionAttribute>()?.Versions;
+                var apiVersion = versions is { Count: > 0 } ? versions[0].MajorVersion?.ToString(CultureInfo.InvariantCulture) ?? "1" : "1";
                 var description = $"{controller.Name}.{method.Name}";
 
                 foreach (var httpMethodAttr in httpMethodAttrs)
                 {
                     var httpMethod = httpMethodAttr.HttpMethods.First();
-                    var route = BuildRoute(routePrefix, httpMethodAttr.Template, controllerName);
+                    var route = BuildRoute(routePrefix, httpMethodAttr.Template, controllerName, apiVersion);
 
                     yield return (httpMethod, route, policy, description);
                 }
@@ -166,12 +170,12 @@ internal static class EndpointDiscovery
         return $"{classRoute}/{methodTemplate}";
     }
 
-    private static string BuildRoute(string prefix, string? template, string controllerName)
+    private static string BuildRoute(string prefix, string? template, string controllerName, string apiVersion = "1")
     {
         var route = string.IsNullOrEmpty(template) ? prefix : $"{prefix}/{template}";
 
         route = route.Replace("[controller]", controllerName, StringComparison.OrdinalIgnoreCase);
-        route = route.Replace("v{version:apiVersion}", "v1", StringComparison.OrdinalIgnoreCase);
+        route = route.Replace("v{version:apiVersion}", $"v{apiVersion}", StringComparison.OrdinalIgnoreCase);
         route = RouteParameterRegex.Replace(route, "1");
 
         if (!route.StartsWith('/'))
