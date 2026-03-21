@@ -4,7 +4,7 @@ namespace Geopilot.Api;
 
 public class TestDatabaseFixture
 {
-    private const string ConnectionString = "Server=localhost;Port=5432;Database=geopilot-test;User Id=HAPPYWALK;Password=SOMBERSPORK;";
+    internal const string ConnectionString = "Server=localhost;Port=5432;Database=geopilot-test;User Id=HAPPYWALK;Password=SOMBERSPORK;";
 
     private static readonly object @lock = new();
     private static bool databaseInitialized;
@@ -18,7 +18,9 @@ public class TestDatabaseFixture
                 using var context = CreateContext();
 
                 context.Database.EnsureDeleted();
-                context.Database.EnsureCreated();
+
+                // Migrate instead of EnsureCreated so the schema matches what Program.cs expects.
+                context.Database.Migrate();
 
                 context.SeedTestData();
                 context.SaveChanges();
