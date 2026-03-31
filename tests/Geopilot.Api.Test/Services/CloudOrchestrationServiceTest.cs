@@ -230,9 +230,9 @@ public class CloudOrchestrationServiceTest
             .Returns(Task.CompletedTask);
 
         var updated = await service.StageFilesLocallyAsync(job.Id);
-
-        Assert.AreEqual("test.xtf", updated.OriginalFileName);
-        Assert.AreEqual("random123.xtf", updated.TempFileName);
+        Assert.HasCount(1, updated.Files);
+        Assert.AreEqual("test.xtf", updated.Files[0].OriginalFileName);
+        Assert.AreEqual("random123.xtf", updated.Files[0].TempFileName);
         Assert.AreEqual(Status.Ready, updated.Status);
         cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{job.Id}/"), Times.Once);
     }

@@ -46,7 +46,7 @@ public class AssetHandler : IAssetHandler
         temporaryFileProvider.Initialize(jobId);
         Directory.CreateDirectory(directoryProvider.GetAssetDirectoryPath(jobId));
 
-        assets.Add(PersistPrimaryValidationJobAsset(job));
+        assets.AddRange(PersistPrimaryValidationJobAsset(job));
         assets.AddRange(PersistValidationJobValidatorAssets(job));
 
         return assets;
@@ -90,21 +90,27 @@ public class AssetHandler : IAssetHandler
     /// </summary>
     /// <param name="job">The validation job created during upload.</param>
     /// <returns>Calculated Asset representing the file in persistent storage.</returns>
-    private Asset PersistPrimaryValidationJobAsset(ValidationJob job)
+    private List<Asset> PersistPrimaryValidationJobAsset(ValidationJob job)
     {
-        if (string.IsNullOrEmpty(job.TempFileName) || string.IsNullOrEmpty(job.OriginalFileName))
-            throw new InvalidOperationException($"Validation job <{job.Id}> does not have a correctly defined primary data file.");
+        if (job.Files == null || job.Files.Count == 0)
+            throw new InvalidOperationException($"Validation job <{job.Id}> does not have a correctly defined primary data files.");
 
-        using var stream = temporaryFileProvider.Open(job.TempFileName);
-        var asset = new Asset()
+        var assets = new List<Asset>();
+        foreach (var f in job.Files)
         {
-            AssetType = AssetType.PrimaryData,
-            OriginalFilename = job.OriginalFileName,
-            SanitizedFilename = job.TempFileName,
-            FileHash = SHA256.HashData(stream),
-        };
-        CopyAssetToPersistentStorage(job.Id, asset);
-        return asset;
+            using var stream = temporaryFileProvider.Open(f.TempFileName);
+            var asset = new Asset()
+            {
+                AssetType = AssetType.PrimaryData,
+                OriginalFilename = f.OriginalFileName,
+                SanitizedFilename = f.TempFileName,
+                FileHash = SHA256.HashData(stream),
+            };
+            CopyAssetToPersistentStorage(job.Id, asset);
+            assets.Add(asset);
+        }
+
+        return assets;
     }
 
     /// <summary>

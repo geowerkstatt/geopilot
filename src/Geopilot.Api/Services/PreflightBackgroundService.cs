@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Validation;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Channels;
 
@@ -74,20 +75,25 @@ public class PreflightBackgroundService : BackgroundService
             }
 
             var mandate = await mandateService.GetMandateForUser(request.MandateId, user);
-            if (mandate?.PipelineId == null || stagedJob.TempFileName == null)
+            if (mandate?.PipelineId == null || stagedJob.Files == null || stagedJob.Files.Count == 0)
             {
                 throw new InvalidOperationException($"The job <{request.JobId}> could not be started with mandate <{request.MandateId}>.");
             }
 
             fileProvider.Initialize(request.JobId);
-            var filePath = fileProvider.GetFilePath(stagedJob.TempFileName);
-            if (filePath == null)
-            {
-                throw new InvalidOperationException($"Could not resolve file path for job <{request.JobId}>.");
-            }
+            var pipelineFiles = stagedJob.Files
+                .Select(f =>
+                {
+                    var path = fileProvider.GetFilePath(f.TempFileName);
+                    if (path == null)
+                        return null;
+                    return new PipelineFile(path, f.OriginalFileName ?? "unknown");
+                })
+                .Where(f => f != null)
+                .Cast<IPipelineFile>()
+                .ToList();
 
-            var file = new PipelineFile(filePath, stagedJob.OriginalFileName ?? "unknown");
-            var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, file, request.JobId);
+            var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, pipelineFiles, request.JobId);
             jobStore.StartJob(request.JobId, pipeline, request.MandateId);
 
             logger.LogInformation("Preflight complete for job <{JobId}>. Pipeline queued.", request.JobId);

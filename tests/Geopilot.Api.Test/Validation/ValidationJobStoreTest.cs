@@ -37,8 +37,7 @@ public class ValidationJobStoreTest
 
         Assert.IsNotNull(job);
         Assert.AreEqual(Status.Created, job.Status);
-        Assert.IsNull(job.OriginalFileName);
-        Assert.IsNull(job.TempFileName);
+        Assert.HasCount(0, job.Files);
         Assert.AreNotEqual(Guid.Empty, job.Id);
         Assert.IsEmpty(job.ValidatorResults);
     }
@@ -68,8 +67,9 @@ public class ValidationJobStoreTest
         var updated = store.GetJob(job.Id);
 
         Assert.IsNotNull(updated);
-        Assert.AreEqual("original.txt", updated.OriginalFileName);
-        Assert.AreEqual("temp.txt", updated.TempFileName);
+        Assert.HasCount(1, updated.Files);
+        Assert.AreEqual("original.txt", updated.Files[0].OriginalFileName);
+        Assert.AreEqual("temp.txt", updated.Files[0].TempFileName);
         Assert.AreEqual(Status.Ready, updated.Status);
     }
 
@@ -174,8 +174,9 @@ public class ValidationJobStoreTest
 
         var updated = store.AddFileToJob(job.Id, "original.txt", "temp.txt");
 
-        Assert.AreEqual("original.txt", updated.OriginalFileName);
-        Assert.AreEqual("temp.txt", updated.TempFileName);
+        Assert.HasCount(1, updated.Files);
+        Assert.AreEqual("original.txt", updated.Files[0].OriginalFileName);
+        Assert.AreEqual("temp.txt", updated.Files[0].TempFileName);
         Assert.AreEqual(Status.Ready, updated.Status);
     }
 

@@ -79,7 +79,7 @@ public class CloudCleanupServiceTest
                 ($"uploads/{recentJobId}/test.xtf", 1024, recentTimestamp),
             });
 
-        jobStoreMock.Setup(s => s.GetJob(recentJobId)).Returns(new ValidationJob(recentJobId, null, null, null, System.Collections.Immutable.ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now));
+        jobStoreMock.Setup(s => s.GetJob(recentJobId)).Returns(new ValidationJob(recentJobId, new List<ValidationJobFile>(), null, System.Collections.Immutable.ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now));
 
         SetupEmptyContainerListing();
 
@@ -198,7 +198,7 @@ public class CloudCleanupServiceTest
             .Setup(s => s.DeletePrefixAsync($"uploads/{staleJobId}/"))
             .Returns(Task.CompletedTask);
 
-        jobStoreMock.Setup(s => s.GetJob(recentJobId)).Returns(new ValidationJob(recentJobId, null, null, null, System.Collections.Immutable.ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now));
+        jobStoreMock.Setup(s => s.GetJob(recentJobId)).Returns(new ValidationJob(recentJobId, new List<ValidationJobFile>(), null, System.Collections.Immutable.ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now));
 
         SetupEmptyContainerListing();
 
@@ -246,7 +246,7 @@ public class CloudCleanupServiceTest
                 ($"uploads/{jobId}/test.xtf", normalBytes, DateTime.UtcNow),
             });
 
-        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(new ValidationJob(jobId, null, null, null, System.Collections.Immutable.ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now));
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(new ValidationJob(jobId, new List<ValidationJobFile>(), null, System.Collections.Immutable.ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now));
 
         SetupEmptyContainerListing();
 

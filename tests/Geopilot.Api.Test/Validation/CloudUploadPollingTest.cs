@@ -205,6 +205,6 @@ public class CloudUploadPollingTest
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, It.Is<User>(u => u.AuthIdentifier == user.AuthIdentifier))).ReturnsAsync(mandate);
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.GetFilePath("random.xtf")).Returns("path/to/random.xtf");
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(mandate.PipelineId!, It.Is<IPipelineFile>(f => f.OriginalFileName == "test.xtf"), It.IsAny<Guid>())).Returns(pipeline.Object);
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(mandate.PipelineId!, It.Is<ICollection<IPipelineFile>>(f => f.Any(file => file.OriginalFileName == "test.xtf")), It.IsAny<Guid>())).Returns(pipeline.Object);
     }
 }

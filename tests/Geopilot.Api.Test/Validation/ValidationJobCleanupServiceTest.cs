@@ -83,8 +83,7 @@ public class ValidationJobCleanupServiceTest
 
         var oldJob = new ValidationJob(
             expiredJobId,
-            null,
-            null,
+            new List<ValidationJobFile>(),
             null,
             ImmutableDictionary<string, ValidatorResult?>.Empty,
             Status.Created,

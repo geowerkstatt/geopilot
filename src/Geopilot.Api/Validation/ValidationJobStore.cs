@@ -37,8 +37,7 @@ public class ValidationJobStore : IValidationJobStore
     {
         var newJob = new ValidationJob(
             Id: Guid.NewGuid(),
-            OriginalFileName: null,
-            TempFileName: null,
+            Files: new List<ValidationJobFile>(),
             MandateId: null,
             ValidatorResults: ImmutableDictionary<string, ValidatorResult?>.Empty,
             Status: Status.Created,
@@ -84,10 +83,13 @@ public class ValidationJobStore : IValidationJobStore
             if (currentJob.Status != Status.Created && currentJob.Status != Status.VerifyingUpload)
                 throw new InvalidOperationException($"Cannot add file to job <{jobId}> because its status is <{currentJob.Status}> instead of <{Status.Created}> or <{Status.VerifyingUpload}>.");
 
+            var validationJobFile = new ValidationJobFile(originalFileName, tempFileName);
+            if (currentJob.Files == null)
+                currentJob = currentJob with { Files = new List<ValidationJobFile>() };
+
+            currentJob.Files.Add(validationJobFile);
             return currentJob with
             {
-                OriginalFileName = originalFileName,
-                TempFileName = tempFileName,
                 Status = Status.Ready,
             };
         };

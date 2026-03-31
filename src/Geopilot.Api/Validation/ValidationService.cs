@@ -3,6 +3,7 @@ using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Services;
+using Geopilot.PipelineCore.Pipeline;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Validation;
@@ -75,16 +76,23 @@ public class ValidationService : IValidationService
 
         // Check if the user is allowed to start the job with the specified mandate
         var mandate = await mandateService.GetMandateForUser(mandateId, user);
-        if (mandate != null && mandate.PipelineId != null && validationJob.TempFileName != null)
+        if (mandate != null && mandate.PipelineId != null && validationJob.Files != null && validationJob.Files.Count > 0)
         {
             fileProvider.Initialize(jobId);
-            var filePath = fileProvider.GetFilePath(validationJob.TempFileName);
-            if (filePath != null)
-            {
-                var file = new PipelineFile(filePath, validationJob.OriginalFileName ?? "unknown");
-                var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, file, jobId);
-                return jobStore.StartJob(jobId, pipeline, mandateId);
-            }
+            var pipelineFiles = validationJob.Files
+                .Select(f =>
+                {
+                    var path = fileProvider.GetFilePath(f.TempFileName);
+                    if (path == null)
+                        return null;
+                    return new PipelineFile(path, f.OriginalFileName ?? "unknown");
+                })
+                .Where(f => f != null)
+                .Cast<IPipelineFile>()
+                .ToList();
+
+            var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, pipelineFiles, jobId);
+            return jobStore.StartJob(jobId, pipeline, mandateId);
         }
 
         throw new InvalidOperationException($"The job <{jobId}> could not be started with mandate <{mandateId}>.");
