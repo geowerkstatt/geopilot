@@ -171,19 +171,20 @@ public sealed class Pipeline : IPipeline
         foreach (var file in files)
         {
             var fileExtension = file.FileExtension;
-            var mappings = this.Parameters.Mappings
-                .Where(m => string.Equals(m.FileExtension, fileExtension, StringComparison.OrdinalIgnoreCase));
-            if (mappings.Count() > 1)
-                throw new ArgumentException($"Multiple mappings found for file extension '{fileExtension}'.");
-            foreach (var mapping in mappings)
+            var mapping = this.Parameters.Mappings
+                .FirstOrDefault(m => string.Equals(m.FileExtension, fileExtension, StringComparison.OrdinalIgnoreCase));
+            if (mapping != null)
             {
-               var output = new StepOutput()
-               {
-                   Action = new HashSet<OutputAction>(),
-                   Data = file,
-               };
-               stepResult.Outputs[mapping.Attribute] = output;
-               break;
+                if (stepResult.Outputs.ContainsKey(mapping.Attribute))
+                    throw new InvalidOperationException($"Multiple mappings found for file extension '{mapping.Attribute}'.");
+
+                var output = new StepOutput()
+                {
+                    Action = new HashSet<OutputAction>(),
+                    Data = file,
+                };
+
+                stepResult.Outputs[mapping.Attribute] = output;
             }
         }
 

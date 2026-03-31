@@ -52,7 +52,8 @@ public class ValidationService : IValidationService
     /// <inheritdoc/>
     public ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName)
     {
-        return jobStore.AddFileToJob(jobId, originalFileName, tempFileName);
+        jobStore.AddFileToJob(jobId, originalFileName, tempFileName);
+        return jobStore.FinishUpload(jobId);
     }
 
     /// <inheritdoc/>
@@ -69,7 +70,7 @@ public class ValidationService : IValidationService
             if (cloudMandate?.PipelineId == null)
                 throw new InvalidOperationException($"The job <{jobId}> could not be started with mandate <{mandateId}>.");
 
-            jobStore.SetJobStatus(jobId, Status.VerifyingUpload);
+            jobStore.VerifyUpload(jobId);
             await preflightQueue.WriteAsync(new PreflightRequest(jobId, mandateId, user?.AuthIdentifier));
             return jobStore.GetJob(jobId)!;
         }

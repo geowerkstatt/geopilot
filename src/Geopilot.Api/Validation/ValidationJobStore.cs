@@ -66,8 +66,7 @@ public class ValidationJobStore : IValidationJobStore
         return jobs.AddOrUpdate(jobId, id => throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId)), updateFunc);
     }
 
-    /// <inheritdoc/>
-    public ValidationJob SetJobStatus(Guid jobId, Status status)
+    private ValidationJob SetJobStatus(Guid jobId, Status status)
     {
         return jobs.AddOrUpdate(
             jobId,
@@ -88,13 +87,28 @@ public class ValidationJobStore : IValidationJobStore
                 currentJob = currentJob with { Files = new List<ValidationJobFile>() };
 
             currentJob.Files.Add(validationJobFile);
-            return currentJob with
-            {
-                Status = Status.Ready,
-            };
+            return currentJob;
         };
 
         return jobs.AddOrUpdate(jobId, id => throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId)), updateFunc);
+    }
+
+    /// <inheritdoc/>
+    public ValidationJob FinishUpload(Guid jobId)
+    {
+        return SetJobStatus(jobId, Status.Ready);
+    }
+
+    /// <inheritdoc/>
+    public ValidationJob VerifyUpload(Guid jobId)
+    {
+        return SetJobStatus(jobId, Status.VerifyingUpload);
+    }
+
+    /// <inheritdoc/>
+    public ValidationJob Failed(Guid jobId)
+    {
+        return SetJobStatus(jobId, Status.Failed);
     }
 
     /// <inheritdoc/>

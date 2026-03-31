@@ -113,7 +113,7 @@ public class PreflightBackgroundService : BackgroundService
 
             try
             {
-                jobStore.SetJobStatus(request.JobId, Status.Failed);
+                jobStore.Failed(request.JobId);
             }
             catch (Exception statusEx)
             {
