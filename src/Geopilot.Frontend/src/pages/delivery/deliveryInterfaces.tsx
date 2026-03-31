@@ -8,6 +8,11 @@ export enum DeliveryStepEnum {
   Done = "done",
 }
 
+export interface FileUploadStatus {
+  state: "neutral" | "uploading" | "completed" | "error";
+  error?: string;
+}
+
 export interface DeliveryStep {
   label: string;
   labelAddition?: string;
@@ -33,8 +38,10 @@ export interface DeliveryContextInterface {
   activeStep: number;
   isActiveStep: (step: DeliveryStepEnum) => boolean;
   setStepError: (key: DeliveryStepEnum, error: string | undefined) => void;
-  selectedFile?: File;
-  setSelectedFile: (file: File | undefined) => void;
+  selectedFiles: File[];
+  addFiles: (files: File[]) => void;
+  removeFile: (file: File) => void;
+  fileUploadStatus: Map<string, FileUploadStatus>;
   selectedMandate?: Mandate;
   setSelectedMandate: (mandate: Mandate | undefined) => void;
   jobId?: string;
@@ -43,6 +50,7 @@ export interface DeliveryContextInterface {
   isLoading: boolean;
   isValidating: boolean;
   uploadFile: () => void;
+  cancelUpload: () => void;
   validateFile: (startJobRequest: StartJobRequest) => void;
   submitDelivery: (data: DeliverySubmitData) => void;
   resetDelivery: () => void;
