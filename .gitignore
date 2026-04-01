@@ -408,3 +408,4 @@ src/Geopilot.Frontend/cypress/screenshots
 
 # Local dev-certs output
 certs/
+/.claude/settings.local.json

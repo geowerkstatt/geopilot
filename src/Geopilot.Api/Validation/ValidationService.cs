@@ -92,7 +92,7 @@ public class ValidationService : IValidationService
                 .Cast<IPipelineFile>()
                 .ToList();
 
-            var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, pipelineFiles, jobId);
+            var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, new PipelineFileList(pipelineFiles), jobId);
             return jobStore.StartJob(jobId, pipeline, mandateId);
         }
 

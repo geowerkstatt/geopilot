@@ -173,6 +173,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "upload", uploadStepResult },
@@ -245,6 +246,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "step_01", stepStepResult01 },
@@ -310,6 +312,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "step_01", stepStepResult01 },
@@ -382,6 +385,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "step_01", stepStepResult01 },
@@ -455,6 +459,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "step_01", stepStepResult01 },
@@ -526,6 +531,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "step_01", stepStepResult01 },
@@ -594,6 +600,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "step_01", stepStepResult01 },
@@ -667,6 +674,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "step_01", stepStepResult01 },
@@ -716,6 +724,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "step_01", stepStepResult01 },
@@ -765,6 +774,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "step_01", stepStepResult01 },
@@ -814,6 +824,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "upload", uploadStepResult },
@@ -866,6 +877,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "upload", uploadStepResult },
@@ -918,6 +930,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "upload", uploadStepResult },
@@ -972,6 +985,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "upload", uploadStepResult },
@@ -1035,6 +1049,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "upload", uploadStepResult },
@@ -1111,6 +1126,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "upload", uploadStepResult },
@@ -1187,6 +1203,7 @@ public class PipelineStepTest
         };
         var pipelineContext = new PipelineContext()
         {
+            Upload = new PipelineFileList(),
             StepResults = new Dictionary<string, StepResult>()
             {
                 { "upload", uploadStepResult },
