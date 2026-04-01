@@ -205,7 +205,7 @@ public class ValidationServiceTest
             .Returns(cloudJob)
             .Returns(verifyingJob);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user)).ReturnsAsync(mandate);
-        validationJobStoreMock.Setup(x => x.SetJobStatus(jobId, Status.VerifyingUpload)).Returns(verifyingJob);
+        validationJobStoreMock.Setup(x => x.VerifyUpload(jobId)).Returns(verifyingJob);
 
         // Act
         var result = await validationService.StartJobAsync(jobId, mandateId, user);
