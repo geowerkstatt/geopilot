@@ -313,7 +313,7 @@ namespace Geopilot.Api.Controllers
             var validationServiceMock = new Mock<IValidationService>();
             validationServiceMock
                 .Setup(s => s.GetJob(guid))
-                .Returns(new ValidationJob(guid, "ORIGINAL.zip", "TEMP.zip", mandateToUpdate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed, DateTime.Now));
+                .Returns(new ValidationJob(guid, new List<ValidationJobFile>() { new ValidationJobFile("ORIGINAL.zip", "TEMP.zip") }, mandateToUpdate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed, DateTime.Now));
             var assetHandlerMock = new Mock<IAssetHandler>();
             assetHandlerMock
                 .Setup(p => p.PersistJobAssets(guid))

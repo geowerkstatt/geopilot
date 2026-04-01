@@ -101,17 +101,6 @@ public class CloudOrchestrationServiceTest
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.InitiateUploadAsync(request));
     }
 
-    // TODO: Remove this test when multi-file upload support is added.
-    [TestMethod]
-    public async Task InitiateUploadAsyncThrowsForMultipleFiles()
-    {
-        var request = new CloudUploadRequest
-        {
-            Files = [new FileMetadata("a.xtf", 1024), new FileMetadata("b.xtf", 2048)],
-        };
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.InitiateUploadAsync(request));
-    }
-
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsForZeroFileSize()
     {
@@ -230,10 +219,10 @@ public class CloudOrchestrationServiceTest
             .Returns(Task.CompletedTask);
 
         var updated = await service.StageFilesLocallyAsync(job.Id);
-
-        Assert.AreEqual("test.xtf", updated.OriginalFileName);
-        Assert.AreEqual("random123.xtf", updated.TempFileName);
-        Assert.AreEqual(Status.Ready, updated.Status);
+        Assert.HasCount(1, updated.Files);
+        Assert.AreEqual("test.xtf", updated.Files[0].OriginalFileName);
+        Assert.AreEqual("random123.xtf", updated.Files[0].TempFileName);
+        Assert.AreEqual(Status.Created, updated.Status);
         cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{job.Id}/"), Times.Once);
     }
 

@@ -48,7 +48,7 @@ public class PipelineFactoryTest
     public void CreatePipelineByIdButPipelineNotDefined()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("foo", Mock.Of<IPipelineFile>(), Guid.NewGuid()));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => factory.CreatePipeline("foo", new List<IPipelineFile> { Mock.Of<IPipelineFile>() }, Guid.NewGuid()));
         Assert.AreEqual("pipeline for 'foo' not found", exception.Message);
     }
 
@@ -56,7 +56,7 @@ public class PipelineFactoryTest
     public void CreateBasicPipeline()
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
-        using var pipeline = factory.CreatePipeline("ili_validation", Mock.Of<IPipelineFile>(), Guid.NewGuid());
+        using var pipeline = factory.CreatePipeline("ili_validation", new List<IPipelineFile> { Mock.Of<IPipelineFile>() }, Guid.NewGuid());
         Assert.AreEqual(PipelineState.Pending, pipeline.State, "pipeline state not as expected");
         Assert.AreEqual(StepState.Pending, pipeline.Steps[0].State, "step state not as expected");
         Assert.IsNotNull(pipeline, "pipeline not created");

@@ -60,7 +60,7 @@ public class ValidationServiceTest
         const string tempFileName = "TEMP.xtf";
         using var expectedFileHandle = new FileHandle(tempFileName, Stream.Null);
 
-        var job = new ValidationJob(Guid.NewGuid(), originalFileName, tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now);
+        var job = new ValidationJob(Guid.NewGuid(), new List<ValidationJobFile>() { new ValidationJobFile(originalFileName, tempFileName) }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now);
         validationJobStoreMock
             .Setup(x => x.GetJob(job.Id))
             .Returns(job);
@@ -107,8 +107,8 @@ public class ValidationServiceTest
         var tempFilePath = $"path/to/{tempFileName}";
         var originalFileName = "original.xtf";
 
-        var job = new ValidationJob(jobId, originalFileName, tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
-        var startedJob = new ValidationJob(jobId, originalFileName, tempFileName, mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing, DateTime.Now);
+        var job = new ValidationJob(jobId, new List<ValidationJobFile>() { new ValidationJobFile(originalFileName, tempFileName) }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
+        var startedJob = new ValidationJob(jobId, new List<ValidationJobFile>() { new ValidationJobFile(originalFileName, tempFileName) }, mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing, DateTime.Now);
 
         var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
 
@@ -130,7 +130,7 @@ public class ValidationServiceTest
 
         pipelineFactoryMock.Setup(x => x.CreatePipeline(
             pipelineId,
-            It.Is<IPipelineFile>(file => file.OriginalFileName == originalFileName),
+            It.Is<List<IPipelineFile>>(files => files.Any(file => file.OriginalFileName == originalFileName)),
             It.IsAny<Guid>()))
             .Returns(pipeline.Object);
 
@@ -150,7 +150,7 @@ public class ValidationServiceTest
         var tempFileName = "file.xtf";
         var mandateId = 1;
         var user = new User { Id = 2, FullName = nameof(StartJobAsyncWithMandateThrowsForUnsupportedFileType) };
-        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
+        var job = new ValidationJob(jobId, new List<ValidationJobFile>() { new ValidationJobFile("original.xtf", tempFileName) }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
         var mandate = new Mandate { Id = mandateId, Name = nameof(StartJobAsyncWithMandateThrowsForUnsupportedFileType), FileTypes = [".csv"] };
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user))
@@ -173,7 +173,7 @@ public class ValidationServiceTest
         var mandateId = 1;
         var user = new User { Id = 2, FullName = nameof(StartJobAsyncWithMandateThrowsForInvalidMandate) };
 
-        var job = new ValidationJob(jobId, "original.xtf", tempFileName, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
+        var job = new ValidationJob(jobId, new List<ValidationJobFile>() { new ValidationJobFile("original.xtf", tempFileName) }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user))
@@ -198,14 +198,14 @@ public class ValidationServiceTest
         var mandate = new Mandate { Id = mandateId, Name = nameof(StartJobAsyncQueuesPreflightForCloudJob), FileTypes = [".xtf"], PipelineId = pipelineId };
         var user = new User { Id = 2, FullName = nameof(StartJobAsyncQueuesPreflightForCloudJob), AuthIdentifier = "auth-123" };
 
-        var cloudJob = new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
-        var verifyingJob = new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.VerifyingUpload, DateTime.Now, UploadMethod.Cloud);
+        var cloudJob = new ValidationJob(jobId, new List<ValidationJobFile>(), null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
+        var verifyingJob = new ValidationJob(jobId, new List<ValidationJobFile>(), null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.VerifyingUpload, DateTime.Now, UploadMethod.Cloud);
 
         validationJobStoreMock.SetupSequence(x => x.GetJob(jobId))
             .Returns(cloudJob)
             .Returns(verifyingJob);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user)).ReturnsAsync(mandate);
-        validationJobStoreMock.Setup(x => x.SetJobStatus(jobId, Status.VerifyingUpload)).Returns(verifyingJob);
+        validationJobStoreMock.Setup(x => x.VerifyUpload(jobId)).Returns(verifyingJob);
 
         // Act
         var result = await validationService.StartJobAsync(jobId, mandateId, user);
@@ -233,18 +233,18 @@ public class ValidationServiceTest
 
         var pipelineId = "pipeline1";
         mandate.PipelineId = pipelineId;
-        var directJob = new ValidationJob(jobId, "original.xtf", "file.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
-        var startedJob = new ValidationJob(jobId, "original.xtf", "file.xtf", mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing, DateTime.Now);
-        var tempFilePath = $"path/to/{directJob.TempFileName}";
+        var directJob = new ValidationJob(jobId, new List<ValidationJobFile>() { new ValidationJobFile("original.xtf", "file.xtf") }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now);
+        var startedJob = new ValidationJob(jobId, new List<ValidationJobFile>() { new ValidationJobFile("original.xtf", "file.xtf") }, mandate.Id, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Processing, DateTime.Now);
+        var tempFilePath = $"path/to/file.xtf";
         var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(directJob);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
 
         fileProviderMock.Setup(x => x.Initialize(jobId));
-        fileProviderMock.Setup(x => x.GetFilePath(directJob.TempFileName!)).Returns(tempFilePath);
+        fileProviderMock.Setup(x => x.GetFilePath("file.xtf")).Returns(tempFilePath);
 
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<IPipelineFile>(), It.IsAny<Guid>()))
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<List<IPipelineFile>>(), It.IsAny<Guid>()))
             .Returns(pipeline.Object);
 
         validationJobStoreMock
@@ -266,7 +266,7 @@ public class ValidationServiceTest
         // Arrange
         var jobId = Guid.NewGuid();
         var mandateId = 1;
-        var cloudJob = new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
+        var cloudJob = new ValidationJob(jobId, new List<ValidationJobFile>(), null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(cloudJob);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, It.IsAny<User?>())).ReturnsAsync((Mandate?)null);
@@ -294,7 +294,7 @@ public class ValidationServiceTest
             pipelineFactoryMock.Object);
 
         var jobId = Guid.NewGuid();
-        var cloudJob = new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
+        var cloudJob = new ValidationJob(jobId, new List<ValidationJobFile>(), null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)));
 
         validationJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(cloudJob);
 

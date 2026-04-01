@@ -149,6 +149,8 @@ public class CloudOrchestrationService : ICloudOrchestrationService
             updatedJob = jobStore.AddFileToJob(jobId, file.FileName, fileHandle.FileName);
         }
 
+        jobStore.FinishUpload(jobId);
+
         var cloudPrefix = $"uploads/{jobId}/";
         await cloudStorageService.DeletePrefixAsync(cloudPrefix);
 
@@ -163,10 +165,6 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
         if (request.Files == null || request.Files.Count == 0)
             throw new ArgumentException("At least one file must be specified.", nameof(request));
-
-        // TODO: Remove this limitation when multi-file upload support is added.
-        if (request.Files.Count > 1)
-            throw new ArgumentException("Only single file uploads are currently supported.", nameof(request));
 
         if (request.Files.Count > options.Value.MaxFilesPerJob)
             throw new ArgumentException($"Too many files. Maximum is {options.Value.MaxFilesPerJob}.", nameof(request));

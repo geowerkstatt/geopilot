@@ -175,7 +175,7 @@ public class MandateServiceTest
         var jobId = Guid.NewGuid();
         validationJobStoreMock
             .Setup(m => m.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
+            .Returns(new ValidationJob(jobId, new List<ValidationJobFile>() { new ValidationJobFile("Original.xtf", "tmp.xtf") }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
 
         var result = await mandateService.GetMandatesAsync(editUser, jobId);
 
@@ -193,7 +193,7 @@ public class MandateServiceTest
         var jobId = Guid.NewGuid();
         validationJobStoreMock
             .Setup(m => m.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
+            .Returns(new ValidationJob(jobId, new List<ValidationJobFile>() { new ValidationJobFile("Original.xtf", "tmp.xtf") }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
 
         var result = await mandateService.GetMandatesAsync(adminUser, jobId);
 
@@ -224,7 +224,7 @@ public class MandateServiceTest
         var jobId = Guid.NewGuid();
         validationJobStoreMock
             .Setup(m => m.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "Original.xtf", "tmp.xtf", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
+            .Returns(new ValidationJob(jobId, new List<ValidationJobFile>() { new ValidationJobFile("Original.xtf", "tmp.xtf") }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
 
         var result = await mandateService.GetMandatesAsync(null, jobId);
 
@@ -242,7 +242,7 @@ public class MandateServiceTest
         var jobId = Guid.NewGuid();
         validationJobStoreMock
             .Setup(m => m.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, "Original.XTF", "tmp.XTF", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
+            .Returns(new ValidationJob(jobId, new List<ValidationJobFile>() { new ValidationJobFile("Original.XTF", "tmp.XTF") }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now));
 
         var result = await mandateService.GetMandatesAsync(editUser, jobId);
 
@@ -271,7 +271,7 @@ public class MandateServiceTest
         var cloudFiles = ImmutableList.Create(new CloudFileInfo("data.xtf", "blobs/data.xtf", 1024));
         validationJobStoreMock
             .Setup(m => m.GetJob(jobId))
-            .Returns(new ValidationJob(jobId, null, null, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now, Enums.UploadMethod.Cloud, cloudFiles));
+            .Returns(new ValidationJob(jobId, new List<ValidationJobFile>(), null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Ready, DateTime.Now, Enums.UploadMethod.Cloud, cloudFiles));
 
         var result = await mandateService.GetMandatesAsync(editUser, jobId);
 

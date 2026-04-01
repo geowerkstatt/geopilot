@@ -76,7 +76,7 @@ public class PipelineIntegrationTest
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
         PipelineFile uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
-        using var pipeline = factory.CreatePipeline("two_steps", uploadFile, Guid.NewGuid());
+        using var pipeline = factory.CreatePipeline("two_steps", new List<IPipelineFile> { uploadFile }, Guid.NewGuid());
 
         using HttpResponseMessage uploadMockResponse = new()
         {

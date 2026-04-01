@@ -37,8 +37,7 @@ public class ValidationJobStoreTest
 
         Assert.IsNotNull(job);
         Assert.AreEqual(Status.Created, job.Status);
-        Assert.IsNull(job.OriginalFileName);
-        Assert.IsNull(job.TempFileName);
+        Assert.HasCount(0, job.Files);
         Assert.AreNotEqual(Guid.Empty, job.Id);
         Assert.IsEmpty(job.ValidatorResults);
     }
@@ -68,9 +67,10 @@ public class ValidationJobStoreTest
         var updated = store.GetJob(job.Id);
 
         Assert.IsNotNull(updated);
-        Assert.AreEqual("original.txt", updated.OriginalFileName);
-        Assert.AreEqual("temp.txt", updated.TempFileName);
-        Assert.AreEqual(Status.Ready, updated.Status);
+        Assert.HasCount(1, updated.Files);
+        Assert.AreEqual("original.txt", updated.Files[0].OriginalFileName);
+        Assert.AreEqual("temp.txt", updated.Files[0].TempFileName);
+        Assert.AreEqual(Status.Created, updated.Status);
     }
 
     [TestMethod]
@@ -84,6 +84,7 @@ public class ValidationJobStoreTest
     {
         var job = store.CreateJob();
         store.AddFileToJob(job.Id, "a", "b");
+        store.FinishUpload(job.Id);
         Assert.ThrowsExactly<InvalidOperationException>(() => store.AddFileToJob(job.Id, "a2", "b2"));
     }
 
@@ -93,6 +94,7 @@ public class ValidationJobStoreTest
         var job = store.CreateJob();
         var mandateId = 123;
         store.AddFileToJob(job.Id, "a", "b");
+        store.FinishUpload(job.Id);
 
         var pipeline = new Mock<IPipeline>();
 
@@ -134,7 +136,7 @@ public class ValidationJobStoreTest
     {
         var job = store.CreateJob();
         store.AddFileToJob(job.Id, "original.xtf", "temp.xtf");
-
+        store.FinishUpload(job.Id);
         fileProviderMock.Setup(p => p.Initialize(job.Id));
         fileProviderMock.Setup(p => p.CreateFileWithRandomName(".xtf"));
 
@@ -154,7 +156,7 @@ public class ValidationJobStoreTest
     public void SetJobStatus()
     {
         var job = store.CreateJob();
-        var updated = store.SetJobStatus(job.Id, Status.VerifyingUpload);
+        var updated = store.VerifyUpload(job.Id);
 
         Assert.AreEqual(Status.VerifyingUpload, updated.Status);
         Assert.AreEqual(job.Id, updated.Id);
@@ -163,20 +165,20 @@ public class ValidationJobStoreTest
     [TestMethod]
     public void SetJobStatusThrowsIfJobNotFound()
     {
-        Assert.ThrowsExactly<ArgumentException>(() => store.SetJobStatus(Guid.NewGuid(), Status.VerifyingUpload));
+        Assert.ThrowsExactly<ArgumentException>(() => store.VerifyUpload(Guid.NewGuid()));
     }
 
     [TestMethod]
     public void AddFileToJobSucceedsForVerifyingUploadStatus()
     {
         var job = store.CreateJob();
-        store.SetJobStatus(job.Id, Status.VerifyingUpload);
 
         var updated = store.AddFileToJob(job.Id, "original.txt", "temp.txt");
 
-        Assert.AreEqual("original.txt", updated.OriginalFileName);
-        Assert.AreEqual("temp.txt", updated.TempFileName);
-        Assert.AreEqual(Status.Ready, updated.Status);
+        Assert.HasCount(1, updated.Files);
+        Assert.AreEqual("original.txt", updated.Files[0].OriginalFileName);
+        Assert.AreEqual("temp.txt", updated.Files[0].TempFileName);
+        Assert.AreEqual(Status.Created, updated.Status);
     }
 
     [TestMethod]
@@ -233,6 +235,7 @@ public class ValidationJobStoreTest
     {
         var job = store.CreateJob();
         store.AddFileToJob(job.Id, "a", "b");
+        store.FinishUpload(job.Id);
 
         var cloudFiles = ImmutableList.Create(new CloudFileInfo("file.xtf", "jobs/file.xtf", 1024));
         Assert.ThrowsExactly<InvalidOperationException>(() => store.AddUploadInfoToJob(job.Id, UploadMethod.Cloud, cloudFiles));

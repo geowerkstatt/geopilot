@@ -76,9 +76,15 @@ public class MandateService : IMandateService
     {
         var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
 
-        if (job.OriginalFileName != null)
+        IEnumerable<string> fileExtensions = job.Files
+            .Select(f => f.OriginalFileName)
+            .Select(Path.GetExtension)
+            .Where(ext => !string.IsNullOrEmpty(ext))
+            .Cast<string>();
+
+        if (fileExtensions.Any())
         {
-            return mandates.FilterMandatesByFileExtension(Path.GetExtension(job.OriginalFileName));
+            return mandates.FilterMandatesByFileExtensions(fileExtensions);
         }
 
         if (job.CloudFiles is { Count: > 0 })

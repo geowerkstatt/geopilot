@@ -45,17 +45,7 @@ namespace Geopilot.Api.Validation
         ValidationJob AddUploadInfoToJob(Guid jobId, UploadMethod uploadMethod, ImmutableList<CloudFileInfo> cloudFiles);
 
         /// <summary>
-        /// Transitions the job to the specified <paramref name="status"/>.
-        /// </summary>
-        /// <param name="jobId">The id of the job to update.</param>
-        /// <param name="status">The new status for the job.</param>
-        /// <returns>The updated job with the new status.</returns>
-        /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
-        ValidationJob SetJobStatus(Guid jobId, Status status);
-
-        /// <summary>
-        /// Adds the original and temporary file name to the specified job,
-        /// signaling that the file for the job has been uploaded and thus updating its status to <see cref="Status.Ready"/>.
+        /// Adds the specified file to the job with the specified id.
         /// </summary>
         /// <remarks>This method only succeeds if the job has the status <see cref="Status.Created"/> or <see cref="Status.VerifyingUpload"/>.</remarks>
         /// <param name="jobId">The id of the job to add the file to.</param>
@@ -65,6 +55,27 @@ namespace Geopilot.Api.Validation
         /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
         /// <exception cref="InvalidOperationException">If the status of the job is not <see cref="Status.Created"/> or <see cref="Status.VerifyingUpload"/>.</exception>
         ValidationJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName);
+
+        /// <summary>
+        /// Finishes the upload process for the specified job.
+        /// </summary>
+        /// <param name="jobId">The id of the job to finish the upload for.</param>
+        /// <returns>The updated job with the status set to <see cref="Status.Ready"/>.</returns>
+        ValidationJob FinishUpload(Guid jobId);
+
+        /// <summary>
+        /// Sets the status of the specified job to <see cref="Status.VerifyingUpload"/> to indicate that the upload is being verified.
+        /// </summary>
+        /// <param name="jobId">The id of the job to update.</param>
+        /// <returns>The updated job, with its status set to <see cref="Status.VerifyingUpload"/>.</returns>
+        ValidationJob VerifyUpload(Guid jobId);
+
+        /// <summary>
+        /// Marks the specified validation job as failed and returns the updated job instance.
+        /// </summary>
+        /// <param name="jobId">The unique identifier of the validation job to mark as failed.</param>
+        /// <returns>A <see cref="ValidationJob"/> instance representing the job after it has been marked as failed.</returns>
+        ValidationJob Failed(Guid jobId);
 
         /// <summary>
         /// Starts the validation job with the specified <paramref name="jobId"/> using the specified <paramref name="pipeline"/>.

@@ -8,8 +8,7 @@ namespace Geopilot.Api.Validation;
 /// </summary>
 public record class ValidationJob(
     Guid Id,
-    string? OriginalFileName,
-    string? TempFileName,
+    List<ValidationJobFile> Files,
     int? MandateId,
     ImmutableDictionary<string, ValidatorResult?> ValidatorResults,
     Status Status,

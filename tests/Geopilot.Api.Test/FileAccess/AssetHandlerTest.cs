@@ -23,7 +23,7 @@ public class AssetHandlerTest
     [TestInitialize]
     public void Initialize()
     {
-        job = new ValidationJob(Guid.NewGuid(), "OriginalName", "TempFileName", null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed, DateTime.Now);
+        job = new ValidationJob(Guid.NewGuid(), new List<ValidationJobFile>() { new ValidationJobFile("OriginalName", "TempFileName") }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed, DateTime.Now);
         uploadDirectory = AssemblyInitialize.TestDirectoryProvider.GetUploadDirectoryPath(job.Id);
         assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(job.Id);
         loggerMock = new Mock<ILogger<AssetHandler>>();
@@ -75,7 +75,7 @@ public class AssetHandlerTest
         {
             { "myValidator", new ValidatorResult(ValidatorResultStatus.Completed, string.Empty, logFiles) },
         }.ToImmutableDictionary();
-        var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", null, validatorResults, Status.Completed, DateTime.Now);
+        var jobWithLogFiles = new ValidationJob(job.Id, new List<ValidationJobFile>() { new ValidationJobFile("OriginalName", "TempFileName") }, null, validatorResults, Status.Completed, DateTime.Now);
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
 
         var assets = assetHandler.PersistJobAssets(job.Id);
@@ -101,7 +101,7 @@ public class AssetHandlerTest
         {
             { "myValidator", new ValidatorResult(ValidatorResultStatus.Completed, string.Empty, logFiles) },
         }.ToImmutableDictionary();
-        var jobWithLogFiles = new ValidationJob(job.Id, "OriginalName", "TempFileName", null, validatorResults, Status.Completed, DateTime.Now);
+        var jobWithLogFiles = new ValidationJob(job.Id, new List<ValidationJobFile>() { new ValidationJobFile("OriginalName", "TempFileName") }, null, validatorResults, Status.Completed, DateTime.Now);
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
 
         Assert.ThrowsExactly<ArgumentNullException>(() => assetHandler.PersistJobAssets(job.Id));

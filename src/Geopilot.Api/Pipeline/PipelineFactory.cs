@@ -41,7 +41,7 @@ public class PipelineFactory : IPipelineFactory
     public List<PipelineConfig> Pipelines => PipelineProcessConfig.Pipelines;
 
     /// <inheritdoc />
-    public IPipeline CreatePipeline(string id, IPipelineFile file, Guid jobId)
+    public IPipeline CreatePipeline(string id, ICollection<IPipelineFile> files, Guid jobId)
     {
         var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Id == id);
 
@@ -55,7 +55,7 @@ public class PipelineFactory : IPipelineFactory
                 .Steps(CreateSteps(pipelineConfig, pipelineTempDirectory, jobId))
                 .Parameters(pipelineConfig.Parameters)
                 .DeliveryCondition(pipelineConfig.DeliveryCondition)
-                .File(file)
+                .Files(files)
                 .Logger(PipelineLogger
                     .Builder()
                     .Logger(loggerFactory.CreateLogger<Pipeline>())
