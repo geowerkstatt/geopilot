@@ -76,7 +76,7 @@ public class PipelineIntegrationTest
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
         PipelineFile uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
-        using var pipeline = factory.CreatePipeline("two_steps", new List<IPipelineFile> { uploadFile }, Guid.NewGuid());
+        using var pipeline = factory.CreatePipeline("two_steps", new PipelineFileList(new List<IPipelineFile> { uploadFile }), Guid.NewGuid());
 
         using HttpResponseMessage uploadMockResponse = new()
         {
@@ -155,7 +155,7 @@ public class PipelineIntegrationTest
             });
 
         Assert.IsNotNull(pipeline, "pipeline not created");
-        Assert.HasCount(2, pipeline.Steps);
+        Assert.HasCount(3, pipeline.Steps);
 
         var context = await pipeline.Run(CancellationToken.None);
 
@@ -163,6 +163,7 @@ public class PipelineIntegrationTest
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[1].State);
+        Assert.AreEqual(StepState.Success, pipeline.Steps[2].State);
 
         // Assert if uploaded file was correctly added to PipelineContext
         var stepResults = context.StepResults;
@@ -179,7 +180,7 @@ public class PipelineIntegrationTest
         Assert.AreEqual(uploadFile.OriginalFileName, uploadedFile.OriginalFileName);
 
         // Assert if StepResults from executed PipelineSteps are in the PipelineContext
-        Assert.HasCount(3, stepResults);
+        Assert.HasCount(4, stepResults);
         Assert.IsTrue(stepResults.ContainsKey(validationStepId));
         var validationSetpResult = stepResults[validationStepId];
         Assert.HasCount(3, validationSetpResult.Outputs, "validation step has not the expected number of data");

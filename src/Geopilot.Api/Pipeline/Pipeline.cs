@@ -79,7 +79,7 @@ public sealed class Pipeline : IPipeline
     /// <summary>
     /// The files to be processed for the pipeline.
     /// </summary>
-    private readonly ICollection<IPipelineFile> files;
+    private readonly IPipelineFileList uploadFiles;
 
     private ILogger logger;
 
@@ -91,7 +91,7 @@ public sealed class Pipeline : IPipeline
     /// <param name="steps">The steps in the pipeline.</param>
     /// <param name="parameters">The parameters for the pipeline.</param>
     /// <param name="deliveryCondition">Expression to determine when the pipeline step data can be delivered.</param>
-    /// <param name="files">The files to be processed for the pipeline.</param>
+    /// <param name="uploadFiles">The files to be processed for the pipeline.</param>
     /// <param name="logger">The logger to use for logging.</param>
     /// <param name="pipelineDirectory">The directory for the pipeline to use for storing temporary files. The pipeline is responsible for cleaning up the temporary files during dispose.</param>
     /// <param name="jobId">The job id associated with the pipeline execution, used for logging and tracking purposes.</param>
@@ -101,7 +101,7 @@ public sealed class Pipeline : IPipeline
         List<IPipelineStep> steps,
         PipelineParametersConfig parameters,
         string? deliveryCondition,
-        ICollection<IPipelineFile> files,
+        IPipelineFileList uploadFiles,
         ILogger logger,
         string pipelineDirectory,
         Guid jobId)
@@ -111,7 +111,7 @@ public sealed class Pipeline : IPipeline
         this.Steps = steps;
         this.Parameters = parameters;
         this.deliveryCondition = deliveryCondition;
-        this.files = files;
+        this.uploadFiles = uploadFiles ?? throw new ArgumentNullException(nameof(uploadFiles));
         this.conditionEvaluator = new ConditionEvaluator(logger);
         this.pipelineFileDirectory = pipelineDirectory;
         this.logger = logger;
@@ -121,29 +121,28 @@ public sealed class Pipeline : IPipeline
     /// <inheritdoc/>
     public async Task<PipelineContext> Run(CancellationToken cancellationToken)
     {
-        logger.LogInformation($"starting pipeline");
+        logger.LogInformation("starting pipeline");
         var context = new PipelineContext()
         {
+            Upload = this.uploadFiles,
             StepResults = new Dictionary<string, StepResult>(),
         };
 
-        if (files != null)
-        {
-            var uploadStepResult = CreateUploadStepResult(files);
-            context.StepResults[this.Parameters.UploadStep] = uploadStepResult;
-        }
+        var uploadStepResult = CreateUploadStepResult(this.uploadFiles);
+        context.StepResults[this.Parameters.UploadStep] = uploadStepResult;
 
         foreach (var step in this.Steps)
         {
             if (this.State == PipelineState.Failed)
                 break;
+
             var stepResult = await step.Run(context, cancellationToken).ConfigureAwait(false);
             context.StepResults[step.Id] = stepResult;
         }
 
         await this.EvaluateDeliveryCondition(context);
 
-        logger.LogInformation($"all steps in pipeline executed");
+        logger.LogInformation("all steps in pipeline executed");
         return context;
     }
 
@@ -164,11 +163,11 @@ public sealed class Pipeline : IPipeline
         }
     }
 
-    private StepResult CreateUploadStepResult(ICollection<IPipelineFile> files)
+    private StepResult CreateUploadStepResult(IPipelineFileList files)
     {
         var stepResult = new StepResult();
 
-        foreach (var file in files)
+        foreach (var file in files.Files)
         {
             var fileExtension = file.FileExtension;
             var mapping = this.Parameters.Mappings
@@ -200,7 +199,7 @@ public sealed class Pipeline : IPipeline
         private List<IPipelineStep>? steps;
         private PipelineParametersConfig? parameters;
         private string? deliveryCondition;
-        private ICollection<IPipelineFile>? files;
+        private IPipelineFileList? uploadFiles;
         private ILogger? logger;
         private string? pipelineDirectory;
         private Guid? jobId;
@@ -235,9 +234,9 @@ public sealed class Pipeline : IPipeline
             return this;
         }
 
-        public PipelineBuilder Files(ICollection<IPipelineFile> files)
+        public PipelineBuilder UploadFiles(IPipelineFileList uploadFiles)
         {
-            this.files = files;
+            this.uploadFiles = uploadFiles;
             return this;
         }
 
@@ -269,7 +268,7 @@ public sealed class Pipeline : IPipeline
                 throw new InvalidOperationException("Pipeline Steps must be provided.");
             if (parameters == null)
                 throw new InvalidOperationException("Pipeline Parameters must be provided.");
-            if (files == null || files.Count == 0)
+            if (uploadFiles == null || uploadFiles.Files.Count == 0)
                 throw new InvalidOperationException("Pipeline File must be provided.");
             if (logger == null)
                 throw new InvalidOperationException("Logger must be provided.");
@@ -278,7 +277,7 @@ public sealed class Pipeline : IPipeline
             if (jobId == null)
                 throw new InvalidOperationException("Pipeline JobId must be provided.");
 
-            return new Pipeline(id, displayName, steps, parameters, deliveryCondition, files, logger, pipelineDirectory, jobId.Value);
+            return new Pipeline(id, displayName, steps, parameters, deliveryCondition, uploadFiles, logger, pipelineDirectory, jobId.Value);
         }
     }
 }

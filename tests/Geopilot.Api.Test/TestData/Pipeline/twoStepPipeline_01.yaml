@@ -8,6 +8,11 @@ processes:
     implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
     default_config:
       archiveFileName: myPersonalZipArchive
+  - id: xtf_matcher
+    implementation: Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions: xtf
+      iliModels: RoadsExdm2ien
 pipelines:
   - id: two_steps
     display_name:
@@ -19,6 +24,13 @@ pipelines:
           attribute: ili_file
     delivery_condition: "[validation.successful]"
     steps:
+      - id: matcher
+        display_name:
+          en: XTF Matcher
+        process_id: xtf_matcher
+        output:
+          - take: xtf_files
+            as: xtfFiles
       - id: validation
         display_name:
           en: XTF Validation

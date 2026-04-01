@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.Reflection;
 
@@ -215,6 +216,16 @@ public sealed class PipelineStep : IPipelineStep
             return cancellationToken;
         }
 
+        var uploadFilesAttribute = parameterInfo.GetCustomAttribute<UploadFilesAttribute>();
+        if (uploadFilesAttribute != null)
+        {
+            if (parameterInfo.ParameterType.IsAssignableFrom(context.Upload.GetType()))
+                return context.Upload;
+            else if (IsArrayElementNullable(parameterInfo))
+                return null;
+            throw new PipelineRunException($"The parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> was marked with the UploadFilesAttribute, but was not assignable from the injected upload files collection of type <{context.Upload.GetType().FullName}>.");
+        }
+
         // get all mapped values for the parameter based on the step's input config and the pipeline context
         var mappedValues = CollectMappedValues(parameterInfo, context);
 
@@ -243,7 +254,10 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     if (parameterInfo.Name == inputConfig.As)
                     {
-                        mappedValues.Add(stepOutput.Data);
+                        if (stepOutput.Data is IEnumerable<object?> collection)
+                            mappedValues.AddRange(collection);
+                        else
+                            mappedValues.Add(stepOutput.Data);
                     }
                 }
             }
