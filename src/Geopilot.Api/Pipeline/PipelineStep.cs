@@ -212,9 +212,7 @@ public sealed class PipelineStep : IPipelineStep
     {
         // if the parameter is a cancellation token, inject the pipeline's cancellation token
         if (parameterInfo.ParameterType.IsAssignableFrom(cancellationToken.GetType()))
-        {
             return cancellationToken;
-        }
 
         var uploadFilesAttribute = parameterInfo.GetCustomAttribute<UploadFilesAttribute>();
         if (uploadFilesAttribute != null)
@@ -230,17 +228,12 @@ public sealed class PipelineStep : IPipelineStep
         var mappedValues = CollectMappedValues(parameterInfo, context);
 
         if (parameterInfo.ParameterType.IsArray)
-        {
             return GenerateArrayParameter(parameterInfo, mappedValues);
-        }
 
         if (mappedValues.Count == 1)
-        {
             return GenerateSingleParameter(parameterInfo, mappedValues[0]);
-        }
-
-        var errorMessage = $"Could not find matching data for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method.";
-        throw new PipelineRunException(errorMessage);
+        else
+            throw new PipelineRunException($"<{mappedValues.Count}> values found for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method.");
     }
 
     private List<object?> CollectMappedValues(ParameterInfo parameterInfo, PipelineContext context)

@@ -847,7 +847,7 @@ public class PipelineStepTest
 
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
-        Assert.AreEqual("Could not find matching data for parameter <data> of type <System.String> in process run method.", exception.Message);
+        Assert.AreEqual("<0> values found for parameter <data> of type <System.String> in process run method.", exception.Message);
         Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked.");
     }
@@ -900,7 +900,7 @@ public class PipelineStepTest
 
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
-        Assert.AreEqual("Could not find matching data for parameter <data> of type <System.String> in process run method.", exception.Message);
+        Assert.AreEqual("<0> values found for parameter <data> of type <System.String> in process run method.", exception.Message);
         Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }

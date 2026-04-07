@@ -55,15 +55,8 @@ public class PipelineIntegrationTest
         this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
     }
 
-    [TestCleanup]
-    public void Cleanup()
-    {
-        interlisValidatorMessageHandlerMock.VerifyAll();
-        pipelineOptionsMock.VerifyAll();
-    }
-
     [TestMethod]
-    public async Task RunTwoStepPipeline()
+    public async Task RunTwoStepPipelineRoadsExdm2ien()
     {
         var matcherStepId = "matcher";
         var validationStepId = "validation";
@@ -75,8 +68,12 @@ public class PipelineIntegrationTest
         var validationErrors = factory.PipelineProcessConfig.Validate();
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
-        PipelineFile uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
-        using var pipeline = factory.CreatePipeline("two_steps", new PipelineFileList(new List<IPipelineFile> { uploadFile }), Guid.NewGuid());
+        var pipelineFiles = new PipelineFileList(new List<IPipelineFile>
+            {
+                new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf"),
+                new PipelineFile("TestData/UploadFiles/iseltwald_gwp_be13_1.xtf", "iseltwald_gwp_be13_1.xtf"),
+            });
+        using var pipeline = factory.CreatePipeline("two_steps_roadsexdm2ien", pipelineFiles, Guid.NewGuid());
 
         using HttpResponseMessage uploadMockResponse = new()
         {
@@ -167,17 +164,13 @@ public class PipelineIntegrationTest
 
         // Assert if uploaded file was correctly added to PipelineContext
         var stepResults = context.StepResults;
-
-        Assert.IsTrue(stepResults.ContainsKey(matcherStepId));
-        var matcherStepResult = context.StepResults[matcherStepId];
-        Assert.HasCount(1, matcherStepResult.Outputs, "matcher step has not the expected number of data");
-        Assert.IsTrue(matcherStepResult.Outputs.ContainsKey(xtfFileAttribute));
+        var matcherStepResult = stepResults[matcherStepId];
         var xtfFileStepOutput = matcherStepResult.Outputs[xtfFileAttribute];
 
         Assert.IsNotNull(xtfFileStepOutput.Data);
         var xtfFiles = xtfFileStepOutput.Data as IPipelineFile[];
         Assert.HasCount(1, xtfFiles);
-        Assert.AreEqual(uploadFile.OriginalFileName, xtfFiles[0].OriginalFileName);
+        Assert.AreEqual("RoadsExdm2ien.xtf", xtfFiles[0].OriginalFileName);
 
         // Assert if StepResults from executed PipelineSteps are in the PipelineContext
         Assert.HasCount(3, stepResults);
@@ -193,6 +186,32 @@ public class PipelineIntegrationTest
         var zipFile = zipFileStepOutput.Data as IPipelineFile;
         Assert.IsNotNull(zipFile, "No ZIP file in output");
         Assert.AreEqual("myPersonalZipArchive.zip", zipFile.OriginalFileName, "ZIP file has not the expected name");
+
+        interlisValidatorMessageHandlerMock.Verify();
+        pipelineOptionsMock.Verify();
+    }
+
+    [TestMethod]
+    public async Task RunTwoStepPipelineAmbiguousModel()
+    {
+        PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
+
+        var pipelineFiles = new PipelineFileList(new List<IPipelineFile>
+            {
+                new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien1.xtf"),
+                new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien2.xtf"),
+            });
+        using var pipeline = factory.CreatePipeline("two_steps_roadsexdm2ien", pipelineFiles, Guid.NewGuid());
+
+        Assert.IsNotNull(pipeline, "pipeline not created");
+        Assert.HasCount(3, pipeline.Steps);
+
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipeline.Run(CancellationToken.None));
+        Assert.IsNotNull(exception);
+        Assert.AreEqual("<2> values found for parameter <iliFile> of type <Geopilot.PipelineCore.Pipeline.IPipelineFile> in process run method.", exception.Message);
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)

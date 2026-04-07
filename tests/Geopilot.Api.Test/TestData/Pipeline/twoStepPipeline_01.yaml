@@ -14,9 +14,8 @@ processes:
       fileExtensions:
         - xtf
       iliModels:
-        - RoadsExdm2ien
 pipelines:
-  - id: two_steps
+  - id: two_steps_roadsexdm2ien
     display_name:
       en: two steps pipeline
     delivery_condition: "[validation.successful]"
@@ -25,6 +24,9 @@ pipelines:
         display_name:
           en: XTF Matcher
         process_id: xtf_matcher
+        process_config_overwrites:
+          iliModels:
+            - RoadsExdm2ien
         output:
           - take: xtf_files
             as: xtfFiles
