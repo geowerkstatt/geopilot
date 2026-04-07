@@ -21,14 +21,14 @@ internal class XtfMatcherProcess
     /// <summary>
     /// Initializes a new instance of the <see cref="XtfMatcherProcess"/> class with the given filter configuration.
     /// </summary>
-    /// <param name="fileExtensions">Comma-separated list of file extensions to match (e.g. "xtf,itf"). Case-insensitive. Null or empty means no extension filter.</param>
-    /// <param name="iliModels">Comma-separated list of ILI model names to match against the <c>ili:model</c> elements in the XTF header. Null or empty means no model filter.</param>
-    /// <param name="fileNamePatterns">Comma-separated list of regex patterns matched against the original file name (e.g. "Road.*,Map.*"). Null or empty means no name filter.</param>
-    public XtfMatcherProcess(string? fileExtensions, string? iliModels, string? fileNamePatterns)
+    /// <param name="fileExtensions">Set of file extensions to match (e.g. "xtf", "itf"). Case-insensitive. Null or empty means no extension filter.</param>
+    /// <param name="iliModels">Set of ILI model names to match against the <c>ili:model</c> elements in the XTF header. Null or empty means no model filter.</param>
+    /// <param name="fileNamePatterns">Set of regex patterns matched against the original file name (e.g. "Road.*", "Map.*"). Null or empty means no name filter.</param>
+    public XtfMatcherProcess(HashSet<string>? fileExtensions, HashSet<string>? iliModels, HashSet<string>? fileNamePatterns)
     {
-        this.fileExtensions = ParseCommaSeparatedConfiguration(fileExtensions);
-        this.iliModels = ParseCommaSeparatedConfiguration(iliModels);
-        this.fileNamePatterns = ParseCommaSeparatedConfiguration(fileNamePatterns);
+        this.fileExtensions = fileExtensions ?? new HashSet<string>();
+        this.iliModels = iliModels ?? new HashSet<string>();
+        this.fileNamePatterns = fileNamePatterns ?? new HashSet<string>();
     }
 
     [PipelineProcessRun]
@@ -85,13 +85,5 @@ internal class XtfMatcherProcess
         {
             return new HashSet<string>();
         }
-    }
-
-    private static HashSet<string> ParseCommaSeparatedConfiguration(string? commaSeparatedValues)
-    {
-        if (string.IsNullOrEmpty(commaSeparatedValues))
-            return new HashSet<string>();
-        else
-            return commaSeparatedValues.Split(',').ToHashSet();
     }
 }

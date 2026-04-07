@@ -6,9 +6,12 @@ processes:
   - id: xtf_matcher
     implementation: Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher.XtfMatcherProcess
     default_config:
-      fileExtensions: xtf
-      iliModels: RoadsExdm2ien
-      fileNamePatterns: .*
+      fileExtensions:
+        - xtf
+      iliModels:
+        - RoadsExdm2ien
+      fileNamePatterns:
+        - .*
 pipelines:
   - id: ili_validation
     display_name:

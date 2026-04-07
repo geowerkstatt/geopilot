@@ -37,7 +37,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task ExtensionFilterOnlyReturnsMatchingFiles()
     {
-        var process = new XtfMatcherProcess("xtf", null, null);
+        var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, null);
         var files = FileList("road.xtf", "map.itf");
 
         var result = await RunAsync(process, files);
@@ -49,7 +49,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task ExtensionFilterOnlyNoMatchReturnsEmpty()
     {
-        var process = new XtfMatcherProcess("xtf", null, null);
+        var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, null);
         var files = FileList("map.itf", "data.gpkg");
 
         var result = await RunAsync(process, files);
@@ -60,7 +60,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task ExtensionFilterCaseInsensitive()
     {
-        var process = new XtfMatcherProcess("XTF", null, null);
+        var process = new XtfMatcherProcess(new HashSet<string>() { "XTF" }, null, null);
         var files = FileList("road.xtf");
 
         var result = await RunAsync(process, files);
@@ -71,7 +71,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task MultipleExtensionsOrSemantics()
     {
-        var process = new XtfMatcherProcess("xtf,itf", null, null);
+        var process = new XtfMatcherProcess(new HashSet<string>() { "xtf", "itf" }, null, null);
         var files = FileList("road.xtf", "map.itf", "data.gpkg");
 
         var result = await RunAsync(process, files);
@@ -82,7 +82,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task FileNamePatternOnlyReturnsMatchingFiles()
     {
-        var process = new XtfMatcherProcess(null, null, "Road.*");
+        var process = new XtfMatcherProcess(null, null, new HashSet<string>() { "Road.*" });
         var files = FileList("RoadNetwork.xtf", "MapData.xtf");
 
         var result = await RunAsync(process, files);
@@ -94,7 +94,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task FileNamePatternOnlyNoMatchReturnsEmpty()
     {
-        var process = new XtfMatcherProcess(null, null, "Road.*");
+        var process = new XtfMatcherProcess(null, null, new HashSet<string>() { "Road.*" });
         var files = FileList("MapData.xtf");
 
         var result = await RunAsync(process, files);
@@ -105,7 +105,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task MultipleFileNamePatternsOrSemantics()
     {
-        var process = new XtfMatcherProcess(null, null, "Road.*,Map.*");
+        var process = new XtfMatcherProcess(null, null, new HashSet<string>() { "Road.*", "Map.*" });
         var files = FileList("RoadNetwork.xtf", "MapData.xtf", "Other.xtf");
 
         var result = await RunAsync(process, files);
@@ -116,7 +116,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task BothFiltersAndSemantics()
     {
-        var process = new XtfMatcherProcess("xtf", null, "Road.*");
+        var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, new HashSet<string>() { "Road.*" });
         var files = FileList("RoadNetwork.xtf", "MapData.xtf", "RoadNetwork.itf");
 
         var result = await RunAsync(process, files);
@@ -128,7 +128,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task BothFiltersNoMatchForEitherReturnsEmpty()
     {
-        var process = new XtfMatcherProcess("xtf", null, "Road.*");
+        var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, new HashSet<string>() { "Road.*" });
         var files = FileList("MapData.itf");
 
         var result = await RunAsync(process, files);
@@ -139,7 +139,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task EmptyUploadListReturnsEmpty()
     {
-        var process = new XtfMatcherProcess("xtf", null, null);
+        var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, null);
         var files = FileList();
 
         var result = await RunAsync(process, files);
@@ -150,7 +150,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task IliModelFilterOnlyReturnsMatchingFiles()
     {
-        var process = new XtfMatcherProcess(null, RoadsExdm2ienModel, null);
+        var process = new XtfMatcherProcess(null, new HashSet<string>() { RoadsExdm2ienModel }, null);
         var files = FileListWithPath((RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"));
 
         var result = await RunAsync(process, files);
@@ -162,7 +162,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task IliModelFilterOnlyNoMatchReturnsEmpty()
     {
-        var process = new XtfMatcherProcess(null, "SomeOtherModel", null);
+        var process = new XtfMatcherProcess(null, new HashSet<string>() { "SomeOtherModel" }, null);
         var files = FileListWithPath((RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"));
 
         var result = await RunAsync(process, files);
@@ -173,7 +173,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task IliModelFilterNonParsableFileReturnsEmpty()
     {
-        var process = new XtfMatcherProcess(null, RoadsExdm2ienModel, null);
+        var process = new XtfMatcherProcess(null, new HashSet<string>() { RoadsExdm2ienModel }, null);
         var files = FileList("notAnXtfFile.xtf");
 
         var result = await RunAsync(process, files);
@@ -184,7 +184,7 @@ public class XtfMatcherProcessTest
     [TestMethod]
     public async Task AllThreeFiltersAndSemantics()
     {
-        var process = new XtfMatcherProcess("xtf", RoadsExdm2ienModel, "Roads.*");
+        var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, new HashSet<string>() { RoadsExdm2ienModel }, new HashSet<string>() { "Roads.*" });
         var files = FileListWithPath(
             (RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"),
             (RoadsExdm2ienXtf, "RoadsExdm2ien.itf"),

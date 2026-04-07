@@ -17,7 +17,6 @@ namespace Geopilot.Api.Pipeline.Process;
 public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 {
     private readonly ILoggerFactory loggerFactory;
-    private readonly ILogger logger;
     private readonly PipelineOptions pipelineOptions;
 
     private HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
@@ -68,7 +67,6 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         ArgumentNullException.ThrowIfNull(pipelinePluginOptions);
 
         this.loggerFactory = loggerFactory;
-        this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
         this.pipelineOptions = pipelinePluginOptions.Value;
         var processorPlugins = pipelineOptions.Plugins;
 
@@ -232,24 +230,11 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             {
                 return new PipelineFileManager(pipelineDirectory, this.stepConfig?.Id ?? throw new InvalidOperationException("Step Id must be provided."));
             }
-            else if (!string.IsNullOrEmpty(parameterInfo.Name) && processConfig.TryGetValue(parameterInfo.Name, out var parameterStringValue))
+            else if (!string.IsNullOrEmpty(parameterInfo.Name) &&
+                     processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&
+                     Parameterization.TryConvertObject(rawValue, parameterInfo.ParameterType, out var convertedValue))
             {
-                if (parameterInfo.ParameterType == typeof(string))
-                {
-                    return parameterStringValue;
-                }
-                else if (int.TryParse(parameterStringValue, out var parameterIntValue) && parameterInfo.ParameterType.IsAssignableFrom(parameterIntValue.GetType()))
-                {
-                    return parameterIntValue;
-                }
-                else if (double.TryParse(parameterStringValue, out var parameterDoubleValue) && parameterInfo.ParameterType.IsAssignableFrom(parameterDoubleValue.GetType()))
-                {
-                    return parameterDoubleValue;
-                }
-                else if (bool.TryParse(parameterStringValue, out var parameterBoolValue) && parameterInfo.ParameterType.IsAssignableFrom(parameterBoolValue.GetType()))
-                {
-                    return parameterBoolValue;
-                }
+                return convertedValue;
             }
 
             if (IsParameterNullable(parameterInfo))
