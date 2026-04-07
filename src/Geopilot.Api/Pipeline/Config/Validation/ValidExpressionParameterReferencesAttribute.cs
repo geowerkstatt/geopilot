@@ -76,7 +76,7 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
             }
 
             return mathematicalExpression.GetParameterNames()
-                .Where(p => !ValidParameterName(p, currentStep, pipeline.Parameters, pipeline.Steps))
+                .Where(p => !ValidParameterName(p, currentStep, pipeline.Steps))
                 .Select(p =>
                 {
                     if (currentStep != null)
@@ -89,7 +89,7 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
         return new List<string>();
     }
 
-    private static bool ValidParameterName(string parameterName, StepConfig? currentStep, PipelineParametersConfig pipelineParameters, List<StepConfig> allSteps)
+    private static bool ValidParameterName(string parameterName, StepConfig? currentStep, List<StepConfig> allSteps)
     {
         if (string.IsNullOrEmpty(parameterName))
             return false;
@@ -104,10 +104,7 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
         var stepId = parameterParts[0];
         var resultId = parameterParts[1];
 
-        var isValidStepOutputReference = IsValidStepOutputReference(stepId, resultId, currentStep?.Id, allSteps);
-        var isValidPipelineParamReference = IsValidPipelineParamReference(stepId, resultId, pipelineParameters);
-
-        return isValidStepOutputReference || isValidPipelineParamReference;
+        return IsValidStepOutputReference(stepId, resultId, currentStep?.Id, allSteps);
     }
 
     private static bool IsValidStepOutputReference(string stepId, string take, string? currentStepId, List<StepConfig> allSteps)
@@ -135,21 +132,6 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
             // we return true as the step has a required annotation on the output
             // and we don't want to fail twice on the same issue (missing output reference)
             return true;
-        }
-    }
-
-    private static bool IsValidPipelineParamReference(string stepId, string attribute, PipelineParametersConfig pipelineParameters)
-    {
-        if (pipelineParameters != null &&
-            pipelineParameters.Mappings != null &&
-            pipelineParameters.UploadStep == stepId &&
-            pipelineParameters.Mappings.Any(m => m.Attribute == attribute))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
         }
     }
 }

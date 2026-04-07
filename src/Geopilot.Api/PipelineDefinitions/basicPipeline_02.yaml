@@ -1,4 +1,10 @@
 processes:
+  - id: xtf_matcher
+    implementation: Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions: xtf
+      iliModels: null
+      fileNamePatterns: null
   - id: xtf_validator
     implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
     default_config:
@@ -17,13 +23,18 @@ pipelines:
       de: XTF Validierung
       it: Validazione XTF
       fr: Validation XTF
-    parameters:
-      upload_step: upload
-      mapping:
-        - file_extension: xtf
-          attribute: ili_file
     delivery_condition: "[validation.successful]"
     steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+          de: XTF Zuordnung
+          it: Corrispondenza XTF
+          fr: Correspondance XTF
+        process_id: xtf_matcher
+        output:
+          - take: xtf_files
+            as: xtf_files
       - id: validation
         display_name:
           en: XTF Validation
@@ -34,8 +45,8 @@ pipelines:
         process_config_overwrites:
           validationProfile: null
         input:
-          - from: upload
-            take: ili_file
+          - from: xtf_matching
+            take: xtf_files
             as: iliFile
         output:
           - take: error_log
@@ -60,13 +71,18 @@ pipelines:
       de: XTF Validierung mit Error Tree
       it: Validazione XTF con albero degli errori
       fr: Validation XTF avec arbre des erreurs
-    parameters:
-      upload_step: upload
-      mapping:
-        - file_extension: xtf
-          attribute: ili_file
     delivery_condition: "[validation.successful]"
     steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+          de: XTF Zuordnung
+          it: Corrispondenza XTF
+          fr: Correspondance XTF
+        process_id: xtf_matcher
+        output:
+          - take: xtf_files
+            as: xtf_files
       - id: validation
         display_name:
           en: XTF Validation
@@ -77,8 +93,8 @@ pipelines:
         process_config_overwrites:
           validationProfile: null
         input:
-          - from: upload
-            take: ili_file
+          - from: xtf_matching
+            take: xtf_files
             as: iliFile
         output:
           - take: error_log
@@ -129,8 +145,8 @@ pipelines:
           fr: Création ZIP
         process_id: zip_packager
         input:
-          - from: upload
-            take: ili_file
+          - from: xtf_matching
+            take: xtf_files
             as: input
           - from: validation
             take: xtf_log

@@ -17,11 +17,6 @@ pipelines:
   - id: two_steps
     display_name:
       en: two steps pipeline
-    parameters:
-      upload_step: upload
-      mapping:
-        - file_extension: xtf
-          attribute: ili_file
     delivery_condition: "[validation.successful]"
     steps:
       - id: matcher
@@ -36,8 +31,8 @@ pipelines:
           en: XTF Validation
         process_id: xtf_validator
         input:
-          - from: upload
-            take: ili_file
+          - from: matcher
+            take: xtfFiles
             as: iliFile
         output:
           - take: error_log
@@ -67,8 +62,8 @@ pipelines:
           - from: validation
             take: xtflog
             as: input
-          - from: upload
-            take: ili_file
+          - from: matcher
+            take: xtfFiles
             as: input
         output:
           - take: zip_package

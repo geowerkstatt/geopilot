@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Pipeline;
 
@@ -27,9 +26,6 @@ public sealed class Pipeline : IPipeline
 
     /// <inheritdoc/>
     public Dictionary<string, string> DisplayName { get; }
-
-    /// <inheritdoc/>
-    public PipelineParametersConfig Parameters { get; }
 
     private string? deliveryCondition;
 
@@ -89,7 +85,6 @@ public sealed class Pipeline : IPipeline
     /// <param name="id">The unique name of the pipeline.</param>
     /// <param name="displayName">The pipelines display name. A human-readable name for the pipeline.</param>
     /// <param name="steps">The steps in the pipeline.</param>
-    /// <param name="parameters">The parameters for the pipeline.</param>
     /// <param name="deliveryCondition">Expression to determine when the pipeline step data can be delivered.</param>
     /// <param name="uploadFiles">The files to be processed for the pipeline.</param>
     /// <param name="logger">The logger to use for logging.</param>
@@ -99,7 +94,6 @@ public sealed class Pipeline : IPipeline
         string id,
         Dictionary<string, string> displayName,
         List<IPipelineStep> steps,
-        PipelineParametersConfig parameters,
         string? deliveryCondition,
         IPipelineFileList uploadFiles,
         ILogger logger,
@@ -109,7 +103,6 @@ public sealed class Pipeline : IPipeline
         this.Id = id;
         this.DisplayName = displayName;
         this.Steps = steps;
-        this.Parameters = parameters;
         this.deliveryCondition = deliveryCondition;
         this.uploadFiles = uploadFiles ?? throw new ArgumentNullException(nameof(uploadFiles));
         this.conditionEvaluator = new ConditionEvaluator(logger);
@@ -127,9 +120,6 @@ public sealed class Pipeline : IPipeline
             Upload = this.uploadFiles,
             StepResults = new Dictionary<string, StepResult>(),
         };
-
-        var uploadStepResult = CreateUploadStepResult(this.uploadFiles);
-        context.StepResults[this.Parameters.UploadStep] = uploadStepResult;
 
         foreach (var step in this.Steps)
         {
@@ -163,33 +153,6 @@ public sealed class Pipeline : IPipeline
         }
     }
 
-    private StepResult CreateUploadStepResult(IPipelineFileList files)
-    {
-        var stepResult = new StepResult();
-
-        foreach (var file in files.Files)
-        {
-            var fileExtension = file.FileExtension;
-            var mapping = this.Parameters.Mappings
-                .FirstOrDefault(m => string.Equals(m.FileExtension, fileExtension, StringComparison.OrdinalIgnoreCase));
-            if (mapping != null)
-            {
-                if (stepResult.Outputs.ContainsKey(mapping.Attribute))
-                    throw new InvalidOperationException($"Multiple mappings found for file extension '{mapping.Attribute}'.");
-
-                var output = new StepOutput()
-                {
-                    Action = new HashSet<OutputAction>(),
-                    Data = file,
-                };
-
-                stepResult.Outputs[mapping.Attribute] = output;
-            }
-        }
-
-        return stepResult;
-    }
-
     internal static PipelineBuilder Builder() => new PipelineBuilder();
 
     internal class PipelineBuilder
@@ -197,7 +160,6 @@ public sealed class Pipeline : IPipeline
         private string? id;
         private Dictionary<string, string>? displayName;
         private List<IPipelineStep>? steps;
-        private PipelineParametersConfig? parameters;
         private string? deliveryCondition;
         private IPipelineFileList? uploadFiles;
         private ILogger? logger;
@@ -219,12 +181,6 @@ public sealed class Pipeline : IPipeline
         public PipelineBuilder Steps(List<IPipelineStep>? steps)
         {
             this.steps = steps;
-            return this;
-        }
-
-        public PipelineBuilder Parameters(PipelineParametersConfig parameters)
-        {
-            this.parameters = parameters;
             return this;
         }
 
@@ -266,8 +222,6 @@ public sealed class Pipeline : IPipeline
                 throw new InvalidOperationException("Pipeline DisplayName must be provided.");
             if (steps == null)
                 throw new InvalidOperationException("Pipeline Steps must be provided.");
-            if (parameters == null)
-                throw new InvalidOperationException("Pipeline Parameters must be provided.");
             if (uploadFiles == null || uploadFiles.Files.Count == 0)
                 throw new InvalidOperationException("Pipeline File must be provided.");
             if (logger == null)
@@ -277,7 +231,7 @@ public sealed class Pipeline : IPipeline
             if (jobId == null)
                 throw new InvalidOperationException("Pipeline JobId must be provided.");
 
-            return new Pipeline(id, displayName, steps, parameters, deliveryCondition, uploadFiles, logger, pipelineDirectory, jobId.Value);
+            return new Pipeline(id, displayName, steps, deliveryCondition, uploadFiles, logger, pipelineDirectory, jobId.Value);
         }
     }
 }

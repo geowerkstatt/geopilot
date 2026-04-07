@@ -25,13 +25,6 @@ public class PipelineConfig
     public required Dictionary<string, string> DisplayName { get; set; }
 
     /// <summary>
-    /// The parameters for the pipeline.
-    /// </summary>
-    [Required(ErrorMessage = "Pipeline parameters are required.")]
-    [YamlMember(Alias = "parameters")]
-    public required PipelineParametersConfig Parameters { get; set; }
-
-    /// <summary>
     /// The steps in the pipeline that will be executed sequentially. Each step defines a process to execute and its data handling configuration.
     /// </summary>
     [Required(ErrorMessage = "Pipeline Step is required.")]

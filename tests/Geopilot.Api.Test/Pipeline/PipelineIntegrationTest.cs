@@ -65,10 +65,10 @@ public class PipelineIntegrationTest
     [TestMethod]
     public async Task RunTwoStepPipeline()
     {
-        var uploadStepId = "upload";
+        var matcherStepId = "matcher";
         var validationStepId = "validation";
         var zipPackageStepId = "zip_package";
-        var uploadedFileAttribute = "ili_file";
+        var xtfFileAttribute = "xtfFiles";
 
         PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
 
@@ -168,19 +168,19 @@ public class PipelineIntegrationTest
         // Assert if uploaded file was correctly added to PipelineContext
         var stepResults = context.StepResults;
 
-        Assert.IsTrue(stepResults.ContainsKey(uploadStepId));
-        var uploadStepResult = context.StepResults[uploadStepId];
-        Assert.HasCount(1, uploadStepResult.Outputs, "upload step has not the expected number of data");
-        Assert.IsTrue(uploadStepResult.Outputs.ContainsKey(uploadedFileAttribute));
-        var uploadedFileStepOutput = uploadStepResult.Outputs[uploadedFileAttribute];
+        Assert.IsTrue(stepResults.ContainsKey(matcherStepId));
+        var matcherStepResult = context.StepResults[matcherStepId];
+        Assert.HasCount(1, matcherStepResult.Outputs, "matcher step has not the expected number of data");
+        Assert.IsTrue(matcherStepResult.Outputs.ContainsKey(xtfFileAttribute));
+        var xtfFileStepOutput = matcherStepResult.Outputs[xtfFileAttribute];
 
-        Assert.IsNotNull(uploadedFileStepOutput.Data);
-        var uploadedFile = uploadedFileStepOutput.Data as IPipelineFile;
-        Assert.IsNotNull(uploadedFile);
-        Assert.AreEqual(uploadFile.OriginalFileName, uploadedFile.OriginalFileName);
+        Assert.IsNotNull(xtfFileStepOutput.Data);
+        var xtfFiles = xtfFileStepOutput.Data as IPipelineFile[];
+        Assert.HasCount(1, xtfFiles);
+        Assert.AreEqual(uploadFile.OriginalFileName, xtfFiles[0].OriginalFileName);
 
         // Assert if StepResults from executed PipelineSteps are in the PipelineContext
-        Assert.HasCount(4, stepResults);
+        Assert.HasCount(3, stepResults);
         Assert.IsTrue(stepResults.ContainsKey(validationStepId));
         var validationSetpResult = stepResults[validationStepId];
         Assert.HasCount(3, validationSetpResult.Outputs, "validation step has not the expected number of data");

@@ -2,6 +2,7 @@
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
+using Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher;
 using Geopilot.Api.Pipeline.Process.XtfValidation;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
@@ -61,55 +62,87 @@ public class PipelineFactoryTest
         Assert.AreEqual(StepState.Pending, pipeline.Steps[0].State, "step state not as expected");
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.AreEqual("ili_validation", pipeline.Id, "pipeline name not as expected");
-        Assert.IsNotNull(pipeline.Parameters, "pipeline parameters not initialized");
-        Assert.AreEqual("upload", pipeline.Parameters.UploadStep, "upload step not as expected");
-        Assert.HasCount(1, pipeline.Parameters.Mappings);
-        var mapping_0 = pipeline.Parameters.Mappings.ElementAt(0);
-        Assert.AreEqual("xtf", mapping_0.FileExtension, "pipeline mapping 0 file extension not as expected");
-        Assert.AreEqual("ili_file", mapping_0.Attribute, "pipeline mapping 0 attribute not as expected");
-        Assert.HasCount(1, pipeline.Steps);
-        var validationStep = pipeline.Steps[0];
+        Assert.HasCount(2, pipeline.Steps);
+        var matcherStep = pipeline.Steps[0];
+        Assert.AreEqual("xtf_matching", matcherStep.Id, "matcher step name not as expected");
+        Assert.HasCount(0, matcherStep.InputConfig);
+        Assert.HasCount(1, matcherStep.OutputConfigs);
+        Assert.HasCount(1, matcherStep.OutputConfigs);
+        var matcherOutputConfig_0 = matcherStep.OutputConfigs.ElementAt(0);
+        OutputConfig matcherExpectedOutputConfig_0 = new OutputConfig()
+        {
+            Take = "xtf_files",
+            As = "xtf_files",
+        };
+        AssertOutputConfig(matcherExpectedOutputConfig_0, matcherOutputConfig_0);
+        object matcherProcess = matcherStep.Process;
+        Assert.IsNotNull(matcherProcess, "matcher step process not created");
+        var configuratedFileExtensions = typeof(XtfMatcherProcess)
+            ?.GetField("fileExtensions", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(matcherProcess) as HashSet<string>;
+        var configuratedIliModels = typeof(XtfMatcherProcess)
+            ?.GetField("iliModels", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(matcherProcess) as HashSet<string>;
+        var configuratedFileNamePatterns = typeof(XtfMatcherProcess)
+            ?.GetField("fileNamePatterns", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(matcherProcess) as HashSet<string>;
+        Assert.IsNotNull(configuratedFileExtensions);
+        Assert.IsTrue(
+            configuratedFileExtensions.SetEquals(new HashSet<string> { "xtf" }),
+            "configurated file extensions not as expected");
+
+        Assert.IsNotNull(configuratedIliModels);
+        Assert.IsTrue(
+            configuratedIliModels.SetEquals(new HashSet<string> { "RoadsExdm2ien" }),
+            "configurated ILI models not as expected");
+
+        Assert.IsNotNull(configuratedFileNamePatterns);
+        Assert.IsTrue(
+            configuratedFileNamePatterns.SetEquals(new HashSet<string> { ".*" }),
+            "configurated file name patterns not as expected");
+
+        var validationStep = pipeline.Steps[1];
         Assert.AreEqual("validation", validationStep.Id, "validation step name not as expected");
         Assert.HasCount(1, validationStep.InputConfig);
         var inputConfig_0 = validationStep.InputConfig.ElementAt(0);
         InputConfig expectedInputConfig_0 = new InputConfig()
         {
-            From = "upload",
-            Take = "ili_file",
+            From = "xtf_matching",
+            Take = "xtf_files",
             As = "iliFile",
         };
         AssertInputConfig(expectedInputConfig_0, inputConfig_0);
         Assert.HasCount(2, validationStep.OutputConfigs);
-        var outputConfig_0 = validationStep.OutputConfigs.ElementAt(0);
-        var outputConfig_1 = validationStep.OutputConfigs.ElementAt(1);
-        OutputConfig expectedOutputConfig_0 = new OutputConfig()
+        var validationOutputConfig_0 = validationStep.OutputConfigs.ElementAt(0);
+        var validationOutputConfig_1 = validationStep.OutputConfigs.ElementAt(1);
+        OutputConfig validationExpectedOutputConfig_0 = new OutputConfig()
         {
             Take = "error_log",
             As = "error_log",
         };
-        OutputConfig expectedOutputConfig_1 = new OutputConfig()
+        OutputConfig validationExpectedOutputConfig_1 = new OutputConfig()
         {
             Take = "xtf_log",
             As = "xtf_log",
             Action = new HashSet<OutputAction>() { OutputAction.Download },
         };
-        AssertOutputConfig(expectedOutputConfig_0, outputConfig_0);
-        AssertOutputConfig(expectedOutputConfig_1, outputConfig_1);
-        object stepProcess = validationStep.Process;
-        Assert.IsNotNull(stepProcess, "step process not created");
+        AssertOutputConfig(validationExpectedOutputConfig_0, validationOutputConfig_0);
+        AssertOutputConfig(validationExpectedOutputConfig_1, validationOutputConfig_1);
+        object validationProcess = validationStep.Process;
+        Assert.IsNotNull(validationProcess, "validation step process not created");
         var configuratedValidationProfile = typeof(XtfValidatorProcess)
             ?.GetField("validationProfile", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(stepProcess) as string;
+            ?.GetValue(validationProcess) as string;
         var configuratedHttpClient = typeof(XtfValidatorProcess)
             ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(stepProcess) as HttpClient;
+            ?.GetValue(validationProcess) as HttpClient;
         var configuratedPollInterval = typeof(XtfValidatorProcess)
             ?.GetField("pollInterval", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(stepProcess);
+            ?.GetValue(validationProcess);
         Assert.AreEqual("PROFILE-A", configuratedValidationProfile, "configurated validation profile not as expected");
         Assert.AreEqual("http://localhost:3080/", configuratedHttpClient?.BaseAddress?.ToString(), "configurated HTTP client base address not as expected");
         Assert.AreEqual(TimeSpan.FromSeconds(2), configuratedPollInterval, "configurated poll interval not as expected");
-        Assert.IsNotNull(stepProcess as XtfValidatorProcess, "process is not of type ILI Validator");
+        Assert.IsNotNull(validationProcess as XtfValidatorProcess, "process is not of type ILI Validator");
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)

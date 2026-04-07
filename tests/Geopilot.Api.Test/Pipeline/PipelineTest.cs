@@ -47,14 +47,11 @@ public class PipelineTest
             })
             .ToList();
 
-        var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
-
         using var pipeline = Api.Pipeline.Pipeline
             .Builder()
             .Id("test_pipeline")
             .DisplayName(pipelineDisplayName)
             .Steps(steps)
-            .Parameters(pipelineParameters)
             .UploadFiles(new PipelineFileList(new List<IPipelineFile> { Mock.Of<IPipelineFile>() }))
             .Logger(loggerMock.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
@@ -81,8 +78,6 @@ public class PipelineTest
 
         var steps = new List<IPipelineStep> { firstStep.Object, secondStep.Object };
 
-        var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
-
         var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
         using var pipeline = Api.Pipeline.Pipeline
@@ -90,7 +85,6 @@ public class PipelineTest
             .Id("test_pipeline")
             .DisplayName(pipelineDisplayName)
             .Steps(steps)
-            .Parameters(pipelineParameters)
             .UploadFiles(new PipelineFileList(new List<IPipelineFile> { uploadFile }))
             .Logger(loggerMock.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
@@ -104,7 +98,7 @@ public class PipelineTest
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed after running the pipeline");
 
         firstStep.Verify(
-            p => p.Run(It.Is<PipelineContext>(pc => pc.StepResults.Count == 1 && pc.StepResults.ContainsKey("upload")), It.IsAny<CancellationToken>()),
+            p => p.Run(It.Is<PipelineContext>(pc => pc.StepResults.Count == 0), It.IsAny<CancellationToken>()),
             Times.Once());
 
         secondStep.Verify(
@@ -135,8 +129,6 @@ public class PipelineTest
 
         var steps = new List<IPipelineStep> { step.Object };
 
-        var pipelineParameters = new PipelineParametersConfig() { UploadStep = "upload", Mappings = new List<FileMappingsConfig>() };
-
         var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
         string deliveryCondition = "[step_id.output1] != 'my_step_data'";
@@ -146,7 +138,6 @@ public class PipelineTest
             .Id("test_pipeline")
             .DisplayName(pipelineDisplayName)
             .Steps(steps)
-            .Parameters(pipelineParameters)
             .JobId(Guid.NewGuid())
             .DeliveryCondition(deliveryCondition)
             .UploadFiles(new PipelineFileList(new List<IPipelineFile> { uploadFile }))
