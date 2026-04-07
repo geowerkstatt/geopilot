@@ -15,6 +15,64 @@ processes:
         - xtf
       iliModels:
 pipelines:
+  - id: two_steps_skip_validation
+    display_name:
+      en: two steps pipeline with skip condition
+    delivery_condition: "Length([matcher.xtfFiles]) != 1"
+    steps:
+      - id: matcher
+        display_name:
+          en: XTF Matcher
+        process_id: xtf_matcher
+        process_config_overwrites:
+          iliModels:
+            - RoadsExdm2ien
+        output:
+          - take: xtf_files
+            as: xtfFiles
+      - id: validation
+        display_name:
+          en: XTF Validation
+        process_id: xtf_validator
+        conditions:
+          pre:
+            skip_condition: "Length([matcher.xtfFiles]) != 1"
+        input:
+          - from: matcher
+            take: xtfFiles
+            as: iliFile
+        output:
+          - take: error_log
+            as: errorlog
+            action:
+          - take: xtf_log
+            as: xtflog
+            action:
+              - DOWNLOAD
+          - take: validation_successful
+            as: successful
+      - id: zip_package
+        display_name:
+          en: Zip Package
+        process_id: zip_package_process
+        conditions:
+          pre:
+            skip_condition: "Length([matcher.xtfFiles]) != 1"
+        input:
+          - from: validation
+            take: errorlog
+            as: input
+          - from: validation
+            take: xtflog
+            as: input
+          - from: matcher
+            take: xtfFiles
+            as: input
+        output:
+          - take: zip_package
+            as: archive
+            action:
+              - DOWNLOAD
   - id: two_steps_roadsexdm2ien
     display_name:
       en: two steps pipeline

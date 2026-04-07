@@ -63,6 +63,7 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
         if (!string.IsNullOrEmpty(expression))
         {
             var mathematicalExpression = new AsyncExpression(expression, ExpressionOptions.AllowNullParameter | ExpressionOptions.NoCache);
+            ConditionEvaluator.RegisterCustomFunctions(mathematicalExpression);
             try
             {
                 var evaluateAsync = mathematicalExpression.EvaluateAsync();

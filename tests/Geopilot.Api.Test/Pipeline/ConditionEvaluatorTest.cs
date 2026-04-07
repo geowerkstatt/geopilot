@@ -81,4 +81,109 @@ public class ConditionEvaluatorTest
         var exception = await Assert.ThrowsAsync<Exception>(() => conditionEvaluator.EvaluateConditionAsync(expression, expressionParameters));
         Assert.AreEqual(exception.Message, exceptedExceptionMessage);
     }
+
+    [TestMethod(DisplayName = "Length of a string array returns correct count")]
+    public async Task LengthOfArrayParameter()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", new string[] { "a", "b", "c" } },
+        };
+        var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 3", expressionParameters).ConfigureAwait(false);
+        Assert.IsTrue(result);
+    }
+
+    [TestMethod(DisplayName = "Length of a list returns correct count")]
+    public async Task LengthOfListParameter()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", new List<string> { "x", "y" } },
+        };
+        var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 2", expressionParameters).ConfigureAwait(false);
+        Assert.IsTrue(result);
+    }
+
+    [TestMethod(DisplayName = "Length of an empty array returns zero")]
+    public async Task LengthOfEmptyArray()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", Array.Empty<string>() },
+        };
+        var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 0", expressionParameters).ConfigureAwait(false);
+        Assert.IsTrue(result);
+    }
+
+    [TestMethod(DisplayName = "Length of an empty list returns zero")]
+    public async Task LengthOfEmptyList()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", new List<int>() },
+        };
+        var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 0", expressionParameters).ConfigureAwait(false);
+        Assert.IsTrue(result);
+    }
+
+    [TestMethod(DisplayName = "Length of a single element array returns one")]
+    public async Task LengthOfSingleElementArray()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", new int[] { 42 } },
+        };
+        var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 1", expressionParameters).ConfigureAwait(false);
+        Assert.IsTrue(result);
+    }
+
+    [TestMethod(DisplayName = "Length with comparison operators")]
+    public async Task LengthWithComparisonOperators()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", new string[] { "a", "b", "c" } },
+        };
+        var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) > 0 and Length([step1.result1]) < 5", expressionParameters).ConfigureAwait(false);
+        Assert.IsTrue(result);
+    }
+
+    [TestMethod(DisplayName = "Length of null parameter throws")]
+    public async Task LengthOfNullParameterThrows()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", null },
+        };
+        await Assert.ThrowsAsync<ArgumentException>(() => conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 0", expressionParameters));
+    }
+
+    [TestMethod(DisplayName = "Length of non-collection parameter throws")]
+    public async Task LengthOfNonCollectionParameterThrows()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", 123 },
+        };
+        await Assert.ThrowsAsync<ArgumentException>(() => conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 0", expressionParameters));
+    }
+
+    [TestMethod(DisplayName = "Length with no arguments throws")]
+    public async Task LengthWithNoArgumentsThrows()
+    {
+        var expressionParameters = new Dictionary<string, object?>();
+        await Assert.ThrowsAsync<ArgumentException>(() => conditionEvaluator.EvaluateConditionAsync("Length() == 0", expressionParameters));
+    }
+
+    [TestMethod(DisplayName = "Length combined with other conditions")]
+    public async Task LengthCombinedWithOtherConditions()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", new string[] { "a", "b", "c" } },
+            { "step2.result1", "foo" },
+        };
+        var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 3 and [step2.result1] == 'foo'", expressionParameters).ConfigureAwait(false);
+        Assert.IsTrue(result);
+    }
 }

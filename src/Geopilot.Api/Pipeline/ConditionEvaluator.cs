@@ -1,5 +1,5 @@
-﻿using Bogus.DataSets;
-using NCalc;
+﻿using NCalc;
+using System.Collections;
 using System.Globalization;
 
 namespace Geopilot.Api.Pipeline;
@@ -28,6 +28,8 @@ public class ConditionEvaluator : IConditionEvaluator
     {
         var matematicalExpression = new AsyncExpression(expression, ExpressionOptions.AllowNullParameter);
 
+        RegisterCustomFunctions(matematicalExpression);
+
         matematicalExpression.GetParameterNames()
             .ForEach(paramName =>
             {
@@ -45,5 +47,32 @@ public class ConditionEvaluator : IConditionEvaluator
             logger.LogWarning($"Expression '{expression}' did not evaluate to a boolean value. Result: {expressionResult}");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Registers custom NCalc functions on the given expression.
+    /// Call this before evaluating the expression so that custom functions like Length() are available.
+    /// </summary>
+    /// <param name="expression">The async expression to register custom functions on.</param>
+    internal static void RegisterCustomFunctions(AsyncExpression expression)
+    {
+        expression.EvaluateFunctionAsync += async (name, args) =>
+        {
+            if (name == "Length")
+            {
+                if (args.Parameters.Length != 1)
+                    throw new ArgumentException("Length() requires exactly 1 argument.");
+
+                var value = await args.Parameters[0].EvaluateAsync();
+
+                args.Result = value switch
+                {
+                    Array array => array.Length,
+                    ICollection collection => collection.Count,
+                    null => throw new ArgumentException("Length() does not support null arguments."),
+                    _ => throw new ArgumentException($"Length() requires an array or collection argument but got {value.GetType().Name}."),
+                };
+            }
+        };
     }
 }

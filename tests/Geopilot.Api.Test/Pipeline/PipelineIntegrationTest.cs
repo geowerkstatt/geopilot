@@ -214,6 +214,41 @@ public class PipelineIntegrationTest
         Assert.AreEqual("<2> values found for parameter <iliFile> of type <Geopilot.PipelineCore.Pipeline.IPipelineFile> in process run method.", exception.Message);
     }
 
+    [TestMethod]
+    public async Task RunTwoStepPipelineSkipsValidationWhenMultipleMatches()
+    {
+        PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
+
+        var pipelineFiles = new PipelineFileList(new List<IPipelineFile>
+            {
+                new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien1.xtf"),
+                new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien2.xtf"),
+            });
+        using var pipeline = factory.CreatePipeline("two_steps_skip_validation", pipelineFiles, Guid.NewGuid());
+
+        Assert.IsNotNull(pipeline, "pipeline not created");
+        Assert.HasCount(3, pipeline.Steps);
+
+        var context = await pipeline.Run(CancellationToken.None);
+
+        Assert.AreEqual(PipelineState.Success, pipeline.State);
+        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery);
+        Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
+        Assert.AreEqual(StepState.Skipped, pipeline.Steps[1].State);
+        Assert.AreEqual(StepState.Skipped, pipeline.Steps[2].State);
+
+        // Assert matcher step produced 2 matched files
+        var stepResults = context.StepResults;
+        var matcherStepResult = stepResults["matcher"];
+        var xtfFileStepOutput = matcherStepResult.Outputs["xtfFiles"];
+        Assert.IsNotNull(xtfFileStepOutput.Data);
+        var xtfFiles = xtfFileStepOutput.Data as IPipelineFile[];
+        Assert.HasCount(2, xtfFiles);
+    }
+
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
