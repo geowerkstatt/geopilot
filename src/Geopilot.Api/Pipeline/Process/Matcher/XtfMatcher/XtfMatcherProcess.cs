@@ -1,6 +1,7 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.Xml.Linq;
+using System.Xml.Serialization;
 
 namespace Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher;
 
@@ -27,7 +28,9 @@ internal class XtfMatcherProcess
     public XtfMatcherProcess(HashSet<string>? fileExtensions, HashSet<string>? iliModels, HashSet<string>? fileNamePatterns)
     {
         this.fileExtensions = fileExtensions ?? new HashSet<string>();
-        this.iliModels = iliModels ?? new HashSet<string>();
+        this.iliModels = iliModels != null
+            ? new HashSet<string>(iliModels, StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         this.fileNamePatterns = fileNamePatterns ?? new HashSet<string>();
     }
 
@@ -48,7 +51,7 @@ internal class XtfMatcherProcess
         // Keep only files that declare at least one of the configured ILI models in their XTF header.
         // Files that cannot be parsed as XTF are excluded.
         if (iliModels.Count > 0)
-            filtered = filtered.Matches(file => ExtractIliModels(file).Overlaps(iliModels));
+            filtered = filtered.Matches(file => iliModels.Overlaps(ExtractIliModels(file)));
 
         return Task.FromResult(new Dictionary<string, object?>
         {
@@ -58,10 +61,12 @@ internal class XtfMatcherProcess
 
     /// <summary>
     /// Reads the ILI model names declared in the XTF header of the given file.
-    /// Returns the values of all <c>ili:transfer/ili:headersection/ili:models/ili:model</c> elements.
-    /// The namespace bound to the <c>ili</c> prefix is resolved dynamically from the document root,
-    /// so any <c>xmlns:ili</c> attribute value is supported.
-    /// Returns an empty set if the file cannot be parsed as valid XTF or has no <c>ili</c> prefix declared.
+    /// Supports two XTF formats:
+    /// <list type="bullet">
+    /// <item>INTERLIS 2.4: <c>ili:transfer/ili:headersection/ili:models/ili:model</c> with model name as element text.</item>
+    /// <item>INTERLIS 2.3: <c>TRANSFER/HEADERSECTION/MODELS/MODEL</c> (default namespace, uppercase) with model name in the <c>NAME</c> attribute.</item>
+    /// </list>
+    /// Returns an empty set if the file cannot be parsed or matches neither format.
     /// </summary>
     private static HashSet<string> ExtractIliModels(IPipelineFile file)
     {
@@ -70,15 +75,29 @@ internal class XtfMatcherProcess
             using var stream = file.OpenReadFileStream();
             var doc = XDocument.Load(stream);
             var root = doc.Root;
-            var iliNamespace = root?.GetNamespaceOfPrefix("ili");
-            if (root == null || iliNamespace == null)
+            if (root == null)
                 return new HashSet<string>();
 
+            // INTERLIS 2.4: elements use the ili: prefix, model name is element text.
+            var iliNamespace = root.GetNamespaceOfPrefix("ili");
+            if (iliNamespace != null)
+            {
+                return root
+                    .Element(iliNamespace + "headersection")?
+                    .Element(iliNamespace + "models")?
+                    .Elements(iliNamespace + "model")
+                    .Select(e => e.Value)
+                    .ToHashSet() ?? new HashSet<string>();
+            }
+
+            // INTERLIS 2.3: unprefixed uppercase elements in the default namespace, model name is the NAME attribute.
+            var defaultNamespace = root.GetDefaultNamespace();
             return root
-                .Element(iliNamespace + "headersection")?
-                .Element(iliNamespace + "models")?
-                .Elements(iliNamespace + "model")
-                .Select(e => e.Value)
+                .Element(defaultNamespace + "HEADERSECTION")?
+                .Element(defaultNamespace + "MODELS")?
+                .Elements(defaultNamespace + "MODEL")
+                .Select(e => e.Attribute("NAME")?.Value)
+                .OfType<string>()
                 .ToHashSet() ?? new HashSet<string>();
         }
         catch

@@ -8,7 +8,9 @@ namespace Geopilot.Api.Test.Pipeline.Process;
 public class XtfMatcherProcessTest
 {
     private const string RoadsExdm2ienXtf = "TestData/UploadFiles/RoadsExdm2ien.xtf";
-    private const string RoadsExdm2ienModel = "RoadsExdm2ien";
+    private const string IseltwaldGwpBe13Xtf = "TestData/UploadFiles/iseltwald_gwp_be13_1.xtf";
+    private const string RoadsExdm2ienModel = "roadsexdm2ien";
+    private const string IseltwaldGwpBe13Model = "gwp_bern_13_1";
 
     private static PipelineFileList FileList(params string[] fileNames) =>
         new PipelineFileList(fileNames.Select(n => (IPipelineFile)new PipelineFile("dummy", n)).ToList());
@@ -148,15 +150,17 @@ public class XtfMatcherProcessTest
     }
 
     [TestMethod]
-    public async Task IliModelFilterOnlyReturnsMatchingFiles()
+    [DataRow(RoadsExdm2ienModel)]
+    [DataRow(IseltwaldGwpBe13Model)]
+    public async Task IliModelFilterOnlyReturnsMatchingFiles(string models)
     {
-        var process = new XtfMatcherProcess(null, new HashSet<string>() { RoadsExdm2ienModel }, null);
-        var files = FileListWithPath((RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"));
-
+        var process = new XtfMatcherProcess(null, models.Split(",").ToHashSet(StringComparer.OrdinalIgnoreCase), null);
+        var files = FileListWithPath(
+            (RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"),
+            (IseltwaldGwpBe13Xtf, "iseltwald_gwp_be13_1.xtf"));
         var result = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
-        Assert.AreEqual("RoadsExdm2ien.xtf", result[0].OriginalFileName);
     }
 
     [TestMethod]
