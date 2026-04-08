@@ -43,6 +43,15 @@ pipelines:
           it: Validazione XTF
           fr: Validation XTF
         process_id: xtf_validator
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([xtf_matching.xtf_files]) != 1"
+                message:
+                  de: "Es muss genau eine XTF-Datei hochgeladen werden."
+                  en: "Exactly one XTF file must be uploaded."
+                  fr: "Exactement un fichier XTF doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file XTF."
         process_config_overwrites:
           validationProfile: null
         input:
@@ -91,6 +100,15 @@ pipelines:
           it: Validazione XTF
           fr: Validation XTF
         process_id: xtf_validator
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([xtf_matching.xtf_files]) != 1"
+                message:
+                  de: "Es muss genau eine XTF-Datei hochgeladen werden."
+                  en: "Exactly one XTF file must be uploaded."
+                  fr: "Exactement un fichier XTF doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file XTF."
         process_config_overwrites:
           validationProfile: null
         input:
@@ -123,7 +141,13 @@ pipelines:
         process_id: xtf_error_tree
         conditions:
           pre:
-            skip_condition: "[validation.successful]"
+            skip_conditions:
+              - expression: "[validation.successful]"
+                message:
+                  de: "Validierung nicht erfolgreich. Error Tree wird übersprungen."
+                  en: "Validation not successful. Error Tree will be skipped."
+                  fr: "Validation non réussie. L'arbre des erreurs sera ignoré."
+                  it: "Validazione non riuscita. L'albero degli errori sarà ignorato."
         input:
           - from: validation
             take: xtf_log

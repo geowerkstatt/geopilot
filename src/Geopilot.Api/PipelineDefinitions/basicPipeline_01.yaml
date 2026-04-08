@@ -37,6 +37,15 @@ pipelines:
           it: Validazione XTF
           fr: Validation XTF
         process_id: xtf_validator
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([xtf_matching.xtf_files]) != 1"
+                message:
+                  de: "Es muss genau eine XTF-Datei hochgeladen werden."
+                  en: "Exactly one XTF file must be uploaded."
+                  fr: "Exactement un fichier XTF doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file XTF."
         process_config_overwrites:
         input:
           - from: xtf_matching

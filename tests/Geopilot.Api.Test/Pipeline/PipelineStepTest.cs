@@ -1064,8 +1064,22 @@ public class PipelineStepTest
         {
             Pre = new PipelineStepPreConditionConfig()
             {
-                SkipCondition = "[aPreviousStep.some_random_data] == 123",
-                FailCondition = "[aPreviousStep.some_random_data] == 123",
+                SkipConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig { Expression = "[aPreviousStep.some_random_data] == 123" },
+                },
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[aPreviousStep.some_random_data] == 123",
+                        Message = new Dictionary<string, string>
+                        {
+                            { "de", "Schritt fehlgeschlagen." },
+                            { "en", "Step failed." },
+                        },
+                    },
+                },
             },
             Post = null,
         };
@@ -1090,8 +1104,15 @@ public class PipelineStepTest
         Assert.IsNotNull(stepResult);
 
         Assert.AreEqual(StepState.Error, pipelineStep.State);
-
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
+
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_pre_fail_condition"), "StepResult should contain a status_message output.");
+        var statusOutput = stepResult.Outputs["my_step_status_message_pre_fail_condition"];
+        Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
+        var message = statusOutput.Data as Dictionary<string, string>;
+        Assert.IsNotNull(message);
+        Assert.AreEqual("Step failed.", message["en"]);
+        Assert.AreEqual("Schritt fehlgeschlagen.", message["de"]);
     }
 
     [TestMethod]
@@ -1141,8 +1162,19 @@ public class PipelineStepTest
         {
             Pre = new PipelineStepPreConditionConfig()
             {
-                SkipCondition = "[aPreviousStep.some_random_data] == 123",
-                FailCondition = null,
+                SkipConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[aPreviousStep.some_random_data] == 123",
+                        Message = new Dictionary<string, string>
+                        {
+                            { "de", "Schritt übersprungen." },
+                            { "en", "Step skipped." },
+                        },
+                    },
+                },
+                FailConditions = null,
             },
             Post = null,
         };
@@ -1167,8 +1199,15 @@ public class PipelineStepTest
         Assert.IsNotNull(stepResult);
 
         Assert.AreEqual(StepState.Skipped, pipelineStep.State);
-
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
+
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_pre_skip_condition"), "StepResult should contain a status_message output.");
+        var statusOutput = stepResult.Outputs["my_step_status_message_pre_skip_condition"];
+        Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
+        var message = statusOutput.Data as Dictionary<string, string>;
+        Assert.IsNotNull(message);
+        Assert.AreEqual("Step skipped.", message["en"]);
+        Assert.AreEqual("Schritt übersprungen.", message["de"]);
     }
 
     [TestMethod]
@@ -1218,12 +1257,29 @@ public class PipelineStepTest
         {
             Pre = new PipelineStepPreConditionConfig()
             {
-                SkipCondition = "[aPreviousStep.some_random_data] == 124",
-                FailCondition = "[aPreviousStep.some_random_data] == 124",
+                SkipConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig { Expression = "[aPreviousStep.some_random_data] == 124" },
+                },
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig { Expression = "[aPreviousStep.some_random_data] == 124" },
+                },
             },
             Post = new PipelineStepPostConditionConfig()
             {
-                FailCondition = "[my_step.my_output] == 'some_data'",
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.my_output] == 'some_data'",
+                        Message = new Dictionary<string, string>
+                        {
+                            { "de", "Post-Bedingung fehlgeschlagen." },
+                            { "en", "Post-condition failed." },
+                        },
+                    },
+                },
             },
         };
 
@@ -1247,8 +1303,136 @@ public class PipelineStepTest
         Assert.IsNotNull(stepResult);
 
         Assert.AreEqual(StepState.Error, pipelineStep.State);
-
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_post_fail_condition"), "StepResult should contain a status_message output.");
+        var statusOutput = stepResult.Outputs["my_step_status_message_post_fail_condition"];
+        Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
+        var message = statusOutput.Data as Dictionary<string, string>;
+        Assert.IsNotNull(message);
+        Assert.AreEqual("Post-condition failed.", message["en"]);
+        Assert.AreEqual("Post-Bedingung fehlgeschlagen.", message["de"]);
+    }
+
+    [TestMethod]
+    public async Task StepShouldFailWithMultiplePreFailConditionsAndConcatenatedMessages()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("upload", "xtf_file", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var uploadStepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "xtf_file", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some_data" } },
+            },
+        };
+        var aPreviousStepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "some_random_data", new StepOutput { Action = new HashSet<OutputAction>(), Data = 123 } },
+                { "another_value", new StepOutput { Action = new HashSet<OutputAction>(), Data = "abc" } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            Upload = new PipelineFileList(),
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "upload", uploadStepResult },
+                { "aPreviousStep", aPreviousStepResult },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Pre = new PipelineStepPreConditionConfig()
+            {
+                SkipConditions = null,
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[aPreviousStep.some_random_data] == 123",
+                        Message = new Dictionary<string, string>
+                        {
+                            { "de", "Erste Bedingung fehlgeschlagen" },
+                            { "en", "First condition failed" },
+                        },
+                    },
+                    new ConditionConfig
+                    {
+                        Expression = "[aPreviousStep.another_value] == 'abc'",
+                        Message = new Dictionary<string, string>
+                        {
+                            { "de", "Zweite Bedingung fehlgeschlagen" },
+                            { "en", "Second condition failed" },
+                            { "fr", "Deuxième condition échouée" },
+                        },
+                    },
+                    new ConditionConfig
+                    {
+                        Expression = "[aPreviousStep.some_random_data] == 999",
+                        Message = new Dictionary<string, string>
+                        {
+                            { "de", "Dritte Bedingung fehlgeschlagen" },
+                            { "en", "Third condition failed" },
+                        },
+                    },
+                },
+            },
+            Post = null,
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(stepResult);
+
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
+        Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
+
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_pre_fail_condition"), "StepResult should contain a status_message output.");
+        var statusOutput = stepResult.Outputs["my_step_status_message_pre_fail_condition"];
+        Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
+        var message = statusOutput.Data as Dictionary<string, string>;
+        Assert.IsNotNull(message);
+
+        // First and second conditions match, third does not (999 != 123).
+        // Messages are concatenated comma-separated per language.
+        Assert.AreEqual("First condition failed, Second condition failed", message["en"]);
+        Assert.AreEqual("Erste Bedingung fehlgeschlagen, Zweite Bedingung fehlgeschlagen", message["de"]);
+
+        // French only present on the second condition
+        Assert.AreEqual("Deuxième condition échouée", message["fr"]);
     }
 
     private InputConfig NewInputConfig(string from, string take, string asInput)

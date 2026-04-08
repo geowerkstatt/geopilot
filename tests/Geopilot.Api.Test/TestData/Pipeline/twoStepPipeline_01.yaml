@@ -36,7 +36,8 @@ pipelines:
         process_id: xtf_validator
         conditions:
           pre:
-            skip_condition: "Length([matcher.xtfFiles]) != 1"
+            skip_conditions:
+              - expression: "Length([matcher.xtfFiles]) != 1"
         input:
           - from: matcher
             take: xtfFiles
@@ -57,7 +58,8 @@ pipelines:
         process_id: zip_package_process
         conditions:
           pre:
-            skip_condition: "Length([matcher.xtfFiles]) != 1"
+            skip_conditions:
+              - expression: "Length([matcher.xtfFiles]) != 1"
         input:
           - from: validation
             take: errorlog
@@ -113,10 +115,13 @@ pipelines:
         process_config_overwrites:
         conditions:
           pre:
-            skip_condition: "[validation.errorlog] == null && [validation.xtflog] == null"
-            fail_condition: "[validation.errorlog] == null && [validation.xtflog] == null"
+            skip_conditions:
+              - expression: "[validation.errorlog] == null && [validation.xtflog] == null"
+            fail_conditions:
+              - expression: "[validation.errorlog] == null && [validation.xtflog] == null"
           post:
-            fail_condition: "[zip_package.archive] == null"
+            fail_conditions:
+              - expression: "[zip_package.archive] == null"
         input:
           - from: validation
             take: errorlog

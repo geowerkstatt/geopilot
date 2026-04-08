@@ -33,7 +33,8 @@ pipelines:
         process_id: xtf_validator
         conditions:
           pre:
-            fail_condition: "[zip_package_process.archive] != null"
+            fail_conditions:
+              - expression: "[zip_package_process.archive] != null"
         input:
           - from: xtf_matching
             take: xtf_files

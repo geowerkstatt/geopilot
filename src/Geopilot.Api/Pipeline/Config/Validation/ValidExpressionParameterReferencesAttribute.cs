@@ -47,9 +47,23 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
     {
         var errorMessages = new List<string>();
 
-        errorMessages.AddRange(GetExpressionErrorMessages(stepToValidate.Conditions?.Pre?.SkipCondition, pipeline, stepToValidate, "Step-Pre-Skip-Condition"));
-        errorMessages.AddRange(GetExpressionErrorMessages(stepToValidate.Conditions?.Pre?.FailCondition, pipeline, stepToValidate, "Step-Pre-Fail-Condition"));
-        errorMessages.AddRange(GetExpressionErrorMessages(stepToValidate.Conditions?.Post?.FailCondition, pipeline, null, "Step-Post-Fail-Condition"));
+        if (stepToValidate.Conditions?.Pre?.SkipConditions != null)
+        {
+            foreach (var condition in stepToValidate.Conditions.Pre.SkipConditions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, "Step-Pre-Skip-Condition"));
+        }
+
+        if (stepToValidate.Conditions?.Pre?.FailConditions != null)
+        {
+            foreach (var condition in stepToValidate.Conditions.Pre.FailConditions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, "Step-Pre-Fail-Condition"));
+        }
+
+        if (stepToValidate.Conditions?.Post?.FailConditions != null)
+        {
+            foreach (var condition in stepToValidate.Conditions.Post.FailConditions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Step-Post-Fail-Condition"));
+        }
 
         return errorMessages;
     }

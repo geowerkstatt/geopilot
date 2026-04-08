@@ -29,7 +29,8 @@ pipelines:
         process_id: xtf_validator
         conditions:
           pre:
-            fail_condition: "[upload.foo] != null"
+            fail_conditions:
+              - expression: "[upload.foo] != null"
         input:
           - from: xtf_matching
             take: xtf_files

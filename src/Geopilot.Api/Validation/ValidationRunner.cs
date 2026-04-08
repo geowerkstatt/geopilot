@@ -52,12 +52,6 @@ public class ValidationRunner : BackgroundService
             try
             {
                 var pipelineContext = await pipeline.Run(linkedCts.Token);
-
-                if (pipeline.State == PipelineState.Failed)
-                {
-                    throw new InvalidOperationException($"Pipeline <{pipeline.Id}> failed during execution.");
-                }
-
                 result = MapToValidatorResult(pipeline, pipelineContext);
                 jobStore.AddValidatorResult(pipeline, result);
             }

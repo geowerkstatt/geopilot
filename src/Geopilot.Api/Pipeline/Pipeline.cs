@@ -138,18 +138,25 @@ public sealed class Pipeline : IPipeline
 
     private async Task EvaluateDeliveryCondition(PipelineContext context)
     {
-        if (!string.IsNullOrEmpty(this.deliveryCondition))
+        if (this.State == PipelineState.Failed)
         {
-            var expressionParameters = context.ToExpressionParameters();
-            var allowDelivery = await this.conditionEvaluator.EvaluateConditionAsync(this.deliveryCondition, expressionParameters);
-            if (allowDelivery)
-                this.Delivery = PipelineDelivery.Allow;
-            else
-                this.Delivery = PipelineDelivery.Prevent;
+            this.Delivery = PipelineDelivery.Prevent;
         }
         else
         {
-            this.Delivery = PipelineDelivery.Allow;
+            if (!string.IsNullOrEmpty(this.deliveryCondition))
+            {
+                var expressionParameters = context.ToExpressionParameters();
+                var allowDelivery = await this.conditionEvaluator.EvaluateConditionAsync(this.deliveryCondition, expressionParameters);
+                if (allowDelivery)
+                    this.Delivery = PipelineDelivery.Allow;
+                else
+                    this.Delivery = PipelineDelivery.Prevent;
+            }
+            else
+            {
+                this.Delivery = PipelineDelivery.Allow;
+            }
         }
     }
 
