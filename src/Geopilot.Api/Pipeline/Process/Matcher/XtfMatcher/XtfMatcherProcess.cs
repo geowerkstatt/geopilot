@@ -1,7 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.Xml.Linq;
-using System.Xml.Serialization;
 
 namespace Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher;
 
