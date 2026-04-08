@@ -18,7 +18,13 @@ pipelines:
       de: XTF Validierung
       it: Validazione XTF
       fr: Validation XTF
-    delivery_condition: "[validation.successful]"
+    delivery_restrictions:
+      - expression: "!([validation.successful])"
+        message:
+          de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
+          en: "Validation was not successful. Delivery is not possible."
+          fr: "La validation n'a pas réussi. La livraison n'est pas possible."
+          it: "La validazione non è riuscita. La consegna non è possibile."
     steps:
       - id: xtf_matching
         display_name:

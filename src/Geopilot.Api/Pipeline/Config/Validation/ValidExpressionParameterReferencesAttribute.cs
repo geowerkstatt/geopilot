@@ -29,7 +29,11 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
             errorMessages.AddRange(stepConditionsErrorMessges);
         }
 
-        errorMessages.AddRange(GetExpressionErrorMessages(pipeline.DeliveryCondition, pipeline, null, "Pipeline-Delivery-Condition"));
+        if (pipeline.DeliveryRestrictions != null)
+        {
+            foreach (var condition in pipeline.DeliveryRestrictions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Pipeline-Delivery-Restriction"));
+        }
 
         if (errorMessages.Count > 0)
         {

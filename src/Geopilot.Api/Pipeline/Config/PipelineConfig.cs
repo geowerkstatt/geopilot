@@ -34,14 +34,13 @@ public class PipelineConfig
     public required List<StepConfig> Steps { get; set; }
 
     /// <summary>
-    /// Condition to control in which cases a delivery is allowed and not allowed, based on the results of the pipeline run.
+    /// Gets or sets the list of conditions that control when delivery of the pipeline data is not allowed.
+    /// If any condition evaluates to <see langword="true"/>, delivery of the pipeline data is prevented.
     /// </summary>
     /// <remarks>
-    /// The condition is typically specified as a string expression and references the pipeline context data.
-    /// The expression is evaluated at runtime and has to evaluate to <see langword="true"/> or <see langword="false"/>.
-    /// If the condition evaluates to <see langword="true"/>, delivery of the pipeline data is allowed.
-    /// If the condition evaluates to <see langword="false"/> or any other non-boolean value, delivery of the pipeline data is not allowed.
+    /// Each condition is evaluated at runtime and references the pipeline context data.
+    /// If no conditions are defined or none evaluate to <see langword="true"/>, delivery is allowed by default.
     /// </remarks>
-    [YamlMember(Alias = "delivery_condition")]
-    public string? DeliveryCondition { get; set; }
+    [YamlMember(Alias = "delivery_restrictions")]
+    public List<ConditionConfig>? DeliveryRestrictions { get; set; }
 }

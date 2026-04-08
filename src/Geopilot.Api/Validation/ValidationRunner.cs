@@ -93,7 +93,11 @@ public class ValidationRunner : BackgroundService
                 return messages;
             })
             .ToList();
-        if (statusMessages != null && statusMessages.Count > 0)
+
+        if (context.DeliveryRestrictionMessage != null)
+            statusMessages.Add(GetLocalizedName(context.DeliveryRestrictionMessage));
+
+        if (statusMessages.Count > 0)
             return string.Join(" - ", statusMessages);
         return string.Empty;
     }

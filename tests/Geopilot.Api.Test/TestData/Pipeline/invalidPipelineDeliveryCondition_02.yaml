@@ -15,7 +15,8 @@ pipelines:
   - id: ili_validation
     display_name:
       en: XTF Validation
-    delivery_condition: "([upload.ili_file]"
+    delivery_restrictions:
+      - expression: "([upload.ili_file]"
     steps:
       - id: xtf_matching
         display_name:

@@ -107,11 +107,9 @@ public class PipelineTest
     }
 
     [TestMethod]
-    public void PreventPipelineDeliveryIfConditionFails()
+    public async Task PreventPipelineDeliveryIfRestrictionMatches()
     {
         var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
-        var inputConfigs = new List<InputConfig>();
-        var outputConfigs = new List<OutputConfig>();
 
         var step = new Mock<IPipelineStep>();
 
@@ -131,7 +129,18 @@ public class PipelineTest
 
         var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
-        string deliveryCondition = "[step_id.output1] != 'my_step_data'";
+        var deliveryRestrictions = new List<ConditionConfig>
+        {
+            new ConditionConfig
+            {
+                Expression = "[step_id.output1] == 'my_step_data'",
+                Message = new Dictionary<string, string>
+                {
+                    { "de", "Datenlieferung nicht möglich." },
+                    { "en", "Delivery not possible." },
+                },
+            },
+        };
 
         using var pipeline = Api.Pipeline.Pipeline
             .Builder()
@@ -139,7 +148,7 @@ public class PipelineTest
             .DisplayName(pipelineDisplayName)
             .Steps(steps)
             .JobId(Guid.NewGuid())
-            .DeliveryCondition(deliveryCondition)
+            .DeliveryRestrictions(deliveryRestrictions)
             .UploadFiles(new PipelineFileList(new List<IPipelineFile> { uploadFile }))
             .Logger(loggerMock.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
@@ -147,8 +156,90 @@ public class PipelineTest
 
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
 
-        var context = pipeline.Run(CancellationToken.None);
+        var context = await pipeline.Run(CancellationToken.None);
 
         Assert.AreEqual(PipelineDelivery.Prevent, pipeline.Delivery, "pipeline delivery should be prevented after running the pipeline");
+
+        Assert.IsNotNull(context.DeliveryRestrictionMessage, "Context should contain a delivery restriction message.");
+        Assert.AreEqual("Delivery not possible.", context.DeliveryRestrictionMessage["en"]);
+        Assert.AreEqual("Datenlieferung nicht möglich.", context.DeliveryRestrictionMessage["de"]);
+    }
+
+    [TestMethod]
+    public async Task PreventPipelineDeliveryWithMultipleMatchingRestrictions()
+    {
+        var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
+
+        var step = new Mock<IPipelineStep>();
+
+        step.SetupProperty(s => s.State, StepState.Pending);
+        step.SetupGet(s => s.Id).Returns("step_id");
+        StepResult stepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>()
+            {
+                { "output1", new StepOutput() { Data = "my_step_data", Action = new HashSet<OutputAction>(), } },
+                { "output2", new StepOutput() { Data = 42, Action = new HashSet<OutputAction>(), } },
+            },
+        };
+        step.Setup(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(stepResult));
+
+        var steps = new List<IPipelineStep> { step.Object };
+
+        var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+
+        var deliveryRestrictions = new List<ConditionConfig>
+        {
+            new ConditionConfig
+            {
+                Expression = "[step_id.output1] == 'my_step_data'",
+                Message = new Dictionary<string, string>
+                {
+                    { "de", "Erste Einschränkung" },
+                    { "en", "First restriction" },
+                },
+            },
+            new ConditionConfig
+            {
+                Expression = "[step_id.output2] == 42",
+                Message = new Dictionary<string, string>
+                {
+                    { "de", "Zweite Einschränkung" },
+                    { "en", "Second restriction" },
+                    { "fr", "Deuxième restriction" },
+                },
+            },
+            new ConditionConfig
+            {
+                Expression = "[step_id.output1] == 'no_match'",
+                Message = new Dictionary<string, string>
+                {
+                    { "de", "Dritte Einschränkung" },
+                    { "en", "Third restriction" },
+                },
+            },
+        };
+
+        using var pipeline = Api.Pipeline.Pipeline
+            .Builder()
+            .Id("test_pipeline")
+            .DisplayName(pipelineDisplayName)
+            .Steps(steps)
+            .JobId(Guid.NewGuid())
+            .DeliveryRestrictions(deliveryRestrictions)
+            .UploadFiles(new PipelineFileList(new List<IPipelineFile> { uploadFile }))
+            .Logger(loggerMock.Object)
+            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
+            .Build();
+
+        var context = await pipeline.Run(CancellationToken.None);
+
+        Assert.AreEqual(PipelineDelivery.Prevent, pipeline.Delivery);
+
+        Assert.IsNotNull(context.DeliveryRestrictionMessage, "Context should contain a delivery restriction message.");
+        Assert.AreEqual("First restriction, Second restriction", context.DeliveryRestrictionMessage["en"]);
+        Assert.AreEqual("Erste Einschränkung, Zweite Einschränkung", context.DeliveryRestrictionMessage["de"]);
+        Assert.AreEqual("Deuxième restriction", context.DeliveryRestrictionMessage["fr"]);
     }
 }

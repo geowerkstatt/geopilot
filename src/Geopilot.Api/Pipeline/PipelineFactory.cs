@@ -53,7 +53,7 @@ public class PipelineFactory : IPipelineFactory
                 .Id(pipelineConfig.Id)
                 .DisplayName(pipelineConfig.DisplayName)
                 .Steps(CreateSteps(pipelineConfig, pipelineTempDirectory, jobId))
-                .DeliveryCondition(pipelineConfig.DeliveryCondition)
+                .DeliveryRestrictions(pipelineConfig.DeliveryRestrictions)
                 .UploadFiles(uploadFiles)
                 .Logger(PipelineLogger
                     .Builder()
