@@ -1,4 +1,5 @@
 ﻿using NCalc;
+using NCalc.Handlers;
 using System.Collections;
 using System.Globalization;
 
@@ -56,23 +57,23 @@ public class ConditionEvaluator : IConditionEvaluator
     /// <param name="expression">The async expression to register custom functions on.</param>
     internal static void RegisterCustomFunctions(AsyncExpression expression)
     {
-        expression.EvaluateFunctionAsync += async (name, args) =>
-        {
-            if (name == "Length")
-            {
-                if (args.Parameters.Length != 1)
-                    throw new ArgumentException("Length() requires exactly 1 argument.");
-
-                var value = await args.Parameters[0].EvaluateAsync();
-
-                args.Result = value switch
-                {
-                    Array array => array.Length,
-                    ICollection collection => collection.Count,
-                    null => throw new ArgumentException("Length() does not support null arguments."),
-                    _ => throw new ArgumentException($"Length() requires an array or collection argument but got {value.GetType().Name}."),
-                };
-            }
-        };
+        expression.EvaluateFunctionAsync += lengthFunction;
     }
+
+    private static readonly AsyncEvaluateFunctionHandler lengthFunction = async (name, args) =>
+    {
+        if (name == "Length")
+        {
+            if (args.Parameters.Length != 1)
+                throw new ArgumentException("Length() requires exactly 1 argument.");
+            var value = await args.Parameters[0].EvaluateAsync();
+            args.Result = value switch
+            {
+                Array array => array.Length,
+                ICollection collection => collection.Count,
+                null => throw new ArgumentException("Length() does not support null arguments."),
+                _ => throw new ArgumentException($"Length() requires an array or collection argument but got {value.GetType().Name}."),
+            };
+        }
+    };
 }
