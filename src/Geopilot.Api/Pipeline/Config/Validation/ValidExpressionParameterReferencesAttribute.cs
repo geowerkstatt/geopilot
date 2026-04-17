@@ -1,4 +1,5 @@
-﻿using NCalc;
+﻿using Microsoft.Extensions.Logging.Abstractions;
+using NCalc;
 using NCalc.Exceptions;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
@@ -80,11 +81,11 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
     {
         if (!string.IsNullOrEmpty(expression))
         {
-            var mathematicalExpression = new AsyncExpression(expression, ExpressionOptions.AllowNullParameter | ExpressionOptions.NoCache);
-            ConditionEvaluator.RegisterCustomFunctions(mathematicalExpression);
+            var mathematicalExpression = ConditionEvaluator.CreateRunner(expression, new NullLogger<ValidExpressionParameterReferencesAttribute>());
+            List<string> parameterNames;
             try
             {
-                var evaluateAsync = mathematicalExpression.EvaluateAsync();
+                parameterNames = mathematicalExpression.GetParameterNames();
             }
             catch (NCalcException e)
             {
@@ -94,7 +95,7 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
                     return new List<string>() { $"pipeline '{pipeline.Id}, invalid expression '{expression}' on field {field}: {e.Message}" };
             }
 
-            return mathematicalExpression.GetParameterNames()
+            return parameterNames
                 .Where(p => !ValidParameterName(p, currentStep, pipeline.Steps))
                 .Select(p =>
                 {
