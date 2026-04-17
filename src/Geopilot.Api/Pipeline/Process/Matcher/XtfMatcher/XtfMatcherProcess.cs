@@ -14,6 +14,8 @@ namespace Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher;
 /// </remarks>
 internal class XtfMatcherProcess
 {
+    private static readonly XNamespace Interlis24Namespace = "http://www.interlis.ch/xtf/2.4/INTERLIS";
+
     private readonly HashSet<string> fileExtensions;
     private readonly HashSet<string> iliModels;
     private readonly HashSet<string> fileNamePatterns;
@@ -62,7 +64,7 @@ internal class XtfMatcherProcess
     /// Reads the ILI model names declared in the XTF header of the given file.
     /// Supports two XTF formats:
     /// <list type="bullet">
-    /// <item>INTERLIS 2.4: <c>ili:transfer/ili:headersection/ili:models/ili:model</c> with model name as element text.</item>
+    /// <item>INTERLIS 2.4: elements in the <c>http://www.interlis.ch/xtf/2.4/INTERLIS</c> namespace (any prefix or default namespace), model name as element text of <c>model</c>.</item>
     /// <item>INTERLIS 2.3: <c>TRANSFER/HEADERSECTION/MODELS/MODEL</c> (default namespace, uppercase) with model name in the <c>NAME</c> attribute.</item>
     /// </list>
     /// Returns an empty set if the file cannot be parsed or matches neither format.
@@ -77,14 +79,14 @@ internal class XtfMatcherProcess
             if (root == null)
                 return new HashSet<string>();
 
-            // INTERLIS 2.4: elements use the ili: prefix, model name is element text.
-            var iliNamespace = root.GetNamespaceOfPrefix("ili");
-            if (iliNamespace != null)
+            // INTERLIS 2.4: elements are bound to the INTERLIS 2.4 namespace URI.
+            // The XML prefix is arbitrary per the INTERLIS 2.4 reference manual — match by namespace URI, not by prefix.
+            if (root.Name.Namespace == Interlis24Namespace)
             {
                 return root
-                    .Element(iliNamespace + "headersection")?
-                    .Element(iliNamespace + "models")?
-                    .Elements(iliNamespace + "model")
+                    .Element(Interlis24Namespace + "headersection")?
+                    .Element(Interlis24Namespace + "models")?
+                    .Elements(Interlis24Namespace + "model")
                     .Select(e => e.Value)
                     .ToHashSet() ?? new HashSet<string>();
             }

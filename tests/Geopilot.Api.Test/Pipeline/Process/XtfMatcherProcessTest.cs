@@ -8,6 +8,8 @@ namespace Geopilot.Api.Test.Pipeline.Process;
 public class XtfMatcherProcessTest
 {
     private const string RoadsExdm2ienXtf = "TestData/UploadFiles/RoadsExdm2ien.xtf";
+    private const string RoadsExdm2ienAltPrefixXtf = "TestData/UploadFiles/RoadsExdm2ien_altPrefix.xtf";
+    private const string RoadsExdm2ienDefaultNsXtf = "TestData/UploadFiles/RoadsExdm2ien_defaultNs.xtf";
     private const string IseltwaldGwpBe13Xtf = "TestData/UploadFiles/iseltwald_gwp_be13_1.xtf";
     private const string RoadsExdm2ienModel = "roadsexdm2ien";
     private const string IseltwaldGwpBe13Model = "gwp_bern_13_1";
@@ -158,6 +160,30 @@ public class XtfMatcherProcessTest
         var files = FileListWithPath(
             (RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"),
             (IseltwaldGwpBe13Xtf, "iseltwald_gwp_be13_1.xtf"));
+        var result = await RunAsync(process, files);
+
+        Assert.HasCount(1, result);
+    }
+
+    [TestMethod]
+    public async Task IliModelFilterInterlis24MatchesFileWithAlternativePrefix()
+    {
+        // INTERLIS 2.4 spec fixes only the namespace URI, the prefix is arbitrary.
+        var process = new XtfMatcherProcess(null, new HashSet<string>() { RoadsExdm2ienModel }, null);
+        var files = FileListWithPath((RoadsExdm2ienAltPrefixXtf, "RoadsExdm2ien_altPrefix.xtf"));
+
+        var result = await RunAsync(process, files);
+
+        Assert.HasCount(1, result);
+    }
+
+    [TestMethod]
+    public async Task IliModelFilterInterlis24MatchesFileWithDefaultNamespace()
+    {
+        // INTERLIS 2.4 file using the INTERLIS namespace as default (no prefix).
+        var process = new XtfMatcherProcess(null, new HashSet<string>() { RoadsExdm2ienModel }, null);
+        var files = FileListWithPath((RoadsExdm2ienDefaultNsXtf, "RoadsExdm2ien_defaultNs.xtf"));
+
         var result = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
