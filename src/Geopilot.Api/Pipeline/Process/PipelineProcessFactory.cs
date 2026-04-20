@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -17,6 +18,7 @@ namespace Geopilot.Api.Pipeline.Process;
 public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 {
     private readonly ILoggerFactory loggerFactory;
+    private readonly ILogger<PipelineProcessFactory> logger;
     private readonly PipelineOptions pipelineOptions;
 
     private HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
@@ -69,6 +71,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         this.loggerFactory = loggerFactory;
         this.pipelineOptions = pipelinePluginOptions.Value;
         var processorPlugins = pipelineOptions.Plugins;
+        this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
 
         if (processorPlugins != null)
         {
@@ -78,10 +81,76 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
                 var assemblyContext = new AssemblyLoadContext(assemblyFullPath, isCollectible: true);
                 var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
+
+                if (!ValidatePluginCoreCompatibility(plugin))
+                {
+                    assemblyContext.Unload();
+                    continue;
+                }
+
                 processorPluginAssemblies.Add(plugin);
                 processorPluginLoadContexts.Add(assemblyContext);
             }
         }
+    }
+
+    /// <summary>
+    /// Verifies that a plugin assembly references a compatible version of Geopilot.PipelineCore.
+    /// The check rejects plugins whose referenced major version differs from the host's loaded
+    /// major version, and warns when the plugin was built against an older minor/patch.
+    /// </summary>
+    /// <param name="plugin">The loaded plugin assembly to validate.</param>
+    /// <returns>True if the plugin is compatible with the host's PipelineCore; false otherwise.</returns>
+    private bool ValidatePluginCoreCompatibility(Assembly plugin)
+    {
+        const string coreAssemblyName = "Geopilot.PipelineCore";
+        var hostCoreVersion = typeof(IPipelineFile).Assembly.GetName().Version;
+        var pluginReference = plugin.GetReferencedAssemblies()
+            .FirstOrDefault(a => a.Name == coreAssemblyName);
+
+        if (pluginReference == null)
+        {
+            logger.LogError(
+                "Plugin '{Plugin}' does not reference {Core}; rejecting.",
+                plugin.GetName().Name,
+                coreAssemblyName);
+            return false;
+        }
+
+        var pluginCoreVersion = pluginReference.Version;
+        if (pluginCoreVersion == null || hostCoreVersion == null)
+        {
+            logger.LogError(
+                "Unable to determine {Core} version for plugin '{Plugin}' (plugin={PluginVersion}, host={HostVersion}); rejecting.",
+                coreAssemblyName,
+                plugin.GetName().Name,
+                pluginCoreVersion,
+                hostCoreVersion);
+            return false;
+        }
+
+        if (pluginCoreVersion.Major != hostCoreVersion.Major)
+        {
+            logger.LogError(
+                "Plugin '{Plugin}' was built against {Core} {PluginVersion} but host runs {HostVersion}; major versions differ, plugin will not be loaded.",
+                plugin.GetName().Name,
+                coreAssemblyName,
+                pluginCoreVersion,
+                hostCoreVersion);
+            return false;
+        }
+
+        if (pluginCoreVersion < hostCoreVersion)
+        {
+            logger.LogWarning(
+                "Plugin '{Plugin}' was built against older {Core} {PluginVersion} (host runs {HostVersion}); consider rebuilding the plugin.",
+                plugin.GetName().Name,
+                coreAssemblyName,
+                pluginCoreVersion,
+                hostCoreVersion);
+        }
+
+        return true;
     }
 
     /// <inheritdoc />
