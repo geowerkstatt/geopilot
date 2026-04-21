@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
+using Geopilot.PipelineCore.Pipeline.Process.Container;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -20,6 +21,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PipelineProcessFactory> logger;
     private readonly PipelineOptions pipelineOptions;
+    private readonly IContainerRunner? containerRunner;
 
     private HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
     private HashSet<AssemblyLoadContext> processorPluginLoadContexts = new HashSet<AssemblyLoadContext>();
@@ -64,12 +66,14 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// management. If no plugins are configured, the factory will operate without any loaded assemblies.</remarks>
     /// <param name="pipelinePluginOptions">Pipeline plugin options containing configuration settings. Cannot be null.</param>
     /// <param name="loggerFactory">Logger factory for creating loggers for process instances. Cannot be null.</param>
-    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILoggerFactory loggerFactory)
+    /// <param name="containerRunner">Optional container runner made available to processes that request <see cref="IContainerRunner"/> via constructor injection.</param>
+    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILoggerFactory loggerFactory, IContainerRunner? containerRunner = null)
     {
         ArgumentNullException.ThrowIfNull(pipelinePluginOptions);
 
         this.loggerFactory = loggerFactory;
         this.pipelineOptions = pipelinePluginOptions.Value;
+        this.containerRunner = containerRunner;
         var processorPlugins = pipelineOptions.Plugins;
         this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
 
@@ -156,7 +160,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// <inheritdoc />
     public IPipelineProcessBuilder Builder()
     {
-        return new PipelineProcessBuilder(processorPluginAssemblies, loggerFactory, pipelineOptions);
+        return new PipelineProcessBuilder(processorPluginAssemblies, loggerFactory, pipelineOptions, containerRunner);
     }
 
     internal class PipelineProcessBuilder : IPipelineProcessBuilder
@@ -166,6 +170,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         private readonly HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
         private readonly PipelineOptions pipelineOptions;
+        private readonly IContainerRunner? containerRunner;
 
         private string? pipelineId;
         private StepConfig? stepConfig;
@@ -183,15 +188,18 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// <param name="processorPluginAssemblies">A set of assemblies that contain processor plugins to be included in the pipeline.</param>
         /// <param name="loggerFactory">The factory used to create loggers for pipeline processing operations.</param>
         /// <param name="pipelineOptions">The options that configure the behavior and execution parameters of the pipeline.</param>
+        /// <param name="containerRunner">Optional container runner injected into processes that declare <see cref="IContainerRunner"/> in their constructor.</param>
         public PipelineProcessBuilder(
             HashSet<Assembly> processorPluginAssemblies,
             ILoggerFactory loggerFactory,
-            PipelineOptions pipelineOptions)
+            PipelineOptions pipelineOptions,
+            IContainerRunner? containerRunner = null)
         {
             this.processorPluginAssemblies = processorPluginAssemblies;
             this.loggerFactory = loggerFactory;
             this.logger = loggerFactory.CreateLogger<PipelineProcessBuilder>();
             this.pipelineOptions = pipelineOptions;
+            this.containerRunner = containerRunner;
         }
 
         /// <inheritdoc />
@@ -298,6 +306,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             else if (parameterInfo.ParameterType == typeof(IPipelineFileManager))
             {
                 return new PipelineFileManager(pipelineDirectory, this.stepConfig?.Id ?? throw new InvalidOperationException("Step Id must be provided."));
+            }
+            else if (parameterInfo.ParameterType == typeof(IContainerRunner))
+            {
+                return containerRunner;
             }
             else if (!string.IsNullOrEmpty(parameterInfo.Name) &&
                      processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&

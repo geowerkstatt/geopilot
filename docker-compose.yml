@@ -116,6 +116,11 @@ services:
       - ./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml:/pipelines/pipelines.yaml:ro
       - ./src/Geopilot.Frontend/devPublic:/public
       - ./certs:/https:ro
+      # Required for pipeline processes that run work inside one-shot containers
+      # (e.g. Geopilot.Api.Pipeline.Process.IliToGeoPackage.IliToGeoPackageProcess).
+      # NOTE: Mounting the Docker socket grants root-equivalent access to the host.
+      # The Docker:AllowedImages config is the primary security guard — keep it restricted.
+      - /var/run/docker.sock:/var/run/docker.sock
     extra_hosts:
       - "localhost:host-gateway"
     depends_on:

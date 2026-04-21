@@ -4,26 +4,37 @@ processes:
     default_config:
       fileExtensions:
         - xtf
-      iliModels: null
-      fileNamePatterns: null
+  - id: file_matcher
+    implementation: Geopilot.Api.Pipeline.Process.Matcher.FileMatcher.FileMatcherProcess
+    default_config:
+      fileExtensions:
+      fileNamePatterns:
   - id: xtf_validator
     implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile: DEFAULT
       pollInterval: 1000
-  - id: zip_packager
-    implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
-    default_config:
-      archiveFileName: archive
   - id: xtf_error_tree
     implementation: Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree.XtfValidatorErrorTreeProcess
+  - id: ili2gpkg
+    implementation: Geopilot.Api.Pipeline.Process.IliToGeoPackage.IliToGeoPackageProcess
+    default_config:
+      import: false
+      disableValidation: false
+      createBasketCol: true
+      smart2Inheritance: true
+      schemaImport: true
+      models: []
+      modelDir:
+  - id: zip_packager
+    implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
 pipelines:
   - id: ili_validation
     display_name:
       en: XTF Validation
       de: XTF Validierung
-      it: Validazione XTF
-      fr: Validation XTF
+      fr: XTF Validation
+      it: XTF Validazione
     delivery_restrictions:
       - expression: "!([validation.successful])"
         message:
@@ -36,8 +47,8 @@ pipelines:
         display_name:
           en: XTF Matching
           de: XTF Zuordnung
-          it: Corrispondenza XTF
-          fr: Correspondance XTF
+          fr: XTF Correspondance
+          it: XTF Corrispondenza
         process_id: xtf_matcher
         output:
           - take: xtf_files
@@ -46,8 +57,8 @@ pipelines:
         display_name:
           en: XTF Validation
           de: XTF Validierung
-          it: Validazione XTF
-          fr: Validation XTF
+          fr: XTF Validation
+          it: XTF Validazione
         process_id: xtf_validator
         conditions:
           pre:
@@ -58,8 +69,6 @@ pipelines:
                   en: "Exactly one XTF file must be uploaded."
                   fr: "Exactement un fichier XTF doit être téléchargé."
                   it: "Deve essere caricato esattamente un file XTF."
-        process_config_overwrites:
-          validationProfile: null
         input:
           - from: xtf_matching
             take: xtf_files
@@ -194,6 +203,145 @@ pipelines:
           - from: error_tree
             take: error_tree
             as: input
+        output:
+          - take: zip_package
+            as: archive
+            action:
+              - Download
+              - Delivery
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+  - id: ili_validation_with_geo_pack
+    display_name:
+      en: XTF Validation with GeoPackage
+      de: XTF Validierung mit GeoPackage
+      it: Validazione XTF con GeoPackage
+      fr: Validation XTF avec GeoPackage
+    delivery_restrictions:
+      - expression: "!([validation.successful])"
+        message:
+          de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
+          en: "Validation was not successful. Delivery is not possible."
+          fr: "La validation n'a pas réussi. La livraison n'est pas possible."
+          it: "La validazione non è riuscita. La consegna non è possibile."
+    steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+          de: XTF Zuordnung
+          it: Corrispondenza XTF
+          fr: Correspondance XTF
+        process_id: xtf_matcher
+        output:
+          - take: xtf_files
+            as: xtf_files
+      - id: ili_matching
+        display_name:
+          en: ILI Matching
+          de: ILI Zuordnung
+          it: Corrispondenza ILI
+          fr: Correspondance ILI
+        process_id: file_matcher
+        process_config_overwrites:
+          fileExtensions:
+          - ili
+        output:
+          - take: matched_files
+            as: ili_files
+      - id: validation
+        display_name:
+          en: XTF Validation
+          de: XTF Validierung
+          it: Validazione XTF
+          fr: Validation XTF
+        process_id: xtf_validator
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([xtf_matching.xtf_files]) != 1"
+                message:
+                  de: "Es muss genau eine XTF-Datei hochgeladen werden."
+                  en: "Exactly one XTF file must be uploaded."
+                  fr: "Exactement un fichier XTF doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file XTF."
+        process_config_overwrites:
+          validationProfile: null
+        input:
+          - from: xtf_matching
+            take: xtf_files
+            as: iliFile
+        output:
+          - take: error_log
+            as: error_log
+            action:
+              - Download
+              - Delivery
+          - take: xtf_log
+            as: xtf_log
+            action:
+              - Download
+              - Delivery
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+          - take: validation_successful
+            as: successful
+      - id: geoPackage
+        display_name:
+          en: Convert XTF to GeoPackage
+          de: XTF zu GeoPackage konvertieren
+          fr: Convertir XTF en GeoPackage
+          it: Convertire XTF in GeoPackage
+        process_id: ili2gpkg
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "Length([xtf_matching.xtf_files]) == 0 OR Length([ili_matching.ili_files]) == 0"
+                message:
+                  de: "Es muss genau eine XTF-Datei hochgeladen werden."
+                  en: "Exactly one XTF file must be uploaded."
+                  fr: "Exactement un fichier XTF doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file XTF."
+        input:
+          - from: xtf_matching
+            take: xtf_files
+            as: iliFiles
+          - from: ili_matching
+            take: ili_files
+            as: iliFiles
+        output:
+          - take: gpkg_files
+            as: gpkg_files
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+      - id: zip_packaging
+        display_name:
+          en: ZIP Packaging
+          de: ZIP Packet
+          it: Creazione ZIP
+          fr: Création ZIP
+        process_id: zip_packager
+        input:
+          - from: geoPackage
+            take: gpkg_files
+            as: input
+          - from: xtf_matching
+            take: xtf_files
+            as: input
+          - from: validation
+            take: xtf_log
+            as: input
+          - from: validation
+            take: error_log
+            as: input
+          - from: ili_matching
+            take: ili_files
+            as: iliFiles
         output:
           - take: zip_package
             as: archive

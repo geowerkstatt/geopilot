@@ -5,6 +5,7 @@ using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Pipeline.Process.XtfValidation;
 using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
+using Geopilot.PipelineCore.Pipeline.Process.Container;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -23,6 +24,7 @@ public class PipelineIntegrationTest
     private Mock<HttpMessageHandler> interlisValidatorMessageHandlerMock;
     private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
     private PipelineProcessFactory pipelineProcessFactory;
+    private PipelineProcessFactory? containerAwareFactory;
     private Mock<ILogger> loggerMock;
     private Mock<ILoggerFactory> loggerFactoryMock;
 
@@ -53,6 +55,14 @@ public class PipelineIntegrationTest
         loggerFactoryMock = new Mock<ILoggerFactory>();
         loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
         this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        containerAwareFactory?.Dispose();
+        containerAwareFactory = null;
+        pipelineProcessFactory?.Dispose();
     }
 
     [TestMethod]
@@ -249,7 +259,152 @@ public class PipelineIntegrationTest
         Assert.HasCount(2, xtfFiles);
     }
 
-    private PipelineFactory CreatePipelineFactory(string filename)
+    [TestMethod]
+    public async Task RunXtfToGpkgDeliveryPipeline()
+    {
+        // The ili2gpkg container is simulated by a mocked IContainerRunner — we cannot run the real
+        // ili2gpkg image in unit tests (it's not publicly available on a registry we can rely on).
+        // DockerContainerRunnerTest (tagged RequiresDocker) independently proves the Docker plumbing;
+        // here we test the full pipeline wiring end-to-end with a faked container that produces a gpkg.
+        var runnerMock = new Mock<IContainerRunner>(MockBehavior.Strict);
+        runnerMock
+            .Setup(r => r.RunAsync(It.IsAny<ContainerRunSpec>(), It.IsAny<CancellationToken>()))
+            .Callback<ContainerRunSpec, CancellationToken>((spec, _) =>
+            {
+                // ili2gpkg would write the gpkg to /data/out/<basename>.gpkg; simulate that on the host bind-mount.
+                var outMount = spec.VolumeMounts.First(m => m.ContainerPath == "/data/out");
+                var dbfileIdx = spec.Command.ToList().IndexOf("--dbfile") + 1;
+                var containerDbPath = spec.Command[dbfileIdx];
+                var fileName = Path.GetFileName(containerDbPath);
+                File.WriteAllBytes(Path.Combine(outMount.HostPath, fileName), System.Text.Encoding.ASCII.GetBytes("SQLite format 3\0simulated"));
+            })
+            .ReturnsAsync(new ContainerRunResult(0, string.Empty, string.Empty, TimeSpan.FromMilliseconds(100)));
+
+        PipelineFactory factory = CreatePipelineFactory("xtfToGpkgDelivery", runnerMock.Object);
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
+
+        var pipelineFiles = new PipelineFileList(new List<IPipelineFile>
+            {
+                new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf"),
+            });
+        using var pipeline = factory.CreatePipeline("xtf_to_gpkg_delivery", pipelineFiles, Guid.NewGuid());
+
+        Assert.IsNotNull(pipeline, "pipeline not created");
+        Assert.HasCount(4, pipeline.Steps);
+
+        // Mock the InterlisCheck service HTTP calls so only the ili2gpkg container talks to real Docker.
+        using HttpResponseMessage uploadMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.Created,
+            Content = JsonContent.Create(new InterlisUploadResponse
+            {
+                JobId = jobId,
+                StatusUrl = "/api/v1/status/" + jobId.ToString(),
+            }),
+        };
+        interlisValidatorMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri!.ToString() == interlisCheckServiceBaseUrl + "api/v1/upload"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(uploadMockResponse);
+
+        using HttpResponseMessage getStatusMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = JsonContent.Create(new InterlisStatusResponse
+            {
+                JobId = jobId,
+                LogUrl = "/api/v1/download?jobId=" + jobId.ToString() + "&logType=log",
+                XtfLogUrl = "/api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf",
+                Status = InterlisStatusResponseStatus.Completed,
+                StatusMessage = "Validation successful",
+            }),
+        };
+        interlisValidatorMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri!.ToString() == interlisCheckServiceBaseUrl + "api/v1/status/" + jobId.ToString()),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(getStatusMockResponse);
+
+        using FileStream appLogFile = File.Open(@"TestData/DownloadFiles/ilicop/log.log", FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
+        using HttpResponseMessage getAppLogMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StreamContent(appLogFile),
+        };
+        interlisValidatorMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri!.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=log"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(getAppLogMockResponse);
+
+        using FileStream xtfLogFile = File.Open(@"TestData/DownloadFiles/ilicop/log.xtf", FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
+        using HttpResponseMessage getXtfLogMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StreamContent(xtfLogFile),
+        };
+        interlisValidatorMessageHandlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri!.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(getXtfLogMockResponse);
+
+        pipeline.Steps
+            .Select(s => s.Process)
+            .OfType<XtfValidatorProcess>()
+            .ToList()
+            .ForEach(p =>
+            {
+                var httpClient = new HttpClient(interlisValidatorMessageHandlerMock.Object)
+                {
+                    BaseAddress = new Uri(interlisCheckServiceBaseUrl),
+                };
+                typeof(XtfValidatorProcess)
+                    .GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)!
+                    .SetValue(p, httpClient);
+            });
+
+        var context = await pipeline.Run(CancellationToken.None);
+
+        Assert.AreEqual(PipelineState.Success, pipeline.State, "pipeline did not succeed");
+        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "delivery not allowed");
+        Assert.AreEqual(StepState.Success, pipeline.Steps[0].State, "matcher step did not succeed");
+        Assert.AreEqual(StepState.Success, pipeline.Steps[1].State, "validation step did not succeed");
+        Assert.AreEqual(StepState.Success, pipeline.Steps[2].State, "convert step did not succeed");
+        Assert.AreEqual(StepState.Success, pipeline.Steps[3].State, "zip step did not succeed");
+
+        // Assert the convert step produced at least one .gpkg file.
+        var convertOutputs = context.StepResults["convert"].Outputs;
+        Assert.IsTrue(convertOutputs.ContainsKey("gpkgFiles"), "convert step did not expose gpkgFiles output");
+        var gpkgFiles = convertOutputs["gpkgFiles"].Data as IPipelineFile[];
+        Assert.IsNotNull(gpkgFiles, "gpkgFiles output is not an IPipelineFile[]");
+        Assert.IsNotEmpty(gpkgFiles, "no files produced");
+        Assert.IsTrue(gpkgFiles.Any(f => string.Equals(f.FileExtension, "gpkg", StringComparison.OrdinalIgnoreCase)), "no file with .gpkg extension produced");
+
+        // Assert the gpkg file is a plausible SQLite file (magic header bytes "SQLite format 3\0").
+        var gpkgFile = gpkgFiles.First(f => string.Equals(f.FileExtension, "gpkg", StringComparison.OrdinalIgnoreCase));
+        using (var stream = gpkgFile.OpenReadFileStream())
+        {
+            var header = new byte[16];
+            var read = stream.Read(header, 0, header.Length);
+            Assert.AreEqual(16, read, "gpkg file is unexpectedly short");
+            var headerText = System.Text.Encoding.ASCII.GetString(header);
+            StringAssert.StartsWith(headerText, "SQLite format 3", "gpkg file does not have the SQLite magic header");
+        }
+    }
+
+    private PipelineFactory CreatePipelineFactory(string filename, IContainerRunner? containerRunner = null)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
         var fileAccessOptions = new FileAccessOptions()
@@ -258,10 +413,25 @@ public class PipelineIntegrationTest
             AssetsDirectory = Path.Combine(Path.GetTempPath(), "Asset"),
             PipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline"),
         };
+
+        // If a container runner is supplied, build a fresh factory that has it wired in; otherwise reuse the SetUp-constructed one.
+        // The fresh factory is kept in the containerAwareFactory field so TestCleanup can dispose it.
+        IPipelineProcessFactory processFactory;
+        if (containerRunner != null)
+        {
+            var freshFactory = new PipelineProcessFactory(this.pipelineOptionsMock.Object, this.loggerFactoryMock.Object, containerRunner);
+            this.containerAwareFactory = freshFactory;
+            processFactory = freshFactory;
+        }
+        else
+        {
+            processFactory = this.pipelineProcessFactory;
+        }
+
         return PipelineFactory
             .Builder()
             .File(path)
-            .PipelineProcessFactory(this.pipelineProcessFactory)
+            .PipelineProcessFactory(processFactory)
             .LoggerFactory(this.loggerFactoryMock.Object)
             .DirectoryProvider(new DirectoryProvider(Options.Create(fileAccessOptions)))
             .Build();
