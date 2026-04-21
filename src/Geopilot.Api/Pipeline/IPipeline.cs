@@ -1,6 +1,4 @@
-﻿using Geopilot.Api.Pipeline.Config;
-
-namespace Geopilot.Api.Pipeline;
+﻿namespace Geopilot.Api.Pipeline;
 
 /// <summary>
 /// Interface for a pipeline.
@@ -16,11 +14,6 @@ public interface IPipeline : IDisposable
     /// A human-readable display name for the pipeline in different languages. Key: ISO 639 language code, Value: The display name for that language.
     /// </summary>
     Dictionary<string, string> DisplayName { get; }
-
-    /// <summary>
-    /// The parameters for the pipeline.
-    /// </summary>
-    PipelineParametersConfig Parameters { get; }
 
     /// <summary>
     /// The steps in the pipeline to be executed sequentially.

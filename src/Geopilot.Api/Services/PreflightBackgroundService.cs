@@ -93,7 +93,7 @@ public class PreflightBackgroundService : BackgroundService
                 .Cast<IPipelineFile>()
                 .ToList();
 
-            var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, pipelineFiles, request.JobId);
+            var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, new PipelineFileList(pipelineFiles), request.JobId);
             jobStore.StartJob(request.JobId, pipeline, request.MandateId);
 
             logger.LogInformation("Preflight complete for job <{JobId}>. Pipeline queued.", request.JobId);

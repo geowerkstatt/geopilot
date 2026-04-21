@@ -1,4 +1,4 @@
-﻿using NCalc;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using NCalc.Exceptions;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
@@ -29,7 +29,11 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
             errorMessages.AddRange(stepConditionsErrorMessges);
         }
 
-        errorMessages.AddRange(GetExpressionErrorMessages(pipeline.DeliveryCondition, pipeline, null, "Pipeline-Delivery-Condition"));
+        if (pipeline.DeliveryRestrictions != null)
+        {
+            foreach (var condition in pipeline.DeliveryRestrictions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Pipeline-Delivery-Restriction"));
+        }
 
         if (errorMessages.Count > 0)
         {
@@ -47,9 +51,23 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
     {
         var errorMessages = new List<string>();
 
-        errorMessages.AddRange(GetExpressionErrorMessages(stepToValidate.Conditions?.Pre?.SkipCondition, pipeline, stepToValidate, "Step-Pre-Skip-Condition"));
-        errorMessages.AddRange(GetExpressionErrorMessages(stepToValidate.Conditions?.Pre?.FailCondition, pipeline, stepToValidate, "Step-Pre-Fail-Condition"));
-        errorMessages.AddRange(GetExpressionErrorMessages(stepToValidate.Conditions?.Post?.FailCondition, pipeline, null, "Step-Post-Fail-Condition"));
+        if (stepToValidate.Conditions?.Pre?.SkipConditions != null)
+        {
+            foreach (var condition in stepToValidate.Conditions.Pre.SkipConditions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, "Step-Pre-Skip-Condition"));
+        }
+
+        if (stepToValidate.Conditions?.Pre?.FailConditions != null)
+        {
+            foreach (var condition in stepToValidate.Conditions.Pre.FailConditions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, "Step-Pre-Fail-Condition"));
+        }
+
+        if (stepToValidate.Conditions?.Post?.FailConditions != null)
+        {
+            foreach (var condition in stepToValidate.Conditions.Post.FailConditions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Step-Post-Fail-Condition"));
+        }
 
         return errorMessages;
     }
@@ -62,10 +80,12 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
     {
         if (!string.IsNullOrEmpty(expression))
         {
-            var mathematicalExpression = new AsyncExpression(expression, ExpressionOptions.AllowNullParameter | ExpressionOptions.NoCache);
+            var runner = ConditionEvaluator.CreateRunner(expression, new NullLogger<ValidExpressionParameterReferencesAttribute>());
+            List<string> parameterNames;
             try
             {
-                var evaluateAsync = mathematicalExpression.EvaluateAsync();
+                // if the expression is invalid, we will get an exception here and can return it as an error message
+                parameterNames = runner.GetParameterNames();
             }
             catch (NCalcException e)
             {
@@ -75,8 +95,8 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
                     return new List<string>() { $"pipeline '{pipeline.Id}, invalid expression '{expression}' on field {field}: {e.Message}" };
             }
 
-            return mathematicalExpression.GetParameterNames()
-                .Where(p => !ValidParameterName(p, currentStep, pipeline.Parameters, pipeline.Steps))
+            return parameterNames
+                .Where(p => !ValidParameterName(p, currentStep, pipeline.Steps))
                 .Select(p =>
                 {
                     if (currentStep != null)
@@ -89,7 +109,7 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
         return new List<string>();
     }
 
-    private static bool ValidParameterName(string parameterName, StepConfig? currentStep, PipelineParametersConfig pipelineParameters, List<StepConfig> allSteps)
+    private static bool ValidParameterName(string parameterName, StepConfig? currentStep, List<StepConfig> allSteps)
     {
         if (string.IsNullOrEmpty(parameterName))
             return false;
@@ -104,10 +124,7 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
         var stepId = parameterParts[0];
         var resultId = parameterParts[1];
 
-        var isValidStepOutputReference = IsValidStepOutputReference(stepId, resultId, currentStep?.Id, allSteps);
-        var isValidPipelineParamReference = IsValidPipelineParamReference(stepId, resultId, pipelineParameters);
-
-        return isValidStepOutputReference || isValidPipelineParamReference;
+        return IsValidStepOutputReference(stepId, resultId, currentStep?.Id, allSteps);
     }
 
     private static bool IsValidStepOutputReference(string stepId, string take, string? currentStepId, List<StepConfig> allSteps)
@@ -135,21 +152,6 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
             // we return true as the step has a required annotation on the output
             // and we don't want to fail twice on the same issue (missing output reference)
             return true;
-        }
-    }
-
-    private static bool IsValidPipelineParamReference(string stepId, string attribute, PipelineParametersConfig pipelineParameters)
-    {
-        if (pipelineParameters != null &&
-            pipelineParameters.Mappings != null &&
-            pipelineParameters.UploadStep == stepId &&
-            pipelineParameters.Mappings.Any(m => m.Attribute == attribute))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
         }
     }
 }

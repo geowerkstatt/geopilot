@@ -9,11 +9,6 @@ pipelines:
   - id: two_steps
     display_name:
       en: two steps pipeline
-    parameters:
-      upload_step: upload
-      mapping:
-        - file_extension: xtf
-          attribute: ili_file
     steps:
       - id: not_unique
         display_name:
