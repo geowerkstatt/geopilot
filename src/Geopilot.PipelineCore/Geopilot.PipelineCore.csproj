@@ -8,7 +8,9 @@
 
     <!-- NuGet package metadata (shared metadata comes from Directory.Build.props) -->
     <!-- Versioned independently from the API: bump per SemVer based on the public surface tracked in PublicAPI.Shipped.txt. A major bump here forces every plugin to rebuild (see ValidatePluginCoreCompatibility). -->
-    <VersionPrefix>1.0</VersionPrefix>
+    <!-- v2.0: removed IContainerRunner / ContainerRunSpec / ContainerRunResult / ContainerRunException -->
+    <!-- after switching the ili2gpkg pipeline step to a file-drop protocol against a long-running worker. -->
+    <VersionPrefix>2.0</VersionPrefix>
     <IsPackable>true</IsPackable>
     <PackageId>GeoWerkstatt.Geopilot.PipelineCore</PackageId>
     <Description>Core pipeline abstractions for geopilot — interfaces and base types for building pipeline processes that validate and deliver geodata.</Description>
