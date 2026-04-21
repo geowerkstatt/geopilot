@@ -1,6 +1,7 @@
 #nullable enable
 Geopilot.Api.Pipeline.IPipelineFileManager
 Geopilot.Api.Pipeline.IPipelineFileManager.GeneratePipelineFile(string! originalFileName, string! fileExtension) -> Geopilot.PipelineCore.Pipeline.IPipelineFile!
+Geopilot.Api.Pipeline.IPipelineFileManager.WorkingDirectory.get -> string!
 Geopilot.PipelineCore.Pipeline.IPipelineFile
 Geopilot.PipelineCore.Pipeline.IPipelineFile.FileExtension.get -> string!
 Geopilot.PipelineCore.Pipeline.IPipelineFile.OpenReadFileStream() -> System.IO.FileStream!
@@ -12,7 +13,51 @@ Geopilot.PipelineCore.Pipeline.IPipelineFileList.Files.get -> System.Collections
 Geopilot.PipelineCore.Pipeline.IPipelineFileList.Matches(System.Func<Geopilot.PipelineCore.Pipeline.IPipelineFile!, bool>! predicate) -> Geopilot.PipelineCore.Pipeline.IPipelineFileList!
 Geopilot.PipelineCore.Pipeline.IPipelineFileList.WithExtensions(System.Collections.Generic.HashSet<string!>! extensions) -> Geopilot.PipelineCore.Pipeline.IPipelineFileList!
 Geopilot.PipelineCore.Pipeline.IPipelineFileList.WithMatchingName(string! namePattern) -> Geopilot.PipelineCore.Pipeline.IPipelineFileList!
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunException
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunException.ContainerRunException() -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunException.ContainerRunException(string! message) -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunException.ContainerRunException(string! message, System.Exception! innerException) -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.<Clone>$() -> Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult!
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.ContainerRunResult(long ExitCode, string! Stdout, string! Stderr, System.TimeSpan Duration) -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.Deconstruct(out long ExitCode, out string! Stdout, out string! Stderr, out System.TimeSpan Duration) -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.Duration.get -> System.TimeSpan
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.Duration.init -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.Equals(Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult? other) -> bool
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.ExitCode.get -> long
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.ExitCode.init -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.Stderr.get -> string!
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.Stderr.init -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.Stdout.get -> string!
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.Stdout.init -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.<Clone>$() -> Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec!
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Command.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Command.init -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.ContainerRunSpec(string! Image, System.Collections.Generic.IReadOnlyList<string!>! Command, System.Collections.Generic.IReadOnlyList<(string! HostPath, string! ContainerPath)>! VolumeMounts, System.Collections.Generic.IReadOnlyDictionary<string!, string!>? Environment = null, System.TimeSpan? Timeout = null) -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Deconstruct(out string! Image, out System.Collections.Generic.IReadOnlyList<string!>! Command, out System.Collections.Generic.IReadOnlyList<(string! HostPath, string! ContainerPath)>! VolumeMounts, out System.Collections.Generic.IReadOnlyDictionary<string!, string!>? Environment, out System.TimeSpan? Timeout) -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Environment.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Environment.init -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Equals(Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec? other) -> bool
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Image.get -> string!
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Image.init -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Timeout.get -> System.TimeSpan?
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Timeout.init -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.VolumeMounts.get -> System.Collections.Generic.IReadOnlyList<(string! HostPath, string! ContainerPath)>!
+Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.VolumeMounts.init -> void
+Geopilot.PipelineCore.Pipeline.Process.Container.IContainerRunner
+Geopilot.PipelineCore.Pipeline.Process.Container.IContainerRunner.RunAsync(Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec! spec, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult!>!
 Geopilot.PipelineCore.Pipeline.Process.PipelineProcessRunAttribute
 Geopilot.PipelineCore.Pipeline.Process.PipelineProcessRunAttribute.PipelineProcessRunAttribute() -> void
 Geopilot.PipelineCore.Pipeline.Process.UploadFilesAttribute
 Geopilot.PipelineCore.Pipeline.Process.UploadFilesAttribute.UploadFilesAttribute() -> void
+override Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.Equals(object? obj) -> bool
+override Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.GetHashCode() -> int
+override Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.ToString() -> string!
+override Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.Equals(object? obj) -> bool
+override Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.GetHashCode() -> int
+override Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.ToString() -> string!
+static Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.operator !=(Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult? left, Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult? right) -> bool
+static Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult.operator ==(Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult? left, Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunResult? right) -> bool
+static Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.operator !=(Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec? left, Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec? right) -> bool
+static Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec.operator ==(Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec? left, Geopilot.PipelineCore.Pipeline.Process.Container.ContainerRunSpec? right) -> bool

@@ -1,0 +1,98 @@
+processes:
+  - id: xtf_matcher
+    implementation: Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions:
+        - xtf
+      iliModels:
+  - id: xtf_validator
+    implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
+    default_config:
+      validationProfile: DEFAULT
+      pollInterval: 500
+  - id: ili2gpkg
+    implementation: Geopilot.Api.Pipeline.Process.IliToGeoPackage.IliToGeoPackageProcess
+    default_config:
+      import: true
+      disableValidation: true
+      createBasketCol: false
+      smart2Inheritance: false
+      schemaImport: false
+      models: []
+      modelDir:
+      defaultSrsCode:
+  - id: zip_package_process
+    implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
+    default_config:
+      archiveFileName: delivery
+
+pipelines:
+  - id: xtf_to_gpkg_delivery
+    display_name:
+      en: XTF to GeoPackage delivery
+    delivery_restrictions:
+      - expression: "!([validation.successful])"
+    steps:
+      - id: matcher
+        display_name:
+          en: Match XTF uploads
+        process_id: xtf_matcher
+        process_config_overwrites:
+          iliModels:
+            - RoadsExdm2ien
+        output:
+          - take: xtf_files
+            as: xtfFiles
+      - id: validation
+        display_name:
+          en: Validate XTF
+        process_id: xtf_validator
+        input:
+          - from: matcher
+            take: xtfFiles
+            as: iliFile
+        output:
+          - take: error_log
+            as: errorlog
+            action:
+          - take: xtf_log
+            as: xtflog
+            action:
+              - DOWNLOAD
+          - take: validation_successful
+            as: successful
+      - id: convert
+        display_name:
+          en: Convert XTF to GeoPackage
+        process_id: ili2gpkg
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "!([validation.successful])"
+        input:
+          - from: matcher
+            take: xtfFiles
+            as: iliFiles
+        output:
+          - take: gpkg_files
+            as: gpkgFiles
+      - id: zip_package
+        display_name:
+          en: Zip delivery
+        process_id: zip_package_process
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "!([validation.successful])"
+        input:
+          - from: convert
+            take: gpkgFiles
+            as: input
+          - from: validation
+            take: xtflog
+            as: input
+        output:
+          - take: zip_package
+            as: archive
+            action:
+              - DOWNLOAD

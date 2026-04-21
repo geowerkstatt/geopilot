@@ -409,3 +409,6 @@ src/Geopilot.Frontend/cypress/screenshots
 # Local dev-certs output
 certs/
 /.claude/settings.local.json
+
+# Pipeline runtime artifacts (per-job working directories, ili2gpkg cache, etc.)
+TempPipelineFiles/

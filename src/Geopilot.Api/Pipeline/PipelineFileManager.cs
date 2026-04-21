@@ -25,6 +25,9 @@ public class PipelineFileManager : IPipelineFileManager
     }
 
     /// <inheritdoc />
+    public string WorkingDirectory => this.basePath;
+
+    /// <inheritdoc />
     public IPipelineFile GeneratePipelineFile(string originalFileName, string fileExtension)
     {
         var filePath = Path.Combine(this.basePath, $"{originalFileName}_{Guid.NewGuid().ToString()}.{fileExtension}");

@@ -6,8 +6,10 @@ using Geopilot.Api.Conventions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
+using Geopilot.Api.Pipeline.Process.Container;
 using Geopilot.Api.Services;
 using Geopilot.Api.Validation;
+using Geopilot.PipelineCore.Pipeline.Process.Container;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
@@ -157,6 +159,7 @@ builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 
 builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("Validation"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
+builder.Services.Configure<DockerRunnerOptions>(builder.Configuration.GetSection(DockerRunnerOptions.SectionName));
 builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.AddOptions<FileAccessOptions>()
@@ -197,6 +200,7 @@ builder.Services.AddTransient<IAssetHandler, AssetHandler>();
 builder.Services.AddHostedService<ValidationRunner>();
 builder.Services.AddHostedService<ValidationJobCleanupService>();
 builder.Services.AddPipelineFactory();
+builder.Services.AddSingleton<IContainerRunner, DockerContainerRunner>();
 builder.Services.AddSingleton<IPipelineProcessFactory, PipelineProcessFactory>();
 
 builder.Services.AddHttpClient<IGeopilotUserInfoService, GeopilotUserInfoService>();
