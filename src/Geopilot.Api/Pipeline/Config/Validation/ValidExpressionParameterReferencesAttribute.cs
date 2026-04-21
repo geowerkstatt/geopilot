@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging.Abstractions;
-using NCalc;
 using NCalc.Exceptions;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
@@ -81,11 +80,12 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
     {
         if (!string.IsNullOrEmpty(expression))
         {
-            var mathematicalExpression = ConditionEvaluator.CreateRunner(expression, new NullLogger<ValidExpressionParameterReferencesAttribute>());
+            var runner = ConditionEvaluator.CreateRunner(expression, new NullLogger<ValidExpressionParameterReferencesAttribute>());
             List<string> parameterNames;
             try
             {
-                parameterNames = mathematicalExpression.GetParameterNames();
+                // if the expression is invalid, we will get an exception here and can return it as an error message
+                parameterNames = runner.GetParameterNames();
             }
             catch (NCalcException e)
             {
