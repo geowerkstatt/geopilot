@@ -1,6 +1,7 @@
-#nullable enable
+﻿#nullable enable
 Geopilot.Api.Pipeline.IPipelineFileManager
 Geopilot.Api.Pipeline.IPipelineFileManager.GeneratePipelineFile(string! originalFileName, string! fileExtension) -> Geopilot.PipelineCore.Pipeline.IPipelineFile!
+Geopilot.Api.Pipeline.IPipelineFileManager.WorkingDirectory.get -> string!
 Geopilot.Api.Pipeline.IPipelineFileManager.GeneratePipelineFile(string! originalRelativePath, string! originalFileName, string! fileExtension) -> Geopilot.PipelineCore.Pipeline.IPipelineFile!
 Geopilot.PipelineCore.Pipeline.IPipelineFile
 Geopilot.PipelineCore.Pipeline.IPipelineFile.FileExtension.get -> string!
