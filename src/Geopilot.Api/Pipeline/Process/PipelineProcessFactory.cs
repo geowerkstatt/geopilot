@@ -105,10 +105,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     {
         const string coreAssemblyName = "Geopilot.PipelineCore";
         var coreVersionUsedByHost = typeof(IPipelineFile).Assembly.GetName().Version;
-        var coreVersionUsedByPlugin = plugin.GetReferencedAssemblies()
+        var coreAssemblyUsedByPlugin = plugin.GetReferencedAssemblies()
             .FirstOrDefault(a => a.Name == coreAssemblyName);
 
-        if (coreVersionUsedByPlugin == null)
+        if (coreAssemblyUsedByPlugin == null)
         {
             logger.LogError(
                 "Plugin '{Plugin}' does not reference {Core}; rejecting.",
@@ -117,36 +117,36 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             return false;
         }
 
-        var pluginCoreVersion = coreVersionUsedByPlugin.Version;
-        if (pluginCoreVersion == null || coreVersionUsedByHost == null)
+        var coreVersionUsedByPlugin = coreAssemblyUsedByPlugin.Version;
+        if (coreVersionUsedByPlugin == null || coreVersionUsedByHost == null)
         {
             logger.LogError(
                 "Unable to determine {Core} version for plugin '{Plugin}' (plugin={PluginVersion}, host={HostVersion}); rejecting.",
                 coreAssemblyName,
                 plugin.GetName().Name,
-                pluginCoreVersion,
+                coreVersionUsedByPlugin,
                 coreVersionUsedByHost);
             return false;
         }
 
-        if (pluginCoreVersion.Major != coreVersionUsedByHost.Major)
+        if (coreVersionUsedByPlugin.Major != coreVersionUsedByHost.Major)
         {
             logger.LogError(
                 "Plugin '{Plugin}' was built against {Core} {PluginVersion} but host runs {HostVersion}; major versions differ, plugin will not be loaded.",
                 plugin.GetName().Name,
                 coreAssemblyName,
-                pluginCoreVersion,
+                coreVersionUsedByPlugin,
                 coreVersionUsedByHost);
             return false;
         }
 
-        if (pluginCoreVersion < coreVersionUsedByHost)
+        if (coreVersionUsedByPlugin < coreVersionUsedByHost)
         {
             logger.LogWarning(
                 "Plugin '{Plugin}' was built against older {Core} {PluginVersion} (host runs {HostVersion}); consider rebuilding the plugin.",
                 plugin.GetName().Name,
                 coreAssemblyName,
-                pluginCoreVersion,
+                coreVersionUsedByPlugin,
                 coreVersionUsedByHost);
         }
 
