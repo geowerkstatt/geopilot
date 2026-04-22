@@ -9,7 +9,7 @@
     <!-- NuGet package metadata (shared metadata comes from Directory.Build.props) -->
     <IsPackable>true</IsPackable>
     <PackageId>GeoWerkstatt.Geopilot.PipelineCore</PackageId>
-    <Description>Core pipeline abstractions for GeoPilot — interfaces and base types for building pipeline processes that validate and deliver geodata.</Description>
+    <Description>Core pipeline abstractions for geopilot — interfaces and base types for building pipeline processes that validate and deliver geodata.</Description>
     <PackageTags>geopilot;pipeline;geodata;interlis;xtf;geowerkstatt</PackageTags>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>

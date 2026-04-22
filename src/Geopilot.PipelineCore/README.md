@@ -1,8 +1,8 @@
 # GeoWerkstatt.Geopilot.PipelineCore
 
-Core pipeline abstractions for [GeoPilot](https://github.com/GeoWerkstatt/geopilot) — a full-stack geodata validation and delivery tool.
+Core pipeline abstractions for [geopilot](https://github.com/GeoWerkstatt/geopilot) — a full-stack geodata validation and delivery tool.
 
-This package contains the public interfaces and base types that plugin authors use to implement custom pipeline processes (matchers, validators, transformers, delivery steps) for GeoPilot.
+This package contains the public interfaces and base types that plugin authors use to implement custom pipeline processes (matchers, validators, transformers, delivery steps) for geopilot.
 
 ## Installation
 
@@ -45,7 +45,7 @@ public class MyCustomProcess
 }
 ```
 
-See the [GeoPilot repository](https://github.com/GeoWerkstatt/geopilot) for documentation and examples.
+See the [geopilot repository](https://github.com/GeoWerkstatt/geopilot) for documentation and examples.
 
 ## License
 
