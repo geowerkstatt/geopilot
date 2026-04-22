@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -17,6 +18,7 @@ namespace Geopilot.Api.Pipeline.Process;
 public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 {
     private readonly ILoggerFactory loggerFactory;
+    private readonly ILogger<PipelineProcessFactory> logger;
     private readonly PipelineOptions pipelineOptions;
 
     private HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
@@ -69,6 +71,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         this.loggerFactory = loggerFactory;
         this.pipelineOptions = pipelinePluginOptions.Value;
         var processorPlugins = pipelineOptions.Plugins;
+        this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
 
         if (processorPlugins != null)
         {
@@ -78,10 +81,76 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
                 var assemblyContext = new AssemblyLoadContext(assemblyFullPath, isCollectible: true);
                 var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
+
+                if (!ValidatePluginCoreCompatibility(plugin))
+                {
+                    assemblyContext.Unload();
+                    continue;
+                }
+
                 processorPluginAssemblies.Add(plugin);
                 processorPluginLoadContexts.Add(assemblyContext);
             }
         }
+    }
+
+    /// <summary>
+    /// Verifies that a plugin assembly references a compatible version of Geopilot.PipelineCore.
+    /// The check rejects plugins whose referenced major version differs from the host's loaded
+    /// major version, and warns when the plugin was built against an older minor/patch.
+    /// </summary>
+    /// <param name="plugin">The loaded plugin assembly to validate.</param>
+    /// <returns>True if the plugin is compatible with the host's PipelineCore; false otherwise.</returns>
+    private bool ValidatePluginCoreCompatibility(Assembly plugin)
+    {
+        const string coreAssemblyName = "Geopilot.PipelineCore";
+        var coreVersionUsedByHost = typeof(IPipelineFile).Assembly.GetName().Version;
+        var coreAssemblyUsedByPlugin = plugin.GetReferencedAssemblies()
+            .FirstOrDefault(a => a.Name == coreAssemblyName);
+
+        if (coreAssemblyUsedByPlugin == null)
+        {
+            logger.LogError(
+                "Plugin '{Plugin}' does not reference {Core}; rejecting.",
+                plugin.GetName().Name,
+                coreAssemblyName);
+            return false;
+        }
+
+        var coreVersionUsedByPlugin = coreAssemblyUsedByPlugin.Version;
+        if (coreVersionUsedByPlugin == null || coreVersionUsedByHost == null)
+        {
+            logger.LogError(
+                "Unable to determine {Core} version for plugin '{Plugin}' (plugin={PluginVersion}, host={HostVersion}); rejecting.",
+                coreAssemblyName,
+                plugin.GetName().Name,
+                coreVersionUsedByPlugin,
+                coreVersionUsedByHost);
+            return false;
+        }
+
+        if (coreVersionUsedByPlugin.Major != coreVersionUsedByHost.Major)
+        {
+            logger.LogError(
+                "Plugin '{Plugin}' was built against {Core} {PluginVersion} but host runs {HostVersion}; major versions differ, plugin will not be loaded.",
+                plugin.GetName().Name,
+                coreAssemblyName,
+                coreVersionUsedByPlugin,
+                coreVersionUsedByHost);
+            return false;
+        }
+
+        if (coreVersionUsedByPlugin < coreVersionUsedByHost)
+        {
+            logger.LogWarning(
+                "Plugin '{Plugin}' was built against older {Core} {PluginVersion} (host runs {HostVersion}); consider rebuilding the plugin.",
+                plugin.GetName().Name,
+                coreAssemblyName,
+                coreVersionUsedByPlugin,
+                coreVersionUsedByHost);
+        }
+
+        return true;
     }
 
     /// <inheritdoc />
@@ -172,7 +241,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             if (processConfig == null)
                 throw new InvalidOperationException($"No process config found for process ID <{stepConfig.ProcessId}>.");
 
-            var objectType = GetProccessorType(processConfig.Implementation) ?? throw new InvalidOperationException($"Process <{processConfig.Implementation}> is unknown");
+            var objectType = GetProcessorType(processConfig.Implementation) ?? throw new InvalidOperationException($"Process <{processConfig.Implementation}> is unknown");
 
             var constructors = objectType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
             if (constructors.Length != 1)
@@ -192,7 +261,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             throw new InvalidOperationException($"Failed to create process instance for step <{stepConfig?.Id}> with process ID <{processId}> and implementation <{processConfig.Implementation}>.");
         }
 
-        private Type? GetProccessorType(string implementation)
+        private Type? GetProcessorType(string implementation)
         {
             if (implementation.StartsWith("Geopilot.Api.Pipeline.Process", StringComparison.Ordinal))
             {
