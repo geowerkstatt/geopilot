@@ -343,8 +343,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             // manager, optional container runner). Skipping them here is how we avoid invoking
             // their constructors at startup.
             if (parameterInfo.ParameterType == typeof(ILogger) ||
-                parameterInfo.ParameterType == typeof(IPipelineFileManager) ||
-                parameterInfo.ParameterType == typeof(IContainerRunner))
+                parameterInfo.ParameterType == typeof(IPipelineFileManager))
             {
                 return;
             }
