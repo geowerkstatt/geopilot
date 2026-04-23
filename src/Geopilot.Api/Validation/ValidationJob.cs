@@ -31,7 +31,11 @@ public record class ValidationJob(
 
         var statuses = validatorResults.Values.Select(v => v!.Status).ToList();
 
-        if (statuses.Contains(ValidatorResultStatus.Failed))
+        // Cancelled validators (job timeout, shutdown) roll up to Failed at the
+        // aggregate level; the aggregate Status enum is frontend-visible and the
+        // frontend has no Cancelled case in its polling logic, so exposing a new
+        // terminal aggregate state would silently hang the delivery flow.
+        if (statuses.Contains(ValidatorResultStatus.Failed) || statuses.Contains(ValidatorResultStatus.Cancelled))
             return Status.Failed;
 
         if (statuses.Contains(ValidatorResultStatus.CompletedWithErrors))

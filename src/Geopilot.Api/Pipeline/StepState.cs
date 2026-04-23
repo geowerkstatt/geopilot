@@ -32,4 +32,11 @@ public enum StepState
     /// Indicates that the process or operation has failed.
     /// </summary>
     Error,
+
+    /// <summary>
+    /// Indicates that the process or operation was cancelled before completion
+    /// (e.g. job timeout or host shutdown). Distinct from <see cref="Error"/> —
+    /// the step did not fail by its own logic, it was interrupted.
+    /// </summary>
+    Cancelled,
 }
