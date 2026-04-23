@@ -279,9 +279,40 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// <inheritdoc />
         public object Build()
         {
+            ArgumentNullException.ThrowIfNull(pipelineDirectory);
+
+            var (objectType, constructor, processParameterization) = PrepareProcessDescriptor();
+            var parameters = constructor.GetParameters()
+                .Select(p => GenerateParameter(p, objectType, processParameterization, pipelineDirectory, jobId))
+                .ToArray();
+            var processInstance = Activator.CreateInstance(objectType, parameters);
+            if (processInstance != null)
+                return processInstance;
+
+            var processId = stepConfig != null ? stepConfig.ProcessId : string.Empty;
+            throw new InvalidOperationException($"Failed to create process instance for step <{stepConfig?.Id}> with process ID <{processId}> and implementation <{objectType.FullName}>.");
+        }
+
+        /// <inheritdoc />
+        public void Validate()
+        {
+            var (_, constructor, processParameterization) = PrepareProcessDescriptor();
+            foreach (var parameterInfo in constructor.GetParameters())
+            {
+                ValidateParameter(parameterInfo, processParameterization);
+            }
+        }
+
+        /// <summary>
+        /// Resolves the process type, constructor, and merged parameterization for the
+        /// currently configured step. Shared by <see cref="Build"/> and <see cref="Validate"/>
+        /// so both paths surface the same errors at the same points; neither path has side
+        /// effects here (no instance creation, no directory creation).
+        /// </summary>
+        private (Type ProcessType, ConstructorInfo Constructor, Parameterization Parameterization) PrepareProcessDescriptor()
+        {
             ArgumentNullException.ThrowIfNull(stepConfig);
             ArgumentNullException.ThrowIfNull(processes);
-            ArgumentNullException.ThrowIfNull(pipelineDirectory);
 
             var processConfig = stepConfig.ProcessId != null ? processes.GetProcessConfig(stepConfig.ProcessId) : null;
 
@@ -294,18 +325,41 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             if (constructors.Length != 1)
                 throw new InvalidOperationException($"Process <{processConfig.Implementation}> has {constructors.Length} public constructors. A Process must have exactly one public constructor.");
 
-            ConstructorInfo constructor = constructors[0];
+            var constructor = constructors[0];
             var processBaseConfig = pipelineOptions.ProcessConfigs.GetValueOrDefault(processConfig.Implementation);
             var processParameterization = GetMergedParameterization(processBaseConfig, processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
-            var parameters = constructor.GetParameters()
-                .Select(p => GenerateParameter(p, objectType, processParameterization, pipelineDirectory, jobId))
-                .ToArray();
-            var processInstance = Activator.CreateInstance(objectType, parameters);
-            if (processInstance != null)
-                return processInstance;
+            return (objectType, constructor, processParameterization);
+        }
 
-            var processId = stepConfig != null ? stepConfig.ProcessId : string.Empty;
-            throw new InvalidOperationException($"Failed to create process instance for step <{stepConfig?.Id}> with process ID <{processId}> and implementation <{processConfig.Implementation}>.");
+        /// <summary>
+        /// Mirror of <see cref="GenerateParameter"/> without the side-effectful materialization
+        /// step (no <see cref="PipelineLogger"/> / <see cref="PipelineFileManager"/> allocation,
+        /// no value conversion kept). Throws with the same message <see cref="GenerateParameter"/>
+        /// would for an unsatisfiable non-nullable parameter.
+        /// </summary>
+        private static void ValidateParameter(ParameterInfo parameterInfo, Parameterization processConfig)
+        {
+            // Framework-provided dependencies are always satisfiable by Build (logger, file
+            // manager, optional container runner). Skipping them here is how we avoid invoking
+            // their constructors at startup.
+            if (parameterInfo.ParameterType == typeof(ILogger) ||
+                parameterInfo.ParameterType == typeof(IPipelineFileManager) ||
+                parameterInfo.ParameterType == typeof(IContainerRunner))
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(parameterInfo.Name) &&
+                processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&
+                Parameterization.TryConvertObject(rawValue, parameterInfo.ParameterType, out _))
+            {
+                return;
+            }
+
+            if (IsParameterNullable(parameterInfo))
+                return;
+
+            throw new InvalidOperationException($"Process initialization: No suitable parameter found for parameter of type <{parameterInfo.ParameterType.Name}> and name <{parameterInfo.Name}>. Parameter is not nullable, cannot initialize process.");
         }
 
         private Type? GetProcessorType(string implementation)
