@@ -38,13 +38,15 @@ public static class WebApplicationExtensions
             {
                 try
                 {
+                    // Use Validate() rather than Build() so startup does not actually
+                    // construct processes — invoking constructors here would leak
+                    // per-step directories under $TEMP and allocate HttpClients /
+                    // other per-process resources for every restart.
                     pipelineProcessFactory
                         .Builder()
                         .StepConfig(step)
                         .Processes(pipelineFactory.PipelineProcessConfig.Processes)
-                        .PipelineDirectory(Path.GetTempPath())
-                        .JobId(Guid.NewGuid())
-                        .Build();
+                        .Validate();
                 }
                 catch (Exception ex)
                 {

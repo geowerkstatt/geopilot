@@ -55,6 +55,18 @@ public class ValidationRunner : BackgroundService
                 result = MapToValidatorResult(pipeline, pipelineContext);
                 jobStore.AddValidatorResult(pipeline, result);
             }
+            catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            {
+                logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, validationOptions.JobTimeout);
+                result = new ValidatorResult(ValidatorResultStatus.Cancelled, $"Pipeline <{pipeline.Id}> timed out after {validationOptions.JobTimeout}.");
+                jobStore.AddValidatorResult(pipeline, result);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Host shutdown. The service is going down, so don't persist a partial
+                // result — the job will be recoverable (or cleaned up) on next start.
+                logger.LogInformation("Pipeline <{Pipeline}> cancelled due to host shutdown.", pipeline.Id);
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error while running pipeline <{Pipeline}>.", pipeline.Id);
@@ -107,20 +119,43 @@ public class ValidationRunner : BackgroundService
         return displayName.TryGetValue("en", out string? name) ? name : displayName.FirstOrDefault().Value;
     }
 
-    private static ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(IPipeline pipeline, PipelineContext context)
+    private ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(IPipeline pipeline, PipelineContext context)
     {
+        // Terminal non-success states are checked before the delivery flag because
+        // a cancelled or failed pipeline is never "CompletedWithErrors" — we must
+        // not relabel it just because Delivery was flipped to Prevent on the way out.
+        var pipelineState = pipeline.State;
+        if (pipelineState == PipelineState.Failed)
+        {
+            return ValidatorResultStatus.Failed;
+        }
+
+        if (pipelineState == PipelineState.Cancelled)
+        {
+            return ValidatorResultStatus.Cancelled;
+        }
+
         if (pipeline.Delivery == PipelineDelivery.Prevent)
         {
             return ValidatorResultStatus.CompletedWithErrors;
         }
 
-        var pipelineState = pipeline.State;
-        return pipelineState switch
+        if (pipelineState == PipelineState.Success)
         {
-            PipelineState.Success => ValidatorResultStatus.Completed,
-            PipelineState.Failed => ValidatorResultStatus.Failed,
-            _ => throw new InvalidOperationException($"Unexpected pipeline state: {pipelineState}"),
-        };
+            return ValidatorResultStatus.Completed;
+        }
+
+        // Pending / Running are not expected once pipeline.Run has returned: the YAML
+        // validator rejects empty-step pipelines, and every reachable exit path from
+        // the step loop leaves each step in a terminal state. If we see one of these
+        // here, something upstream is out of sync — treat it as a failure rather than
+        // throwing so the caller still gets a structured result with status message
+        // and files instead of a generic "unexpected error" from the outer catch.
+        logger.LogWarning(
+            "Pipeline <{Pipeline}> finished in non-terminal state <{State}>; reporting as Failed.",
+            pipeline.Id,
+            pipelineState);
+        return ValidatorResultStatus.Failed;
     }
 
     private Dictionary<string, string> ExtractPersistentFiles(Guid jobId, PipelineContext context)

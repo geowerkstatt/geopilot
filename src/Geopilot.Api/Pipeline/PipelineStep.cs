@@ -124,6 +124,15 @@ public sealed class PipelineStep : IPipelineStep
 
             return stepResult;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // The caller (job timeout or host shutdown) cancelled us; that's not a
+            // step failure. Mark the step Cancelled so the pipeline state getter and
+            // downstream consumers can distinguish it from a crash.
+            this.State = StepState.Cancelled;
+            logger.LogInformation("Step cancelled.");
+            throw;
+        }
         catch (Exception ex)
         {
             this.State = StepState.Error;
@@ -146,6 +155,13 @@ public sealed class PipelineStep : IPipelineStep
         try
         {
             await resultTask;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Let cancellation propagate unwrapped so the caller (PipelineStep.Run ->
+            // Pipeline.Run -> ValidationRunner) can recognize it and map to the
+            // Cancelled state rather than treat it as a process failure.
+            throw;
         }
         catch (Exception ex)
         {

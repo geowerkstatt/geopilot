@@ -27,4 +27,11 @@ public enum PipelineState
     /// Indicates that the process or operation has failed.
     /// </summary>
     Failed,
+
+    /// <summary>
+    /// Indicates that the pipeline was cancelled before completion
+    /// (e.g. job timeout or host shutdown). Distinct from <see cref="Failed"/> —
+    /// the pipeline did not fail by its own logic, it was interrupted.
+    /// </summary>
+    Cancelled,
 }
