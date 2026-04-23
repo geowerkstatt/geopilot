@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api.FileAccess;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api;
@@ -24,7 +23,7 @@ public sealed class AssemblyInitialize
         {
             UploadDirectory = uploadDirectory,
             AssetsDirectory = assetDirectory,
-            PipelineDirectory = assetDirectory,
+            PipelineDirectory = pipelineDirectory,
         };
 
         TestDirectoryProvider = new DirectoryProvider(Options.Create(fileAccessOptions));
