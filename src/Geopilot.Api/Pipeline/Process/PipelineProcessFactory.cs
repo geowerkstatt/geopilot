@@ -2,6 +2,8 @@
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
 
 namespace Geopilot.Api.Pipeline.Process;
@@ -79,14 +81,17 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             {
                 var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
 
-                var assemblyContext = new AssemblyLoadContext(assemblyFullPath, isCollectible: true);
-                var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
-
-                if (!ValidatePluginCoreCompatibility(plugin))
+                // Validate compatibility against the plugin's metadata before loading it for
+                // execution. LoadFromAssemblyPath would make the plugin's code runnable
+                // (module initializers, type cctors triggered by subsequent reflection), so
+                // incompatible or untrusted assemblies must be rejected first.
+                if (!ValidatePluginCoreCompatibility(assemblyFullPath))
                 {
-                    assemblyContext.Unload();
                     continue;
                 }
+
+                var assemblyContext = new AssemblyLoadContext(assemblyFullPath, isCollectible: true);
+                var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
 
                 processorPluginAssemblies.Add(plugin);
                 processorPluginLoadContexts.Add(assemblyContext);
@@ -96,34 +101,76 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
     /// <summary>
     /// Verifies that a plugin assembly references a compatible version of Geopilot.PipelineCore.
-    /// The check rejects plugins whose referenced major version differs from the host's loaded
-    /// major version, and warns when the plugin was built against an older minor/patch.
+    /// The check reads the assembly's manifest via <see cref="PEReader"/> and
+    /// <see cref="MetadataReader"/> — no code from the plugin is executed. This matters because
+    /// <see cref="AssemblyLoadContext.LoadFromAssemblyPath(string)"/> would make module
+    /// initializers and (on first type access) type constructors runnable before the host could
+    /// decide whether to reject the assembly. The check rejects plugins whose referenced major
+    /// version differs from the host's loaded major version, and warns when the plugin was built
+    /// against an older minor/patch.
     /// </summary>
-    /// <param name="plugin">The loaded plugin assembly to validate.</param>
+    /// <param name="assemblyPath">Absolute path to the plugin assembly file.</param>
     /// <returns>True if the plugin is compatible with the host's PipelineCore; false otherwise.</returns>
-    private bool ValidatePluginCoreCompatibility(Assembly plugin)
+    private bool ValidatePluginCoreCompatibility(string assemblyPath)
     {
         const string coreAssemblyName = "Geopilot.PipelineCore";
         var coreVersionUsedByHost = typeof(IPipelineFile).Assembly.GetName().Version;
-        var coreAssemblyUsedByPlugin = plugin.GetReferencedAssemblies()
-            .FirstOrDefault(a => a.Name == coreAssemblyName);
 
-        if (coreAssemblyUsedByPlugin == null)
+        string pluginDisplayName = Path.GetFileNameWithoutExtension(assemblyPath);
+        Version? coreVersionUsedByPlugin = null;
+        bool coreReferenceFound = false;
+
+        try
+        {
+            using var stream = File.OpenRead(assemblyPath);
+            using var peReader = new PEReader(stream);
+            if (!peReader.HasMetadata)
+            {
+                logger.LogError(
+                    "Plugin at '{Path}' does not contain managed metadata; rejecting.",
+                    assemblyPath);
+                return false;
+            }
+
+            var metadataReader = peReader.GetMetadataReader();
+            var assemblyDefinition = metadataReader.GetAssemblyDefinition();
+            pluginDisplayName = metadataReader.GetString(assemblyDefinition.Name);
+
+            foreach (var handle in metadataReader.AssemblyReferences)
+            {
+                var reference = metadataReader.GetAssemblyReference(handle);
+                if (string.Equals(metadataReader.GetString(reference.Name), coreAssemblyName, StringComparison.Ordinal))
+                {
+                    coreReferenceFound = true;
+                    coreVersionUsedByPlugin = reference.Version;
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to read metadata for plugin at '{Path}'; rejecting.",
+                assemblyPath);
+            return false;
+        }
+
+        if (!coreReferenceFound)
         {
             logger.LogError(
                 "Plugin '{Plugin}' does not reference {Core}; rejecting.",
-                plugin.GetName().Name,
+                pluginDisplayName,
                 coreAssemblyName);
             return false;
         }
 
-        var coreVersionUsedByPlugin = coreAssemblyUsedByPlugin.Version;
         if (coreVersionUsedByPlugin == null || coreVersionUsedByHost == null)
         {
             logger.LogError(
                 "Unable to determine {Core} version for plugin '{Plugin}' (plugin={PluginVersion}, host={HostVersion}); rejecting.",
                 coreAssemblyName,
-                plugin.GetName().Name,
+                pluginDisplayName,
                 coreVersionUsedByPlugin,
                 coreVersionUsedByHost);
             return false;
@@ -133,7 +180,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             logger.LogError(
                 "Plugin '{Plugin}' was built against {Core} {PluginVersion} but host runs {HostVersion}; major versions differ, plugin will not be loaded.",
-                plugin.GetName().Name,
+                pluginDisplayName,
                 coreAssemblyName,
                 coreVersionUsedByPlugin,
                 coreVersionUsedByHost);
@@ -144,7 +191,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             logger.LogWarning(
                 "Plugin '{Plugin}' was built against older {Core} {PluginVersion} (host runs {HostVersion}); consider rebuilding the plugin.",
-                plugin.GetName().Name,
+                pluginDisplayName,
                 coreAssemblyName,
                 coreVersionUsedByPlugin,
                 coreVersionUsedByHost);
