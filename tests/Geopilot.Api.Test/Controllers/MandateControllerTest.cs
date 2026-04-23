@@ -210,7 +210,6 @@ namespace Geopilot.Api.Controllers
                     { "en", "pipeline 1" },
                     { "de", "Pipeline 1" },
                 },
-                Parameters = new PipelineParametersConfig() { UploadStep = "", Mappings = new List<FileMappingsConfig>(), },
                 Steps = new List<StepConfig>(),
             };
             pipelineServiceMock.Setup(v => v.GetById(pipelineId)).Returns(pipelineStub);
@@ -288,7 +287,6 @@ namespace Geopilot.Api.Controllers
                     { "en", "pipeline 1" },
                     { "de", "Pipeline 1" },
                 },
-                Parameters = new PipelineParametersConfig() { UploadStep = "", Mappings = new List<FileMappingsConfig>(), },
                 Steps = new List<StepConfig>(),
             };
 

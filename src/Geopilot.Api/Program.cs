@@ -212,7 +212,6 @@ builder.Services.AddStacData(builder => { });
 builder.Services
     .AddHealthChecks()
     .AddDbContextCheck<Context>("Database")
-    .AddCheck<ValidationServiceHealthCheck>("Validators")
     .AddCheck<StorageHealthCheck>("Storage");
 
 var cloudStorageConfig = builder.Configuration.GetSection("CloudStorage").Get<CloudStorageOptions>()

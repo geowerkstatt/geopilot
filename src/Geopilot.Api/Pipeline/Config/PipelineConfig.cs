@@ -25,13 +25,6 @@ public class PipelineConfig
     public required Dictionary<string, string> DisplayName { get; set; }
 
     /// <summary>
-    /// The parameters for the pipeline.
-    /// </summary>
-    [Required(ErrorMessage = "Pipeline parameters are required.")]
-    [YamlMember(Alias = "parameters")]
-    public required PipelineParametersConfig Parameters { get; set; }
-
-    /// <summary>
     /// The steps in the pipeline that will be executed sequentially. Each step defines a process to execute and its data handling configuration.
     /// </summary>
     [Required(ErrorMessage = "Pipeline Step is required.")]
@@ -41,14 +34,13 @@ public class PipelineConfig
     public required List<StepConfig> Steps { get; set; }
 
     /// <summary>
-    /// Condition to control in which cases a delivery is allowed and not allowed, based on the results of the pipeline run.
+    /// Gets or sets the list of conditions that control when delivery of the pipeline data is not allowed.
+    /// If any condition evaluates to <see langword="true"/>, delivery of the pipeline data is prevented.
     /// </summary>
     /// <remarks>
-    /// The condition is typically specified as a string expression and references the pipeline context data.
-    /// The expression is evaluated at runtime and has to evaluate to <see langword="true"/> or <see langword="false"/>.
-    /// If the condition evaluates to <see langword="true"/>, delivery of the pipeline data is allowed.
-    /// If the condition evaluates to <see langword="false"/> or any other non-boolean value, delivery of the pipeline data is not allowed.
+    /// Each condition is evaluated at runtime and references the pipeline context data.
+    /// If no conditions are defined or none evaluate to <see langword="true"/>, delivery is allowed by default.
     /// </remarks>
-    [YamlMember(Alias = "delivery_condition")]
-    public string? DeliveryCondition { get; set; }
+    [YamlMember(Alias = "delivery_restrictions")]
+    public List<ConditionConfig>? DeliveryRestrictions { get; set; }
 }

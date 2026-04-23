@@ -24,7 +24,12 @@ public class PipelineProcessFactoryTest
         loggerFactoryMock.Setup(lf => lf.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
     }
 
-    [TestMethod]
+    [TestMethod(DisplayName = "Create Process With List Config")]
+    public void CreateProcessWithListConfig()
+    {
+    }
+
+    [TestMethod(DisplayName = "Create Process Merges Configs")]
     public void CreateProcessMergesConfigs()
     {
         // Arrange: Set up three levels of configuration hierarchy

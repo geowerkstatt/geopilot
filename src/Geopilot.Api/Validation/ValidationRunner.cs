@@ -52,12 +52,6 @@ public class ValidationRunner : BackgroundService
             try
             {
                 var pipelineContext = await pipeline.Run(linkedCts.Token);
-
-                if (pipeline.State == PipelineState.Failed)
-                {
-                    throw new InvalidOperationException($"Pipeline <{pipeline.Id}> failed during execution.");
-                }
-
                 result = MapToValidatorResult(pipeline, pipelineContext);
                 jobStore.AddValidatorResult(pipeline, result);
             }
@@ -99,7 +93,11 @@ public class ValidationRunner : BackgroundService
                 return messages;
             })
             .ToList();
-        if (statusMessages != null && statusMessages.Count > 0)
+
+        if (context.DeliveryRestrictionMessage != null)
+            statusMessages.Add(GetLocalizedName(context.DeliveryRestrictionMessage));
+
+        if (statusMessages.Count > 0)
             return string.Join(" - ", statusMessages);
         return string.Empty;
     }

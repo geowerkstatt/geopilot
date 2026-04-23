@@ -6,21 +6,13 @@ processes:
 pipelines:
   - id: ili_validation
     display_name:
-      en: XTF Validation
-    parameters:
-      upload_step: upload
-      mapping:
-        - file_extension: xtf
-          attribute: ili_file
+      en: XTF Validation 1
     steps:
       - id: validation
         display_name:
-          en: XTF Validation 1
+          en: XTF Validation
         process_id: xtf_validator
         input:
-          - from: upload
-            take: ili_file
-            as: iliFile
         output:
           - take: error_log
             as: error_log
@@ -32,20 +24,12 @@ pipelines:
   - id: ili_validation
     display_name:
       en: XTF Validation 2
-    parameters:
-      upload_step: upload
-      mapping:
-        - file_extension: xtf
-          attribute: ili_file
     steps:
       - id: validation
         display_name:
           en: XTF Validation
         process_id: xtf_validator
         input:
-          - from: upload
-            take: ili_file
-            as: iliFile
         output:
           - take: error_log
             as: error_log

@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.Reflection;
 
@@ -79,17 +80,20 @@ public sealed class PipelineStep : IPipelineStep
         {
             if (this.StepConditions != null)
             {
-                if (await this.FailStep(this.StepConditions.Pre, context))
+                var failConditions = await this.FindMatchingFailConditions(this.StepConditions.Pre, context);
+                if (failConditions.Count > 0)
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"step failed due to pre-condition.");
-                    return new StepResult();
+                    return CreateConditionStepResult(this.Id + "_status_message_pre_fail_condition", failConditions);
                 }
-                else if (await this.SkipStepExecution(this.StepConditions.Pre, context))
+
+                var skipConditions = await this.FindMatchingSkipConditions(this.StepConditions.Pre, context);
+                if (skipConditions.Count > 0)
                 {
                     this.State = StepState.Skipped;
                     logger.LogInformation($"step skipped due to pre-condition.");
-                    return new StepResult();
+                    return CreateConditionStepResult(this.Id + "_status_message_pre_skip_condition", skipConditions);
                 }
             }
 
@@ -97,10 +101,20 @@ public sealed class PipelineStep : IPipelineStep
 
             var stepResult = await ExecuteProcess(context, cancellationToken);
 
-            if (this.StepConditions != null && await this.FailStep(this.StepConditions.Post, context, stepResult))
+            if (this.StepConditions != null)
             {
-                this.State = StepState.Error;
-                logger.LogInformation($"failed due to post-condition.");
+                var postFailConditions = await this.FindMatchingFailConditions(this.StepConditions.Post, context, stepResult);
+                if (postFailConditions.Count > 0)
+                {
+                    this.State = StepState.Error;
+                    logger.LogInformation($"failed due to post-condition.");
+                    AddConditionMessages(this.Id + "_status_message_post_fail_condition", stepResult, postFailConditions);
+                }
+                else
+                {
+                    this.State = StepState.Success;
+                    logger.LogInformation($"run successfull.");
+                }
             }
             else
             {
@@ -141,43 +155,91 @@ public sealed class PipelineStep : IPipelineStep
         return CreateStepResult(resultTask.Result);
     }
 
-    private async Task<bool> SkipStepExecution(PipelineStepPreConditionConfig? condition, PipelineContext context)
+    private async Task<List<ConditionConfig>> FindMatchingSkipConditions(PipelineStepPreConditionConfig? condition, PipelineContext context)
     {
-        if (condition != null && condition.SkipCondition != null)
+        var matched = new List<ConditionConfig>();
+        if (condition?.SkipConditions != null)
         {
             var expressionParameters = context.ToExpressionParameters();
-            return await this.conditionEvaluator.EvaluateConditionAsync(condition.SkipCondition, expressionParameters);
+            foreach (var skipCondition in condition.SkipConditions)
+            {
+                if (await this.conditionEvaluator.EvaluateConditionAsync(skipCondition.Expression, expressionParameters))
+                    matched.Add(skipCondition);
+            }
         }
-        else
-        {
-            return false;
-        }
+
+        return matched;
     }
 
-    private async Task<bool> FailStep(PipelineStepPreConditionConfig? condition, PipelineContext context)
+    private async Task<List<ConditionConfig>> FindMatchingFailConditions(PipelineStepPreConditionConfig? condition, PipelineContext context)
     {
-        if (condition != null && condition.FailCondition != null)
+        var matched = new List<ConditionConfig>();
+        if (condition?.FailConditions != null)
         {
             var expressionParameters = context.ToExpressionParameters();
-            return await this.conditionEvaluator.EvaluateConditionAsync(condition.FailCondition, expressionParameters);
+            foreach (var failCondition in condition.FailConditions)
+            {
+                if (await this.conditionEvaluator.EvaluateConditionAsync(failCondition.Expression, expressionParameters))
+                    matched.Add(failCondition);
+            }
         }
-        else
-        {
-            return false;
-        }
+
+        return matched;
     }
 
-    private async Task<bool> FailStep(PipelineStepPostConditionConfig? condition, PipelineContext context, StepResult stepResult)
+    private async Task<List<ConditionConfig>> FindMatchingFailConditions(PipelineStepPostConditionConfig? condition, PipelineContext context, StepResult stepResult)
     {
-        if (condition != null && condition.FailCondition != null)
+        var matched = new List<ConditionConfig>();
+        if (condition?.FailConditions != null)
         {
             var expressionParameters = context.ToExpressionParameters(this.Id, stepResult);
-            return await this.conditionEvaluator.EvaluateConditionAsync(condition.FailCondition, expressionParameters);
+            foreach (var failCondition in condition.FailConditions)
+            {
+                if (await this.conditionEvaluator.EvaluateConditionAsync(failCondition.Expression, expressionParameters))
+                    matched.Add(failCondition);
+            }
         }
-        else
+
+        return matched;
+    }
+
+    private static StepResult CreateConditionStepResult(string stepOutputKey, List<ConditionConfig> conditions)
+    {
+        var stepResult = new StepResult();
+        AddConditionMessages(stepOutputKey, stepResult, conditions);
+        return stepResult;
+    }
+
+    private static void AddConditionMessages(string stepOutputKey, StepResult stepResult, List<ConditionConfig> conditions)
+    {
+        var mergedMessages = MergeConditionMessages(conditions);
+        if (mergedMessages.Count > 0)
         {
-            return false;
+            stepResult.Outputs[stepOutputKey] = new StepOutput
+            {
+                Action = new HashSet<OutputAction> { OutputAction.StatusMessage },
+                Data = mergedMessages,
+            };
         }
+    }
+
+    private static Dictionary<string, string> MergeConditionMessages(List<ConditionConfig> conditions)
+    {
+        var allLanguages = conditions
+            .Where(c => c.Message != null)
+            .SelectMany(c => c.Message!.Keys)
+            .Distinct();
+
+        var merged = new Dictionary<string, string>();
+        foreach (var language in allLanguages)
+        {
+            var messages = conditions
+                .Where(c => c.Message != null && c.Message.ContainsKey(language))
+                .Select(c => c.Message![language]);
+            merged[language] = string.Join(", ", messages);
+        }
+
+        return merged;
     }
 
     private MethodInfo GetProcessRunMethod()
@@ -211,25 +273,28 @@ public sealed class PipelineStep : IPipelineStep
     {
         // if the parameter is a cancellation token, inject the pipeline's cancellation token
         if (parameterInfo.ParameterType.IsAssignableFrom(cancellationToken.GetType()))
-        {
             return cancellationToken;
+
+        var uploadFilesAttribute = parameterInfo.GetCustomAttribute<UploadFilesAttribute>();
+        if (uploadFilesAttribute != null)
+        {
+            if (parameterInfo.ParameterType.IsAssignableFrom(context.Upload.GetType()))
+                return context.Upload;
+            else if (IsArrayElementNullable(parameterInfo))
+                return null;
+            throw new PipelineRunException($"The parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> was marked with the UploadFilesAttribute, but was not assignable from the injected upload files collection of type <{context.Upload.GetType().FullName}>.");
         }
 
         // get all mapped values for the parameter based on the step's input config and the pipeline context
         var mappedValues = CollectMappedValues(parameterInfo, context);
 
         if (parameterInfo.ParameterType.IsArray)
-        {
             return GenerateArrayParameter(parameterInfo, mappedValues);
-        }
 
         if (mappedValues.Count == 1)
-        {
             return GenerateSingleParameter(parameterInfo, mappedValues[0]);
-        }
-
-        var errorMessage = $"Could not find matching data for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method.";
-        throw new PipelineRunException(errorMessage);
+        else
+            throw new PipelineRunException($"<{mappedValues.Count}> values found for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method.");
     }
 
     private List<object?> CollectMappedValues(ParameterInfo parameterInfo, PipelineContext context)
@@ -243,7 +308,10 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     if (parameterInfo.Name == inputConfig.As)
                     {
-                        mappedValues.Add(stepOutput.Data);
+                        if (stepOutput.Data is IEnumerable<object?> collection)
+                            mappedValues.AddRange(collection);
+                        else
+                            mappedValues.Add(stepOutput.Data);
                     }
                 }
             }

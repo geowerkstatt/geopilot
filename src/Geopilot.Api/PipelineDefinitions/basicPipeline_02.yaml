@@ -1,4 +1,11 @@
 processes:
+  - id: xtf_matcher
+    implementation: Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions:
+        - xtf
+      iliModels: null
+      fileNamePatterns: null
   - id: xtf_validator
     implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
     default_config:
@@ -17,13 +24,24 @@ pipelines:
       de: XTF Validierung
       it: Validazione XTF
       fr: Validation XTF
-    parameters:
-      upload_step: upload
-      mapping:
-        - file_extension: xtf
-          attribute: ili_file
-    delivery_condition: "[validation.successful]"
+    delivery_restrictions:
+      - expression: "!([validation.successful])"
+        message:
+          de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
+          en: "Validation was not successful. Delivery is not possible."
+          fr: "La validation n'a pas réussi. La livraison n'est pas possible."
+          it: "La validazione non è riuscita. La consegna non è possibile."
     steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+          de: XTF Zuordnung
+          it: Corrispondenza XTF
+          fr: Correspondance XTF
+        process_id: xtf_matcher
+        output:
+          - take: xtf_files
+            as: xtf_files
       - id: validation
         display_name:
           en: XTF Validation
@@ -31,11 +49,20 @@ pipelines:
           it: Validazione XTF
           fr: Validation XTF
         process_id: xtf_validator
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([xtf_matching.xtf_files]) != 1"
+                message:
+                  de: "Es muss genau eine XTF-Datei hochgeladen werden."
+                  en: "Exactly one XTF file must be uploaded."
+                  fr: "Exactement un fichier XTF doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file XTF."
         process_config_overwrites:
           validationProfile: null
         input:
-          - from: upload
-            take: ili_file
+          - from: xtf_matching
+            take: xtf_files
             as: iliFile
         output:
           - take: error_log
@@ -60,13 +87,24 @@ pipelines:
       de: XTF Validierung mit Error Tree
       it: Validazione XTF con albero degli errori
       fr: Validation XTF avec arbre des erreurs
-    parameters:
-      upload_step: upload
-      mapping:
-        - file_extension: xtf
-          attribute: ili_file
-    delivery_condition: "[validation.successful]"
+    delivery_restrictions:
+      - expression: "!([validation.successful])"
+        message:
+          de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
+          en: "Validation was not successful. Delivery is not possible."
+          fr: "La validation n'a pas réussi. La livraison n'est pas possible."
+          it: "La validazione non è riuscita. La consegna non è possibile."
     steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+          de: XTF Zuordnung
+          it: Corrispondenza XTF
+          fr: Correspondance XTF
+        process_id: xtf_matcher
+        output:
+          - take: xtf_files
+            as: xtf_files
       - id: validation
         display_name:
           en: XTF Validation
@@ -74,11 +112,20 @@ pipelines:
           it: Validazione XTF
           fr: Validation XTF
         process_id: xtf_validator
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([xtf_matching.xtf_files]) != 1"
+                message:
+                  de: "Es muss genau eine XTF-Datei hochgeladen werden."
+                  en: "Exactly one XTF file must be uploaded."
+                  fr: "Exactement un fichier XTF doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file XTF."
         process_config_overwrites:
           validationProfile: null
         input:
-          - from: upload
-            take: ili_file
+          - from: xtf_matching
+            take: xtf_files
             as: iliFile
         output:
           - take: error_log
@@ -106,7 +153,13 @@ pipelines:
         process_id: xtf_error_tree
         conditions:
           pre:
-            skip_condition: "[validation.successful]"
+            skip_conditions:
+              - expression: "[validation.successful]"
+                message:
+                  de: "Validierung nicht erfolgreich. Error Tree wird übersprungen."
+                  en: "Validation not successful. Error Tree will be skipped."
+                  fr: "Validation non réussie. L'arbre des erreurs sera ignoré."
+                  it: "Validazione non riuscita. L'albero degli errori sarà ignorato."
         input:
           - from: validation
             take: xtf_log
@@ -129,8 +182,8 @@ pipelines:
           fr: Création ZIP
         process_id: zip_packager
         input:
-          - from: upload
-            take: ili_file
+          - from: xtf_matching
+            take: xtf_files
             as: input
           - from: validation
             take: xtf_log
