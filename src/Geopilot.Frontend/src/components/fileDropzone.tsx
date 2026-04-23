@@ -1,29 +1,38 @@
 import { CSSProperties, FC, useCallback, useEffect, useMemo, useState } from "react";
-import { IconButton, Link, Typography } from "@mui/material";
-import ClearIcon from "@mui/icons-material/Clear";
+import { Link, Typography } from "@mui/material";
 import { FileRejection, useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 import { geopilotTheme } from "../appTheme";
-import { FlexRowBox } from "./styledComponents.ts";
+import { FlexBox } from "./styledComponents.ts";
+import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
+import { FileListItem } from "./fileListItem.tsx";
 
 const defaultMaxFileSizeMB = 100;
 
 interface FileDropzoneProps {
-  selectedFile?: File;
-  setSelectedFile: (file: File | undefined) => void;
+  selectedFiles: File[];
+  addFiles: (files: File[]) => void;
+  removeFile: (file: File) => void;
+  fileUploadStatus: Map<string, FileUploadStatus>;
   fileExtensions?: string[];
   disabled?: boolean;
   setFileError: (error: string | undefined) => void;
   maxFileSizeMB?: number;
+  maxFiles?: number;
+  isUploading?: boolean;
 }
 
 export const FileDropzone: FC<FileDropzoneProps> = ({
-  selectedFile,
-  setSelectedFile,
+  selectedFiles,
+  addFiles,
+  removeFile,
+  fileUploadStatus,
   fileExtensions,
   disabled,
   setFileError,
   maxFileSizeMB = defaultMaxFileSizeMB,
+  maxFiles = 1,
+  isUploading,
 }) => {
   const { t } = useTranslation();
   const [acceptsAllFileTypes, setAcceptsAllFileTypes] = useState<boolean>(true);
@@ -70,16 +79,22 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
         }
 
         setError(errorKey);
-      } else {
-        setSelectedFile(acceptedFiles[0]);
+      } else if (acceptedFiles.length > 0) {
+        const existingNames = new Set(selectedFiles.map(f => f.name));
+        const uniqueNewFiles = acceptedFiles.filter(f => !existingNames.has(f.name));
+        if (selectedFiles.length + uniqueNewFiles.length > maxFiles) {
+          setError("fileDropzoneErrorTooManyFiles");
+        } else {
+          addFiles(acceptedFiles);
+        }
       }
     },
-    [error, setSelectedFile],
+    [error, addFiles, selectedFiles, maxFiles],
   );
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
-    maxFiles: 1,
+    maxFiles,
     maxSize: maxFileSizeMB * 1024 * 1024,
     accept: acceptsAllFileTypes
       ? undefined
@@ -89,13 +104,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
     disabled,
   });
 
-  const handleRemove = () => {
-    if (!disabled) {
-      setSelectedFile(undefined);
-    }
-  };
-
-  const style = useMemo<CSSProperties>(
+  const dropzoneStyle = useMemo<CSSProperties>(
     () => ({
       display: "flex",
       flexDirection: "column",
@@ -119,41 +128,30 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   );
 
   return (
-    <div {...getRootProps({ style })}>
-      <input {...getInputProps()} data-cy="file-dropzone" />
-      {!selectedFile ? (
-        <>
-          <Typography variant="body1" className={disabled ? "Mui-disabled" : ""}>
-            <Link>{t("clickToSelect")}</Link>
-            &nbsp;
-            {t("or")} {t("dragAndDrop")}
+    <FlexBox>
+      <div {...getRootProps({ style: dropzoneStyle })}>
+        <input {...getInputProps()} data-cy="file-dropzone" />
+        <Typography variant="body1" className={disabled ? "Mui-disabled" : ""}>
+          <Link>{t("clickToSelect")}</Link>
+          &nbsp;
+          {t("or")} {t("dragAndDrop")}
+        </Typography>
+        {fileExtensions && fileExtensions.length > 0 && (
+          <Typography variant="caption" className={disabled ? "Mui-disabled" : ""}>
+            {getAcceptedFileTypesText()}&nbsp;(max.{" "}
+            {maxFileSizeMB >= 1024 ? `${(maxFileSizeMB / 1024).toFixed(0)} GB` : `${maxFileSizeMB} MB`})
           </Typography>
-          {fileExtensions && fileExtensions.length > 0 && (
-            <Typography variant="caption" className={disabled ? "Mui-disabled" : ""}>
-              {getAcceptedFileTypesText()}&nbsp;(max.{" "}
-              {maxFileSizeMB >= 1024 ? `${(maxFileSizeMB / 1024).toFixed(0)} GB` : `${maxFileSizeMB} MB`})
-            </Typography>
-          )}
-        </>
-      ) : (
-        <FlexRowBox>
-          <Typography
-            variant="body1"
-            sx={{ color: geopilotTheme.palette.primary.main }}
-            className={disabled ? "Mui-disabled" : ""}>
-            {selectedFile?.name}
-          </Typography>
-          <IconButton
-            data-cy="file-remove-button"
-            disabled={disabled}
-            onClick={e => {
-              e.stopPropagation();
-              handleRemove();
-            }}>
-            <ClearIcon />
-          </IconButton>
-        </FlexRowBox>
-      )}
-    </div>
+        )}
+      </div>
+      {selectedFiles.map(file => (
+        <FileListItem
+          key={file.name}
+          file={file}
+          status={fileUploadStatus.get(file.name)}
+          disabled={isUploading}
+          onRemove={removeFile}
+        />
+      ))}
+    </FlexBox>
   );
 };

@@ -10,6 +10,7 @@ declare module "@mui/material/styles" {
       inactive: string;
       hover: string;
       contrastText: string;
+      light: string;
     };
     secondary: {
       main: string;

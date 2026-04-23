@@ -57,7 +57,7 @@
   "fileDropzoneErrorChooseFile": "Please choose a valid file",
   "fileDropzoneErrorFileTooLarge": "The selected file exceeds the maximum file size",
   "fileDropzoneErrorNotSupported": "The file type is not supported",
-  "fileDropzoneErrorTooManyFiles": "Only one file can be checked at a time",
+  "fileDropzoneErrorTooManyFiles": "The maximum number of files has been exceeded",
   "fileTypes": "Formats",
   "id": "ID",
   "imprint": "Imprint",

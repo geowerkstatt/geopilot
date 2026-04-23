@@ -42,7 +42,6 @@ public sealed class PipelineControllerTest
                 { "en", "pipeline 1" },
                 { "de", "Pipeline 1" },
             },
-            Parameters = new PipelineParametersConfig() { UploadStep = "", Mappings = new List<FileMappingsConfig>(), },
             Steps = new List<StepConfig>(),
         };
         var pipeline02 = new PipelineConfig()
@@ -53,7 +52,6 @@ public sealed class PipelineControllerTest
                 { "en", "pipeline 2" },
                 { "de", "Pipeline 2" },
             },
-            Parameters = new PipelineParametersConfig() { UploadStep = "", Mappings = new List<FileMappingsConfig>(), },
             Steps = new List<StepConfig>(),
         };
         pipelineServiceMock.Setup(s => s.GetAvailablePipelines())

@@ -130,7 +130,7 @@ public class ValidationServiceTest
 
         pipelineFactoryMock.Setup(x => x.CreatePipeline(
             pipelineId,
-            It.Is<List<IPipelineFile>>(files => files.Any(file => file.OriginalFileName == originalFileName)),
+            It.Is<PipelineFileList>(files => files.Files.Any(file => file.OriginalFileName == originalFileName)),
             It.IsAny<Guid>()))
             .Returns(pipeline.Object);
 
@@ -244,7 +244,7 @@ public class ValidationServiceTest
         fileProviderMock.Setup(x => x.Initialize(jobId));
         fileProviderMock.Setup(x => x.GetFilePath("file.xtf")).Returns(tempFilePath);
 
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<List<IPipelineFile>>(), It.IsAny<Guid>()))
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<PipelineFileList>(), It.IsAny<Guid>()))
             .Returns(pipeline.Object);
 
         validationJobStoreMock

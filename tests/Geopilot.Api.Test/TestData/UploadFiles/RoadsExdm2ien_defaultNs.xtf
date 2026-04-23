@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transfer xmlns="http://www.interlis.ch/xtf/2.4/INTERLIS"
+  xmlns:roads="http://www.interlis.ch/xtf/2.4/RoadsExdm2ien">
+  <headersection>
+    <models>
+      <model>RoadsExdm2ien</model>
+    </models>
+    <sender>KOGIS</sender>
+  </headersection>
+  <datasection>
+    <roads:RoadsExtended bid="REFHANDB00000001"/>
+  </datasection>
+</transfer>

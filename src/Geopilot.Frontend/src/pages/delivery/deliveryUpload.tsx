@@ -18,8 +18,17 @@ export const DeliveryUpload = () => {
   const { initialized, termsOfUse } = useAppSettings();
   const { fetchApi } = useFetch();
   const formMethods = useForm({ mode: "all" });
-  const { setStepError, selectedFile, setSelectedFile, isLoading, uploadFile, uploadSettings, resetDelivery } =
-    useContext(DeliveryContext);
+  const {
+    setStepError,
+    selectedFiles,
+    addFiles,
+    removeFile,
+    fileUploadStatus,
+    isLoading,
+    uploadFile,
+    cancelUpload,
+    uploadSettings,
+  } = useContext(DeliveryContext);
 
   useEffect(() => {
     if (!validationSettings) {
@@ -45,12 +54,16 @@ export const DeliveryUpload = () => {
         <form onSubmit={formMethods.handleSubmit(submitForm)}>
           <FlexBox>
             <FileDropzone
-              selectedFile={selectedFile}
-              setSelectedFile={setSelectedFile}
+              selectedFiles={selectedFiles}
+              addFiles={addFiles}
+              removeFile={removeFile}
+              fileUploadStatus={fileUploadStatus}
               fileExtensions={validationSettings?.allowedFileExtensions}
               disabled={isLoading}
               setFileError={setFileError}
               maxFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxFileSizeMB : undefined}
+              maxFiles={uploadSettings?.enabled ? uploadSettings.maxFilesPerJob : 1}
+              isUploading={isLoading}
             />
             <FlexRowSpaceBetweenBox>
               <FormCheckbox
@@ -69,10 +82,10 @@ export const DeliveryUpload = () => {
                 sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
               />
               {isLoading ? (
-                <CancelButton onClick={() => resetDelivery()} />
+                <CancelButton onClick={() => cancelUpload()} />
               ) : (
                 <BaseButton
-                  disabled={!formMethods.formState.isValid || !selectedFile}
+                  disabled={!formMethods.formState.isValid || selectedFiles.length === 0}
                   onClick={() => formMethods.handleSubmit(submitForm)()}
                   icon={<CloudUploadOutlinedIcon />}
                   label="upload"

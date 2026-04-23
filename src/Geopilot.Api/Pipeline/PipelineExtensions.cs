@@ -37,7 +37,11 @@ internal static class PipelineExtensions
         var properties = obj.GetType().GetProperties();
         foreach (var property in properties)
         {
-            var goRecursive = !property.PropertyType.IsPrimitive && property.PropertyType != typeof(decimal) && property.PropertyType != typeof(string);
+            var isPrimitive = property.PropertyType.IsPrimitive;
+            var isDecimal = property.PropertyType == typeof(decimal);
+            var isString = property.PropertyType == typeof(string);
+            var isParameterization = property.PropertyType == typeof(Parameterization);
+            var goRecursive = !isPrimitive && !isDecimal && !isString && !isParameterization;
             if (goRecursive)
             {
                 var value = property.GetValue(obj);

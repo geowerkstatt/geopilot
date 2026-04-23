@@ -8,24 +8,97 @@ processes:
     implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
     default_config:
       archiveFileName: myPersonalZipArchive
+  - id: xtf_matcher
+    implementation: Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions:
+        - xtf
+      iliModels:
 pipelines:
-  - id: two_steps
+  - id: two_steps_skip_validation
+    display_name:
+      en: two steps pipeline with skip condition
+    delivery_restrictions:
+      - expression: "Length([matcher.xtfFiles]) == 1"
+    steps:
+      - id: matcher
+        display_name:
+          en: XTF Matcher
+        process_id: xtf_matcher
+        process_config_overwrites:
+          iliModels:
+            - RoadsExdm2ien
+        output:
+          - take: xtf_files
+            as: xtfFiles
+      - id: validation
+        display_name:
+          en: XTF Validation
+        process_id: xtf_validator
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "Length([matcher.xtfFiles]) != 1"
+        input:
+          - from: matcher
+            take: xtfFiles
+            as: iliFile
+        output:
+          - take: error_log
+            as: errorlog
+            action:
+          - take: xtf_log
+            as: xtflog
+            action:
+              - DOWNLOAD
+          - take: validation_successful
+            as: successful
+      - id: zip_package
+        display_name:
+          en: Zip Package
+        process_id: zip_package_process
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "Length([matcher.xtfFiles]) != 1"
+        input:
+          - from: validation
+            take: errorlog
+            as: input
+          - from: validation
+            take: xtflog
+            as: input
+          - from: matcher
+            take: xtfFiles
+            as: input
+        output:
+          - take: zip_package
+            as: archive
+            action:
+              - DOWNLOAD
+  - id: two_steps_roadsexdm2ien
     display_name:
       en: two steps pipeline
-    parameters:
-      upload_step: upload
-      mapping:
-        - file_extension: xtf
-          attribute: ili_file
-    delivery_condition: "[validation.successful]"
+    delivery_restrictions:
+      - expression: "!([validation.successful])"
     steps:
+      - id: matcher
+        display_name:
+          en: XTF Matcher
+        process_id: xtf_matcher
+        process_config_overwrites:
+          iliModels:
+            - RoadsExdm2ien
+        output:
+          - take: xtf_files
+            as: xtfFiles
       - id: validation
         display_name:
           en: XTF Validation
         process_id: xtf_validator
         input:
-          - from: upload
-            take: ili_file
+          - from: matcher
+            take: xtfFiles
             as: iliFile
         output:
           - take: error_log
@@ -44,10 +117,13 @@ pipelines:
         process_config_overwrites:
         conditions:
           pre:
-            skip_condition: "[validation.errorlog] == null && [validation.xtflog] == null"
-            fail_condition: "[validation.errorlog] == null && [validation.xtflog] == null"
+            skip_conditions:
+              - expression: "[validation.errorlog] == null && [validation.xtflog] == null"
+            fail_conditions:
+              - expression: "[validation.errorlog] == null && [validation.xtflog] == null"
           post:
-            fail_condition: "[zip_package.archive] == null"
+            fail_conditions:
+              - expression: "[zip_package.archive] == null"
         input:
           - from: validation
             take: errorlog
@@ -55,8 +131,8 @@ pipelines:
           - from: validation
             take: xtflog
             as: input
-          - from: upload
-            take: ili_file
+          - from: matcher
+            take: xtfFiles
             as: input
         output:
           - take: zip_package

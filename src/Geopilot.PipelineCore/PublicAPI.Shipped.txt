@@ -1,0 +1,18 @@
+#nullable enable
+Geopilot.Api.Pipeline.IPipelineFileManager
+Geopilot.Api.Pipeline.IPipelineFileManager.GeneratePipelineFile(string! originalFileName, string! fileExtension) -> Geopilot.PipelineCore.Pipeline.IPipelineFile!
+Geopilot.PipelineCore.Pipeline.IPipelineFile
+Geopilot.PipelineCore.Pipeline.IPipelineFile.FileExtension.get -> string!
+Geopilot.PipelineCore.Pipeline.IPipelineFile.OpenReadFileStream() -> System.IO.FileStream!
+Geopilot.PipelineCore.Pipeline.IPipelineFile.OpenWriteFileStream() -> System.IO.FileStream!
+Geopilot.PipelineCore.Pipeline.IPipelineFile.OriginalFileName.get -> string!
+Geopilot.PipelineCore.Pipeline.IPipelineFile.OriginalFileNameWithoutExtension.get -> string!
+Geopilot.PipelineCore.Pipeline.IPipelineFileList
+Geopilot.PipelineCore.Pipeline.IPipelineFileList.Files.get -> System.Collections.Generic.ICollection<Geopilot.PipelineCore.Pipeline.IPipelineFile!>!
+Geopilot.PipelineCore.Pipeline.IPipelineFileList.Matches(System.Func<Geopilot.PipelineCore.Pipeline.IPipelineFile!, bool>! predicate) -> Geopilot.PipelineCore.Pipeline.IPipelineFileList!
+Geopilot.PipelineCore.Pipeline.IPipelineFileList.WithExtensions(System.Collections.Generic.HashSet<string!>! extensions) -> Geopilot.PipelineCore.Pipeline.IPipelineFileList!
+Geopilot.PipelineCore.Pipeline.IPipelineFileList.WithMatchingName(string! namePattern) -> Geopilot.PipelineCore.Pipeline.IPipelineFileList!
+Geopilot.PipelineCore.Pipeline.Process.PipelineProcessRunAttribute
+Geopilot.PipelineCore.Pipeline.Process.PipelineProcessRunAttribute.PipelineProcessRunAttribute() -> void
+Geopilot.PipelineCore.Pipeline.Process.UploadFilesAttribute
+Geopilot.PipelineCore.Pipeline.Process.UploadFilesAttribute.UploadFilesAttribute() -> void

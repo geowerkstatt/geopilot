@@ -18,7 +18,7 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
             return ValidationResult.Success;
         }
 
-        var errorMessages = allSteps.SelectMany(s => GetErrorMessages(s, pipeline.Parameters, allSteps)).ToList();
+        var errorMessages = allSteps.SelectMany(s => GetErrorMessages(s, allSteps)).ToList();
 
         if (errorMessages.Count > 0)
         {
@@ -30,7 +30,7 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
         }
     }
 
-    private List<string> GetErrorMessages(StepConfig stepToValidate, PipelineParametersConfig pipelineParameters, List<StepConfig> allSteps)
+    private List<string> GetErrorMessages(StepConfig stepToValidate, List<StepConfig> allSteps)
     {
         if (stepToValidate.Input == null)
         {
@@ -41,10 +41,9 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
         foreach (var input in stepToValidate.Input)
         {
             var hasReferenceFromAStep = HasStep(input.From, input.Take, stepToValidate.Id, allSteps);
-            var hasReferenceFromPipelineParameters = HasStep(input.From, input.Take, pipelineParameters);
-            if (!hasReferenceFromAStep && !hasReferenceFromPipelineParameters)
+            if (!hasReferenceFromAStep)
             {
-                errorMessages.Add($"Step '{stepToValidate.Id}' has an input reference to '{input.From}' with attribute '{input.Take}' that cannot be found in previous steps or pipeline parameters.");
+                errorMessages.Add($"Step '{stepToValidate.Id}' has an input reference to '{input.From}' with attribute '{input.Take}' that cannot be found in previous steps.");
             }
         }
 
@@ -67,21 +66,6 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
             // we return true as the step has a required annotation on the output
             // and we don't want to fail twice on the same issue (missing output reference)
             return true;
-        }
-    }
-
-    private bool HasStep(string stepId, string attribute, PipelineParametersConfig pipelineParameters)
-    {
-        if (pipelineParameters != null &&
-            pipelineParameters.Mappings != null &&
-            pipelineParameters.UploadStep == stepId &&
-            pipelineParameters.Mappings.Any(m => m.Attribute == attribute))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
         }
     }
 }

@@ -5,11 +5,6 @@ pipelines:
   - id: ili_validation
     display_name:
       en: XTF Validation
-    parameters:
-      upload_step: upload
-      mapping:
-        - file_extension: xtf
-          attribute: ili_file
     steps:
       - id: validation
         display_name:
