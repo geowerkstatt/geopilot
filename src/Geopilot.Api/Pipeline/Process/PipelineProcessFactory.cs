@@ -90,7 +90,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                     continue;
                 }
 
-                var assemblyContext = new AssemblyLoadContext(assemblyFullPath, isCollectible: true);
+                var assemblyContext = new ProcessPluginLoadContext(assemblyFullPath);
                 var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
 
                 processorPluginAssemblies.Add(plugin);
