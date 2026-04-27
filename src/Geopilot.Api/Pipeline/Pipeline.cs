@@ -48,6 +48,10 @@ public sealed class Pipeline : IPipeline
             {
                 return PipelineState.Failed;
             }
+            else if (stepStates.Contains(StepState.Cancelled))
+            {
+                return PipelineState.Cancelled;
+            }
             else if (stepStates.Contains(StepState.Running))
             {
                 return PipelineState.Running;
@@ -122,19 +126,32 @@ public sealed class Pipeline : IPipeline
             StepResults = new Dictionary<string, StepResult>(),
         };
 
-        foreach (var step in this.Steps)
+        try
         {
-            if (this.State == PipelineState.Failed)
-                break;
+            foreach (var step in this.Steps)
+            {
+                if (this.State == PipelineState.Failed || this.State == PipelineState.Cancelled)
+                    break;
 
-            var stepResult = await step.Run(context, cancellationToken).ConfigureAwait(false);
-            context.StepResults[step.Id] = stepResult;
+                var stepResult = await step.Run(context, cancellationToken).ConfigureAwait(false);
+                context.StepResults[step.Id] = stepResult;
+            }
+
+            await this.EvaluateDeliveryCondition(context);
+
+            logger.LogInformation("all steps in pipeline executed");
+            return context;
         }
-
-        await this.EvaluateDeliveryCondition(context);
-
-        logger.LogInformation("all steps in pipeline executed");
-        return context;
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Cancellation (job timeout or host shutdown) is not a pipeline failure —
+            // the currently running step marked itself Cancelled, the pipeline state
+            // getter reports Cancelled, and we prevent delivery defensively before
+            // rethrowing so the caller can distinguish timeout from crash.
+            this.Delivery = PipelineDelivery.Prevent;
+            logger.LogInformation("pipeline cancelled");
+            throw;
+        }
     }
 
     private async Task EvaluateDeliveryCondition(PipelineContext context)

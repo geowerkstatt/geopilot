@@ -66,4 +66,21 @@ public interface IPipelineProcessBuilder
     /// <returns>An object that encapsulates the configured pipeline or constructed result. The specific type and structure of
     /// the returned object depend on the implementation.</returns>
     object Build();
+
+    /// <summary>
+    /// Verifies that <see cref="Build"/> would succeed for the current configuration — process
+    /// type resolution, single-public-constructor invariant, parameterization merge rules, and
+    /// satisfiability of every constructor parameter — without invoking the process constructor
+    /// or allocating any of its framework dependencies. Intended for startup configuration
+    /// checks where producing real instances (and the directories, HttpClients, and other
+    /// resources their constructors create) is unwanted.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="PipelineDirectory(string)"/> and <see cref="JobId(Guid)"/> are not consulted
+    /// by this method, so callers validating at startup do not need to supply them.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown for any condition that would also cause
+    /// <see cref="Build"/> to throw (missing config, unknown process type, multiple public
+    /// constructors, conflicting parameterization, unsatisfiable non-nullable parameter).</exception>
+    void Validate();
 }

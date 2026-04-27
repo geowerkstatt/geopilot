@@ -65,8 +65,15 @@ builder.Services
         {
             OnMessageReceived = context =>
             {
-                // Allow token to be in a cookie in addition to the default Authorization header
-                context.Token = context.Request.Cookies["geopilot.auth"];
+                // Allow token to be in a cookie in addition to the default Authorization header.
+                // Only override when a cookie is actually present — otherwise a stale/empty cookie
+                // would shadow a valid Authorization header and break Swagger/API clients.
+                var cookieToken = context.Request.Cookies["geopilot.auth"];
+                if (!string.IsNullOrEmpty(cookieToken))
+                {
+                    context.Token = cookieToken;
+                }
+
                 return Task.CompletedTask;
             },
         };
