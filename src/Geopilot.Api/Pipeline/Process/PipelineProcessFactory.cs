@@ -2,6 +2,8 @@
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
 
 namespace Geopilot.Api.Pipeline.Process;
@@ -79,14 +81,17 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             {
                 var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
 
-                var assemblyContext = new AssemblyLoadContext(assemblyFullPath, isCollectible: true);
-                var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
-
-                if (!ValidatePluginCoreCompatibility(plugin))
+                // Validate compatibility against the plugin's metadata before loading it for
+                // execution. LoadFromAssemblyPath would make the plugin's code runnable
+                // (module initializers, type cctors triggered by subsequent reflection), so
+                // incompatible or untrusted assemblies must be rejected first.
+                if (!ValidatePluginCoreCompatibility(assemblyFullPath))
                 {
-                    assemblyContext.Unload();
                     continue;
                 }
+
+                var assemblyContext = new AssemblyLoadContext(assemblyFullPath, isCollectible: true);
+                var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
 
                 processorPluginAssemblies.Add(plugin);
                 processorPluginLoadContexts.Add(assemblyContext);
@@ -96,34 +101,53 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
     /// <summary>
     /// Verifies that a plugin assembly references a compatible version of Geopilot.PipelineCore.
-    /// The check rejects plugins whose referenced major version differs from the host's loaded
-    /// major version, and warns when the plugin was built against an older minor/patch.
+    /// The check reads the assembly's manifest via <see cref="PEReader"/> and
+    /// <see cref="MetadataReader"/> — no code from the plugin is executed. This matters because
+    /// <see cref="AssemblyLoadContext.LoadFromAssemblyPath(string)"/> would make module
+    /// initializers and (on first type access) type constructors runnable before the host could
+    /// decide whether to reject the assembly. The check rejects plugins whose referenced major
+    /// version differs from the host's loaded major version, and warns when the plugin was built
+    /// against an older minor/patch.
     /// </summary>
-    /// <param name="plugin">The loaded plugin assembly to validate.</param>
+    /// <param name="assemblyPath">Absolute path to the plugin assembly file.</param>
     /// <returns>True if the plugin is compatible with the host's PipelineCore; false otherwise.</returns>
-    private bool ValidatePluginCoreCompatibility(Assembly plugin)
+    private bool ValidatePluginCoreCompatibility(string assemblyPath)
     {
         const string coreAssemblyName = "Geopilot.PipelineCore";
         var coreVersionUsedByHost = typeof(IPipelineFile).Assembly.GetName().Version;
-        var coreAssemblyUsedByPlugin = plugin.GetReferencedAssemblies()
-            .FirstOrDefault(a => a.Name == coreAssemblyName);
 
-        if (coreAssemblyUsedByPlugin == null)
+        string pluginDisplayName = Path.GetFileNameWithoutExtension(assemblyPath);
+        Version? coreVersionUsedByPlugin = null;
+        bool coreReferenceFound = false;
+
+        var resolver = new AssemblyDependencyResolver(assemblyPath);
+        var path = resolver.ResolveAssemblyToPath(new AssemblyName(coreAssemblyName));
+        if (path != null)
+        {
+            coreReferenceFound = true;
+            var name = AssemblyName.GetAssemblyName(path);
+            coreVersionUsedByPlugin = AssemblyName.GetAssemblyName(path).Version;
+        }
+        else
+        {
+            return false;
+        }
+
+        if (!coreReferenceFound)
         {
             logger.LogError(
                 "Plugin '{Plugin}' does not reference {Core}; rejecting.",
-                plugin.GetName().Name,
+                pluginDisplayName,
                 coreAssemblyName);
             return false;
         }
 
-        var coreVersionUsedByPlugin = coreAssemblyUsedByPlugin.Version;
         if (coreVersionUsedByPlugin == null || coreVersionUsedByHost == null)
         {
             logger.LogError(
                 "Unable to determine {Core} version for plugin '{Plugin}' (plugin={PluginVersion}, host={HostVersion}); rejecting.",
                 coreAssemblyName,
-                plugin.GetName().Name,
+                pluginDisplayName,
                 coreVersionUsedByPlugin,
                 coreVersionUsedByHost);
             return false;
@@ -133,7 +157,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             logger.LogError(
                 "Plugin '{Plugin}' was built against {Core} {PluginVersion} but host runs {HostVersion}; major versions differ, plugin will not be loaded.",
-                plugin.GetName().Name,
+                pluginDisplayName,
                 coreAssemblyName,
                 coreVersionUsedByPlugin,
                 coreVersionUsedByHost);
@@ -144,7 +168,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             logger.LogWarning(
                 "Plugin '{Plugin}' was built against older {Core} {PluginVersion} (host runs {HostVersion}); consider rebuilding the plugin.",
-                plugin.GetName().Name,
+                pluginDisplayName,
                 coreAssemblyName,
                 coreVersionUsedByPlugin,
                 coreVersionUsedByHost);
@@ -232,9 +256,40 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// <inheritdoc />
         public object Build()
         {
+            ArgumentNullException.ThrowIfNull(pipelineDirectory);
+
+            var (objectType, constructor, processParameterization) = PrepareProcessDescriptor();
+            var parameters = constructor.GetParameters()
+                .Select(p => GenerateParameter(p, objectType, processParameterization, pipelineDirectory, jobId))
+                .ToArray();
+            var processInstance = Activator.CreateInstance(objectType, parameters);
+            if (processInstance != null)
+                return processInstance;
+
+            var processId = stepConfig != null ? stepConfig.ProcessId : string.Empty;
+            throw new InvalidOperationException($"Failed to create process instance for step <{stepConfig?.Id}> with process ID <{processId}> and implementation <{objectType.FullName}>.");
+        }
+
+        /// <inheritdoc />
+        public void Validate()
+        {
+            var (_, constructor, processParameterization) = PrepareProcessDescriptor();
+            foreach (var parameterInfo in constructor.GetParameters())
+            {
+                ValidateParameter(parameterInfo, processParameterization);
+            }
+        }
+
+        /// <summary>
+        /// Resolves the process type, constructor, and merged parameterization for the
+        /// currently configured step. Shared by <see cref="Build"/> and <see cref="Validate"/>
+        /// so both paths surface the same errors at the same points; neither path has side
+        /// effects here (no instance creation, no directory creation).
+        /// </summary>
+        private (Type ProcessType, ConstructorInfo Constructor, Parameterization Parameterization) PrepareProcessDescriptor()
+        {
             ArgumentNullException.ThrowIfNull(stepConfig);
             ArgumentNullException.ThrowIfNull(processes);
-            ArgumentNullException.ThrowIfNull(pipelineDirectory);
 
             var processConfig = stepConfig.ProcessId != null ? processes.GetProcessConfig(stepConfig.ProcessId) : null;
 
@@ -247,18 +302,40 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             if (constructors.Length != 1)
                 throw new InvalidOperationException($"Process <{processConfig.Implementation}> has {constructors.Length} public constructors. A Process must have exactly one public constructor.");
 
-            ConstructorInfo constructor = constructors[0];
+            var constructor = constructors[0];
             var processBaseConfig = pipelineOptions.ProcessConfigs.GetValueOrDefault(processConfig.Implementation);
             var processParameterization = GetMergedParameterization(processBaseConfig, processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
-            var parameters = constructor.GetParameters()
-                .Select(p => GenerateParameter(p, objectType, processParameterization, pipelineDirectory, jobId))
-                .ToArray();
-            var processInstance = Activator.CreateInstance(objectType, parameters);
-            if (processInstance != null)
-                return processInstance;
+            return (objectType, constructor, processParameterization);
+        }
 
-            var processId = stepConfig != null ? stepConfig.ProcessId : string.Empty;
-            throw new InvalidOperationException($"Failed to create process instance for step <{stepConfig?.Id}> with process ID <{processId}> and implementation <{processConfig.Implementation}>.");
+        /// <summary>
+        /// Mirror of <see cref="GenerateParameter"/> without the side-effectful materialization
+        /// step (no <see cref="PipelineLogger"/> / <see cref="PipelineFileManager"/> allocation,
+        /// no value conversion kept). Throws with the same message <see cref="GenerateParameter"/>
+        /// would for an unsatisfiable non-nullable parameter.
+        /// </summary>
+        private static void ValidateParameter(ParameterInfo parameterInfo, Parameterization processConfig)
+        {
+            // Framework-provided dependencies are always satisfiable by Build (logger, file
+            // manager, optional container runner). Skipping them here is how we avoid invoking
+            // their constructors at startup.
+            if (parameterInfo.ParameterType == typeof(ILogger) ||
+                parameterInfo.ParameterType == typeof(IPipelineFileManager))
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(parameterInfo.Name) &&
+                processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&
+                Parameterization.TryConvertObject(rawValue, parameterInfo.ParameterType, out _))
+            {
+                return;
+            }
+
+            if (IsParameterNullable(parameterInfo))
+                return;
+
+            throw new InvalidOperationException($"Process initialization: No suitable parameter found for parameter of type <{parameterInfo.ParameterType.Name}> and name <{parameterInfo.Name}>. Parameter is not nullable, cannot initialize process.");
         }
 
         private Type? GetProcessorType(string implementation)

@@ -14,7 +14,7 @@ namespace Geopilot.Api;
 internal static class ContextExtensions
 {
     private static readonly double[] extentCh = new double[] { 7.536621, 46.521076, 9.398804, 47.476376 };
-    private static readonly DateTime referenceDateTime = DateTime.Parse("01.11.2023 00:00:00", new CultureInfo("de_CH", false));
+    private static readonly DateTime referenceDateTime = DateTime.Parse("01.11.2023 00:00:00", new CultureInfo("de-CH", false));
 
     /// <summary>
     /// Retreives the user that matches the provided principal from the database.

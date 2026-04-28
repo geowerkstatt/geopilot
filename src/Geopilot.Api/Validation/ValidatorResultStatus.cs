@@ -19,4 +19,11 @@ public enum ValidatorResultStatus
     /// The validator failed to complete.
     /// </summary>
     Failed,
+
+    /// <summary>
+    /// The validator was cancelled before completion (e.g. job timeout or
+    /// host shutdown). Distinct from <see cref="Failed"/> — the validator
+    /// did not fail by its own logic, it was interrupted.
+    /// </summary>
+    Cancelled,
 }

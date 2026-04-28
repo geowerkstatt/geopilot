@@ -55,6 +55,18 @@ public class ValidationRunner : BackgroundService
                 result = MapToValidatorResult(pipeline, pipelineContext);
                 jobStore.AddValidatorResult(pipeline, result);
             }
+            catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            {
+                logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, validationOptions.JobTimeout);
+                result = new ValidatorResult(ValidatorResultStatus.Cancelled, $"Pipeline <{pipeline.Id}> timed out after {validationOptions.JobTimeout}.");
+                jobStore.AddValidatorResult(pipeline, result);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Host shutdown. The service is going down, so don't persist a partial
+                // result — the job will be recoverable (or cleaned up) on next start.
+                logger.LogInformation("Pipeline <{Pipeline}> cancelled due to host shutdown.", pipeline.Id);
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error while running pipeline <{Pipeline}>.", pipeline.Id);
@@ -107,20 +119,38 @@ public class ValidationRunner : BackgroundService
         return displayName.TryGetValue("en", out string? name) ? name : displayName.FirstOrDefault().Value;
     }
 
-    private static ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(IPipeline pipeline, PipelineContext context)
+    private ValidatorResultStatus MapPipelineStatusToValidatorResultStatus(IPipeline pipeline, PipelineContext context)
     {
+        // Terminal non-success states are checked before the delivery flag because
+        // a cancelled or failed pipeline is never "CompletedWithErrors" — we must
+        // not relabel it just because Delivery was flipped to Prevent on the way out.
+        var pipelineState = pipeline.State;
+        if (pipelineState == PipelineState.Failed)
+        {
+            return ValidatorResultStatus.Failed;
+        }
+
+        if (pipelineState == PipelineState.Cancelled)
+        {
+            return ValidatorResultStatus.Cancelled;
+        }
+
         if (pipeline.Delivery == PipelineDelivery.Prevent)
         {
             return ValidatorResultStatus.CompletedWithErrors;
         }
 
-        var pipelineState = pipeline.State;
-        return pipelineState switch
+        if (pipelineState == PipelineState.Success)
         {
-            PipelineState.Success => ValidatorResultStatus.Completed,
-            PipelineState.Failed => ValidatorResultStatus.Failed,
-            _ => throw new InvalidOperationException($"Unexpected pipeline state: {pipelineState}"),
-        };
+            return ValidatorResultStatus.Completed;
+        }
+
+        if (pipelineState == PipelineState.Failed)
+        {
+            return ValidatorResultStatus.Failed;
+        }
+
+        throw new InvalidOperationException($"Unexpected pipeline state: {pipelineState}");
     }
 
     private Dictionary<string, string> ExtractPersistentFiles(Guid jobId, PipelineContext context)
