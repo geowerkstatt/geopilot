@@ -145,17 +145,12 @@ public class ValidationRunner : BackgroundService
             return ValidatorResultStatus.Completed;
         }
 
-        // Pending / Running are not expected once pipeline.Run has returned: the YAML
-        // validator rejects empty-step pipelines, and every reachable exit path from
-        // the step loop leaves each step in a terminal state. If we see one of these
-        // here, something upstream is out of sync — treat it as a failure rather than
-        // throwing so the caller still gets a structured result with status message
-        // and files instead of a generic "unexpected error" from the outer catch.
-        logger.LogWarning(
-            "Pipeline <{Pipeline}> finished in non-terminal state <{State}>; reporting as Failed.",
-            pipeline.Id,
-            pipelineState);
-        return ValidatorResultStatus.Failed;
+        if (pipelineState == PipelineState.Failed)
+        {
+            return ValidatorResultStatus.Failed;
+        }
+
+        throw new InvalidOperationException($"Unexpected pipeline state: {pipelineState}");
     }
 
     private Dictionary<string, string> ExtractPersistentFiles(Guid jobId, PipelineContext context)

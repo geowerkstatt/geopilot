@@ -120,39 +120,16 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         Version? coreVersionUsedByPlugin = null;
         bool coreReferenceFound = false;
 
-        try
+        var resolver = new AssemblyDependencyResolver(assemblyPath);
+        var path = resolver.ResolveAssemblyToPath(new AssemblyName(coreAssemblyName));
+        if (path != null)
         {
-            using var stream = File.OpenRead(assemblyPath);
-            using var peReader = new PEReader(stream);
-            if (!peReader.HasMetadata)
-            {
-                logger.LogError(
-                    "Plugin at '{Path}' does not contain managed metadata; rejecting.",
-                    assemblyPath);
-                return false;
-            }
-
-            var metadataReader = peReader.GetMetadataReader();
-            var assemblyDefinition = metadataReader.GetAssemblyDefinition();
-            pluginDisplayName = metadataReader.GetString(assemblyDefinition.Name);
-
-            foreach (var handle in metadataReader.AssemblyReferences)
-            {
-                var reference = metadataReader.GetAssemblyReference(handle);
-                if (string.Equals(metadataReader.GetString(reference.Name), coreAssemblyName, StringComparison.Ordinal))
-                {
-                    coreReferenceFound = true;
-                    coreVersionUsedByPlugin = reference.Version;
-                    break;
-                }
-            }
+            coreReferenceFound = true;
+            var name = AssemblyName.GetAssemblyName(path);
+            coreVersionUsedByPlugin = AssemblyName.GetAssemblyName(path).Version;
         }
-        catch (Exception ex)
+        else
         {
-            logger.LogError(
-                ex,
-                "Failed to read metadata for plugin at '{Path}'; rejecting.",
-                assemblyPath);
             return false;
         }
 
