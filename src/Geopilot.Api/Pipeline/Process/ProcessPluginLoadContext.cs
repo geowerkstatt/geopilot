@@ -98,6 +98,17 @@ internal sealed class ProcessPluginLoadContext : AssemblyLoadContext
             return false;
         }
 
+        if (coreVersionUsedByPlugin.Minor > coreVersionUsedByHost.Minor)
+        {
+            logger.LogError(
+                "Plugin '{Plugin}' was built against {Core} {PluginVersion} but host runs {HostVersion}; minor version of plugin is higher than minor version of host, plugin will not be loaded.",
+                pluginDisplayName,
+                PipelineCoreAssemblyName,
+                coreVersionUsedByPlugin,
+                coreVersionUsedByHost);
+            return false;
+        }
+
         if (coreVersionUsedByPlugin < coreVersionUsedByHost)
         {
             logger.LogWarning(
