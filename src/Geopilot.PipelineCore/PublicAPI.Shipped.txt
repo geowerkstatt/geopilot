@@ -1,12 +1,14 @@
 #nullable enable
 Geopilot.Api.Pipeline.IPipelineFileManager
 Geopilot.Api.Pipeline.IPipelineFileManager.GeneratePipelineFile(string! originalFileName, string! fileExtension) -> Geopilot.PipelineCore.Pipeline.IPipelineFile!
+Geopilot.Api.Pipeline.IPipelineFileManager.GeneratePipelineFile(string! originalRelativePath, string! originalFileName, string! fileExtension) -> Geopilot.PipelineCore.Pipeline.IPipelineFile!
 Geopilot.PipelineCore.Pipeline.IPipelineFile
 Geopilot.PipelineCore.Pipeline.IPipelineFile.FileExtension.get -> string!
 Geopilot.PipelineCore.Pipeline.IPipelineFile.OpenReadFileStream() -> System.IO.FileStream!
 Geopilot.PipelineCore.Pipeline.IPipelineFile.OpenWriteFileStream() -> System.IO.FileStream!
 Geopilot.PipelineCore.Pipeline.IPipelineFile.OriginalFileName.get -> string!
 Geopilot.PipelineCore.Pipeline.IPipelineFile.OriginalFileNameWithoutExtension.get -> string!
+Geopilot.PipelineCore.Pipeline.IPipelineFile.OriginalRelativePath.get -> string!
 Geopilot.PipelineCore.Pipeline.IPipelineFileList
 Geopilot.PipelineCore.Pipeline.IPipelineFileList.Files.get -> System.Collections.Generic.ICollection<Geopilot.PipelineCore.Pipeline.IPipelineFile!>!
 Geopilot.PipelineCore.Pipeline.IPipelineFileList.Matches(System.Func<Geopilot.PipelineCore.Pipeline.IPipelineFile!, bool>! predicate) -> Geopilot.PipelineCore.Pipeline.IPipelineFileList!

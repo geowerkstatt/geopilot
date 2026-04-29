@@ -21,6 +21,14 @@ public interface IPipelineFile
     string FileExtension { get; }
 
     /// <summary>
+    /// Gets the original relative directory of the file within its logical hierarchy, or an empty string for files at the root.
+    /// This is metadata only — files are not stored under this path on disk; downstream consumers (e.g. ZIP packaging) use it to reconstruct the hierarchy.
+    /// Always uses forward slash as the separator, never has a leading or trailing slash, and never contains <c>..</c> segments.
+    /// Example: a ZIP entry <c>a/b/c/deep.txt</c> exposes <c>a/b/c</c> here while <see cref="OriginalFileName"/> stays <c>deep.txt</c>.
+    /// </summary>
+    string OriginalRelativePath { get; }
+
+    /// <summary>
     /// Opens a filestream to read the contents of the file associated with the current object.
     /// </summary>
     /// <returns>A filestream for reading the file contents.</returns>
