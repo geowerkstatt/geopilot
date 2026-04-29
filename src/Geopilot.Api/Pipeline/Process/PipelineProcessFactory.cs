@@ -2,8 +2,6 @@
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
 using System.Reflection;
-using System.Reflection.Metadata;
-using System.Reflection.PortableExecutable;
 using System.Runtime.Loader;
 
 namespace Geopilot.Api.Pipeline.Process;
@@ -72,109 +70,38 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         this.loggerFactory = loggerFactory;
         this.pipelineOptions = pipelinePluginOptions.Value;
-        var processorPlugins = pipelineOptions.Plugins;
         this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
 
-        if (processorPlugins != null)
-        {
-            foreach (var assemblyPath in processorPlugins)
-            {
-                var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
-
-                // Validate compatibility against the plugin's metadata before loading it for
-                // execution. LoadFromAssemblyPath would make the plugin's code runnable
-                // (module initializers, type cctors triggered by subsequent reflection), so
-                // incompatible or untrusted assemblies must be rejected first.
-                if (!ValidatePluginCoreCompatibility(assemblyFullPath))
-                {
-                    continue;
-                }
-
-                var assemblyContext = new AssemblyLoadContext(assemblyFullPath, isCollectible: true);
-                var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
-
-                processorPluginAssemblies.Add(plugin);
-                processorPluginLoadContexts.Add(assemblyContext);
-            }
-        }
+        LoadPlugins();
     }
 
-    /// <summary>
-    /// Verifies that a plugin assembly references a compatible version of Geopilot.PipelineCore.
-    /// The check reads the assembly's manifest via <see cref="PEReader"/> and
-    /// <see cref="MetadataReader"/> — no code from the plugin is executed. This matters because
-    /// <see cref="AssemblyLoadContext.LoadFromAssemblyPath(string)"/> would make module
-    /// initializers and (on first type access) type constructors runnable before the host could
-    /// decide whether to reject the assembly. The check rejects plugins whose referenced major
-    /// version differs from the host's loaded major version, and warns when the plugin was built
-    /// against an older minor/patch.
-    /// </summary>
-    /// <param name="assemblyPath">Absolute path to the plugin assembly file.</param>
-    /// <returns>True if the plugin is compatible with the host's PipelineCore; false otherwise.</returns>
-    private bool ValidatePluginCoreCompatibility(string assemblyPath)
+    private void LoadPlugins()
     {
-        const string coreAssemblyName = "Geopilot.PipelineCore";
-        var coreVersionUsedByHost = typeof(IPipelineFile).Assembly.GetName().Version;
-
-        string pluginDisplayName = Path.GetFileNameWithoutExtension(assemblyPath);
-        Version? coreVersionUsedByPlugin = null;
-        bool coreReferenceFound = false;
-
-        var resolver = new AssemblyDependencyResolver(assemblyPath);
-        var path = resolver.ResolveAssemblyToPath(new AssemblyName(coreAssemblyName));
-        if (path != null)
+        if (pipelineOptions.Plugins == null)
         {
-            coreReferenceFound = true;
-            var name = AssemblyName.GetAssemblyName(path);
-            coreVersionUsedByPlugin = AssemblyName.GetAssemblyName(path).Version;
-        }
-        else
-        {
-            return false;
+            logger.LogInformation("No processor plugins configured. Not loading any plugins.");
+            return;
         }
 
-        if (!coreReferenceFound)
-        {
-            logger.LogError(
-                "Plugin '{Plugin}' does not reference {Core}; rejecting.",
-                pluginDisplayName,
-                coreAssemblyName);
-            return false;
-        }
+        var loadContextLogger = loggerFactory.CreateLogger<ProcessPluginLoadContext>();
 
-        if (coreVersionUsedByPlugin == null || coreVersionUsedByHost == null)
+        foreach (var assemblyPath in pipelineOptions.Plugins)
         {
-            logger.LogError(
-                "Unable to determine {Core} version for plugin '{Plugin}' (plugin={PluginVersion}, host={HostVersion}); rejecting.",
-                coreAssemblyName,
-                pluginDisplayName,
-                coreVersionUsedByPlugin,
-                coreVersionUsedByHost);
-            return false;
-        }
+            var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
 
-        if (coreVersionUsedByPlugin.Major != coreVersionUsedByHost.Major)
-        {
-            logger.LogError(
-                "Plugin '{Plugin}' was built against {Core} {PluginVersion} but host runs {HostVersion}; major versions differ, plugin will not be loaded.",
-                pluginDisplayName,
-                coreAssemblyName,
-                coreVersionUsedByPlugin,
-                coreVersionUsedByHost);
-            return false;
-        }
+            var assemblyContext = ProcessPluginLoadContext.Create(assemblyFullPath, loadContextLogger);
+            if (assemblyContext == null)
+            {
+                continue;
+            }
 
-        if (coreVersionUsedByPlugin < coreVersionUsedByHost)
-        {
-            logger.LogWarning(
-                "Plugin '{Plugin}' was built against older {Core} {PluginVersion} (host runs {HostVersion}); consider rebuilding the plugin.",
-                pluginDisplayName,
-                coreAssemblyName,
-                coreVersionUsedByPlugin,
-                coreVersionUsedByHost);
-        }
+            var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
 
-        return true;
+            processorPluginAssemblies.Add(plugin);
+            processorPluginLoadContexts.Add(assemblyContext);
+
+            logger.LogInformation($"Plugin loaded: {assemblyPath}");
+        }
     }
 
     /// <inheritdoc />
