@@ -70,32 +70,41 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         this.loggerFactory = loggerFactory;
         this.pipelineOptions = pipelinePluginOptions.Value;
-        var processorPlugins = pipelineOptions.Plugins;
         this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
 
-        if (processorPlugins != null)
+        LoadPlugins();
+    }
+
+    private void LoadPlugins()
+    {
+        if (pipelineOptions.Plugins == null)
         {
-            foreach (var assemblyPath in processorPlugins)
+            logger.LogInformation("No processor plugins configured. Not loading any plugins.");
+            return;
+        }
+
+        foreach (var assemblyPath in pipelineOptions.Plugins)
+        {
+            var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
+
+            var assemblyContext = new ProcessPluginLoadContext(assemblyFullPath, loggerFactory.CreateLogger<ProcessPluginLoadContext>());
+
+            // Validate compatibility against the plugin's metadata before loading it for
+            // execution. LoadFromAssemblyPath would make the plugin's code runnable
+            // (module initializers, type cctors triggered by subsequent reflection), so
+            // incompatible or untrusted assemblies must be rejected first.
+            if (!assemblyContext.ValidateCompatibility())
             {
-                var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
-
-                var assemblyContext = new ProcessPluginLoadContext(assemblyFullPath, loggerFactory.CreateLogger<ProcessPluginLoadContext>());
-
-                // Validate compatibility against the plugin's metadata before loading it for
-                // execution. LoadFromAssemblyPath would make the plugin's code runnable
-                // (module initializers, type cctors triggered by subsequent reflection), so
-                // incompatible or untrusted assemblies must be rejected first.
-                if (!assemblyContext.ValidateCompatibility())
-                {
-                    assemblyContext.Unload();
-                    continue;
-                }
-
-                var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
-
-                processorPluginAssemblies.Add(plugin);
-                processorPluginLoadContexts.Add(assemblyContext);
+                assemblyContext.Unload();
+                continue;
             }
+
+            var plugin = assemblyContext.LoadFromAssemblyPath(assemblyFullPath);
+
+            processorPluginAssemblies.Add(plugin);
+            processorPluginLoadContexts.Add(assemblyContext);
+
+            logger.LogInformation($"Plugin loaded: {assemblyPath}");
         }
     }
 
