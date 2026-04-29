@@ -1,5 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 
 namespace Geopilot.Api.Pipeline.Process;
@@ -47,23 +48,24 @@ internal sealed class ProcessPluginLoadContext : AssemblyLoadContext
     public bool ValidateCompatibility()
     {
         var coreVersionUsedByHost = typeof(IPipelineFile).Assembly.GetName().Version;
-
         string pluginDisplayName = Path.GetFileNameWithoutExtension(pluginPath);
-        Version? coreVersionUsedByPlugin = null;
-        bool coreReferenceFound = false;
 
-        var path = resolver.ResolveAssemblyToPath(new AssemblyName(PipelineCoreAssemblyName));
-        if (path != null)
+        // MetadataLoadContext needs a corelib in its resolver paths to anchor the type system,
+        // so we feed it every assembly from the shared framework directory plus the plugin
+        // itself. GetReferencedAssemblies() then reads the plugin's manifest table directly —
+        // no plugin code is executed, and PipelineCore does not need to be physically resolvable
+        // next to the plugin (the recorded AssemblyRef carries the version we want).
+        var resolverPaths = new List<string>(Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll"))
         {
-            coreReferenceFound = true;
-            coreVersionUsedByPlugin = AssemblyName.GetAssemblyName(path).Version;
-        }
-        else
-        {
-            return false;
-        }
+            pluginPath,
+        };
+        using var metadataContext = new MetadataLoadContext(new PathAssemblyResolver(resolverPaths));
+        var pluginAssembly = metadataContext.LoadFromAssemblyPath(pluginPath);
 
-        if (!coreReferenceFound)
+        var coreReference = pluginAssembly.GetReferencedAssemblies()
+            .FirstOrDefault(r => r.Name == PipelineCoreAssemblyName);
+
+        if (coreReference == null)
         {
             logger.LogError(
                 "Plugin '{Plugin}' does not reference {Core}; rejecting.",
@@ -71,6 +73,8 @@ internal sealed class ProcessPluginLoadContext : AssemblyLoadContext
                 PipelineCoreAssemblyName);
             return false;
         }
+
+        var coreVersionUsedByPlugin = coreReference.Version;
 
         if (coreVersionUsedByPlugin == null || coreVersionUsedByHost == null)
         {
