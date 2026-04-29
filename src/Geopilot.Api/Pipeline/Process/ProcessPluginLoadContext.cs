@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using Geopilot.PipelineCore.Pipeline;
+using System.Reflection;
 using System.Runtime.Loader;
 
 namespace Geopilot.Api.Pipeline.Process;
@@ -22,12 +23,88 @@ internal sealed class ProcessPluginLoadContext : AssemblyLoadContext
 
     private readonly AssemblyDependencyResolver resolver;
     private readonly Assembly hostPiplineCoreAssembly;
+    private readonly string pluginPath;
+    private readonly ILogger<ProcessPluginLoadContext> logger;
 
-    public ProcessPluginLoadContext(string pluginPath)
+    public ProcessPluginLoadContext(string pluginPath, ILogger<ProcessPluginLoadContext> logger)
         : base(name: pluginPath, isCollectible: true)
     {
+        this.pluginPath = pluginPath;
+        this.logger = logger;
         resolver = new AssemblyDependencyResolver(pluginPath);
         hostPiplineCoreAssembly = Default.Assemblies.First(a => a.GetName().Name == PipelineCoreAssemblyName);
+    }
+
+    /// <summary>
+    /// Verifies that the plugin assembly references a compatible version of Geopilot.PipelineCore.
+    /// The check inspects the plugin's manifest without executing any plugin code, so incompatible
+    /// or untrusted assemblies can be rejected before <see cref="AssemblyLoadContext.LoadFromAssemblyPath(string)"/>
+    /// makes module initializers and type constructors runnable. Plugins whose referenced major
+    /// version differs from the host's loaded major version are rejected; plugins built against an
+    /// older minor/patch are accepted with a warning.
+    /// </summary>
+    /// <returns>True if the plugin is compatible with the host's PipelineCore; false otherwise.</returns>
+    public bool ValidateCompatibility()
+    {
+        var coreVersionUsedByHost = typeof(IPipelineFile).Assembly.GetName().Version;
+
+        string pluginDisplayName = Path.GetFileNameWithoutExtension(pluginPath);
+        Version? coreVersionUsedByPlugin = null;
+        bool coreReferenceFound = false;
+
+        var path = resolver.ResolveAssemblyToPath(new AssemblyName(PipelineCoreAssemblyName));
+        if (path != null)
+        {
+            coreReferenceFound = true;
+            coreVersionUsedByPlugin = AssemblyName.GetAssemblyName(path).Version;
+        }
+        else
+        {
+            return false;
+        }
+
+        if (!coreReferenceFound)
+        {
+            logger.LogError(
+                "Plugin '{Plugin}' does not reference {Core}; rejecting.",
+                pluginDisplayName,
+                PipelineCoreAssemblyName);
+            return false;
+        }
+
+        if (coreVersionUsedByPlugin == null || coreVersionUsedByHost == null)
+        {
+            logger.LogError(
+                "Unable to determine {Core} version for plugin '{Plugin}' (plugin={PluginVersion}, host={HostVersion}); rejecting.",
+                PipelineCoreAssemblyName,
+                pluginDisplayName,
+                coreVersionUsedByPlugin,
+                coreVersionUsedByHost);
+            return false;
+        }
+
+        if (coreVersionUsedByPlugin.Major != coreVersionUsedByHost.Major)
+        {
+            logger.LogError(
+                "Plugin '{Plugin}' was built against {Core} {PluginVersion} but host runs {HostVersion}; major versions differ, plugin will not be loaded.",
+                pluginDisplayName,
+                PipelineCoreAssemblyName,
+                coreVersionUsedByPlugin,
+                coreVersionUsedByHost);
+            return false;
+        }
+
+        if (coreVersionUsedByPlugin < coreVersionUsedByHost)
+        {
+            logger.LogWarning(
+                "Plugin '{Plugin}' was built against older {Core} {PluginVersion} (host runs {HostVersion}); consider rebuilding the plugin.",
+                pluginDisplayName,
+                PipelineCoreAssemblyName,
+                coreVersionUsedByPlugin,
+                coreVersionUsedByHost);
+        }
+
+        return true;
     }
 
     protected override Assembly? Load(AssemblyName assemblyName)
