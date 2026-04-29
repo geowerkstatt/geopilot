@@ -83,19 +83,15 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             return;
         }
 
+        var loadContextLogger = loggerFactory.CreateLogger<ProcessPluginLoadContext>();
+
         foreach (var assemblyPath in pipelineOptions.Plugins)
         {
             var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
 
-            var assemblyContext = new ProcessPluginLoadContext(assemblyFullPath, loggerFactory.CreateLogger<ProcessPluginLoadContext>());
-
-            // Validate compatibility against the plugin's metadata before loading it for
-            // execution. LoadFromAssemblyPath would make the plugin's code runnable
-            // (module initializers, type cctors triggered by subsequent reflection), so
-            // incompatible or untrusted assemblies must be rejected first.
-            if (!assemblyContext.ValidateCompatibility())
+            var assemblyContext = ProcessPluginLoadContext.Create(assemblyFullPath, loadContextLogger);
+            if (assemblyContext == null)
             {
-                assemblyContext.Unload();
                 continue;
             }
 

@@ -25,27 +25,41 @@ internal sealed class ProcessPluginLoadContext : AssemblyLoadContext
     private readonly AssemblyDependencyResolver resolver;
     private readonly Assembly hostPiplineCoreAssembly;
     private readonly string pluginPath;
-    private readonly ILogger<ProcessPluginLoadContext> logger;
 
-    public ProcessPluginLoadContext(string pluginPath, ILogger<ProcessPluginLoadContext> logger)
+    private ProcessPluginLoadContext(string pluginPath)
         : base(name: pluginPath, isCollectible: true)
     {
         this.pluginPath = pluginPath;
-        this.logger = logger;
         resolver = new AssemblyDependencyResolver(pluginPath);
         hostPiplineCoreAssembly = Default.Assemblies.First(a => a.GetName().Name == PipelineCoreAssemblyName);
     }
 
     /// <summary>
-    /// Verifies that the plugin assembly references a compatible version of Geopilot.PipelineCore.
-    /// The check inspects the plugin's manifest without executing any plugin code, so incompatible
-    /// or untrusted assemblies can be rejected before <see cref="AssemblyLoadContext.LoadFromAssemblyPath(string)"/>
-    /// makes module initializers and type constructors runnable. Plugins whose referenced major
-    /// version differs from the host's loaded major version are rejected; plugins built against an
-    /// older minor/patch are accepted with a warning.
+    /// Creates a <see cref="ProcessPluginLoadContext"/> for the plugin at <paramref name="pluginPath"/>,
+    /// but only if the plugin's referenced <c>Geopilot.PipelineCore</c> is compatible with the host's.
+    /// Returns <see langword="null"/> when the plugin is rejected; the caller should skip the plugin in
+    /// that case. Compatibility is checked by reading the plugin's manifest only — no plugin code is
+    /// executed. This matters because <see cref="AssemblyLoadContext.LoadFromAssemblyPath(string)"/>
+    /// would make module initializers and (on first type access) type constructors runnable before
+    /// the host could decide whether to reject the assembly.
     /// </summary>
-    /// <returns>True if the plugin is compatible with the host's PipelineCore; false otherwise.</returns>
-    public bool ValidateCompatibility()
+    /// <param name="pluginPath">Absolute path to the plugin assembly file.</param>
+    /// <param name="logger">Logger used to report rejection reasons and version warnings.</param>
+    /// <returns>A new context if the plugin is compatible; otherwise <see langword="null"/>.</returns>
+    public static ProcessPluginLoadContext? Create(string pluginPath, ILogger logger)
+    {
+        if (!ValidateCompatibility(pluginPath, logger))
+            return null;
+
+        return new ProcessPluginLoadContext(pluginPath);
+    }
+
+    /// <summary>
+    /// Verifies that the plugin assembly references a compatible version of <c>Geopilot.PipelineCore</c>.
+    /// Rejects plugins whose referenced major version differs from the host's loaded major version or use a higher minor version than the host,
+    /// and warns when the plugin was built against an older minor/patch.
+    /// </summary>
+    private static bool ValidateCompatibility(string pluginPath, ILogger logger)
     {
         var coreVersionUsedByHost = typeof(IPipelineFile).Assembly.GetName().Version;
         string pluginDisplayName = Path.GetFileNameWithoutExtension(pluginPath);
