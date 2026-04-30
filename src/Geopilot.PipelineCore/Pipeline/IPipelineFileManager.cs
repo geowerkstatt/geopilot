@@ -19,9 +19,8 @@ public interface IPipelineFileManager
 
     /// <summary>
     /// Generates a transfer file and tags it with the specified original relative directory within the step's
-    /// logical hierarchy. The relative directory is metadata only — files are stored flat in the
-    /// step's temporary directory regardless of <paramref name="originalRelativePath"/>; downstream consumers
-    /// (e.g. ZIP packaging) read it from <see cref="IPipelineFile.OriginalRelativePath"/>.
+    /// logical hierarchy. The relative directory is metadata only — files are not stored under this path on disk.
+    /// Downstream consumers (e.g. ZIP packaging) read it from <see cref="IPipelineFile.OriginalRelativePath"/>.
     /// Rejects path-traversal attempts (<c>..</c> segments, absolute or rooted paths) by throwing
     /// an <see cref="ArgumentException"/> so the canonical-form contract of <see cref="IPipelineFile.OriginalRelativePath"/> holds.
     /// </summary>
