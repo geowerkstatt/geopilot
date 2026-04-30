@@ -1,5 +1,4 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
-using Microsoft.VisualBasic.FileIO;
 
 namespace Geopilot.Api.Pipeline;
 
@@ -26,8 +25,44 @@ public class PipelineFileManager : IPipelineFileManager
 
     /// <inheritdoc />
     public IPipelineFile GeneratePipelineFile(string originalFileName, string fileExtension)
+        => GeneratePipelineFile(string.Empty, originalFileName, fileExtension);
+
+    /// <inheritdoc />
+    public IPipelineFile GeneratePipelineFile(string originalRelativePath, string originalFileName, string fileExtension)
     {
-        var filePath = Path.Combine(this.basePath, $"{originalFileName}_{Guid.NewGuid().ToString()}.{fileExtension}");
-        return new PipelineFile(filePath, originalFileName + "." + fileExtension);
+        ArgumentNullException.ThrowIfNull(originalRelativePath);
+
+        // OriginalRelativePath is metadata only — every generated file lives flat under basePath
+        // with a GUID-disambiguated name, regardless of its logical directory. The
+        // normalization here enforces the canonical-form contract of
+        // IPipelineFile.OriginalRelativePath (forward slashes, no '.' / '..' segments, no
+        // rooted paths) so downstream consumers can rely on it.
+        var normalized = NormalizeRelativePath(originalRelativePath);
+        var filePath = Path.Combine(this.basePath, $"{originalFileName}_{Guid.NewGuid()}.{fileExtension}");
+        return new PipelineFile(filePath, originalFileName + "." + fileExtension, normalized);
+    }
+
+    /// <summary>
+    /// Normalizes a relative path to forward-slash form without leading or trailing separators.
+    /// Backslashes are tolerated (treated as separators); empty segments are collapsed.
+    /// Rooted or absolute paths and <c>..</c> segments are rejected here so the canonical form
+    /// stored on <see cref="IPipelineFile.OriginalRelativePath"/> is always safe.
+    /// </summary>
+    private static string NormalizeRelativePath(string relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath))
+            return string.Empty;
+
+        if (Path.IsPathRooted(relativePath))
+            throw new ArgumentException($"Relative path <{relativePath}> must not be rooted or absolute.", nameof(relativePath));
+
+        var segments = relativePath
+            .Replace('\\', '/')
+            .Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (segments.Any(s => s == ".." || s == "."))
+            throw new ArgumentException($"Relative path <{relativePath}> must not contain '.' or '..' segments.", nameof(relativePath));
+
+        return string.Join('/', segments);
     }
 }
