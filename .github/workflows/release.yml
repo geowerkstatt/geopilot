@@ -50,6 +50,47 @@ jobs:
           docker push ${{ env.IMAGE_NAME }}:latest
           docker push ${{ env.IMAGE_NAME }}:v${{ env.MAJOR }}
 
+  publish-nuget:
+    runs-on: ubuntu-latest
+    name: Publish Geopilot.PipelineCore NuGet package
+
+    permissions:
+      packages: write
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.TAG_NAME }}
+
+      - name: Read PipelineCore version from csproj
+        run: |
+          echo CORE_VERSION=$(grep -oP "(?<=<VersionPrefix>)[^<]+" src/Geopilot.PipelineCore/Geopilot.PipelineCore.csproj) >> $GITHUB_ENV
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0"
+
+      - name: Pack NuGet package
+        run: dotnet pack src/Geopilot.PipelineCore/Geopilot.PipelineCore.csproj -c Release -p:Version=${{ env.CORE_VERSION }} -o nuget-artifacts
+
+      - name: Push NuGet package to GitHub Packages
+        run: dotnet nuget push "nuget-artifacts/*.nupkg" --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate
+
+      - name: Tag PipelineCore version
+        run: |
+          git fetch --tags
+          CORE_TAG="pipelinecore/v${CORE_VERSION}"
+          if git rev-parse --verify "refs/tags/${CORE_TAG}" >/dev/null 2>&1; then
+            echo "Tag ${CORE_TAG} already exists, skipping."
+          else
+            git tag "${CORE_TAG}" "${TAG_NAME}"
+            git push origin "${CORE_TAG}"
+            echo "Created tag ${CORE_TAG} at ${TAG_NAME}."
+          fi
+
   patch-changelog:
     runs-on: ubuntu-latest
     name: Patch CHANGELOG.md and update GitHub release notes
