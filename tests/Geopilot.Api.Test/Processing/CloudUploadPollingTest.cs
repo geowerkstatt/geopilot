@@ -193,6 +193,7 @@ public class CloudUploadPollingTest
     private void SetupSuccessfulPreflight(Guid jobId, Mandate mandate, User user)
     {
         var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
+        pipeline.SetupGet(p => p.Id).Returns(mandate.PipelineId!);
 
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId)).Returns(Task.CompletedTask);
         cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(jobId))
