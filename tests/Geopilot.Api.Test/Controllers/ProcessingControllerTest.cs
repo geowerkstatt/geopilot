@@ -24,6 +24,7 @@ public sealed class ProcessingControllerTest
     private Mock<IContentTypeProvider> contentTypeProviderMock;
     private Mock<ApiVersion> apiVersionMock;
     private Mock<IFormFile> formFileMock;
+    private Mock<IPipelineService> pipelineServiceMock;
     private ProcessingController controller;
 
     [TestInitialize]
@@ -36,10 +37,12 @@ public sealed class ProcessingControllerTest
         contentTypeProviderMock = new Mock<IContentTypeProvider>(MockBehavior.Strict);
         apiVersionMock = new Mock<ApiVersion>(MockBehavior.Strict, 9, 88, null!);
         formFileMock = new Mock<IFormFile>(MockBehavior.Strict);
+        pipelineServiceMock = new Mock<IPipelineService>(MockBehavior.Loose);
 
         controller = new ProcessingController(
             loggerMock.Object,
             validationServiceMock.Object,
+            pipelineServiceMock.Object,
             fileProviderMock.Object,
             contentTypeProviderMock.Object,
             context);

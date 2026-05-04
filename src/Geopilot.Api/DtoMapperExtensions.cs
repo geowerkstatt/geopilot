@@ -16,17 +16,32 @@ internal static class DtoMapperExtensions
     /// </summary>
     /// <param name="job">The processing job to map.</param>
     /// <param name="buildDownloadUrl">Builds an absolute download URL for a (jobId, fileName) pair.</param>
-    public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl)
+    /// <param name="pipelineConfig">
+    /// Optional pipeline definition used to fill in display names + steps when the job has not yet
+    /// instantiated a live <see cref="ProcessingJob.Pipeline"/> (e.g. cloud upload between PATCH and
+    /// preflight completion). All synthesized steps are reported as <see cref="StepState.Pending"/>.
+    /// </param>
+    public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl, PipelineConfig? pipelineConfig = null)
     {
         var state = job.IsFailed
             ? ProcessingState.Failed
             : job.Pipeline?.State ?? ProcessingState.Pending;
 
-        var pipelineName = job.Pipeline?.DisplayName ?? new Dictionary<string, string>();
+        var pipelineName = job.Pipeline?.DisplayName
+            ?? pipelineConfig?.DisplayName
+            ?? new Dictionary<string, string>();
 
         var steps = job.Pipeline?.Steps
             .Select(step => step.ToResponse(job.Id, buildDownloadUrl))
             .ToList()
+            ?? pipelineConfig?.Steps
+                .Select(stepConfig => new StepResultResponse(
+                    stepConfig.Id,
+                    stepConfig.DisplayName,
+                    StepState.Pending,
+                    null,
+                    new Dictionary<string, Uri>()))
+                .ToList()
             ?? new List<StepResultResponse>();
 
         return new ProcessingJobResponse(

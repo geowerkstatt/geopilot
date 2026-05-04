@@ -67,6 +67,10 @@ public class ProcessingService : IProcessingService
             if (cloudMandate?.PipelineId == null)
                 throw new InvalidOperationException($"The job <{jobId}> could not be started with mandate <{mandateId}>.");
 
+            // Record the pipeline id early so the response can render step display info before
+            // preflight finishes and the actual pipeline is instantiated.
+            jobStore.SetPipelineId(jobId, cloudMandate.PipelineId);
+
             await preflightQueue.WriteAsync(new PreflightRequest(jobId, mandateId, user?.AuthIdentifier));
             return jobStore.GetJob(jobId)!;
         }

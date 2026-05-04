@@ -27,6 +27,13 @@ public record class ProcessingJob(
     public IPipeline? Pipeline { get; init; }
 
     /// <summary>
+    /// The id of the pipeline definition this job is associated with. Set as soon as the mandate is resolved
+    /// (for cloud uploads this happens before <see cref="Pipeline"/> is instantiated, so consumers can show
+    /// the pipeline's steps while preflight is still running).
+    /// </summary>
+    public string? PipelineId { get; init; }
+
+    /// <summary>
     /// Indicates that the job failed before a pipeline could complete (e.g. cloud preflight failure, security scan).
     /// </summary>
     public bool IsFailed { get; init; }
