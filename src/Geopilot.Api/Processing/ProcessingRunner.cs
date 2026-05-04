@@ -65,6 +65,13 @@ public class ProcessingRunner : BackgroundService
                 logger.LogError(ex, "Unexpected error while running pipeline <{Pipeline}>.", pipeline.Id);
                 jobStore.MarkAsFailed(pipeline.JobId);
             }
+            finally
+            {
+                // Free process-owned resources (e.g. HttpClient) immediately. Pipeline state, step
+                // states, status-message dictionaries, and PersistedDownloads survive disposal —
+                // only the pipeline's temp directory is removed, which we no longer need.
+                pipeline.Dispose();
+            }
         });
     }
 
