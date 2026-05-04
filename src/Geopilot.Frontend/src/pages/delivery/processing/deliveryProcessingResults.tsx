@@ -11,7 +11,7 @@ const localized = (entries?: Record<string, string>) =>
   entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
 
 export const DeliveryProcessingResults = () => {
-  const { processingResponse, resetDelivery } = useContext(DeliveryContext);
+  const { processingResponse, resetDelivery, isProcessing } = useContext(DeliveryContext);
 
   const download = (url: string) => {
     const anchor = document.createElement("a");
@@ -49,7 +49,7 @@ export const DeliveryProcessingResults = () => {
           </FlexBox>
         </FlexRowBox>
       ))}
-      {!isProcessingDeliverable(processingResponse) && (
+      {!isProcessing && !isProcessingDeliverable(processingResponse) && (
         <FlexRowEndBox>
           <CancelButton onClick={resetDelivery} />
         </FlexRowEndBox>
