@@ -1,6 +1,6 @@
 import { FileDropzone } from "../../components/fileDropzone.tsx";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { ValidationSettings } from "../../api/apiInterfaces.ts";
+import { ProcessingSettings } from "../../api/apiInterfaces.ts";
 import { FormProvider, useForm } from "react-hook-form";
 import { FlexBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { Trans } from "react-i18next";
@@ -14,7 +14,7 @@ import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 import useFetch from "../../hooks/useFetch.ts";
 
 export const DeliveryUpload = () => {
-  const [validationSettings, setValidationSettings] = useState<ValidationSettings>();
+  const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>();
   const { initialized, termsOfUse } = useAppSettings();
   const { fetchApi } = useFetch();
   const formMethods = useForm({ mode: "all" });
@@ -31,10 +31,10 @@ export const DeliveryUpload = () => {
   } = useContext(DeliveryContext);
 
   useEffect(() => {
-    if (!validationSettings) {
-      fetchApi<ValidationSettings>("/api/v1/validation").then(setValidationSettings);
+    if (!processingSettings) {
+      fetchApi<ProcessingSettings>("/api/v1/processing").then(setProcessingSettings);
     }
-  }, [fetchApi, validationSettings]);
+  }, [fetchApi, processingSettings]);
 
   const submitForm = () => {
     setStepError(DeliveryStepEnum.Upload, undefined);
@@ -58,7 +58,7 @@ export const DeliveryUpload = () => {
               addFiles={addFiles}
               removeFile={removeFile}
               fileUploadStatus={fileUploadStatus}
-              fileExtensions={validationSettings?.allowedFileExtensions}
+              fileExtensions={processingSettings?.allowedFileExtensions}
               disabled={isLoading}
               setFileError={setFileError}
               maxFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxFileSizeMB : undefined}

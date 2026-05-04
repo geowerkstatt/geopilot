@@ -14,7 +14,7 @@ export const DeliveryContainer = styled(GeopilotBox)(({ theme }) => ({
 
 const Delivery = () => {
   const { t } = useTranslation();
-  const { steps, activeStep, isLoading, isValidating } = useContext(DeliveryContext);
+  const { steps, activeStep, isLoading, isProcessing } = useContext(DeliveryContext);
 
   const isOpen = (stepIndex: number, keepOpen?: boolean) =>
     activeStep === stepIndex || (activeStep >= stepIndex && keepOpen);
@@ -39,7 +39,7 @@ const Delivery = () => {
                       <StepperIcon
                         index={index}
                         stepIconProps={props}
-                        isLoading={index === activeStep && (isLoading || isValidating)}
+                        isLoading={index === activeStep && (isLoading || isProcessing)}
                       />
                     )}>
                     {t(step.label)}

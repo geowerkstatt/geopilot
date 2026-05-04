@@ -75,30 +75,42 @@ export interface User {
   deliveries?: Delivery[];
 }
 
-export interface ValidationSettings {
+export interface ProcessingSettings {
   allowedFileExtensions: string[];
 }
 
-export enum ValidationStatus {
-  Created = "created",
-  VerifyingUpload = "verifyingUpload",
-  Ready = "ready",
-  Processing = "processing",
-  Completed = "completed",
-  CompletedWithErrors = "completedWithErrors",
+export enum ProcessingState {
+  Pending = "pending",
+  Running = "running",
+  Success = "success",
   Failed = "failed",
+  Cancelled = "cancelled",
 }
 
-export interface ValidatorResult {
-  status: string;
-  statusMessage: string;
-  logFiles: Record<string, string>;
+export enum StepState {
+  Pending = "pending",
+  Skipped = "skipped",
+  Running = "running",
+  Success = "success",
+  Error = "error",
+  Cancelled = "cancelled",
 }
 
-export interface ValidationResponse {
+export interface StepResult {
+  id: string;
+  name: Record<string, string>;
+  state: StepState;
+  statusMessage?: Record<string, string>;
+  downloads: Record<string, string>;
+}
+
+export interface ProcessingJobResponse {
   jobId: string;
-  status: ValidationStatus;
-  validatorResults: Record<string, ValidatorResult>;
+  state: ProcessingState;
+  mandateId?: number;
+  pipelineName: Record<string, string>;
+  steps: StepResult[];
+  deliveryRestrictionMessage?: Record<string, string>;
 }
 
 export interface LocalisedText {
