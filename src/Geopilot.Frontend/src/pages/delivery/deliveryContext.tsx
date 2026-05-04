@@ -10,18 +10,19 @@ import { createContext, FC, PropsWithChildren, useCallback, useEffect, useMemo, 
 import {
   ApiError,
   Mandate,
+  ProcessingJobResponse,
+  ProcessingState,
   StartJobRequest,
   UploadSettings,
-  ValidationResponse,
-  ValidationStatus,
 } from "../../api/apiInterfaces.ts";
 import { DeliveryUpload } from "./deliveryUpload.tsx";
-import { DeliveryValidation } from "./validation/deliveryValidation.tsx";
+import { DeliveryProcessing } from "./processing/deliveryProcessing.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
 import { DeliveryCompleted } from "./deliveryCompleted.tsx";
 import useFetch from "../../hooks/useFetch.ts";
 import useCloudUpload from "../../hooks/useCloudUpload.ts";
+import { isProcessingDeliverable } from "./deliveryUtils.tsx";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
@@ -36,12 +37,12 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   setSelectedMandate: () => {},
   jobId: undefined,
   uploadSettings: undefined,
-  validationResponse: undefined,
+  processingResponse: undefined,
   isLoading: false,
-  isValidating: false,
+  isProcessing: false,
   uploadFile: () => {},
   cancelUpload: () => {},
-  validateFile: () => {},
+  startProcessing: () => {},
   submitDelivery: () => {},
   resetDelivery: () => {},
 });
@@ -55,11 +56,11 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
   );
 
   newSteps.set(
-    DeliveryStepEnum.Validate,
-    previousSteps.get(DeliveryStepEnum.Validate) ?? {
-      label: "validate",
+    DeliveryStepEnum.Process,
+    previousSteps.get(DeliveryStepEnum.Process) ?? {
+      label: "process",
       keepOpen: true,
-      content: <DeliveryValidation />,
+      content: <DeliveryProcessing />,
     },
   );
 
@@ -81,13 +82,13 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
-  const [validationStarted, setValidationStarted] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStarted, setProcessingStarted] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileUploadStatus, setFileUploadStatus] = useState<Map<string, FileUploadStatus>>(new Map());
   const [selectedMandate, setSelectedMandate] = useState<Mandate>();
   const [jobId, setJobId] = useState<string>();
-  const [validationResponse, setValidationResponse] = useState<ValidationResponse>();
+  const [processingResponse, setProcessingResponse] = useState<ProcessingJobResponse>();
   const [uploadSettings, setUploadSettings] = useState<UploadSettings>();
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
@@ -103,7 +104,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         { status: 413, errorKey: "validationErrorFileTooLarge" },
         { status: 500, errorKey: "validationErrorUnexpected" },
       ],
-      [DeliveryStepEnum.Validate]: [
+      [DeliveryStepEnum.Process]: [
         { status: 400, errorKey: "validationErrorRequestMalformed" },
         { status: 404, errorKey: "validationErrorCannotFind" },
         { status: 500, errorKey: "validationErrorUnexpected" },
@@ -246,13 +247,13 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       const file = selectedFiles[0];
       const formData = new FormData();
       formData.append("file", file, file.name);
-      fetchApi<ValidationResponse>("/api/v1/validation", {
+      fetchApi<ProcessingJobResponse>("/api/v1/processing", {
         method: "POST",
         body: formData,
         signal: abortController.signal,
       })
         .then(response => {
-          setValidationResponse(response);
+          setProcessingResponse(response);
           setFileStatus(file.name, { state: "completed" });
           onUploadComplete(response.jobId);
         })
@@ -282,54 +283,54 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     });
   }, [abortControllers, setStepError]);
 
-  const pollValidationStatusUntilFinished = (jobId: string, abortController: AbortController) => {
-    fetchApi<ValidationResponse>(`/api/v1/validation/${jobId}`, {
+  const pollProcessingStatusUntilFinished = (jobId: string, abortController: AbortController) => {
+    fetchApi<ProcessingJobResponse>(`/api/v1/processing/${jobId}`, {
       method: "GET",
       signal: abortController.signal,
     })
       .then(response => {
-        setValidationResponse(response);
-        if (response.status === ValidationStatus.Processing || response.status === ValidationStatus.VerifyingUpload) {
-          setTimeout(() => pollValidationStatusUntilFinished(jobId, abortController), 2000);
+        setProcessingResponse(response);
+        if (response.state === ProcessingState.Pending || response.state === ProcessingState.Running) {
+          setTimeout(() => pollProcessingStatusUntilFinished(jobId, abortController), 2000);
         } else {
-          setIsValidating(false);
+          setIsProcessing(false);
 
-          if (response.status === ValidationStatus.Completed) {
+          if (isProcessingDeliverable(response)) {
             continueToNextStep();
           } else {
-            setStepError(DeliveryStepEnum.Validate, response.status);
+            setStepError(DeliveryStepEnum.Process, response.state);
           }
         }
       })
       .catch((error: ApiError) => {
-        handleApiError(error, DeliveryStepEnum.Validate);
+        handleApiError(error, DeliveryStepEnum.Process);
       });
   };
 
-  const validateFile = (startJobRequest: StartJobRequest) => {
+  const startProcessing = (startJobRequest: StartJobRequest) => {
     if (!jobId || isLoading) return;
-    if (!uploadSettings?.enabled && validationResponse?.status !== ValidationStatus.Ready) return;
+    if (!uploadSettings?.enabled && processingResponse?.state !== ProcessingState.Pending) return;
 
     setIsLoading(true);
-    setValidationStarted(true);
+    setProcessingStarted(true);
 
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
 
-    fetchApi<ValidationResponse>(`/api/v1/validation/${jobId}`, {
+    fetchApi<ProcessingJobResponse>(`/api/v1/processing/${jobId}`, {
       method: "PATCH",
       body: JSON.stringify(startJobRequest),
       signal: abortController.signal,
     })
       .then(response => {
-        setValidationResponse(response);
+        setProcessingResponse(response);
         setIsLoading(false);
-        setIsValidating(true);
-        pollValidationStatusUntilFinished(jobId, abortController);
+        setIsProcessing(true);
+        pollProcessingStatusUntilFinished(jobId, abortController);
       })
       .catch((error: ApiError) => {
         setIsLoading(false);
-        handleApiError(error, DeliveryStepEnum.Validate);
+        handleApiError(error, DeliveryStepEnum.Process);
       });
   };
 
@@ -340,7 +341,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     }
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
-    fetchApi<ValidationResponse>("/api/v1/delivery", {
+    fetchApi<ProcessingJobResponse>("/api/v1/delivery", {
       method: "POST",
       body: JSON.stringify({
         JobId: jobId,
@@ -364,13 +365,13 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     abortControllers.forEach(controller => controller.abort());
     setAbortControllers([]);
     setIsLoading(false);
-    setIsValidating(false);
-    setValidationStarted(false);
+    setIsProcessing(false);
+    setProcessingStarted(false);
     setSelectedFiles([]);
     setFileUploadStatus(new Map());
     setSelectedMandate(undefined);
     setJobId(undefined);
-    setValidationResponse(undefined);
+    setProcessingResponse(undefined);
     setActiveStep(0);
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
@@ -382,13 +383,13 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     });
   }, [abortControllers]);
 
-  // Reset delivery when user changes AFTER the validation was already started
+  // Reset delivery when user changes AFTER processing was already started
   useEffect(() => {
-    if (validationStarted && user?.id !== prevUserIdRef.current) {
+    if (processingStarted && user?.id !== prevUserIdRef.current) {
       resetDelivery();
     }
     prevUserIdRef.current = user?.id;
-  }, [user?.id, resetDelivery, validationStarted]);
+  }, [user?.id, resetDelivery, processingStarted]);
 
   return (
     <DeliveryContext.Provider
@@ -405,12 +406,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         setSelectedMandate,
         jobId,
         uploadSettings,
-        validationResponse,
+        processingResponse,
         isLoading,
-        isValidating,
+        isProcessing,
         uploadFile,
         cancelUpload,
-        validateFile,
+        startProcessing,
         submitDelivery,
         resetDelivery,
       }}>

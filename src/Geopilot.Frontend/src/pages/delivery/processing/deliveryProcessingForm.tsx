@@ -10,18 +10,18 @@ import { Mandate } from "../../../api/apiInterfaces";
 import { DeliveryStepEnum } from "../deliveryInterfaces";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
 import { useGeopilotAuth } from "../../../auth";
-import { isValidationFinished } from "../deliveryUtils";
+import { isProcessingFinished } from "../deliveryUtils";
 
-export const DeliveryValidationForm = () => {
+export const DeliveryProcessingForm = () => {
   const {
     resetDelivery,
-    validateFile,
+    startProcessing,
     jobId,
-    validationResponse,
+    processingResponse,
     setStepError,
     setSelectedMandate,
     isLoading,
-    isValidating,
+    isProcessing,
   } = useContext(DeliveryContext);
   const formMethods = useForm({ mode: "all" });
   const { fetchApi } = useFetch();
@@ -29,12 +29,11 @@ export const DeliveryValidationForm = () => {
   const { user } = useGeopilotAuth();
   const [mandates, setMandates] = useState<Mandate[]>([]);
 
-  // Fetch mandates for the current job
   useEffect(() => {
     if (jobId) {
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ jobId })).then(mandates => {
         if (mandates.length === 0) {
-          setStepError(DeliveryStepEnum.Validate, "noMandatesFound");
+          setStepError(DeliveryStepEnum.Process, "noMandatesFound");
         }
         setMandates(mandates);
       });
@@ -42,13 +41,13 @@ export const DeliveryValidationForm = () => {
   }, [jobId, fetchApi, setStepError, t, user]);
 
   const submitForm = (data: FieldValues) => {
-    validateFile({
+    startProcessing({
       mandateId: data["mandate"],
     });
     setSelectedMandate(mandates.find(m => m.id === data["mandate"]));
   };
 
-  const isFormLocked = isLoading || isValidating || isValidationFinished(validationResponse);
+  const isFormLocked = isLoading || isProcessing || isProcessingFinished(processingResponse);
 
   return (
     <FormProvider {...formMethods}>
@@ -62,13 +61,13 @@ export const DeliveryValidationForm = () => {
           .map(mandate => ({ key: mandate.id, name: mandate.name }))}
       />
 
-      {!isValidating && !isValidationFinished(validationResponse) && (
+      {!isProcessing && !isProcessingFinished(processingResponse) && (
         <FlexRowEndBox>
           <CancelButton onClick={() => resetDelivery()} />
           <BaseButton
             onClick={() => formMethods.handleSubmit(submitForm)()}
             icon={<PublishedWithChangesIcon />}
-            label="validate"
+            label="process"
             disabled={isLoading}
           />
         </FlexRowEndBox>

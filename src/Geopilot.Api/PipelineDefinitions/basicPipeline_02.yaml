@@ -156,10 +156,10 @@ pipelines:
             skip_conditions:
               - expression: "[validation.successful]"
                 message:
-                  de: "Validierung nicht erfolgreich. Error Tree wird übersprungen."
-                  en: "Validation not successful. Error Tree will be skipped."
-                  fr: "Validation non réussie. L'arbre des erreurs sera ignoré."
-                  it: "Validazione non riuscita. L'albero degli errori sarà ignorato."
+                  de: "Validierung erfolgreich. Error Tree wird übersprungen."
+                  en: "Validation successful. Error Tree will be skipped."
+                  fr: "Validation réussie. L'arbre des erreurs sera ignoré."
+                  it: "Validazione riuscita. L'albero degli errori sarà ignorato."
         input:
           - from: validation
             take: xtf_log

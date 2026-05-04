@@ -1,9 +1,9 @@
 import { ReactNode } from "react";
-import { Mandate, StartJobRequest, UploadSettings, ValidationResponse } from "../../api/apiInterfaces.ts";
+import { Mandate, ProcessingJobResponse, StartJobRequest, UploadSettings } from "../../api/apiInterfaces.ts";
 
 export enum DeliveryStepEnum {
   Upload = "upload",
-  Validate = "validate",
+  Process = "process",
   Submit = "submit",
   Done = "done",
 }
@@ -46,12 +46,12 @@ export interface DeliveryContextInterface {
   setSelectedMandate: (mandate: Mandate | undefined) => void;
   jobId?: string;
   uploadSettings?: UploadSettings;
-  validationResponse?: ValidationResponse;
+  processingResponse?: ProcessingJobResponse;
   isLoading: boolean;
-  isValidating: boolean;
+  isProcessing: boolean;
   uploadFile: () => void;
   cancelUpload: () => void;
-  validateFile: (startJobRequest: StartJobRequest) => void;
+  startProcessing: (startJobRequest: StartJobRequest) => void;
   submitDelivery: (data: DeliverySubmitData) => void;
   resetDelivery: () => void;
 }
