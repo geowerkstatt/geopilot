@@ -1,12 +1,12 @@
 ﻿namespace Geopilot.Api.Pipeline;
 
 /// <summary>
-/// Specifies the possible states of a pipeline in a workflow.
+/// Specifies the possible states of a processing job in a workflow.
 /// </summary>
-/// <remarks>Use this enumeration to represent the current status of an individual pipeline, such as in a multi-step
-/// operation or task sequence. The values indicate whether the pipeline is awaiting execution, currently running, completed
+/// <remarks>Use this enumeration to represent the current status of a processing job, such as in a multi-step
+/// operation or task sequence. The values indicate whether the job is awaiting execution, currently running, completed
 /// successfully, or has failed.</remarks>
-public enum PipelineState
+public enum ProcessingState
 {
     /// <summary>
     /// Indicates that the operation or request is pending and has not yet completed.
@@ -29,9 +29,9 @@ public enum PipelineState
     Failed,
 
     /// <summary>
-    /// Indicates that the pipeline was cancelled before completion
+    /// Indicates that the processing job was cancelled before completion
     /// (e.g. job timeout or host shutdown). Distinct from <see cref="Failed"/> —
-    /// the pipeline did not fail by its own logic, it was interrupted.
+    /// the job did not fail by its own logic, it was interrupted.
     /// </summary>
     Cancelled,
 }

@@ -23,7 +23,7 @@ public interface IPipeline : IDisposable
     /// <summary>
     /// The current state of the pipeline.
     /// </summary>
-    PipelineState State { get; }
+    ProcessingState State { get; }
 
     /// <summary>
     /// Gets the pipeline delivery configuration used for processing messages.

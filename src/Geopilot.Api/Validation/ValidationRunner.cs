@@ -125,12 +125,12 @@ public class ValidationRunner : BackgroundService
         // a cancelled or failed pipeline is never "CompletedWithErrors" — we must
         // not relabel it just because Delivery was flipped to Prevent on the way out.
         var pipelineState = pipeline.State;
-        if (pipelineState == PipelineState.Failed)
+        if (pipelineState == ProcessingState.Failed)
         {
             return ValidatorResultStatus.Failed;
         }
 
-        if (pipelineState == PipelineState.Cancelled)
+        if (pipelineState == ProcessingState.Cancelled)
         {
             return ValidatorResultStatus.Cancelled;
         }
@@ -140,12 +140,12 @@ public class ValidationRunner : BackgroundService
             return ValidatorResultStatus.CompletedWithErrors;
         }
 
-        if (pipelineState == PipelineState.Success)
+        if (pipelineState == ProcessingState.Success)
         {
             return ValidatorResultStatus.Completed;
         }
 
-        if (pipelineState == PipelineState.Failed)
+        if (pipelineState == ProcessingState.Failed)
         {
             return ValidatorResultStatus.Failed;
         }
