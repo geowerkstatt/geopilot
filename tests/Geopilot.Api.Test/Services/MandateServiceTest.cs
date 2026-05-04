@@ -1,6 +1,6 @@
 ﻿using Geopilot.Api.Models;
-using Geopilot.Api.Services;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Services;
 using Moq;
 using System.Collections.Immutable;
 
@@ -11,7 +11,7 @@ public class MandateServiceTest
 {
     private Context context;
     private MandateService mandateService;
-    private Mock<IProcessingJobStore> ProcessingJobStoreMock;
+    private Mock<IProcessingJobStore> processingJobStoreMock;
     private User editUser;
     private User adminUser;
     private Mandate unrestrictedMandate;
@@ -25,9 +25,9 @@ public class MandateServiceTest
     public void Initialize()
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        ProcessingJobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Strict);
+        processingJobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Strict);
 
-        mandateService = new MandateService(context, ProcessingJobStoreMock.Object);
+        mandateService = new MandateService(context, processingJobStoreMock.Object);
 
         unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate), AllowDelivery = true };
         noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noDeliveryMandate), AllowDelivery = false };
@@ -69,7 +69,7 @@ public class MandateServiceTest
     [TestCleanup]
     public void Cleanup()
     {
-        ProcessingJobStoreMock.VerifyAll();
+        processingJobStoreMock.VerifyAll();
         context.Dispose();
     }
 
@@ -173,7 +173,7 @@ public class MandateServiceTest
     public async Task GetMandatesWithJobIdAsNonAdmin()
     {
         var jobId = Guid.NewGuid();
-        ProcessingJobStoreMock
+        processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.xtf", "tmp.xtf") }, null, DateTime.Now));
 
@@ -191,7 +191,7 @@ public class MandateServiceTest
     public async Task GetMandatesWithJobIdAsAdmin()
     {
         var jobId = Guid.NewGuid();
-        ProcessingJobStoreMock
+        processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.xtf", "tmp.xtf") }, null, DateTime.Now));
 
@@ -222,7 +222,7 @@ public class MandateServiceTest
     public async Task GetMandatesWithJobIdAsUnauthenticated()
     {
         var jobId = Guid.NewGuid();
-        ProcessingJobStoreMock
+        processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.xtf", "tmp.xtf") }, null, DateTime.Now));
 
@@ -240,7 +240,7 @@ public class MandateServiceTest
     public async Task GetMandatesWithJobIdIgnoresCase()
     {
         var jobId = Guid.NewGuid();
-        ProcessingJobStoreMock
+        processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.XTF", "tmp.XTF") }, null, DateTime.Now));
 
@@ -257,7 +257,7 @@ public class MandateServiceTest
     public async Task GetMandatesWithInvalidJobIdThrows()
     {
         var jobId = Guid.NewGuid();
-        ProcessingJobStoreMock
+        processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns((ProcessingJob?)null);
 
@@ -269,7 +269,7 @@ public class MandateServiceTest
     {
         var jobId = Guid.NewGuid();
         var cloudFiles = ImmutableList.Create(new CloudFileInfo("data.xtf", "blobs/data.xtf", 1024));
-        ProcessingJobStoreMock
+        processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>(), null, DateTime.Now, Enums.UploadMethod.Cloud, cloudFiles));
 

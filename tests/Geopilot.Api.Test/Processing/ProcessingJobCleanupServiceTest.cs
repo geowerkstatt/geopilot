@@ -24,7 +24,7 @@ public class ProcessingJobCleanupServiceTest
         directoryProviderMock = new Mock<IDirectoryProvider>();
         loggerMock = new Mock<ILogger<ProcessingJobCleanupService>>();
 
-        var ProcessingOptions = new ProcessingOptions
+        var processingOptions = new ProcessingOptions
         {
             JobRetention = TimeSpan.FromHours(RetentionHours),
             JobCleanupInterval = TimeSpan.FromHours(24),
@@ -32,7 +32,7 @@ public class ProcessingJobCleanupServiceTest
         };
 
         var optionsMock = new Mock<IOptions<ProcessingOptions>>();
-        optionsMock.Setup(o => o.Value).Returns(ProcessingOptions);
+        optionsMock.Setup(o => o.Value).Returns(processingOptions);
 
         service = new ProcessingJobCleanupService(
             jobStoreMock.Object,
