@@ -3,8 +3,8 @@ using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Pipeline;
-using Geopilot.Api.Services;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Services;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,14 +12,14 @@ using Moq;
 using System.Collections.Immutable;
 using System.Threading.Channels;
 
-namespace Geopilot.Api.Test.Validation;
+namespace Geopilot.Api.Test.Processing;
 
 [TestClass]
 public class CloudUploadPollingTest
 {
     private ProcessingJobStore jobStore;
     private Channel<PreflightRequest> preflightChannel;
-    private ProcessingService ProcessingService;
+    private ProcessingService processingService;
     private PreflightBackgroundService backgroundService;
 
     private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
@@ -43,7 +43,7 @@ public class CloudUploadPollingTest
         jobStore = new ProcessingJobStore();
         preflightChannel = Channel.CreateUnbounded<PreflightRequest>();
 
-        ProcessingService = new ProcessingService(
+        processingService = new ProcessingService(
             jobStore,
             mandateServiceMock.Object,
             fileProviderMock.Object,
@@ -81,7 +81,7 @@ public class CloudUploadPollingTest
     {
         var (jobId, _, _) = await CreateAndStartCloudJobAsync();
 
-        var polledJob = ProcessingService.GetJob(jobId);
+        var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.IsFalse(polledJob.IsFailed);
@@ -97,7 +97,7 @@ public class CloudUploadPollingTest
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
 
-        var polledJob = ProcessingService.GetJob(jobId);
+        var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.IsFalse(polledJob.IsFailed);
@@ -122,7 +122,7 @@ public class CloudUploadPollingTest
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
 
-        var polledJob = ProcessingService.GetJob(jobId);
+        var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.IsTrue(polledJob.IsFailed);
@@ -143,7 +143,7 @@ public class CloudUploadPollingTest
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
 
-        var polledJob = ProcessingService.GetJob(jobId);
+        var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.IsTrue(polledJob.IsFailed);
@@ -164,7 +164,7 @@ public class CloudUploadPollingTest
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
 
-        var polledJob = ProcessingService.GetJob(jobId);
+        var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
         Assert.IsTrue(polledJob.IsFailed);
@@ -185,7 +185,7 @@ public class CloudUploadPollingTest
 
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
 
-        await ProcessingService.StartJobAsync(job.Id, mandate.Id, user);
+        await processingService.StartJobAsync(job.Id, mandate.Id, user);
 
         return (job.Id, mandate, user);
     }

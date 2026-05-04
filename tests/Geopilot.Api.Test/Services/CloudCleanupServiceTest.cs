@@ -1,5 +1,5 @@
-﻿using Geopilot.Api.Services;
-using Geopilot.Api.Processing;
+﻿using Geopilot.Api.Processing;
+using Geopilot.Api.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;

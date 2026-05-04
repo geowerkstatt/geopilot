@@ -70,15 +70,15 @@ public sealed class ProcessingControllerTest
         formFileMock.SetupGet(x => x.FileName).Returns(originalFileName);
         formFileMock.Setup(x => x.CopyToAsync(It.IsAny<Stream>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(0));
 
-        var ProcessingJob = new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile(originalFileName, tempFileName) }, null, DateTime.Now);
+        var processingJob = new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile(originalFileName, tempFileName) }, null, DateTime.Now);
         using var fileHandle = new FileHandle(tempFileName, Stream.Null);
 
         validationServiceMock.Setup(x => x.IsFileExtensionSupportedAsync(".xtf")).Returns(Task.FromResult(true));
-        validationServiceMock.Setup(x => x.CreateJob()).Returns(ProcessingJob);
+        validationServiceMock.Setup(x => x.CreateJob()).Returns(processingJob);
         validationServiceMock.Setup(x => x.CreateFileHandleForJob(jobId, originalFileName)).Returns(fileHandle);
         validationServiceMock
             .Setup(x => x.AddFileToJob(jobId, originalFileName, tempFileName))
-            .Returns(ProcessingJob);
+            .Returns(processingJob);
 
         var response = await controller.UploadAsync(apiVersionMock.Object, formFileMock.Object) as CreatedAtActionResult;
 
@@ -202,14 +202,14 @@ public sealed class ProcessingControllerTest
 
         var startJobRequest = new StartJobRequest { MandateId = mandate.Id };
 
-        var ProcessingJob = new ProcessingJob(
+        var processingJob = new ProcessingJob(
             jobId,
             new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf") },
             mandate.Id,
             DateTime.Now);
 
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(ProcessingJob).Verifiable();
-        validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, user)).ReturnsAsync(ProcessingJob);
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(processingJob).Verifiable();
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, user)).ReturnsAsync(processingJob);
 
         // Act
         var response = await controller.StartJobAsync(jobId, startJobRequest) as OkObjectResult;
@@ -239,15 +239,15 @@ public sealed class ProcessingControllerTest
 
         var startJobRequest = new StartJobRequest { MandateId = mandate.Id };
 
-        var ProcessingJob = new ProcessingJob(
+        var processingJob = new ProcessingJob(
             jobId,
             new List<ProcessingJobFile>(),
             null,
             DateTime.Now,
             UploadMethod.Cloud);
 
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(ProcessingJob).Verifiable();
-        validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, user)).ReturnsAsync(ProcessingJob);
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(processingJob).Verifiable();
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, user)).ReturnsAsync(processingJob);
 
         // Act
         var response = await controller.StartJobAsync(jobId, startJobRequest) as ObjectResult;
@@ -285,14 +285,14 @@ public sealed class ProcessingControllerTest
 
         var startJobRequest = new StartJobRequest { MandateId = publicMandate.Entity.Id };
 
-        var ProcessingJob = new ProcessingJob(
+        var processingJob = new ProcessingJob(
             jobId,
             new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf") },
             publicMandate.Entity.Id,
             DateTime.Now);
 
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(ProcessingJob).Verifiable();
-        validationServiceMock.Setup(x => x.StartJobAsync(jobId, publicMandate.Entity.Id, It.IsAny<User?>())).ReturnsAsync(ProcessingJob);
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(processingJob).Verifiable();
+        validationServiceMock.Setup(x => x.StartJobAsync(jobId, publicMandate.Entity.Id, It.IsAny<User?>())).ReturnsAsync(processingJob);
 
         // Act
         var response = await controller.StartJobAsync(jobId, startJobRequest) as OkObjectResult;
@@ -330,13 +330,13 @@ public sealed class ProcessingControllerTest
         // Arrange
         var jobId = Guid.NewGuid();
         var startJobRequest = new StartJobRequest();
-        var ProcessingJob = new ProcessingJob(
+        var processingJob = new ProcessingJob(
             jobId,
             new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf") },
             null,
             DateTime.Now);
 
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(ProcessingJob);
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(processingJob);
         validationServiceMock.Setup(x => x.StartJobAsync(jobId, startJobRequest.MandateId, null))
             .ThrowsAsync(new ArgumentException("Invalid job state"));
 
@@ -358,7 +358,7 @@ public sealed class ProcessingControllerTest
             new Mandate { Name = nameof(StartJobAsyncReturns400ForInvalidOperationException) });
 
         var startJobRequest = new StartJobRequest { MandateId = mandate.Id };
-        var ProcessingJob = new ProcessingJob(
+        var processingJob = new ProcessingJob(
             jobId,
             new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf") },
             null,
@@ -366,7 +366,7 @@ public sealed class ProcessingControllerTest
 
         controller.SetupTestUser(user);
 
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(ProcessingJob);
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(processingJob);
         validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, It.IsAny<User>()))
             .ThrowsAsync(new InvalidOperationException("User not authorized for mandate"));
 
@@ -385,14 +385,14 @@ public sealed class ProcessingControllerTest
         // Arrange
         var jobId = Guid.NewGuid();
         var startJobRequest = new StartJobRequest();
-        var ProcessingJob = new ProcessingJob(
+        var processingJob = new ProcessingJob(
             jobId,
             new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf") },
             null,
             DateTime.Now);
 
 #pragma warning disable CA2201 // Do not raise reserved exception types
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(ProcessingJob);
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(processingJob);
         validationServiceMock.Setup(x => x.StartJobAsync(jobId, startJobRequest.MandateId, null))
             .ThrowsAsync(new Exception());
 #pragma warning restore CA2201 // Do not raise reserved exception types
@@ -422,13 +422,13 @@ public sealed class ProcessingControllerTest
 
         var startJobRequest = new StartJobRequest { MandateId = nonPublicMandate.Entity.Id };
 
-        var ProcessingJob = new ProcessingJob(
+        var processingJob = new ProcessingJob(
             jobId,
             new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf") },
             nonPublicMandate.Entity.Id,
             DateTime.Now);
 
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(ProcessingJob).Verifiable();
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(processingJob).Verifiable();
         validationServiceMock.Setup(x => x.StartJobAsync(jobId, nonPublicMandate.Entity.Id, null))
             .ThrowsAsync(new InvalidOperationException("User not authorized for mandate"));
 
@@ -450,14 +450,14 @@ public sealed class ProcessingControllerTest
         context.SaveChanges();
 
         var startJobRequest = new StartJobRequest { MandateId = mandate.Id };
-        var ProcessingJob = new ProcessingJob(
+        var processingJob = new ProcessingJob(
             jobId,
             new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf") },
             null,
             DateTime.Now);
 
         controller.SetupTestUser(user);
-        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(ProcessingJob);
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns(processingJob);
         validationServiceMock.Setup(x => x.StartJobAsync(jobId, mandate.Id, It.IsAny<User>()))
             .ThrowsAsync(new InvalidOperationException("The user is not authorized to start the job with the specified mandate."));
 
