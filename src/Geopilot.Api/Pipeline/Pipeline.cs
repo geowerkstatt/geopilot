@@ -10,13 +10,20 @@ namespace Geopilot.Api.Pipeline;
 /// Optionally, parameters can be provided to configure the behavior of the pipeline or its steps.</remarks>
 public sealed class Pipeline : IPipeline
 {
+    private bool disposed;
+
     /// <inheritdoc/>
     public void Dispose()
     {
+        if (disposed)
+            return;
+
         Steps.ForEach(step => step.Dispose());
 
         if (Path.Exists(pipelineFileDirectory))
             Directory.Delete(pipelineFileDirectory, true);
+
+        disposed = true;
     }
 
     private readonly ConditionEvaluator conditionEvaluator;
@@ -76,6 +83,9 @@ public sealed class Pipeline : IPipeline
 
     /// <inheritdoc/>
     public PipelineDelivery Delivery { get; set; } = PipelineDelivery.Allow;
+
+    /// <inheritdoc/>
+    public Dictionary<string, string>? DeliveryRestrictionMessage { get; private set; }
 
     /// <summary>
     /// The files to be processed for the pipeline.
@@ -195,12 +205,13 @@ public sealed class Pipeline : IPipeline
         return matched;
     }
 
-    private static void AddRestrictionMessages(PipelineContext context, List<ConditionConfig> matchedRestrictions)
+    private void AddRestrictionMessages(PipelineContext context, List<ConditionConfig> matchedRestrictions)
     {
         var mergedMessages = MergeConditionMessages(matchedRestrictions);
         if (mergedMessages.Count > 0)
         {
             context.DeliveryRestrictionMessage = mergedMessages;
+            this.DeliveryRestrictionMessage = mergedMessages;
         }
     }
 

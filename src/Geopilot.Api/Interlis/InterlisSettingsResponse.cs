@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Validation.Interlis;
+﻿namespace Geopilot.Api.Interlis;
 
 /// <summary>
 /// Result of a settings query of interlis-check-service at /api/v1/settings.

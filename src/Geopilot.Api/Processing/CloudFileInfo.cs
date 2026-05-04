@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Validation;
+﻿namespace Geopilot.Api.Processing;
 
 /// <summary>
 /// Metadata about a file uploaded to cloud storage.

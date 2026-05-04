@@ -1,9 +1,11 @@
 ﻿using Geopilot.Api.Models;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Config;
+using Geopilot.Api.Processing;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -13,21 +15,21 @@ namespace Geopilot.Api.FileAccess;
 public class AssetHandlerTest
 {
     private Mock<ILogger<AssetHandler>> loggerMock;
-    private Mock<IValidationService> validationServiceMock;
+    private Mock<IProcessingService> validationServiceMock;
     private Mock<IFileProvider> fileProviderMock;
     private AssetHandler assetHandler;
-    private ValidationJob job;
+    private ProcessingJob job;
     private string uploadDirectory;
     private string assetDirectory;
 
     [TestInitialize]
     public void Initialize()
     {
-        job = new ValidationJob(Guid.NewGuid(), new List<ValidationJobFile>() { new ValidationJobFile("OriginalName", "TempFileName") }, null, ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Completed, DateTime.Now);
+        job = new ProcessingJob(Guid.NewGuid(), new List<ProcessingJobFile>() { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now);
         uploadDirectory = AssemblyInitialize.TestDirectoryProvider.GetUploadDirectoryPath(job.Id);
         assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(job.Id);
         loggerMock = new Mock<ILogger<AssetHandler>>();
-        validationServiceMock = new Mock<IValidationService>();
+        validationServiceMock = new Mock<IProcessingService>();
         fileProviderMock = new Mock<IFileProvider>();
         assetHandler = new AssetHandler(loggerMock.Object, validationServiceMock.Object, fileProviderMock.Object, AssemblyInitialize.TestDirectoryProvider, new Mock<IContentTypeProvider>().Object);
 
@@ -56,7 +58,7 @@ public class AssetHandlerTest
     }
 
     [TestMethod]
-    public void PersistValidationJobAssetsCopiesValidationJobFiles()
+    public void PersistValidationJobAssetsCopiesStepDownloads()
     {
         var fileContent = "Some Content";
         Directory.CreateDirectory(uploadDirectory);
@@ -67,16 +69,11 @@ public class AssetHandlerTest
         File.WriteAllText(Path.Combine(uploadDirectory, "mylogfile"), fileContent);
         fileProviderMock.Setup(x => x.Open("mylogfile")).Returns(new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
 
-        var logFiles = new Dictionary<string, string>
+        var jobWithDownloads = new ProcessingJob(job.Id, new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now)
         {
-            { "mylogtype", "mylogfile" },
-        }.ToImmutableDictionary();
-        var validatorResults = new Dictionary<string, ValidatorResult?>
-        {
-            { "myValidator", new ValidatorResult(ValidatorResultStatus.Completed, string.Empty, logFiles) },
-        }.ToImmutableDictionary();
-        var jobWithLogFiles = new ValidationJob(job.Id, new List<ValidationJobFile>() { new ValidationJobFile("OriginalName", "TempFileName") }, null, validatorResults, Status.Completed, DateTime.Now);
-        validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
+            Pipeline = BuildPipelineWithStepDownloads("myStep", new Dictionary<string, string> { { "mylogtype", "mylogfile" } }),
+        };
+        validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithDownloads);
 
         var assets = assetHandler.PersistJobAssets(job.Id);
 
@@ -85,7 +82,7 @@ public class AssetHandlerTest
         Assert.IsNotNull(logfileAsset);
         Assert.AreEqual(AssetType.ValidationReport, logfileAsset.AssetType);
         Assert.AreEqual("mylogfile", logfileAsset.SanitizedFilename);
-        Assert.AreEqual("myValidator_mylogtype", logfileAsset.OriginalFilename);
+        Assert.AreEqual("myStep_mylogtype", logfileAsset.OriginalFilename);
         Assert.AreEqual(fileContent, File.ReadAllText(Path.Combine(assetDirectory, "mylogfile")));
         CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(fileContent)), logfileAsset.FileHash);
     }
@@ -93,18 +90,24 @@ public class AssetHandlerTest
     [TestMethod]
     public void PersistValidationJobAssetsFailsWithoutJobDirectory()
     {
-        var logFiles = new Dictionary<string, string>
+        var jobWithDownloads = new ProcessingJob(job.Id, new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now)
         {
-            { "mylogtype", "mylogfile" },
-        }.ToImmutableDictionary();
-        var validatorResults = new Dictionary<string, ValidatorResult?>
-        {
-            { "myValidator", new ValidatorResult(ValidatorResultStatus.Completed, string.Empty, logFiles) },
-        }.ToImmutableDictionary();
-        var jobWithLogFiles = new ValidationJob(job.Id, new List<ValidationJobFile>() { new ValidationJobFile("OriginalName", "TempFileName") }, null, validatorResults, Status.Completed, DateTime.Now);
-        validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithLogFiles);
+            Pipeline = BuildPipelineWithStepDownloads("myStep", new Dictionary<string, string> { { "mylogtype", "mylogfile" } }),
+        };
+        validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithDownloads);
 
         Assert.ThrowsExactly<ArgumentNullException>(() => assetHandler.PersistJobAssets(job.Id));
+    }
+
+    private static IPipeline BuildPipelineWithStepDownloads(string stepId, Dictionary<string, string> persistedDownloads)
+    {
+        var stepMock = new Mock<IPipelineStep>();
+        stepMock.SetupGet(s => s.Id).Returns(stepId);
+        stepMock.SetupGet(s => s.PersistedDownloads).Returns(persistedDownloads);
+
+        var pipelineMock = new Mock<IPipeline>();
+        pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep> { stepMock.Object });
+        return pipelineMock.Object;
     }
 
     [TestMethod]

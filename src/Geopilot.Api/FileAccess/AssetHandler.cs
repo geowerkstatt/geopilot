@@ -1,5 +1,5 @@
 ﻿using Geopilot.Api.Models;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Processing;
 using Microsoft.AspNetCore.StaticFiles;
 using System.Security.Cryptography;
 
@@ -11,7 +11,7 @@ namespace Geopilot.Api.FileAccess;
 public class AssetHandler : IAssetHandler
 {
     private readonly ILogger<AssetHandler> logger;
-    private readonly IValidationService validationService;
+    private readonly IProcessingService processingService;
     private readonly IFileProvider temporaryFileProvider;
     private readonly IDirectoryProvider directoryProvider;
     private readonly IContentTypeProvider fileContentTypeProvider;
@@ -19,16 +19,10 @@ public class AssetHandler : IAssetHandler
     /// <summary>
     /// Initializes a new instance of the <see cref="AssetHandler"/> class.
     /// </summary>
-    /// <param name="logger">The logger used for the instance.</param>
-    /// <param name="validationService">Validation service to migrate files from.</param>
-    /// <param name="temporaryFileProvider">The provider to access temporary file storage.</param>
-    /// <param name="directoryProvider">The service configuration.</param>
-    /// <param name="fileContentTypeProvider">The file extension content type provider.</param>
-    /// <exception cref="InvalidOperationException">Thrown if required configuration values are not defined.</exception>
-    public AssetHandler(ILogger<AssetHandler> logger, IValidationService validationService, IFileProvider temporaryFileProvider, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
+    public AssetHandler(ILogger<AssetHandler> logger, IProcessingService processingService, IFileProvider temporaryFileProvider, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
     {
         this.logger = logger;
-        this.validationService = validationService;
+        this.processingService = processingService;
         this.temporaryFileProvider = temporaryFileProvider;
         this.directoryProvider = directoryProvider;
         this.fileContentTypeProvider = fileContentTypeProvider;
@@ -37,17 +31,17 @@ public class AssetHandler : IAssetHandler
     /// <inheritdoc/>
     public IEnumerable<Asset> PersistJobAssets(Guid jobId)
     {
-        var job = validationService.GetJob(jobId);
+        var job = processingService.GetJob(jobId);
 
         if (job is null)
-            throw new InvalidOperationException($"Validation job with id {jobId} not found.");
+            throw new InvalidOperationException($"Processing job with id {jobId} not found.");
 
         var assets = new List<Asset>();
         temporaryFileProvider.Initialize(jobId);
         Directory.CreateDirectory(directoryProvider.GetAssetDirectoryPath(jobId));
 
-        assets.AddRange(PersistPrimaryValidationJobAsset(job));
-        assets.AddRange(PersistValidationJobValidatorAssets(job));
+        assets.AddRange(PersistPrimaryJobAsset(job));
+        assets.AddRange(PersistStepDownloadAssets(job));
 
         return assets;
     }
@@ -85,15 +79,10 @@ public class AssetHandler : IAssetHandler
         }
     }
 
-    /// <summary>
-    /// Migrates the primary data file for a validation job into a persistent storage.
-    /// </summary>
-    /// <param name="job">The validation job created during upload.</param>
-    /// <returns>Calculated Asset representing the file in persistent storage.</returns>
-    private List<Asset> PersistPrimaryValidationJobAsset(ValidationJob job)
+    private List<Asset> PersistPrimaryJobAsset(ProcessingJob job)
     {
         if (job.Files == null || job.Files.Count == 0)
-            throw new InvalidOperationException($"Validation job <{job.Id}> does not have a correctly defined primary data files.");
+            throw new InvalidOperationException($"Processing job <{job.Id}> does not have a correctly defined primary data files.");
 
         var assets = new List<Asset>();
         foreach (var f in job.Files)
@@ -113,27 +102,22 @@ public class AssetHandler : IAssetHandler
         return assets;
     }
 
-    /// <summary>
-    /// Migrates all log files for a validation job into a persistent storage.
-    /// </summary>
-    /// <param name="job">The validation job for which the validation assets should be persisted.</param>
-    /// <returns>List of Assets representing the log files in persistent storage.</returns>
-    private List<Asset> PersistValidationJobValidatorAssets(ValidationJob job)
+    private List<Asset> PersistStepDownloadAssets(ProcessingJob job)
     {
         var assets = new List<Asset>();
+        if (job.Pipeline == null)
+            return assets;
 
-        foreach (var validator in job.ValidatorResults)
+        foreach (var step in job.Pipeline.Steps)
         {
-            if (validator.Value == null) continue;
-
-            foreach (var logfile in validator.Value.LogFiles)
+            foreach (var (outputKey, fileName) in step.PersistedDownloads)
             {
-                using var stream = temporaryFileProvider.Open(logfile.Value);
+                using var stream = temporaryFileProvider.Open(fileName);
                 var asset = new Asset()
                 {
                     AssetType = AssetType.ValidationReport,
-                    OriginalFilename = $"{validator.Key}_{logfile.Key}{Path.GetExtension(logfile.Value)}",
-                    SanitizedFilename = logfile.Value,
+                    OriginalFilename = $"{step.Id}_{outputKey}{Path.GetExtension(fileName)}",
+                    SanitizedFilename = fileName,
                     FileHash = SHA256.HashData(stream),
                 };
                 CopyAssetToPersistentStorage(job.Id, asset);

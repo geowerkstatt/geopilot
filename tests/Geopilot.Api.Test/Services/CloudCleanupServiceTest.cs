@@ -1,5 +1,5 @@
 ﻿using Geopilot.Api.Services;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Processing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -10,7 +10,7 @@ namespace Geopilot.Api.Test.Services;
 public class CloudCleanupServiceTest
 {
     private Mock<ICloudStorageService> cloudStorageServiceMock;
-    private Mock<IValidationJobStore> jobStoreMock;
+    private Mock<IProcessingJobStore> jobStoreMock;
     private Mock<ILogger<CloudCleanupService>> loggerMock;
     private CloudStorageOptions cloudStorageOptions;
     private CloudCleanupService service;
@@ -19,7 +19,7 @@ public class CloudCleanupServiceTest
     public void Initialize()
     {
         cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
-        jobStoreMock = new Mock<IValidationJobStore>(MockBehavior.Loose);
+        jobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Loose);
         loggerMock = new Mock<ILogger<CloudCleanupService>>();
 
         cloudStorageOptions = new CloudStorageOptions { CleanupAgeHours = 48, MaxFileSizeMB = 2048 };
@@ -79,7 +79,7 @@ public class CloudCleanupServiceTest
                 ($"uploads/{recentJobId}/test.xtf", 1024, recentTimestamp),
             });
 
-        jobStoreMock.Setup(s => s.GetJob(recentJobId)).Returns(new ValidationJob(recentJobId, new List<ValidationJobFile>(), null, System.Collections.Immutable.ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now));
+        jobStoreMock.Setup(s => s.GetJob(recentJobId)).Returns(new ProcessingJob(recentJobId, new List<ProcessingJobFile>(), null, DateTime.Now));
 
         SetupEmptyContainerListing();
 
@@ -198,7 +198,7 @@ public class CloudCleanupServiceTest
             .Setup(s => s.DeletePrefixAsync($"uploads/{staleJobId}/"))
             .Returns(Task.CompletedTask);
 
-        jobStoreMock.Setup(s => s.GetJob(recentJobId)).Returns(new ValidationJob(recentJobId, new List<ValidationJobFile>(), null, System.Collections.Immutable.ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now));
+        jobStoreMock.Setup(s => s.GetJob(recentJobId)).Returns(new ProcessingJob(recentJobId, new List<ProcessingJobFile>(), null, DateTime.Now));
 
         SetupEmptyContainerListing();
 
@@ -246,7 +246,7 @@ public class CloudCleanupServiceTest
                 ($"uploads/{jobId}/test.xtf", normalBytes, DateTime.UtcNow),
             });
 
-        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(new ValidationJob(jobId, new List<ValidationJobFile>(), null, System.Collections.Immutable.ImmutableDictionary<string, ValidatorResult?>.Empty, Status.Created, DateTime.Now));
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>(), null, DateTime.Now));
 
         SetupEmptyContainerListing();
 
@@ -267,7 +267,7 @@ public class CloudCleanupServiceTest
                 ($"uploads/{orphanJobId}/test.xtf", 1024, DateTime.UtcNow),
             });
 
-        jobStoreMock.Setup(s => s.GetJob(orphanJobId)).Returns((ValidationJob?)null);
+        jobStoreMock.Setup(s => s.GetJob(orphanJobId)).Returns((ProcessingJob?)null);
 
         cloudStorageServiceMock
             .Setup(s => s.DeletePrefixAsync($"uploads/{orphanJobId}/"))

@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Validation.Interlis;
+﻿namespace Geopilot.Api.Interlis;
 
 /// <summary>
 /// Represents the status of a validation returned by the interlis-check-service.

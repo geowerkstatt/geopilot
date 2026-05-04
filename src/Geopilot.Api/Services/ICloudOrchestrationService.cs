@@ -1,6 +1,6 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Exceptions;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Processing;
 
 namespace Geopilot.Api.Services;
 
@@ -27,6 +27,6 @@ public interface ICloudOrchestrationService
     /// Downloads cloud files to local storage and updates the job with local file information.
     /// </summary>
     /// <param name="jobId">The job ID to stage files for.</param>
-    /// <returns>The updated validation job.</returns>
-    Task<ValidationJob> StageFilesLocallyAsync(Guid jobId);
+    /// <returns>The updated processing job.</returns>
+    Task<ProcessingJob> StageFilesLocallyAsync(Guid jobId);
 }

@@ -3,7 +3,7 @@ using Geopilot.Api.Enums;
 using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Services;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Processing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -20,7 +20,7 @@ public class CloudOrchestrationServiceTest
     private Mock<IFileProvider> fileProviderMock;
     private Mock<IOptions<CloudStorageOptions>> optionsMock;
     private Mock<ILogger<CloudOrchestrationService>> loggerMock;
-    private ValidationJobStore jobStore;
+    private ProcessingJobStore jobStore;
     private CloudOrchestrationService service;
 
     [TestInitialize]
@@ -42,7 +42,7 @@ public class CloudOrchestrationServiceTest
             PresignedUrlExpiryMinutes = 60,
         });
 
-        jobStore = new ValidationJobStore(Mock.Of<IServiceScopeFactory>());
+        jobStore = new ProcessingJobStore();
 
         service = new CloudOrchestrationService(
             cloudStorageServiceMock.Object,
@@ -82,7 +82,6 @@ public class CloudOrchestrationServiceTest
 
         var job = jobStore.GetJob(response.JobId);
         Assert.IsNotNull(job);
-        Assert.AreEqual(Status.Created, job.Status);
         Assert.AreEqual(UploadMethod.Cloud, job.UploadMethod);
         Assert.IsNotNull(job.CloudFiles);
         Assert.HasCount(1, job.CloudFiles);
@@ -222,7 +221,6 @@ public class CloudOrchestrationServiceTest
         Assert.HasCount(1, updated.Files);
         Assert.AreEqual("test.xtf", updated.Files[0].OriginalFileName);
         Assert.AreEqual("random123.xtf", updated.Files[0].TempFileName);
-        Assert.AreEqual(Status.Created, updated.Status);
         cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{job.Id}/"), Times.Once);
     }
 
@@ -303,7 +301,7 @@ public class CloudOrchestrationServiceTest
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.InitiateUploadAsync(request));
     }
 
-    private ValidationJob CreateCloudJob(string fileName, long size)
+    private ProcessingJob CreateCloudJob(string fileName, long size)
     {
         var job = jobStore.CreateJob();
         var cloudFiles = ImmutableList.Create(new CloudFileInfo(fileName, $"uploads/{job.Id}/{fileName}", size));

@@ -1,5 +1,8 @@
 ﻿using Geopilot.Api.Contracts;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Pipeline;
+using Geopilot.Api.Pipeline.Config;
+using Geopilot.Api.Processing;
+using Geopilot.PipelineCore.Pipeline;
 
 namespace Api;
 
@@ -9,26 +12,78 @@ namespace Api;
 internal static class DtoMapperExtensions
 {
     /// <summary>
-    /// Maps a <see cref="ValidationJob"/> to a <see cref="ValidationJobResponse"/>.
+    /// Maps a <see cref="ProcessingJob"/> to a <see cref="ProcessingJobResponse"/>.
     /// </summary>
-    /// <param name="job">The validation job to map.</param>
-    /// <returns>The mapped validation job response.</returns>
-    public static ValidationJobResponse ToResponse(this ValidationJob job)
+    /// <param name="job">The processing job to map.</param>
+    /// <param name="buildDownloadUrl">Builds an absolute download URL for a (jobId, fileName) pair.</param>
+    public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl)
     {
-        return new(
+        var state = job.IsFailed
+            ? ProcessingState.Failed
+            : job.Pipeline?.State ?? ProcessingState.Pending;
+
+        var pipelineName = job.Pipeline?.DisplayName ?? new Dictionary<string, string>();
+
+        var steps = job.Pipeline?.Steps
+            .Select(step => step.ToResponse(job.Id, buildDownloadUrl))
+            .ToList()
+            ?? new List<StepResultResponse>();
+
+        return new ProcessingJobResponse(
             job.Id,
-            job.Status,
+            state,
             job.MandateId,
-            job.ValidatorResults.ToDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value?.ToResponse()));
+            pipelineName,
+            steps,
+            job.Pipeline?.DeliveryRestrictionMessage);
     }
 
     /// <summary>
-    /// Maps a <see cref="ValidatorResult"/> to a <see cref="ValidatorResultResponse"/>.
+    /// Maps a single <see cref="IPipelineStep"/> to a <see cref="StepResultResponse"/>.
     /// </summary>
-    /// <param name="result">The validator result to map.</param>
-    /// <returns>The mapped validator result response.</returns>
-    public static ValidatorResultResponse ToResponse(this ValidatorResult result) =>
-        new(result.Status, result.StatusMessage, result.LogFiles);
+    private static StepResultResponse ToResponse(this IPipelineStep step, Guid jobId, Func<Guid, string, Uri> buildDownloadUrl)
+    {
+        var statusMessage = ExtractStatusMessage(step);
+
+        var downloads = step.PersistedDownloads.ToDictionary(
+            kvp => kvp.Key,
+            kvp => buildDownloadUrl(jobId, kvp.Value));
+
+        return new StepResultResponse(
+            step.Id,
+            step.DisplayName,
+            step.State,
+            statusMessage,
+            downloads);
+    }
+
+    /// <summary>
+    /// Merges all <see cref="OutputAction.StatusMessage"/> outputs from the step into a single localized dict
+    /// (per language, separate messages joined with " - ").
+    /// </summary>
+    private static Dictionary<string, string>? ExtractStatusMessage(IPipelineStep step)
+    {
+        if (step.Result == null)
+            return null;
+
+        var localizedMessages = step.Result.Outputs
+            .Where(o => o.Value.Action.Contains(OutputAction.StatusMessage))
+            .Select(o => o.Value.Data as Dictionary<string, string>)
+            .Where(m => m != null)
+            .Cast<Dictionary<string, string>>()
+            .ToList();
+
+        if (localizedMessages.Count == 0)
+            return null;
+
+        var languages = localizedMessages.SelectMany(m => m.Keys).Distinct();
+        var merged = new Dictionary<string, string>();
+        foreach (var language in languages)
+        {
+            var parts = localizedMessages.Where(m => m.ContainsKey(language)).Select(m => m[language]);
+            merged[language] = string.Join(" - ", parts);
+        }
+
+        return merged;
+    }
 }

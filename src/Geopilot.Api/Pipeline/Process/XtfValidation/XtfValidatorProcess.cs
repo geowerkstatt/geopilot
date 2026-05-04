@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Validation;
-using Geopilot.Api.Validation.Interlis;
+﻿using Geopilot.Api.Interlis;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.AspNetCore.Mvc;
