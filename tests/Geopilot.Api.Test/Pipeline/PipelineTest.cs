@@ -23,16 +23,16 @@ public class PipelineTest
     }
 
     [TestMethod(DisplayName = "Pipeline State Test")]
-    [DataRow(PipelineState.Pending, new[] { StepState.Pending, StepState.Pending }, DisplayName = "all steps pending")]
-    [DataRow(PipelineState.Running, new[] { StepState.Running, StepState.Pending }, DisplayName = "steps pending and running")]
-    [DataRow(PipelineState.Running, new[] { StepState.Skipped, StepState.Running, StepState.Pending }, DisplayName = "steps pending, running and skipped")]
-    [DataRow(PipelineState.Pending, new StepState[0], DisplayName = "no steps")]
-    [DataRow(PipelineState.Failed, new[] { StepState.Success, StepState.Error, StepState.Pending }, DisplayName = "failed steps")]
-    [DataRow(PipelineState.Running, new[] { StepState.Success, StepState.Running }, DisplayName = "running steps")]
-    [DataRow(PipelineState.Running, new[] { StepState.Success, StepState.Pending }, DisplayName = "success and running steps (edge case)")]
-    [DataRow(PipelineState.Success, new[] { StepState.Success, StepState.Success }, DisplayName = "all steps success")]
-    [DataRow(PipelineState.Success, new[] { StepState.Success, StepState.Skipped, StepState.Success }, DisplayName = "all steps success or skipped")]
-    public void PipelineStateTest(PipelineState expectedState, IEnumerable<StepState> stepStates)
+    [DataRow(ProcessingState.Pending, new[] { StepState.Pending, StepState.Pending }, DisplayName = "all steps pending")]
+    [DataRow(ProcessingState.Running, new[] { StepState.Running, StepState.Pending }, DisplayName = "steps pending and running")]
+    [DataRow(ProcessingState.Running, new[] { StepState.Skipped, StepState.Running, StepState.Pending }, DisplayName = "steps pending, running and skipped")]
+    [DataRow(ProcessingState.Pending, new StepState[0], DisplayName = "no steps")]
+    [DataRow(ProcessingState.Failed, new[] { StepState.Success, StepState.Error, StepState.Pending }, DisplayName = "failed steps")]
+    [DataRow(ProcessingState.Running, new[] { StepState.Success, StepState.Running }, DisplayName = "running steps")]
+    [DataRow(ProcessingState.Running, new[] { StepState.Success, StepState.Pending }, DisplayName = "success and running steps (edge case)")]
+    [DataRow(ProcessingState.Success, new[] { StepState.Success, StepState.Success }, DisplayName = "all steps success")]
+    [DataRow(ProcessingState.Success, new[] { StepState.Success, StepState.Skipped, StepState.Success }, DisplayName = "all steps success or skipped")]
+    public void ProcessingStateTest(ProcessingState expectedState, IEnumerable<StepState> stepStates)
     {
         var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
         var inputConfigs = new List<InputConfig>();
