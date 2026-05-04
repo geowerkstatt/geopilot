@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Geopilot.Api.Validation.Interlis;
+namespace Geopilot.Api.Interlis;
 
 /// <summary>
 /// Result of a status query of interlis-check-service at /api/v1/status/{jobId}.

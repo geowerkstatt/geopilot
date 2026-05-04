@@ -44,6 +44,18 @@ public interface IPipelineStep : IDisposable
     StepState State { get; set; }
 
     /// <summary>
+    /// The result produced by the step's process. Null until the step has run (or was skipped before producing a result).
+    /// </summary>
+    StepResult? Result { get; }
+
+    /// <summary>
+    /// Mapping of output key (logical name in the pipeline definition) to the persisted file name on disk.
+    /// Populated by the processing runner after the step completes for outputs configured with
+    /// <see cref="OutputAction.Download"/> or <see cref="OutputAction.Delivery"/>.
+    /// </summary>
+    IDictionary<string, string> PersistedDownloads { get; }
+
+    /// <summary>
     /// Runs the step with the given context.
     /// </summary>
     /// <param name="context">Context with the aggregated step results from previous steps.</param>

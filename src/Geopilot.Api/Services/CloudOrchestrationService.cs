@@ -2,7 +2,7 @@
 using Geopilot.Api.Enums;
 using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Processing;
 using Microsoft.Extensions.Options;
 using System.Collections.Immutable;
 
@@ -15,7 +15,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 {
     private readonly ICloudStorageService cloudStorageService;
     private readonly ICloudScanService cloudScanService;
-    private readonly IValidationJobStore jobStore;
+    private readonly IProcessingJobStore jobStore;
     private readonly IFileProvider fileProvider;
     private readonly IOptions<CloudStorageOptions> options;
     private readonly ILogger<CloudOrchestrationService> logger;
@@ -26,7 +26,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     public CloudOrchestrationService(
         ICloudStorageService cloudStorageService,
         ICloudScanService cloudScanService,
-        IValidationJobStore jobStore,
+        IProcessingJobStore jobStore,
         IFileProvider fileProvider,
         IOptions<CloudStorageOptions> options,
         ILogger<CloudOrchestrationService> logger)
@@ -125,7 +125,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     }
 
     /// <inheritdoc/>
-    public async Task<ValidationJob> StageFilesLocallyAsync(Guid jobId)
+    public async Task<ProcessingJob> StageFilesLocallyAsync(Guid jobId)
     {
         var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId));
 
@@ -138,7 +138,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         logger.LogInformation("Staging cloud files locally for job <{JobId}>.", jobId);
         fileProvider.Initialize(jobId);
 
-        ValidationJob updatedJob = job;
+        ProcessingJob updatedJob = job;
         foreach (var file in job.CloudFiles)
         {
             var extension = Path.GetExtension(file.FileName);
@@ -148,8 +148,6 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
             updatedJob = jobStore.AddFileToJob(jobId, file.FileName, fileHandle.FileName);
         }
-
-        jobStore.FinishUpload(jobId);
 
         var cloudPrefix = $"uploads/{jobId}/";
         await cloudStorageService.DeletePrefixAsync(cloudPrefix);

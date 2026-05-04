@@ -31,6 +31,13 @@ public interface IPipeline : IDisposable
     PipelineDelivery Delivery { get; }
 
     /// <summary>
+    /// Localized message describing why delivery is prevented (key: ISO 639 language code, value: message).
+    /// Set when matched delivery restrictions are evaluated; <see langword="null"/> when delivery is allowed
+    /// or when delivery is prevented for reasons other than restriction matches (e.g. pipeline failure).
+    /// </summary>
+    Dictionary<string, string>? DeliveryRestrictionMessage { get; }
+
+    /// <summary>
     /// The unique identifier for the job associated with this pipeline execution, used for logging and tracking purposes.
     /// </summary>
     Guid JobId { get; }

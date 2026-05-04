@@ -1,7 +1,8 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Pipeline;
+using Geopilot.Api.Processing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +16,7 @@ namespace Geopilot.Api.Controllers;
 [TestClass]
 public class DeliveryControllerTest
 {
-    private Mock<IValidationService> validationServiceMock;
+    private Mock<IProcessingService> validationServiceMock;
     private Mock<IAssetHandler> assetHandlerMock;
     private Mock<ILogger<DeliveryController>> loggerMock;
     private DeliveryController deliveryController;
@@ -25,7 +26,7 @@ public class DeliveryControllerTest
     public void Initialize()
     {
         loggerMock = new Mock<ILogger<DeliveryController>>();
-        validationServiceMock = new Mock<IValidationService>();
+        validationServiceMock = new Mock<IProcessingService>();
         assetHandlerMock = new Mock<IAssetHandler>();
         context = AssemblyInitialize.DbFixture.GetTestContext();
         deliveryController = new DeliveryController(loggerMock.Object, context, validationServiceMock.Object, assetHandlerMock.Object);
@@ -40,13 +41,13 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    [DataRow(Status.Processing, StatusCodes.Status400BadRequest)]
-    [DataRow(Status.CompletedWithErrors, StatusCodes.Status400BadRequest)]
-    [DataRow(Status.Failed, StatusCodes.Status400BadRequest)]
-    public async Task CreateFailsJobNotCompleted(Status status, int resultCode)
+    [DataRow(ProcessingState.Running, PipelineDelivery.Allow)]
+    [DataRow(ProcessingState.Success, PipelineDelivery.Prevent)]
+    [DataRow(ProcessingState.Failed, PipelineDelivery.Allow)]
+    public async Task CreateFailsJobNotCompleted(ProcessingState pipelineState, PipelineDelivery delivery)
     {
         var mandateId = context.Mandates.First().Id;
-        var guid = SetupValidationJob(mandateId, status);
+        var guid = SetupProcessingJob(mandateId, pipelineState, delivery);
         var deliveriesCount = context.Deliveries.Count();
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
@@ -54,7 +55,7 @@ public class DeliveryControllerTest
         context.ChangeTracker.Clear();
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(resultCode, result.StatusCode);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, result.StatusCode);
         Assert.AreEqual(deliveriesCount, context.Deliveries.Count());
     }
 
@@ -64,7 +65,7 @@ public class DeliveryControllerTest
         var guid = Guid.NewGuid();
         validationServiceMock
             .Setup(s => s.GetJob(guid))
-            .Returns(default(ValidationJob?));
+            .Returns(default(ProcessingJob?));
 
         var deliveriesCount = context.Deliveries.Count();
 
@@ -84,7 +85,7 @@ public class DeliveryControllerTest
     {
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
         var addedMandate = context.Mandates.Add(new Mandate() { IsPublic = publicMandate });
-        var guid = SetupValidationJob(addedMandate.Entity.Id);
+        var guid = SetupProcessingJob(addedMandate.Entity.Id);
         context.SaveChanges();
         deliveryController.SetupTestUser(user.Entity);
 
@@ -109,7 +110,7 @@ public class DeliveryControllerTest
         });
         context.SaveChanges();
         deliveryController.SetupTestUser(user.Entity);
-        var jobId = SetupValidationJob(publicMandate.Entity.Id);
+        var jobId = SetupProcessingJob(publicMandate.Entity.Id);
 
         var request = new DeliveryRequest
         {
@@ -134,7 +135,7 @@ public class DeliveryControllerTest
         });
         context.SaveChanges();
         deliveryController.SetupTestUser(user.Entity);
-        var jobId = SetupValidationJob(publicMandate.Entity.Id);
+        var jobId = SetupProcessingJob(publicMandate.Entity.Id);
 
         var request = new DeliveryRequest
         {
@@ -161,7 +162,7 @@ public class DeliveryControllerTest
                 AllowDelivery = true,
             });
         deliveryController.SetupTestUser(user);
-        Guid jobId = SetupValidationJob(mandate.Id);
+        Guid jobId = SetupProcessingJob(mandate.Id);
         SetupJobPersistence(jobId);
 
         var request = new DeliveryRequest
@@ -219,7 +220,7 @@ public class DeliveryControllerTest
                 AllowDelivery = true,
             });
         deliveryController.SetupTestUser(user);
-        Guid jobId = SetupValidationJob(mandate.Id);
+        Guid jobId = SetupProcessingJob(mandate.Id);
         SetupJobPersistence(jobId);
 
         var request = new DeliveryRequest
@@ -258,7 +259,7 @@ public class DeliveryControllerTest
                 AllowDelivery = true,
             });
         deliveryController.SetupTestUser(user);
-        Guid jobId = SetupValidationJob(mandate.Id);
+        Guid jobId = SetupProcessingJob(mandate.Id);
         SetupJobPersistence(jobId);
 
         var request = new DeliveryRequest
@@ -297,7 +298,7 @@ public class DeliveryControllerTest
                 AllowDelivery = true,
             });
         deliveryController.SetupTestUser(user);
-        Guid jobId = SetupValidationJob(mandate.Id);
+        Guid jobId = SetupProcessingJob(mandate.Id);
         if (responseValueType == typeof(Delivery))
             SetupJobPersistence(jobId);
         var precursorDelivery = new Delivery() { JobId = Guid.NewGuid(), Mandate = mandate, DeclaringUser = user };
@@ -323,7 +324,7 @@ public class DeliveryControllerTest
         var deliveriesCount = context.Deliveries.Count();
         var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = nameof(CreateFailsPrecursorFromOtherMandate), AllowDelivery = true, });
         deliveryController.SetupTestUser(user);
-        var guid = SetupValidationJob(mandate.Id);
+        var guid = SetupProcessingJob(mandate.Id);
         mandate.EvaluatePrecursorDelivery = FieldEvaluationType.Required;
         var otherMandate = context.Mandates.Add(new Mandate { Name = nameof(CreateFailsPrecursorFromOtherMandate), AllowDelivery = true, }).Entity;
         var precursorDelivery = new Delivery() { JobId = Guid.NewGuid(), Mandate = otherMandate, DeclaringUser = user };
@@ -346,7 +347,7 @@ public class DeliveryControllerTest
         var deliveriesCount = context.Deliveries.Count();
         var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = nameof(CreateFailsPrecursorNotFound), AllowDelivery = true, });
         deliveryController.SetupTestUser(user);
-        var guid = SetupValidationJob(mandate.Id);
+        var guid = SetupProcessingJob(mandate.Id);
         mandate.EvaluatePrecursorDelivery = FieldEvaluationType.Required;
         var unknownDeliveryId = context.Deliveries.Max(d => d.Id) + 1;
 
@@ -367,12 +368,24 @@ public class DeliveryControllerTest
             .Returns(new List<Asset> { new Asset(), new Asset() });
     }
 
-    private Guid SetupValidationJob(int? mandateId = null, Status jobStatus = Status.Completed)
+    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState pipelineState = ProcessingState.Success, PipelineDelivery delivery = PipelineDelivery.Allow)
     {
         var guid = Guid.NewGuid();
+        var pipelineMock = new Mock<IPipeline>();
+        pipelineMock.SetupGet(p => p.State).Returns(pipelineState);
+        pipelineMock.SetupGet(p => p.Delivery).Returns(delivery);
+        pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
+        pipelineMock.SetupGet(p => p.DisplayName).Returns(new Dictionary<string, string>());
+        pipelineMock.SetupGet(p => p.DeliveryRestrictionMessage).Returns((Dictionary<string, string>?)null);
+
+        var job = new ProcessingJob(guid, new List<ProcessingJobFile> { new ProcessingJobFile("ORIGINAL.zip", "TEMP.zip") }, mandateId, DateTime.Now)
+        {
+            Pipeline = pipelineMock.Object,
+        };
+
         validationServiceMock
             .Setup(s => s.GetJob(guid))
-            .Returns(new ValidationJob(guid, new List<ValidationJobFile>() { new ValidationJobFile("ORIGINAL.zip", "TEMP.zip") }, mandateId, ImmutableDictionary<string, ValidatorResult?>.Empty, jobStatus, DateTime.Now));
+            .Returns(job);
         return guid;
     }
 

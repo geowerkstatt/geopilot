@@ -6,8 +6,8 @@ using Geopilot.Api.Conventions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Process;
+using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
-using Geopilot.Api.Validation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
@@ -155,7 +155,7 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 
-builder.Services.Configure<ValidationOptions>(builder.Configuration.GetSection("Validation"));
+builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("Processing"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
@@ -187,15 +187,15 @@ contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
 contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");
 builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
-builder.Services.AddSingleton<IValidationJobStore, ValidationJobStore>();
-builder.Services.AddTransient<IValidationService, ValidationService>();
+builder.Services.AddSingleton<IProcessingJobStore, ProcessingJobStore>();
+builder.Services.AddTransient<IProcessingService, ProcessingService>();
 builder.Services.AddTransient<IPipelineService, PipelineService>();
 builder.Services.AddTransient<IMandateService, MandateService>();
 builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IFileProvider, PhysicalFileProvider>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
-builder.Services.AddHostedService<ValidationRunner>();
-builder.Services.AddHostedService<ValidationJobCleanupService>();
+builder.Services.AddHostedService<ProcessingRunner>();
+builder.Services.AddHostedService<ProcessingJobCleanupService>();
 builder.Services.AddPipelineFactory();
 builder.Services.AddSingleton<IPipelineProcessFactory, PipelineProcessFactory>();
 

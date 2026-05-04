@@ -1,17 +1,17 @@
 ﻿namespace Geopilot.Api;
 
 /// <summary>
-/// Configuration options for running and managing validation jobs.
+/// Configuration options for running and managing processing jobs.
 /// </summary>
-public class ValidationOptions
+public class ProcessingOptions
 {
     /// <summary>
-    /// The duration after which validation jobs are eligible for cleanup.
+    /// The duration after which processing jobs are eligible for cleanup.
     /// </summary>
     public TimeSpan JobRetention { get; set; }
 
     /// <summary>
-    /// The interval at which the cleanup service runs to remove old validation jobs.
+    /// The interval at which the cleanup service runs to remove old processing jobs.
     /// </summary>
     public TimeSpan JobCleanupInterval { get; set; }
 

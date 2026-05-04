@@ -2,54 +2,52 @@
 using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Processing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Web;
 
 namespace Geopilot.Api.Controllers;
 
 /// <summary>
-/// Controller for file validation.
+/// Controller for processing jobs.
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
 [AllowAnonymous]
-public class ValidationController : ControllerBase
+public class ProcessingController : ControllerBase
 {
-    private readonly ILogger<ValidationController> logger;
-    private readonly IValidationService validationService;
+    private readonly ILogger<ProcessingController> logger;
+    private readonly IProcessingService processingService;
     private readonly IFileProvider fileProvider;
     private readonly IContentTypeProvider contentTypeProvider;
     private readonly Context context;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ValidationController"/> class.
+    /// Initializes a new instance of the <see cref="ProcessingController"/> class.
     /// </summary>
-    public ValidationController(ILogger<ValidationController> logger, IValidationService validationService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider, Context context)
+    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider, Context context)
     {
         this.logger = logger;
-        this.validationService = validationService;
+        this.processingService = processingService;
         this.fileProvider = fileProvider;
         this.contentTypeProvider = contentTypeProvider;
         this.context = context;
     }
 
     /// <summary>
-    /// Returns the validation settings.
+    /// Returns the processing settings.
     /// </summary>
-    /// <returns>Configuration settings for validations.</returns>
     [HttpGet]
-    [SwaggerResponse(StatusCodes.Status200OK, "The specified settings for uploading files.", typeof(ValidationSettingsResponse), "application/json")]
-    public async Task<IActionResult> GetValidationSettings()
+    [SwaggerResponse(StatusCodes.Status200OK, "The specified settings for uploading files.", typeof(ProcessingSettingsResponse), "application/json")]
+    public async Task<IActionResult> GetProcessingSettings()
     {
-        return Ok(new ValidationSettingsResponse
+        return Ok(new ProcessingSettingsResponse
         {
-            AllowedFileExtensions = await validationService.GetSupportedFileExtensionsAsync(),
+            AllowedFileExtensions = await processingService.GetSupportedFileExtensionsAsync(),
         });
     }
 
@@ -57,7 +55,7 @@ public class ValidationController : ControllerBase
     /// Schedules a new job for the given <paramref name="file"/>.
     /// </summary>
     /// <param name="version">The API version.</param>
-    /// <param name="file">The file to validate.</param>
+    /// <param name="file">The file to process.</param>
     /// <remarks>
     /// ## Usage
     ///
@@ -65,34 +63,11 @@ public class ValidationController : ControllerBase
     ///
     /// ```bash
     /// curl -i -X POST -H "Content-Type: multipart/form-data" \
-    ///   -F 'file=@example.xtf' https://example.com/api/v1/validation
-    /// ```
-    ///
-    /// ### JavaScript
-    ///
-    /// ```javascript
-    /// import { createReadStream } from 'fs';
-    /// import FormData from 'form-data';
-    /// import fetch from 'node-fetch';
-    ///
-    /// var form = new FormData();
-    /// form.append('file', createReadStream('example.xtf'));
-    /// const response = await fetch('https://example.com/api/v1/validation', {
-    ///   method: 'POST',
-    ///   body: form,
-    /// });
-    /// ```
-    ///
-    /// ### Python
-    ///
-    /// ```python
-    /// import requests
-    /// response = requests.post('https://example.com/api/v1/validation', files={'file':open('example.xtf')}).json()
+    ///   -F 'file=@example.xtf' https://example.com/api/v1/processing
     /// ```
     /// </remarks>
-    /// <returns>Information for a newly created validation job.</returns>
     [HttpPost]
-    [SwaggerResponse(StatusCodes.Status201Created, "The validation job was successfully created and is now scheduled for execution.", typeof(ValidationJobResponse), "application/json")]
+    [SwaggerResponse(StatusCodes.Status201Created, "The processing job was successfully created and is now scheduled for execution.", typeof(ProcessingJobResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status413PayloadTooLarge, "The file is too large. Max allowed request body size is 200 MB.")]
     [SwaggerResponse(
@@ -113,7 +88,7 @@ public class ValidationController : ControllerBase
         }
 
         var fileExtension = Path.GetExtension(file.FileName);
-        if (!await validationService.IsFileExtensionSupportedAsync(fileExtension))
+        if (!await processingService.IsFileExtensionSupportedAsync(fileExtension))
         {
             logger.LogTrace("File extension <{FileExtension}> is not supported.", fileExtension);
             return Problem($"File extension <{fileExtension}> is not supported.", statusCode: StatusCodes.Status400BadRequest);
@@ -121,22 +96,18 @@ public class ValidationController : ControllerBase
 
         try
         {
-            var validationJob = validationService.CreateJob();
-            var fileHandle = validationService.CreateFileHandleForJob(validationJob.Id, file.FileName);
+            var job = processingService.CreateJob();
+            var fileHandle = processingService.CreateFileHandleForJob(job.Id, file.FileName);
 
             using (fileHandle)
             {
                 logger.LogInformation("Start uploading <{FormFile}> as <{File}>, file size: {FileSize}", file.FileName, fileHandle.FileName, file.Length);
                 await file.CopyToAsync(fileHandle.Stream).ConfigureAwait(false);
-                validationJob = validationService.AddFileToJob(validationJob.Id, file.FileName, fileHandle.FileName);
+                job = processingService.AddFileToJob(job.Id, file.FileName, fileHandle.FileName);
                 logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
             }
 
-            var location = new Uri(
-            string.Format(CultureInfo.InvariantCulture, "/api/v{0}/validation/{1}", version.MajorVersion, validationJob.Id),
-            UriKind.Relative);
-
-            return CreatedAtAction(nameof(GetStatus), new { jobId = validationJob.Id }, validationJob.ToResponse());
+            return CreatedAtAction(nameof(GetStatus), new { jobId = job.Id }, job.ToResponse(BuildDownloadUrl));
         }
         catch (Exception ex)
         {
@@ -146,19 +117,11 @@ public class ValidationController : ControllerBase
     }
 
     /// <summary>
-    /// Starts the job with the specified <paramref name="jobId"/>. If a mandate is specified in the <paramref name="startJobRequest"/>, the job will be started with specified mandate.
-    /// Otherwise, the job will be started without a mandate.
+    /// Starts the job with the specified <paramref name="jobId"/> using the pipeline associated with the mandate.
     /// </summary>
-    /// <remarks>
-    /// If a mandate id is provided, the user must be authenticated and authorized to use the specified mandate.
-    /// Also, the mandate must support the file type the uploaded file of the specified job.
-    /// </remarks>
-    /// <param name="jobId">The id of the job that should be started.</param>
-    /// <param name="startJobRequest"><see cref="StartJobRequest"/> containing all information to start the job.</param>
-    /// <returns>The started validation job.</returns>
     [HttpPatch("{jobId}")]
-    [SwaggerResponse(StatusCodes.Status200OK, "The validation job was successfully started.", typeof(ValidationJobResponse), "application/json")]
-    [SwaggerResponse(StatusCodes.Status202Accepted, "The cloud upload preflight has been queued for background processing.", typeof(ValidationJobResponse), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "The processing job was successfully started.", typeof(ProcessingJobResponse), "application/json")]
+    [SwaggerResponse(StatusCodes.Status202Accepted, "The cloud upload preflight has been queued for background processing.", typeof(ProcessingJobResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request, or the mandate is not valid for the user/job.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected error while starting the job.", typeof(ProblemDetails), "application/json")]
@@ -166,8 +129,8 @@ public class ValidationController : ControllerBase
     {
         ArgumentNullException.ThrowIfNull(startJobRequest);
 
-        var job = validationService.GetJob(jobId);
-        if (job == null)
+        var existing = processingService.GetJob(jobId);
+        if (existing == null)
         {
             logger.LogTrace("No job information available for job id <{JobId}>", jobId);
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
@@ -180,13 +143,13 @@ public class ValidationController : ControllerBase
                         : null;
 
             logger.LogInformation("Starting job <{JobId}> with mandate <{MandateId}> for user <{AuthIdentifier}>.", jobId, startJobRequest.MandateId, user?.AuthIdentifier ?? "Unauthenticated");
-            var validationJob = await validationService.StartJobAsync(jobId, startJobRequest.MandateId, user);
-            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", validationJob.Id);
+            var job = await processingService.StartJobAsync(jobId, startJobRequest.MandateId, user);
+            logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", job.Id);
 
-            if (validationJob.UploadMethod == Enums.UploadMethod.Cloud)
-                return Accepted(validationJob.ToResponse());
+            if (job.UploadMethod == Enums.UploadMethod.Cloud)
+                return Accepted(job.ToResponse(BuildDownloadUrl));
 
-            return Ok(validationJob.ToResponse());
+            return Ok(job.ToResponse(BuildDownloadUrl));
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
         {
@@ -203,36 +166,31 @@ public class ValidationController : ControllerBase
     /// <summary>
     /// Gets the status information for the specified <paramref name="jobId"/>.
     /// </summary>
-    /// <param name="jobId" example="2e71ae96-e6ad-4b67-b817-f09412d09a2c">The job identifier.</param>
-    /// <returns>The status information for the specified <paramref name="jobId"/>.</returns>
     [HttpGet("{jobId}")]
-    [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(ValidationJobResponse), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "The job with the specified jobId was found.", typeof(ProcessingJobResponse), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The job with the specified jobId cannot be found.", typeof(ProblemDetails), "application/json")]
     public IActionResult GetStatus(Guid jobId)
     {
         logger.LogTrace("Status for job <{JobId}> requested.", jobId);
 
-        var job = validationService.GetJob(jobId);
+        var job = processingService.GetJob(jobId);
         if (job == null)
         {
             logger.LogTrace("No job information available for job id <{JobId}>", jobId);
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        return Ok(job.ToResponse());
+        return Ok(job.ToResponse(BuildDownloadUrl));
     }
 
     /// <summary>
-    /// Download the log file specified by the job id and file name.
+    /// Download a file produced by the processing pipeline for a job.
     /// </summary>
-    /// <param name="jobId" example="2e71ae96-e6ad-4b67-b817-f09412d09a2c">The job identifier.</param>
-    /// <param name="file">The file name.</param>
-    /// <returns>The <paramref name="file"/> for the specified <paramref name="jobId"/>.</returns>
-    [HttpGet("{jobId}/files/{file}")]
-    [SwaggerResponse(StatusCodes.Status200OK, "The specified log file was found.")]
+    [HttpGet("{jobId}/files/{file}", Name = nameof(Download))]
+    [SwaggerResponse(StatusCodes.Status200OK, "The specified file was found.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
-    [SwaggerResponse(StatusCodes.Status404NotFound, "The job or log file cannot be found.", typeof(ProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The job or file cannot be found.", typeof(ProblemDetails), "application/json")]
     public IActionResult Download(Guid jobId, string file)
     {
         logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", HttpUtility.HtmlEncode(file), jobId);
@@ -244,8 +202,15 @@ public class ValidationController : ControllerBase
             return Problem($"No file <{file}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        var logFile = fileProvider.Open(file);
+        var stream = fileProvider.Open(file);
         var contentType = contentTypeProvider.GetContentTypeAsString(file);
-        return File(logFile, contentType, Path.GetFileName(file));
+        return File(stream, contentType, Path.GetFileName(file));
+    }
+
+    private Uri BuildDownloadUrl(Guid jobId, string fileName)
+    {
+        var url = Url.RouteUrl(nameof(Download), new { jobId, file = fileName }, Request.Scheme, Request.Host.Value)
+            ?? throw new InvalidOperationException($"Could not generate download URL for job <{jobId}> file <{fileName}>.");
+        return new Uri(url);
     }
 }

@@ -1,9 +1,9 @@
 ﻿namespace Geopilot.Api.Contracts;
 
 /// <summary>
-/// The validation settings response schema.
+/// The processing settings response schema.
 /// </summary>
-public class ValidationSettingsResponse
+public class ProcessingSettingsResponse
 {
     /// <summary>
     /// File extensions that are allowed for upload.

@@ -1,6 +1,6 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Processing;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Channels;
@@ -48,7 +48,7 @@ public class PreflightBackgroundService : BackgroundService
         ArgumentNullException.ThrowIfNull(request);
 
         using var scope = serviceScopeFactory.CreateScope();
-        var jobStore = scope.ServiceProvider.GetRequiredService<IValidationJobStore>();
+        var jobStore = scope.ServiceProvider.GetRequiredService<IProcessingJobStore>();
         var cloudOrchestrationService = scope.ServiceProvider.GetRequiredService<ICloudOrchestrationService>();
         var cloudStorageService = scope.ServiceProvider.GetRequiredService<ICloudStorageService>();
         var mandateService = scope.ServiceProvider.GetRequiredService<IMandateService>();
@@ -57,9 +57,9 @@ public class PreflightBackgroundService : BackgroundService
         var context = scope.ServiceProvider.GetRequiredService<Context>();
 
         var job = jobStore.GetJob(request.JobId);
-        if (job == null || job.Status != Status.VerifyingUpload)
+        if (job == null || job.Pipeline != null || job.IsFailed)
         {
-            logger.LogWarning("Skipping preflight for job <{JobId}>: job is null or not in VerifyingUpload status.", request.JobId);
+            logger.LogWarning("Skipping preflight for job <{JobId}>: job is null, already started, or already failed.", request.JobId);
             return;
         }
 
@@ -113,11 +113,11 @@ public class PreflightBackgroundService : BackgroundService
 
             try
             {
-                jobStore.Failed(request.JobId);
+                jobStore.MarkAsFailed(request.JobId);
             }
             catch (Exception statusEx)
             {
-                logger.LogError(statusEx, "Failed to set Failed status for job <{JobId}>.", request.JobId);
+                logger.LogError(statusEx, "Failed to mark job <{JobId}> as failed.", request.JobId);
             }
         }
     }

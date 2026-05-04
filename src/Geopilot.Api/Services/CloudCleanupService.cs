@@ -1,4 +1,4 @@
-﻿using Geopilot.Api.Validation;
+﻿using Geopilot.Api.Processing;
 using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api.Services;
@@ -9,7 +9,7 @@ namespace Geopilot.Api.Services;
 public class CloudCleanupService : BackgroundService
 {
     private readonly ICloudStorageService cloudStorageService;
-    private readonly IValidationJobStore jobStore;
+    private readonly IProcessingJobStore jobStore;
     private readonly ILogger<CloudCleanupService> logger;
     private readonly CloudStorageOptions options;
     private readonly SemaphoreSlim cleanupSemaphore = new SemaphoreSlim(1);
@@ -19,7 +19,7 @@ public class CloudCleanupService : BackgroundService
     /// </summary>
     public CloudCleanupService(
         ICloudStorageService cloudStorageService,
-        IValidationJobStore jobStore,
+        IProcessingJobStore jobStore,
         ILogger<CloudCleanupService> logger,
         IOptions<CloudStorageOptions> options)
     {

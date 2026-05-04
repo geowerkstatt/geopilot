@@ -1,5 +1,5 @@
 ﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Processing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -8,33 +8,33 @@ using System.Collections.Immutable;
 namespace Geopilot.Api.Test.Validation;
 
 [TestClass]
-public class ValidationJobCleanupServiceTest
+public class ProcessingJobCleanupServiceTest
 {
     private const double RetentionHours = 24;
-    private Mock<IValidationJobStore> jobStoreMock;
+    private Mock<IProcessingJobStore> jobStoreMock;
     private Mock<IDirectoryProvider> directoryProviderMock;
-    private Mock<ILogger<ValidationJobCleanupService>> loggerMock;
+    private Mock<ILogger<ProcessingJobCleanupService>> loggerMock;
     private string tempUploadRoot;
-    private ValidationJobCleanupService service;
+    private ProcessingJobCleanupService service;
 
     [TestInitialize]
     public void Setup()
     {
-        jobStoreMock = new Mock<IValidationJobStore>();
+        jobStoreMock = new Mock<IProcessingJobStore>();
         directoryProviderMock = new Mock<IDirectoryProvider>();
-        loggerMock = new Mock<ILogger<ValidationJobCleanupService>>();
+        loggerMock = new Mock<ILogger<ProcessingJobCleanupService>>();
 
-        var validationOptions = new ValidationOptions
+        var ProcessingOptions = new ProcessingOptions
         {
             JobRetention = TimeSpan.FromHours(RetentionHours),
             JobCleanupInterval = TimeSpan.FromHours(24),
             JobTimeout = TimeSpan.FromHours(12),
         };
 
-        var optionsMock = new Mock<IOptions<ValidationOptions>>();
-        optionsMock.Setup(o => o.Value).Returns(validationOptions);
+        var optionsMock = new Mock<IOptions<ProcessingOptions>>();
+        optionsMock.Setup(o => o.Value).Returns(ProcessingOptions);
 
-        service = new ValidationJobCleanupService(
+        service = new ProcessingJobCleanupService(
             jobStoreMock.Object,
             directoryProviderMock.Object,
             loggerMock.Object,
@@ -65,7 +65,7 @@ public class ValidationJobCleanupServiceTest
         Directory.CreateDirectory(orphanDir);
 
         directoryProviderMock.Setup(d => d.GetUploadDirectoryPath(orphanJobId)).Returns(orphanDir);
-        jobStoreMock.Setup(s => s.GetJob(orphanJobId)).Returns((ValidationJob?)null);
+        jobStoreMock.Setup(s => s.GetJob(orphanJobId)).Returns((ProcessingJob?)null);
         jobStoreMock.Setup(s => s.RemoveJob(orphanJobId)).Returns(true);
 
         service.RunCleanup();
@@ -81,12 +81,10 @@ public class ValidationJobCleanupServiceTest
         var expiredDir = Path.Combine(tempUploadRoot, expiredJobId.ToString());
         Directory.CreateDirectory(expiredDir);
 
-        var oldJob = new ValidationJob(
+        var oldJob = new ProcessingJob(
             expiredJobId,
-            new List<ValidationJobFile>(),
+            new List<ProcessingJobFile>(),
             null,
-            ImmutableDictionary<string, ValidatorResult?>.Empty,
-            Status.Created,
             DateTime.UtcNow.AddHours(-RetentionHours - 1)); // older than retention
 
         directoryProviderMock.Setup(d => d.GetUploadDirectoryPath(expiredJobId)).Returns(expiredDir);

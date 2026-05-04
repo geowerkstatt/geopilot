@@ -10,11 +10,18 @@ namespace Geopilot.Api.Pipeline;
 /// </summary>
 public sealed class PipelineStep : IPipelineStep
 {
+    private bool disposed;
+
     /// <inheritdoc/>
     public void Dispose()
     {
+        if (disposed)
+            return;
+
         if (Process is IDisposable disposableProcess)
             disposableProcess.Dispose();
+
+        disposed = true;
     }
 
     /// <inheritdoc/>
@@ -37,6 +44,12 @@ public sealed class PipelineStep : IPipelineStep
 
     /// <inheritdoc/>
     public StepState State { get; set; }
+
+    /// <inheritdoc/>
+    public StepResult? Result { get; private set; }
+
+    /// <inheritdoc/>
+    public IDictionary<string, string> PersistedDownloads { get; } = new Dictionary<string, string>();
 
     private readonly ConditionEvaluator conditionEvaluator;
 
@@ -85,7 +98,8 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"step failed due to pre-condition.");
-                    return CreateConditionStepResult(this.Id + "_status_message_pre_fail_condition", failConditions);
+                    this.Result = CreateConditionStepResult(this.Id + "_status_message_pre_fail_condition", failConditions);
+                    return this.Result;
                 }
 
                 var skipConditions = await this.FindMatchingSkipConditions(this.StepConditions.Pre, context);
@@ -93,13 +107,15 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Skipped;
                     logger.LogInformation($"step skipped due to pre-condition.");
-                    return CreateConditionStepResult(this.Id + "_status_message_pre_skip_condition", skipConditions);
+                    this.Result = CreateConditionStepResult(this.Id + "_status_message_pre_skip_condition", skipConditions);
+                    return this.Result;
                 }
             }
 
             this.State = StepState.Running;
 
             var stepResult = await ExecuteProcess(context, cancellationToken);
+            this.Result = stepResult;
 
             if (this.StepConditions != null)
             {

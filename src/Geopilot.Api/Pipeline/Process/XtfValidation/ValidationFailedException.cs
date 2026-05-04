@@ -1,7 +1,7 @@
-﻿namespace Geopilot.Api.Validation;
+﻿namespace Geopilot.Api.Pipeline.Process.XtfValidation;
 
 /// <summary>
-/// The exception that is thrown when a validation failed.
+/// The exception that is thrown when an XTF validation step fails.
 /// </summary>
 [Serializable]
 public class ValidationFailedException : Exception
