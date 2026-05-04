@@ -49,6 +49,13 @@ public interface IProcessingJobStore
     ProcessingJob MarkAsFailed(Guid jobId);
 
     /// <summary>
+    /// Records the pipeline id the job will run with, so consumers can render step display info before the
+    /// pipeline is actually instantiated (cloud upload flow).
+    /// </summary>
+    /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
+    ProcessingJob SetPipelineId(Guid jobId, string pipelineId);
+
+    /// <summary>
     /// Associates the given <paramref name="pipeline"/> with the job and queues it for execution.
     /// </summary>
     /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found, or <paramref name="pipeline"/> is <see langword="null"/>.</exception>

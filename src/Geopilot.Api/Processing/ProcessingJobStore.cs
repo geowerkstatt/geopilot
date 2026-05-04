@@ -73,6 +73,17 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
+    public ProcessingJob SetPipelineId(Guid jobId, string pipelineId)
+    {
+        ArgumentNullException.ThrowIfNull(pipelineId);
+
+        return jobs.AddOrUpdate(
+            jobId,
+            id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
+            (id, currentJob) => currentJob with { PipelineId = pipelineId });
+    }
+
+    /// <inheritdoc/>
     public ProcessingJob StartJob(Guid jobId, IPipeline pipeline, int mandateId)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
@@ -83,7 +94,7 @@ public class ProcessingJobStore : IProcessingJobStore
             (id, job) =>
             {
                 EnsureJobIsPrePipeline(id, job, "start");
-                return job with { MandateId = mandateId, Pipeline = pipeline };
+                return job with { MandateId = mandateId, Pipeline = pipeline, PipelineId = pipeline.Id };
             });
 
         pipelineQueue.Writer.TryWrite(pipeline);

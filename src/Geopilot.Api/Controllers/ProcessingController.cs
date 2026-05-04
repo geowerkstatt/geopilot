@@ -2,6 +2,7 @@
 using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +23,7 @@ public class ProcessingController : ControllerBase
 {
     private readonly ILogger<ProcessingController> logger;
     private readonly IProcessingService processingService;
+    private readonly IPipelineService pipelineService;
     private readonly IFileProvider fileProvider;
     private readonly IContentTypeProvider contentTypeProvider;
     private readonly Context context;
@@ -29,10 +31,11 @@ public class ProcessingController : ControllerBase
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingController"/> class.
     /// </summary>
-    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider, Context context)
+    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IPipelineService pipelineService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider, Context context)
     {
         this.logger = logger;
         this.processingService = processingService;
+        this.pipelineService = pipelineService;
         this.fileProvider = fileProvider;
         this.contentTypeProvider = contentTypeProvider;
         this.context = context;
@@ -107,7 +110,7 @@ public class ProcessingController : ControllerBase
                 logger.LogInformation("Successfully received file: {File}", fileHandle.FileName);
             }
 
-            return CreatedAtAction(nameof(GetStatus), new { jobId = job.Id }, job.ToResponse(BuildDownloadUrl));
+            return CreatedAtAction(nameof(GetStatus), new { jobId = job.Id }, BuildResponse(job));
         }
         catch (Exception ex)
         {
@@ -147,9 +150,9 @@ public class ProcessingController : ControllerBase
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", job.Id);
 
             if (job.UploadMethod == Enums.UploadMethod.Cloud)
-                return Accepted(job.ToResponse(BuildDownloadUrl));
+                return Accepted(BuildResponse(job));
 
-            return Ok(job.ToResponse(BuildDownloadUrl));
+            return Ok(BuildResponse(job));
         }
         catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
         {
@@ -181,7 +184,7 @@ public class ProcessingController : ControllerBase
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        return Ok(job.ToResponse(BuildDownloadUrl));
+        return Ok(BuildResponse(job));
     }
 
     /// <summary>
@@ -205,6 +208,16 @@ public class ProcessingController : ControllerBase
         var stream = fileProvider.Open(file);
         var contentType = contentTypeProvider.GetContentTypeAsString(file);
         return File(stream, contentType, Path.GetFileName(file));
+    }
+
+    private ProcessingJobResponse BuildResponse(ProcessingJob job)
+    {
+        // When the live pipeline isn't instantiated yet (cloud upload between PATCH and preflight),
+        // fall back to the pipeline definition so the response still surfaces step display info.
+        var pipelineConfig = job.Pipeline == null && job.PipelineId != null
+            ? pipelineService.GetById(job.PipelineId)
+            : null;
+        return job.ToResponse(BuildDownloadUrl, pipelineConfig);
     }
 
     private Uri BuildDownloadUrl(Guid jobId, string fileName)

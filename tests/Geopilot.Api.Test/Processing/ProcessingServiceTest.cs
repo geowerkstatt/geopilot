@@ -204,7 +204,9 @@ public class ValidationServiceTest
         ProcessingJobStoreMock.SetupSequence(x => x.GetJob(jobId))
             .Returns(cloudJob)
             .Returns(verifyingJob);
+        ProcessingJobStoreMock.Setup(x => x.SetPipelineId(jobId, pipelineId)).Returns(verifyingJob);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user)).ReturnsAsync(mandate);
+
         // Act
         var result = await ProcessingService.StartJobAsync(jobId, mandateId, user);
 
