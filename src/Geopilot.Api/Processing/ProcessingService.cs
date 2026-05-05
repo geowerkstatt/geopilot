@@ -18,13 +18,12 @@ public class ProcessingService : IProcessingService
     private readonly ICloudOrchestrationService? cloudOrchestrationService;
     private readonly ChannelWriter<PreflightRequest>? preflightQueue;
     private readonly IUploadFileStore uploadFileStore;
-    private readonly IFileNameGenerator fileNameGenerator;
     private readonly IPipelineFactory pipelineFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingService"/> class.
     /// </summary>
-    public ProcessingService(IProcessingJobStore jobStore, IMandateService mandateService, IUploadFileStore uploadFileStore, IFileNameGenerator fileNameGenerator, IPipelineFactory pipelineFactory, ICloudOrchestrationService? cloudOrchestrationService = null, ChannelWriter<PreflightRequest>? preflightQueue = null)
+    public ProcessingService(IProcessingJobStore jobStore, IMandateService mandateService, IUploadFileStore uploadFileStore, IPipelineFactory pipelineFactory, ICloudOrchestrationService? cloudOrchestrationService = null, ChannelWriter<PreflightRequest>? preflightQueue = null)
     {
         this.jobStore = jobStore;
         this.mandateService = mandateService;
@@ -32,7 +31,6 @@ public class ProcessingService : IProcessingService
         this.cloudOrchestrationService = cloudOrchestrationService;
         this.preflightQueue = preflightQueue;
         this.uploadFileStore = uploadFileStore;
-        this.fileNameGenerator = fileNameGenerator;
     }
 
     /// <inheritdoc/>
@@ -44,8 +42,7 @@ public class ProcessingService : IProcessingService
         if (jobStore.GetJob(jobId) == null)
             throw new ArgumentException($"Processing job with id <{jobId}> not found.", nameof(jobId));
 
-        var extension = Path.GetExtension(originalFileName);
-        var fileName = fileNameGenerator.CreateRandomName(extension);
+        var fileName = UploadFileNaming.MakeUnique(jobId, originalFileName, uploadFileStore);
         return new FileHandle(fileName, uploadFileStore.CreateFile(jobId, fileName));
     }
 

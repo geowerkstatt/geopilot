@@ -18,7 +18,6 @@ public class CloudOrchestrationServiceTest
     private Mock<ICloudStorageService> cloudStorageServiceMock;
     private Mock<ICloudScanService> cloudScanServiceMock;
     private Mock<IUploadFileStore> uploadFileStoreMock;
-    private Mock<IFileNameGenerator> fileNameGeneratorMock;
     private Mock<IOptions<CloudStorageOptions>> optionsMock;
     private Mock<ILogger<CloudOrchestrationService>> loggerMock;
     private ProcessingJobStore jobStore;
@@ -30,7 +29,6 @@ public class CloudOrchestrationServiceTest
         cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
         cloudScanServiceMock = new Mock<ICloudScanService>(MockBehavior.Strict);
         uploadFileStoreMock = new Mock<IUploadFileStore>(MockBehavior.Strict);
-        fileNameGeneratorMock = new Mock<IFileNameGenerator>(MockBehavior.Strict);
         loggerMock = new Mock<ILogger<CloudOrchestrationService>>();
 
         optionsMock = new Mock<IOptions<CloudStorageOptions>>();
@@ -51,7 +49,6 @@ public class CloudOrchestrationServiceTest
             cloudScanServiceMock.Object,
             jobStore,
             uploadFileStoreMock.Object,
-            fileNameGeneratorMock.Object,
             optionsMock.Object,
             loggerMock.Object);
     }
@@ -62,7 +59,6 @@ public class CloudOrchestrationServiceTest
         cloudStorageServiceMock.VerifyAll();
         cloudScanServiceMock.VerifyAll();
         uploadFileStoreMock.VerifyAll();
-        fileNameGeneratorMock.VerifyAll();
     }
 
     [TestMethod]
@@ -206,9 +202,9 @@ public class CloudOrchestrationServiceTest
     {
         var job = CreateCloudJob("test.xtf", 1024);
 
-        fileNameGeneratorMock.Setup(g => g.CreateRandomName(".xtf")).Returns("random123.xtf");
+        uploadFileStoreMock.Setup(f => f.Exists(job.Id, "test.xtf")).Returns(false);
         uploadFileStoreMock
-            .Setup(f => f.CreateFile(job.Id, "random123.xtf"))
+            .Setup(f => f.CreateFile(job.Id, "test.xtf"))
             .Returns(new MemoryStream());
 
         cloudStorageServiceMock
@@ -222,7 +218,7 @@ public class CloudOrchestrationServiceTest
         var updated = await service.StageFilesLocallyAsync(job.Id);
         Assert.HasCount(1, updated.Files);
         Assert.AreEqual("test.xtf", updated.Files[0].OriginalFileName);
-        Assert.AreEqual("random123.xtf", updated.Files[0].TempFileName);
+        Assert.AreEqual("test.xtf", updated.Files[0].TempFileName);
         cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{job.Id}/"), Times.Once);
     }
 

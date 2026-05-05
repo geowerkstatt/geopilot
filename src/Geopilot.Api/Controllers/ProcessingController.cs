@@ -216,7 +216,20 @@ public class ProcessingController : ControllerBase
 
         var stream = store.OpenFile(jobId, file);
         var contentType = contentTypeProvider.GetContentTypeAsString(file);
-        return File(stream, contentType, Path.GetFileName(file));
+        var downloadName = ResolveOriginalFileName(jobId, file) ?? Path.GetFileName(file);
+        return File(stream, contentType, downloadName);
+    }
+
+    private string? ResolveOriginalFileName(Guid jobId, string persistedFileName)
+    {
+        // Each step keeps an in-memory mapping from persisted (random) name → original
+        // human-readable name. After the job ages out of the store we fall back to the
+        // persisted name; by then the temp dirs are usually gone anyway.
+        var job = processingService.GetJob(jobId);
+        return job?.Pipeline?.Steps
+            .SelectMany(s => s.Downloads.Concat(s.DeliveryFiles))
+            .FirstOrDefault(f => f.PersistedFileName == persistedFileName)
+            ?.OriginalFileName;
     }
 
     private ProcessingJobResponse BuildResponse(ProcessingJob job)

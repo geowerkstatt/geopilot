@@ -81,12 +81,17 @@ public class ProcessingRunner : BackgroundService
         using var scope = serviceScopeFactory.CreateScope();
         var assetFileStore = scope.ServiceProvider.GetRequiredService<IAssetFileStore>();
         var downloadFileStore = scope.ServiceProvider.GetRequiredService<IDownloadFileStore>();
-        var fileNameGenerator = scope.ServiceProvider.GetRequiredService<IFileNameGenerator>();
 
         foreach (var step in pipeline.Steps)
         {
             if (!context.StepResults.TryGetValue(step.Id, out var stepResult))
                 continue;
+
+            // Names are deterministic per step so they're readable on disk; collisions
+            // within the same step (rare — same originalFileName twice) get a numeric
+            // suffix to avoid silent overwrites.
+            var stepIdPrefix = step.Id.SanitizeFileName();
+            var usedNames = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var output in stepResult.Outputs.Values)
             {
@@ -100,9 +105,9 @@ public class ProcessingRunner : BackgroundService
 
                 // Both stores are filled independently so each can be cleaned on its own
                 // retention. A file tagged with both actions is written to both under the
-                // same generated name — the download endpoint can fall back to the delivery
-                // copy after the download retention expires.
-                var fileName = fileNameGenerator.CreateRandomName(transferFile.FileExtension);
+                // same name — the download endpoint can fall back to the asset copy after
+                // the download retention expires.
+                var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
                 var persisted = new PersistedFile(transferFile.OriginalFileName, fileName);
 
                 if (isDelivery)
@@ -118,6 +123,32 @@ public class ProcessingRunner : BackgroundService
                 }
             }
         }
+    }
+
+    private string MakeUniqueStepFileName(string stepIdPrefix, string originalFileName, HashSet<string> usedNames)
+    {
+        var baseName = $"{stepIdPrefix}_{originalFileName.SanitizeFileName()}";
+        if (usedNames.Add(baseName))
+            return baseName;
+
+        var stem = Path.GetFileNameWithoutExtension(baseName);
+        var extension = Path.GetExtension(baseName);
+        for (var counter = 2; counter < int.MaxValue; counter++)
+        {
+            var candidate = $"{stem}_{counter}{extension}";
+            if (usedNames.Add(candidate))
+            {
+                logger.LogWarning(
+                    "Duplicate output filename in step <{Step}>: <{Original}>. Persisting as <{Final}>.",
+                    stepIdPrefix,
+                    originalFileName,
+                    candidate);
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Could not generate a unique on-disk name for <{originalFileName}> in step <{stepIdPrefix}>.");
     }
 
     private static void CopyTo(IJobFileStore store, Guid jobId, string fileName, IPipelineFile source)

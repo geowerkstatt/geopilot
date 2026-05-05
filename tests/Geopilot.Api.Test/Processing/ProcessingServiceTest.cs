@@ -14,7 +14,6 @@ namespace Geopilot.Api.Test.Processing;
 public class ProcessingServiceTest
 {
     private Mock<IUploadFileStore> uploadFileStoreMock;
-    private Mock<IFileNameGenerator> fileNameGeneratorMock;
     private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
     private Context context;
     private ProcessingService processingService;
@@ -27,7 +26,6 @@ public class ProcessingServiceTest
     public void Initialize()
     {
         uploadFileStoreMock = new Mock<IUploadFileStore>(MockBehavior.Strict);
-        fileNameGeneratorMock = new Mock<IFileNameGenerator>(MockBehavior.Strict);
         cloudOrchestrationServiceMock = new Mock<ICloudOrchestrationService>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
         processingJobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Strict);
@@ -39,7 +37,6 @@ public class ProcessingServiceTest
             processingJobStoreMock.Object,
             mandateServiceMock.Object,
             uploadFileStoreMock.Object,
-            fileNameGeneratorMock.Object,
             pipelineFactoryMock.Object,
             cloudOrchestrationServiceMock.Object,
             preflightQueue.Writer);
@@ -49,7 +46,6 @@ public class ProcessingServiceTest
     public void Cleanup()
     {
         uploadFileStoreMock.VerifyAll();
-        fileNameGeneratorMock.VerifyAll();
         cloudOrchestrationServiceMock.VerifyAll();
         processingJobStoreMock.VerifyAll();
         mandateServiceMock.VerifyAll();
@@ -57,22 +53,37 @@ public class ProcessingServiceTest
     }
 
     [TestMethod]
-    public void CreateFileHandleForJob()
+    public void CreateFileHandleForJobUsesOriginalFileName()
     {
         const string originalFileName = "BIZARRESCAN.xtf";
-        const string tempFileName = "TEMP.xtf";
 
-        var job = new ProcessingJob(Guid.NewGuid(), new List<ProcessingJobFile>() { new ProcessingJobFile(originalFileName, tempFileName) }, null, DateTime.Now);
+        var job = new ProcessingJob(Guid.NewGuid(), new List<ProcessingJobFile>(), null, DateTime.Now);
         processingJobStoreMock
             .Setup(x => x.GetJob(job.Id))
             .Returns(job);
-        fileNameGeneratorMock.Setup(x => x.CreateRandomName(".xtf")).Returns(tempFileName);
-        uploadFileStoreMock.Setup(x => x.CreateFile(job.Id, tempFileName)).Returns(Stream.Null);
+        uploadFileStoreMock.Setup(x => x.Exists(job.Id, originalFileName)).Returns(false);
+        uploadFileStoreMock.Setup(x => x.CreateFile(job.Id, originalFileName)).Returns(Stream.Null);
 
         using var actualFileHandle = processingService.CreateFileHandleForJob(job.Id, originalFileName);
 
-        Assert.AreEqual(tempFileName, actualFileHandle.FileName);
+        Assert.AreEqual(originalFileName, actualFileHandle.FileName);
         Assert.AreSame(Stream.Null, actualFileHandle.Stream);
+    }
+
+    [TestMethod]
+    public void CreateFileHandleForJobAppendsCounterOnCollision()
+    {
+        const string originalFileName = "data.xtf";
+
+        var job = new ProcessingJob(Guid.NewGuid(), new List<ProcessingJobFile>(), null, DateTime.Now);
+        processingJobStoreMock.Setup(x => x.GetJob(job.Id)).Returns(job);
+        uploadFileStoreMock.Setup(x => x.Exists(job.Id, "data.xtf")).Returns(true);
+        uploadFileStoreMock.Setup(x => x.Exists(job.Id, "data_2.xtf")).Returns(false);
+        uploadFileStoreMock.Setup(x => x.CreateFile(job.Id, "data_2.xtf")).Returns(Stream.Null);
+
+        using var actualFileHandle = processingService.CreateFileHandleForJob(job.Id, originalFileName);
+
+        Assert.AreEqual("data_2.xtf", actualFileHandle.FileName);
     }
 
     [TestMethod]
@@ -119,7 +130,6 @@ public class ProcessingServiceTest
             processingJobStoreMock.Object,
             mandateServiceMock.Object,
             uploadFileStoreMock.Object,
-            fileNameGeneratorMock.Object,
             pipelineFactoryMock.Object);
 
         processingJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
@@ -293,7 +303,6 @@ public class ProcessingServiceTest
             processingJobStoreMock.Object,
             mandateServiceMock.Object,
             uploadFileStoreMock.Object,
-            fileNameGeneratorMock.Object,
             pipelineFactoryMock.Object);
 
         var jobId = Guid.NewGuid();

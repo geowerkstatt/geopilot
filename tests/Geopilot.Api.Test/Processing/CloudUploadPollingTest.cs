@@ -26,7 +26,6 @@ public class CloudUploadPollingTest
     private Mock<ICloudStorageService> cloudStorageServiceMock;
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IUploadFileStore> uploadFileStoreMock;
-    private Mock<IFileNameGenerator> fileNameGeneratorMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
     private Context context;
 
@@ -37,7 +36,6 @@ public class CloudUploadPollingTest
         cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         uploadFileStoreMock = new Mock<IUploadFileStore>(MockBehavior.Strict);
-        fileNameGeneratorMock = new Mock<IFileNameGenerator>(MockBehavior.Strict);
         pipelineFactoryMock = new Mock<IPipelineFactory>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
 
@@ -49,7 +47,6 @@ public class CloudUploadPollingTest
             jobStore,
             mandateServiceMock.Object,
             uploadFileStoreMock.Object,
-            fileNameGeneratorMock.Object,
             pipelineFactoryMock.Object,
             cloudOrchestrationServiceMock.Object,
             preflightChannel.Writer);

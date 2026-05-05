@@ -79,11 +79,4 @@ public sealed class PhysicalJobFileStoreTest
         var store = new PhysicalDownloadFileStore(AssemblyInitialize.TestDirectoryProvider);
         Assert.IsEmpty(store.ListFiles(Guid.NewGuid()));
     }
-
-    [TestMethod]
-    public void RandomFileNameGeneratorPreservesExtension()
-    {
-        var name = new RandomFileNameGenerator().CreateRandomName(".xtf");
-        Assert.AreEqual(".xtf", Path.GetExtension(name));
-    }
 }

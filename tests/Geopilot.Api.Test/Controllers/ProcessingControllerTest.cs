@@ -159,41 +159,67 @@ public sealed class ProcessingControllerTest
     }
 
     [TestMethod]
-    public void DownloadFromDownloadStore()
+    public void DownloadFromDownloadStoreUsesOriginalFileName()
     {
         var jobId = Guid.NewGuid();
-        var fileName = "logfile.log";
+        var persistedName = "abc123.log";
+        var originalName = "validation.log";
 
-        downloadFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(true);
-        downloadFileStoreMock.Setup(x => x.OpenFile(jobId, fileName)).Returns(Stream.Null);
+        downloadFileStoreMock.Setup(x => x.Exists(jobId, persistedName)).Returns(true);
+        downloadFileStoreMock.Setup(x => x.OpenFile(jobId, persistedName)).Returns(Stream.Null);
+        validationServiceMock.Setup(x => x.GetJob(jobId))
+            .Returns(BuildJobWithDownload(jobId, new PersistedFile(originalName, persistedName)));
 
         var contentType = "text/plain";
-        contentTypeProviderMock.Setup(x => x.TryGetContentType(fileName, out contentType)).Returns(true);
+        contentTypeProviderMock.Setup(x => x.TryGetContentType(persistedName, out contentType)).Returns(true);
 
-        var response = controller.Download(jobId, fileName) as FileStreamResult;
+        var response = controller.Download(jobId, persistedName) as FileStreamResult;
 
         Assert.IsInstanceOfType<FileStreamResult>(response);
         Assert.AreEqual("text/plain", response!.ContentType);
-        Assert.AreEqual("logfile.log", response.FileDownloadName);
+        Assert.AreEqual(originalName, response.FileDownloadName);
     }
 
     [TestMethod]
     public void DownloadFallsBackToDeliveryStore()
     {
         var jobId = Guid.NewGuid();
-        var fileName = "delivery.xtf";
+        var persistedName = "xyz789.xtf";
+        var originalName = "delivery.xtf";
 
-        downloadFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(false);
-        assetFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(true);
-        assetFileStoreMock.Setup(x => x.OpenFile(jobId, fileName)).Returns(Stream.Null);
+        downloadFileStoreMock.Setup(x => x.Exists(jobId, persistedName)).Returns(false);
+        assetFileStoreMock.Setup(x => x.Exists(jobId, persistedName)).Returns(true);
+        assetFileStoreMock.Setup(x => x.OpenFile(jobId, persistedName)).Returns(Stream.Null);
+        validationServiceMock.Setup(x => x.GetJob(jobId))
+            .Returns(BuildJobWithDelivery(jobId, new PersistedFile(originalName, persistedName)));
 
         var contentType = "application/interlis+xml";
-        contentTypeProviderMock.Setup(x => x.TryGetContentType(fileName, out contentType)).Returns(true);
+        contentTypeProviderMock.Setup(x => x.TryGetContentType(persistedName, out contentType)).Returns(true);
 
-        var response = controller.Download(jobId, fileName) as FileStreamResult;
+        var response = controller.Download(jobId, persistedName) as FileStreamResult;
 
         Assert.IsInstanceOfType<FileStreamResult>(response);
         Assert.AreEqual("application/interlis+xml", response!.ContentType);
+        Assert.AreEqual(originalName, response.FileDownloadName);
+    }
+
+    [TestMethod]
+    public void DownloadFallsBackToPersistedNameWhenJobMissing()
+    {
+        var jobId = Guid.NewGuid();
+        var persistedName = "abc123.log";
+
+        downloadFileStoreMock.Setup(x => x.Exists(jobId, persistedName)).Returns(true);
+        downloadFileStoreMock.Setup(x => x.OpenFile(jobId, persistedName)).Returns(Stream.Null);
+        validationServiceMock.Setup(x => x.GetJob(jobId)).Returns((ProcessingJob?)null);
+
+        var contentType = "text/plain";
+        contentTypeProviderMock.Setup(x => x.TryGetContentType(persistedName, out contentType)).Returns(true);
+
+        var response = controller.Download(jobId, persistedName) as FileStreamResult;
+
+        Assert.IsInstanceOfType<FileStreamResult>(response);
+        Assert.AreEqual(persistedName, response!.FileDownloadName);
     }
 
     [TestMethod]
@@ -490,5 +516,21 @@ public sealed class ProcessingControllerTest
         Assert.IsInstanceOfType<ObjectResult>(response);
         Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
         Assert.AreEqual("The user is not authorized to start the job with the specified mandate.", ((ProblemDetails)response.Value!).Detail);
+    }
+
+    private static ProcessingJob BuildJobWithDownload(Guid jobId, PersistedFile persisted)
+        => BuildJobWithStepFiles(jobId, downloads: new List<PersistedFile> { persisted }, deliveryFiles: new List<PersistedFile>());
+
+    private static ProcessingJob BuildJobWithDelivery(Guid jobId, PersistedFile persisted)
+        => BuildJobWithStepFiles(jobId, downloads: new List<PersistedFile>(), deliveryFiles: new List<PersistedFile> { persisted });
+
+    private static ProcessingJob BuildJobWithStepFiles(Guid jobId, List<PersistedFile> downloads, List<PersistedFile> deliveryFiles)
+    {
+        var stepMock = new Mock<IPipelineStep>();
+        stepMock.SetupGet(s => s.Downloads).Returns(downloads);
+        stepMock.SetupGet(s => s.DeliveryFiles).Returns(deliveryFiles);
+        var pipelineMock = new Mock<IPipeline>();
+        pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep> { stepMock.Object });
+        return new ProcessingJob(jobId, new List<ProcessingJobFile>(), null, DateTime.Now) { Pipeline = pipelineMock.Object };
     }
 }

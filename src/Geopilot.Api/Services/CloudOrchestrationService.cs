@@ -17,7 +17,6 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     private readonly ICloudScanService cloudScanService;
     private readonly IProcessingJobStore jobStore;
     private readonly IUploadFileStore uploadFileStore;
-    private readonly IFileNameGenerator fileNameGenerator;
     private readonly IOptions<CloudStorageOptions> options;
     private readonly ILogger<CloudOrchestrationService> logger;
 
@@ -29,7 +28,6 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         ICloudScanService cloudScanService,
         IProcessingJobStore jobStore,
         IUploadFileStore uploadFileStore,
-        IFileNameGenerator fileNameGenerator,
         IOptions<CloudStorageOptions> options,
         ILogger<CloudOrchestrationService> logger)
     {
@@ -37,7 +35,6 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         this.cloudScanService = cloudScanService;
         this.jobStore = jobStore;
         this.uploadFileStore = uploadFileStore;
-        this.fileNameGenerator = fileNameGenerator;
         this.options = options;
         this.logger = logger;
     }
@@ -143,8 +140,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         ProcessingJob updatedJob = job;
         foreach (var file in job.CloudFiles)
         {
-            var extension = Path.GetExtension(file.FileName);
-            var stagedName = fileNameGenerator.CreateRandomName(extension);
+            var stagedName = UploadFileNaming.MakeUnique(jobId, file.FileName, uploadFileStore);
 
             using (var stream = uploadFileStore.CreateFile(jobId, stagedName))
             {
