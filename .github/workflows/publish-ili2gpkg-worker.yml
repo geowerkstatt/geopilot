@@ -1,0 +1,81 @@
+name: Publish ili2gpkg-worker image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker/ili2gpkg-worker/**'
+      - '.github/workflows/publish-ili2gpkg-worker.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'ili2gpkg version to build (overrides the ARG default in the Dockerfile)'
+        required: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: geowerkstatt/ili2gpkg-worker
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    name: Build and push ili2gpkg-worker image to GHCR
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Determine ili2gpkg version
+        id: version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(grep -oP '(?<=ARG ILI2GPKG_VERSION=)[0-9.]+' docker/ili2gpkg-worker/Dockerfile | head -1)
+          fi
+          if [ -z "$VERSION" ]; then
+            echo "Could not determine ili2gpkg version from docker/ili2gpkg-worker/Dockerfile" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "Building ili2gpkg-worker wrapping ili2gpkg ${VERSION} (commit $(git rev-parse --short HEAD))"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ili2gpkg-worker image
+        uses: docker/build-push-action@v7
+        with:
+          context: docker/ili2gpkg-worker
+          push: true
+          build-args: |
+            ILI2GPKG_VERSION=${{ steps.version.outputs.version }}
+          # Tagging strategy:
+          #   :latest                          — always points at the most recent main build.
+          #   :<ili2gpkg-version>              — mutable tag that tracks the ili2gpkg version
+          #                                      bundled in the image (e.g. :5.1.0). Rebuilt
+          #                                      whenever the wrapper changes.
+          #   :<ili2gpkg-version>-sha-<short>  — permanent, immutable reference for pinning
+          #                                      a specific wrapper revision of a given
+          #                                      ili2gpkg release in production.
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}-sha-${{ steps.version.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.title=ili2gpkg-worker
+            org.opencontainers.image.description=Long-running worker that converts XTF files into GeoPackages for GeoPilot's pipeline.
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.licenses=LGPL-2.1-only
