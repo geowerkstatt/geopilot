@@ -10,13 +10,20 @@ namespace Geopilot.Api.Pipeline;
 /// Optionally, parameters can be provided to configure the behavior of the pipeline or its steps.</remarks>
 public sealed class Pipeline : IPipeline
 {
+    private bool disposed;
+
     /// <inheritdoc/>
     public void Dispose()
     {
+        if (disposed)
+            return;
+
         Steps.ForEach(step => step.Dispose());
 
         if (Path.Exists(pipelineFileDirectory))
             Directory.Delete(pipelineFileDirectory, true);
+
+        disposed = true;
     }
 
     private readonly ConditionEvaluator conditionEvaluator;
@@ -34,7 +41,7 @@ public sealed class Pipeline : IPipeline
     public List<IPipelineStep> Steps { get; }
 
     /// <inheritdoc/>
-    public PipelineState State
+    public ProcessingState State
     {
         get
         {
@@ -42,31 +49,31 @@ public sealed class Pipeline : IPipeline
 
             if (stepStates.Count == 0)
             {
-                return PipelineState.Pending;
+                return ProcessingState.Pending;
             }
             else if (stepStates.Contains(StepState.Error))
             {
-                return PipelineState.Failed;
+                return ProcessingState.Failed;
             }
             else if (stepStates.Contains(StepState.Cancelled))
             {
-                return PipelineState.Cancelled;
+                return ProcessingState.Cancelled;
             }
             else if (stepStates.Contains(StepState.Running))
             {
-                return PipelineState.Running;
+                return ProcessingState.Running;
             }
             else if (stepStates.All(s => s == StepState.Success || s == StepState.Skipped))
             {
-                return PipelineState.Success;
+                return ProcessingState.Success;
             }
             else if (stepStates.All(s => s == StepState.Pending))
             {
-                return PipelineState.Pending;
+                return ProcessingState.Pending;
             }
             else
             {
-                return PipelineState.Running;
+                return ProcessingState.Running;
             }
         }
     }
@@ -76,6 +83,9 @@ public sealed class Pipeline : IPipeline
 
     /// <inheritdoc/>
     public PipelineDelivery Delivery { get; set; } = PipelineDelivery.Allow;
+
+    /// <inheritdoc/>
+    public Dictionary<string, string>? DeliveryRestrictionMessage { get; private set; }
 
     /// <summary>
     /// The files to be processed for the pipeline.
@@ -130,7 +140,7 @@ public sealed class Pipeline : IPipeline
         {
             foreach (var step in this.Steps)
             {
-                if (this.State == PipelineState.Failed || this.State == PipelineState.Cancelled)
+                if (this.State == ProcessingState.Failed || this.State == ProcessingState.Cancelled)
                     break;
 
                 var stepResult = await step.Run(context, cancellationToken).ConfigureAwait(false);
@@ -156,7 +166,7 @@ public sealed class Pipeline : IPipeline
 
     private async Task EvaluateDeliveryCondition(PipelineContext context)
     {
-        if (this.State == PipelineState.Failed)
+        if (this.State == ProcessingState.Failed)
         {
             this.Delivery = PipelineDelivery.Prevent;
         }
@@ -195,12 +205,13 @@ public sealed class Pipeline : IPipeline
         return matched;
     }
 
-    private static void AddRestrictionMessages(PipelineContext context, List<ConditionConfig> matchedRestrictions)
+    private void AddRestrictionMessages(PipelineContext context, List<ConditionConfig> matchedRestrictions)
     {
         var mergedMessages = MergeConditionMessages(matchedRestrictions);
         if (mergedMessages.Count > 0)
         {
             context.DeliveryRestrictionMessage = mergedMessages;
+            this.DeliveryRestrictionMessage = mergedMessages;
         }
     }
 

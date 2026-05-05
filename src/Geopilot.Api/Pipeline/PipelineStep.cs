@@ -10,11 +10,18 @@ namespace Geopilot.Api.Pipeline;
 /// </summary>
 public sealed class PipelineStep : IPipelineStep
 {
+    private bool disposed;
+
     /// <inheritdoc/>
     public void Dispose()
     {
+        if (disposed)
+            return;
+
         if (Process is IDisposable disposableProcess)
             disposableProcess.Dispose();
+
+        disposed = true;
     }
 
     /// <inheritdoc/>
@@ -37,6 +44,15 @@ public sealed class PipelineStep : IPipelineStep
 
     /// <inheritdoc/>
     public StepState State { get; set; }
+
+    /// <inheritdoc/>
+    public IDictionary<string, string>? StatusMessage { get; private set; }
+
+    /// <inheritdoc/>
+    public IList<PersistedFile> Downloads { get; } = new List<PersistedFile>();
+
+    /// <inheritdoc/>
+    public IList<PersistedFile> DeliveryFiles { get; } = new List<PersistedFile>();
 
     private readonly ConditionEvaluator conditionEvaluator;
 
@@ -85,7 +101,9 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"step failed due to pre-condition.");
-                    return CreateConditionStepResult(this.Id + "_status_message_pre_fail_condition", failConditions);
+                    var preFailResult = CreateConditionStepResult(this.Id + "_status_message_pre_fail_condition", failConditions);
+                    this.StatusMessage = ExtractStatusMessage(preFailResult);
+                    return preFailResult;
                 }
 
                 var skipConditions = await this.FindMatchingSkipConditions(this.StepConditions.Pre, context);
@@ -93,7 +111,9 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Skipped;
                     logger.LogInformation($"step skipped due to pre-condition.");
-                    return CreateConditionStepResult(this.Id + "_status_message_pre_skip_condition", skipConditions);
+                    var preSkipResult = CreateConditionStepResult(this.Id + "_status_message_pre_skip_condition", skipConditions);
+                    this.StatusMessage = ExtractStatusMessage(preSkipResult);
+                    return preSkipResult;
                 }
             }
 
@@ -122,6 +142,7 @@ public sealed class PipelineStep : IPipelineStep
                 logger.LogInformation($"run successfull.");
             }
 
+            this.StatusMessage = ExtractStatusMessage(stepResult);
             return stepResult;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -224,6 +245,33 @@ public sealed class PipelineStep : IPipelineStep
         var stepResult = new StepResult();
         AddConditionMessages(stepOutputKey, stepResult, conditions);
         return stepResult;
+    }
+
+    /// <summary>
+    /// Merges all <see cref="OutputAction.StatusMessage"/> outputs from the step result into a
+    /// single localized dict. Multiple messages for the same language are joined with " - ".
+    /// </summary>
+    private static Dictionary<string, string>? ExtractStatusMessage(StepResult stepResult)
+    {
+        var localizedMessages = stepResult.Outputs
+            .Where(o => o.Value.Action.Contains(OutputAction.StatusMessage))
+            .Select(o => o.Value.Data as Dictionary<string, string>)
+            .Where(m => m != null)
+            .Cast<Dictionary<string, string>>()
+            .ToList();
+
+        if (localizedMessages.Count == 0)
+            return null;
+
+        var languages = localizedMessages.SelectMany(m => m.Keys).Distinct();
+        var merged = new Dictionary<string, string>();
+        foreach (var language in languages)
+        {
+            var parts = localizedMessages.Where(m => m.ContainsKey(language)).Select(m => m[language]);
+            merged[language] = string.Join(" - ", parts);
+        }
+
+        return merged;
     }
 
     private static void AddConditionMessages(string stepOutputKey, StepResult stepResult, List<ConditionConfig> conditions)

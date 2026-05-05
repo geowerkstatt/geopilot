@@ -1,9 +1,9 @@
 ﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Interlis;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Pipeline.Process.XtfValidation;
-using Geopilot.Api.Validation.Interlis;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -156,7 +156,7 @@ public class PipelineIntegrationTest
 
         var context = await pipeline.Run(CancellationToken.None);
 
-        Assert.AreEqual(PipelineState.Success, pipeline.State);
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[1].State);
@@ -234,7 +234,7 @@ public class PipelineIntegrationTest
 
         var context = await pipeline.Run(CancellationToken.None);
 
-        Assert.AreEqual(PipelineState.Success, pipeline.State);
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
         Assert.AreEqual(StepState.Skipped, pipeline.Steps[1].State);

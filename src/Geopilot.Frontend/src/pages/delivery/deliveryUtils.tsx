@@ -1,9 +1,13 @@
-import { ValidationResponse, ValidationStatus } from "../../api/apiInterfaces";
+import { ProcessingJobResponse, ProcessingState } from "../../api/apiInterfaces";
 
-export function isValidationFinished(validationJob?: ValidationResponse) {
+export function isProcessingFinished(job?: ProcessingJobResponse) {
   return (
-    validationJob?.status === ValidationStatus.Completed ||
-    validationJob?.status === ValidationStatus.CompletedWithErrors ||
-    validationJob?.status === ValidationStatus.Failed
+    job?.state === ProcessingState.Success ||
+    job?.state === ProcessingState.Failed ||
+    job?.state === ProcessingState.Cancelled
   );
+}
+
+export function isProcessingDeliverable(job?: ProcessingJobResponse) {
+  return job?.state === ProcessingState.Success && !job.deliveryRestrictionMessage;
 }

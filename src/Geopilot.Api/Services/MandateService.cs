@@ -1,5 +1,5 @@
 ﻿using Geopilot.Api.Models;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Processing;
 using Microsoft.EntityFrameworkCore;
 
 namespace Geopilot.Api.Services;
@@ -8,12 +8,12 @@ namespace Geopilot.Api.Services;
 public class MandateService : IMandateService
 {
     private readonly Context context;
-    private readonly IValidationJobStore jobStore;
+    private readonly IProcessingJobStore jobStore;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MandateService"/> class.
     /// </summary>
-    public MandateService(Context context, IValidationJobStore jobStore)
+    public MandateService(Context context, IProcessingJobStore jobStore)
     {
         this.context = context;
         this.jobStore = jobStore;
@@ -74,7 +74,7 @@ public class MandateService : IMandateService
 
     private IQueryable<Mandate> FilterMandatesByJob(IQueryable<Mandate> mandates, Guid jobId)
     {
-        var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Validation job with id <{jobId}> not found.", nameof(jobId));
+        var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Processing job with id <{jobId}> not found.", nameof(jobId));
 
         IEnumerable<string> fileExtensions = job.Files
             .Select(f => f.OriginalFileName)
@@ -97,6 +97,6 @@ public class MandateService : IMandateService
             return mandates;
         }
 
-        throw new InvalidOperationException($"Validation job with id <{jobId}> has no file associated.");
+        throw new InvalidOperationException($"Processing job with id <{jobId}> has no file associated.");
     }
 }

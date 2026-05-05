@@ -58,7 +58,7 @@ public class PipelineFactoryTest
     {
         PipelineFactory factory = CreatePipelineFactory("basicPipeline_01");
         using var pipeline = factory.CreatePipeline("ili_validation", new PipelineFileList(new List<IPipelineFile> { Mock.Of<IPipelineFile>() }), Guid.NewGuid());
-        Assert.AreEqual(PipelineState.Pending, pipeline.State, "pipeline state not as expected");
+        Assert.AreEqual(ProcessingState.Pending, pipeline.State, "pipeline state not as expected");
         Assert.AreEqual(StepState.Pending, pipeline.Steps[0].State, "step state not as expected");
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.AreEqual("ili_validation", pipeline.Id, "pipeline name not as expected");

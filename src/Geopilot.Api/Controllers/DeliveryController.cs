@@ -2,7 +2,8 @@
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
-using Geopilot.Api.Validation;
+using Geopilot.Api.Pipeline;
+using Geopilot.Api.Processing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,22 +21,22 @@ public class DeliveryController : ControllerBase
 {
     private readonly ILogger<DeliveryController> logger;
     private readonly Context context;
-    private readonly IValidationService validatorService;
+    private readonly IProcessingService processingService;
     private readonly IAssetHandler assetHandler;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IValidationService validatorService, IAssetHandler assetHandler)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IProcessingService processingService, IAssetHandler assetHandler)
     {
         this.logger = logger;
         this.context = context;
-        this.validatorService = validatorService;
+        this.processingService = processingService;
         this.assetHandler = assetHandler;
     }
 
     /// <summary>
-    /// Create a delivery from a validation with the status <see cref="Status.Completed"/>.
+    /// Create a delivery from a successfully processed job whose pipeline allows delivery.
     /// </summary>
     /// <param name="declaration"><see cref="DeliveryRequest"/> containing all information for the declaration process.</param>
     /// <returns>Created <see cref="Delivery"/>.</returns>
@@ -52,16 +53,16 @@ public class DeliveryController : ControllerBase
 
         logger.LogInformation("Declaration for job with id <{JobId}> requested.", declaration.JobId);
 
-        var job = validatorService.GetJob(declaration.JobId);
+        var job = processingService.GetJob(declaration.JobId);
         if (job == null)
         {
             logger.LogTrace("No job information available for job with id <{JobId}>.", declaration.JobId);
             return NotFound($"No job information available for job with id <{declaration.JobId}>");
         }
-        else if (job.Status != Status.Completed)
+        else if (job.Pipeline?.State != ProcessingState.Success || job.Pipeline.Delivery != PipelineDelivery.Allow)
         {
-            logger.LogTrace("Job with id <{JobId}> is not completed.", declaration.JobId);
-            return BadRequest($"Job with id <{declaration.JobId}> is not completed.");
+            logger.LogTrace("Job with id <{JobId}> is not completed or delivery is not allowed.", declaration.JobId);
+            return BadRequest($"Job with id <{declaration.JobId}> is not completed or delivery is not allowed.");
         }
         else if (job.MandateId == null)
         {
