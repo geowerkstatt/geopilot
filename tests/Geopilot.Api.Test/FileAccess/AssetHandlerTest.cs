@@ -71,7 +71,7 @@ public class AssetHandlerTest
 
         var jobWithDownloads = new ProcessingJob(job.Id, new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now)
         {
-            Pipeline = BuildPipelineWithStepDownloads("myStep", new Dictionary<string, string> { { "mylogtype", "mylogfile" } }),
+            Pipeline = BuildPipelineWithStepDownloads("myStep", new List<PersistedDownload> { new PersistedDownload("mylogfile.log", "mylogfile") }),
         };
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithDownloads);
 
@@ -82,7 +82,7 @@ public class AssetHandlerTest
         Assert.IsNotNull(logfileAsset);
         Assert.AreEqual(AssetType.ValidationReport, logfileAsset.AssetType);
         Assert.AreEqual("mylogfile", logfileAsset.SanitizedFilename);
-        Assert.AreEqual("myStep_mylogtype", logfileAsset.OriginalFilename);
+        Assert.AreEqual("myStep_mylogfile.log", logfileAsset.OriginalFilename);
         Assert.AreEqual(fileContent, File.ReadAllText(Path.Combine(assetDirectory, "mylogfile")));
         CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(fileContent)), logfileAsset.FileHash);
     }
@@ -92,14 +92,14 @@ public class AssetHandlerTest
     {
         var jobWithDownloads = new ProcessingJob(job.Id, new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now)
         {
-            Pipeline = BuildPipelineWithStepDownloads("myStep", new Dictionary<string, string> { { "mylogtype", "mylogfile" } }),
+            Pipeline = BuildPipelineWithStepDownloads("myStep", new List<PersistedDownload> { new PersistedDownload("mylogfile.log", "mylogfile") }),
         };
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithDownloads);
 
         Assert.ThrowsExactly<ArgumentNullException>(() => assetHandler.PersistJobAssets(job.Id));
     }
 
-    private static IPipeline BuildPipelineWithStepDownloads(string stepId, Dictionary<string, string> persistedDownloads)
+    private static IPipeline BuildPipelineWithStepDownloads(string stepId, List<PersistedDownload> persistedDownloads)
     {
         var stepMock = new Mock<IPipelineStep>();
         stepMock.SetupGet(s => s.Id).Returns(stepId);

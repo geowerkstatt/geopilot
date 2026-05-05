@@ -49,11 +49,12 @@ public interface IPipelineStep : IDisposable
     StepResult? Result { get; }
 
     /// <summary>
-    /// Mapping of output key (logical name in the pipeline definition) to the persisted file name on disk.
+    /// Files produced by the step that have been persisted to disk for download (or delivery).
     /// Populated by the processing runner after the step completes for outputs configured with
-    /// <see cref="OutputAction.Download"/> or <see cref="OutputAction.Delivery"/>.
+    /// <see cref="OutputAction.Download"/> or <see cref="OutputAction.Delivery"/>. Order matches
+    /// the order of the step's output configs.
     /// </summary>
-    IDictionary<string, string> PersistedDownloads { get; }
+    IList<PersistedDownload> PersistedDownloads { get; }
 
     /// <summary>
     /// Runs the step with the given context.
