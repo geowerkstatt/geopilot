@@ -88,16 +88,25 @@ public class ProcessingRunner : BackgroundService
 
             foreach (var output in step.Result.Outputs.Values)
             {
-                if (!(output.Action.Contains(OutputAction.Download) || output.Action.Contains(OutputAction.Delivery)))
+                var isDownload = output.Action.Contains(OutputAction.Download);
+                var isDelivery = output.Action.Contains(OutputAction.Delivery);
+                if (!isDownload && !isDelivery)
                     continue;
 
                 if (output.Data is not IPipelineFile transferFile)
                     continue;
 
+                // Persist the file once, then reference it from whichever lists apply. A file
+                // tagged with both actions ends up in both Downloads and DeliveryFiles.
                 using var fileHandle = fileProvider.CreateFileWithRandomName(transferFile.FileExtension);
                 using var inStream = transferFile.OpenReadFileStream();
                 inStream.CopyTo(fileHandle.Stream);
-                step.PersistedDownloads.Add(new PersistedDownload(transferFile.OriginalFileName, fileHandle.FileName));
+                var persisted = new PersistedFile(transferFile.OriginalFileName, fileHandle.FileName);
+
+                if (isDownload)
+                    step.Downloads.Add(persisted);
+                if (isDelivery)
+                    step.DeliveryFiles.Add(persisted);
             }
         }
     }

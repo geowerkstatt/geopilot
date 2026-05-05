@@ -60,7 +60,7 @@ internal static class DtoMapperExtensions
     {
         var statusMessage = ExtractStatusMessage(step);
 
-        var downloads = step.PersistedDownloads
+        var downloads = step.Downloads
             .Select(pd => new StepDownload(
                 pd.OriginalFileName,
                 buildDownloadUrl(jobId, pd.PersistedFileName)))
