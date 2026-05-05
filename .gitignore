@@ -410,10 +410,6 @@ src/Geopilot.Frontend/cypress/screenshots
 certs/
 /.claude/settings.local.json
 
-# Pipeline runtime artifacts (per-job working directories, ili2gpkg cache, etc.)
-TempPipelineFiles/
-
 # Shared bind-mount directories between geopilot and the ili2gpkg-worker container.
 # Created at runtime by docker compose; files inside are transient (XTF in, GPKG out).
 shared/
-/CLAUDE.md
