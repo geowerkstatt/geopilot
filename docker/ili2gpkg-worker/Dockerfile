@@ -6,34 +6,41 @@
 # shared output directory. Replaces the previous pattern of having geopilot spawn ili2gpkg
 # containers itself (which required mounting the docker socket into geopilot).
 
-FROM eclipse-temurin:17-jre-jammy
-
 ARG ILI2GPKG_VERSION=5.1.0
-ENV ILI2GPKG_VERSION=${ILI2GPKG_VERSION} \
-    ILI2GPKG_HOME=/opt/ili2gpkg
 
-# Install both the ili2gpkg runtime and the worker-specific tooling in one layer.
-#   - curl, ca-certificates, unzip: used only to fetch and extract the ili2gpkg release,
-#     purged at the end of the same layer to keep the image small.
+# Stage 1: fetch and extract the ili2gpkg release. curl/unzip live only here so they
+# never reach the runtime image. The ili2gpkg zip contains the main JAR plus a libs/
+# directory referenced from the JAR manifest's Class-Path, so the whole archive must
+# be extracted into a single directory and ili2gpkg must be invoked with the working
+# directory set there.
+FROM eclipse-temurin:17-jre-jammy AS ili2gpkg-fetcher
+
+ARG ILI2GPKG_VERSION
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl unzip \
+    && mkdir -p /opt/ili2gpkg \
+    && curl -fsSL -o /tmp/ili2gpkg.zip \
+        "https://downloads.interlis.ch/ili2gpkg/ili2gpkg-${ILI2GPKG_VERSION}.zip" \
+    && unzip -q /tmp/ili2gpkg.zip -d /opt/ili2gpkg
+
+# Stage 2: runtime image. Installs only what the worker actually invokes:
 #   - inotify-tools: inotifywait for the watch loop.
 #   - jq:            parse the per-file config sidecar (<basename>.config.json).
 #   - tini:          PID 1 signal handler so SIGTERM from `docker stop` reaches the loop.
-#
-# The ili2gpkg zip contains the main JAR plus a libs/ directory referenced from the JAR
-# manifest's Class-Path, so the whole archive must be extracted into a single directory
-# and ili2gpkg must be invoked with the working directory set there.
+# ca-certificates is already present in the eclipse-temurin base and is required at
+# runtime so ili2gpkg can fetch INTERLIS models from models.interlis.ch over HTTPS.
+FROM eclipse-temurin:17-jre-jammy
+
+ARG ILI2GPKG_VERSION
+ENV ILI2GPKG_VERSION=${ILI2GPKG_VERSION} \
+    ILI2GPKG_HOME=/opt/ili2gpkg
+
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        curl ca-certificates unzip \
-        inotify-tools jq tini \
-    && mkdir -p "${ILI2GPKG_HOME}" \
-    && curl -fsSL -o /tmp/ili2gpkg.zip \
-        "https://downloads.interlis.ch/ili2gpkg/ili2gpkg-${ILI2GPKG_VERSION}.zip" \
-    && unzip -q /tmp/ili2gpkg.zip -d "${ILI2GPKG_HOME}" \
-    && rm /tmp/ili2gpkg.zip \
-    && apt-get purge -y curl unzip \
-    && apt-get autoremove -y \
+    && apt-get install -y --no-install-recommends inotify-tools jq tini \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ili2gpkg-fetcher /opt/ili2gpkg ${ILI2GPKG_HOME}
 
 # The worker writes to these paths; they must be bind-mounted into the container by
 # whatever orchestrator is running it. The paths are fixed inside the image so the
