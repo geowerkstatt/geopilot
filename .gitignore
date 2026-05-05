@@ -409,3 +409,7 @@ src/Geopilot.Frontend/cypress/screenshots
 # Local dev-certs output
 certs/
 /.claude/settings.local.json
+
+# Shared bind-mount directories between geopilot and the ili2gpkg-worker container.
+# Created at runtime by docker compose; files inside are transient (XTF in, GPKG out).
+shared/
