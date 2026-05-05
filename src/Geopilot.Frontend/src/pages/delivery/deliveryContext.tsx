@@ -297,7 +297,11 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
           if (isProcessingDeliverable(response)) {
             continueToNextStep();
+          } else if (response.state === ProcessingState.Success) {
+            // Pipeline succeeded but delivery is blocked (e.g. delivery restriction matched).
+            setStepError(DeliveryStepEnum.Process, "completedWithErrors");
           } else {
+            // ProcessingState.Failed or Cancelled.
             setStepError(DeliveryStepEnum.Process, response.state);
           }
         }
