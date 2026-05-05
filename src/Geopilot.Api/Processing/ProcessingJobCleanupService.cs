@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.FileAccess;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api.Processing;
@@ -10,6 +11,7 @@ public class ProcessingJobCleanupService : BackgroundService
 {
     private readonly IProcessingJobStore jobStore;
     private readonly IDirectoryProvider directoryProvider;
+    private readonly IServiceScopeFactory serviceScopeFactory;
     private readonly ILogger<ProcessingJobCleanupService> logger;
     private readonly ProcessingOptions processingOptions;
     private readonly SemaphoreSlim cleanupSemaphore = new SemaphoreSlim(1);
@@ -20,6 +22,7 @@ public class ProcessingJobCleanupService : BackgroundService
     public ProcessingJobCleanupService(
         IProcessingJobStore jobStore,
         IDirectoryProvider directoryProvider,
+        IServiceScopeFactory serviceScopeFactory,
         ILogger<ProcessingJobCleanupService> logger,
         IOptions<ProcessingOptions> processingOptions)
     {
@@ -27,6 +30,7 @@ public class ProcessingJobCleanupService : BackgroundService
 
         this.jobStore = jobStore;
         this.directoryProvider = directoryProvider;
+        this.serviceScopeFactory = serviceScopeFactory;
         this.logger = logger;
         this.processingOptions = processingOptions.Value;
     }
@@ -64,28 +68,42 @@ public class ProcessingJobCleanupService : BackgroundService
 
         try
         {
+            using var scope = serviceScopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<Context>();
             var now = DateTime.UtcNow;
-            int deletedJobs = 0;
-            var uploadRoot = directoryProvider.UploadDirectory;
+            int cleanedDownloads = 0;
+            int retiredJobs = 0;
 
-            foreach (var dir in Directory.GetDirectories(uploadRoot))
+            // Downloads expire on a separate (typically much shorter) retention so the
+            // user-facing artifacts don't linger past their useful window.
+            foreach (var jobId in EnumerateJobIds(directoryProvider.DownloadDirectory))
             {
-                var folderName = Path.GetFileName(dir);
-
-                if (!Guid.TryParse(folderName, out var jobId))
-                    continue;
-
                 var job = jobStore.GetJob(jobId);
-                var jobAge = now - job?.CreatedAt;
-
-                if (job == null || jobAge > processingOptions.JobRetention)
+                if (job == null || now - job.CreatedAt > processingOptions.DownloadRetention)
                 {
-                    if (DeleteJob(jobId))
-                        deletedJobs++;
+                    if (DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId)))
+                        cleanedDownloads++;
                 }
             }
 
-            logger.LogInformation("ProcessingJobCleanupService completed. Deleted jobs: {Deleted}.", deletedJobs);
+            // Uploads + the in-memory job entry age out on JobRetention. The asset directory
+            // is the long-term archive; for a job whose run was never submitted as a delivery
+            // we wipe its asset directory too so dead data doesn't accumulate. Submitted
+            // deliveries survive cleanup and are only removed via DeliveryController.Delete.
+            var retiredCandidates = EnumerateJobIds(directoryProvider.UploadDirectory);
+            retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.AssetDirectory));
+            foreach (var jobId in retiredCandidates)
+            {
+                var job = jobStore.GetJob(jobId);
+                if (job != null && now - job.CreatedAt <= processingOptions.JobRetention)
+                    continue;
+
+                var hasDelivery = dbContext.Deliveries.Any(d => d.JobId == jobId);
+                if (RetireJob(jobId, hasDelivery))
+                    retiredJobs++;
+            }
+
+            logger.LogInformation("ProcessingJobCleanupService completed. Retired jobs: {Retired}, expired download dirs: {Downloads}.", retiredJobs, cleanedDownloads);
         }
         catch (Exception ex)
         {
@@ -97,21 +115,45 @@ public class ProcessingJobCleanupService : BackgroundService
         }
     }
 
-    private bool DeleteJob(Guid jobId)
+    private static HashSet<Guid> EnumerateJobIds(string root)
+    {
+        var jobIds = new HashSet<Guid>();
+        if (!Directory.Exists(root))
+            return jobIds;
+        foreach (var dir in Directory.GetDirectories(root))
+        {
+            if (Guid.TryParse(Path.GetFileName(dir), out var jobId))
+                jobIds.Add(jobId);
+        }
+
+        return jobIds;
+    }
+
+    private bool RetireJob(Guid jobId, bool hasSubmittedDelivery)
     {
         try
         {
-            var uploadDir = directoryProvider.GetUploadDirectoryPath(jobId);
-            Directory.Delete(uploadDir, true);
+            DeleteIfExists(directoryProvider.GetUploadDirectoryPath(jobId));
+            DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId));
+            if (!hasSubmittedDelivery)
+                DeleteIfExists(directoryProvider.GetAssetDirectoryPath(jobId));
             jobStore.RemoveJob(jobId);
-            logger.LogTrace("Deleted job <{JobId}>.", jobId);
+            logger.LogTrace("Retired job <{JobId}>. Removed asset directory: {RemovedAssets}.", jobId, !hasSubmittedDelivery);
             return true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error deleting job <{JobId}>.", jobId);
+            logger.LogError(ex, "Error retiring job <{JobId}>.", jobId);
         }
 
         return false;
+    }
+
+    private static bool DeleteIfExists(string directory)
+    {
+        if (!Directory.Exists(directory))
+            return false;
+        Directory.Delete(directory, recursive: true);
+        return true;
     }
 }

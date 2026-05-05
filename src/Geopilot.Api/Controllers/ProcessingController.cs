@@ -25,19 +25,21 @@ public class ProcessingController : ControllerBase
     private readonly ILogger<ProcessingController> logger;
     private readonly IProcessingService processingService;
     private readonly IPipelineService pipelineService;
-    private readonly IFileProvider fileProvider;
+    private readonly IAssetFileStore assetFileStore;
+    private readonly IDownloadFileStore downloadFileStore;
     private readonly IContentTypeProvider contentTypeProvider;
     private readonly Context context;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingController"/> class.
     /// </summary>
-    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IPipelineService pipelineService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider, Context context)
+    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IPipelineService pipelineService, IAssetFileStore assetFileStore, IDownloadFileStore downloadFileStore, IContentTypeProvider contentTypeProvider, Context context)
     {
         this.logger = logger;
         this.processingService = processingService;
         this.pipelineService = pipelineService;
-        this.fileProvider = fileProvider;
+        this.assetFileStore = assetFileStore;
+        this.downloadFileStore = downloadFileStore;
         this.contentTypeProvider = contentTypeProvider;
         this.context = context;
     }
@@ -198,15 +200,21 @@ public class ProcessingController : ControllerBase
     public IActionResult Download(Guid jobId, string file)
     {
         logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", HttpUtility.HtmlEncode(file), jobId);
-        fileProvider.Initialize(jobId);
 
-        if (!fileProvider.Exists(file))
+        // Download links resolve against the download store first. A file tagged both
+        // Download and Delivery is written to both stores under the same name, so once
+        // the download copy expires we can still serve the surviving asset copy.
+        IJobFileStore? store = downloadFileStore.Exists(jobId, file)
+            ? downloadFileStore
+            : assetFileStore.Exists(jobId, file) ? assetFileStore : null;
+
+        if (store == null)
         {
             logger.LogTrace("No file <{File}> found for job id <{JobId}>", HttpUtility.HtmlEncode(file), jobId);
             return Problem($"No file <{file}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        var stream = fileProvider.Open(file);
+        var stream = store.OpenFile(jobId, file);
         var contentType = contentTypeProvider.GetContentTypeAsString(file);
         return File(stream, contentType, Path.GetFileName(file));
     }

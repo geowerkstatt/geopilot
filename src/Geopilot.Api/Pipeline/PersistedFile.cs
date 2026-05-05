@@ -6,5 +6,5 @@
 /// or both depending on the step's output configuration.
 /// </summary>
 /// <param name="OriginalFileName">The human-readable file name reported by the producing process.</param>
-/// <param name="PersistedFileName">The file name on disk in the job's upload directory.</param>
+/// <param name="PersistedFileName">The file name on disk under the job's delivery or download directory.</param>
 public record PersistedFile(string OriginalFileName, string PersistedFileName);

@@ -6,9 +6,17 @@
 public class ProcessingOptions
 {
     /// <summary>
-    /// The duration after which processing jobs are eligible for cleanup.
+    /// The duration after which uploads, deliveries, and the in-memory job entry are
+    /// eligible for cleanup.
     /// </summary>
     public TimeSpan JobRetention { get; set; }
+
+    /// <summary>
+    /// The duration after which the user-facing pipeline downloads (logs, reports) are
+    /// eligible for cleanup. Typically much shorter than <see cref="JobRetention"/>
+    /// since downloads are only useful while the user is interacting with the result.
+    /// </summary>
+    public TimeSpan DownloadRetention { get; set; }
 
     /// <summary>
     /// The interval at which the cleanup service runs to remove old processing jobs.

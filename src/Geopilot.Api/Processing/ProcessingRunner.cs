@@ -79,8 +79,9 @@ public class ProcessingRunner : BackgroundService
     private void ExtractPersistentFiles(IPipeline pipeline, PipelineContext context)
     {
         using var scope = serviceScopeFactory.CreateScope();
-        var fileProvider = scope.ServiceProvider.GetRequiredService<IFileProvider>();
-        fileProvider.Initialize(pipeline.JobId);
+        var assetFileStore = scope.ServiceProvider.GetRequiredService<IAssetFileStore>();
+        var downloadFileStore = scope.ServiceProvider.GetRequiredService<IDownloadFileStore>();
+        var fileNameGenerator = scope.ServiceProvider.GetRequiredService<IFileNameGenerator>();
 
         foreach (var step in pipeline.Steps)
         {
@@ -97,18 +98,32 @@ public class ProcessingRunner : BackgroundService
                 if (output.Data is not IPipelineFile transferFile)
                     continue;
 
-                // Persist the file once, then reference it from whichever lists apply. A file
-                // tagged with both actions ends up in both Downloads and DeliveryFiles.
-                using var fileHandle = fileProvider.CreateFileWithRandomName(transferFile.FileExtension);
-                using var inStream = transferFile.OpenReadFileStream();
-                inStream.CopyTo(fileHandle.Stream);
-                var persisted = new PersistedFile(transferFile.OriginalFileName, fileHandle.FileName);
+                // Both stores are filled independently so each can be cleaned on its own
+                // retention. A file tagged with both actions is written to both under the
+                // same generated name — the download endpoint can fall back to the delivery
+                // copy after the download retention expires.
+                var fileName = fileNameGenerator.CreateRandomName(transferFile.FileExtension);
+                var persisted = new PersistedFile(transferFile.OriginalFileName, fileName);
+
+                if (isDelivery)
+                {
+                    CopyTo(assetFileStore, pipeline.JobId, fileName, transferFile);
+                    step.DeliveryFiles.Add(persisted);
+                }
 
                 if (isDownload)
+                {
+                    CopyTo(downloadFileStore, pipeline.JobId, fileName, transferFile);
                     step.Downloads.Add(persisted);
-                if (isDelivery)
-                    step.DeliveryFiles.Add(persisted);
+                }
             }
         }
+    }
+
+    private static void CopyTo(IJobFileStore store, Guid jobId, string fileName, IPipelineFile source)
+    {
+        using var outStream = store.CreateFile(jobId, fileName);
+        using var inStream = source.OpenReadFileStream();
+        inStream.CopyTo(outStream);
     }
 }

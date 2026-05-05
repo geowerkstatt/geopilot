@@ -16,7 +16,8 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     private readonly ICloudStorageService cloudStorageService;
     private readonly ICloudScanService cloudScanService;
     private readonly IProcessingJobStore jobStore;
-    private readonly IFileProvider fileProvider;
+    private readonly IUploadFileStore uploadFileStore;
+    private readonly IFileNameGenerator fileNameGenerator;
     private readonly IOptions<CloudStorageOptions> options;
     private readonly ILogger<CloudOrchestrationService> logger;
 
@@ -27,14 +28,16 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         ICloudStorageService cloudStorageService,
         ICloudScanService cloudScanService,
         IProcessingJobStore jobStore,
-        IFileProvider fileProvider,
+        IUploadFileStore uploadFileStore,
+        IFileNameGenerator fileNameGenerator,
         IOptions<CloudStorageOptions> options,
         ILogger<CloudOrchestrationService> logger)
     {
         this.cloudStorageService = cloudStorageService;
         this.cloudScanService = cloudScanService;
         this.jobStore = jobStore;
-        this.fileProvider = fileProvider;
+        this.uploadFileStore = uploadFileStore;
+        this.fileNameGenerator = fileNameGenerator;
         this.options = options;
         this.logger = logger;
     }
@@ -136,17 +139,19 @@ public class CloudOrchestrationService : ICloudOrchestrationService
             throw new InvalidOperationException($"Job <{jobId}> has no cloud files to stage.");
 
         logger.LogInformation("Staging cloud files locally for job <{JobId}>.", jobId);
-        fileProvider.Initialize(jobId);
 
         ProcessingJob updatedJob = job;
         foreach (var file in job.CloudFiles)
         {
             var extension = Path.GetExtension(file.FileName);
+            var stagedName = fileNameGenerator.CreateRandomName(extension);
 
-            using var fileHandle = fileProvider.CreateFileWithRandomName(extension);
-            await cloudStorageService.DownloadAsync(file.CloudKey, fileHandle.Stream);
+            using (var stream = uploadFileStore.CreateFile(jobId, stagedName))
+            {
+                await cloudStorageService.DownloadAsync(file.CloudKey, stream);
+            }
 
-            updatedJob = jobStore.AddFileToJob(jobId, file.FileName, fileHandle.FileName);
+            updatedJob = jobStore.AddFileToJob(jobId, file.FileName, stagedName);
         }
 
         var cloudPrefix = $"uploads/{jobId}/";

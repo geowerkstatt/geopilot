@@ -16,7 +16,8 @@ public class AssetHandlerTest
 {
     private Mock<ILogger<AssetHandler>> loggerMock;
     private Mock<IProcessingService> validationServiceMock;
-    private Mock<IFileProvider> fileProviderMock;
+    private Mock<IUploadFileStore> uploadFileStoreMock;
+    private Mock<IAssetFileStore> assetFileStoreMock;
     private AssetHandler assetHandler;
     private ProcessingJob job;
     private string uploadDirectory;
@@ -30,8 +31,9 @@ public class AssetHandlerTest
         assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(job.Id);
         loggerMock = new Mock<ILogger<AssetHandler>>();
         validationServiceMock = new Mock<IProcessingService>();
-        fileProviderMock = new Mock<IFileProvider>();
-        assetHandler = new AssetHandler(loggerMock.Object, validationServiceMock.Object, fileProviderMock.Object, AssemblyInitialize.TestDirectoryProvider, new Mock<IContentTypeProvider>().Object);
+        uploadFileStoreMock = new Mock<IUploadFileStore>();
+        assetFileStoreMock = new Mock<IAssetFileStore>();
+        assetHandler = new AssetHandler(loggerMock.Object, validationServiceMock.Object, uploadFileStoreMock.Object, assetFileStoreMock.Object, AssemblyInitialize.TestDirectoryProvider, new Mock<IContentTypeProvider>().Object);
 
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(job);
     }
@@ -42,7 +44,8 @@ public class AssetHandlerTest
         var fileContent = "Some Content";
         Directory.CreateDirectory(uploadDirectory);
         File.WriteAllText(Path.Combine(uploadDirectory, "TempFileName"), fileContent);
-        fileProviderMock.Setup(x => x.Open("TempFileName")).Returns(new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
+        uploadFileStoreMock.Setup(x => x.OpenFile(job.Id, "TempFileName")).Returns(() => new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
+        uploadFileStoreMock.Setup(x => x.GetPath(job.Id, "TempFileName")).Returns(Path.Combine(uploadDirectory, "TempFileName"));
 
         Assert.IsFalse(Directory.Exists(assetDirectory));
         var assets = assetHandler.PersistJobAssets(job.Id);
@@ -58,16 +61,20 @@ public class AssetHandlerTest
     }
 
     [TestMethod]
-    public void PersistValidationJobAssetsCopiesStepDownloads()
+    public void PersistValidationJobAssetsRecordsStepDeliveryFilesInPlace()
     {
         var fileContent = "Some Content";
         Directory.CreateDirectory(uploadDirectory);
+        Directory.CreateDirectory(assetDirectory);
 
         File.WriteAllText(Path.Combine(uploadDirectory, "TempFileName"), fileContent);
-        fileProviderMock.Setup(x => x.Open("TempFileName")).Returns(new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
+        uploadFileStoreMock.Setup(x => x.OpenFile(job.Id, "TempFileName")).Returns(() => new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
+        uploadFileStoreMock.Setup(x => x.GetPath(job.Id, "TempFileName")).Returns(Path.Combine(uploadDirectory, "TempFileName"));
 
-        File.WriteAllText(Path.Combine(uploadDirectory, "mylogfile"), fileContent);
-        fileProviderMock.Setup(x => x.Open("mylogfile")).Returns(new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
+        // Step delivery files were written directly into the asset store by the pipeline
+        // runner, so the handler should hash them in place — no copy.
+        File.WriteAllText(Path.Combine(assetDirectory, "mylogfile"), fileContent);
+        assetFileStoreMock.Setup(x => x.OpenFile(job.Id, "mylogfile")).Returns(() => new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
 
         var jobWithDownloads = new ProcessingJob(job.Id, new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now)
         {
@@ -85,6 +92,9 @@ public class AssetHandlerTest
         Assert.AreEqual("myStep_mylogfile.log", logfileAsset.OriginalFilename);
         Assert.AreEqual(fileContent, File.ReadAllText(Path.Combine(assetDirectory, "mylogfile")));
         CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(fileContent)), logfileAsset.FileHash);
+
+        // The handler must not call GetPath on the asset store — there's no copy step for delivery files.
+        assetFileStoreMock.Verify(x => x.GetPath(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
@@ -95,8 +105,9 @@ public class AssetHandlerTest
             Pipeline = BuildPipelineWithDeliveryFiles("myStep", new List<PersistedFile> { new PersistedFile("mylogfile.log", "mylogfile") }),
         };
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithDownloads);
+        uploadFileStoreMock.Setup(x => x.OpenFile(job.Id, "TempFileName")).Throws(new FileNotFoundException());
 
-        Assert.ThrowsExactly<ArgumentNullException>(() => assetHandler.PersistJobAssets(job.Id));
+        Assert.ThrowsExactly<FileNotFoundException>(() => assetHandler.PersistJobAssets(job.Id));
     }
 
     private static IPipeline BuildPipelineWithDeliveryFiles(string stepId, List<PersistedFile> deliveryFiles)

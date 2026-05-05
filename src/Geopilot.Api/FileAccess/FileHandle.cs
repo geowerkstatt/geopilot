@@ -1,7 +1,7 @@
 ﻿namespace Geopilot.Api.FileAccess;
 
 /// <summary>
-/// Represents a file of an <see cref="IFileProvider"/> and provides a stream to it.
+/// Pairs a writable stream with the file name it was opened under and disposes the stream on disposal.
 /// </summary>
 public sealed class FileHandle : IDisposable
 {

@@ -62,7 +62,8 @@ public class PipelineValidationTest
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
         var fileAccessOptions = new FileAccessOptions()
         {
-            UploadDirectory = Path.Combine(Path.GetTempPath(), "Upload"),
+            UploadDirectory = Path.Combine(Path.GetTempPath(), "Uploads"),
+            DownloadDirectory = Path.Combine(Path.GetTempPath(), "Downloads"),
             AssetsDirectory = Path.Combine(Path.GetTempPath(), "Asset"),
             PipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline"),
         };

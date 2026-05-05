@@ -20,7 +20,8 @@ public sealed class ProcessingControllerTest
     private Context context;
     private Mock<ILogger<ProcessingController>> loggerMock;
     private Mock<IProcessingService> validationServiceMock;
-    private Mock<IFileProvider> fileProviderMock;
+    private Mock<IAssetFileStore> assetFileStoreMock;
+    private Mock<IDownloadFileStore> downloadFileStoreMock;
     private Mock<IContentTypeProvider> contentTypeProviderMock;
     private Mock<ApiVersion> apiVersionMock;
     private Mock<IFormFile> formFileMock;
@@ -33,7 +34,8 @@ public sealed class ProcessingControllerTest
         context = AssemblyInitialize.DbFixture.GetTestContext();
         loggerMock = new Mock<ILogger<ProcessingController>>();
         validationServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
-        fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
+        assetFileStoreMock = new Mock<IAssetFileStore>(MockBehavior.Strict);
+        downloadFileStoreMock = new Mock<IDownloadFileStore>(MockBehavior.Strict);
         contentTypeProviderMock = new Mock<IContentTypeProvider>(MockBehavior.Strict);
         apiVersionMock = new Mock<ApiVersion>(MockBehavior.Strict, 9, 88, null!);
         formFileMock = new Mock<IFormFile>(MockBehavior.Strict);
@@ -43,7 +45,8 @@ public sealed class ProcessingControllerTest
             loggerMock.Object,
             validationServiceMock.Object,
             pipelineServiceMock.Object,
-            fileProviderMock.Object,
+            assetFileStoreMock.Object,
+            downloadFileStoreMock.Object,
             contentTypeProviderMock.Object,
             context);
     }
@@ -53,7 +56,8 @@ public sealed class ProcessingControllerTest
     {
         loggerMock.VerifyAll();
         validationServiceMock.VerifyAll();
-        fileProviderMock.VerifyAll();
+        assetFileStoreMock.VerifyAll();
+        downloadFileStoreMock.VerifyAll();
         contentTypeProviderMock.VerifyAll();
         apiVersionMock.VerifyAll();
         formFileMock.VerifyAll();
@@ -155,14 +159,13 @@ public sealed class ProcessingControllerTest
     }
 
     [TestMethod]
-    public void Download()
+    public void DownloadFromDownloadStore()
     {
         var jobId = Guid.NewGuid();
         var fileName = "logfile.log";
 
-        fileProviderMock.Setup(x => x.Initialize(jobId));
-        fileProviderMock.Setup(x => x.Exists(fileName)).Returns(true);
-        fileProviderMock.Setup(x => x.Open(fileName)).Returns(Stream.Null);
+        downloadFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(true);
+        downloadFileStoreMock.Setup(x => x.OpenFile(jobId, fileName)).Returns(Stream.Null);
 
         var contentType = "text/plain";
         contentTypeProviderMock.Setup(x => x.TryGetContentType(fileName, out contentType)).Returns(true);
@@ -175,13 +178,32 @@ public sealed class ProcessingControllerTest
     }
 
     [TestMethod]
+    public void DownloadFallsBackToDeliveryStore()
+    {
+        var jobId = Guid.NewGuid();
+        var fileName = "delivery.xtf";
+
+        downloadFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(false);
+        assetFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(true);
+        assetFileStoreMock.Setup(x => x.OpenFile(jobId, fileName)).Returns(Stream.Null);
+
+        var contentType = "application/interlis+xml";
+        contentTypeProviderMock.Setup(x => x.TryGetContentType(fileName, out contentType)).Returns(true);
+
+        var response = controller.Download(jobId, fileName) as FileStreamResult;
+
+        Assert.IsInstanceOfType<FileStreamResult>(response);
+        Assert.AreEqual("application/interlis+xml", response!.ContentType);
+    }
+
+    [TestMethod]
     public void DownloadMissingLog()
     {
         var jobId = Guid.NewGuid();
         var fileName = "missing-logfile.log";
 
-        fileProviderMock.Setup(x => x.Initialize(jobId));
-        fileProviderMock.Setup(x => x.Exists(fileName)).Returns(false);
+        downloadFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(false);
+        assetFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(false);
 
         var response = controller.Download(jobId, fileName) as ObjectResult;
 
