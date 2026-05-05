@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Interlis;
+﻿namespace Geopilot.Api.Pipeline.Process.XtfValidation;
 
 /// <summary>
 /// Result of a successful upload to interlis-check-service at /api/v1/upload.

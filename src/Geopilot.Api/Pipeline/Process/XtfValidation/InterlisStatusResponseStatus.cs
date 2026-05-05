@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Interlis;
+﻿namespace Geopilot.Api.Pipeline.Process.XtfValidation;
 
 /// <summary>
 /// Represents the status of a validation returned by the interlis-check-service.
