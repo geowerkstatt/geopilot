@@ -71,7 +71,7 @@ public class AssetHandlerTest
 
         var jobWithDownloads = new ProcessingJob(job.Id, new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now)
         {
-            Pipeline = BuildPipelineWithStepDownloads("myStep", new List<PersistedDownload> { new PersistedDownload("mylogfile.log", "mylogfile") }),
+            Pipeline = BuildPipelineWithDeliveryFiles("myStep", new List<PersistedFile> { new PersistedFile("mylogfile.log", "mylogfile") }),
         };
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithDownloads);
 
@@ -92,18 +92,18 @@ public class AssetHandlerTest
     {
         var jobWithDownloads = new ProcessingJob(job.Id, new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now)
         {
-            Pipeline = BuildPipelineWithStepDownloads("myStep", new List<PersistedDownload> { new PersistedDownload("mylogfile.log", "mylogfile") }),
+            Pipeline = BuildPipelineWithDeliveryFiles("myStep", new List<PersistedFile> { new PersistedFile("mylogfile.log", "mylogfile") }),
         };
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithDownloads);
 
         Assert.ThrowsExactly<ArgumentNullException>(() => assetHandler.PersistJobAssets(job.Id));
     }
 
-    private static IPipeline BuildPipelineWithStepDownloads(string stepId, List<PersistedDownload> persistedDownloads)
+    private static IPipeline BuildPipelineWithDeliveryFiles(string stepId, List<PersistedFile> deliveryFiles)
     {
         var stepMock = new Mock<IPipelineStep>();
         stepMock.SetupGet(s => s.Id).Returns(stepId);
-        stepMock.SetupGet(s => s.PersistedDownloads).Returns(persistedDownloads);
+        stepMock.SetupGet(s => s.DeliveryFiles).Returns(deliveryFiles);
 
         var pipelineMock = new Mock<IPipeline>();
         pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep> { stepMock.Object });

@@ -110,7 +110,7 @@ public class AssetHandler : IAssetHandler
 
         foreach (var step in job.Pipeline.Steps)
         {
-            foreach (var persisted in step.PersistedDownloads)
+            foreach (var persisted in step.DeliveryFiles)
             {
                 using var stream = temporaryFileProvider.Open(persisted.PersistedFileName);
                 var asset = new Asset()
