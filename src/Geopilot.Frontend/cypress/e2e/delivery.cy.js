@@ -7,20 +7,20 @@ import {
   stepIsLoading,
   uploadFile,
   selectMandate,
-  startValidation,
+  startProcessing,
 } from "./helpers/deliveryHelpers.js";
 
 describe("Delivery tests", () => {
-  it("shows only validation steps if auth settings could not be loaded", () => {
+  it("shows only processing steps if auth settings could not be loaded", () => {
     // Limit the file types to a few extensions
-    cy.intercept("GET", "/api/v1/validation", {
+    cy.intercept("GET", "/api/v1/processing", {
       statusCode: 200,
       body: { allowedFileExtensions: [".csv", ".gpkg", ".itf", ".xml", ".xtf", ".zip"] },
     }).as("fileExtensions");
 
     loadWithoutAuth();
     cy.dataCy("upload-step").should("exist");
-    cy.dataCy("validate-step").should("exist");
+    cy.dataCy("process-step").should("exist");
     cy.dataCy("submit-step").should("not.exist");
     cy.dataCy("done-step").should("exist");
     stepIsActive("upload", true);
@@ -38,27 +38,27 @@ describe("Delivery tests", () => {
     stepHasError("upload", false);
     uploadFile();
 
-    stepIsActive("validate");
+    stepIsActive("process");
     cy.dataCy("createDelivery-button").should("not.exist");
     cy.dataCy("validateOnly-button").should("be.visible").should("not.be.disabled").click();
-    stepIsLoading("validate", true);
+    stepIsLoading("process", true);
     stepIsActive("done");
   });
 
-  it("shows validation error without log files", () => {
+  it("shows processing error without log files", () => {
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     uploadFile();
     selectMandate(0, 5);
-    startValidation();
-    stepIsLoading("validate", true);
-    cy.dataCy("validate-step").contains("The file is currently being validated with INTERLIS...");
-    stepHasError("validate", true, "Completed with errors");
-    cy.dataCy("validate-step").contains("INTERLIS");
-    cy.dataCy("Log-button").should("not.exist");
-    cy.dataCy("Xtf-Log-button").should("not.exist");
-    stepIsActive("validate");
-    stepIsActive("submit", false); // Should not be active if validation has errors
+    startProcessing();
+    stepIsLoading("process", true);
+    cy.dataCy("process-step").contains("The file is being processed with XTF Validation...");
+    stepHasError("process", true, "Completed with errors");
+    cy.dataCy("process-step").contains("XTF Validation");
+    cy.dataCy("error_log-button").should("not.exist");
+    cy.dataCy("xtf_log-button").should("not.exist");
+    stepIsActive("process");
+    stepIsActive("submit", false); // Should not be active if processing has errors
   });
 
   it("can submit delivery", () => {
@@ -69,13 +69,13 @@ describe("Delivery tests", () => {
     uploadFile();
     stepIsActive("upload");
     selectMandate(0, 5);
-    startValidation();
-    stepIsActive("validate");
+    startProcessing();
+    stepIsActive("process");
     stepIsActive("submit");
 
     // XTF log files should be available
-    cy.dataCy("Log-button").should("exist");
-    cy.dataCy("Xtf-Log-button").should("exist");
+    cy.dataCy("error_log-button").should("exist");
+    cy.dataCy("xtf_log-button").should("exist");
 
     //Wait for select values to be present on DOM
     cy.wait("@precursors");
@@ -107,13 +107,13 @@ describe("Delivery tests", () => {
     loginAsNewUser();
     addFile("deliveryFiles/ilimodels_valid.xml", true);
     uploadFile();
-    stepIsActive("validate");
-    stepHasError("validate", true, "No suitable mandate was found for your delivery");
+    stepIsActive("process");
+    stepHasError("process", true, "No suitable mandate was found for your delivery");
   });
 
   it("displays custom error messages when they don't match predefined errors", () => {
     cy.intercept(
-      { url: "/api/v1/validation", method: "POST" },
+      { url: "/api/v1/processing", method: "POST" },
       {
         statusCode: 418, // I'm a teapot
         body: {
