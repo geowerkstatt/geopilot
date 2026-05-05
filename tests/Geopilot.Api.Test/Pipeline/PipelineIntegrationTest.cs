@@ -393,7 +393,7 @@ public class PipelineIntegrationTest
 
         var context = await pipeline.Run(CancellationToken.None);
 
-        Assert.AreEqual(PipelineState.Success, pipeline.State, "pipeline did not succeed");
+        Assert.AreEqual(ProcessingState.Success, pipeline.State, "pipeline did not succeed");
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "delivery not allowed");
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State, "matcher step did not succeed");
         Assert.AreEqual(StepState.Success, pipeline.Steps[1].State, "validation step did not succeed");
