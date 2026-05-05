@@ -110,14 +110,14 @@ public class AssetHandler : IAssetHandler
 
         foreach (var step in job.Pipeline.Steps)
         {
-            foreach (var (outputKey, fileName) in step.PersistedDownloads)
+            foreach (var persisted in step.PersistedDownloads)
             {
-                using var stream = temporaryFileProvider.Open(fileName);
+                using var stream = temporaryFileProvider.Open(persisted.PersistedFileName);
                 var asset = new Asset()
                 {
                     AssetType = AssetType.ValidationReport,
-                    OriginalFilename = $"{step.Id}_{outputKey}{Path.GetExtension(fileName)}",
-                    SanitizedFilename = fileName,
+                    OriginalFilename = $"{step.Id}_{persisted.OriginalFileName}",
+                    SanitizedFilename = persisted.PersistedFileName,
                     FileHash = SHA256.HashData(stream),
                 };
                 CopyAssetToPersistentStorage(job.Id, asset);

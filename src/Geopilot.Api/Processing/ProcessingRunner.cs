@@ -86,7 +86,7 @@ public class ProcessingRunner : BackgroundService
             if (step.Result == null)
                 continue;
 
-            foreach (var (outputKey, output) in step.Result.Outputs)
+            foreach (var output in step.Result.Outputs.Values)
             {
                 if (!(output.Action.Contains(OutputAction.Download) || output.Action.Contains(OutputAction.Delivery)))
                     continue;
@@ -97,7 +97,7 @@ public class ProcessingRunner : BackgroundService
                 using var fileHandle = fileProvider.CreateFileWithRandomName(transferFile.FileExtension);
                 using var inStream = transferFile.OpenReadFileStream();
                 inStream.CopyTo(fileHandle.Stream);
-                step.PersistedDownloads[outputKey] = fileHandle.FileName;
+                step.PersistedDownloads.Add(new PersistedDownload(transferFile.OriginalFileName, fileHandle.FileName));
             }
         }
     }

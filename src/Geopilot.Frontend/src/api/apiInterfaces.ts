@@ -96,12 +96,17 @@ export enum StepState {
   Cancelled = "cancelled",
 }
 
+export interface StepDownload {
+  originalFileName: string;
+  url: string;
+}
+
 export interface StepResult {
   id: string;
   name: Record<string, string>;
   state: StepState;
   statusMessage?: Record<string, string>;
-  downloads: Record<string, string>;
+  downloads: StepDownload[];
 }
 
 export interface ProcessingJobResponse {

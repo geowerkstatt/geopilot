@@ -40,7 +40,7 @@ internal static class DtoMapperExtensions
                     stepConfig.DisplayName,
                     StepState.Pending,
                     null,
-                    new Dictionary<string, Uri>()))
+                    new List<StepDownload>()))
                 .ToList()
             ?? new List<StepResultResponse>();
 
@@ -60,9 +60,11 @@ internal static class DtoMapperExtensions
     {
         var statusMessage = ExtractStatusMessage(step);
 
-        var downloads = step.PersistedDownloads.ToDictionary(
-            kvp => kvp.Key,
-            kvp => buildDownloadUrl(jobId, kvp.Value));
+        var downloads = step.PersistedDownloads
+            .Select(pd => new StepDownload(
+                pd.OriginalFileName,
+                buildDownloadUrl(jobId, pd.PersistedFileName)))
+            .ToList();
 
         return new StepResultResponse(
             step.Id,

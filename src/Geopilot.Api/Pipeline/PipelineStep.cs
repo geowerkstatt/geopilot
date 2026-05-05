@@ -49,7 +49,7 @@ public sealed class PipelineStep : IPipelineStep
     public StepResult? Result { get; private set; }
 
     /// <inheritdoc/>
-    public IDictionary<string, string> PersistedDownloads { get; } = new Dictionary<string, string>();
+    public IList<PersistedDownload> PersistedDownloads { get; } = new List<PersistedDownload>();
 
     private readonly ConditionEvaluator conditionEvaluator;
 

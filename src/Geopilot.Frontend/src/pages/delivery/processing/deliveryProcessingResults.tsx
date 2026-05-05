@@ -13,9 +13,10 @@ const localized = (entries?: Record<string, string>) =>
 export const DeliveryProcessingResults = () => {
   const { processingResponse, resetDelivery, isProcessing } = useContext(DeliveryContext);
 
-  const download = (url: string) => {
+  const download = (url: string, fileName: string) => {
     const anchor = document.createElement("a");
     anchor.href = url;
+    anchor.download = fileName;
     anchor.click();
   };
 
@@ -33,15 +34,15 @@ export const DeliveryProcessingResults = () => {
           </Typography>
           <FlexBox>
             {step.statusMessage && <Typography variant="body1">{localized(step.statusMessage)}</Typography>}
-            {Object.keys(step.downloads).length > 0 && (
+            {step.downloads.length > 0 && (
               <FlexRowBox>
-                {Object.entries(step.downloads).map(([key, url]) => (
+                {step.downloads.map(d => (
                   <BaseButton
-                    key={key}
+                    key={d.originalFileName}
                     variant="outlined"
-                    onClick={() => download(url)}
+                    onClick={() => download(d.url, d.originalFileName)}
                     icon={<FileDownloadIcon />}
-                    label={key}
+                    label={d.originalFileName}
                   />
                 ))}
               </FlexRowBox>
