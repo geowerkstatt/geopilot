@@ -1,4 +1,4 @@
-namespace Geopilot.Api.Pipeline;
+﻿namespace Geopilot.Api.Pipeline;
 
 /// <summary>
 /// Tracking record for a file produced by a pipeline step that has been persisted to disk —

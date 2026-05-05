@@ -8,8 +8,9 @@ namespace Geopilot.Api.Processing;
 
 /// <summary>
 /// Background worker that consumes pipelines from the <see cref="IProcessingJobStore.ProcessingQueue"/>
-/// and runs them. After each run, persistent download files produced by the pipeline are extracted to
-/// disk and tracked on each step via <see cref="IPipelineStep.PersistedDownloads"/>.
+/// and runs them. After each run, files produced by the pipeline are extracted to disk and split into
+/// <see cref="IPipelineStep.Downloads"/> (user-downloadable) and <see cref="IPipelineStep.DeliveryFiles"/>
+/// (delivery payload) according to each output's <see cref="OutputAction"/> tags.
 /// </summary>
 public class ProcessingRunner : BackgroundService
 {
@@ -45,15 +46,15 @@ public class ProcessingRunner : BackgroundService
 
             try
             {
-                await pipeline.Run(linkedCts.Token);
-                ExtractPersistentFiles(pipeline);
+                var pipelineContext = await pipeline.Run(linkedCts.Token);
+                ExtractPersistentFiles(pipeline, pipelineContext);
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
-                // Pipeline state is already Cancelled (set by the running step). Persist whatever
-                // partial outputs the pipeline produced before the timeout fired.
+                // Pipeline state is already Cancelled (set by the running step). Pipeline.Run threw
+                // before returning the context, so any partial step results are unreachable for
+                // file extraction here; the pre-timeout files are not persisted.
                 logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, processingOptions.JobTimeout);
-                ExtractPersistentFiles(pipeline);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -75,7 +76,7 @@ public class ProcessingRunner : BackgroundService
         });
     }
 
-    private void ExtractPersistentFiles(IPipeline pipeline)
+    private void ExtractPersistentFiles(IPipeline pipeline, PipelineContext context)
     {
         using var scope = serviceScopeFactory.CreateScope();
         var fileProvider = scope.ServiceProvider.GetRequiredService<IFileProvider>();
@@ -83,10 +84,10 @@ public class ProcessingRunner : BackgroundService
 
         foreach (var step in pipeline.Steps)
         {
-            if (step.Result == null)
+            if (!context.StepResults.TryGetValue(step.Id, out var stepResult))
                 continue;
 
-            foreach (var output in step.Result.Outputs.Values)
+            foreach (var output in stepResult.Outputs.Values)
             {
                 var isDownload = output.Action.Contains(OutputAction.Download);
                 var isDelivery = output.Action.Contains(OutputAction.Delivery);

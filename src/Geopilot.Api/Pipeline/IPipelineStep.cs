@@ -44,9 +44,12 @@ public interface IPipelineStep : IDisposable
     StepState State { get; set; }
 
     /// <summary>
-    /// The result produced by the step's process. Null until the step has run (or was skipped before producing a result).
+    /// Localized status message produced by the step (key: ISO 639 language code). Merges all
+    /// outputs tagged with <see cref="OutputAction.StatusMessage"/> — including condition-driven
+    /// pre-fail / pre-skip / post-fail messages added during <see cref="Run"/>. <see langword="null"/>
+    /// if the step has not run, or ran without emitting any status message.
     /// </summary>
-    StepResult? Result { get; }
+    IDictionary<string, string>? StatusMessage { get; }
 
     /// <summary>
     /// Files produced by the step that are available for the user to download (outputs
