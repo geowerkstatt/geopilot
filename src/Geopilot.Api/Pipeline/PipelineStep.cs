@@ -46,7 +46,7 @@ public sealed class PipelineStep : IPipelineStep
     public StepState State { get; set; }
 
     /// <inheritdoc/>
-    public StepResult? Result { get; private set; }
+    public IDictionary<string, string>? StatusMessage { get; private set; }
 
     /// <inheritdoc/>
     public IList<PersistedFile> Downloads { get; } = new List<PersistedFile>();
@@ -101,8 +101,9 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"step failed due to pre-condition.");
-                    this.Result = CreateConditionStepResult(this.Id + "_status_message_pre_fail_condition", failConditions);
-                    return this.Result;
+                    var preFailResult = CreateConditionStepResult(this.Id + "_status_message_pre_fail_condition", failConditions);
+                    this.StatusMessage = ExtractStatusMessage(preFailResult);
+                    return preFailResult;
                 }
 
                 var skipConditions = await this.FindMatchingSkipConditions(this.StepConditions.Pre, context);
@@ -110,15 +111,15 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Skipped;
                     logger.LogInformation($"step skipped due to pre-condition.");
-                    this.Result = CreateConditionStepResult(this.Id + "_status_message_pre_skip_condition", skipConditions);
-                    return this.Result;
+                    var preSkipResult = CreateConditionStepResult(this.Id + "_status_message_pre_skip_condition", skipConditions);
+                    this.StatusMessage = ExtractStatusMessage(preSkipResult);
+                    return preSkipResult;
                 }
             }
 
             this.State = StepState.Running;
 
             var stepResult = await ExecuteProcess(context, cancellationToken);
-            this.Result = stepResult;
 
             if (this.StepConditions != null)
             {
@@ -141,6 +142,7 @@ public sealed class PipelineStep : IPipelineStep
                 logger.LogInformation($"run successfull.");
             }
 
+            this.StatusMessage = ExtractStatusMessage(stepResult);
             return stepResult;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -243,6 +245,33 @@ public sealed class PipelineStep : IPipelineStep
         var stepResult = new StepResult();
         AddConditionMessages(stepOutputKey, stepResult, conditions);
         return stepResult;
+    }
+
+    /// <summary>
+    /// Merges all <see cref="OutputAction.StatusMessage"/> outputs from the step result into a
+    /// single localized dict. Multiple messages for the same language are joined with " - ".
+    /// </summary>
+    private static Dictionary<string, string>? ExtractStatusMessage(StepResult stepResult)
+    {
+        var localizedMessages = stepResult.Outputs
+            .Where(o => o.Value.Action.Contains(OutputAction.StatusMessage))
+            .Select(o => o.Value.Data as Dictionary<string, string>)
+            .Where(m => m != null)
+            .Cast<Dictionary<string, string>>()
+            .ToList();
+
+        if (localizedMessages.Count == 0)
+            return null;
+
+        var languages = localizedMessages.SelectMany(m => m.Keys).Distinct();
+        var merged = new Dictionary<string, string>();
+        foreach (var language in languages)
+        {
+            var parts = localizedMessages.Where(m => m.ContainsKey(language)).Select(m => m[language]);
+            merged[language] = string.Join(" - ", parts);
+        }
+
+        return merged;
     }
 
     private static void AddConditionMessages(string stepOutputKey, StepResult stepResult, List<ConditionConfig> conditions)
