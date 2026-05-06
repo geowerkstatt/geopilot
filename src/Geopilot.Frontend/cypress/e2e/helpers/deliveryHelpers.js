@@ -15,7 +15,7 @@ export const addFile = (filePath, success) => {
 };
 
 export const uploadFile = () => {
-  cy.intercept("POST", "/api/v1/processing").as("upload");
+  cy.intercept("POST", "/api/v2/processing").as("upload");
   cy.dataCy("acceptTermsOfUse-formCheckbox").then($checkbox => {
     if (!$checkbox.hasClass("Mui-checked")) {
       cy.dataCy("upload-button").should("be.disabled");
@@ -32,7 +32,7 @@ export const selectMandate = (index, expected) => {
 };
 
 export const startProcessing = () => {
-  cy.intercept("PATCH", "/api/v1/processing/*").as("startProcessing");
+  cy.intercept("PATCH", "/api/v2/processing/*").as("startProcessing");
   cy.dataCy("process-button").click();
   cy.wait("@startProcessing");
 };

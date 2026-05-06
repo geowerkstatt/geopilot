@@ -247,7 +247,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       const file = selectedFiles[0];
       const formData = new FormData();
       formData.append("file", file, file.name);
-      fetchApi<ProcessingJobResponse>("/api/v1/processing", {
+      fetchApi<ProcessingJobResponse>("/api/v2/processing", {
         method: "POST",
         body: formData,
         signal: abortController.signal,
@@ -284,7 +284,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [abortControllers, setStepError]);
 
   const pollProcessingStatusUntilFinished = (jobId: string, abortController: AbortController) => {
-    fetchApi<ProcessingJobResponse>(`/api/v1/processing/${jobId}`, {
+    fetchApi<ProcessingJobResponse>(`/api/v2/processing/${jobId}`, {
       method: "GET",
       signal: abortController.signal,
     })
@@ -321,7 +321,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
 
-    fetchApi<ProcessingJobResponse>(`/api/v1/processing/${jobId}`, {
+    fetchApi<ProcessingJobResponse>(`/api/v2/processing/${jobId}`, {
       method: "PATCH",
       body: JSON.stringify(startJobRequest),
       signal: abortController.signal,

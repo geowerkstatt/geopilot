@@ -32,7 +32,7 @@ export const DeliveryUpload = () => {
 
   useEffect(() => {
     if (!processingSettings) {
-      fetchApi<ProcessingSettings>("/api/v1/processing").then(setProcessingSettings);
+      fetchApi<ProcessingSettings>("/api/v2/processing").then(setProcessingSettings);
     }
   }, [fetchApi, processingSettings]);
 

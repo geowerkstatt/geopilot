@@ -13,7 +13,7 @@ import {
 describe("Delivery tests", () => {
   it("shows only processing steps if auth settings could not be loaded", () => {
     // Limit the file types to a few extensions
-    cy.intercept("GET", "/api/v1/processing", {
+    cy.intercept("GET", "/api/v2/processing", {
       statusCode: 200,
       body: { allowedFileExtensions: [".csv", ".gpkg", ".itf", ".xml", ".xtf", ".zip"] },
     }).as("fileExtensions");
@@ -113,7 +113,7 @@ describe("Delivery tests", () => {
 
   it("displays custom error messages when they don't match predefined errors", () => {
     cy.intercept(
-      { url: "/api/v1/processing", method: "POST" },
+      { url: "/api/v2/processing", method: "POST" },
       {
         statusCode: 418, // I'm a teapot
         body: {

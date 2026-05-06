@@ -18,6 +18,7 @@ namespace Geopilot.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("2.0")]
 [AllowAnonymous]
 public class ProcessingController : ControllerBase
 {
@@ -66,7 +67,7 @@ public class ProcessingController : ControllerBase
     ///
     /// ```bash
     /// curl -i -X POST -H "Content-Type: multipart/form-data" \
-    ///   -F 'file=@example.xtf' https://example.com/api/v1/processing
+    ///   -F 'file=@example.xtf' https://example.com/api/v2/processing
     /// ```
     /// </remarks>
     [HttpPost]
