@@ -79,8 +79,7 @@ services:
       context: ./docker/ili2gpkg-worker
     restart: unless-stopped
     volumes:
-      - ./shared/ili2gpkg/in:/shared/ili2gpkg/in
-      - ./shared/ili2gpkg/out:/shared/ili2gpkg/out
+      - ./shared/ili2gpkg/jobs:/shared/ili2gpkg/jobs
 
   geopilot:
     build:
@@ -125,11 +124,7 @@ services:
       - ./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml:/pipelines/pipelines.yaml:ro
       - ./src/Geopilot.Frontend/devPublic:/public
       - ./certs:/https:ro
-      # Shared filesystem handoff to the ili2gpkg-worker service. Geopilot drops XTF files
-      # and a per-file JSON config into /shared/ili2gpkg/in/ and polls /shared/ili2gpkg/out/
-      # for the resulting GeoPackage or a .error sentinel. No docker socket is mounted.
-      - ./shared/ili2gpkg/in:/shared/ili2gpkg/in
-      - ./shared/ili2gpkg/out:/shared/ili2gpkg/out
+      - ./shared/ili2gpkg/jobs:/shared/ili2gpkg/jobs
     extra_hosts:
       - "localhost:host-gateway"
     depends_on:
