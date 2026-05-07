@@ -120,9 +120,7 @@ export const DeliveryProcessingResults = () => {
                     }),
               }}
               data-cy={`processing-step-${step.id}`}>
-              <AccordionSummary
-                expandIcon={isExpandable ? <ExpandMoreIcon /> : null}
-                sx={isExpandable ? undefined : { cursor: "default", "&:hover": { backgroundColor: "transparent" } }}>
+              <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
                 <FlexRowBox sx={{ alignItems: "center", gap: 2 }}>
                   <ProcessingStepIcon state={step.state} index={index} />
                   <Typography variant="h5" sx={{ margin: 0 }}>
