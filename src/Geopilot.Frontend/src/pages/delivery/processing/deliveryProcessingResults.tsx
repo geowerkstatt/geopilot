@@ -1,4 +1,4 @@
-import { Accordion, AccordionDetails, AccordionSummary, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Typography } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { FlexBox, FlexRowBox, FlexRowEndBox } from "../../../components/styledComponents";
 import { BaseButton, CancelButton } from "../../../components/buttons";
@@ -80,46 +80,78 @@ export const DeliveryProcessingResults = () => {
           {localized(processingResponse.deliveryRestrictionMessage)}
         </Typography>
       )}
-      {steps.map((step, index) => {
-        const isExpandable = step.state !== StepState.Pending && stepHasContent(step);
-        return (
-          <Accordion
-            key={step.id}
-            expanded={isExpandable && expandedStepIds.has(step.id)}
-            onChange={isExpandable ? handleAccordionChange(step.id) : undefined}
-            disableGutters
-            data-cy={`processing-step-${step.id}`}>
-            <AccordionSummary
-              expandIcon={isExpandable ? <ExpandMoreIcon /> : null}
-              sx={isExpandable ? undefined : { cursor: "default", "&:hover": { backgroundColor: "transparent" } }}>
-              <FlexRowBox sx={{ alignItems: "center", gap: 2 }}>
-                <ProcessingStepIcon state={step.state} index={index} />
-                <Typography variant="h5" sx={{ margin: 0 }}>
-                  {localized(step.name)}
-                </Typography>
-              </FlexRowBox>
-            </AccordionSummary>
-            <AccordionDetails>
-              <FlexBox>
-                {step.statusMessage && <Typography variant="body1">{localized(step.statusMessage)}</Typography>}
-                {step.downloads.length > 0 && (
-                  <FlexRowBox>
-                    {step.downloads.map(d => (
-                      <BaseButton
-                        key={d.originalFileName}
-                        variant="outlined"
-                        onClick={() => download(d.url, d.originalFileName)}
-                        icon={<FileDownloadIcon />}
-                        label={d.originalFileName}
-                      />
-                    ))}
-                  </FlexRowBox>
-                )}
-              </FlexBox>
-            </AccordionDetails>
-          </Accordion>
-        );
-      })}
+      <Box>
+        {steps.map((step, index) => {
+          const isExpandable = step.state !== StepState.Pending && stepHasContent(step);
+          const isExpanded = isExpandable && expandedStepIds.has(step.id);
+
+          const isStepExpanded = (i: number) => {
+            const s = steps[i];
+            return s.state !== StepState.Pending && stepHasContent(s) && expandedStepIds.has(s.id);
+          };
+
+          const prevExpanded = index > 0 && isStepExpanded(index - 1);
+          const nextExpanded = index < steps.length - 1 && isStepExpanded(index + 1);
+          const isFirstInGroup = index === 0 || prevExpanded;
+          const isLastInGroup = index === steps.length - 1 || nextExpanded;
+
+          return (
+            <Accordion
+              key={step.id}
+              expanded={isExpanded}
+              onChange={isExpandable ? handleAccordionChange(step.id) : undefined}
+              disableGutters
+              sx={{
+                boxShadow: "none",
+                border: 1,
+                borderColor: "divider",
+                "&:before": { display: "none" },
+                ...(isExpanded
+                  ? {
+                      borderRadius: "4px",
+                      mt: index > 0 ? 2 : 0,
+                      mb: index < steps.length - 1 ? 2 : 0,
+                    }
+                  : {
+                      borderRadius: 0,
+                      ...(!isFirstInGroup && { borderTop: 0 }),
+                      ...(isFirstInGroup && { borderTopLeftRadius: "4px", borderTopRightRadius: "4px" }),
+                      ...(isLastInGroup && { borderBottomLeftRadius: "4px", borderBottomRightRadius: "4px" }),
+                    }),
+              }}
+              data-cy={`processing-step-${step.id}`}>
+              <AccordionSummary
+                expandIcon={isExpandable ? <ExpandMoreIcon /> : null}
+                sx={isExpandable ? undefined : { cursor: "default", "&:hover": { backgroundColor: "transparent" } }}>
+                <FlexRowBox sx={{ alignItems: "center", gap: 2 }}>
+                  <ProcessingStepIcon state={step.state} index={index} />
+                  <Typography variant="h5" sx={{ margin: 0 }}>
+                    {localized(step.name)}
+                  </Typography>
+                </FlexRowBox>
+              </AccordionSummary>
+              <AccordionDetails>
+                <FlexBox>
+                  {step.statusMessage && <Typography variant="body1">{localized(step.statusMessage)}</Typography>}
+                  {step.downloads.length > 0 && (
+                    <FlexRowBox>
+                      {step.downloads.map(d => (
+                        <BaseButton
+                          key={d.originalFileName}
+                          variant="outlined"
+                          onClick={() => download(d.url, d.originalFileName)}
+                          icon={<FileDownloadIcon />}
+                          label={d.originalFileName}
+                        />
+                      ))}
+                    </FlexRowBox>
+                  )}
+                </FlexBox>
+              </AccordionDetails>
+            </Accordion>
+          );
+        })}
+      </Box>
       {!isProcessing && !isProcessingDeliverable(processingResponse) && (
         <FlexRowEndBox>
           <CancelButton onClick={resetDelivery} />
