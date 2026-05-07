@@ -20,7 +20,6 @@ public sealed class ProcessingControllerTest
     private Context context;
     private Mock<ILogger<ProcessingController>> loggerMock;
     private Mock<IProcessingService> validationServiceMock;
-    private Mock<IAssetFileStore> assetFileStoreMock;
     private Mock<IDownloadFileStore> downloadFileStoreMock;
     private Mock<IContentTypeProvider> contentTypeProviderMock;
     private Mock<ApiVersion> apiVersionMock;
@@ -34,7 +33,6 @@ public sealed class ProcessingControllerTest
         context = AssemblyInitialize.DbFixture.GetTestContext();
         loggerMock = new Mock<ILogger<ProcessingController>>();
         validationServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
-        assetFileStoreMock = new Mock<IAssetFileStore>(MockBehavior.Strict);
         downloadFileStoreMock = new Mock<IDownloadFileStore>(MockBehavior.Strict);
         contentTypeProviderMock = new Mock<IContentTypeProvider>(MockBehavior.Strict);
         apiVersionMock = new Mock<ApiVersion>(MockBehavior.Strict, 9, 88, null!);
@@ -45,7 +43,6 @@ public sealed class ProcessingControllerTest
             loggerMock.Object,
             validationServiceMock.Object,
             pipelineServiceMock.Object,
-            assetFileStoreMock.Object,
             downloadFileStoreMock.Object,
             contentTypeProviderMock.Object,
             context);
@@ -56,7 +53,6 @@ public sealed class ProcessingControllerTest
     {
         loggerMock.VerifyAll();
         validationServiceMock.VerifyAll();
-        assetFileStoreMock.VerifyAll();
         downloadFileStoreMock.VerifyAll();
         contentTypeProviderMock.VerifyAll();
         apiVersionMock.VerifyAll();
@@ -181,29 +177,6 @@ public sealed class ProcessingControllerTest
     }
 
     [TestMethod]
-    public void DownloadFallsBackToDeliveryStore()
-    {
-        var jobId = Guid.NewGuid();
-        var persistedName = "xyz789.xtf";
-        var originalName = "delivery.xtf";
-
-        downloadFileStoreMock.Setup(x => x.Exists(jobId, persistedName)).Returns(false);
-        assetFileStoreMock.Setup(x => x.Exists(jobId, persistedName)).Returns(true);
-        assetFileStoreMock.Setup(x => x.OpenFile(jobId, persistedName)).Returns(Stream.Null);
-        validationServiceMock.Setup(x => x.GetJob(jobId))
-            .Returns(BuildJobWithDelivery(jobId, new PersistedFile(originalName, persistedName)));
-
-        var contentType = "application/interlis+xml";
-        contentTypeProviderMock.Setup(x => x.TryGetContentType(persistedName, out contentType)).Returns(true);
-
-        var response = controller.Download(jobId, persistedName) as FileStreamResult;
-
-        Assert.IsInstanceOfType<FileStreamResult>(response);
-        Assert.AreEqual("application/interlis+xml", response!.ContentType);
-        Assert.AreEqual(originalName, response.FileDownloadName);
-    }
-
-    [TestMethod]
     public void DownloadFallsBackToPersistedNameWhenJobMissing()
     {
         var jobId = Guid.NewGuid();
@@ -229,7 +202,6 @@ public sealed class ProcessingControllerTest
         var fileName = "missing-logfile.log";
 
         downloadFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(false);
-        assetFileStoreMock.Setup(x => x.Exists(jobId, fileName)).Returns(false);
 
         var response = controller.Download(jobId, fileName) as ObjectResult;
 
@@ -520,9 +492,6 @@ public sealed class ProcessingControllerTest
 
     private static ProcessingJob BuildJobWithDownload(Guid jobId, PersistedFile persisted)
         => BuildJobWithStepFiles(jobId, downloads: new List<PersistedFile> { persisted }, deliveryFiles: new List<PersistedFile>());
-
-    private static ProcessingJob BuildJobWithDelivery(Guid jobId, PersistedFile persisted)
-        => BuildJobWithStepFiles(jobId, downloads: new List<PersistedFile>(), deliveryFiles: new List<PersistedFile> { persisted });
 
     private static ProcessingJob BuildJobWithStepFiles(Guid jobId, List<PersistedFile> downloads, List<PersistedFile> deliveryFiles)
     {
