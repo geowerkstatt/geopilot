@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VSACheckerAnalytics</name>
+    </assembly>
+    <members>
+        <member name="T:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.Language">
+            <summary>
+            Languages supported by the VSA data models.
+            </summary>
+        </member>
+        <member name="F:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.Language.De">
+            <summary>German (Deutsch).</summary>
+        </member>
+        <member name="F:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.Language.Fr">
+            <summary>French (Français).</summary>
+        </member>
+        <member name="T:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.ModelVersion">
+            <summary>
+            VSA-DSS Mini data-model versions supported by the pipeline.
+            </summary>
+        </member>
+        <member name="F:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.ModelVersion.V2020">
+            <summary>VSA-DSS Mini 2020.</summary>
+        </member>
+        <member name="F:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.ModelVersion.V20201">
+            <summary>VSA-DSS Mini 2020.1.</summary>
+        </member>
+        <member name="T:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess">
+            <summary>
+            Routes input files by semantic role, extracts metadata from the GEP transfer file,
+            and enriches the pipeline with application resources and VSA repository data.
+            </summary>
+            <remarks>
+            <para>
+            The VSA Matcher receives the original user upload (GEP transfer file and optional
+            organisation table) together with the unzipped GEP checker output. It identifies each
+            file by INTERLIS model name or filename pattern, extracts the data-model version
+            (2020 / 2020.1) from the GEP header, selects version-matching application resources
+            (GeoPackage template, error matrix, QGIS project), and fetches the standard organisation
+            table from the public VSA repository.
+            </para>
+            <para>
+            ILI model filters use exact name matching (case-insensitive). A file matches when its
+            declared models overlap with at least one entry in the corresponding filter set.
+            Checker CSV identification uses regex patterns matched against the filename without extension.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.#ctor(Microsoft.Extensions.Logging.ILogger,Geopilot.Api.Pipeline.IPipelineFileManager,System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess"/> class.
+            </summary>
+            <param name="logger">Logger instance injected by the pipeline framework.</param>
+            <param name="pipelineFileManager">File manager for creating pipeline output files.</param>
+            <param name="geoPackageTemplatePath2020">Path to the GeoPackage template for model version 2020.</param>
+            <param name="geoPackageTemplatePath20201">Path to the GeoPackage template for model version 2020.1.</param>
+            <param name="errorMatrixPath">Path to the error matrix XLSX.</param>
+            <param name="vsaOrgTableUrl2020">URL of the standard organisation table (2020) on the VSA repository.</param>
+            <param name="vsaOrgTableUrl20201">URL of the standard organisation table (2020.1) on the VSA repository.</param>
+        </member>
+        <member name="M:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="M:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.RunAsync(Geopilot.PipelineCore.Pipeline.IPipelineFileList,Geopilot.PipelineCore.Pipeline.IPipelineFile[],System.Threading.CancellationToken)">
+            <summary>
+            Runs the VSA matcher: identifies input files, extracts metadata, loads resources, and
+            provides named output channels for downstream processors.
+            </summary>
+            <param name="uploadFiles">The originally uploaded files (GEP transfer file, optional org table, ZIP).</param>
+            <param name="unzippedFiles">Files extracted from the GEP checker ZIP by a preceding unzip step.</param>
+            <param name="cancellationToken">Token to cancel the operation.</param>
+            <returns>A dictionary of named outputs for downstream pipeline steps.</returns>
+        </member>
+        <member name="M:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.FindGepFiles(Geopilot.PipelineCore.Pipeline.IPipelineFileList)">
+            <summary>
+            Finds all GEP transfer files among the uploaded XTF files. Each match carries its own
+            model version and language. Checks version 2020.1 first (more specific) before 2020.
+            </summary>
+        </member>
+        <member name="M:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.FindOrgTables(Geopilot.PipelineCore.Pipeline.IPipelineFileList)">
+            <summary>
+            Finds all user-provided organisation tables among the uploaded XTF files.
+            </summary>
+        </member>
+        <member name="M:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.FindCheckerCsvs(Geopilot.PipelineCore.Pipeline.IPipelineFile[],System.String,System.String)">
+            <summary>
+            Finds all checker CSV files from the unzipped files. Files must reside in the
+            <see cref="F:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.CheckerDirectory"/> and match the given filename regex pattern.
+            </summary>
+        </member>
+        <member name="M:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.ExtractIliModels(Geopilot.PipelineCore.Pipeline.IPipelineFile)">
+            <summary>
+            Reads the INTERLIS model names declared in the XTF header of the given file.
+            Supports INTERLIS 2.4 (namespace-qualified elements) and INTERLIS 2.3
+            (default-namespace uppercase elements with <c>NAME</c> attribute).
+            Returns an empty set if the file cannot be parsed or matches neither format.
+            </summary>
+        </member>
+        <member name="M:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.CopyResourceToPipelineFileAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Copies a local application resource file into a pipeline-managed file.
+            </summary>
+        </member>
+        <member name="M:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.FetchToPipelineFileAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Downloads a file from the given URL and stores it as a pipeline-managed file.
+            </summary>
+        </member>
+        <member name="T:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.GepMatch">
+            <summary>
+            A GEP file match with its associated model version and language.
+            </summary>
+        </member>
+        <member name="M:VsaCheckerAnalytics.Process.Matcher.VsaMatcher.VsaMatcherProcess.GepMatch.#ctor(Geopilot.PipelineCore.Pipeline.IPipelineFile,VsaCheckerAnalytics.Process.Matcher.VsaMatcher.ModelVersion,VsaCheckerAnalytics.Process.Matcher.VsaMatcher.Language)">
+            <summary>
+            A GEP file match with its associated model version and language.
+            </summary>
+        </member>
+    </members>
+</doc>
