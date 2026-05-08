@@ -137,7 +137,7 @@ public class ConditionEvaluator : IConditionEvaluator
                 {
                     Array array => array.Length,
                     ICollection collection => collection.Count,
-                    null => throw new ArgumentException("Length() does not support null arguments."),
+                    null => 0,
                     _ => throw new ArgumentException($"Length() requires an array or collection argument but got {value.GetType().Name}."),
                 };
             }

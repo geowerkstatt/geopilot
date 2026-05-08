@@ -148,16 +148,6 @@ public class ConditionEvaluatorTest
         Assert.IsTrue(result);
     }
 
-    [TestMethod(DisplayName = "Length of null parameter throws")]
-    public async Task LengthOfNullParameterThrows()
-    {
-        var expressionParameters = new Dictionary<string, object?>()
-        {
-            { "step1.result1", null },
-        };
-        await Assert.ThrowsAsync<ArgumentException>(() => conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 0", expressionParameters));
-    }
-
     [TestMethod(DisplayName = "Length of non-collection parameter throws")]
     public async Task LengthOfNonCollectionParameterThrows()
     {
