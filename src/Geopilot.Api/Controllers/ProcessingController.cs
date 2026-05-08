@@ -25,19 +25,19 @@ public class ProcessingController : ControllerBase
     private readonly ILogger<ProcessingController> logger;
     private readonly IProcessingService processingService;
     private readonly IPipelineService pipelineService;
-    private readonly IFileProvider fileProvider;
+    private readonly IDownloadFileStore downloadFileStore;
     private readonly IContentTypeProvider contentTypeProvider;
     private readonly Context context;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingController"/> class.
     /// </summary>
-    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IPipelineService pipelineService, IFileProvider fileProvider, IContentTypeProvider contentTypeProvider, Context context)
+    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IPipelineService pipelineService, IDownloadFileStore downloadFileStore, IContentTypeProvider contentTypeProvider, Context context)
     {
         this.logger = logger;
         this.processingService = processingService;
         this.pipelineService = pipelineService;
-        this.fileProvider = fileProvider;
+        this.downloadFileStore = downloadFileStore;
         this.contentTypeProvider = contentTypeProvider;
         this.context = context;
     }
@@ -198,17 +198,29 @@ public class ProcessingController : ControllerBase
     public IActionResult Download(Guid jobId, string file)
     {
         logger.LogInformation("Download file <{File}> for job <{JobId}> requested.", HttpUtility.HtmlEncode(file), jobId);
-        fileProvider.Initialize(jobId);
 
-        if (!fileProvider.Exists(file))
+        if (!downloadFileStore.Exists(jobId, file))
         {
             logger.LogTrace("No file <{File}> found for job id <{JobId}>", HttpUtility.HtmlEncode(file), jobId);
             return Problem($"No file <{file}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        var stream = fileProvider.Open(file);
+        var stream = downloadFileStore.OpenFile(jobId, file);
         var contentType = contentTypeProvider.GetContentTypeAsString(file);
-        return File(stream, contentType, Path.GetFileName(file));
+        var downloadName = ResolveOriginalFileName(jobId, file) ?? Path.GetFileName(file);
+        return File(stream, contentType, downloadName);
+    }
+
+    private string? ResolveOriginalFileName(Guid jobId, string persistedFileName)
+    {
+        // Each step keeps an in-memory mapping from persisted (random) name → original
+        // human-readable name. After the job ages out of the store we fall back to the
+        // persisted name; by then the temp dirs are usually gone anyway.
+        var job = processingService.GetJob(jobId);
+        return job?.Pipeline?.Steps
+            .SelectMany(s => s.Downloads.Concat(s.DeliveryFiles))
+            .FirstOrDefault(f => f.PersistedFileName == persistedFileName)
+            ?.OriginalFileName;
     }
 
     private ProcessingJobResponse BuildResponse(ProcessingJob job)

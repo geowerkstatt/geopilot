@@ -25,7 +25,7 @@ public class CloudUploadPollingTest
     private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
     private Mock<ICloudStorageService> cloudStorageServiceMock;
     private Mock<IMandateService> mandateServiceMock;
-    private Mock<IFileProvider> fileProviderMock;
+    private Mock<IUploadFileStore> uploadFileStoreMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
     private Context context;
 
@@ -35,7 +35,7 @@ public class CloudUploadPollingTest
         cloudOrchestrationServiceMock = new Mock<ICloudOrchestrationService>(MockBehavior.Strict);
         cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
-        fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
+        uploadFileStoreMock = new Mock<IUploadFileStore>(MockBehavior.Strict);
         pipelineFactoryMock = new Mock<IPipelineFactory>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
 
@@ -46,7 +46,7 @@ public class CloudUploadPollingTest
         processingService = new ProcessingService(
             jobStore,
             mandateServiceMock.Object,
-            fileProviderMock.Object,
+            uploadFileStoreMock.Object,
             pipelineFactoryMock.Object,
             cloudOrchestrationServiceMock.Object,
             preflightChannel.Writer);
@@ -56,7 +56,7 @@ public class CloudUploadPollingTest
         serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudOrchestrationService))).Returns(cloudOrchestrationServiceMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudStorageService))).Returns(cloudStorageServiceMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IMandateService))).Returns(mandateServiceMock.Object);
-        serviceProviderMock.Setup(sp => sp.GetService(typeof(IFileProvider))).Returns(fileProviderMock.Object);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadFileStore))).Returns(uploadFileStoreMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IPipelineFactory))).Returns(pipelineFactoryMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(Context))).Returns(context);
 
@@ -203,8 +203,8 @@ public class CloudUploadPollingTest
                 return Task.FromResult(stagedJob);
             });
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, It.Is<User>(u => u.AuthIdentifier == user.AuthIdentifier))).ReturnsAsync(mandate);
-        fileProviderMock.Setup(x => x.Initialize(jobId));
-        fileProviderMock.Setup(x => x.GetFilePath("random.xtf")).Returns("path/to/random.xtf");
+        uploadFileStoreMock.Setup(x => x.Exists(jobId, "random.xtf")).Returns(true);
+        uploadFileStoreMock.Setup(x => x.GetPath(jobId, "random.xtf")).Returns("path/to/random.xtf");
         pipelineFactoryMock.Setup(x => x.CreatePipeline(mandate.PipelineId!, It.Is<PipelineFileList>(f => f.Files.Any(file => file.OriginalFileName == "test.xtf")), It.IsAny<Guid>())).Returns(pipeline.Object);
     }
 }

@@ -52,7 +52,7 @@ public class PreflightBackgroundService : BackgroundService
         var cloudOrchestrationService = scope.ServiceProvider.GetRequiredService<ICloudOrchestrationService>();
         var cloudStorageService = scope.ServiceProvider.GetRequiredService<ICloudStorageService>();
         var mandateService = scope.ServiceProvider.GetRequiredService<IMandateService>();
-        var fileProvider = scope.ServiceProvider.GetRequiredService<IFileProvider>();
+        var uploadFileStore = scope.ServiceProvider.GetRequiredService<IUploadFileStore>();
         var pipelineFactory = scope.ServiceProvider.GetRequiredService<IPipelineFactory>();
         var context = scope.ServiceProvider.GetRequiredService<Context>();
 
@@ -80,13 +80,12 @@ public class PreflightBackgroundService : BackgroundService
                 throw new InvalidOperationException($"The job <{request.JobId}> could not be started with mandate <{request.MandateId}>.");
             }
 
-            fileProvider.Initialize(request.JobId);
             var pipelineFiles = stagedJob.Files
                 .Select(f =>
                 {
-                    var path = fileProvider.GetFilePath(f.TempFileName);
-                    if (path == null)
+                    if (!uploadFileStore.Exists(request.JobId, f.TempFileName))
                         return null;
+                    var path = uploadFileStore.GetPath(request.JobId, f.TempFileName);
                     return new PipelineFile(path, f.OriginalFileName ?? "unknown");
                 })
                 .Where(f => f != null)

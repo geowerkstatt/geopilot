@@ -151,7 +151,8 @@ public class PipelineFactoryTest
 
         var fileAccessOptions = new FileAccessOptions()
         {
-            UploadDirectory = Path.Combine(Path.GetTempPath(), "Upload"),
+            UploadDirectory = Path.Combine(Path.GetTempPath(), "Uploads"),
+            DownloadDirectory = Path.Combine(Path.GetTempPath(), "Downloads"),
             AssetsDirectory = Path.Combine(Path.GetTempPath(), "Asset"),
             PipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline"),
         };

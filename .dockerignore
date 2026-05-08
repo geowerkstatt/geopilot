@@ -22,6 +22,7 @@
 **/secrets.dev.yaml
 **/values.dev.yaml
 src/Geopilot.Api/Uploads/*
+src/Geopilot.Api/Downloads/*
 src/Geopilot.Api/Persistent/*
 LICENSE
 README.md

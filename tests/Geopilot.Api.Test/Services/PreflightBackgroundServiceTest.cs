@@ -21,7 +21,7 @@ public class PreflightBackgroundServiceTest
     private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
     private Mock<ICloudStorageService> cloudStorageServiceMock;
     private Mock<IMandateService> mandateServiceMock;
-    private Mock<IFileProvider> fileProviderMock;
+    private Mock<IUploadFileStore> uploadFileStoreMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
     private Mock<ILogger<PreflightBackgroundService>> loggerMock;
     private Context context;
@@ -34,7 +34,7 @@ public class PreflightBackgroundServiceTest
         cloudOrchestrationServiceMock = new Mock<ICloudOrchestrationService>(MockBehavior.Strict);
         cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
-        fileProviderMock = new Mock<IFileProvider>(MockBehavior.Strict);
+        uploadFileStoreMock = new Mock<IUploadFileStore>(MockBehavior.Strict);
         pipelineFactoryMock = new Mock<IPipelineFactory>(MockBehavior.Strict);
         loggerMock = new Mock<ILogger<PreflightBackgroundService>>();
         context = AssemblyInitialize.DbFixture.GetTestContext();
@@ -44,7 +44,7 @@ public class PreflightBackgroundServiceTest
         serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudOrchestrationService))).Returns(cloudOrchestrationServiceMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudStorageService))).Returns(cloudStorageServiceMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IMandateService))).Returns(mandateServiceMock.Object);
-        serviceProviderMock.Setup(sp => sp.GetService(typeof(IFileProvider))).Returns(fileProviderMock.Object);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadFileStore))).Returns(uploadFileStoreMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IPipelineFactory))).Returns(pipelineFactoryMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(Context))).Returns(context);
 
@@ -88,8 +88,8 @@ public class PreflightBackgroundServiceTest
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId)).Returns(Task.CompletedTask);
         cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(jobId)).ReturnsAsync(stagedJob);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, It.Is<User>(u => u.AuthIdentifier == userAuthId))).ReturnsAsync(mandate);
-        fileProviderMock.Setup(x => x.Initialize(jobId));
-        fileProviderMock.Setup(x => x.GetFilePath("random.xtf")).Returns("path/to/random.xtf");
+        uploadFileStoreMock.Setup(x => x.Exists(jobId, "random.xtf")).Returns(true);
+        uploadFileStoreMock.Setup(x => x.GetPath(jobId, "random.xtf")).Returns("path/to/random.xtf");
         pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.Is<PipelineFileList>(files => files.Files.Any(f => f.OriginalFileName == "test.xtf")), jobId)).Returns(pipeline.Object);
         jobStoreMock.Setup(x => x.StartJob(jobId, pipeline.Object, mandateId)).Returns(startedJob);
 
@@ -119,8 +119,8 @@ public class PreflightBackgroundServiceTest
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId)).Returns(Task.CompletedTask);
         cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(jobId)).ReturnsAsync(stagedJob);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, null)).ReturnsAsync(mandate);
-        fileProviderMock.Setup(x => x.Initialize(jobId));
-        fileProviderMock.Setup(x => x.GetFilePath("random.xtf")).Returns("path/to/random.xtf");
+        uploadFileStoreMock.Setup(x => x.Exists(jobId, "random.xtf")).Returns(true);
+        uploadFileStoreMock.Setup(x => x.GetPath(jobId, "random.xtf")).Returns("path/to/random.xtf");
         pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.Is<PipelineFileList>(f => f.Files.Any(file => file.OriginalFileName == "test.xtf")), jobId)).Returns(pipeline.Object);
         jobStoreMock.Setup(x => x.StartJob(jobId, pipeline.Object, mandateId)).Returns(startedJob);
 

@@ -79,13 +79,19 @@ public class ProcessingRunner : BackgroundService
     private void ExtractPersistentFiles(IPipeline pipeline, PipelineContext context)
     {
         using var scope = serviceScopeFactory.CreateScope();
-        var fileProvider = scope.ServiceProvider.GetRequiredService<IFileProvider>();
-        fileProvider.Initialize(pipeline.JobId);
+        var assetFileStore = scope.ServiceProvider.GetRequiredService<IAssetFileStore>();
+        var downloadFileStore = scope.ServiceProvider.GetRequiredService<IDownloadFileStore>();
 
         foreach (var step in pipeline.Steps)
         {
             if (!context.StepResults.TryGetValue(step.Id, out var stepResult))
                 continue;
+
+            // Names are deterministic per step so they're readable on disk; collisions
+            // within the same step (rare — same originalFileName twice) get a numeric
+            // suffix to avoid silent overwrites.
+            var stepIdPrefix = step.Id.SanitizeFileName();
+            var usedNames = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var output in stepResult.Outputs.Values)
             {
@@ -97,18 +103,58 @@ public class ProcessingRunner : BackgroundService
                 if (output.Data is not IPipelineFile transferFile)
                     continue;
 
-                // Persist the file once, then reference it from whichever lists apply. A file
-                // tagged with both actions ends up in both Downloads and DeliveryFiles.
-                using var fileHandle = fileProvider.CreateFileWithRandomName(transferFile.FileExtension);
-                using var inStream = transferFile.OpenReadFileStream();
-                inStream.CopyTo(fileHandle.Stream);
-                var persisted = new PersistedFile(transferFile.OriginalFileName, fileHandle.FileName);
+                // Both stores are filled independently so each can be cleaned on its own
+                // retention. A file tagged with both actions is written to both under the
+                // same name — the download endpoint can fall back to the asset copy after
+                // the download retention expires.
+                var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
+                var persisted = new PersistedFile(transferFile.OriginalFileName, fileName);
+
+                if (isDelivery)
+                {
+                    CopyTo(assetFileStore, pipeline.JobId, fileName, transferFile);
+                    step.DeliveryFiles.Add(persisted);
+                }
 
                 if (isDownload)
+                {
+                    CopyTo(downloadFileStore, pipeline.JobId, fileName, transferFile);
                     step.Downloads.Add(persisted);
-                if (isDelivery)
-                    step.DeliveryFiles.Add(persisted);
+                }
             }
         }
+    }
+
+    private string MakeUniqueStepFileName(string stepIdPrefix, string originalFileName, HashSet<string> usedNames)
+    {
+        var baseName = $"{stepIdPrefix}_{originalFileName.SanitizeFileName()}";
+        if (usedNames.Add(baseName))
+            return baseName;
+
+        var stem = Path.GetFileNameWithoutExtension(baseName);
+        var extension = Path.GetExtension(baseName);
+        for (var counter = 2; counter < int.MaxValue; counter++)
+        {
+            var candidate = $"{stem}_{counter}{extension}";
+            if (usedNames.Add(candidate))
+            {
+                logger.LogWarning(
+                    "Duplicate output filename in step <{Step}>: <{Original}>. Persisting as <{Final}>.",
+                    stepIdPrefix,
+                    originalFileName,
+                    candidate);
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Could not generate a unique on-disk name for <{originalFileName}> in step <{stepIdPrefix}>.");
+    }
+
+    private static void CopyTo(IJobFileStore store, Guid jobId, string fileName, IPipelineFile source)
+    {
+        using var outStream = store.CreateFile(jobId, fileName);
+        using var inStream = source.OpenReadFileStream();
+        inStream.CopyTo(outStream);
     }
 }

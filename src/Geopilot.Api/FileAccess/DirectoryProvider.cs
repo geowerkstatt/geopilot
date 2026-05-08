@@ -2,13 +2,14 @@
 
 namespace Geopilot.Api.FileAccess;
 
-/// <summary>
-/// Provides access to the upload and asset directories.
-/// </summary>
+/// <inheritdoc />
 public class DirectoryProvider : IDirectoryProvider
 {
     /// <inheritdoc/>
     public string UploadDirectory { get; }
+
+    /// <inheritdoc/>
+    public string DownloadDirectory { get; }
 
     /// <inheritdoc/>
     public string AssetDirectory { get; }
@@ -27,25 +28,24 @@ public class DirectoryProvider : IDirectoryProvider
         var fileAccess = fileAccessOptions.Value;
 
         UploadDirectory = fileAccess.UploadDirectory;
+        DownloadDirectory = fileAccess.DownloadDirectory;
         AssetDirectory = fileAccess.AssetsDirectory;
         PipelineDirectory = fileAccess.PipelineDirectory;
     }
 
     /// <inheritdoc/>
-    public string GetAssetDirectoryPath(Guid jobId)
-    {
-        return Path.Combine(AssetDirectory, jobId.ToString());
-    }
+    public string GetUploadDirectoryPath(Guid jobId)
+        => Path.Combine(UploadDirectory, jobId.ToString());
 
     /// <inheritdoc/>
-    public string GetUploadDirectoryPath(Guid jobId)
-    {
-        return Path.Combine(UploadDirectory, jobId.ToString());
-    }
+    public string GetDownloadDirectoryPath(Guid jobId)
+        => Path.Combine(DownloadDirectory, jobId.ToString());
+
+    /// <inheritdoc/>
+    public string GetAssetDirectoryPath(Guid jobId)
+        => Path.Combine(AssetDirectory, jobId.ToString());
 
     /// <inheritdoc/>
     public string GetPipelineDirectoryPath(Guid jobId)
-    {
-        return Path.Combine(PipelineDirectory, jobId.ToString());
-    }
+        => Path.Combine(PipelineDirectory, jobId.ToString());
 }

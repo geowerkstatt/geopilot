@@ -56,6 +56,7 @@ ENV HOME=/app
 ENV TZ=Europe/Zurich
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV Storage__UploadDirectory=/uploads
+ENV Storage__DownloadDirectory=/downloads
 ENV Storage__AssetsDirectory=/assets
 ENV Storage__PipelineDirectory=/pipeline
 ENV PublicAssetsOverride=/public
@@ -72,12 +73,14 @@ RUN \
 # Create directories
 RUN \
  mkdir -p $Storage__UploadDirectory && \
+ mkdir -p $Storage__DownloadDirectory && \
  mkdir -p $Storage__AssetsDirectory && \
  mkdir -p $Storage__PipelineDirectory && \
  mkdir -p $PublicAssetsOverride
 
 EXPOSE 8080
 VOLUME $Storage__UploadDirectory
+VOLUME $Storage__DownloadDirectory
 VOLUME $Storage__AssetsDirectory
 VOLUME $Storage__PipelineDirectory
 

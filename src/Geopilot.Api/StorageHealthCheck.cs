@@ -23,8 +23,11 @@ namespace Geopilot.Api
 
             try
             {
-                // Simply check if the upload, asset, and pipeline directories exist.
-                if (!Directory.Exists(directoryProvider.UploadDirectory) || !Directory.Exists(directoryProvider.AssetDirectory) || !Directory.Exists(directoryProvider.PipelineDirectory))
+                // Simply check if all configured storage directories exist.
+                if (!Directory.Exists(directoryProvider.UploadDirectory)
+                    || !Directory.Exists(directoryProvider.DownloadDirectory)
+                    || !Directory.Exists(directoryProvider.AssetDirectory)
+                    || !Directory.Exists(directoryProvider.PipelineDirectory))
                 {
                     healthCheckResult = HealthCheckResult.Unhealthy();
                 }

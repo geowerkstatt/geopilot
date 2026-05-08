@@ -17,20 +17,20 @@ public class ProcessingService : IProcessingService
     private readonly IMandateService mandateService;
     private readonly ICloudOrchestrationService? cloudOrchestrationService;
     private readonly ChannelWriter<PreflightRequest>? preflightQueue;
-    private readonly IFileProvider fileProvider;
+    private readonly IUploadFileStore uploadFileStore;
     private readonly IPipelineFactory pipelineFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingService"/> class.
     /// </summary>
-    public ProcessingService(IProcessingJobStore jobStore, IMandateService mandateService, IFileProvider fileProvider, IPipelineFactory pipelineFactory, ICloudOrchestrationService? cloudOrchestrationService = null, ChannelWriter<PreflightRequest>? preflightQueue = null)
+    public ProcessingService(IProcessingJobStore jobStore, IMandateService mandateService, IUploadFileStore uploadFileStore, IPipelineFactory pipelineFactory, ICloudOrchestrationService? cloudOrchestrationService = null, ChannelWriter<PreflightRequest>? preflightQueue = null)
     {
         this.jobStore = jobStore;
         this.mandateService = mandateService;
         this.pipelineFactory = pipelineFactory;
         this.cloudOrchestrationService = cloudOrchestrationService;
         this.preflightQueue = preflightQueue;
-        this.fileProvider = fileProvider;
+        this.uploadFileStore = uploadFileStore;
     }
 
     /// <inheritdoc/>
@@ -42,9 +42,8 @@ public class ProcessingService : IProcessingService
         if (jobStore.GetJob(jobId) == null)
             throw new ArgumentException($"Processing job with id <{jobId}> not found.", nameof(jobId));
 
-        var extension = Path.GetExtension(originalFileName);
-        fileProvider.Initialize(jobId);
-        return fileProvider.CreateFileWithRandomName(extension);
+        var fileName = UploadFileNaming.MakeUnique(jobId, originalFileName, uploadFileStore);
+        return new FileHandle(fileName, uploadFileStore.CreateFile(jobId, fileName));
     }
 
     /// <inheritdoc/>
@@ -78,13 +77,12 @@ public class ProcessingService : IProcessingService
         var mandate = await mandateService.GetMandateForUser(mandateId, user);
         if (mandate != null && mandate.PipelineId != null && job.Files != null && job.Files.Count > 0)
         {
-            fileProvider.Initialize(jobId);
             var pipelineFiles = job.Files
                 .Select(f =>
                 {
-                    var path = fileProvider.GetFilePath(f.TempFileName);
-                    if (path == null)
+                    if (!uploadFileStore.Exists(jobId, f.TempFileName))
                         return null;
+                    var path = uploadFileStore.GetPath(jobId, f.TempFileName);
                     return new PipelineFile(path, f.OriginalFileName ?? "unknown");
                 })
                 .Where(f => f != null)
