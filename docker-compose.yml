@@ -124,6 +124,7 @@ services:
       - ./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml:/pipelines/pipelines.yaml:ro
       - ./src/Geopilot.Frontend/devPublic:/public
       - ./certs:/https:ro
+      - ./shared/ili2gpkg/jobs:/shared/ili2gpkg
     extra_hosts:
       - "localhost:host-gateway"
     depends_on:
