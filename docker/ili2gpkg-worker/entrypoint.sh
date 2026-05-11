@@ -1,7 +1,7 @@
 #!/bin/sh
 # ili2gpkg-worker entrypoint.
 #
-# Watches ${ILI2GPKG_JOBS_DIR} recursively for new <jobId>/input.ready sentinel files
+# Watches ${ILI2GPKG_JOBS_DIR} for new <jobId>/input.ready sentinel files
 # and invokes process.sh for each containing folder. The sentinel is written last by
 # the client, after all the job's payload files have been closed, so its appearance is
 # a reliable "this job is ready to process" signal that does not depend on rename
@@ -43,22 +43,16 @@ sweep_orphans() {
     if [ ! -d "${ILI2GPKG_JOBS_DIR}" ]; then
         return 0
     fi
-    # Find direct child directories whose output.ready or input.ready is too old.
+
     find "${ILI2GPKG_JOBS_DIR}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
         | while IFS= read -r folder; do
-            stale=0
-            if [ -e "${folder}/output.ready" ]; then
-                if find "${folder}/output.ready" -mmin "+${ILI2GPKG_ORPHAN_MAX_AGE_MINUTES}" \
-                        -print 2>/dev/null | grep -q .; then
-                    stale=1
-                fi
-            elif [ -e "${folder}/input.ready" ]; then
-                if find "${folder}/input.ready" -mmin "+${ILI2GPKG_ORPHAN_MAX_AGE_MINUTES}" \
-                        -print 2>/dev/null | grep -q .; then
-                    stale=1
-                fi
-            fi
-            if [ "${stale}" -eq 1 ]; then
+            # A folder is "active" if it (or any entry inside it) was modified
+            # within the last ORPHAN_MAX_AGE_MINUTES minutes.
+            # We look for any file/folder more recent (newer) than the threshold.
+            # If nothing is newer, the job is stale and we delete.
+            recent=$(find "${folder}" -mmin "-${ILI2GPKG_ORPHAN_MAX_AGE_MINUTES}" \
+                        -print -quit 2>/dev/null)
+            if [ -z "${recent}" ]; then
                 log "orphan-sweep: removing stale job '${folder}'"
                 rm -rf "${folder}"
             fi
