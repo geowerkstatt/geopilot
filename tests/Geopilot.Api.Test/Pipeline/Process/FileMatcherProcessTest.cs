@@ -10,11 +10,12 @@ public class FileMatcherProcessTest
     private static PipelineFileList FileList(params string[] fileNames) =>
         new PipelineFileList(fileNames.Select(n => (IPipelineFile)new PipelineFile("dummy", n)).ToList());
 
-    private static async Task<IPipelineFile[]> RunAsync(FileMatcherProcess process, IPipelineFileList files)
+    private static async Task<(IPipelineFile[] Files, Dictionary<string, string> StatusMessage)> RunAsync(FileMatcherProcess process, IPipelineFileList files)
     {
         var result = await process.RunAsync(files);
-        result.TryGetValue("matched_files", out var value);
-        return (IPipelineFile[])value!;
+        result.TryGetValue("matched_files", out var matchedFiles);
+        result.TryGetValue("status_message", out var statusMessage);
+        return ((IPipelineFile[])matchedFiles!, (Dictionary<string, string>)statusMessage!);
     }
 
     [TestMethod]
@@ -23,9 +24,10 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(null, null);
         var files = FileList("report.pdf", "map.png");
 
-        var result = await RunAsync(process, files);
+        var (result, statusMessage) = await RunAsync(process, files);
 
         Assert.HasCount(2, result);
+        Assert.AreEqual("2 of 2 file(s) match the filter criteria.", statusMessage["en"]);
     }
 
     [TestMethod]
@@ -34,10 +36,14 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(new HashSet<string>() { "pdf" }, null);
         var files = FileList("report.pdf", "map.png");
 
-        var result = await RunAsync(process, files);
+        var (result, statusMessage) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
         Assert.AreEqual("report.pdf", result[0].OriginalFileName);
+        Assert.AreEqual("1 von 2 Datei(en) entsprechen den Filterkriterien.", statusMessage["de"]);
+        Assert.AreEqual("1 fichier(s) sur 2 correspondent aux critères du filtre.", statusMessage["fr"]);
+        Assert.AreEqual("1 file su 2 corrispondono ai criteri del filtro.", statusMessage["it"]);
+        Assert.AreEqual("1 of 2 file(s) match the filter criteria.", statusMessage["en"]);
     }
 
     [TestMethod]
@@ -46,9 +52,10 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(new HashSet<string>() { "pdf" }, null);
         var files = FileList("map.png", "data.csv");
 
-        var result = await RunAsync(process, files);
+        var (result, statusMessage) = await RunAsync(process, files);
 
         Assert.HasCount(0, result);
+        Assert.AreEqual("No files match the filter criteria.", statusMessage["en"]);
     }
 
     [TestMethod]
@@ -57,7 +64,7 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(new HashSet<string>() { "PDF" }, null);
         var files = FileList("report.pdf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
     }
@@ -68,7 +75,7 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(new HashSet<string>() { "pdf", "png" }, null);
         var files = FileList("report.pdf", "map.png", "data.csv");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(2, result);
     }
@@ -79,7 +86,7 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(null, new HashSet<string>() { "Road.*" });
         var files = FileList("RoadNetwork.pdf", "MapData.pdf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
         Assert.AreEqual("RoadNetwork.pdf", result[0].OriginalFileName);
@@ -91,7 +98,7 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(null, new HashSet<string>() { "Road.*" });
         var files = FileList("MapData.pdf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(0, result);
     }
@@ -102,7 +109,7 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(null, new HashSet<string>() { "Road.*", "Map.*" });
         var files = FileList("RoadNetwork.pdf", "MapData.pdf", "Other.pdf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(2, result);
     }
@@ -113,7 +120,7 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(new HashSet<string>() { "pdf" }, new HashSet<string>() { "Road.*" });
         var files = FileList("RoadNetwork.pdf", "MapData.pdf", "RoadNetwork.png");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
         Assert.AreEqual("RoadNetwork.pdf", result[0].OriginalFileName);
@@ -125,7 +132,7 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(new HashSet<string>() { "pdf" }, new HashSet<string>() { "Road.*" });
         var files = FileList("MapData.png");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(0, result);
     }
@@ -136,8 +143,9 @@ public class FileMatcherProcessTest
         var process = new FileMatcherProcess(new HashSet<string>() { "pdf" }, null);
         var files = FileList();
 
-        var result = await RunAsync(process, files);
+        var (result, statusMessage) = await RunAsync(process, files);
 
         Assert.HasCount(0, result);
+        Assert.AreEqual("No files match the filter criteria.", statusMessage["en"]);
     }
 }

@@ -20,11 +20,12 @@ public class XtfMatcherProcessTest
     private static PipelineFileList FileListWithPath(params (string Path, string Name)[] files) =>
         new PipelineFileList(files.Select(f => (IPipelineFile)new PipelineFile(f.Path, f.Name)).ToList());
 
-    private static async Task<IPipelineFile[]> RunAsync(XtfMatcherProcess process, IPipelineFileList files)
+    private static async Task<(IPipelineFile[] Files, Dictionary<string, string> StatusMessage)> RunAsync(XtfMatcherProcess process, IPipelineFileList files)
     {
         var result = await process.RunAsync(files);
-        result.TryGetValue("xtf_files", out var value);
-        return (IPipelineFile[])value!;
+        result.TryGetValue("xtf_files", out var matchedFiles);
+        result.TryGetValue("status_message", out var statusMessage);
+        return ((IPipelineFile[])matchedFiles!, (Dictionary<string, string>)statusMessage!);
     }
 
     [TestMethod]
@@ -33,9 +34,10 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(null, null, null);
         var files = FileList("road.xtf", "map.itf");
 
-        var result = await RunAsync(process, files);
+        var (result, statusMessage) = await RunAsync(process, files);
 
         Assert.HasCount(2, result);
+        Assert.AreEqual("2 of 2 file(s) match the XTF filter criteria.", statusMessage["en"]);
     }
 
     [TestMethod]
@@ -44,10 +46,14 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, null);
         var files = FileList("road.xtf", "map.itf");
 
-        var result = await RunAsync(process, files);
+        var (result, statusMessage) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
         Assert.AreEqual("road.xtf", result[0].OriginalFileName);
+        Assert.AreEqual("1 von 2 Datei(en) entsprechen den XTF-Filterkriterien.", statusMessage["de"]);
+        Assert.AreEqual("1 fichier(s) sur 2 correspondent aux critères du filtre XTF.", statusMessage["fr"]);
+        Assert.AreEqual("1 file su 2 corrispondono ai criteri del filtro XTF.", statusMessage["it"]);
+        Assert.AreEqual("1 of 2 file(s) match the XTF filter criteria.", statusMessage["en"]);
     }
 
     [TestMethod]
@@ -56,9 +62,10 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, null);
         var files = FileList("map.itf", "data.gpkg");
 
-        var result = await RunAsync(process, files);
+        var (result, statusMessage) = await RunAsync(process, files);
 
         Assert.HasCount(0, result);
+        Assert.AreEqual("No files match the XTF filter criteria.", statusMessage["en"]);
     }
 
     [TestMethod]
@@ -67,7 +74,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(new HashSet<string>() { "XTF" }, null, null);
         var files = FileList("road.xtf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
     }
@@ -78,7 +85,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(new HashSet<string>() { "xtf", "itf" }, null, null);
         var files = FileList("road.xtf", "map.itf", "data.gpkg");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(2, result);
     }
@@ -89,7 +96,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(null, null, new HashSet<string>() { "Road.*" });
         var files = FileList("RoadNetwork.xtf", "MapData.xtf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
         Assert.AreEqual("RoadNetwork.xtf", result[0].OriginalFileName);
@@ -101,7 +108,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(null, null, new HashSet<string>() { "Road.*" });
         var files = FileList("MapData.xtf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(0, result);
     }
@@ -112,7 +119,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(null, null, new HashSet<string>() { "Road.*", "Map.*" });
         var files = FileList("RoadNetwork.xtf", "MapData.xtf", "Other.xtf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(2, result);
     }
@@ -123,7 +130,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, new HashSet<string>() { "Road.*" });
         var files = FileList("RoadNetwork.xtf", "MapData.xtf", "RoadNetwork.itf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
         Assert.AreEqual("RoadNetwork.xtf", result[0].OriginalFileName);
@@ -135,7 +142,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, new HashSet<string>() { "Road.*" });
         var files = FileList("MapData.itf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(0, result);
     }
@@ -146,9 +153,10 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(new HashSet<string>() { "xtf" }, null, null);
         var files = FileList();
 
-        var result = await RunAsync(process, files);
+        var (result, statusMessage) = await RunAsync(process, files);
 
         Assert.HasCount(0, result);
+        Assert.AreEqual("No files match the XTF filter criteria.", statusMessage["en"]);
     }
 
     [TestMethod]
@@ -160,7 +168,7 @@ public class XtfMatcherProcessTest
         var files = FileListWithPath(
             (RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"),
             (IseltwaldGwpBe13Xtf, "iseltwald_gwp_be13_1.xtf"));
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
     }
@@ -172,7 +180,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(null, new HashSet<string>() { RoadsExdm2ienModel }, null);
         var files = FileListWithPath((RoadsExdm2ienAltPrefixXtf, "RoadsExdm2ien_altPrefix.xtf"));
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
     }
@@ -184,7 +192,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(null, new HashSet<string>() { RoadsExdm2ienModel }, null);
         var files = FileListWithPath((RoadsExdm2ienDefaultNsXtf, "RoadsExdm2ien_defaultNs.xtf"));
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
     }
@@ -195,7 +203,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(null, new HashSet<string>() { "SomeOtherModel" }, null);
         var files = FileListWithPath((RoadsExdm2ienXtf, "RoadsExdm2ien.xtf"));
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(0, result);
     }
@@ -206,7 +214,7 @@ public class XtfMatcherProcessTest
         var process = new XtfMatcherProcess(null, new HashSet<string>() { RoadsExdm2ienModel }, null);
         var files = FileList("notAnXtfFile.xtf");
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(0, result);
     }
@@ -220,7 +228,7 @@ public class XtfMatcherProcessTest
             (RoadsExdm2ienXtf, "RoadsExdm2ien.itf"),
             (RoadsExdm2ienXtf, "OtherName.xtf"));
 
-        var result = await RunAsync(process, files);
+        var (result, _) = await RunAsync(process, files);
 
         Assert.HasCount(1, result);
         Assert.AreEqual("RoadsExdm2ien.xtf", result[0].OriginalFileName);
