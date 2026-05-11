@@ -98,10 +98,10 @@ itself reports any missing input via its own stderr, which the worker captures i
 
 ## Cleanup
 
-The worker sweeps `${ILI2GPKG_JOBS_DIR}` on startup and removes folders whose
-`output.ready` (or, absent that, `input.ready`) is older than
-`${ILI2GPKG_ORPHAN_MAX_AGE_MINUTES}` (default 1440 — 24 hours). That handles the
-"client died before consuming its output" and "worker died mid-job ages ago" cases.
+The worker sweeps `${ILI2GPKG_JOBS_DIR}` on startup and removes folders where nothing
+happened in the last `${ILI2GPKG_ORPHAN_MAX_AGE_MINUTES}` (default 1440 — 24 hours).
+That handles the cases, where the worker dies during a job or where the client never
+deletes the job assets.
 
 ## Running locally
 
