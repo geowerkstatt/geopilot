@@ -26,11 +26,15 @@
 # args.json shape (field names match ili2gpkg flags exactly, plus "operation"):
 #
 #   {
-#     "operation":          "schemaimport" | "import" | "export",
-#     "models":             ["MyModel"],         // optional, joined with ';'
-#     "disableValidation":  false,
-#     "createBasketCol":    false,
-#     "defaultSrsCode":     2056
+#     "operation":             "schemaimport" | "import" | "export",
+#     "models":                ["MyModel"],         // optional, joined with ';'
+#     "disableValidation":     false,
+#     "createBasketCol":       false,
+#     "defaultSrsCode":        2056,
+#     "sqlEnableNull":         false,
+#     "skipReferenceErrors":   false,
+#     "skipGeometryErrors":    false,
+#     "importTid":             false
 #   }
 
 set -eu
@@ -88,6 +92,10 @@ models=$(jq -r '.models // [] | join(";")' < "${args_file}")
 disable_validation=$(jq -r '.disableValidation // false' < "${args_file}")
 create_basket_col=$(jq -r '.createBasketCol // false' < "${args_file}")
 default_srs_code=$(jq -r '.defaultSrsCode // empty' < "${args_file}")
+sql_enable_null=$(jq -r '.sqlEnableNull // false' < "${args_file}")
+skip_reference_errors=$(jq -r '.skipReferenceErrors // false' < "${args_file}")
+skip_geometry_errors=$(jq -r '.skipGeometryErrors // false' < "${args_file}")
+import_tid=$(jq -r '.importTid // false' < "${args_file}")
 
 # Build ili2gpkg argv based on operation.
 case "${operation}" in
@@ -112,6 +120,10 @@ if [ "${create_basket_col}" = "true" ]; then set -- "$@" --createBasketCol; fi
 if [ "${disable_validation}" = "true" ]; then set -- "$@" --disableValidation; fi
 if [ -n "${models}" ]; then set -- "$@" --models "${models}"; fi
 if [ -n "${default_srs_code}" ]; then set -- "$@" --defaultSrsCode "${default_srs_code}"; fi
+if [ "${sql_enable_null}" = "true" ]; then set -- "$@" --sqlEnableNull; fi
+if [ "${skip_reference_errors}" = "true" ]; then set -- "$@" --skipReferenceErrors; fi
+if [ "${skip_geometry_errors}" = "true" ]; then set -- "$@" --skipGeometryErrors; fi
+if [ "${import_tid}" = "true" ]; then set -- "$@" --importTid; fi
 
 log "starting (operation=${operation})"
 
