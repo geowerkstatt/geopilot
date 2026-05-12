@@ -1,5 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
+using System.Globalization;
 using System.Xml.Linq;
 
 namespace Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher;
@@ -15,6 +16,22 @@ namespace Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher;
 internal class XtfMatcherProcess
 {
     private static readonly XNamespace Interlis24Namespace = "http://www.interlis.ch/xtf/2.4/INTERLIS";
+
+    private static readonly Dictionary<string, string> StatusMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "{0} von {1} Datei(en) entsprechen den XTF-Filterkriterien." },
+        { "fr", "{0} fichier(s) sur {1} correspondent aux critères du filtre XTF." },
+        { "it", "{0} file su {1} corrispondono ai criteri del filtro XTF." },
+        { "en", "{0} of {1} file(s) match the XTF filter criteria." },
+    };
+
+    private static readonly Dictionary<string, string> NoMatchStatusMessage = new Dictionary<string, string>
+    {
+        { "de", "Keine Dateien entsprechen den XTF-Filterkriterien." },
+        { "fr", "Aucun fichier ne correspond aux critères du filtre XTF." },
+        { "it", "Nessun file corrisponde ai criteri del filtro XTF." },
+        { "en", "No files match the XTF filter criteria." },
+    };
 
     private readonly HashSet<string> fileExtensions;
     private readonly HashSet<string> iliModels;
@@ -54,9 +71,16 @@ internal class XtfMatcherProcess
         if (iliModels.Count > 0)
             filtered = filtered.Matches(file => iliModels.Overlaps(ExtractIliModels(file)));
 
+        var matchedFiles = filtered.Files.ToArray();
+        var totalCount = uploadFiles.Files.Count;
+        var statusMessage = matchedFiles.Length == 0
+            ? NoMatchStatusMessage
+            : StatusMessageFormat.ToDictionary(msg => msg.Key, msg => string.Format(CultureInfo.InvariantCulture, msg.Value, matchedFiles.Length, totalCount));
+
         return Task.FromResult(new Dictionary<string, object?>
         {
-            { "xtf_files", filtered.Files.ToArray() },
+            { "xtf_files", matchedFiles },
+            { "status_message", statusMessage },
         });
     }
 

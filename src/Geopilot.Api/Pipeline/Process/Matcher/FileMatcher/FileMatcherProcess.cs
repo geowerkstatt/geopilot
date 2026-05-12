@@ -1,5 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
+using System.Globalization;
 
 namespace Geopilot.Api.Pipeline.Process.Matcher.FileMatcher;
 
@@ -13,6 +14,22 @@ namespace Geopilot.Api.Pipeline.Process.Matcher.FileMatcher;
 /// </remarks>
 internal class FileMatcherProcess
 {
+    private static readonly Dictionary<string, string> StatusMessageFormat = new Dictionary<string, string>
+    {
+        { "de", "{0} von {1} Datei(en) entsprechen den Filterkriterien." },
+        { "fr", "{0} fichier(s) sur {1} correspondent aux critères du filtre." },
+        { "it", "{0} file su {1} corrispondono ai criteri del filtro." },
+        { "en", "{0} of {1} file(s) match the filter criteria." },
+    };
+
+    private static readonly Dictionary<string, string> NoMatchStatusMessage = new Dictionary<string, string>
+    {
+        { "de", "Keine Dateien entsprechen den Filterkriterien." },
+        { "fr", "Aucun fichier ne correspond aux critères du filtre." },
+        { "it", "Nessun file corrisponde ai criteri del filtro." },
+        { "en", "No files match the filter criteria." },
+    };
+
     private readonly HashSet<string> fileExtensions;
     private readonly HashSet<string> fileNamePatterns;
 
@@ -41,9 +58,16 @@ internal class FileMatcherProcess
         if (fileNamePatterns.Count > 0)
             filtered = filtered.WithMatchingName(string.Join("|", fileNamePatterns.Select(p => $"({p})")));
 
+        var matchedFiles = filtered.Files.ToArray();
+        var totalCount = uploadFiles.Files.Count;
+        var statusMessage = matchedFiles.Length == 0
+            ? NoMatchStatusMessage
+            : StatusMessageFormat.ToDictionary(msg => msg.Key, msg => string.Format(CultureInfo.InvariantCulture, msg.Value, matchedFiles.Length, totalCount));
+
         return Task.FromResult(new Dictionary<string, object?>
         {
-            { "matched_files", filtered.Files.ToArray() },
+            { "matched_files", matchedFiles },
+            { "status_message", statusMessage },
         });
     }
 }

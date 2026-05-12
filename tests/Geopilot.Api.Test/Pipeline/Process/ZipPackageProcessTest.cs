@@ -206,4 +206,45 @@ public class ZipPackageProcessTest
         var exception = await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(null, Array.Empty<IPipelineFile>()));
         Assert.AreEqual("ZipPackageProcess: No input files provided.", exception.Message);
     }
+
+    [TestMethod]
+    public async Task PreservesOriginalRelativePath()
+    {
+        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
+        var process = new ZipPackageProcess("structuredArchive", null, pipelineFileManager, Mock.Of<ILogger<ZipPackageProcessTest>>());
+        var rootFile = new PipelineFile("TestData/UploadFiles/helloWorld.pdf", "helloWorld.pdf");
+        var nestedFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf", "sub/folder");
+
+        var processResult = await process.RunAsync(null, new IPipelineFile[] { rootFile, nestedFile });
+        processResult.TryGetValue("zip_package", out var outputData);
+        var zipArchive = outputData as IPipelineFile;
+        Assert.IsNotNull(zipArchive);
+
+        using var zipStream = zipArchive.OpenReadFileStream();
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        Assert.HasCount(2, archive.Entries);
+        Assert.IsTrue(archive.Entries.Any(e => e.FullName == "helloWorld.pdf"));
+        Assert.IsTrue(archive.Entries.Any(e => e.FullName == "sub/folder/RoadsExdm2ien.xtf"));
+    }
+
+    [TestMethod]
+    public async Task SameFileNameInDifferentDirectoriesNoDuplicateWarning()
+    {
+        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "ZipPackageProcess");
+        var mockLogger = new Mock<ILogger<ZipPackageProcessTest>>();
+        var process = new ZipPackageProcess("archive", null, pipelineFileManager, mockLogger.Object);
+        var file1 = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "data.xtf", "dir1");
+        var file2 = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "data.xtf", "dir2");
+
+        var processResult = await process.RunAsync(null, new IPipelineFile[] { file1, file2 });
+        processResult.TryGetValue("zip_package", out var outputData);
+        var zipArchive = outputData as IPipelineFile;
+        Assert.IsNotNull(zipArchive);
+
+        using var zipStream = zipArchive.OpenReadFileStream();
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        Assert.HasCount(2, archive.Entries);
+        Assert.IsTrue(archive.Entries.Any(e => e.FullName == "dir1/data.xtf"));
+        Assert.IsTrue(archive.Entries.Any(e => e.FullName == "dir2/data.xtf"));
+    }
 }

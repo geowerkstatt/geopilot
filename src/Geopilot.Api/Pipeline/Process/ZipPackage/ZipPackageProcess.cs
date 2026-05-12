@@ -94,15 +94,20 @@ internal class ZipPackageProcess
         {
             zipTransferFile = pipelineFileManager.GeneratePipelineFile(archiveFileName, "zip");
 
-            var duplicateFileNames = validFiles
-                .GroupBy(f => f.OriginalFileName)
+            static string EntryName(IPipelineFile file) =>
+                string.IsNullOrEmpty(file.OriginalRelativePath)
+                    ? file.OriginalFileName
+                    : $"{file.OriginalRelativePath.TrimEnd('/')}/{file.OriginalFileName}";
+
+            var duplicateEntryNames = validFiles
+                .GroupBy(EntryName)
                 .Where(g => g.Count() > 1)
                 .Select(g => g.Key)
                 .ToList();
 
-            if (duplicateFileNames.Count > 0)
+            if (duplicateEntryNames.Count > 0)
             {
-                logger.LogWarning("ZipPackageProcess: Duplicate file names detected in input: {DuplicateFileNames}.", string.Join(", ", duplicateFileNames));
+                logger.LogWarning("ZipPackageProcess: Duplicate entry names detected in input: {DuplicateEntryNames}.", string.Join(", ", duplicateEntryNames));
             }
 
             using (var zipArchiveFileStream = zipTransferFile.OpenWriteFileStream())
@@ -110,7 +115,7 @@ internal class ZipPackageProcess
             {
                 foreach (var file in validFiles)
                 {
-                    var zipEntry = zipArchive.CreateEntry(file.OriginalFileName);
+                    var zipEntry = zipArchive.CreateEntry(EntryName(file));
                     using var zipEntryStream = zipEntry.Open();
                     using var fileStream = file.OpenReadFileStream();
                     fileStream.CopyTo(zipEntryStream);
