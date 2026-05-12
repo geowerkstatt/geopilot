@@ -19,6 +19,7 @@ public sealed class AssemblyInitialize
         var downloadDirectory = Path.Combine(testContext.DeploymentDirectory, "Downloads");
         var assetDirectory = Path.Combine(testContext.DeploymentDirectory, "Asset");
         var pipelineDirectory = Path.Combine(testContext.DeploymentDirectory, "Pipeline");
+        var resourcesDirectory = Path.Combine(testContext.DeploymentDirectory, "Resources");
 
         var fileAccessOptions = new FileAccessOptions()
         {
@@ -26,6 +27,7 @@ public sealed class AssemblyInitialize
             DownloadDirectory = downloadDirectory,
             AssetsDirectory = assetDirectory,
             PipelineDirectory = pipelineDirectory,
+            ResourcesDirectory = resourcesDirectory,
         };
 
         TestDirectoryProvider = new DirectoryProvider(Options.Create(fileAccessOptions));
@@ -33,5 +35,6 @@ public sealed class AssemblyInitialize
         Console.WriteLine($"DownloadDirectory: {downloadDirectory}");
         Console.WriteLine($"AssetDirectory: {assetDirectory}");
         Console.WriteLine($"PipelineDirectory: {pipelineDirectory}");
+        Console.WriteLine($"ResourcesDirectory: {resourcesDirectory}");
     }
 }

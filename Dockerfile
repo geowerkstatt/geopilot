@@ -59,7 +59,7 @@ ENV Storage__UploadDirectory=/uploads
 ENV Storage__DownloadDirectory=/downloads
 ENV Storage__AssetsDirectory=/assets
 ENV Storage__PipelineDirectory=/pipeline
-ENV $Storage__ResourcesDirectory=/resources
+ENV Storage__ResourcesDirectory=/resources
 ENV PublicAssetsOverride=/public
 WORKDIR ${HOME}
 

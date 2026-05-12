@@ -155,6 +155,7 @@ public class PipelineFactoryTest
             DownloadDirectory = Path.Combine(Path.GetTempPath(), "Downloads"),
             AssetsDirectory = Path.Combine(Path.GetTempPath(), "Asset"),
             PipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline"),
+            ResourcesDirectory = Path.Combine(Path.GetTempPath(), "Resources"),
         };
 
         return PipelineFactory
