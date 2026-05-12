@@ -59,6 +59,7 @@ ENV Storage__UploadDirectory=/uploads
 ENV Storage__DownloadDirectory=/downloads
 ENV Storage__AssetsDirectory=/assets
 ENV Storage__PipelineDirectory=/pipeline
+ENV Storage__ResourcesDirectory=/resources
 ENV PublicAssetsOverride=/public
 WORKDIR ${HOME}
 
@@ -76,6 +77,7 @@ RUN \
  mkdir -p $Storage__DownloadDirectory && \
  mkdir -p $Storage__AssetsDirectory && \
  mkdir -p $Storage__PipelineDirectory && \
+ mkdir -p $Storage__ResourcesDirectory && \
  mkdir -p $PublicAssetsOverride
 
 EXPOSE 8080
@@ -83,6 +85,7 @@ VOLUME $Storage__UploadDirectory
 VOLUME $Storage__DownloadDirectory
 VOLUME $Storage__AssetsDirectory
 VOLUME $Storage__PipelineDirectory
+VOLUME $Storage__ResourcesDirectory
 
 # Set default locale
 ENV LANG=C.UTF-8

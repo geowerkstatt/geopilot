@@ -39,4 +39,10 @@ public class FileAccessOptions
     /// </summary>
     [Required(AllowEmptyStrings = false)]
     public required string PipelineDirectory { get; set; }
+
+    /// <summary>
+    /// Gets or sets the directory for application resource files.
+    /// </summary>
+    [Required(AllowEmptyStrings = false)]
+    public required string ResourcesDirectory { get; set; }
 }
