@@ -1,21 +1,25 @@
 #!/bin/sh
 # ili2gpkg-worker entrypoint.
 #
-# Watches ${ILI2GPKG_INPUT_DIR} for new *.input.ready sentinel files and invokes
-# process.sh for each one. The sentinel is written last by geopilot, after both the xtf
-# and config payloads have been closed, so its appearance is a reliable "this job is
-# ready to process" signal that does not depend on rename atomicity (which is unreliable
-# on Docker Desktop bind-mounts to the host filesystem on Windows).
+# Watches ${ILI2GPKG_JOBS_DIR} for new <jobId>/input.ready sentinel files
+# and invokes process.sh for each containing folder. The sentinel is written last by
+# the client, after all the job's payload files have been closed, so its appearance is
+# a reliable "this job is ready to process" signal that does not depend on rename
+# atomicity (which is unreliable on Docker Desktop bind-mounts to the host filesystem
+# on Windows).
 #
 # Two event sources:
 #   1. An initial scan on startup, to pick up sentinels that arrived while the worker was
 #      restarting (or were left behind by a previous crashed run).
-#   2. inotifywait for close_write + moved_to on the input dir, so a fresh sentinel
+#   2. inotifywait -r for close_write + moved_to on the jobs root, so a fresh sentinel
 #      triggers processing with sub-second latency.
 #
-# A per-worker orphan sweep runs on startup to remove stale outputs from
-# ${ILI2GPKG_OUTPUT_DIR} older than ${ILI2GPKG_ORPHAN_MAX_AGE_MINUTES}. That handles the
-# "geopilot died before consuming its output" case.
+# A per-worker orphan sweep runs on startup to remove stale job folders:
+#   - folders whose output.ready is older than ${ILI2GPKG_ORPHAN_MAX_AGE_MINUTES}
+#     (client died before consuming),
+#   - folders that have an input.ready but no output.ready and the input.ready is older
+#     than that same threshold (worker was killed mid-job and the job is too stale to
+#     bother retrying).
 #
 # Signals: tini (PID 1) translates SIGTERM into SIGTERM on this script. `inotifywait`
 # blocks the main loop, and SIGTERM on it returns a non-zero exit which breaks the
@@ -23,53 +27,57 @@
 
 set -eu
 
-: "${ILI2GPKG_INPUT_DIR:?ILI2GPKG_INPUT_DIR must be set}"
-: "${ILI2GPKG_OUTPUT_DIR:?ILI2GPKG_OUTPUT_DIR must be set}"
+: "${ILI2GPKG_JOBS_DIR:?ILI2GPKG_JOBS_DIR must be set}"
 : "${ILI2GPKG_ORPHAN_MAX_AGE_MINUTES:=1440}"
 
 log() {
     printf '[%s] [ili2gpkg-worker] %s\n' "$(date --iso-8601=seconds)" "$*"
 }
 
-mkdir -p "${ILI2GPKG_INPUT_DIR}" "${ILI2GPKG_OUTPUT_DIR}"
+mkdir -p "${ILI2GPKG_JOBS_DIR}"
 
-# Delete output files that nobody consumed within the orphan window. Inputs are deleted
-# by process.sh on success; orphan inputs (worker died mid-run) are retried on next scan
-# because the *.input.ready sentinel is still present.
+# Reclaim stale job folders. The client is the normal owner of folder cleanup (it
+# deletes the folder after consuming the result), so anything still here past the
+# threshold was abandoned.
 sweep_orphans() {
-    if [ ! -d "${ILI2GPKG_OUTPUT_DIR}" ]; then
+    if [ ! -d "${ILI2GPKG_JOBS_DIR}" ]; then
         return 0
     fi
-    # -mmin takes minutes; find emits errors if the dir is empty, so tolerate that.
-    find "${ILI2GPKG_OUTPUT_DIR}" -maxdepth 1 -type f \
-        -mmin "+${ILI2GPKG_ORPHAN_MAX_AGE_MINUTES}" -print -delete 2>/dev/null \
-        | while IFS= read -r f; do
-            log "orphan-sweep: removed stale output '${f}'"
+
+    find "${ILI2GPKG_JOBS_DIR}" -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
+        | while IFS= read -r folder; do
+            # A folder is "active" if it (or any entry inside it) was modified
+            # within the last ORPHAN_MAX_AGE_MINUTES minutes.
+            # We look for any file/folder more recent (newer) than the threshold.
+            # If nothing is newer, the job is stale and we delete.
+            recent=$(find "${folder}" -mmin "-${ILI2GPKG_ORPHAN_MAX_AGE_MINUTES}" \
+                        -print -quit 2>/dev/null)
+            if [ -z "${recent}" ]; then
+                log "orphan-sweep: removing stale job '${folder}'"
+                rm -rf "${folder}"
+            fi
         done
 }
 
-# Process all currently-present *.input.ready sentinels. Safe to call repeatedly —
-# process.sh is idempotent on the output sentinel: if {basename}.output.ready already
-# exists, process.sh returns early.
+# Process all currently-present <jobId>/input.ready sentinels. Safe to call repeatedly —
+# process.sh is idempotent on output.ready: if it already exists, process.sh returns
+# early.
 scan_once() {
-    # Use find rather than glob so an empty dir doesn't break the loop. The sentinel is
-    # the dispatch trigger; we derive the xtf path from it and hand that to process.sh
-    # (which expects an xtf path as $1, same as before).
-    find "${ILI2GPKG_INPUT_DIR}" -maxdepth 1 -type f -name '*.input.ready' -print \
+    find "${ILI2GPKG_JOBS_DIR}" -mindepth 2 -maxdepth 2 -type f -name 'input.ready' -print \
         | while IFS= read -r ready; do
-            xtf="${ready%.input.ready}.xtf"
-            /usr/local/bin/process.sh "${xtf}" || log "process.sh returned non-zero for '${xtf}' (already logged)"
+            folder=$(dirname "${ready}")
+            /usr/local/bin/process.sh "${folder}" || log "process.sh returned non-zero for '${folder}' (already logged)"
         done
 }
 
-log "starting; input=${ILI2GPKG_INPUT_DIR} output=${ILI2GPKG_OUTPUT_DIR}"
+log "starting; jobs=${ILI2GPKG_JOBS_DIR}"
 sweep_orphans
 scan_once
 
 # Main loop: block on filesystem events, then rescan. We rescan (rather than processing
 # the specific file inotifywait reported) because the sentinel is the only event we
-# care about — events on the xtf or config payloads are noise. A full pass dispatches
-# strictly on *.input.ready files and ignores the rest.
+# care about — events on payload files are noise. A full pass dispatches strictly on
+# input.ready files and ignores the rest.
 #
 # The -t ${ILI2GPKG_POLL_FALLBACK_SECONDS:-2} argument forces inotifywait to return
 # periodically even when no events fire. That's the safety net for filesystems where
@@ -77,8 +85,8 @@ scan_once
 # the host Windows filesystem frequently drop close_write/moved_to events). On Linux
 # hosts the events almost always arrive and the scan just finds nothing to do.
 while true; do
-    inotifywait -q -t "${ILI2GPKG_POLL_FALLBACK_SECONDS:-2}" \
-                -e close_write -e moved_to \
-                "${ILI2GPKG_INPUT_DIR}" >/dev/null || true
+    inotifywait -q -r -t "${ILI2GPKG_POLL_FALLBACK_SECONDS:-2}" \
+                -e close_write -e moved_to -e create \
+                "${ILI2GPKG_JOBS_DIR}" >/dev/null || true
     scan_once
 done

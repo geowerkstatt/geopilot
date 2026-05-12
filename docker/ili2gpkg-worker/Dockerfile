@@ -1,10 +1,10 @@
 # syntax=docker.io/docker/dockerfile:1
 # check=error=true
 
-# Long-running worker that watches a shared input directory for XTF files dropped by
-# geopilot, converts each one via ili2gpkg, and writes the resulting GeoPackage to a
-# shared output directory. Replaces the previous pattern of having geopilot spawn ili2gpkg
-# containers itself (which required mounting the docker socket into geopilot).
+# Long-running worker that watches a shared jobs directory for per-request job folders
+# dropped by any client, runs ili2gpkg over each (schemaimport / import / export), and
+# writes the result file plus a per-job log back into the same folder. Self-contained:
+# clients drive it purely through the shared filesystem, no socket, no SDK.
 
 ARG ILI2GPKG_VERSION=5.1.0
 
@@ -26,7 +26,7 @@ RUN apt-get update \
 
 # Stage 2: runtime image. Installs only what the worker actually invokes:
 #   - inotify-tools: inotifywait for the watch loop.
-#   - jq:            parse the per-file config sidecar (<basename>.config.json).
+#   - jq:            parse the per-job args.json sidecar.
 #   - tini:          PID 1 signal handler so SIGTERM from `docker stop` reaches the loop.
 # ca-certificates is already present in the eclipse-temurin base and is required at
 # runtime so ili2gpkg can fetch INTERLIS models from models.interlis.ch over HTTPS.
@@ -42,11 +42,10 @@ RUN apt-get update \
 
 COPY --from=ili2gpkg-fetcher /opt/ili2gpkg ${ILI2GPKG_HOME}
 
-# The worker writes to these paths; they must be bind-mounted into the container by
-# whatever orchestrator is running it. The paths are fixed inside the image so the
-# entrypoint script can assume them.
-ENV ILI2GPKG_INPUT_DIR=/shared/ili2gpkg/in \
-    ILI2GPKG_OUTPUT_DIR=/shared/ili2gpkg/out \
+# The worker reads and writes per-job folders under this single shared root. It must be
+# bind-mounted into the container by whatever orchestrator is running it; the path is
+# fixed inside the image so the entrypoint script can assume it.
+ENV ILI2GPKG_JOBS_DIR=/shared/ili2gpkg/jobs \
     ILI2GPKG_CACHE_DIR=/var/cache/ili2gpkg \
     ILI2GPKG_ORPHAN_MAX_AGE_MINUTES=1440
 
@@ -59,7 +58,7 @@ COPY process.sh /usr/local/bin/process.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/process.sh
 
 LABEL org.opencontainers.image.title="ili2gpkg-worker" \
-      org.opencontainers.image.description="Long-running worker that converts XTF files dropped into a shared input directory by GeoPilot into GeoPackage files." \
+      org.opencontainers.image.description="Long-running worker that runs ili2gpkg (schemaimport / import / export) over per-job folders dropped into a shared directory. Self-contained — driven purely through the shared filesystem." \
       org.opencontainers.image.source="https://github.com/GeoWerkstatt/geopilot" \
       org.opencontainers.image.licenses="LGPL-2.1-only"
 
