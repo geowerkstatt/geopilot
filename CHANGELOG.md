@@ -8,6 +8,10 @@
 - Optional virus scanning with ClamAV for cloud uploads.
 - Rate limiting and upload capacity limits for the cloud upload endpoint.
 
+### Changed
+
+- `Pipeline:Plugins` can now be configured via a single comma-separated value (e.g. `Pipeline__Plugins=a.dll,b.dll`) in addition to the existing JSON array form, making it usable as a flat environment variable.
+
 ### Fixed
 
 - The application can start without needing the permission to install PostgreSQL extensions if PostGIS is already installed.
