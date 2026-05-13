@@ -3,7 +3,7 @@
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-ARG VERSION=0.0.1
+ARG APP_VERSION=0.0.1
 ARG REVISION=0000000
 
 # Set default shell
@@ -37,7 +37,7 @@ ENV GENERATE_SOURCEMAP=false
 COPY src/ .
 RUN dotnet publish "Geopilot.Api/Geopilot.Api.csproj" \
   -c Release \
-  -p:VersionPrefix=${VERSION} \
+  -p:VersionPrefix=${APP_VERSION} \
   -p:SourceRevisionId=${REVISION} \
   -p:UseAppHost=false \
   -o ${PUBLISH_DIR}
