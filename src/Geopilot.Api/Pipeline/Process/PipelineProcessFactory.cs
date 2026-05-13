@@ -85,7 +85,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         var loadContextLogger = loggerFactory.CreateLogger<ProcessPluginLoadContext>();
 
-        foreach (var assemblyPath in pipelineOptions.Plugins)
+        var assemblyPaths = pipelineOptions.Plugins
+            .SelectMany(p => p.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+        foreach (var assemblyPath in assemblyPaths)
         {
             var assemblyFullPath = Path.IsPathRooted(assemblyPath) ? assemblyPath : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, assemblyPath));
 
