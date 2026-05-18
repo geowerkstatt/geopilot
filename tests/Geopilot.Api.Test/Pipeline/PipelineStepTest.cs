@@ -136,6 +136,21 @@ public class PipelineStepTest
         }
     }
 
+    private class MockPipelineProcessOptionalSingleInput
+    {
+        public int NumberOfRunInvokations { get; set; }
+
+        public string? NullableData { get; set; }
+
+        [PipelineProcessRun]
+        public async Task<Dictionary<string, object>> RunAsync(string? nullableData)
+        {
+            NullableData = nullableData;
+            NumberOfRunInvokations++;
+            return [];
+        }
+    }
+
     private class MockPipelineProcessException
     {
         public int NumberOfRunInvoced { get; set; }
@@ -1433,6 +1448,50 @@ public class PipelineStepTest
 
         // French only present on the second condition
         Assert.AreEqual("Deuxième condition échouée", message["fr"]);
+    }
+
+    [TestMethod]
+    public async Task SuccessfullStepRunWithNullableSingleParameterFromEmptyArrayOutput()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("step_01", "data", "nullableData"),
+        };
+        var stepStepResult01 = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "data", new StepOutput { Action = new HashSet<OutputAction>(), Data = Array.Empty<string>() } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            Upload = new PipelineFileList(),
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "step_01", stepStepResult01 },
+            },
+        };
+
+        var processMock = new MockPipelineProcessOptionalSingleInput();
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName([])
+            .InputConfig(inputConfigs)
+            .OutputConfig([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        Assert.AreEqual(StepState.Pending, pipelineStep.State);
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+        Assert.AreEqual(1, processMock.NumberOfRunInvokations, "Process Run method was not invoked exactly once.");
+        Assert.IsNull(processMock.NullableData);
     }
 
     private InputConfig NewInputConfig(string from, string take, string asInput)
