@@ -78,11 +78,15 @@ fixed by the protocol.
 
 | Field               | ili2gpkg flag         | Notes |
 |---------------------|-----------------------|-------|
-| `operation`         | (dispatch only)       | `schemaimport` \| `import` \| `export` |
-| `models`            | `--models`            | passed as semicolon-joined list |
-| `disableValidation` | `--disableValidation` | |
-| `createBasketCol`   | `--createBasketCol`   | |
-| `defaultSrsCode`    | `--defaultSrsCode`    | |
+| `operation`           | (dispatch only)         | `schemaimport` \| `import` \| `export` |
+| `models`              | `--models`              | passed as semicolon-joined list |
+| `disableValidation`   | `--disableValidation`   | |
+| `createBasketCol`     | `--createBasketCol`     | |
+| `defaultSrsCode`      | `--defaultSrsCode`      | |
+| `sqlEnableNull`       | `--sqlEnableNull`       | |
+| `skipReferenceErrors` | `--skipReferenceErrors` | |
+| `skipGeometryErrors`  | `--skipGeometryErrors`  | |
+| `importTid`           | `--importTid`           | |
 
 Per-operation file shape inside the job folder:
 
