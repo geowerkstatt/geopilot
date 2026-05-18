@@ -29,7 +29,7 @@ jobs:
 
       - name: Build image from Dockerfile
         run: |
-          docker build --build-arg VERSION=$GITHUB_RUN_NUMBER --build-arg REVISION=${{ github.sha }} -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker build --build-arg APP_VERSION=$GITHUB_RUN_NUMBER --build-arg REVISION=${{ github.sha }} -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
