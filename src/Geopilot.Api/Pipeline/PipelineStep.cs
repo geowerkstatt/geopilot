@@ -357,6 +357,8 @@ public sealed class PipelineStep : IPipelineStep
 
         if (mappedValues.Count == 1)
             return GenerateSingleParameter(parameterInfo, mappedValues[0]);
+        else if (IsParameterNullable(parameterInfo) && mappedValues.Count == 0)
+            return null;
         else
             throw new PipelineRunException($"<{mappedValues.Count}> values found for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method.");
     }
