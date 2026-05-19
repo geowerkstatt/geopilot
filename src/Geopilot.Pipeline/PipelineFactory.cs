@@ -1,11 +1,11 @@
-﻿using Geopilot.Pipeline;
-using Geopilot.Pipeline.Config;
+﻿using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
+using Microsoft.Extensions.Logging;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Factory for creating <see cref="Pipeline"/> instances from YAML configuration.

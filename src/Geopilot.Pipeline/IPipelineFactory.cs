@@ -1,8 +1,7 @@
-﻿using Geopilot.Pipeline;
-using Geopilot.Pipeline.Config;
+﻿using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Factory interface for creating pipeline instances.
