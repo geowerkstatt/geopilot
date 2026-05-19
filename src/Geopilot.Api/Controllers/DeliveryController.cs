@@ -2,8 +2,8 @@
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
-using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
+using Geopilot.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

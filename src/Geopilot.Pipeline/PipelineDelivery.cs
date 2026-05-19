@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline;
+﻿namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Specifies whether pipeline data delivery is allowed or prevented.

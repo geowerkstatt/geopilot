@@ -4,7 +4,7 @@ using NCalc.Handlers;
 using System.Collections;
 using System.Globalization;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Provides functionality to evaluate conditional expressions within a pipeline context.

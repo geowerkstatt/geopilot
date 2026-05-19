@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
-namespace Geopilot.Api.Pipeline.Config;
+namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// Represents the configuration settings for a process, including its name, implementation reference, data handling options, and default parameters.

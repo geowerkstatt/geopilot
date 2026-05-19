@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Text.Json;
 
-namespace Geopilot.Api.Pipeline.Config;
+namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// Represents a set of parameters for pipeline processing.

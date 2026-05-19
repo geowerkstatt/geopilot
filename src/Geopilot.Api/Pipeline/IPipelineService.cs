@@ -1,4 +1,4 @@
-﻿using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Pipeline.Config;
 
 namespace Geopilot.Api.Pipeline;
 

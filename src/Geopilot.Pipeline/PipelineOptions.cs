@@ -1,6 +1,6 @@
-﻿using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Pipeline.Config;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Represents configuration options for a pipeline, including its definition and associated plugins.

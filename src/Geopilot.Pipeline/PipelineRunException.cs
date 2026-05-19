@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline;
+﻿namespace Geopilot.Pipeline;
 
 /// <summary>
 /// The exception that is thrown when a pipeline run failed due to a misconfigured pipeline or an misbehaving process.

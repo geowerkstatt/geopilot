@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Pipeline.Process;
+using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -49,7 +50,7 @@ public class PipelineFactory : IPipelineFactory
         {
             var pipelineTempDirectory = directoryProvider.GetPipelineDirectoryPath(jobId);
 
-            return Pipeline.Builder()
+            return Geopilot.Pipeline.Pipeline.Builder()
                 .Id(pipelineConfig.Id)
                 .DisplayName(pipelineConfig.DisplayName)
                 .Steps(CreateSteps(pipelineConfig, pipelineTempDirectory, jobId))
@@ -57,7 +58,7 @@ public class PipelineFactory : IPipelineFactory
                 .UploadFiles(uploadFiles)
                 .Logger(PipelineLogger
                     .Builder()
-                    .Logger(loggerFactory.CreateLogger<Pipeline>())
+                    .Logger(loggerFactory.CreateLogger<Geopilot.Pipeline.Pipeline>())
                     .PipelineId(id)
                     .JobId(jobId)
                     .Build())

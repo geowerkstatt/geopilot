@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api.Pipeline;
+﻿using Geopilot.Pipeline;
+
+namespace Geopilot.Api.Pipeline;
 
 /// <summary>
 /// Configuration helpers for <see cref="PipelineOptions"/>.

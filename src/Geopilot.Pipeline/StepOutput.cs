@@ -1,6 +1,6 @@
-﻿using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Pipeline.Config;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Represents the output of a single step in a pipeline.

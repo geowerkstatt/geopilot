@@ -1,11 +1,11 @@
-﻿using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace Geopilot.Api.Pipeline.Process;
+namespace Geopilot.Pipeline.Process;
 
 /// <summary>
 /// Provides functionality to create and initialize pipeline process instances based on configuration settings and

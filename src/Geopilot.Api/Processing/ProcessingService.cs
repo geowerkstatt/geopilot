@@ -1,8 +1,8 @@
 ﻿using Geopilot.Api.Enums;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
-using Geopilot.Api.Pipeline;
 using Geopilot.Api.Services;
+using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using System.Threading.Channels;
 

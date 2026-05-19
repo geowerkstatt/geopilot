@@ -1,6 +1,4 @@
-﻿using Geopilot.Api.Pipeline.Config;
-
-namespace Geopilot.Api.Pipeline.Process;
+﻿namespace Geopilot.Pipeline.Process;
 
 /// <summary>
 /// Defines a factory for creating pipeline process instances based on step and process configuration.

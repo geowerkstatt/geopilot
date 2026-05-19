@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline;
+﻿namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Specifies the possible states of a step in a pipeline workflow.
