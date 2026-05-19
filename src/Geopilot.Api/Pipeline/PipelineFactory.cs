@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.FileAccess;
-using Geopilot.Pipeline;
+﻿using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
@@ -15,7 +14,7 @@ public class PipelineFactory : IPipelineFactory
 {
     private readonly ILogger logger;
     private readonly ILoggerFactory loggerFactory;
-    private readonly IDirectoryProvider directoryProvider;
+    private readonly string pipelineTempDirectory;
 
     /// <summary>
     /// The pipeline process configuration used to create pipelines.
@@ -27,14 +26,14 @@ public class PipelineFactory : IPipelineFactory
     private PipelineFactory(
         PipelineProcessConfig? pipelineProcessConfig,
         IPipelineProcessFactory pipelineProcessFactory,
-        ILoggerFactory loggerFactory,
-        IDirectoryProvider directoryProvider)
+        string pipelineTempDirectory,
+        ILoggerFactory loggerFactory)
     {
         this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pipeline process configuration.");
         this.pipelineProcessFactory = pipelineProcessFactory;
+        this.pipelineTempDirectory = pipelineTempDirectory;
 
         this.loggerFactory = loggerFactory;
-        this.directoryProvider = directoryProvider;
         this.logger = loggerFactory.CreateLogger<PipelineFactory>();
     }
 
@@ -46,14 +45,14 @@ public class PipelineFactory : IPipelineFactory
     {
         var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Id == id);
 
+        var jobPipelineDirectory = Path.Combine(pipelineTempDirectory, jobId.ToString());
+
         if (pipelineConfig != null)
         {
-            var pipelineTempDirectory = directoryProvider.GetPipelineDirectoryPath(jobId);
-
             return Geopilot.Pipeline.Pipeline.Builder()
                 .Id(pipelineConfig.Id)
                 .DisplayName(pipelineConfig.DisplayName)
-                .Steps(CreateSteps(pipelineConfig, pipelineTempDirectory, jobId))
+                .Steps(CreateSteps(pipelineConfig, jobPipelineDirectory, jobId))
                 .DeliveryRestrictions(pipelineConfig.DeliveryRestrictions)
                 .UploadFiles(uploadFiles)
                 .Logger(PipelineLogger
@@ -62,7 +61,7 @@ public class PipelineFactory : IPipelineFactory
                     .PipelineId(id)
                     .JobId(jobId)
                     .Build())
-                .PipelineDirectory(pipelineTempDirectory)
+                .PipelineDirectory(jobPipelineDirectory)
                 .JobId(jobId)
                 .Build();
         }
@@ -110,8 +109,8 @@ public class PipelineFactory : IPipelineFactory
     {
         private PipelineProcessConfig? pipelineProcessConfig;
         private IPipelineProcessFactory? pipelineProcessFactory;
+        private string? pipelineTempDirectory;
         private ILoggerFactory? loggerFactory;
-        private IDirectoryProvider? directoryProvider;
 
         public PipelineFactoryBuilder Yaml(string processDefinition)
         {
@@ -140,9 +139,9 @@ public class PipelineFactory : IPipelineFactory
             return this;
         }
 
-        public PipelineFactoryBuilder DirectoryProvider(IDirectoryProvider? directoryProvider)
+        public PipelineFactoryBuilder PipelineTempDirectory(string pipelineTempDirectory)
         {
-            this.directoryProvider = directoryProvider;
+            this.pipelineTempDirectory = pipelineTempDirectory;
             return this;
         }
 
@@ -152,10 +151,10 @@ public class PipelineFactory : IPipelineFactory
                 throw new InvalidOperationException("Pipeline process factory is required but was not provided.");
             if (this.loggerFactory == null)
                 throw new InvalidOperationException("Logger factory is required but was not provided.");
-            if (this.directoryProvider == null)
-                throw new InvalidOperationException("Directory provider is required but was not provided.");
+            if (this.pipelineTempDirectory == null)
+                throw new InvalidOperationException("Pipeline temp directory is required but was not provided.");
 
-            return new PipelineFactory(pipelineProcessConfig, pipelineProcessFactory, loggerFactory, directoryProvider);
+            return new PipelineFactory(pipelineProcessConfig, pipelineProcessFactory, pipelineTempDirectory, loggerFactory);
         }
     }
 }
