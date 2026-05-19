@@ -1,6 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 /// <inheritdoc />
 public class PipelineFileManager : IPipelineFileManager

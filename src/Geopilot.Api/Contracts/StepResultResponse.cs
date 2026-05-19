@@ -1,4 +1,4 @@
-﻿using Geopilot.Api.Pipeline;
+﻿using Geopilot.Pipeline;
 
 namespace Geopilot.Api.Contracts;
 

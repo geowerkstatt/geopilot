@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Geopilot.Api" />
+    <InternalsVisibleTo Include="Geopilot.Api.Test" />
   </ItemGroup>
 	
 </Project>

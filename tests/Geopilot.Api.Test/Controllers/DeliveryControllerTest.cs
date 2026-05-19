@@ -1,14 +1,13 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
-using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
+using Geopilot.Pipeline;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Collections.Immutable;
 using System.Text;
 
 namespace Geopilot.Api.Controllers;

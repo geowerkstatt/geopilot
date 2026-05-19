@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline;
+﻿namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Interface for a pipeline.

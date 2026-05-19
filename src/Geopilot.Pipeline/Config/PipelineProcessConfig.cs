@@ -1,8 +1,8 @@
-﻿using Geopilot.Api.Pipeline.Config.Validation;
+﻿using Geopilot.Pipeline.Config.Validation;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
-namespace Geopilot.Api.Pipeline.Config;
+namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// Represents the configuration for pipeline processes, including the collection of process and pipeline definitions.

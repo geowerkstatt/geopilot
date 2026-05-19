@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline;
+﻿namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Defines a contract for evaluating a condition expression within a pipeline context.

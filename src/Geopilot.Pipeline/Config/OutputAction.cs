@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline.Config;
+﻿namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// Output action for handling output data in a pipeline step.

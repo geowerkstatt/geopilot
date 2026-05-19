@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Process;
+using Geopilot.Pipeline;
+using Geopilot.Pipeline.Process;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;

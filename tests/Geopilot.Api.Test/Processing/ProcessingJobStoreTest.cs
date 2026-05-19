@@ -1,5 +1,5 @@
 ﻿using Geopilot.Api.Enums;
-using Geopilot.Api.Pipeline;
+using Geopilot.Pipeline;
 using Moq;
 using System.Collections.Immutable;
 

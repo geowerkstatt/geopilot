@@ -4,6 +4,7 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
+using Geopilot.Pipeline;
 using Moq;
 using System.Collections.Immutable;
 using System.Threading.Channels;

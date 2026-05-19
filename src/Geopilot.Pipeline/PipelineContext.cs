@@ -1,6 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Context for a pipeline execution, containing the results of each step.

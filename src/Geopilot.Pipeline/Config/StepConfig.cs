@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
-namespace Geopilot.Api.Pipeline.Config;
+namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// Represents the configuration for a single step in the <see cref="PipelineConfig"/>.

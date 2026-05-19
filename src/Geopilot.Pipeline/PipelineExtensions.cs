@@ -1,7 +1,7 @@
-﻿using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Pipeline.Config;
 using System.ComponentModel.DataAnnotations;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 internal static class PipelineExtensions
 {

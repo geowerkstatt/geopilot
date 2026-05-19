@@ -1,6 +1,6 @@
 ﻿using YamlDotNet.Serialization;
 
-namespace Geopilot.Api.Pipeline.Config;
+namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// Represents the configuration for conditional execution of a pipeline step, including pre- and post-step conditions.

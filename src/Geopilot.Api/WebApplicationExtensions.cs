@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Process;
+using Geopilot.Pipeline;
+using Geopilot.Pipeline.Process;
 using System.Security.Cryptography;
 
 namespace Geopilot.Api;

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 internal sealed class PipelineLogger : ILogger
 {

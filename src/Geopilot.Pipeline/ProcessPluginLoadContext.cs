@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 
-namespace Geopilot.Api.Pipeline.Process;
+namespace Geopilot.Pipeline.Process;
 
 /// <summary>
 /// Collectible <see cref="AssemblyLoadContext"/> for processor plugins. Follows the

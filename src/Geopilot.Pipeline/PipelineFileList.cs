@@ -1,7 +1,7 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 using System.Text.RegularExpressions;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 /// <inheritdoc />
 public class PipelineFileList : IPipelineFileList

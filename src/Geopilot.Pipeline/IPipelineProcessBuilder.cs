@@ -1,6 +1,6 @@
-﻿using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Pipeline.Config;
 
-namespace Geopilot.Api.Pipeline.Process;
+namespace Geopilot.Pipeline.Process;
 
 /// <summary>
 /// Defines a builder interface for configuring and constructing a pipeline process using a fluent API.

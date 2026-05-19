@@ -1,8 +1,8 @@
-﻿using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 
-namespace Geopilot.Api.Pipeline;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Represents a sequence of processing steps and associated parameters to be executed as a pipeline.

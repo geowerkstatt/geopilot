@@ -5,11 +5,10 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
-using Geopilot.PipelineCore.Pipeline;
+using Geopilot.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Collections.Immutable;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Test.Services;

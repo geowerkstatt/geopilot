@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
-namespace Geopilot.Api.Pipeline.Config;
+namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// Configuration for output data handling in a pipeline step.

@@ -1,6 +1,6 @@
-﻿using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Pipeline.Process;
+﻿using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
 using Moq;

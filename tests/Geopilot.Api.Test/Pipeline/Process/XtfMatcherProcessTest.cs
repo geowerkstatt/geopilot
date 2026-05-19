@@ -1,5 +1,5 @@
-﻿using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher;
+﻿using Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher;
+using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Test.Pipeline.Process;

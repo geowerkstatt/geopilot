@@ -1,6 +1,6 @@
 ﻿using YamlDotNet.Serialization;
 
-namespace Geopilot.Api.Pipeline.Config;
+namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// Represents a single condition with an expression and an optional localized message.

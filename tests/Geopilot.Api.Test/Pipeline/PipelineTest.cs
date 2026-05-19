@@ -1,5 +1,5 @@
-﻿using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Config;
+﻿using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -10,13 +10,13 @@ namespace Geopilot.Api.Test.Pipeline;
 public class PipelineTest
 {
     private Mock<ILoggerFactory> loggerFactory;
-    private Mock<ILogger<Api.Pipeline.Pipeline>> loggerMock;
+    private Mock<ILogger<Geopilot.Pipeline.Pipeline>> loggerMock;
 
     [TestInitialize]
     public void SetUp()
     {
         loggerFactory = new Mock<ILoggerFactory>();
-        loggerMock = new Mock<ILogger<Api.Pipeline.Pipeline>>();
+        loggerMock = new Mock<ILogger<Geopilot.Pipeline.Pipeline>>();
         loggerFactory
             .Setup(lf => lf.CreateLogger(It.IsAny<string>()))
             .Returns(loggerMock.Object);
@@ -47,7 +47,7 @@ public class PipelineTest
             })
             .ToList();
 
-        using var pipeline = Api.Pipeline.Pipeline
+        using var pipeline = Geopilot.Pipeline.Pipeline
             .Builder()
             .Id("test_pipeline")
             .DisplayName(pipelineDisplayName)
@@ -80,7 +80,7 @@ public class PipelineTest
 
         var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
 
-        using var pipeline = Api.Pipeline.Pipeline
+        using var pipeline = Geopilot.Pipeline.Pipeline
             .Builder()
             .Id("test_pipeline")
             .DisplayName(pipelineDisplayName)
@@ -142,7 +142,7 @@ public class PipelineTest
             },
         };
 
-        using var pipeline = Api.Pipeline.Pipeline
+        using var pipeline = Geopilot.Pipeline.Pipeline
             .Builder()
             .Id("test_pipeline")
             .DisplayName(pipelineDisplayName)
@@ -221,7 +221,7 @@ public class PipelineTest
             },
         };
 
-        using var pipeline = Api.Pipeline.Pipeline
+        using var pipeline = Geopilot.Pipeline.Pipeline
             .Builder()
             .Id("test_pipeline")
             .DisplayName(pipelineDisplayName)

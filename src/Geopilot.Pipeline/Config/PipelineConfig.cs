@@ -1,8 +1,8 @@
-﻿using Geopilot.Api.Pipeline.Config.Validation;
+﻿using Geopilot.Pipeline.Config.Validation;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
-namespace Geopilot.Api.Pipeline.Config;
+namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// Configuration for a pipeline.

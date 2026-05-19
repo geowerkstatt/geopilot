@@ -1,8 +1,8 @@
-﻿using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Pipeline.Process;
-using Geopilot.Api.Pipeline.Process.XtfValidation;
+﻿using Geopilot.Api.Pipeline.Process.XtfValidation;
 using Geopilot.Api.Test.Pipeline.Process;
+using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Process;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
