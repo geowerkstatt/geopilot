@@ -61,6 +61,7 @@ ENV Storage__AssetsDirectory=/assets
 ENV Storage__PipelineDirectory=/pipeline
 ENV Storage__ResourcesDirectory=/resources
 ENV PublicAssetsOverride=/public
+ENV Storage__SharedDirectory=/shared
 WORKDIR ${HOME}
 
 # Install missing packages
@@ -78,6 +79,7 @@ RUN \
  mkdir -p $Storage__AssetsDirectory && \
  mkdir -p $Storage__PipelineDirectory && \
  mkdir -p $Storage__ResourcesDirectory && \
+ mkdir -p $Storage__SharedDirectory && \
  mkdir -p $PublicAssetsOverride
 
 EXPOSE 8080
@@ -86,6 +88,7 @@ VOLUME $Storage__DownloadDirectory
 VOLUME $Storage__AssetsDirectory
 VOLUME $Storage__PipelineDirectory
 VOLUME $Storage__ResourcesDirectory
+VOLUME $Storage__SharedDirectory
 
 # Set default locale
 ENV LANG=C.UTF-8
