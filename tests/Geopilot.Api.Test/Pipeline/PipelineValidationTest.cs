@@ -67,6 +67,7 @@ public class PipelineValidationTest
             AssetsDirectory = Path.Combine(Path.GetTempPath(), "Asset"),
             PipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline"),
             ResourcesDirectory = Path.Combine(Path.GetTempPath(), "Resources"),
+            SharedDirectory = Path.Combine(Path.GetTempPath(), "Shared"),
         };
         return PipelineFactory
             .Builder()

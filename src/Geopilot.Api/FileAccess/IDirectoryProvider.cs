@@ -29,6 +29,11 @@ public interface IDirectoryProvider
     string PipelineDirectory { get; }
 
     /// <summary>
+    /// Gets the root directory for shared files.
+    /// </summary>
+    string SharedDirectory { get; }
+
+    /// <summary>
     /// Gets the per-job upload directory for the specified <paramref name="jobId"/>.
     /// </summary>
     string GetUploadDirectoryPath(Guid jobId);
