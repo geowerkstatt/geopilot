@@ -57,7 +57,7 @@ public static class ServiceCollectionExtensions
                     .File(pipelinePluginOptions.Definition)
                     .PipelineProcessFactory(pipelineProcessFactory)
                     .LoggerFactory(loggerFactory)
-                    .DirectoryProvider(directoryProvider)
+                    .PipelineTempDirectory(directoryProvider.PipelineDirectory)
                     .Build();
 
             return pipelineFactory;
