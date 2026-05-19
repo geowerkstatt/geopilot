@@ -23,14 +23,12 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.1" />
     <PackageReference Include="nClam" Version="[9.0.0]" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
-    <PackageReference Include="NCalcAsync" Version="5.12.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="10.0.0" />
     <PackageReference Include="Npgsql.NetTopologySuite" Version="10.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="10.1.0" />
     <PackageReference Include="Humanizer.Core" Version="3.0.1" />
     <PackageReference Include="DotNetStac.Api" Version="1.0.0-beta.5" />
-    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.7" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
     <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
   </ItemGroup>
@@ -43,6 +41,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Geopilot.PipelineCore\Geopilot.PipelineCore.csproj">
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Geopilot.Pipeline\Geopilot.Pipeline.csproj">
       <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>

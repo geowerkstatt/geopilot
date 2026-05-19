@@ -1,4 +1,5 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
+using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
