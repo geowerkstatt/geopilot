@@ -1,5 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Runtime.Loader;
