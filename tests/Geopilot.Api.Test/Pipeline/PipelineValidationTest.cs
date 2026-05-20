@@ -44,6 +44,7 @@ public class PipelineValidationTest
     [DataRow("invalidPipelineDeliveryCondition_01", new string[] { "PipelineConfig: pipeline 'ili_validation', invalid expression '[upload.foo] != null' on field Pipeline-Delivery-Restriction, parameter 'upload.foo' is not valid" }, DisplayName = "Pipeline delivery condition is not valid (invalid parameter reference)")]
     [DataRow("invalidPipelineDeliveryCondition_02", new string[] { "PipelineConfig: pipeline 'ili_validation, invalid expression '([upload.ili_file]' on field Pipeline-Delivery-Restriction: Error parsing the expression." }, DisplayName = "Pipeline delivery condition is not valid (invalid expression)")]
     [DataRow("overwriteUndefinedBaseConfig", new string[] { "PipelineProcessConfig: Step 'validation' in pipeline 'ili_validation' is trying to overwrite process config parameter 'validationProfile' which is not defined in the default config." }, DisplayName = "overwrite a undefined base config parameter")]
+    [DataRow("duplicateStatusMessageOutput", new string[] { "StepConfig: Step 'validation' has multiple outputs with StatusMessage action. Only one StatusMessage output is allowed per step." }, DisplayName = "Step has multiple StatusMessage outputs")]
 
     public void PipelineValidation(string pipelineFile, string[] expectedErrorMessages)
     {

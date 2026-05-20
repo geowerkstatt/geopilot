@@ -1,0 +1,23 @@
+processes:
+  - id: xtf_validator
+    implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
+    default_config:
+      validationProfile: DEFAULT
+pipelines:
+  - id: ili_validation
+    display_name:
+      en: XTF Validation
+    steps:
+      - id: validation
+        display_name:
+          en: XTF Validation
+        process_id: xtf_validator
+        output:
+          - take: status
+            as: status
+            action:
+              - StatusMessage
+          - take: another_status
+            as: another_status
+            action:
+              - StatusMessage

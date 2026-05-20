@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Geopilot.Pipeline.Config.Validation;
+using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
 namespace Geopilot.Pipeline.Config;
@@ -6,6 +7,7 @@ namespace Geopilot.Pipeline.Config;
 /// <summary>
 /// Represents the configuration for a single step in the <see cref="PipelineConfig"/>.
 /// </summary>
+[UniqueStatusMessageOutput]
 public class StepConfig
 {
     /// <summary>
