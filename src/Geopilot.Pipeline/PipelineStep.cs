@@ -480,12 +480,18 @@ public sealed class PipelineStep : IPipelineStep
         return nullabilityInfo.ElementType?.WriteState is NullabilityState.Nullable;
     }
 
-    internal static PipelineStepBuilder Builder()
+    /// <summary>
+    /// Returns a new builder to create instances of a <see cref="PipelineStep"/>.
+    /// </summary>
+    public static PipelineStepBuilder Builder()
     {
         return new PipelineStepBuilder();
     }
 
-    internal class PipelineStepBuilder
+    /// <summary>
+    /// Builder to create instances of a <see cref="PipelineStep"/>.
+    /// </summary>
+    public class PipelineStepBuilder
     {
         private string? id;
         private Dictionary<string, string>? displayName;
@@ -495,48 +501,76 @@ public sealed class PipelineStep : IPipelineStep
         private object? process;
         private ILogger? logger;
 
+        /// <summary>
+        /// Sets the id of the <see cref="PipelineStep"/> that will be created by this builder.
+        /// </summary>
         public PipelineStepBuilder Id(string id)
         {
             this.id = id;
             return this;
         }
 
+        /// <summary>
+        /// Sets the display name of the <see cref="PipelineStep"/> that will be created by this builder.
+        /// </summary>
         public PipelineStepBuilder DisplayName(Dictionary<string, string> displayName)
         {
             this.displayName = displayName;
             return this;
         }
 
+        /// <summary>
+        /// Sets the input config of the <see cref="PipelineStep"/> that will be created by this builder.
+        /// </summary>
         public PipelineStepBuilder InputConfig(List<InputConfig> inputConfig)
         {
             this.inputConfig = inputConfig;
             return this;
         }
 
+        /// <summary>
+        /// Sets the output of the <see cref="PipelineStep"/> that will be created by this builder.
+        /// </summary>
         public PipelineStepBuilder OutputConfig(List<OutputConfig> outputConfig)
         {
             this.outputConfig = outputConfig;
             return this;
         }
 
+        /// <summary>
+        /// Sets the step conditions of the <see cref="PipelineStep"/> that will be created by this builder.
+        /// </summary>
         public PipelineStepBuilder StepConditions(PipelineStepConditionsConfig? stepConditions)
         {
             this.stepConditions = stepConditions;
             return this;
         }
 
+        /// <summary>
+        /// Sets the process to be run by the <see cref="PipelineStep"/> that will be created by this builder.
+        /// </summary>
+        /// <remarks>
+        /// The object passed in as the process must be an instance of a pipeline process class.
+        /// </remarks>
         public PipelineStepBuilder Process(object process)
         {
             this.process = process;
             return this;
         }
 
+        /// <summary>
+        /// Sets the logger to be used by the <see cref="PipelineStep"/> that will be created by this builder.
+        /// </summary>
         public PipelineStepBuilder Logger(ILogger logger)
         {
             this.logger = logger;
             return this;
         }
 
+        /// <summary>
+        /// Creates a new instance of a <see cref="PipelineStep"/> according to the configuration of this builder.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">If the builder is not properly configured to create a new instance of a <see cref="PipelineStep"/>.</exception>
         public PipelineStep Build()
         {
             if (id == null)
