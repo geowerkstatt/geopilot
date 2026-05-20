@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,6 +6,18 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <Version>1.0.0</Version>
+
+    <!-- NuGet package metadata (shared metadata comes from Directory.Build.props) -->
+    <IsPackable>true</IsPackable>
+    <PackageId>GeoWerkstatt.Geopilot.Pipeline</PackageId>
+    <Description>Pipeline runtime for geopilot — discovers, configures, and executes pipeline processes that validate and deliver geodata.</Description>
+    <PackageTags>geopilot;pipeline;geodata;interlis;xtf;geowerkstatt</PackageTags>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +25,7 @@
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
     <PackageReference Include="NCalcAsync" Version="5.12.0" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.7" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
