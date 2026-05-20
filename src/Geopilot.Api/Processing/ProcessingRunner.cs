@@ -1,6 +1,6 @@
 ﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Config;
+using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
 

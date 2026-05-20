@@ -1,5 +1,5 @@
 ﻿using Geopilot.Api.Enums;
-using Geopilot.Api.Pipeline;
+using Geopilot.Pipeline;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Threading.Channels;

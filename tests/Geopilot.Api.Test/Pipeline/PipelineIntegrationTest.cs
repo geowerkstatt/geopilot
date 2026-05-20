@@ -1,8 +1,9 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Config;
-using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.Pipeline.Process.XtfValidation;
+using Geopilot.Pipeline;
+using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -257,22 +258,14 @@ public class PipelineIntegrationTest
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
-        var fileAccessOptions = new FileAccessOptions()
-        {
-            UploadDirectory = Path.Combine(Path.GetTempPath(), "Uploads"),
-            DownloadDirectory = Path.Combine(Path.GetTempPath(), "Downloads"),
-            AssetsDirectory = Path.Combine(Path.GetTempPath(), "Asset"),
-            PipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline"),
-            ResourcesDirectory = Path.Combine(Path.GetTempPath(), "Resources"),
-            SharedDirectory = Path.Combine(Path.GetTempPath(), "Shared"),
-        };
+        string pipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline");
 
         return PipelineFactory
             .Builder()
             .File(path)
             .PipelineProcessFactory(this.pipelineProcessFactory)
             .LoggerFactory(this.loggerFactoryMock.Object)
-            .DirectoryProvider(new DirectoryProvider(Options.Create(fileAccessOptions)))
+            .PipelineTempDirectory(pipelineDirectory)
             .Build();
     }
 }

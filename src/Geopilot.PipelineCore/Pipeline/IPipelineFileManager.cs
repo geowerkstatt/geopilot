@@ -1,6 +1,4 @@
-﻿using Geopilot.PipelineCore.Pipeline;
-
-namespace Geopilot.Api.Pipeline;
+﻿namespace Geopilot.PipelineCore.Pipeline;
 
 /// <summary>
 /// Manages temporary files for pipeline processing.

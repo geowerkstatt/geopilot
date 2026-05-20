@@ -1,8 +1,6 @@
 ﻿using Geopilot.Api.Models;
-using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Config;
 using Geopilot.Api.Processing;
-using Geopilot.PipelineCore.Pipeline;
+using Geopilot.Pipeline;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
 using Moq;

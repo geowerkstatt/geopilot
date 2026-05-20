@@ -1,5 +1,5 @@
 ﻿using Geopilot.Api.Enums;
-using Geopilot.Api.Pipeline;
+using Geopilot.Pipeline;
 using System.Collections.Immutable;
 
 namespace Geopilot.Api.Processing;
@@ -8,9 +8,9 @@ namespace Geopilot.Api.Processing;
 /// Represents a processing job — a pipeline run scoped to one set of uploaded files and an optional mandate.
 /// </summary>
 /// <remarks>
-/// The job's <see cref="Pipeline.ProcessingState"/> is computed from the underlying <see cref="Pipeline"/> if one has
-/// been associated; otherwise it is <see cref="Pipeline.ProcessingState.Pending"/>, or
-/// <see cref="Pipeline.ProcessingState.Failed"/> when <see cref="IsFailed"/> is set (e.g. cloud preflight failure
+/// The job's <see cref="ProcessingState"/> is computed from the underlying <see cref="Pipeline"/> if one has
+/// been associated; otherwise it is <see cref="ProcessingState.Pending"/>, or
+/// <see cref="ProcessingState.Failed"/> when <see cref="IsFailed"/> is set (e.g. cloud preflight failure
 /// before a pipeline could be created).
 /// </remarks>
 public record class ProcessingJob(

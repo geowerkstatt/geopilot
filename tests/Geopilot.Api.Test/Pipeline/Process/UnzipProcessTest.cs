@@ -1,5 +1,5 @@
-﻿using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Process.Unzip;
+﻿using Geopilot.Api.Pipeline.Process.Unzip;
+using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Moq;

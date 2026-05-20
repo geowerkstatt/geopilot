@@ -1,4 +1,4 @@
-﻿using Geopilot.Api.Pipeline;
+﻿using Geopilot.Pipeline;
 using Microsoft.Extensions.Logging;
 using Moq;
 

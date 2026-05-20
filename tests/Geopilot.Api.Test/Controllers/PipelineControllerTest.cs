@@ -1,7 +1,7 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Controllers;
 using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Config;
+using Geopilot.Pipeline.Config;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;

@@ -1,7 +1,8 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Process;
 using Geopilot.Api.StacServices;
+using Geopilot.Pipeline;
+using Geopilot.Pipeline.Process;
 using Stac.Api.Interfaces;
 using Stac.Api.Models.Extensions.Sort.Context;
 using Stac.Api.Services.Debugging;
@@ -56,7 +57,7 @@ public static class ServiceCollectionExtensions
                     .File(pipelinePluginOptions.Definition)
                     .PipelineProcessFactory(pipelineProcessFactory)
                     .LoggerFactory(loggerFactory)
-                    .DirectoryProvider(directoryProvider)
+                    .PipelineTempDirectory(directoryProvider.PipelineDirectory)
                     .Build();
 
             return pipelineFactory;

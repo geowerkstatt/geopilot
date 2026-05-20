@@ -1,5 +1,6 @@
-﻿using Geopilot.Api.Pipeline;
-using Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree;
+﻿using Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree;
+using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 using Moq;
 using Newtonsoft.Json;
 
