@@ -105,6 +105,9 @@ jobs:
   publish-pipelinecore-nuget:
     name: Publish Geopilot.PipelineCore NuGet package
     uses: ./.github/workflows/publish-pipelinecore-nuget.yml
+    permissions:
+      contents: write
+      packages: write
     with:
       ref: ${{ github.sha }}
       version-suffix: -preview.${{ github.run_number }}
@@ -113,6 +116,9 @@ jobs:
   publish-pipeline-nuget:
     name: Publish Geopilot.Pipeline NuGet package
     uses: ./.github/workflows/publish-pipeline-nuget.yml
+    permissions:
+      contents: write
+      packages: write
     with:
       ref: ${{ github.sha }}
       version-suffix: -preview.${{ github.run_number }}
