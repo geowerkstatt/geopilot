@@ -270,7 +270,9 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             if (implementation.StartsWith("Geopilot.Api.Pipeline.Process", StringComparison.Ordinal))
             {
-                return Type.GetType(implementation);
+                return AppDomain.CurrentDomain.GetAssemblies()
+                    .Select(a => a.GetType(implementation))
+                    .FirstOrDefault(t => t != null);
             }
             else if (this.processorPluginAssemblies.Count > 0)
             {
