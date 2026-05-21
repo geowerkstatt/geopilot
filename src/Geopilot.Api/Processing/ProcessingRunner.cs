@@ -100,26 +100,34 @@ public class ProcessingRunner : BackgroundService
                 if (!isDownload && !isDelivery)
                     continue;
 
-                if (output.Data is not IPipelineFile transferFile)
-                    continue;
+                IEnumerable<IPipelineFile> files = output.Data switch
+                {
+                    IPipelineFileList fileList => fileList.Files,
+                    IPipelineFile[] fileArray => fileArray,
+                    IPipelineFile singleFile => [singleFile],
+                    _ => [],
+                };
 
                 // Both stores are filled independently so each can be cleaned on its own
                 // retention. A file tagged with both actions is written to both under the
                 // same name — the download endpoint can fall back to the asset copy after
                 // the download retention expires.
-                var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
-                var persisted = new PersistedFile(transferFile.OriginalFileName, fileName);
-
-                if (isDelivery)
+                foreach (var transferFile in files)
                 {
-                    CopyTo(assetFileStore, pipeline.JobId, fileName, transferFile);
-                    step.DeliveryFiles.Add(persisted);
-                }
+                    var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
+                    var persisted = new PersistedFile(transferFile.OriginalFileName, fileName);
 
-                if (isDownload)
-                {
-                    CopyTo(downloadFileStore, pipeline.JobId, fileName, transferFile);
-                    step.Downloads.Add(persisted);
+                    if (isDelivery)
+                    {
+                        CopyTo(assetFileStore, pipeline.JobId, fileName, transferFile);
+                        step.DeliveryFiles.Add(persisted);
+                    }
+
+                    if (isDownload)
+                    {
+                        CopyTo(downloadFileStore, pipeline.JobId, fileName, transferFile);
+                        step.Downloads.Add(persisted);
+                    }
                 }
             }
         }
