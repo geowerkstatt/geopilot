@@ -138,7 +138,9 @@ export HOME="${ILI2GPKG_CACHE_DIR}"
 cd "${job_dir}"
 
 # Log java command
-echo "java -jar ${ILI2GPKG_HOME}/ili2gpkg-${ILI2GPKG_VERSION}.jar $* ${subject}" >> "${success_log}"
+java_cmd="java -jar ${ILI2GPKG_HOME}/ili2gpkg-${ILI2GPKG_VERSION}.jar $* ${subject}"
+echo "${java_cmd}" >> "${success_log}"
+log "${java_cmd}"
 
 # Run ili2gpkg and capture output to success.log; fail() renames it to error.log on failure.
 set +e
