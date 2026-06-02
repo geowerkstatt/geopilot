@@ -77,13 +77,16 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           display: { xs: "none", md: "block" },
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box", zIndex: 1000 },
+          [`& .MuiDrawer-paper`]: {
+            width: drawerWidth,
+            boxSizing: "border-box",
+            zIndex: 1000,
+            borderColor: theme => theme.palette.primary.light,
+          },
         }}
         data-cy="admin-navigation">
         <>
-          {" "}
           <Box sx={{ height: "60px" }} />
-          <Divider />
           {drawerContent(true)}
         </>
       </Drawer>

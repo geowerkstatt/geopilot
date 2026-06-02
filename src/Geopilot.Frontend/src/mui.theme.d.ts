@@ -11,6 +11,7 @@ declare module "@mui/material/styles" {
       hover: string;
       contrastText: string;
       light: string;
+      background: string;
     };
     secondary: {
       main: string;

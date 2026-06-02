@@ -31,10 +31,11 @@ export const AppBox = styled(FlexBox)({
   height: "100vh",
 });
 
-export const LayoutBox = styled(FlexBox)({
+export const LayoutBox = styled(FlexBox)(({ theme }) => ({
+  backgroundColor: theme.palette.primary.background,
   marginTop: "60px",
   flex: "1",
-});
+}));
 
 export const PageContentBox = styled(FlexBox)({
   padding: "20px",
@@ -50,6 +51,7 @@ export const CenteredBox = styled(FlexBox)({
 });
 
 export const GeopilotBox = styled(FlexBox)(({ theme }) => ({
+  backgroundColor: "white",
   border: `1px solid ${theme.palette.primary.main}`,
   borderRadius: "4px",
   padding: "16px",
