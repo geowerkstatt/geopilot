@@ -35,7 +35,6 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   removeFile: () => {},
   fileUploadStatus: new Map(),
   selectedMandate: undefined,
-  setSelectedMandate: () => {},
   jobId: undefined,
   uploadSettings: undefined,
   processingResponse: undefined,
@@ -46,6 +45,7 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   startProcessing: () => {},
   submitDelivery: () => {},
   resetDelivery: () => {},
+  continueToNextStep: () => {},
 });
 
 // Gets the current steps while reusing previous steps if possible to keep their state (e.g. errors)
@@ -63,11 +63,7 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
 
   newSteps.set(
     DeliveryStepEnum.Process,
-    previousSteps.get(DeliveryStepEnum.Process) ?? {
-      label: "process",
-      keepOpen: true,
-      content: <DeliveryProcessing />,
-    },
+    previousSteps.get(DeliveryStepEnum.Process) ?? { label: "process", content: <DeliveryProcessing /> },
   );
 
   if (showDelivery) {
@@ -302,14 +298,14 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         } else {
           setIsProcessing(false);
 
-          if (isProcessingDeliverable(response)) {
-            continueToNextStep();
-          } else if (response.state === ProcessingState.Success) {
-            // Pipeline succeeded but delivery is blocked (e.g. delivery restriction matched).
-            setStepError(DeliveryStepEnum.Process, "completedWithErrors");
-          } else {
-            // ProcessingState.Failed or Cancelled.
-            setStepError(DeliveryStepEnum.Process, response.state);
+          if (!isProcessingDeliverable(response)) {
+            if (response.state === ProcessingState.Success) {
+              // Pipeline succeeded but delivery is blocked (e.g. delivery restriction matched).
+              setStepError(DeliveryStepEnum.Process, "completedWithErrors");
+            } else {
+              // ProcessingState.Failed or Cancelled.
+              setStepError(DeliveryStepEnum.Process, response.state);
+            }
           }
         }
       })
@@ -318,16 +314,29 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
   };
 
-  const startProcessing = (startJobRequest: StartJobRequest) => {
+  const startProcessing = (mandate: Mandate) => {
     if (!jobId || isLoading) return;
     if (!uploadSettings?.enabled && processingResponse?.state !== ProcessingState.Pending) return;
 
+    setSteps(prevSteps => {
+      const newSteps = new Map(prevSteps);
+      const step = newSteps.get(DeliveryStepEnum.SelectMandate);
+      if (step) {
+        step.labelAddition = mandate.name;
+      }
+      return newSteps;
+    });
+    setSelectedMandate(mandate);
     setIsLoading(true);
     setProcessingStarted(true);
     continueToNextStep();
 
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
+
+    const startJobRequest: StartJobRequest = {
+      mandateId: mandate.id,
+    };
 
     fetchApi<ProcessingJobResponse>(`/api/v2/processing/${jobId}`, {
       method: "PATCH",
@@ -415,7 +424,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         removeFile,
         fileUploadStatus,
         selectedMandate,
-        setSelectedMandate,
         jobId,
         uploadSettings,
         processingResponse,
@@ -426,6 +434,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         startProcessing,
         submitDelivery,
         resetDelivery,
+        continueToNextStep,
       }}>
       {children}
     </DeliveryContext.Provider>

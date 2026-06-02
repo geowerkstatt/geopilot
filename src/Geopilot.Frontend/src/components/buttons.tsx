@@ -27,5 +27,14 @@ export const BaseButton = forwardRef<HTMLButtonElement, ButtonProps>((props, ref
 });
 
 export const CancelButton = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
-  return <BaseButton ref={ref} {...props} label="cancel" variant="outlined" icon={<CancelOutlinedIcon />} />;
+  return (
+    <BaseButton
+      ref={ref}
+      {...props}
+      label="cancel"
+      variant="outlined"
+      icon={<CancelOutlinedIcon />}
+      sx={{ backgroundColor: "white" }}
+    />
+  );
 });

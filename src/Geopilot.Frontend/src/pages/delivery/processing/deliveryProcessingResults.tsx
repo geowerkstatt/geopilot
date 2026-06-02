@@ -1,12 +1,11 @@
 import { Accordion, AccordionDetails, AccordionSummary, Box, Typography } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { FlexBox, FlexRowBox, FlexRowEndBox } from "../../../components/styledComponents";
-import { BaseButton, CancelButton } from "../../../components/buttons";
+import { FlexBox, FlexRowBox } from "../../../components/styledComponents";
+import { BaseButton } from "../../../components/buttons";
 import { DeliveryContext } from "../deliveryContext";
 import { SyntheticEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
 import i18next from "i18next";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import { isProcessingDeliverable } from "../deliveryUtils";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { ProcessingStepIcon } from "./processingStepIcon";
 
@@ -23,7 +22,7 @@ const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
 ]);
 
 export const DeliveryProcessingResults = () => {
-  const { processingResponse, resetDelivery, isProcessing } = useContext(DeliveryContext);
+  const { processingResponse } = useContext(DeliveryContext);
   const [expandedStepIds, setExpandedStepIds] = useState<Set<string>>(new Set());
   const autoExpandedIds = useRef<Set<string>>(new Set());
 
@@ -104,7 +103,7 @@ export const DeliveryProcessingResults = () => {
               sx={{
                 boxShadow: "none",
                 border: 1,
-                borderColor: "divider",
+                borderColor: theme => theme.palette.primary.light,
                 "&:before": { display: "none" },
                 ...(isExpanded
                   ? {
@@ -150,11 +149,6 @@ export const DeliveryProcessingResults = () => {
           );
         })}
       </Box>
-      {!isProcessing && !isProcessingDeliverable(processingResponse) && (
-        <FlexRowEndBox>
-          <CancelButton onClick={resetDelivery} />
-        </FlexRowEndBox>
-      )}
     </FlexBox>
   );
 };

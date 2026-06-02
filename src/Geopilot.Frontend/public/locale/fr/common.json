@@ -21,6 +21,7 @@
   "comment": "Commentaire",
   "completedWithErrors": "Terminé avec des erreurs",
   "contentNotFound": "Oups, rien n'a été trouvé!",
+  "continue": "Continuer",
   "createDelivery": "Créer une livraison",
   "delete": "Supprimer",
   "deleteDeliveryConfirmation": "Voulez-vous vraiment supprimer les données de la livraison? Cette action est irréversible.",

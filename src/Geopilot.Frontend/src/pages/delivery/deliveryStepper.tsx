@@ -83,7 +83,9 @@ export const DeliveryStepper = () => {
               {t(step.label)}
             </Typography>
             {step.labelAddition && (
-              <Typography variant="body2" color="textSecondary">
+              <Typography
+                variant="body2"
+                sx={{ display: { xs: "none", md: "block" }, color: theme => theme.palette.primary.main }}>
                 {t(step.labelAddition)}
               </Typography>
             )}

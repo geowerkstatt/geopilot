@@ -27,8 +27,7 @@ const StyledToggleButton = styled(ToggleButton)({
 });
 
 export const DeliverySelectMandate = () => {
-  const { resetDelivery, startProcessing, jobId, setStepError, setSelectedMandate, isLoading } =
-    useContext(DeliveryContext);
+  const { resetDelivery, startProcessing, jobId, setStepError, isLoading } = useContext(DeliveryContext);
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
@@ -48,11 +47,9 @@ export const DeliverySelectMandate = () => {
   }, [jobId, fetchApi, setStepError, t, user]);
 
   const submitForm = () => {
-    if (selectedId) {
-      startProcessing({
-        mandateId: selectedId,
-      });
-      setSelectedMandate(mandates.find(m => m.id === selectedId));
+    const mandate = selectedId !== null && mandates.find(m => m.id === selectedId);
+    if (mandate) {
+      startProcessing(mandate);
     }
   };
 

@@ -46,7 +46,6 @@ export const PageContentBox = styled(FlexBox)({
 });
 
 export const CenteredBox = styled(FlexBox)({
-  margin: "40px 0",
   width: "100%",
   height: "100%",
   maxWidth: "1200px",
@@ -54,7 +53,7 @@ export const CenteredBox = styled(FlexBox)({
 
 export const GeopilotBox = styled(FlexBox)(({ theme }) => ({
   backgroundColor: "white",
-  border: `1px solid ${theme.palette.primary.main}`,
+  border: `1px solid ${theme.palette.primary.light}`,
   borderRadius: "4px",
   padding: "16px",
 }));

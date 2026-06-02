@@ -21,6 +21,7 @@
   "comment": "Comment",
   "completedWithErrors": "Completed with errors",
   "contentNotFound": "Oops, nothing found!",
+  "continue": "Continue",
   "createDelivery": "Create delivery",
   "delete": "Delete",
   "deleteDeliveryConfirmation": "Do you really want to delete the delivery data? This action cannot be undone.",

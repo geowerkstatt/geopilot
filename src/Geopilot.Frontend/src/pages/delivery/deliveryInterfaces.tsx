@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Mandate, ProcessingJobResponse, StartJobRequest, UploadSettings } from "../../api/apiInterfaces.ts";
+import { Mandate, ProcessingJobResponse, UploadSettings } from "../../api/apiInterfaces.ts";
 
 export enum DeliveryStepEnum {
   Upload = "upload",
@@ -18,7 +18,6 @@ export interface DeliveryStep {
   label: string;
   labelAddition?: string;
   error?: string;
-  keepOpen?: boolean;
   content: ReactNode;
 }
 
@@ -44,7 +43,6 @@ export interface DeliveryContextInterface {
   removeFile: (file: File) => void;
   fileUploadStatus: Map<string, FileUploadStatus>;
   selectedMandate?: Mandate;
-  setSelectedMandate: (mandate: Mandate | undefined) => void;
   jobId?: string;
   uploadSettings?: UploadSettings;
   processingResponse?: ProcessingJobResponse;
@@ -52,7 +50,8 @@ export interface DeliveryContextInterface {
   isProcessing: boolean;
   uploadFile: () => void;
   cancelUpload: () => void;
-  startProcessing: (startJobRequest: StartJobRequest) => void;
+  startProcessing: (mandate: Mandate) => void;
   submitDelivery: (data: DeliverySubmitData) => void;
   resetDelivery: () => void;
+  continueToNextStep: () => void;
 }

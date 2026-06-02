@@ -129,7 +129,7 @@ export interface Profile {
 }
 
 export interface StartJobRequest {
-  mandateId?: number;
+  mandateId: number;
 }
 
 export interface PipelineSummary {
