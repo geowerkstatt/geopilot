@@ -1,6 +1,6 @@
 import { Stack, Typography } from "@mui/material";
-import { styled } from "@mui/system";
-import { useContext, useEffect, useRef } from "react";
+import { styled, useMediaQuery, useTheme } from "@mui/system";
+import { useCallback, useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
 import { DeliveryContext } from "./deliveryContext";
@@ -36,15 +36,30 @@ const DeliveryStepBox = styled(GeopilotBox, { shouldForwardProp: prop => prop !=
 export const DeliveryStepper = () => {
   const { t } = useTranslation();
   const { steps, activeStep, isLoading, isProcessing } = useContext(DeliveryContext);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const isOpen = (stepIndex: number) => activeStep === stepIndex;
   const isCompleted = (stepIndex: number) => activeStep > stepIndex;
 
   const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
 
+  const showStep = useCallback(
+    (stepIndex: number, behavior: ScrollBehavior) => {
+      stepRefs.current[stepIndex]?.scrollIntoView({ behavior, block: "nearest", inline: "center" });
+    },
+    [stepRefs],
+  );
+
   useEffect(() => {
-    stepRefs.current[activeStep]?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-  }, [activeStep]);
+    showStep(activeStep, "smooth");
+  }, [activeStep, showStep]);
+
+  useEffect(() => {
+    showStep(activeStep, "instant");
+    // Instantly scroll to the current step when switching to mobile view (missing dependency on activeStep)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showStep, isMobile]);
 
   return (
     <StepperStack spacing={2} direction={{ xs: "row", md: "column" }} data-cy="delivery-stepper">
@@ -54,7 +69,8 @@ export const DeliveryStepper = () => {
           ref={el => (stepRefs.current[index] = el)}
           data-cy={`${key}-step`}
           direction="row"
-          open={isOpen(index)}>
+          open={isOpen(index)}
+          onClick={() => showStep(index, "smooth")}>
           <StepperIcon
             index={index}
             active={isOpen(index)}
