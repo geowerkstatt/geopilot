@@ -12,6 +12,7 @@ import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 import useFetch from "../../hooks/useFetch.ts";
+import { DeliveryContent } from "./deliveryContent.tsx";
 
 export const DeliveryUpload = () => {
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>();
@@ -48,53 +49,56 @@ export const DeliveryUpload = () => {
     [setStepError],
   );
 
+  const button = isLoading ? (
+    <CancelButton onClick={() => cancelUpload()} />
+  ) : (
+    <BaseButton
+      disabled={!formMethods.formState.isValid || selectedFiles.length === 0}
+      onClick={() => formMethods.handleSubmit(submitForm)()}
+      icon={<CloudUploadOutlinedIcon />}
+      label="upload"
+    />
+  );
+
   return (
-    initialized && (
-      <FormProvider {...formMethods}>
-        <form onSubmit={formMethods.handleSubmit(submitForm)}>
-          <FlexBox>
-            <FileDropzone
-              selectedFiles={selectedFiles}
-              addFiles={addFiles}
-              removeFile={removeFile}
-              fileUploadStatus={fileUploadStatus}
-              fileExtensions={processingSettings?.allowedFileExtensions}
-              disabled={isLoading}
-              setFileError={setFileError}
-              maxFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxFileSizeMB : undefined}
-              maxFiles={uploadSettings?.enabled ? uploadSettings.maxFilesPerJob : 1}
-              isUploading={isLoading}
-            />
-            <FlexRowSpaceBetweenBox>
-              <FormCheckbox
-                fieldName="acceptTermsOfUse"
-                label={
-                  <Trans
-                    i18nKey="termsOfUseAcceptance"
-                    components={{
-                      termsLink: <Link href="/about#termsofuse" target="_blank" />,
-                    }}
-                  />
-                }
-                checked={!termsOfUse}
+    <DeliveryContent title="upload" subtitle="uploadSubtitle" buttons={button}>
+      {initialized && (
+        <FormProvider {...formMethods}>
+          <form onSubmit={formMethods.handleSubmit(submitForm)}>
+            <FlexBox>
+              <FileDropzone
+                selectedFiles={selectedFiles}
+                addFiles={addFiles}
+                removeFile={removeFile}
+                fileUploadStatus={fileUploadStatus}
+                fileExtensions={processingSettings?.allowedFileExtensions}
                 disabled={isLoading}
-                validation={{ required: true }}
-                sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
+                setFileError={setFileError}
+                maxFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxFileSizeMB : undefined}
+                maxFiles={uploadSettings?.enabled ? uploadSettings.maxFilesPerJob : 1}
+                isUploading={isLoading}
               />
-              {isLoading ? (
-                <CancelButton onClick={() => cancelUpload()} />
-              ) : (
-                <BaseButton
-                  disabled={!formMethods.formState.isValid || selectedFiles.length === 0}
-                  onClick={() => formMethods.handleSubmit(submitForm)()}
-                  icon={<CloudUploadOutlinedIcon />}
-                  label="upload"
+              <FlexRowSpaceBetweenBox>
+                <FormCheckbox
+                  fieldName="acceptTermsOfUse"
+                  label={
+                    <Trans
+                      i18nKey="termsOfUseAcceptance"
+                      components={{
+                        termsLink: <Link href="/about#termsofuse" target="_blank" />,
+                      }}
+                    />
+                  }
+                  checked={!termsOfUse}
+                  disabled={isLoading}
+                  validation={{ required: true }}
+                  sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
                 />
-              )}
-            </FlexRowSpaceBetweenBox>
-          </FlexBox>
-        </form>
-      </FormProvider>
-    )
+              </FlexRowSpaceBetweenBox>
+            </FlexBox>
+          </form>
+        </FormProvider>
+      )}
+    </DeliveryContent>
   );
 };

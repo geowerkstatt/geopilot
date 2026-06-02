@@ -23,6 +23,7 @@ import { DeliveryCompleted } from "./deliveryCompleted.tsx";
 import useFetch from "../../hooks/useFetch.ts";
 import useCloudUpload from "../../hooks/useCloudUpload.ts";
 import { isProcessingDeliverable } from "./deliveryUtils.tsx";
+import { DeliverySelectMandate } from "./deliverySelectMandate.tsx";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
@@ -53,6 +54,11 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
   newSteps.set(
     DeliveryStepEnum.Upload,
     previousSteps.get(DeliveryStepEnum.Upload) ?? { label: "upload", content: <DeliveryUpload /> },
+  );
+
+  newSteps.set(
+    DeliveryStepEnum.SelectMandate,
+    previousSteps.get(DeliveryStepEnum.SelectMandate) ?? { label: "selectMandate", content: <DeliverySelectMandate /> },
   );
 
   newSteps.set(
@@ -104,6 +110,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         { status: 413, errorKey: "validationErrorFileTooLarge" },
         { status: 500, errorKey: "validationErrorUnexpected" },
       ],
+      [DeliveryStepEnum.SelectMandate]: [],
       [DeliveryStepEnum.Process]: [
         { status: 400, errorKey: "validationErrorRequestMalformed" },
         { status: 404, errorKey: "validationErrorCannotFind" },
@@ -317,6 +324,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
     setIsLoading(true);
     setProcessingStarted(true);
+    continueToNextStep();
 
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);

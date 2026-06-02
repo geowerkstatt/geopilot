@@ -3,6 +3,7 @@ import { Mandate, ProcessingJobResponse, StartJobRequest, UploadSettings } from 
 
 export enum DeliveryStepEnum {
   Upload = "upload",
+  SelectMandate = "selectMandate",
   Process = "process",
   Submit = "submit",
   Done = "done",

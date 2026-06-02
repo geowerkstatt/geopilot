@@ -308,5 +308,20 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          color: themePalette.primary.main,
+          borderColor: themePalette.primary.light,
+          "&:hover": {
+            backgroundColor: themePalette.primary.hover,
+          },
+          "&.Mui-selected, &.Mui-selected:hover": {
+            color: themePalette.primary.main,
+            backgroundColor: themePalette.primary.selected,
+          },
+        },
+      },
+    },
   },
 });

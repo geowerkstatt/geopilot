@@ -1,6 +1,6 @@
 import { Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import { CenteredBox, GeopilotBox } from "../../components/styledComponents.ts";
+import { CenteredBox } from "../../components/styledComponents.ts";
 import { styled } from "@mui/system";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepper } from "./deliveryStepper.tsx";
@@ -14,10 +14,6 @@ const DeliveryContainer = styled(Stack)(({ theme }) => ({
   },
 }));
 
-const DeliveryContentBox = styled(GeopilotBox)({
-  flex: 1,
-});
-
 const Delivery = () => {
   const { t } = useTranslation();
   const { steps, activeStep } = useContext(DeliveryContext);
@@ -27,7 +23,7 @@ const Delivery = () => {
       <Typography variant="h1">{t("deliveryTitle")}</Typography>
       <DeliveryContainer direction={{ xs: "column", md: "row" }} spacing={{ xs: 2, md: 3 }}>
         <DeliveryStepper />
-        <DeliveryContentBox>{Array.from(steps.values())[activeStep]?.content}</DeliveryContentBox>
+        {Array.from(steps.values())[activeStep]?.content}
       </DeliveryContainer>
     </CenteredBox>
   );
