@@ -6,9 +6,13 @@ import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepper } from "./deliveryStepper.tsx";
 import { useContext } from "react";
 
-const DeliveryContainer = styled(Stack)({
+const DeliveryContainer = styled(Stack)(({ theme }) => ({
   flex: 1,
-});
+  alignItems: "flex-start",
+  [theme.breakpoints.down("md")]: {
+    alignItems: "stretch",
+  },
+}));
 
 const DeliveryContentBox = styled(GeopilotBox)({
   flex: 1,
@@ -19,9 +23,9 @@ const Delivery = () => {
   const { steps, activeStep } = useContext(DeliveryContext);
 
   return (
-    <CenteredBox data-cy="delivery">
+    <CenteredBox data-cy="delivery" sx={{ height: "auto" }}>
       <Typography variant="h1">{t("deliveryTitle")}</Typography>
-      <DeliveryContainer direction={{ sm: "column", md: "row" }} spacing={3} alignItems="flex-start">
+      <DeliveryContainer direction={{ xs: "column", md: "row" }} spacing={{ xs: 2, md: 3 }}>
         <DeliveryStepper />
         <DeliveryContentBox>{Array.from(steps.values())[activeStep]?.content}</DeliveryContentBox>
       </DeliveryContainer>

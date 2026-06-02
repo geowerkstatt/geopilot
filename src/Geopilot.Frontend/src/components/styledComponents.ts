@@ -37,8 +37,10 @@ export const LayoutBox = styled(FlexBox)(({ theme }) => ({
   flex: "1",
 }));
 
+export const pageContentPadding = "40px";
+
 export const PageContentBox = styled(FlexBox)({
-  padding: "20px",
+  padding: pageContentPadding,
   flex: "1",
   alignItems: "center",
 });

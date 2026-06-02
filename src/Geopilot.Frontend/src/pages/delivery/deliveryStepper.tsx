@@ -1,19 +1,35 @@
 import { Stack, Typography } from "@mui/material";
 import { styled } from "@mui/system";
-import { useContext } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { GeopilotBox } from "../../components/styledComponents";
+import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
 import { DeliveryContext } from "./deliveryContext";
 import { StepperIcon } from "./stepperIcon";
 
-const StepperStack = styled(Stack)({
+const StepperStack = styled(Stack)(({ theme }) => ({
   minWidth: 300,
   flex: 0,
-});
+  [theme.breakpoints.down("md")]: {
+    overflowX: "auto",
+    scrollSnapType: "x",
+    scrollbarWidth: "none",
+    minHeight: "max-content",
+    alignItems: "flex-start",
+    margin: `0 -${pageContentPadding} !important`,
+    padding: `0 ${pageContentPadding}`,
+  },
+}));
 
 const DeliveryStepBox = styled(GeopilotBox, { shouldForwardProp: prop => prop !== "open" })<{ open: boolean }>(
   ({ open, theme }) => ({
     backgroundColor: open ? theme.palette.primary.selected : "white",
+    alignItems: "flex-start",
+    boxSizing: "border-box",
+    [theme.breakpoints.down("md")]: {
+      scrollSnapAlign: "center",
+      width: "100%",
+      flexShrink: 0,
+    },
   }),
 );
 
@@ -24,10 +40,21 @@ export const DeliveryStepper = () => {
   const isOpen = (stepIndex: number) => activeStep === stepIndex;
   const isCompleted = (stepIndex: number) => activeStep > stepIndex;
 
+  const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  useEffect(() => {
+    stepRefs.current[activeStep]?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+  }, [activeStep]);
+
   return (
-    <StepperStack spacing={2}>
+    <StepperStack spacing={2} direction={{ xs: "row", md: "column" }} data-cy="delivery-stepper">
       {Array.from(steps.entries()).map(([key, step], index) => (
-        <DeliveryStepBox key={key} data-cy={`${key}-step`} direction="row" alignItems="flex-start" open={isOpen(index)}>
+        <DeliveryStepBox
+          key={key}
+          ref={el => (stepRefs.current[index] = el)}
+          data-cy={`${key}-step`}
+          direction="row"
+          open={isOpen(index)}>
           <StepperIcon
             index={index}
             active={isOpen(index)}
@@ -36,10 +63,7 @@ export const DeliveryStepper = () => {
             isLoading={isOpen(index) && (isLoading || isProcessing)}
           />
           <Stack spacing={1}>
-            <Typography
-              variant="h3"
-              m={0}
-              color={isOpen(index) || isCompleted(index) ? "textPrimary" : "textSecondary"}>
+            <Typography variant="h3" color={isOpen(index) || isCompleted(index) ? "textPrimary" : "textSecondary"}>
               {t(step.label)}
             </Typography>
             {step.labelAddition && (
