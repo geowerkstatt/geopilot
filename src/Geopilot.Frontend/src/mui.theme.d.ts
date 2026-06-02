@@ -9,6 +9,7 @@ declare module "@mui/material/styles" {
       main: string;
       inactive: string;
       hover: string;
+      selected: string;
       contrastText: string;
       light: string;
       background: string;

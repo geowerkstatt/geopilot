@@ -10,6 +10,7 @@ const themePalette: AppThemePalette = {
     light: "#124A4F80",
     inactive: "#124A4F99",
     hover: "#124A4F0D",
+    selected: "#124A4F2E",
     contrastText: "#ffffff",
     background: "#124A4F0A",
   },

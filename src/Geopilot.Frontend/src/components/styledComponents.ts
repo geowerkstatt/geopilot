@@ -47,7 +47,7 @@ export const CenteredBox = styled(FlexBox)({
   margin: "40px 0",
   width: "100%",
   height: "100%",
-  maxWidth: "1000px",
+  maxWidth: "1200px",
 });
 
 export const GeopilotBox = styled(FlexBox)(({ theme }) => ({
