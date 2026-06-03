@@ -13,7 +13,7 @@ const StepperStack = styled(Stack)(({ theme }) => ({
     overflowX: "auto",
     scrollSnapType: "x",
     scrollbarWidth: "none",
-    flex: "1 0",
+    flex: "0 0 58px",
     alignItems: "flex-start",
     margin: `0 -${pageContentPadding} !important`,
     padding: `0 ${pageContentPadding}`,
@@ -24,7 +24,6 @@ const DeliveryStepBox = styled(GeopilotBox, { shouldForwardProp: prop => prop !=
   ({ open, theme }) => ({
     backgroundColor: open ? theme.palette.primary.selected : "white",
     alignItems: "flex-start",
-    boxSizing: "border-box",
     [theme.breakpoints.down("md")]: {
       scrollSnapAlign: "center",
       width: "100%",

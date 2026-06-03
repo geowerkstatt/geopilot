@@ -11,7 +11,13 @@ interface DeliveryContentProps {
 }
 
 const DeliveryContentBox = styled(FlexBox)({
+  minHeight: "0",
+  maxHeight: "100%",
   flex: 1,
+});
+
+const MainContentBox = styled(GeopilotBox)({
+  overflow: "auto",
 });
 
 export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
@@ -24,13 +30,13 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
 
   return (
     <DeliveryContentBox>
-      <GeopilotBox>
-        <Typography variant="h3" m={0}>
+      <MainContentBox>
+        <Typography variant="h3" m={0} sx={{ display: { xs: "none", md: "block" } }}>
           {t(title)}
         </Typography>
         {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}
         {children}
-      </GeopilotBox>
+      </MainContentBox>
       <FlexRowEndBox>{buttons}</FlexRowEndBox>
     </DeliveryContentBox>
   );

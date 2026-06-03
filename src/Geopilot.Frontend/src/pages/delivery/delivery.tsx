@@ -7,6 +7,8 @@ import { DeliveryStepper } from "./deliveryStepper.tsx";
 import { useContext } from "react";
 
 const DeliveryContainer = styled(Stack)(({ theme }) => ({
+  height: "100%",
+  minHeight: "0",
   flex: 1,
   alignItems: "flex-start",
   [theme.breakpoints.down("md")]: {
@@ -19,7 +21,7 @@ const Delivery = () => {
   const { steps, activeStep } = useContext(DeliveryContext);
 
   return (
-    <CenteredBox data-cy="delivery" sx={{ height: "auto" }}>
+    <CenteredBox data-cy="delivery">
       <Typography variant="h1">{t("deliveryTitle")}</Typography>
       <DeliveryContainer direction={{ xs: "column", md: "row" }} spacing={{ xs: 2, md: 3 }}>
         <DeliveryStepper />
