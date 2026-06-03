@@ -166,6 +166,7 @@ export const geopilotTheme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
+          textTransform: "none",
           fontWeight: "500",
           borderRadius: "4px",
           boxShadow: "none",
@@ -313,6 +314,7 @@ export const geopilotTheme = createTheme({
         root: {
           color: themePalette.primary.main,
           borderColor: themePalette.primary.light,
+          textTransform: "none",
           "&:hover": {
             backgroundColor: themePalette.primary.hover,
           },

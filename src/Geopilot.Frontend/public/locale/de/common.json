@@ -108,6 +108,7 @@
   "selectMandateSubtitle": "Wählen Sie ein Mandat aus, das Ihren aktuellen Verarbeitungsanforderungen entspricht",
   "spatialExtent": "Räumliche Ausdehnung",
   "stacBrowser": "STAC Browser",
+  "startProcessing": "Verarbeitung starten",
   "stepStateCancelled": "Abgebrochen",
   "stepStateFailed": "Fehlgeschlagen",
   "stepStateFinished": "Abgeschlossen",

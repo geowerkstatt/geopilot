@@ -5,7 +5,6 @@ import { FormProvider, useForm } from "react-hook-form";
 import { FlexBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import { Trans } from "react-i18next";
 import { Link } from "@mui/material";
-import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import { FormCheckbox } from "../../components/form/form.ts";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { DeliveryContext } from "./deliveryContext.tsx";
@@ -13,6 +12,7 @@ import { DeliveryStepEnum, DeliveryStepProps } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryContent } from "./deliveryContent.tsx";
+import { DeliveryContinueButton } from "./deliveryButtons.tsx";
 
 export const DeliveryUpload: FC<DeliveryStepProps> = ({ completed }) => {
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>();
@@ -29,6 +29,7 @@ export const DeliveryUpload: FC<DeliveryStepProps> = ({ completed }) => {
     uploadFile,
     cancelUpload,
     uploadSettings,
+    resetDelivery,
   } = useContext(DeliveryContext);
 
   useEffect(() => {
@@ -49,13 +50,22 @@ export const DeliveryUpload: FC<DeliveryStepProps> = ({ completed }) => {
     [setStepError],
   );
 
-  const button = isLoading ? (
+  const button = completed ? (
+    <>
+      <CancelButton
+        onClick={() => {
+          formMethods.reset();
+          resetDelivery();
+        }}
+      />
+      <DeliveryContinueButton />
+    </>
+  ) : isLoading ? (
     <CancelButton onClick={() => cancelUpload()} />
   ) : (
     <BaseButton
-      disabled={completed || !formMethods.formState.isValid || selectedFiles.length === 0}
+      disabled={!formMethods.formState.isValid || selectedFiles.length === 0}
       onClick={() => formMethods.handleSubmit(submitForm)()}
-      icon={<CloudUploadOutlinedIcon />}
       label="upload"
     />
   );

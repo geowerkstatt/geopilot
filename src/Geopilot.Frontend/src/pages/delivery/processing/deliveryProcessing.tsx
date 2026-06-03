@@ -1,22 +1,22 @@
-import { FC, useContext } from "react";
+import { useContext } from "react";
 import { DeliveryContext } from "../deliveryContext";
 import { DeliveryProcessingLoading } from "./deliveryProcessingLoading";
 import { DeliveryProcessingResults } from "./deliveryProcessingResults";
 import { DeliveryContent } from "../deliveryContent";
-import { BaseButton, CancelButton } from "../../../components/buttons";
+import { CancelButton } from "../../../components/buttons";
 import { isProcessingDeliverable } from "../deliveryUtils";
-import { DeliveryStepProps } from "../deliveryInterfaces";
+import { DeliveryBackButton, DeliveryContinueButton } from "../deliveryButtons";
 
-export const DeliveryProcessing: FC<DeliveryStepProps> = ({ completed }) => {
-  const { isProcessing, processingResponse, continueToNextStep, resetDelivery } = useContext(DeliveryContext);
+export const DeliveryProcessing = () => {
+  const { isProcessing, processingResponse, resetDelivery } = useContext(DeliveryContext);
   const hasSteps = (processingResponse?.steps?.length ?? 0) > 0;
 
-  const buttons = (
+  const buttons = isProcessing ? (
+    <CancelButton onClick={resetDelivery} />
+  ) : (
     <>
-      <CancelButton onClick={resetDelivery} />
-      {!isProcessing && isProcessingDeliverable(processingResponse) && (
-        <BaseButton disabled={completed} onClick={() => continueToNextStep()} label="continue" />
-      )}
+      <DeliveryBackButton />
+      {!isProcessing && isProcessingDeliverable(processingResponse) && <DeliveryContinueButton />}
     </>
   );
 

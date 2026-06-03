@@ -3,19 +3,19 @@ import { FC, useContext, useEffect, useState } from "react";
 import { FlexBox } from "../../components/styledComponents.ts";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
-import SendIcon from "@mui/icons-material/Send";
 import { Delivery, FieldEvaluationType } from "../../api/apiInterfaces.ts";
 import { DeliveryStepProps, DeliverySubmitData } from "./deliveryInterfaces.tsx";
-import { BaseButton, CancelButton } from "../../components/buttons.tsx";
+import { BaseButton } from "../../components/buttons.tsx";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryContent } from "./deliveryContent.tsx";
 import { Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons.tsx";
 
 export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
-  const { isLoading, submitDelivery, resetDelivery, selectedMandate, submittedData } = useContext(DeliveryContext);
+  const { isLoading, submitDelivery, selectedMandate, submittedData } = useContext(DeliveryContext);
   const [previousDeliveries, setPreviousDeliveries] = useState<Delivery[]>([]);
   const formMethods = useForm({ mode: "all", defaultValues: submittedData, disabled: completed });
 
@@ -37,13 +37,16 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
 
   const buttons = (
     <>
-      <CancelButton onClick={() => resetDelivery()} disabled={isLoading} />
-      <BaseButton
-        icon={<SendIcon />}
-        label="createDelivery"
-        disabled={completed || !formMethods.formState.isValid || isLoading}
-        onClick={() => formMethods.handleSubmit(submitForm)()}
-      />
+      <DeliveryBackButton />
+      {completed ? (
+        <DeliveryContinueButton />
+      ) : (
+        <BaseButton
+          label="createDelivery"
+          disabled={completed || !formMethods.formState.isValid || isLoading}
+          onClick={() => formMethods.handleSubmit(submitForm)()}
+        />
+      )}
     </>
   );
 

@@ -1,4 +1,3 @@
-import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
 import { CircularProgress, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { toggleButtonClasses } from "@mui/material/ToggleButton";
 import { styled } from "@mui/system";
@@ -6,8 +5,9 @@ import { FC, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Mandate } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
-import { BaseButton, CancelButton } from "../../components/buttons";
+import { BaseButton } from "../../components/buttons";
 import useFetch from "../../hooks/useFetch";
+import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons";
 import { DeliveryContent } from "./deliveryContent";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryStepEnum, DeliveryStepProps } from "./deliveryInterfaces";
@@ -59,8 +59,7 @@ const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
 };
 
 export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
-  const { resetDelivery, startProcessing, jobId, setStepError, isLoading, selectedMandate } =
-    useContext(DeliveryContext);
+  const { startProcessing, jobId, setStepError, isLoading, selectedMandate } = useContext(DeliveryContext);
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
@@ -94,13 +93,16 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
 
   const buttons = (
     <>
-      <CancelButton onClick={resetDelivery} />
-      <BaseButton
-        onClick={submitForm}
-        icon={<PublishedWithChangesIcon />}
-        label="process"
-        disabled={completed || isLoading || selectedId === null}
-      />
+      <DeliveryBackButton />
+      {completed ? (
+        <DeliveryContinueButton />
+      ) : (
+        <BaseButton
+          onClick={submitForm}
+          label="startProcessing"
+          disabled={completed || isLoading || selectedId === null}
+        />
+      )}
     </>
   );
 

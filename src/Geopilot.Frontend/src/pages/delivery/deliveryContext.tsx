@@ -74,7 +74,7 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
     DeliveryStepEnum.Process,
     previousSteps.get(DeliveryStepEnum.Process) ?? {
       label: "process",
-      content: completed => <DeliveryProcessing completed={completed} />,
+      content: () => <DeliveryProcessing />,
     },
   );
 
@@ -197,7 +197,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setAbortControllers([]);
     if (activeStep < steps.size - 1) {
       setActiveStep(activeStep + 1);
-      setLastCompletedStep(activeStep);
+      setLastCompletedStep(completed => Math.max(completed, activeStep));
     }
   }, [activeStep, steps]);
 

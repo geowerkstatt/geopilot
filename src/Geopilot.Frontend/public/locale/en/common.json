@@ -108,6 +108,7 @@
   "selectMandateSubtitle": "Select a mandate that fits your current processing needs",
   "spatialExtent": "Spatial extent",
   "stacBrowser": "STAC Browser",
+  "startProcessing": "Start processing",
   "stepStateCancelled": "Cancelled",
   "stepStateFailed": "Failed",
   "stepStateFinished": "Finished",

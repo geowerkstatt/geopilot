@@ -108,6 +108,7 @@
   "selectMandateSubtitle": "Seleziona un mandato che corrisponde alle tue esigenze di elaborazione attuali",
   "spatialExtent": "Misura spaziale",
   "stacBrowser": "Browser STAC",
+  "startProcessing": "Avvia elaborazione",
   "stepStateCancelled": "Annullato",
   "stepStateFailed": "Fallito",
   "stepStateFinished": "Completato",
