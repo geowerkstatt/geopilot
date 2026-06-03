@@ -1,5 +1,5 @@
 import { FileDropzone } from "../../components/fileDropzone.tsx";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { FC, useCallback, useContext, useEffect, useState } from "react";
 import { ProcessingSettings } from "../../api/apiInterfaces.ts";
 import { FormProvider, useForm } from "react-hook-form";
 import { FlexBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
@@ -9,12 +9,12 @@ import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import { FormCheckbox } from "../../components/form/form.ts";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { DeliveryContext } from "./deliveryContext.tsx";
-import { DeliveryStepEnum } from "./deliveryInterfaces.tsx";
+import { DeliveryStepEnum, DeliveryStepProps } from "./deliveryInterfaces.tsx";
 import { BaseButton, CancelButton } from "../../components/buttons.tsx";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryContent } from "./deliveryContent.tsx";
 
-export const DeliveryUpload = () => {
+export const DeliveryUpload: FC<DeliveryStepProps> = ({ completed }) => {
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>();
   const { initialized, termsOfUse } = useAppSettings();
   const { fetchApi } = useFetch();
@@ -53,7 +53,7 @@ export const DeliveryUpload = () => {
     <CancelButton onClick={() => cancelUpload()} />
   ) : (
     <BaseButton
-      disabled={!formMethods.formState.isValid || selectedFiles.length === 0}
+      disabled={completed || !formMethods.formState.isValid || selectedFiles.length === 0}
       onClick={() => formMethods.handleSubmit(submitForm)()}
       icon={<CloudUploadOutlinedIcon />}
       label="upload"
@@ -72,7 +72,8 @@ export const DeliveryUpload = () => {
                 removeFile={removeFile}
                 fileUploadStatus={fileUploadStatus}
                 fileExtensions={processingSettings?.allowedFileExtensions}
-                disabled={isLoading}
+                disabled={completed || isLoading}
+                hideDropzone={completed}
                 setFileError={setFileError}
                 maxFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxFileSizeMB : undefined}
                 maxFiles={uploadSettings?.enabled ? uploadSettings.maxFilesPerJob : 1}
@@ -89,8 +90,8 @@ export const DeliveryUpload = () => {
                       }}
                     />
                   }
-                  checked={!termsOfUse}
-                  disabled={isLoading}
+                  checked={completed || !termsOfUse}
+                  disabled={completed || isLoading}
                   validation={{ required: true }}
                   sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
                 />

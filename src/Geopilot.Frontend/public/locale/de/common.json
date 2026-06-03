@@ -37,6 +37,7 @@
   "deliveryErrorUnauthorized": "Benutzer nicht berechtigt Auslieferungen zu tätigen. (Fehler 401)",
   "deliveryErrorUnexpected": "Beim Ausliefern ist ein unerwarteter Fehler aufgetreten. (Fehler 500)",
   "deliveryForm": "Lieferformular",
+  "deliveryNoInputRequired": "Zu dieser Lieferung sind keine weiteren Angaben erforderlich.",
   "deliveryNotPossible": "Lieferung nicht möglich",
   "deliveryOverview": "Lieferübersicht",
   "deliveryOverviewDeleteError": "Beim Löschen ist ein Fehler aufgetreten: {{error}}",

@@ -27,6 +27,7 @@ import { DeliverySelectMandate } from "./deliverySelectMandate.tsx";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
+  lastCompletedStep: 0,
   activeStep: 0,
   isActiveStep: () => false,
   setStepError: () => {},
@@ -46,6 +47,8 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   submitDelivery: () => {},
   resetDelivery: () => {},
   continueToNextStep: () => {},
+  showCompletedOrNextStep: () => {},
+  submittedData: undefined,
 });
 
 // Gets the current steps while reusing previous steps if possible to keep their state (e.g. errors)
@@ -53,35 +56,48 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
   const newSteps: Map<DeliveryStepEnum, DeliveryStep> = new Map();
   newSteps.set(
     DeliveryStepEnum.Upload,
-    previousSteps.get(DeliveryStepEnum.Upload) ?? { label: "upload", content: <DeliveryUpload /> },
+    previousSteps.get(DeliveryStepEnum.Upload) ?? {
+      label: "upload",
+      content: completed => <DeliveryUpload completed={completed} />,
+    },
   );
 
   newSteps.set(
     DeliveryStepEnum.SelectMandate,
-    previousSteps.get(DeliveryStepEnum.SelectMandate) ?? { label: "selectMandate", content: <DeliverySelectMandate /> },
+    previousSteps.get(DeliveryStepEnum.SelectMandate) ?? {
+      label: "selectMandate",
+      content: completed => <DeliverySelectMandate completed={completed} />,
+    },
   );
 
   newSteps.set(
     DeliveryStepEnum.Process,
-    previousSteps.get(DeliveryStepEnum.Process) ?? { label: "process", content: <DeliveryProcessing /> },
+    previousSteps.get(DeliveryStepEnum.Process) ?? {
+      label: "process",
+      content: completed => <DeliveryProcessing completed={completed} />,
+    },
   );
 
   if (showDelivery) {
     newSteps.set(
       DeliveryStepEnum.Submit,
-      previousSteps.get(DeliveryStepEnum.Submit) ?? { label: "deliver", content: <DeliverySubmit /> },
+      previousSteps.get(DeliveryStepEnum.Submit) ?? {
+        label: "deliver",
+        content: completed => <DeliverySubmit completed={completed} />,
+      },
     );
   }
 
   newSteps.set(
     DeliveryStepEnum.Done,
-    previousSteps.get(DeliveryStepEnum.Done) ?? { label: "done", content: <DeliveryCompleted /> },
+    previousSteps.get(DeliveryStepEnum.Done) ?? { label: "done", content: () => <DeliveryCompleted /> },
   );
 
   return newSteps;
 };
 
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
+  const [lastCompletedStep, setLastCompletedStep] = useState(-1);
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -98,6 +114,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const { user } = useGeopilotAuth();
   const prevUserIdRef = useRef<number | undefined>(user?.id);
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), false));
+  const [submittedData, setSubmittedData] = useState<DeliverySubmitData>();
 
   const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = useMemo(
     () => ({
@@ -180,8 +197,18 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setAbortControllers([]);
     if (activeStep < steps.size - 1) {
       setActiveStep(activeStep + 1);
+      setLastCompletedStep(activeStep);
     }
   }, [activeStep, steps]);
+
+  const showCompletedOrNextStep = useCallback(
+    (index: number) => {
+      if (index >= 0 && index <= lastCompletedStep + 1) {
+        setActiveStep(index);
+      }
+    },
+    [lastCompletedStep],
+  );
 
   const handleApiError = useCallback(
     (error: ApiError, key: DeliveryStepEnum) => {
@@ -201,7 +228,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       const newSteps = new Map(prevSteps);
       const step = newSteps.get(DeliveryStepEnum.Upload);
       if (step) {
-        step.labelAddition = selectedFiles.map(f => f.name).join(", ");
+        step.labelAddition = selectedFiles.map(f => f.name).join("\n");
       }
       return newSteps;
     });
@@ -357,6 +384,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);
+    setSubmittedData(data);
     if (steps.get(DeliveryStepEnum.Submit)?.error) {
       setStepError(DeliveryStepEnum.Submit, undefined);
     }
@@ -394,6 +422,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setJobId(undefined);
     setProcessingResponse(undefined);
     setActiveStep(0);
+    setLastCompletedStep(-1);
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
       newSteps.forEach(step => {
@@ -402,6 +431,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
       return newSteps;
     });
+    setSubmittedData(undefined);
   }, [abortControllers]);
 
   // Reset delivery when user changes AFTER processing was already started
@@ -416,6 +446,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     <DeliveryContext.Provider
       value={{
         steps,
+        lastCompletedStep,
         activeStep,
         isActiveStep,
         setStepError,
@@ -435,6 +466,8 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         submitDelivery,
         resetDelivery,
         continueToNextStep,
+        showCompletedOrNextStep,
+        submittedData,
       }}>
       {children}
     </DeliveryContext.Provider>

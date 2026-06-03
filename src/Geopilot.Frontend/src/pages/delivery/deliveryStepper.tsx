@@ -20,26 +20,30 @@ const StepperStack = styled(Stack)(({ theme }) => ({
   },
 }));
 
-const DeliveryStepBox = styled(GeopilotBox, { shouldForwardProp: prop => prop !== "open" })<{ open: boolean }>(
-  ({ open, theme }) => ({
-    backgroundColor: open ? theme.palette.primary.selected : "white",
-    alignItems: "flex-start",
-    [theme.breakpoints.down("md")]: {
-      scrollSnapAlign: "center",
-      width: "100%",
-      flexShrink: 0,
-    },
-  }),
-);
+const DeliveryStepBox = styled(GeopilotBox, { shouldForwardProp: prop => prop !== "open" && prop !== "enabled" })<{
+  open: boolean;
+  enabled: boolean;
+}>(({ open, enabled, theme }) => ({
+  backgroundColor: open ? theme.palette.primary.selected : "white",
+  alignItems: "flex-start",
+  cursor: enabled ? "pointer" : "default",
+  [theme.breakpoints.down("md")]: {
+    scrollSnapAlign: "center",
+    width: "100%",
+    flexShrink: 0,
+  },
+}));
 
 export const DeliveryStepper = () => {
   const { t } = useTranslation();
-  const { steps, activeStep, isLoading, isProcessing } = useContext(DeliveryContext);
+  const { steps, lastCompletedStep, activeStep, isLoading, isProcessing, showCompletedOrNextStep } =
+    useContext(DeliveryContext);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const isOpen = (stepIndex: number) => activeStep === stepIndex;
-  const isCompleted = (stepIndex: number) => activeStep > stepIndex;
+  const isCompleted = (stepIndex: number) => lastCompletedStep >= stepIndex;
+  const isEnabled = (stepIndex: number) => isCompleted(stepIndex - 1);
 
   const stepRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -49,6 +53,11 @@ export const DeliveryStepper = () => {
     },
     [stepRefs],
   );
+
+  const onStepClick = (index: number) => {
+    showStep(index, "smooth");
+    showCompletedOrNextStep(index);
+  };
 
   useEffect(() => {
     showStep(activeStep, "smooth");
@@ -69,22 +78,27 @@ export const DeliveryStepper = () => {
           data-cy={`${key}-step`}
           direction="row"
           open={isOpen(index)}
-          onClick={() => showStep(index, "smooth")}>
+          enabled={isEnabled(index)}
+          onClick={() => onStepClick(index)}>
           <StepperIcon
             index={index}
-            active={isOpen(index)}
+            active={isEnabled(index)}
             completed={isCompleted(index)}
             error={!!step.error}
             isLoading={isOpen(index) && (isLoading || isProcessing)}
           />
           <Stack spacing={1}>
-            <Typography variant="h3" color={isOpen(index) || isCompleted(index) ? "textPrimary" : "textSecondary"}>
+            <Typography variant="h3" color={isEnabled(index) ? "textPrimary" : "textSecondary"}>
               {t(step.label)}
             </Typography>
             {step.labelAddition && (
               <Typography
                 variant="body2"
-                sx={{ display: { xs: "none", md: "block" }, color: theme => theme.palette.primary.main }}>
+                sx={{
+                  display: { xs: "none", md: "block" },
+                  color: theme => theme.palette.primary.main,
+                  whiteSpace: "pre-line",
+                }}>
                 {t(step.labelAddition)}
               </Typography>
             )}

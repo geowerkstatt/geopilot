@@ -37,6 +37,7 @@
   "deliveryErrorUnauthorized": "L'utilisateur n'est pas autorisé à effectuer des livraisons. (Erreur 401)",
   "deliveryErrorUnexpected": "Une erreur inattendue s'est produite lors de la livraison. (Erreur 500)",
   "deliveryForm": "Formulaire de livraison",
+  "deliveryNoInputRequired": "Aucune information supplémentaire n'est requise pour cette livraison.",
   "deliveryNotPossible": "Livraison non possible",
   "deliveryOverview": "Aperçu des livraisons",
   "deliveryOverviewDeleteError": "Une erreur s'est produite lors de la suppression: {{error}}",

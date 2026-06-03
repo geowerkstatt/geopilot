@@ -10,7 +10,7 @@ import { BaseButton, CancelButton } from "../../components/buttons";
 import useFetch from "../../hooks/useFetch";
 import { DeliveryContent } from "./deliveryContent";
 import { DeliveryContext } from "./deliveryContext";
-import { DeliveryStepEnum } from "./deliveryInterfaces";
+import { DeliveryStepEnum, DeliveryStepProps } from "./deliveryInterfaces";
 
 const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   gap: "1rem",
@@ -18,6 +18,9 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   [`& .${toggleButtonClasses.root}`]: {
     borderRadius: theme.shape.borderRadius,
     borderLeft: `1px solid ${theme.palette.primary.light}`,
+    [`&.${toggleButtonClasses.disabled}`]: {
+      borderLeftColor: theme.palette.action.disabledBackground,
+    },
   },
 }));
 
@@ -55,8 +58,9 @@ const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
   );
 };
 
-export const DeliverySelectMandate = () => {
-  const { resetDelivery, startProcessing, jobId, setStepError, isLoading } = useContext(DeliveryContext);
+export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
+  const { resetDelivery, startProcessing, jobId, setStepError, isLoading, selectedMandate } =
+    useContext(DeliveryContext);
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
@@ -83,7 +87,7 @@ export const DeliverySelectMandate = () => {
   };
 
   const handleSelectMandate = (newValue: number | null) => {
-    if (newValue !== null) {
+    if (!completed && newValue !== null) {
       setSelectedId(newValue);
     }
   };
@@ -95,7 +99,7 @@ export const DeliverySelectMandate = () => {
         onClick={submitForm}
         icon={<PublishedWithChangesIcon />}
         label="process"
-        disabled={isLoading || selectedId === null}
+        disabled={completed || isLoading || selectedId === null}
       />
     </>
   );
@@ -108,7 +112,11 @@ export const DeliverySelectMandate = () => {
         ) : mandates.length === 0 ? (
           <Typography>{t("noMandatesFound")}</Typography>
         ) : (
-          <StyledToggleButtonGroup exclusive value={selectedId} onChange={(_, value) => handleSelectMandate(value)}>
+          <StyledToggleButtonGroup
+            exclusive
+            disabled={completed}
+            value={selectedMandate?.id ?? selectedId}
+            onChange={(_, value) => handleSelectMandate(value)}>
             {mandates.map(mandate => (
               <MandateToggleButton key={mandate.id} mandate={mandate} />
             ))}

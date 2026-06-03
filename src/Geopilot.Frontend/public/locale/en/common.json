@@ -37,6 +37,7 @@
   "deliveryErrorUnauthorized": "User is not authorized to make deliveries. (Error 401)",
   "deliveryErrorUnexpected": "An unexpected error occurred during delivery. (Error 500)",
   "deliveryForm": "Delivery form",
+  "deliveryNoInputRequired": "No further information is required for this delivery.",
   "deliveryNotPossible": "Delivery not possible",
   "deliveryOverview": "Delivery overview",
   "deliveryOverviewDeleteError": "An error occurred while deleting the delivery: {{error}}",

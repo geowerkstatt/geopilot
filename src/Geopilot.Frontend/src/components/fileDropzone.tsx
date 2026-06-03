@@ -16,6 +16,7 @@ interface FileDropzoneProps {
   fileUploadStatus: Map<string, FileUploadStatus>;
   fileExtensions?: string[];
   disabled?: boolean;
+  hideDropzone?: boolean;
   setFileError: (error: string | undefined) => void;
   maxFileSizeMB?: number;
   maxFiles?: number;
@@ -29,6 +30,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   fileUploadStatus,
   fileExtensions,
   disabled,
+  hideDropzone,
   setFileError,
   maxFileSizeMB = defaultMaxFileSizeMB,
   maxFiles = 1,
@@ -106,7 +108,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
 
   const dropzoneStyle = useMemo<CSSProperties>(
     () => ({
-      display: "flex",
+      display: hideDropzone ? "none" : "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
@@ -124,7 +126,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       transition: "border .24s ease-in-out",
       cursor: disabled ? "default" : "pointer",
     }),
-    [disabled, error],
+    [disabled, hideDropzone, error],
   );
 
   return (
@@ -148,7 +150,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
           key={file.name}
           file={file}
           status={fileUploadStatus.get(file.name)}
-          disabled={isUploading}
+          disabled={disabled || isUploading}
           onRemove={removeFile}
         />
       ))}

@@ -18,14 +18,15 @@ const DeliveryContainer = styled(Stack)(({ theme }) => ({
 
 const Delivery = () => {
   const { t } = useTranslation();
-  const { steps, activeStep } = useContext(DeliveryContext);
+  const { steps, activeStep, lastCompletedStep } = useContext(DeliveryContext);
+  const isCompleted = lastCompletedStep >= activeStep;
 
   return (
     <CenteredBox data-cy="delivery">
       <Typography variant="h1">{t("deliveryTitle")}</Typography>
       <DeliveryContainer direction={{ xs: "column", md: "row" }} spacing={{ xs: 2, md: 3 }}>
         <DeliveryStepper />
-        {Array.from(steps.values())[activeStep]?.content}
+        {Array.from(steps.values())[activeStep]?.content(isCompleted)}
       </DeliveryContainer>
     </CenteredBox>
   );

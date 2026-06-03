@@ -14,11 +14,15 @@ export interface FileUploadStatus {
   error?: string;
 }
 
+export interface DeliveryStepProps {
+  completed: boolean;
+}
+
 export interface DeliveryStep {
   label: string;
   labelAddition?: string;
   error?: string;
-  content: ReactNode;
+  content: (completed: boolean) => ReactNode;
 }
 
 export interface DeliverySubmitData {
@@ -35,6 +39,7 @@ export interface DeliveryStepError {
 
 export interface DeliveryContextInterface {
   steps: Map<DeliveryStepEnum, DeliveryStep>;
+  lastCompletedStep: number;
   activeStep: number;
   isActiveStep: (step: DeliveryStepEnum) => boolean;
   setStepError: (key: DeliveryStepEnum, error: string | undefined) => void;
@@ -54,4 +59,6 @@ export interface DeliveryContextInterface {
   submitDelivery: (data: DeliverySubmitData) => void;
   resetDelivery: () => void;
   continueToNextStep: () => void;
+  showCompletedOrNextStep: (index: number) => void;
+  submittedData?: DeliverySubmitData;
 }
