@@ -1,8 +1,8 @@
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
-import { Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { CircularProgress, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { toggleButtonClasses } from "@mui/material/ToggleButton";
 import { styled } from "@mui/system";
-import { useContext, useEffect, useState } from "react";
+import { FC, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Mandate } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
@@ -24,7 +24,36 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
 const StyledToggleButton = styled(ToggleButton)({
   width: "max-content",
   maxWidth: "400px",
+  flexDirection: "column",
+  alignItems: "flex-start",
 });
+
+interface MandateToggleButtonProps {
+  mandate: Mandate;
+}
+
+const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
+  const { user } = useGeopilotAuth();
+  const { t, i18n } = useTranslation();
+
+  const steps = mandate.pipelineSteps.map(step => step[i18n.language] ?? step["en"]).join(", ");
+
+  return (
+    <StyledToggleButton value={mandate.id}>
+      <Typography variant="h5" mt={0}>
+        {mandate.name}
+      </Typography>
+      <Typography variant="body1" sx={{ textTransform: "none" }}>
+        {t("pipelineSteps", { steps })}
+      </Typography>
+      {user && (
+        <Typography variant="body1" sx={{ textTransform: "none" }}>
+          {mandate.allowDelivery ? t("deliveryPossible") : t("deliveryNotPossible")}
+        </Typography>
+      )}
+    </StyledToggleButton>
+  );
+};
 
 export const DeliverySelectMandate = () => {
   const { resetDelivery, startProcessing, jobId, setStepError, isLoading } = useContext(DeliveryContext);
@@ -32,7 +61,7 @@ export const DeliverySelectMandate = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [mandates, setMandates] = useState<Mandate[]>([]);
+  const [mandates, setMandates] = useState<Mandate[] | null>(null);
 
   useEffect(() => {
     if (jobId) {
@@ -47,7 +76,7 @@ export const DeliverySelectMandate = () => {
   }, [jobId, fetchApi, setStepError, t, user]);
 
   const submitForm = () => {
-    const mandate = selectedId !== null && mandates.find(m => m.id === selectedId);
+    const mandate = selectedId !== null && mandates?.find(m => m.id === selectedId);
     if (mandate) {
       startProcessing(mandate);
     }
@@ -74,14 +103,14 @@ export const DeliverySelectMandate = () => {
   return (
     <DeliveryContent title="selectMandate" subtitle="selectMandateSubtitle" buttons={buttons}>
       <Stack>
-        {mandates.length === 0 ? (
+        {mandates === null ? (
+          <CircularProgress sx={{ alignSelf: "center" }} />
+        ) : mandates.length === 0 ? (
           <Typography>{t("noMandatesFound")}</Typography>
         ) : (
           <StyledToggleButtonGroup exclusive value={selectedId} onChange={(_, value) => handleSelectMandate(value)}>
             {mandates.map(mandate => (
-              <StyledToggleButton key={mandate.id} value={mandate.id}>
-                {mandate.name}
-              </StyledToggleButton>
+              <MandateToggleButton key={mandate.id} mandate={mandate} />
             ))}
           </StyledToggleButtonGroup>
         )}

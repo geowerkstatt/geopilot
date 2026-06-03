@@ -13,7 +13,7 @@ const StepperStack = styled(Stack)(({ theme }) => ({
     overflowX: "auto",
     scrollSnapType: "x",
     scrollbarWidth: "none",
-    minHeight: "max-content",
+    flex: "1 0",
     alignItems: "flex-start",
     margin: `0 -${pageContentPadding} !important`,
     padding: `0 ${pageContentPadding}`,

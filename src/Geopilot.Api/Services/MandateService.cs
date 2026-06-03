@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Models;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,20 +10,28 @@ public class MandateService : IMandateService
 {
     private readonly Context context;
     private readonly IProcessingJobStore jobStore;
+    private readonly IPipelineService pipelineService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MandateService"/> class.
     /// </summary>
-    public MandateService(Context context, IProcessingJobStore jobStore)
+    public MandateService(Context context, IProcessingJobStore jobStore, IPipelineService pipelineService)
     {
         this.context = context;
         this.jobStore = jobStore;
+        this.pipelineService = pipelineService;
     }
 
     /// <inheritdoc/>
     public async Task<List<Mandate>> GetMandatesAsync(User? user = null, Guid? jobId = null)
     {
-        return await GetMandatesQuery(user, jobId).ToListAsync();
+        var mandates = await GetMandatesQuery(user, jobId).ToListAsync();
+        foreach (var mandate in mandates)
+        {
+            LoadPipelineSteps(mandate);
+        }
+
+        return mandates;
     }
 
     /// <inheritdoc/>
@@ -39,7 +48,9 @@ public class MandateService : IMandateService
             mandates = mandates.Where(m => m.IsPublic);
         }
 
-        return await mandates.SingleOrDefaultAsync(m => m.Id == mandateId);
+        var mandate = await mandates.SingleOrDefaultAsync(m => m.Id == mandateId);
+        LoadPipelineSteps(mandate);
+        return mandate;
     }
 
     /// <inheritdoc/>
@@ -98,5 +109,17 @@ public class MandateService : IMandateService
         }
 
         throw new InvalidOperationException($"Processing job with id <{jobId}> has no file associated.");
+    }
+
+    private void LoadPipelineSteps(Mandate? mandate)
+    {
+        if (mandate != null && !string.IsNullOrEmpty(mandate.PipelineId))
+        {
+            var pipeline = pipelineService.GetById(mandate.PipelineId);
+            if (pipeline != null)
+            {
+                mandate.PipelineSteps = pipeline.Steps.Select(s => s.DisplayName).ToList();
+            }
+        }
     }
 }

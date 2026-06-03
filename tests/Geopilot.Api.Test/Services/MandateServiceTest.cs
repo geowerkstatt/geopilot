@@ -1,6 +1,8 @@
 ﻿using Geopilot.Api.Models;
+using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
+using Geopilot.Pipeline.Config;
 using Moq;
 using System.Collections.Immutable;
 
@@ -12,6 +14,7 @@ public class MandateServiceTest
     private Context context;
     private MandateService mandateService;
     private Mock<IProcessingJobStore> processingJobStoreMock;
+    private Mock<IPipelineService> pipelineServiceMock;
     private User editUser;
     private User adminUser;
     private Mandate unrestrictedMandate;
@@ -26,8 +29,9 @@ public class MandateServiceTest
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
         processingJobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Strict);
+        pipelineServiceMock = new Mock<IPipelineService>(MockBehavior.Strict);
 
-        mandateService = new MandateService(context, processingJobStoreMock.Object);
+        mandateService = new MandateService(context, processingJobStoreMock.Object, pipelineServiceMock.Object);
 
         unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate), AllowDelivery = true };
         noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noDeliveryMandate), AllowDelivery = false };
@@ -146,6 +150,8 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandatesAsNonAdminUser()
     {
+        pipelineServiceMock.Setup(s => s.GetById("ili_validation")).Returns((PipelineConfig?)null);
+
         var result = await mandateService.GetMandatesAsync(editUser);
 
         ContainsMandate(result, unrestrictedMandate);
@@ -159,6 +165,8 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandatesAsAdminUser()
     {
+        pipelineServiceMock.Setup(s => s.GetById("ili_validation")).Returns((PipelineConfig?)null);
+
         var result = await mandateService.GetMandatesAsync(adminUser);
 
         ContainsMandate(result, unrestrictedMandate);
@@ -176,6 +184,7 @@ public class MandateServiceTest
         processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.xtf", "tmp.xtf") }, null, DateTime.Now));
+        pipelineServiceMock.Setup(s => s.GetById("ili_validation")).Returns((PipelineConfig?)null);
 
         var result = await mandateService.GetMandatesAsync(editUser, jobId);
 
@@ -194,6 +203,7 @@ public class MandateServiceTest
         processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.xtf", "tmp.xtf") }, null, DateTime.Now));
+        pipelineServiceMock.Setup(s => s.GetById("ili_validation")).Returns((PipelineConfig?)null);
 
         var result = await mandateService.GetMandatesAsync(adminUser, jobId);
 
@@ -208,6 +218,8 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandatesAsUnauthenticated()
     {
+        pipelineServiceMock.Setup(s => s.GetById("ili_validation")).Returns((PipelineConfig?)null);
+
         var result = await mandateService.GetMandatesAsync(null);
 
         ContainsMandate(result, publicCsvMandate);
@@ -225,6 +237,7 @@ public class MandateServiceTest
         processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.xtf", "tmp.xtf") }, null, DateTime.Now));
+        pipelineServiceMock.Setup(s => s.GetById("ili_validation")).Returns((PipelineConfig?)null);
 
         var result = await mandateService.GetMandatesAsync(null, jobId);
 
@@ -243,6 +256,7 @@ public class MandateServiceTest
         processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.XTF", "tmp.XTF") }, null, DateTime.Now));
+        pipelineServiceMock.Setup(s => s.GetById("ili_validation")).Returns((PipelineConfig?)null);
 
         var result = await mandateService.GetMandatesAsync(editUser, jobId);
 
@@ -272,6 +286,7 @@ public class MandateServiceTest
         processingJobStoreMock
             .Setup(m => m.GetJob(jobId))
             .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>(), null, DateTime.Now, Enums.UploadMethod.Cloud, cloudFiles));
+        pipelineServiceMock.Setup(s => s.GetById("ili_validation")).Returns((PipelineConfig?)null);
 
         var result = await mandateService.GetMandatesAsync(editUser, jobId);
 
@@ -281,6 +296,60 @@ public class MandateServiceTest
         DoesNotContainMandate(result, publicCsvMandate);
         DoesNotContainMandate(result, noOrganisationsMandate);
         DoesNotContainMandate(result, noPermissionMandate);
+    }
+
+    [TestMethod]
+    public async Task GetMandatesFillsPipelineSteps()
+    {
+        pipelineServiceMock.Setup(s => s.GetById("ili_validation")).Returns(new PipelineConfig
+        {
+            Id = "ili_validation",
+            DisplayName = new Dictionary<string, string> { { "en", "ILI Validation" } },
+            Steps =
+            [
+                new StepConfig { Id = "step1", DisplayName = new Dictionary<string, string> { { "en", "Step 1" }, { "de", "Schritt 1" } } },
+                new StepConfig { Id = "step2", DisplayName = new Dictionary<string, string> { { "en", "Step 2" }, { "de", "Schritt 2" } } },
+            ],
+        });
+
+        var result = await mandateService.GetMandatesAsync(null);
+
+        ContainsMandate(result, publicCsvMandate);
+
+        var mandate = result.First(m => m.PipelineId == "ili_validation");
+        Assert.HasCount(2, mandate.PipelineSteps);
+        Assert.AreEqual("Step 1", mandate.PipelineSteps[0]["en"]);
+        Assert.AreEqual("Schritt 1", mandate.PipelineSteps[0]["de"]);
+        Assert.AreEqual("Step 2", mandate.PipelineSteps[1]["en"]);
+        Assert.AreEqual("Schritt 2", mandate.PipelineSteps[1]["de"]);
+    }
+
+    [TestMethod]
+    public async Task GetMandateForUserFillsPipelineSteps()
+    {
+        var (user, mandate) = context.AddMandateWithUserOrganisation();
+        mandate.PipelineId = "ili_validation";
+        context.SaveChanges();
+
+        pipelineServiceMock.Setup(s => s.GetById("ili_validation")).Returns(new PipelineConfig
+        {
+            Id = "ili_validation",
+            DisplayName = new Dictionary<string, string> { { "en", "ILI Validation" } },
+            Steps =
+            [
+                new StepConfig { Id = "step1", DisplayName = new Dictionary<string, string> { { "en", "Step 1" }, { "de", "Schritt 1" } } },
+                new StepConfig { Id = "step2", DisplayName = new Dictionary<string, string> { { "en", "Step 2" }, { "de", "Schritt 2" } } },
+            ],
+        });
+
+        var result = await mandateService.GetMandateForUser(mandate.Id, user);
+
+        Assert.IsNotNull(result);
+        Assert.HasCount(2, result.PipelineSteps);
+        Assert.AreEqual("Step 1", result.PipelineSteps[0]["en"]);
+        Assert.AreEqual("Schritt 1", result.PipelineSteps[0]["de"]);
+        Assert.AreEqual("Step 2", result.PipelineSteps[1]["en"]);
+        Assert.AreEqual("Schritt 2", result.PipelineSteps[1]["de"]);
     }
 
     private void ContainsMandate(IEnumerable<Mandate> mandates, Mandate mandate)
