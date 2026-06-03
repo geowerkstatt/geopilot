@@ -7,12 +7,6 @@ namespace Geopilot.Api.Processing;
 /// <summary>
 /// Represents a processing job — a pipeline run scoped to one set of uploaded files and an optional mandate.
 /// </summary>
-/// <remarks>
-/// The job's <see cref="ProcessingState"/> is computed from the underlying <see cref="Pipeline"/> if one has
-/// been associated; otherwise it is <see cref="ProcessingState.Pending"/>, or
-/// <see cref="ProcessingState.Failed"/> when <see cref="IsFailed"/> is set (e.g. cloud preflight failure
-/// before a pipeline could be created).
-/// </remarks>
 public record class ProcessingJob(
     Guid Id,
     List<ProcessingJobFile> Files,
@@ -34,7 +28,7 @@ public record class ProcessingJob(
     public string? PipelineId { get; init; }
 
     /// <summary>
-    /// Indicates that the job failed before a pipeline could complete (e.g. cloud preflight failure, security scan).
+    /// The lifecycle state of the job.
     /// </summary>
-    public bool IsFailed { get; init; }
+    public ProcessingState State { get; init; } = ProcessingState.Pending;
 }

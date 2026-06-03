@@ -84,7 +84,7 @@ public class CloudUploadPollingTest
         var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
-        Assert.IsFalse(polledJob.IsFailed);
+        Assert.AreNotEqual(ProcessingState.Failed, polledJob.State);
     }
 
     [TestMethod]
@@ -100,7 +100,7 @@ public class CloudUploadPollingTest
         var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
-        Assert.IsFalse(polledJob.IsFailed);
+        Assert.AreNotEqual(ProcessingState.Failed, polledJob.State);
         Assert.AreEqual(mandate.Id, polledJob.MandateId);
     }
 
@@ -125,7 +125,7 @@ public class CloudUploadPollingTest
         var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
-        Assert.IsTrue(polledJob.IsFailed);
+        Assert.AreEqual(ProcessingState.Failed, polledJob.State);
     }
 
     [TestMethod]
@@ -146,7 +146,7 @@ public class CloudUploadPollingTest
         var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
-        Assert.IsTrue(polledJob.IsFailed);
+        Assert.AreEqual(ProcessingState.Failed, polledJob.State);
     }
 
     [TestMethod]
@@ -167,7 +167,7 @@ public class CloudUploadPollingTest
         var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
-        Assert.IsTrue(polledJob.IsFailed);
+        Assert.AreEqual(ProcessingState.Failed, polledJob.State);
     }
 
     private async Task<(Guid JobId, Mandate Mandate, User User)> CreateAndStartCloudJobAsync()

@@ -48,6 +48,7 @@ public class ProcessingRunner : BackgroundService
             {
                 var pipelineContext = await pipeline.Run(linkedCts.Token);
                 ExtractPersistentFiles(pipeline, pipelineContext);
+                jobStore.PipelineFinished(pipeline.JobId, pipeline.State);
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
@@ -55,6 +56,7 @@ public class ProcessingRunner : BackgroundService
                 // before returning the context, so any partial step results are unreachable for
                 // file extraction here; the pre-timeout files are not persisted.
                 logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, processingOptions.JobTimeout);
+                jobStore.PipelineFinished(pipeline.JobId, ProcessingState.Cancelled);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

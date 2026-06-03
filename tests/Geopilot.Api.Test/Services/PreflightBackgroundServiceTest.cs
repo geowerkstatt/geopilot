@@ -140,7 +140,7 @@ public class PreflightBackgroundServiceTest
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId))
             .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, "File missing."));
         cloudStorageServiceMock.Setup(x => x.DeletePrefixAsync($"uploads/{jobId}/")).Returns(Task.CompletedTask);
-        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(cloudJob with { IsFailed = true });
+        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(cloudJob with { State = ProcessingState.Failed });
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, 1, null));
 
@@ -158,7 +158,7 @@ public class PreflightBackgroundServiceTest
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId))
             .ThrowsAsync(new InvalidOperationException("Network timeout"));
         cloudStorageServiceMock.Setup(x => x.DeletePrefixAsync($"uploads/{jobId}/")).Returns(Task.CompletedTask);
-        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(cloudJob with { IsFailed = true });
+        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(cloudJob with { State = ProcessingState.Failed });
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, 1, null));
 
@@ -177,7 +177,7 @@ public class PreflightBackgroundServiceTest
             .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, "File missing."));
         cloudStorageServiceMock.Setup(x => x.DeletePrefixAsync($"uploads/{jobId}/"))
             .ThrowsAsync(new InvalidOperationException("Storage unavailable."));
-        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(cloudJob with { IsFailed = true });
+        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(cloudJob with { State = ProcessingState.Failed });
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, 1, null));
 
@@ -206,7 +206,7 @@ public class PreflightBackgroundServiceTest
         cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(jobId)).ReturnsAsync(stagedJob);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, It.Is<User>(u => u.AuthIdentifier == userAuthId))).ReturnsAsync(mandate);
         cloudStorageServiceMock.Setup(x => x.DeletePrefixAsync($"uploads/{jobId}/")).Returns(Task.CompletedTask);
-        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(cloudJob with { IsFailed = true });
+        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(cloudJob with { State = ProcessingState.Failed });
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, mandateId, userAuthId));
 
