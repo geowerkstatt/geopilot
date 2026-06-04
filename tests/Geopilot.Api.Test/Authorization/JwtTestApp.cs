@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Authorization;
-using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Contracts;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -8,7 +7,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.IdentityModel.Tokens;
 using Moq;
 using System.IdentityModel.Tokens.Jwt;
 
