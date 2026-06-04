@@ -1,6 +1,5 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Net;
@@ -131,7 +130,7 @@ internal class XtfValidatorProcess : IDisposable
         using var response = await this.httpClient.PostAsync(UploadUrl, formData, cancellationToken);
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
-            var problemDetails = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(JsonOptions, cancellationToken);
+            var problemDetails = await response.Content.ReadFromJsonAsync<InterlisBadRequestResponse>(JsonOptions, cancellationToken);
             logger.LogError($"Upload of transfer file <{transferFile}> to interlis-check-service failed.");
             throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
         }
