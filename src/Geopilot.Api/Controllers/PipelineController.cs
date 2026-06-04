@@ -1,6 +1,6 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
-using Geopilot.Api.Pipeline;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline.Config;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

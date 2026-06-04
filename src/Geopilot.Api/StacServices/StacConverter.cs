@@ -7,8 +7,6 @@ using Stac.Api.Interfaces;
 using Stac.Api.WebApi.Services;
 using Stac.Collection;
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Geopilot.Api.StacServices;
 

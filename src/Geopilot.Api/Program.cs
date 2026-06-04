@@ -4,7 +4,6 @@ using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.Conventions;
 using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;

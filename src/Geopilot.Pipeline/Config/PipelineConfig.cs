@@ -1,4 +1,4 @@
-﻿using Geopilot.Pipeline.Config.Validation;
+﻿using Geopilot.Pipeline.ValidationAttributes;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 

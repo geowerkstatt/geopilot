@@ -268,7 +268,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         private Type? GetProcessorType(string implementation)
         {
-            if (implementation.StartsWith("Geopilot.Api.Pipeline.Process", StringComparison.Ordinal))
+            if (implementation.StartsWith("Geopilot.Pipeline.Processes", StringComparison.Ordinal))
             {
                 return AppDomain.CurrentDomain.GetAssemblies()
                     .Select(a => a.GetType(implementation))
