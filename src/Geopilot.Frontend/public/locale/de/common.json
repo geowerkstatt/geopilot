@@ -102,6 +102,7 @@
   "processingIsBeingPrepared": "Die Verarbeitung wird vorbereitet...",
   "processingIsRunning": "Die Datei wird gerade mit {{pipeline}} verarbeitet...",
   "public": "Öffentlich",
+  "reset": "Zurücksetzen",
   "resetCurrentChanges": "Aktuelle Änderungen zurücksetzen",
   "save": "Speichern",
   "selectMandate": "Mandat auswählen",

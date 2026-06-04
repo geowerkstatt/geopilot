@@ -1,11 +1,9 @@
 import { FlexBox, FlexRowEndBox, FlexRowSpaceBetweenBox } from "./styledComponents.ts";
 import { BaseButton } from "./buttons.tsx";
-import { ChevronLeft, UndoOutlined } from "@mui/icons-material";
-import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import { ChevronLeft } from "@mui/icons-material";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { ReactNode, useCallback, useContext, useEffect, useRef } from "react";
 import { PromptAction } from "./prompt/promptInterfaces.ts";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { useControlledNavigate } from "./controlledNavigate";
 import { PromptContext } from "./prompt/promptContext.tsx";
 import { CircularProgress, Stack, Typography } from "@mui/material";
@@ -120,17 +118,15 @@ const AdminDetailForm = <T extends { id: number }>({
       } else {
         formMethods.trigger().then(isValid => {
           const promptActions: PromptAction[] = [
-            { label: "cancel", icon: <CancelOutlinedIcon />, action: () => leaveEditingPage(false) },
+            { label: "cancel", action: () => leaveEditingPage(false) },
             {
               label: "reset",
-              icon: <UndoOutlined />,
               action: () => leaveEditingPage(true),
             },
           ];
           if (isValid) {
             promptActions.push({
               label: "save",
-              icon: <SaveOutlinedIcon />,
               variant: "contained",
               action: () => {
                 saveData(formMethods.getValues(), false).then(() => leaveEditingPage(true));
@@ -168,14 +164,12 @@ const AdminDetailForm = <T extends { id: number }>({
               <FlexBox sx={{ overflow: "auto" }}>{children}</FlexBox>
               <FlexRowEndBox>
                 <BaseButton
-                  icon={<UndoOutlined />}
                   variant={"outlined"}
                   disabled={!formMethods.formState.isDirty}
                   onClick={() => formMethods.reset(data)}
                   label={"reset"}
                 />
                 <BaseButton
-                  icon={<SaveOutlinedIcon />}
                   disabled={
                     isSavingRef.current ||
                     !formMethods.formState.isDirty ||

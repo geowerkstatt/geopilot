@@ -102,6 +102,7 @@
   "processingIsBeingPrepared": "L'elaborazione è in fase di preparazione...",
   "processingIsRunning": "Il file è in fase di elaborazione con {{pipeline}}...",
   "public": "Pubblico",
+  "reset": "Reimposta",
   "resetCurrentChanges": "Ripristino delle modifiche correnti",
   "save": "Salvare",
   "selectMandate": "Seleziona mandato",

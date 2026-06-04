@@ -102,6 +102,7 @@
   "processingIsBeingPrepared": "Processing is being prepared...",
   "processingIsRunning": "The file is being processed with {{pipeline}}...",
   "public": "Public",
+  "reset": "Reset",
   "resetCurrentChanges": "Reset current changes",
   "save": "Save",
   "selectMandate": "Select mandate",
