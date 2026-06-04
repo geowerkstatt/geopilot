@@ -18,7 +18,7 @@ export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, comple
   return (
     <FlexRowCenterBox sx={{ position: "relative" }} {...(open ? { "data-cy": "active" } : {})}>
       {error ? (
-        <WarningIcon color="error" sx={{ fontSize: 28 }} data-cy="stepper-error" />
+        <WarningIcon color="error" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-error" />
       ) : (
         <>
           <FlexRowCenterBox

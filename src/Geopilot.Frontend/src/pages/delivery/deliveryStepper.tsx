@@ -88,7 +88,7 @@ export const DeliveryStepper = () => {
             error={!!step.error}
             isLoading={isLoading || isProcessing}
           />
-          <Stack spacing={1}>
+          <Stack spacing={1} direction={{ xs: "row", md: "column" }} alignItems="baseline">
             <Typography variant="h3" color={isEnabled(index) ? "textPrimary" : "textSecondary"}>
               {t(step.label)}
             </Typography>
