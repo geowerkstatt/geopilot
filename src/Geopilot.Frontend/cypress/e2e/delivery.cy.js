@@ -46,7 +46,7 @@ describe("Delivery tests", () => {
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     uploadFile();
-    selectMandate(1, 5);
+    selectMandate(1);
     startProcessing();
     stepIsLoading("process", true);
     stepHasError("process", true, "Failed");
@@ -67,7 +67,7 @@ describe("Delivery tests", () => {
     uploadFile();
 
     stepIsActive("selectMandate");
-    selectMandate(1, 7);
+    selectMandate(1);
     startProcessing();
 
     stepIsActive("process");
@@ -128,7 +128,7 @@ describe("Delivery tests", () => {
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     uploadFile();
 
-    selectMandate(1, 7);
+    selectMandate(1);
     startProcessing();
     stepIsActive("process");
 

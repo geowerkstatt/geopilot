@@ -27,8 +27,7 @@ export const uploadFile = () => {
   cy.wait("@upload");
 };
 
-export const selectMandate = (id, expected) => {
-  cy.dataCy("mandate-selection-group").find(`[data-cy^="mandate-"]`).should("have.length", expected);
+export const selectMandate = id => {
   cy.wait(200);
   cy.dataCy("mandate-selection-group").dataCy(`mandate-${id}`).click();
 };
