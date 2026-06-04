@@ -82,10 +82,11 @@ export const DeliveryStepper = () => {
           onClick={() => onStepClick(index)}>
           <StepperIcon
             index={index}
-            active={isEnabled(index)}
+            open={isOpen(index)}
+            enabled={isEnabled(index)}
             completed={isCompleted(index)}
             error={!!step.error}
-            isLoading={isOpen(index) && (isLoading || isProcessing)}
+            isLoading={isLoading || isProcessing}
           />
           <Stack spacing={1}>
             <Typography variant="h3" color={isEnabled(index) ? "textPrimary" : "textSecondary"}>

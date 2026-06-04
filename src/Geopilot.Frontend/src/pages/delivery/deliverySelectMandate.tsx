@@ -42,7 +42,7 @@ const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
   const steps = mandate.pipelineSteps.map(step => step[i18n.language] ?? step["en"]).join(", ");
 
   return (
-    <StyledToggleButton value={mandate.id}>
+    <StyledToggleButton value={mandate.id} data-cy={`mandate-${mandate.id}`}>
       <Typography variant="h5" mt={0}>
         {mandate.name}
       </Typography>
@@ -70,7 +70,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
     if (jobId) {
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ jobId })).then(mandates => {
         if (mandates.length === 0) {
-          setStepError(DeliveryStepEnum.Process, "noMandatesFound");
+          setStepError(DeliveryStepEnum.SelectMandate, "noMandatesFound");
         }
         setMandates(mandates);
         setSelectedId(mandates.length === 1 ? mandates[0].id : null);
@@ -115,6 +115,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
           <Typography>{t("noMandatesFound")}</Typography>
         ) : (
           <StyledToggleButtonGroup
+            data-cy="mandate-selection-group"
             exclusive
             disabled={completed}
             value={selectedMandate?.id ?? selectedId}
