@@ -82,6 +82,14 @@ services:
     volumes:
       - ./shared/ili2gpkg/jobs:/shared/ili2gpkg/jobs
 
+  hop-worker:
+    build:
+      context: ./docker/hop-worker
+    restart: unless-stopped
+    volumes:
+      - ./shared/hop/pipelines:/shared/hop/pipelines:ro
+      - ./shared/hop/jobs:/shared/hop/jobs
+
   geopilot:
     build:
       context: .
