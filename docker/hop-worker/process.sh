@@ -86,6 +86,7 @@ set -- "${hop_run}" --file="${pipeline}" --runconfig=local
 if [ -n "${parameters}" ]; then
     set -- "$@" "--parameters=${parameters}"
 fi
+set -- "$@" "--parameters=inputDir=${job_dir}/input,outputDir=${job_dir}/output"
 
 echo "$@" >> "${success_log}"
 

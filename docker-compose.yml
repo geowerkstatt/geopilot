@@ -87,8 +87,8 @@ services:
       context: ./docker/hop-worker
     restart: unless-stopped
     volumes:
-      - ./shared/hop/pipelines:/shared/hop/pipelines:ro
-      - ./shared/hop/jobs:/shared/hop/jobs
+      - ./tests/Geopilot.Api.Test/TestData/HopPipelines:/shared/hop/pipelines:ro
+      - ./src/Geopilot.Api/shared/hop/jobs:/shared/hop/jobs
 
   geopilot:
     build:

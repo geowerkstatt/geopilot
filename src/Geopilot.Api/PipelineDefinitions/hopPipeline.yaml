@@ -1,0 +1,74 @@
+processes:
+  - id: csv_matcher
+    implementation: Geopilot.Api.Pipeline.Process.Matcher.FileMatcher.FileMatcherProcess
+    default_config:
+      fileExtensions:
+        - csv
+      fileNamePatterns: null
+  - id: hop
+    implementation: Geopilot.Api.Pipeline.Process.Hop.HopProcess
+    default_config:
+      pipeline: null
+      hopParameters:
+      jobsDirectory: ./shared/hop/jobs/
+      timeoutSeconds: 60
+      pollInterval: 1000
+pipelines:
+  - id: hop_test
+    display_name:
+      en: HOP Test
+      de: HOP Test
+      it: HOP Test
+      fr: HOP Test
+    steps:
+      - id: csv_matching
+        display_name:
+          en: CSV Matching
+          de: CSV Zuordnung
+          it: Corrispondenza CSV
+          fr: Correspondance CSV
+        process_id: csv_matcher
+        output:
+          - take: matched_files
+            as: csv_files
+      - id: hop
+        display_name:
+          en: HOP
+          de: HOP
+          it: HOP
+          fr: HOP
+        process_id: hop
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([csv_matching.csv_files]) != 1"
+                message:
+                  de: "Es muss genau eine CSV-Datei hochgeladen werden."
+                  en: "Exactly one CSV file must be uploaded."
+                  fr: "Exactement un fichier CSV doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file CSV."
+          post:
+            fail_conditions:
+              - expression: "Length([hop.output_files]) != 1"
+                message:
+                  de: "Fehlender HOP Output."
+                  en: "Fehlender HOP Output."
+                  fr: "Fehlender HOP Output."
+                  it: "Fehlender HOP Output."
+        process_config_overwrites:
+          pipeline: /shared/hop/pipelines/csv-dummy.hpl
+          hopParameters:
+            foo: bar
+        input:
+          - from: csv_matching
+            take: csv_files
+            as: inputFiles
+        output:
+          - take: output_files
+            as: output_files
+            action:
+              - Download
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage

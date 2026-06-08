@@ -117,7 +117,7 @@ internal sealed class HopClient
             {
                 var outputs = await CollectOutputFilesAsync(outputDir, token);
                 var log = await File.ReadAllTextAsync(successLog, token);
-                logger.LogDebug("Hop job {JobId} succeeded with {Count} output file(s).", jobId, outputs.Count);
+                logger.LogInformation("Hop job {JobId} succeeded with {Count} output file(s).", jobId, outputs.Count);
                 return new HopRunResult(true, outputs, log);
             }
 

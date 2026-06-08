@@ -33,6 +33,7 @@ internal sealed class HopProcess
 
     private readonly HopClient hopClient;
     private readonly string pipeline;
+    private readonly Dictionary<string, string> hopParameters;
     private readonly ILogger logger;
 
     /// <summary>
@@ -42,6 +43,7 @@ internal sealed class HopProcess
     /// <param name="pipeline">Name of the Hop pipeline file to run (from the pipeline definition).</param>
     /// <param name="timeoutSeconds">Optional timeout for the Hop run in seconds. Defaults to 600.</param>
     /// <param name="pollInterval">Optional poll interval for the output sentinel in milliseconds. Defaults to 1000.</param>
+    /// <param name="hopParameters">Optional Apache HOP parameters</param>
     /// <param name="pipelineFileManager">File manager used to allocate the output files.</param>
     /// <param name="logger">Logger.</param>
     public HopProcess(
@@ -49,6 +51,7 @@ internal sealed class HopProcess
         string pipeline,
         int? timeoutSeconds,
         int? pollInterval,
+        Dictionary<string, string>? hopParameters,
         IPipelineFileManager pipelineFileManager,
         ILogger logger)
     {
@@ -77,6 +80,7 @@ internal sealed class HopProcess
         }
 
         this.pipeline = pipeline;
+        this.hopParameters = hopParameters ?? new Dictionary<string, string>(StringComparer.Ordinal);
         this.logger = logger;
         this.hopClient = new HopClient(options, pipelineFileManager, logger);
     }
@@ -92,8 +96,7 @@ internal sealed class HopProcess
     {
         ArgumentNullException.ThrowIfNull(inputFiles);
 
-        // No run parameters are forwarded yet; the Hop pipeline name is the only argument (parameter passthrough is an optional goal).
-        var args = new HopArgs(pipeline, new Dictionary<string, string>(StringComparer.Ordinal));
+        var args = new HopArgs(pipeline, hopParameters);
         var result = await hopClient.RunAsync(inputFiles, args, cancellationToken);
 
         Dictionary<string, string> statusMessage;
