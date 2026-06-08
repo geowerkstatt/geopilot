@@ -164,11 +164,12 @@ pipelines:
             take: xtf_log
             as: xtfLog
         output:
-          - take: json_error_tree_file
+          - take: tree_config
             as: error_tree
             action:
               - Download
               - Delivery
+              - TreeVisualization
           - take: status_message
             as: status_message
             action:

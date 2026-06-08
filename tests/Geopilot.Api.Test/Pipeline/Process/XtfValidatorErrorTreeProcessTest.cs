@@ -29,12 +29,12 @@ public class XtfValidatorErrorTreeProcessTest
 
         var errorLog = processResult["error_tree"] as List<ErrorTree>;
         var jsonErrorLog = processResult["json_error_tree"] as string;
-        var jsonErrorLogFile = processResult["json_error_tree_file"] as PipelineFile;
+        var treeConfigFile = processResult["tree_config"] as PipelineFile;
         var statusMessage = processResult["status_message"] as Dictionary<string, string>;
 
         Assert.IsNotEmpty(errorLog);
         Assert.IsNotEmpty(jsonErrorLog);
-        Assert.IsNotNull(jsonErrorLogFile);
+        Assert.IsNotNull(treeConfigFile);
 
         Assert.HasCount(4, statusMessage);
         var expectedStatusMessage = new Dictionary<string, string>()

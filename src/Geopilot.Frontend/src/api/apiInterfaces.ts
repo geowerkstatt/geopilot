@@ -102,12 +102,23 @@ export interface StepDownload {
   url: string;
 }
 
+export enum VisualizationKind {
+  Tree = "tree",
+}
+
+export interface StepVisualization {
+  kind: VisualizationKind;
+  originalFileName: string;
+  url: string;
+}
+
 export interface StepResult {
   id: string;
   name: Record<string, string>;
   state: StepState;
   statusMessage?: Record<string, string>;
   downloads: StepDownload[];
+  visualizations: StepVisualization[];
 }
 
 export interface ProcessingJobResponse {

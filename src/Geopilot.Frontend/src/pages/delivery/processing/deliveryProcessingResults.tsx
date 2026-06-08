@@ -8,11 +8,13 @@ import i18next from "i18next";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { ProcessingStepIcon } from "./processingStepIcon";
+import { visualizationComponents } from "./visualizations/visualizationRegistry";
 
 const localized = (entries?: Record<string, string>) =>
   entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
 
-const stepHasContent = (step: StepResult) => Boolean(step.statusMessage) || step.downloads.length > 0;
+const stepHasContent = (step: StepResult) =>
+  Boolean(step.statusMessage) || step.downloads.length > 0 || (step.visualizations?.length ?? 0) > 0;
 
 const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
   StepState.Success,
@@ -143,6 +145,10 @@ export const DeliveryProcessingResults = () => {
                       ))}
                     </FlexRowBox>
                   )}
+                  {step.visualizations?.map(v => {
+                    const Component = visualizationComponents[v.kind];
+                    return Component ? <Component key={v.url} url={v.url} /> : null;
+                  })}
                 </FlexBox>
               </AccordionDetails>
             </Accordion>

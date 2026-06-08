@@ -66,6 +66,16 @@ public interface IPipelineStep : IDisposable
     IList<PersistedFile> DeliveryFiles { get; }
 
     /// <summary>
+    /// Visualization configs produced by the step (outputs configured with a visualization
+    /// action such as <see cref="OutputAction.TreeVisualization"/>). The underlying file is
+    /// persisted to the download file store so the frontend can fetch it through the regular
+    /// download endpoint. A file tagged with both a visualization action and
+    /// <see cref="OutputAction.Download"/> is persisted once and appears in both
+    /// <see cref="Downloads"/> and this list.
+    /// </summary>
+    IList<StepVisualization> Visualizations { get; }
+
+    /// <summary>
     /// Runs the step with the given context.
     /// </summary>
     /// <param name="context">Context with the aggregated step results from previous steps.</param>

@@ -99,7 +99,9 @@ public class ProcessingRunner : BackgroundService
             {
                 var isDownload = output.Action.Contains(OutputAction.Download);
                 var isDelivery = output.Action.Contains(OutputAction.Delivery);
-                if (!isDownload && !isDelivery)
+                var visualizationKind = ResolveVisualizationKind(output.Action);
+                var isVisualization = visualizationKind.HasValue;
+                if (!isDownload && !isDelivery && !isVisualization)
                     continue;
 
                 IEnumerable<IPipelineFile> files = output.Data switch
@@ -113,7 +115,9 @@ public class ProcessingRunner : BackgroundService
                 // Both stores are filled independently so each can be cleaned on its own
                 // retention. A file tagged with both actions is written to both under the
                 // same name — the download endpoint can fall back to the asset copy after
-                // the download retention expires.
+                // the download retention expires. A file tagged with a visualization action
+                // is also written to the download store (the frontend fetches it through the
+                // existing download endpoint) and exposed as a visualization entry.
                 foreach (var transferFile in files)
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
@@ -125,10 +129,22 @@ public class ProcessingRunner : BackgroundService
                         step.DeliveryFiles.Add(persisted);
                     }
 
-                    if (isDownload)
+                    if (isDownload || isVisualization)
                     {
                         CopyTo(downloadFileStore, pipeline.JobId, fileName, transferFile);
+                    }
+
+                    if (isDownload)
+                    {
                         step.Downloads.Add(persisted);
+                    }
+
+                    if (visualizationKind.HasValue)
+                    {
+                        step.Visualizations.Add(new StepVisualization(
+                            visualizationKind.Value,
+                            transferFile.OriginalFileName,
+                            fileName));
                     }
                 }
             }
@@ -159,6 +175,14 @@ public class ProcessingRunner : BackgroundService
 
         throw new InvalidOperationException(
             $"Could not generate a unique on-disk name for <{originalFileName}> in step <{stepIdPrefix}>.");
+    }
+
+    private static VisualizationKind? ResolveVisualizationKind(IReadOnlyCollection<OutputAction> actions)
+    {
+        if (actions.Contains(OutputAction.TreeVisualization))
+            return VisualizationKind.Tree;
+
+        return null;
     }
 
     private static void CopyTo(IJobFileStore store, Guid jobId, string fileName, IPipelineFile source)

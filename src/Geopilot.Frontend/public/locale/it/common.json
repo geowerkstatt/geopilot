@@ -117,6 +117,7 @@
   "stepStateRunning": "In esecuzione",
   "stepStateSkipped": "Saltato",
   "termsOfUseAcceptance": "Accetto i <termsLink>Termini di utilizzo</termsLink>.",
+  "treeVisualizationLoadFailed": "Impossibile caricare l'albero degli errori.",
   "unsavedChanges": "Le modifiche non sono state salvate. Come si desidera procedere?",
   "upload": "Caricare",
   "uploadSubtitle": "Carica il file che desideri elaborare",
