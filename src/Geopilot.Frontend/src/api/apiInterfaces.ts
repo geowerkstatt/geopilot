@@ -44,6 +44,7 @@ export interface Mandate {
   evaluatePartial?: FieldEvaluationType;
   evaluateComment?: FieldEvaluationType;
   pipelineId?: string;
+  pipelineSteps: Record<string, string>[];
 }
 
 export interface Organisation {
@@ -129,7 +130,7 @@ export interface Profile {
 }
 
 export interface StartJobRequest {
-  mandateId?: number;
+  mandateId: number;
 }
 
 export interface PipelineSummary {

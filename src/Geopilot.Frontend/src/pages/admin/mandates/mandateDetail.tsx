@@ -72,6 +72,7 @@ const MandateDetail = () => {
           { x: undefined, y: undefined },
         ],
         deliveries: [],
+        pipelineSteps: [],
       });
     }
     loadOrganisations();
