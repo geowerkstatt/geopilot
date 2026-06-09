@@ -3,6 +3,7 @@ processes:
     implementation: Geopilot.Api.Pipeline.Process.Matcher.FileRenamer.FileRenamerProcess
     default_config:
       fileMappings:
+      regexTimeoutMilliseconds: 5000
   - id: hop
     implementation: Geopilot.Api.Pipeline.Process.Hop.HopProcess
     default_config:
@@ -46,6 +47,12 @@ pipelines:
                   en: "Too many files."
                   fr: "Trop de fichiers."
                   it: "Troppi file."
+              - expression: "Length([file_rename.conflicting_files]) != 0"
+                message:
+                  de: "Mehrere Dateien ergeben denselben Zielpfad."
+                  en: "Multiple files resolve to the same target path."
+                  fr: "Plusieurs fichiers correspondent au même chemin cible."
+                  it: "Più file corrispondono allo stesso percorso di destinazione."
         output:
           - take: renamed_files
             as: gpkg_files
@@ -53,6 +60,8 @@ pipelines:
             as: unmatched_mappings
           - take: unmatched_files
             as: unmatched_files
+          - take: conflicting_files
+            as: conflicting_files
           - take: status_message
             as: status_message
             action:

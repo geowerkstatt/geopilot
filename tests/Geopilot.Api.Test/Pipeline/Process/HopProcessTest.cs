@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Pipeline.Process.Hop;
+using Geopilot.Api.Pipeline.Process.Matcher.FileRenamer;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
@@ -98,6 +99,36 @@ public class HopProcessTest
     {
         Assert.ThrowsExactly<ArgumentException>(
             () => new HopProcess(jobsDirectory, string.Empty, null, null, new Dictionary<string, string>(), fileManager, Mock.Of<ILogger<HopProcessTest>>()));
+    }
+
+    [TestMethod]
+    public async Task RenamerSubdirectoryTargetPlacesFileInWorkerInputSubdirectory()
+    {
+        // FileRenamer maps the upload to a target with a nested directory; the renamed file must
+        // arrive under input/<dir>/ of the worker, proving the relative path survives FileRenamer -> Hop.
+        var uploadFiles = new PipelineFileList(new List<IPipelineFile> { CreateInputFile("input.gpkg", "GPKGCONTENT") });
+        var renamer = new FileRenamerProcess(
+            new List<FileMapping> { new("^.*[.]gpkg$", "sub/dir/renamed.gpkg") },
+            fileManager);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+        var renameResult = await renamer.RunAsync(uploadFiles, cts.Token);
+        var renamedFiles = renameResult["renamed_files"] as List<IPipelineFile>;
+        Assert.IsNotNull(renamedFiles);
+        Assert.HasCount(1, renamedFiles);
+        Assert.AreEqual("renamed.gpkg", renamedFiles[0].OriginalFileName);
+        Assert.AreEqual("sub/dir", renamedFiles[0].OriginalRelativePath);
+
+        var process = CreateProcess();
+        var workerTask = HopWorkerSimulator.RunAsync(jobsDirectory, success: true, new Dictionary<string, string>(StringComparer.Ordinal), "ok", cts.Token);
+        await process.RunAsync(renamedFiles.ToArray(), cts.Token);
+        var observation = await workerTask;
+
+        // The renamed file landed under its nested target directory (rename + relative path both honored),
+        // with content intact through both copies (FileRenamer output -> HopClient mount).
+        CollectionAssert.AreEquivalent(new[] { "sub/dir/renamed.gpkg" }, observation.InputFiles.Keys.ToArray());
+        Assert.AreEqual("GPKGCONTENT", observation.InputFiles["sub/dir/renamed.gpkg"]);
     }
 
     private HopProcess CreateProcess(string pipeline = "transform_xtf.hpl") =>
