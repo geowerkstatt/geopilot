@@ -6,6 +6,7 @@ import Map from "ol/Map";
 import View from "ol/View";
 import Overlay from "ol/Overlay";
 import TileLayer from "ol/layer/Tile";
+import LayerGroup from "ol/layer/Group";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import WMTS, { optionsFromCapabilities } from "ol/source/WMTS";
@@ -27,8 +28,6 @@ import "ol/ol.css";
 const SWISS_PROJECTION = "EPSG:2056";
 // Bounding extent of Switzerland in LV95, used as the WMTS tile grid extent and default map view extent.
 const SWISS_EXTENT: [number, number, number, number] = [2420000, 1030000, 2900000, 1350000];
-// Preferred swisstopo base map layers, in order; falls back to the first layer the capabilities expose.
-const PREFERRED_WMTS_LAYERS = ["ch.swisstopo.pixelkarte-farbe", "ch.swisstopo.pixelkarte-grau"];
 
 let projectionRegistered = false;
 const registerSwissProjection = () => {
@@ -45,9 +44,6 @@ const registerSwissProjection = () => {
 };
 
 const wktFormat = new WKT();
-
-// Builds a WMTS tile layer from a capabilities document. Returns null when the capabilities cannot be
-// fetched/parsed (e.g. the map service is unreachable) so the map still renders the feature layer.
 
 // Loads the capabilities as an XML Document via XMLHttpRequest. We intentionally do not fetch the text
 // and hand it to WMTSCapabilities.read(string): that path uses DOMParser.parseFromString internally,
@@ -71,26 +67,54 @@ const fetchCapabilitiesDocument = (url: string): Promise<Document> =>
     request.send();
   });
 
-const buildWmtsLayer = async (capabilitiesUrl: string): Promise<TileLayer<WMTS> | null> => {
+// Builds the base map from a WMTS service. The layers to show are taken from layerIds (in the given
+// order); when layerIds is omitted/empty, all layers the service advertises are used. A single resulting
+// layer is returned directly; multiple layers are wrapped in a group layer titled with the service's
+// advertised title (falling back to the capabilities host) so a layer switcher can label it. Returns null
+// when the capabilities cannot be fetched/parsed (e.g. the map service is unreachable) so the map still
+// renders the feature layer.
+const buildWmtsLayer = async (capabilitiesUrl: string, layerIds?: string[]): Promise<BaseLayer | null> => {
   try {
     const capabilitiesDocument = await fetchCapabilitiesDocument(capabilitiesUrl);
     const capabilities = new WMTSCapabilities().read(capabilitiesDocument);
 
     const availableLayers: { Identifier?: string }[] = capabilities?.Contents?.Layer ?? [];
-    const layerId =
-      PREFERRED_WMTS_LAYERS.find(preferred => availableLayers.some(layer => layer.Identifier === preferred)) ??
-      availableLayers[0]?.Identifier;
-    if (!layerId) return null;
+    const availableIds = availableLayers.map(layer => layer.Identifier).filter((id): id is string => id !== undefined);
 
-    const options = optionsFromCapabilities(capabilities, { layer: layerId, projection: SWISS_PROJECTION });
-    if (!options) return null;
+    let targetIds: string[];
+    if (layerIds && layerIds.length > 0) {
+      targetIds = layerIds.filter(id => availableIds.includes(id));
+      const missing = layerIds.filter(id => !availableIds.includes(id));
+      if (missing.length > 0) {
+        console.warn(`WMTS service '${capabilitiesUrl}' does not advertise layer(s): ${missing.join(", ")}.`);
+      }
+    } else {
+      // No explicit selection: show every layer the service advertises.
+      targetIds = availableIds;
+    }
+    if (targetIds.length === 0) return null;
 
-    // crossOrigin "anonymous" is required for the cross-origin base map host: without it the tile
-    // images taint OpenLayers' tile canvas, and the renderer's read-back during compositing then throws
-    // a SecurityError, so the base map silently fails to render (while the feature layer still shows).
-    // Requesting the tiles with CORS keeps the canvas clean; the host sends Access-Control-Allow-Origin
-    // and is allow-listed by the Content-Security-Policy (img-src / connect-src).
-    return new TileLayer({ source: new WMTS({ ...options, crossOrigin: "anonymous" }) });
+    const tileLayers = targetIds
+      .map(id => {
+        const options = optionsFromCapabilities(capabilities, { layer: id, projection: SWISS_PROJECTION });
+        if (!options) return null;
+        // crossOrigin "anonymous" is required for the cross-origin base map host: without it the tile
+        // images taint OpenLayers' tile canvas, and the renderer's read-back during compositing then
+        // throws a SecurityError, so the base map silently fails to render (while the feature layer still
+        // shows). Requesting the tiles with CORS keeps the canvas clean; the host sends
+        // Access-Control-Allow-Origin and is allow-listed by the Content-Security-Policy (img-src / connect-src).
+        return new TileLayer({ source: new WMTS({ ...options, crossOrigin: "anonymous" }) });
+      })
+      .filter((layer): layer is TileLayer<WMTS> => layer !== null);
+    if (tileLayers.length === 0) return null;
+
+    // A single layer is added directly; multiple layers are wrapped in a group layer titled with the
+    // service's advertised title, falling back to the capabilities host.
+    if (tileLayers.length === 1) return tileLayers[0];
+
+    const serviceTitle = capabilities?.ServiceIdentification?.Title;
+    const groupTitle = (typeof serviceTitle === "string" && serviceTitle.trim()) || new URL(capabilitiesUrl).host;
+    return new LayerGroup({ layers: tileLayers, properties: { title: groupTitle } });
   } catch (error) {
     // Don't fail the whole map if the base map is unavailable (e.g. the map service is unreachable or
     // its host is not allow-listed by the Content-Security-Policy). The feature layer still renders.
@@ -159,9 +183,9 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
         const featureLayer = buildFeatureLayer(config, theme.palette.error.main);
         const layers: BaseLayer[] = [featureLayer];
 
-        const wmtsUrl = config.layers.find(layer => layer.wmts)?.wmts;
-        if (wmtsUrl) {
-          const wmtsLayer = await buildWmtsLayer(wmtsUrl);
+        const wmtsLayerConfig = config.layers.find(layer => layer.wmts);
+        if (wmtsLayerConfig?.wmts) {
+          const wmtsLayer = await buildWmtsLayer(wmtsLayerConfig.wmts, wmtsLayerConfig.layerIds);
           if (cancelled) return;
           // Base map is drawn below the features.
           if (wmtsLayer) layers.unshift(wmtsLayer);

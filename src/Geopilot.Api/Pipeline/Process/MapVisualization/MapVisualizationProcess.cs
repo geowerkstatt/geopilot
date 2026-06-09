@@ -25,6 +25,13 @@ internal class MapVisualizationProcess
     /// </summary>
     public const string DefaultBaseMapWmtsCapabilitiesUrl = "https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml";
 
+    /// <summary>
+    /// Identifier of the swisstopo base map layer to display. The default WMTS service advertises hundreds
+    /// of layers; this restricts the base map to the colored national map. Without it the client would
+    /// add every advertised layer to the map.
+    /// </summary>
+    private const string DefaultBaseMapLayerId = "ch.swisstopo.pixelkarte-farbe";
+
     private static readonly Dictionary<string, string> SuccessfulStatusMessage = new()
     {
         { "de", "Kartenvisualisierung erstellt" },
@@ -77,7 +84,7 @@ internal class MapVisualizationProcess
         {
             Layers =
             [
-                new MapLayer { Wmts = baseMapWmtsCapabilitiesUrl },
+                new MapLayer { Wmts = baseMapWmtsCapabilitiesUrl, LayerIds = [DefaultBaseMapLayerId] },
                 new MapLayer { Features = errorFeatures },
             ],
         };

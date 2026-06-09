@@ -30,6 +30,15 @@ internal class MapLayer
     public string? Wmts { get; set; }
 
     /// <summary>
+    /// Identifiers of the layers to display from the WMTS service referenced by <see cref="Wmts"/>. When
+    /// <see langword="null"/> or empty, the client displays all layers the service advertises (wrapped in a
+    /// group layer if there is more than one). Only meaningful for WMTS layers.
+    /// </summary>
+    [JsonPropertyName("layerIds")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IList<string>? LayerIds { get; set; }
+
+    /// <summary>
     /// Features rendered directly from the JSON. Set for feature layers; otherwise <see langword="null"/>.
     /// </summary>
     [JsonPropertyName("features")]

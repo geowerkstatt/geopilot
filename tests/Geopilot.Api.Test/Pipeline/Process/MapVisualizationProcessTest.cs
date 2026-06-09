@@ -44,6 +44,9 @@ public class MapVisualizationProcessTest
         var baseMapLayer = config.Layers[0];
         Assert.AreEqual(SwisstopoBaseMapWmtsCapabilitiesUrl, baseMapLayer.Wmts);
         Assert.IsNull(baseMapLayer.Features);
+        Assert.IsNotNull(baseMapLayer.LayerIds);
+        Assert.HasCount(1, baseMapLayer.LayerIds);
+        Assert.AreEqual("ch.swisstopo.pixelkarte-farbe", baseMapLayer.LayerIds[0]);
 
         var featureLayer = config.Layers[1];
         Assert.IsNull(featureLayer.Wmts);

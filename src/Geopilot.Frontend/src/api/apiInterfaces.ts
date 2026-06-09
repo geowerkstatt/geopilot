@@ -116,6 +116,12 @@ export interface MapFeature {
 export interface MapLayer {
   /** The capabilities URL of a WMTS map service. Set for WMTS layers. */
   wmts?: string;
+  /**
+   * Identifiers of the layers to display from the WMTS service referenced by {@link wmts}. When omitted
+   * or empty, all layers the service advertises are displayed (wrapped in a group layer if more than one).
+   * Only meaningful for WMTS layers.
+   */
+  layerIds?: string[];
   /** Features rendered directly from the config. Set for feature layers. */
   features?: MapFeature[];
 }
