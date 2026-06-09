@@ -117,7 +117,7 @@
   "stepStateRunning": "En cours",
   "stepStateSkipped": "Ignoré",
   "termsOfUseAcceptance": "J'accepte les <termsLink>conditions d'utilisation</termsLink>.",
-  "treeVisualizationLoadFailed": "L'arbre des erreurs n'a pas pu être chargé.",
+  "treeVisualizationLoadFailed": "L'arborescence n'a pas pu être chargée.",
   "unsavedChanges": "Vous avez des modifications non enregistrées. Comment souhaitez-vous continuer?",
   "upload": "Télécharger",
   "uploadSubtitle": "Téléchargez le fichier que vous souhaitez traiter",

@@ -1,7 +1,7 @@
-﻿using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.Api.Pipeline.Process.TreeVisualization;
+using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree;
 
@@ -28,8 +28,8 @@ internal class XtfValidatorErrorTreeProcess
         JsonOptions = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
         };
-        JsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
     public XtfValidatorErrorTreeProcess(IPipelineFileManager pipelineFileManager)

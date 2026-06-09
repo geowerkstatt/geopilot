@@ -1,79 +1,94 @@
 [
   {
     "Message": "DMAV_FixpunkteAVKategorie3_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "FixpunkteAVKategorie3.LFP3_Gueltig",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH020502",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH020501",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "FixpunkteAVKategorie3.LFP3",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH020201",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH020202",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH020203",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "FixpunkteAVKategorie3.HFP3Nachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH020601",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "FixpunkteAVKategorie3.HFP3_Gueltig",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH020901",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH020902",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "FixpunkteAVKategorie3.LFP3Nachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH020101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -82,26 +97,31 @@
   },
   {
     "Message": "DMAV_Nomenklatur_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "Nomenklatur.NKNachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH070101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Nomenklatur.Flurname_Gueltig",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH070501",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -110,26 +130,31 @@
   },
   {
     "Message": "DMAV_Dienstbarkeitsgrenzen_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "Dienstbarkeitsgrenzen.Dienstbarkeitsgrenze",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH050301",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Dienstbarkeitsgrenzen.DiBNachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH050101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -138,47 +163,56 @@
   },
   {
     "Message": "DMAV_Einzelobjekte_V1_0",
-    "Type": "error",
+    "Icon": "error_outline",
+    "Color": "error",
     "Values": [
       {
         "Message": "Einzelobjekte.Messpunkt",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH091201",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH091202",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Einzelobjekte.Einzelobjekt",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH090701",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Einzelobjekte.EONachfuehrung",
-        "Type": "error",
+        "Icon": "error_outline",
+        "Color": "error",
         "Values": [
           {
             "Message": "CH090101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "Unique constraint CH090101 is violated! Values BE0200000428, 202110004 already exist in Object: 4a85aaae-adbf-4a45-8ae1-02132ca9bcbb",
-            "Type": "error",
+            "Icon": "error_outline",
+            "Color": "error",
             "Values": []
           }
         ]
@@ -187,53 +221,63 @@
   },
   {
     "Message": "DMAV_Rohrleitungen_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "Rohrleitungen.Messpunkt",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH101501",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH101502",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Rohrleitungen.Leitungsobjekt",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH100501",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Rohrleitungen.Flaechenelement",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH100201",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Rohrleitungen.RLNachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH100101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -242,169 +286,201 @@
   },
   {
     "Message": "DMAV_Grundstuecke_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "Grundstuecke.Grenzpunkt_Gueltig",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH040601",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Grundstuecke.Grenzpunkt",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH040201",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH040202",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH040203",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Grundstuecke.Liegenschaft",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH041201",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH041401",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH041402",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Grundstuecke.GrundstueckLiegenschaft",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH041301",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH041302",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Grundstuecke.Grundstueck_Gueltig",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH041101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH041102",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Grundstuecke.Grundstueck",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH040701",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH042401",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH042402",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Grundstuecke.SelbstaendigesDauerndesRecht",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH041601",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH041801",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH041802",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Grundstuecke.GrundstueckSelbstaendigesDauerndesRecht",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH041701",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH041702",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Grundstuecke.GSNachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH040101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Grundstuecke.Liegenschaft_Gueltig",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH041501",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -413,63 +489,75 @@
   },
   {
     "Message": "DMAV_Gebaeudeadressen_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "Gebaeudeadressen.Gebaeudeeingang",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH121201",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH121202",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Gebaeudeadressen.LokalisationGebaeudeeingang",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH121701",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Gebaeudeadressen.Lokalisation",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH120501",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH120502",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH120503",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Gebaeudeadressen.GANachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH120101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -478,20 +566,24 @@
   },
   {
     "Message": "DMAV_FixpunkteLV_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "FixpunkteLV.LFP1",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH000101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH000102",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -500,46 +592,55 @@
   },
   {
     "Message": "DMAV_FixpunkteAVKategorie2_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "FixpunkteAVKategorie2.LFP2",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH010101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH010102",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH010103",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH010104",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "FixpunkteAVKategorie2.HFP2",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH010201",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH010202",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -548,58 +649,69 @@
   },
   {
     "Message": "DMAV_Bodenbedeckung_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "Bodenbedeckung.Messpunkt",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH080901",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH080902",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Bodenbedeckung.Bodenbedeckung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH080401",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH080402",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Bodenbedeckung.BBNachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH080101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Bodenbedeckung.Bodenbedeckung_Gueltig",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH080801",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -608,26 +720,31 @@
   },
   {
     "Message": "DMAV_Toleranzstufen_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "Toleranzstufen.TSNachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH110101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "Toleranzstufen.Toleranzstufe_Gueltig",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH110501",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -636,15 +753,18 @@
   },
   {
     "Message": "DMAV_DauerndeBodenverschiebungen_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "DauerndeBodenverschiebungen.DBVNachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH060101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -653,69 +773,82 @@
   },
   {
     "Message": "DMAV_HoheitsgrenzenAV_V1_0",
-    "Type": "info",
+    "Icon": "check_circle_outline",
+    "Color": "success",
     "Values": [
       {
         "Message": "HoheitsgrenzenAV.HHGNachfuehrung",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH030101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "HoheitsgrenzenAV.Gemeindegrenze",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH030701",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH030702",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           },
           {
             "Message": "CH030703",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "HoheitsgrenzenAV.GemeindeGemeindegrenze",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH031201",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "HoheitsgrenzenAV.Gemeinde_Gueltig",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH030601",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
       },
       {
         "Message": "HoheitsgrenzenAV.Gemeindegrenze_Gueltig",
-        "Type": "info",
+        "Icon": "check_circle_outline",
+        "Color": "success",
         "Values": [
           {
             "Message": "CH031101",
-            "Type": "info",
+            "Icon": "check_circle_outline",
+            "Color": "success",
             "Values": []
           }
         ]
@@ -724,31 +857,37 @@
   },
   {
     "Message": "Other Messages",
-    "Type": "error",
+    "Icon": "error_outline",
+    "Color": "error",
     "Values": [
       {
         "Message": "Attribute InAenderung requires a value",
-        "Type": "error",
+        "Icon": "error_outline",
+        "Color": "error",
         "Values": []
       },
       {
         "Message": "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
-        "Type": "error",
+        "Icon": "error_outline",
+        "Color": "error",
         "Values": []
       },
       {
         "Message": "Attribute IstExaktDefiniert requires a value",
-        "Type": "error",
+        "Icon": "error_outline",
+        "Color": "error",
         "Values": []
       },
       {
         "Message": "Attribute IstLagezuverlaessig requires a value",
-        "Type": "error",
+        "Icon": "error_outline",
+        "Color": "error",
         "Values": []
       },
       {
         "Message": "Attribute Hoehengenauigkeit requires a value",
-        "Type": "error",
+        "Icon": "error_outline",
+        "Color": "error",
         "Values": []
       }
     ]

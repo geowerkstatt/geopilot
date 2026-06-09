@@ -1,12 +1,21 @@
-﻿using System.Text.RegularExpressions;
+﻿using Geopilot.Api.Pipeline.Process.TreeVisualization;
+using System.Text.RegularExpressions;
 
 namespace Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree;
 
 /// <summary>
-/// Provides methods to create a hierarchical structure from log entries.
+/// Builds a generic <see cref="TreeNode"/> hierarchy from XTF validator log entries.
 /// </summary>
 public class LogErrorToErrorTreeMapper
 {
+    private const string IconError = "error_outline";
+    private const string IconWarning = "warning_amber";
+    private const string IconSuccess = "check_circle_outline";
+
+    private const string ColorError = "error";
+    private const string ColorWarning = "warning";
+    private const string ColorSuccess = "success";
+
     private class ConstraintEntry
     {
         public required string ConstraintName { get; set; }
@@ -45,7 +54,7 @@ public class LogErrorToErrorTreeMapper
     private readonly HashSet<string> otherWarningMessages = new HashSet<string>();
 
     /// <summary>
-    /// Initializes a new instance of the LogHierarchy class using the specified collection of log entries.
+    /// Initializes a new instance of the <see cref="LogErrorToErrorTreeMapper"/> class using the specified collection of log entries.
     /// </summary>
     /// <remarks>The constructor processes the provided log entries to collect constraint information,
     /// warnings, and errors. Ensure that the collection contains valid LogError objects to accurately represent the log
@@ -59,70 +68,68 @@ public class LogErrorToErrorTreeMapper
     }
 
     /// <summary>
-    /// Converts the collected log entries into a hierarchical structure.
+    /// Converts the collected log entries into a <see cref="TreeNode"/> hierarchy.
+    /// Model and class header nodes carry no icon, leaf constraint nodes are tagged with success, warning, or error icons.
     /// </summary>
-    /// <returns>Hierarchical log entries.</returns>
-    public List<ErrorTree> Map()
+    /// <returns>The tree nodes ready for the frontend tree visualization.</returns>
+    public List<TreeNode> Map()
     {
-        var hierarchicalEntries = new List<ErrorTree>();
+        var rootNodes = new List<TreeNode>();
         var modelGroups = logEntries.GroupBy(e => GetModelName(e.ConstraintName));
 
         foreach (var modelGroup in modelGroups)
         {
             var modelName = modelGroup.Key;
-            var modelEntry = new ErrorTree
-            {
-                Message = modelName,
-                Type = LogEntryType.Info,
-                Values = new List<ErrorTree>(),
-            };
-            hierarchicalEntries.Add(modelEntry);
+            var modelSeverity = LogEntryType.Info;
+            var modelChildren = new List<TreeNode>();
 
             var classGroups = modelGroup.GroupBy(e => GetClassNameOfConstraint(e.ConstraintName));
             foreach (var classGroup in classGroups)
             {
                 var fullClassName = classGroup.Key;
                 var className = fullClassName.Substring(modelName.Length + 1);
-                var classEntry = new ErrorTree
-                {
-                    Message = className,
-                    Type = classGroup.Aggregate(LogEntryType.Info, (type, constraintEntry) => ReduceType(type, constraintEntry.LogEntryType)),
-                    Values = classGroup.Select(e => new ErrorTree
-                    {
-                        Message = e.Message.Replace(fullClassName + ".", string.Empty),
-                        Type = e.LogEntryType,
-                        Values = new List<ErrorTree>(),
-                    }).ToList(),
-                };
-                modelEntry.Type = ReduceType(modelEntry.Type, classEntry.Type);
-                modelEntry.Values.Add(classEntry);
+                var classSeverity = classGroup.Aggregate(LogEntryType.Info, (type, c) => ReduceType(type, c.LogEntryType));
+                var classChildren = classGroup
+                    .Select(e => CreateNode(e.Message.Replace(fullClassName + ".", string.Empty), e.LogEntryType, new List<TreeNode>()))
+                    .ToList();
+                modelChildren.Add(CreateNode(className, classSeverity, classChildren.Cast<TreeNode>().ToList()));
+                modelSeverity = ReduceType(modelSeverity, classSeverity);
             }
+
+            rootNodes.Add(CreateNode(modelName, modelSeverity, modelChildren));
         }
 
         if (otherErrorMessages.Count > 0 || otherWarningMessages.Count > 0)
         {
-            var errors = otherErrorMessages.Select(message => new ErrorTree
-            {
-                Message = message,
-                Type = LogEntryType.Error,
-                Values = new List<ErrorTree>(),
-            });
-            var warnings = otherWarningMessages.Select(message => new ErrorTree
-            {
-                Message = message,
-                Type = LogEntryType.Warning,
-                Values = new List<ErrorTree>(),
-            });
-            hierarchicalEntries.Add(new ErrorTree
-            {
-                Message = "Other Messages",
-                Type = otherErrorMessages.Count > 0 ? LogEntryType.Error : LogEntryType.Warning,
-                Values = errors.Concat(warnings).ToList(),
-            });
+            var errors = otherErrorMessages.Select(message => CreateNode(message, LogEntryType.Error, new List<TreeNode>()));
+            var warnings = otherWarningMessages.Select(message => CreateNode(message, LogEntryType.Warning, new List<TreeNode>()));
+            var groupSeverity = otherErrorMessages.Count > 0 ? LogEntryType.Error : LogEntryType.Warning;
+            rootNodes.Add(CreateNode("Other Messages", groupSeverity, errors.Concat(warnings).ToList()));
         }
 
-        return hierarchicalEntries;
+        return rootNodes;
     }
+
+    /// <summary>
+    /// Creates a tree node with the icon and color that match the given severity.
+    /// </summary>
+    private static TreeNode CreateNode(string message, LogEntryType severity, IList<TreeNode> children) => new()
+    {
+        Message = message,
+        Icon = severity switch
+        {
+            LogEntryType.Error => IconError,
+            LogEntryType.Warning => IconWarning,
+            _ => IconSuccess,
+        },
+        Color = severity switch
+        {
+            LogEntryType.Error => ColorError,
+            LogEntryType.Warning => ColorWarning,
+            _ => ColorSuccess,
+        },
+        Values = children,
+    };
 
     /// <summary>
     /// Collects all constraints from the given logEntries without checking their validation results.

@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree;
+﻿using Geopilot.Api.Pipeline.Process.TreeVisualization;
+using Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Moq;
@@ -27,7 +28,7 @@ public class XtfValidatorErrorTreeProcessTest
         Assert.IsNotNull(processResult);
         Assert.HasCount(4, processResult);
 
-        var errorLog = processResult["error_tree"] as List<ErrorTree>;
+        var errorLog = processResult["error_tree"] as List<TreeNode>;
         var jsonErrorLog = processResult["json_error_tree"] as string;
         var treeConfigFile = processResult["tree_config"] as PipelineFile;
         var statusMessage = processResult["status_message"] as Dictionary<string, string>;
@@ -51,11 +52,11 @@ public class XtfValidatorErrorTreeProcessTest
         CollectionAssert.AreEqual(expected, errorLog, "error tree is not as expected");
     }
 
-    private List<ErrorTree>? Deserialize(string json)
+    private List<TreeNode>? Deserialize(string json)
     {
         using var stringReader = new StringReader(json);
         using var jsonReader = new JsonTextReader(stringReader);
         var serializer = new JsonSerializer();
-        return serializer.Deserialize<List<ErrorTree>>(jsonReader);
+        return serializer.Deserialize<List<TreeNode>>(jsonReader);
     }
 }

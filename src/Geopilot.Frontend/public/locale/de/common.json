@@ -117,7 +117,7 @@
   "stepStateRunning": "Wird ausgeführt",
   "stepStateSkipped": "Übersprungen",
   "termsOfUseAcceptance": "Ich akzeptiere die <termsLink>Nutzungsbestimmungen</termsLink>.",
-  "treeVisualizationLoadFailed": "Der Fehlerbaum konnte nicht geladen werden.",
+  "treeVisualizationLoadFailed": "Die Baumansicht konnte nicht geladen werden.",
   "unsavedChanges": "Sie haben ungespeicherte Änderungen. Wie möchten Sie fortfahren?",
   "upload": "Hochladen",
   "uploadSubtitle": "Laden Sie die Datei hoch, die Sie verarbeiten möchten",

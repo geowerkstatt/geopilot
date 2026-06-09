@@ -117,7 +117,7 @@
   "stepStateRunning": "Running",
   "stepStateSkipped": "Skipped",
   "termsOfUseAcceptance": "I accept the <termsLink>terms of use</termsLink>.",
-  "treeVisualizationLoadFailed": "Could not load the error tree.",
+  "treeVisualizationLoadFailed": "Could not load the tree.",
   "unsavedChanges": "You have unsaved changes. How would you like to proceed?",
   "upload": "Upload",
   "uploadSubtitle": "Upload the file you would like to process",
