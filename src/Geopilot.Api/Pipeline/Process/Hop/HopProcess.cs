@@ -43,7 +43,7 @@ internal sealed class HopProcess
     /// <param name="pipeline">Name of the Hop pipeline file to run (from the pipeline definition).</param>
     /// <param name="timeoutSeconds">Optional timeout for the Hop run in seconds. Defaults to 600.</param>
     /// <param name="pollInterval">Optional poll interval for the output sentinel in milliseconds. Defaults to 1000.</param>
-    /// <param name="hopParameters">Optional Apache HOP parameters</param>
+    /// <param name="hopParameters">Optional Apache HOP parameters.</param>
     /// <param name="pipelineFileManager">File manager used to allocate the output files.</param>
     /// <param name="logger">Logger.</param>
     public HopProcess(

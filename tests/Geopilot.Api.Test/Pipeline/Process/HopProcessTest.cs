@@ -90,18 +90,18 @@ public class HopProcessTest
     public void EmptyJobsDirectoryThrows()
     {
         Assert.ThrowsExactly<ArgumentException>(
-            () => new HopProcess(string.Empty, "transform_xtf.hpl", null, null, fileManager, Mock.Of<ILogger<HopProcessTest>>()));
+            () => new HopProcess(string.Empty, "transform_xtf.hpl", null, null, new Dictionary<string, string>(), fileManager, Mock.Of<ILogger<HopProcessTest>>()));
     }
 
     [TestMethod]
     public void EmptyPipelineThrows()
     {
         Assert.ThrowsExactly<ArgumentException>(
-            () => new HopProcess(jobsDirectory, string.Empty, null, null, fileManager, Mock.Of<ILogger<HopProcessTest>>()));
+            () => new HopProcess(jobsDirectory, string.Empty, null, null, new Dictionary<string, string>(), fileManager, Mock.Of<ILogger<HopProcessTest>>()));
     }
 
     private HopProcess CreateProcess(string pipeline = "transform_xtf.hpl") =>
-        new(jobsDirectory, pipeline, timeoutSeconds: 20, pollInterval: 40, fileManager, Mock.Of<ILogger<HopProcessTest>>());
+        new(jobsDirectory, pipeline, timeoutSeconds: 20, pollInterval: 40, new Dictionary<string, string>(), fileManager, Mock.Of<ILogger<HopProcessTest>>());
 
     private PipelineFile CreateInputFile(string fileName, string content)
     {
