@@ -42,11 +42,6 @@ pipelines:
                   fr: "Fichiers manquants."
                   it: "File mancanti."
               - expression: "Length([file_rename.unmatched_files]) != 0"
-                message:
-                  de: "Zu viele Dateien."
-                  en: "Too many files."
-                  fr: "Trop de fichiers."
-                  it: "Troppi file."
               - expression: "Length([file_rename.conflicting_files]) != 0"
                 message:
                   de: "Mehrere Dateien ergeben denselben Zielpfad."
