@@ -9,6 +9,11 @@ namespace Geopilot.Pipeline.Config;
 /// </summary>
 public class Parameterization : Dictionary<string, object?>
 {
+    private static readonly JsonSerializerOptions jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
     /// <summary>
     /// Initializes a new instance of the Parameterization class.
     /// </summary>
@@ -101,7 +106,7 @@ public class Parameterization : Dictionary<string, object?>
         try
         {
             var json = JsonSerializer.Serialize(rawValue);
-            convertedValue = JsonSerializer.Deserialize(json, effectiveTargetType);
+            convertedValue = JsonSerializer.Deserialize(json, effectiveTargetType, jsonOptions);
             return convertedValue != null;
         }
         catch

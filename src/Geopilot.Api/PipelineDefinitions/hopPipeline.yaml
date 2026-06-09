@@ -1,18 +1,17 @@
 processes:
-  - id: csv_matcher
-    implementation: Geopilot.Api.Pipeline.Process.Matcher.FileMatcher.FileMatcherProcess
+  - id: file_renamer
+    implementation: Geopilot.Api.Pipeline.Process.Matcher.FileRenamer.FileRenamerProcess
     default_config:
-      fileExtensions:
-        - csv
-      fileNamePatterns: null
+      fileMappings:
   - id: hop
     implementation: Geopilot.Api.Pipeline.Process.Hop.HopProcess
     default_config:
-      pipeline: null
+      pipeline:
       hopParameters:
       jobsDirectory: ./shared/hop/jobs/
       timeoutSeconds: 60
       pollInterval: 1000
+
 pipelines:
   - id: hop_test
     display_name:
@@ -21,16 +20,43 @@ pipelines:
       it: HOP Test
       fr: HOP Test
     steps:
-      - id: csv_matching
+      - id: file_rename
         display_name:
-          en: CSV Matching
-          de: CSV Zuordnung
-          it: Corrispondenza CSV
-          fr: Correspondance CSV
-        process_id: csv_matcher
+          en: File Rename
+          de: Dateiumbenennung
+          it: Rinomina file
+          fr: Renommage de fichier
+        process_id: file_renamer
+        process_config_overwrites:
+          fileMappings:
+            - pattern: "^.*[.]csv$"
+              target: "input.csv"
+        conditions:
+          post:
+            fail_conditions:
+              - expression: "Length([file_rename.unmatched_mappings]) != 0"
+                message:
+                  de: "Fehlende Dateien."
+                  en: "Missing files."
+                  fr: "Fichiers manquants."
+                  it: "File mancanti."
+              - expression: "Length([file_rename.unmatched_files]) != 0"
+                message:
+                  de: "Zu viele Dateien."
+                  en: "Too many files."
+                  fr: "Trop de fichiers."
+                  it: "Troppi file."
         output:
-          - take: matched_files
+          - take: renamed_files
             as: csv_files
+          - take: unmatched_mappings
+            as: unmatched_mappings
+          - take: unmatched_files
+            as: unmatched_files
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
       - id: hop
         display_name:
           en: HOP
@@ -41,7 +67,7 @@ pipelines:
         conditions:
           pre:
             fail_conditions:
-              - expression: "Length([csv_matching.csv_files]) != 1"
+              - expression: "Length([file_rename.csv_files]) != 1"
                 message:
                   de: "Es muss genau eine CSV-Datei hochgeladen werden."
                   en: "Exactly one CSV file must be uploaded."
@@ -52,15 +78,15 @@ pipelines:
               - expression: "Length([hop.output_files]) != 1"
                 message:
                   de: "Fehlender HOP Output."
-                  en: "Fehlender HOP Output."
-                  fr: "Fehlender HOP Output."
-                  it: "Fehlender HOP Output."
+                  en: "Missing HOP output."
+                  fr: "Sortie HOP manquante."
+                  it: "Output HOP mancante."
         process_config_overwrites:
           pipeline: /shared/hop/pipelines/csv-dummy.hpl
           hopParameters:
             foo: bar
         input:
-          - from: csv_matching
+          - from: file_rename
             take: csv_files
             as: inputFiles
         output:
