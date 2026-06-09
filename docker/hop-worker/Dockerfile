@@ -6,7 +6,7 @@
 # per-job log back into the same folder. Self-contained: clients drive it purely through
 # the shared filesystem, no socket, no SDK.
 
-FROM apache/hop
+FROM apache/hop:2.17.0
 
 ARG GIS_PLUGIN_VERSION=1.4.0
 

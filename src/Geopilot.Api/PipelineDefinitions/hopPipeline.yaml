@@ -29,8 +29,8 @@ pipelines:
         process_id: file_renamer
         process_config_overwrites:
           fileMappings:
-            - pattern: "^.*[.]csv$"
-              target: "input.csv"
+            - pattern: "^.*[.]gpkg$"
+              target: "testdata_dmav_v1_1.gpkg"
         conditions:
           post:
             fail_conditions:
@@ -48,7 +48,7 @@ pipelines:
                   it: "Troppi file."
         output:
           - take: renamed_files
-            as: csv_files
+            as: gpkg_files
           - take: unmatched_mappings
             as: unmatched_mappings
           - take: unmatched_files
@@ -67,12 +67,12 @@ pipelines:
         conditions:
           pre:
             fail_conditions:
-              - expression: "Length([file_rename.csv_files]) != 1"
+              - expression: "Length([file_rename.gpkg_files]) != 1"
                 message:
-                  de: "Es muss genau eine CSV-Datei hochgeladen werden."
-                  en: "Exactly one CSV file must be uploaded."
-                  fr: "Exactement un fichier CSV doit être téléchargé."
-                  it: "Deve essere caricato esattamente un file CSV."
+                  de: "Es muss genau eine GPKG-Datei hochgeladen werden."
+                  en: "Exactly one GPKG file must be uploaded."
+                  fr: "Exactement un fichier GPKG doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file GPKG."
           post:
             fail_conditions:
               - expression: "Length([hop.output_files]) != 1"
@@ -82,12 +82,12 @@ pipelines:
                   fr: "Sortie HOP manquante."
                   it: "Output HOP mancante."
         process_config_overwrites:
-          pipeline: /shared/hop/pipelines/csv-dummy.hpl
+          pipeline: /shared/hop/pipelines/dmav_lfphfp2csv.hpl
           hopParameters:
             foo: bar
         input:
           - from: file_rename
-            take: csv_files
+            take: gpkg_files
             as: inputFiles
         output:
           - take: output_files

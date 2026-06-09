@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <pipeline>
   <info>
-    <name>geopilot_test_pipeline</name>
+    <name>dmav_lfphfp2csv</name>
     <name_sync_with_filename>Y</name_sync_with_filename>
     <description/>
     <extended_description/>
     <pipeline_version/>
     <pipeline_type>Normal</pipeline_type>
+    <pipeline_status>0</pipeline_status>
     <parameters>
+      <parameter>
+        <name>inputDir</name>
+        <default_value/>
+        <description/>
+      </parameter>
+      <parameter>
+        <name>outputDir</name>
+        <default_value/>
+        <description/>
+      </parameter>
     </parameters>
     <capture_transform_performance>N</capture_transform_performance>
     <transform_performance_capturing_delay>1000</transform_performance_capturing_delay>
@@ -112,7 +123,7 @@
     </hop>
   </order>
   <transform>
-    <name>GIS File input - LFP3</name>
+    <name>GIS File input - GP</name>
     <type>GisFileInput</type>
     <description/>
     <distribute>Y</distribute>
@@ -126,7 +137,7 @@
     <params>
       <param>
         <key>DB_TABLE_NAME</key>
-        <value>lfp3</value>
+        <value>grenzpunkt</value>
       </param>
       <param>
         <key>FORCE_TO_MULTIGEOMETRY</key>
@@ -137,14 +148,14 @@
         <value>TRUE</value>
       </param>
     </params>
-    <inputFileName>C:\Users\lwiss\Documents\Teamcamp_2026\DMAV_Version_1_1\testdata_dmav_v1_1.gpkg</inputFileName>
+    <inputFileName>${inputDir}/testdata_dmav_v1_1.gpkg</inputFileName>
     <geometryFieldName>geometry</geometryFieldName>
     <encoding>UTF-8</encoding>
     <rowLimit>0</rowLimit>
     <attributes/>
     <GUI>
       <xloc>144</xloc>
-      <yloc>384</yloc>
+      <yloc>544</yloc>
     </GUI>
   </transform>
   <transform>
@@ -173,7 +184,7 @@
         <value>TRUE</value>
       </param>
     </params>
-    <inputFileName>C:\Users\lwiss\Documents\Teamcamp_2026\DMAV_Version_1_1\testdata_dmav_v1_1.gpkg</inputFileName>
+    <inputFileName>${inputDir}/testdata_dmav_v1_1.gpkg</inputFileName>
     <geometryFieldName>geometry</geometryFieldName>
     <encoding>UTF-8</encoding>
     <rowLimit>0</rowLimit>
@@ -184,58 +195,7 @@
     </GUI>
   </transform>
   <transform>
-    <name>Text file output (CSV)</name>
-    <type>TextFileOutput</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <schema_definition/>
-    <ignore_fields>N</ignore_fields>
-    <separator>;</separator>
-    <enclosure>"</enclosure>
-    <enclosure_forced>N</enclosure_forced>
-    <enclosure_fix_disabled>N</enclosure_fix_disabled>
-    <header>Y</header>
-    <footer>Y</footer>
-    <format>DOS</format>
-    <compression>None</compression>
-    <encoding>UTF-8</encoding>
-    <endedLine/>
-    <fileNameInField>N</fileNameInField>
-    <fileNameField/>
-    <create_parent_folder>N</create_parent_folder>
-    <file>
-      <name>C:\Users\lwiss\Documents\Teamcamp_2026\fixpunkte.csv</name>
-      <servlet_output>N</servlet_output>
-      <do_not_open_new_file_init>N</do_not_open_new_file_init>
-      <extention/>
-      <append>N</append>
-      <split>N</split>
-      <haspartno>N</haspartno>
-      <add_date>N</add_date>
-      <add_time>N</add_time>
-      <SpecifyFormat>N</SpecifyFormat>
-      <date_time_format/>
-      <add_to_result_filenames>Y</add_to_result_filenames>
-      <pad>N</pad>
-      <fast_dump>N</fast_dump>
-      <splitevery/>
-    </file>
-    <fields>
-    </fields>
-    <attributes/>
-    <GUI>
-      <xloc>960</xloc>
-      <yloc>688</yloc>
-    </GUI>
-  </transform>
-  <transform>
-    <name>GIS File input - GP</name>
+    <name>GIS File input - LFP3</name>
     <type>GisFileInput</type>
     <description/>
     <distribute>Y</distribute>
@@ -249,7 +209,7 @@
     <params>
       <param>
         <key>DB_TABLE_NAME</key>
-        <value>grenzpunkt</value>
+        <value>lfp3</value>
       </param>
       <param>
         <key>FORCE_TO_MULTIGEOMETRY</key>
@@ -260,103 +220,21 @@
         <value>TRUE</value>
       </param>
     </params>
-    <inputFileName>C:\Users\lwiss\Documents\Teamcamp_2026\DMAV_Version_1_1\testdata_dmav_v1_1.gpkg</inputFileName>
+    <inputFileName>${inputDir}/testdata_dmav_v1_1.gpkg</inputFileName>
     <geometryFieldName>geometry</geometryFieldName>
     <encoding>UTF-8</encoding>
     <rowLimit>0</rowLimit>
     <attributes/>
     <GUI>
       <xloc>144</xloc>
-      <yloc>544</yloc>
-    </GUI>
-  </transform>
-  <transform>
-    <name>Select values LFP3</name>
-    <type>SelectValues</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <fields>
-      <field>
-        <length>-2</length>
-        <name>nummer</name>
-        <precision>-2</precision>
-        <rename>PktNr</rename>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>X</name>
-        <precision>3</precision>
-        <rename/>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>Y</name>
-        <precision>3</precision>
-        <rename/>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>hoehengeometrie</name>
-        <precision>3</precision>
-        <rename>Z</rename>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>lagegenauigkeit</name>
-        <precision>-2</precision>
-        <rename>LageGen</rename>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>hoehengenauigkeit</name>
-        <precision>-2</precision>
-        <rename>HoeheGen</rename>
-      </field>
-      <select_unspecified>N</select_unspecified>
-    </fields>
-    <attributes/>
-    <GUI>
-      <xloc>512</xloc>
       <yloc>384</yloc>
     </GUI>
   </transform>
   <transform>
-    <name>Geometry Fields Converter LFP3</name>
-    <type>GeometryFieldsConverter</type>
+    <name>Generate rows</name>
+    <type>RowGenerator</type>
     <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <add_srid>N</add_srid>
-    <endianness>1</endianness>
-    <input_field>geometry</input_field>
-    <input_format>WKT</input_format>
-    <input_y_field/>
-    <output_field>X</output_field>
-    <output_format>POINT_COORDINATE</output_format>
-    <output_y_field>Y</output_y_field>
-    <srid>0</srid>
-    <attributes/>
-    <GUI>
-      <xloc>336</xloc>
-      <yloc>384</yloc>
-    </GUI>
-  </transform>
-  <transform>
-    <name>Select values HFP3</name>
-    <type>SelectValues</type>
-    <description/>
-    <distribute>Y</distribute>
+    <distribute>N</distribute>
     <custom_distribution/>
     <copies>1</copies>
     <partitioning>
@@ -364,130 +242,16 @@
       <schema_name/>
     </partitioning>
     <fields>
-      <field>
-        <length>-2</length>
-        <name>nummer</name>
-        <precision>-2</precision>
-        <rename>PktNr</rename>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>X</name>
-        <precision>3</precision>
-        <rename/>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>Y</name>
-        <precision>3</precision>
-        <rename/>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>hoehengeometrie</name>
-        <precision>3</precision>
-        <rename>Z</rename>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>lagegenauigkeit</name>
-        <precision>-2</precision>
-        <rename>LageGen</rename>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>hoehengenauigkeit</name>
-        <precision>-2</precision>
-        <rename>HoeheGen</rename>
-      </field>
-      <select_unspecified>N</select_unspecified>
-    </fields>
+</fields>
+    <interval_in_ms>5000</interval_in_ms>
+    <last_time_field>FiveSecondsAgo</last_time_field>
+    <limit>1</limit>
+    <never_ending>N</never_ending>
+    <row_time_field>now</row_time_field>
     <attributes/>
     <GUI>
-      <xloc>512</xloc>
-      <yloc>464</yloc>
-    </GUI>
-  </transform>
-  <transform>
-    <name>Geometry Fields Converter HFP3</name>
-    <type>GeometryFieldsConverter</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <add_srid>N</add_srid>
-    <endianness>1</endianness>
-    <input_field>geometry</input_field>
-    <input_format>WKT</input_format>
-    <input_y_field/>
-    <output_field>X</output_field>
-    <output_format>POINT_COORDINATE</output_format>
-    <output_y_field>Y</output_y_field>
-    <srid>0</srid>
-    <attributes/>
-    <GUI>
-      <xloc>336</xloc>
-      <yloc>464</yloc>
-    </GUI>
-  </transform>
-  <transform>
-    <name>Select values GP</name>
-    <type>SelectValues</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <fields>
-      <field>
-        <length>-2</length>
-        <name>nummer</name>
-        <precision>-2</precision>
-        <rename>PktNr</rename>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>X</name>
-        <precision>3</precision>
-        <rename/>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>Y</name>
-        <precision>3</precision>
-        <rename/>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>hoehengeometrie</name>
-        <precision>3</precision>
-        <rename>Z</rename>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>lagegenauigkeit</name>
-        <precision>-2</precision>
-        <rename>LageGen</rename>
-      </field>
-      <field>
-        <length>-2</length>
-        <name>hoehengenauigkeit</name>
-        <precision>-2</precision>
-        <rename>HoeheGen</rename>
-      </field>
-      <select_unspecified>N</select_unspecified>
-    </fields>
-    <attributes/>
-    <GUI>
-      <xloc>512</xloc>
-      <yloc>544</yloc>
+      <xloc>144</xloc>
+      <yloc>816</yloc>
     </GUI>
   </transform>
   <transform>
@@ -517,8 +281,8 @@
     </GUI>
   </transform>
   <transform>
-    <name>REST client (request LFP1)</name>
-    <type>Rest</type>
+    <name>Geometry Fields Converter HFP3</name>
+    <type>GeometryFieldsConverter</type>
     <description/>
     <distribute>Y</distribute>
     <custom_distribution/>
@@ -527,112 +291,171 @@
       <method>none</method>
       <schema_name/>
     </partitioning>
-    <applicationType>XML</applicationType>
-    <bodyField/>
-    <connectionTimeout>10000</connectionTimeout>
-    <connection_name/>
-    <dynamicMethod>N</dynamicMethod>
-    <headers>
-</headers>
-    <httpLogin/>
-    <httpPassword>Encrypted </httpPassword>
-    <ignoreSsl>N</ignoreSsl>
-    <matrixParameters>
-</matrixParameters>
-    <method>GET</method>
-    <methodFieldName/>
-    <parameters>
-</parameters>
-    <preemptive>N</preemptive>
-    <proxyHost/>
-    <proxyPort/>
-    <readTimeout>10000</readTimeout>
-    <result>
-      <code/>
-      <name>RestQueryResult</name>
-      <response_header/>
-      <response_time/>
-    </result>
-    <trustStoreFile/>
-    <trustStorePassword>Encrypted </trustStorePassword>
-    <url>https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=2585191.028,1223288.474,2592286.696,1229113.238&amp;geometryType=esriGeometryEnvelope&amp;sr=2056&amp;layers=all:ch.swisstopo.fixpunkte-lfp1&amp;tolerance=0&amp;imageDisplay=0,0,0&amp;mapExtent=0,0,0,0&amp;returnGeometry=true&amp;geometryFormat=geojson</url>
-    <urlField/>
-    <urlInField>N</urlInField>
+    <add_srid>N</add_srid>
+    <endianness>1</endianness>
+    <input_field>geometry</input_field>
+    <input_format>WKT</input_format>
+    <input_y_field/>
+    <output_field>X</output_field>
+    <output_format>POINT_COORDINATE</output_format>
+    <output_y_field>Y</output_y_field>
+    <srid>0</srid>
     <attributes/>
     <GUI>
-      <xloc>320</xloc>
-      <yloc>688</yloc>
+      <xloc>336</xloc>
+      <yloc>464</yloc>
     </GUI>
   </transform>
   <transform>
-    <name>Generate rows</name>
-    <type>RowGenerator</type>
+    <name>Geometry Fields Converter LFP3</name>
+    <type>GeometryFieldsConverter</type>
     <description/>
-    <distribute>N</distribute>
+    <distribute>Y</distribute>
     <custom_distribution/>
     <copies>1</copies>
     <partitioning>
       <method>none</method>
       <schema_name/>
     </partitioning>
+    <add_srid>N</add_srid>
+    <endianness>1</endianness>
+    <input_field>geometry</input_field>
+    <input_format>WKT</input_format>
+    <input_y_field/>
+    <output_field>X</output_field>
+    <output_format>POINT_COORDINATE</output_format>
+    <output_y_field>Y</output_y_field>
+    <srid>0</srid>
+    <attributes/>
+    <GUI>
+      <xloc>336</xloc>
+      <yloc>384</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>JSON input HFP1</name>
+    <type>JsonInput</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <include>N</include>
+    <include_field/>
+    <rownum>N</rownum>
+    <addresultfile>N</addresultfile>
+    <readurl>N</readurl>
+    <removeSourceField>Y</removeSourceField>
+    <IsIgnoreEmptyFile>N</IsIgnoreEmptyFile>
+    <doNotFailIfNoFile>Y</doNotFailIfNoFile>
+    <ignoreMissingPath>Y</ignoreMissingPath>
+    <defaultPathLeafToNull>Y</defaultPathLeafToNull>
+    <rownum_field/>
+    <file>
+      <name/>
+      <filemask/>
+      <exclude_filemask/>
+      <file_required>N</file_required>
+      <include_subfolders>N</include_subfolders>
+    </file>
     <fields>
-</fields>
-    <interval_in_ms>5000</interval_in_ms>
-    <last_time_field>FiveSecondsAgo</last_time_field>
-    <limit>1</limit>
-    <never_ending>N</never_ending>
-    <row_time_field>now</row_time_field>
+      <field>
+        <name>PktNr</name>
+        <path>$.results[*].properties.punktname</path>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>none</trim_type>
+        <repeat>N</repeat>
+      </field>
+      <field>
+        <name>X</name>
+        <path>$.results[*].properties.e95</path>
+        <type>Number</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>none</trim_type>
+        <repeat>N</repeat>
+      </field>
+      <field>
+        <name>Y</name>
+        <path>$.results[*].properties.n95</path>
+        <type>Number</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>none</trim_type>
+        <repeat>N</repeat>
+      </field>
+      <field>
+        <name>Z</name>
+        <path>$.results[*].properties.h02</path>
+        <type>Number</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>none</trim_type>
+        <repeat>N</repeat>
+      </field>
+      <field>
+        <name>LageGen</name>
+        <path>$.results[*].properties.l_gen_lv95</path>
+        <type>Number</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>none</trim_type>
+        <repeat>N</repeat>
+      </field>
+      <field>
+        <name>HoeheGen</name>
+        <path>$.results[*].properties.h_gen_lv95</path>
+        <type>Number</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <length>-1</length>
+        <precision>-1</precision>
+        <trim_type>none</trim_type>
+        <repeat>N</repeat>
+      </field>
+    </fields>
+    <limit>0</limit>
+    <IsInFields>Y</IsInFields>
+    <IsAFile>N</IsAFile>
+    <valueField>RestQueryResult</valueField>
+    <shortFileFieldName/>
+    <pathFieldName/>
+    <hiddenFieldName/>
+    <lastModificationTimeFieldName/>
+    <uriNameFieldName/>
+    <rootUriNameFieldName/>
+    <extensionFieldName/>
+    <sizeFieldName/>
     <attributes/>
     <GUI>
-      <xloc>144</xloc>
-      <yloc>816</yloc>
-    </GUI>
-  </transform>
-  <transform>
-    <name>REST client (request HFP1)</name>
-    <type>Rest</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <applicationType>XML</applicationType>
-    <bodyField/>
-    <connectionTimeout>10000</connectionTimeout>
-    <connection_name/>
-    <dynamicMethod>N</dynamicMethod>
-    <headers>
-</headers>
-    <httpLogin/>
-    <httpPassword>Encrypted </httpPassword>
-    <ignoreSsl>N</ignoreSsl>
-    <matrixParameters>
-</matrixParameters>
-    <method>GET</method>
-    <methodFieldName/>
-    <parameters>
-</parameters>
-    <preemptive>N</preemptive>
-    <proxyHost/>
-    <proxyPort/>
-    <readTimeout>10000</readTimeout>
-    <result>
-      <code/>
-      <name>RestQueryResult</name>
-      <response_header/>
-      <response_time/>
-    </result>
-    <trustStoreFile/>
-    <trustStorePassword>Encrypted </trustStorePassword>
-    <url>https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=2585191.028,1223288.474,2592286.696,1229113.238&amp;geometryType=esriGeometryEnvelope&amp;sr=2056&amp;layers=all:ch.swisstopo.fixpunkte-hfp1&amp;tolerance=0&amp;imageDisplay=0,0,0&amp;mapExtent=0,0,0,0&amp;returnGeometry=true&amp;geometryFormat=geojson</url>
-    <urlField/>
-    <urlInField>N</urlInField>
-    <attributes/>
-    <GUI>
-      <xloc>320</xloc>
+      <xloc>480</xloc>
       <yloc>768</yloc>
     </GUI>
   </transform>
@@ -764,181 +587,6 @@
     </GUI>
   </transform>
   <transform>
-    <name>JSON input HFP1</name>
-    <type>JsonInput</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <include>N</include>
-    <include_field/>
-    <rownum>N</rownum>
-    <addresultfile>N</addresultfile>
-    <readurl>N</readurl>
-    <removeSourceField>Y</removeSourceField>
-    <IsIgnoreEmptyFile>N</IsIgnoreEmptyFile>
-    <doNotFailIfNoFile>Y</doNotFailIfNoFile>
-    <ignoreMissingPath>Y</ignoreMissingPath>
-    <defaultPathLeafToNull>Y</defaultPathLeafToNull>
-    <rownum_field/>
-    <file>
-      <name/>
-      <filemask/>
-      <exclude_filemask/>
-      <file_required>N</file_required>
-      <include_subfolders>N</include_subfolders>
-    </file>
-    <fields>
-      <field>
-        <name>PktNr</name>
-        <path>$.results[*].properties.punktname</path>
-        <type>String</type>
-        <format/>
-        <currency/>
-        <decimal/>
-        <group/>
-        <length>-1</length>
-        <precision>-1</precision>
-        <trim_type>none</trim_type>
-        <repeat>N</repeat>
-      </field>
-      <field>
-        <name>X</name>
-        <path>$.results[*].properties.e95</path>
-        <type>Number</type>
-        <format/>
-        <currency/>
-        <decimal/>
-        <group/>
-        <length>-1</length>
-        <precision>-1</precision>
-        <trim_type>none</trim_type>
-        <repeat>N</repeat>
-      </field>
-      <field>
-        <name>Y</name>
-        <path>$.results[*].properties.n95</path>
-        <type>Number</type>
-        <format/>
-        <currency/>
-        <decimal/>
-        <group/>
-        <length>-1</length>
-        <precision>-1</precision>
-        <trim_type>none</trim_type>
-        <repeat>N</repeat>
-      </field>
-      <field>
-        <name>Z</name>
-        <path>$.results[*].properties.h02</path>
-        <type>Number</type>
-        <format/>
-        <currency/>
-        <decimal/>
-        <group/>
-        <length>-1</length>
-        <precision>-1</precision>
-        <trim_type>none</trim_type>
-        <repeat>N</repeat>
-      </field>
-      <field>
-        <name>LageGen</name>
-        <path>$.results[*].properties.l_gen_lv95</path>
-        <type>Number</type>
-        <format/>
-        <currency/>
-        <decimal/>
-        <group/>
-        <length>-1</length>
-        <precision>-1</precision>
-        <trim_type>none</trim_type>
-        <repeat>N</repeat>
-      </field>
-      <field>
-        <name>HoeheGen</name>
-        <path>$.results[*].properties.h_gen_lv95</path>
-        <type>Number</type>
-        <format/>
-        <currency/>
-        <decimal/>
-        <group/>
-        <length>-1</length>
-        <precision>-1</precision>
-        <trim_type>none</trim_type>
-        <repeat>N</repeat>
-      </field>
-    </fields>
-    <limit>0</limit>
-    <IsInFields>Y</IsInFields>
-    <IsAFile>N</IsAFile>
-    <valueField>RestQueryResult</valueField>
-    <shortFileFieldName/>
-    <pathFieldName/>
-    <hiddenFieldName/>
-    <lastModificationTimeFieldName/>
-    <uriNameFieldName/>
-    <rootUriNameFieldName/>
-    <extensionFieldName/>
-    <sizeFieldName/>
-    <attributes/>
-    <GUI>
-      <xloc>480</xloc>
-      <yloc>768</yloc>
-    </GUI>
-  </transform>
-  <transform>
-    <name>REST client (request LFP2/HFP2, Kanton Bern)</name>
-    <type>Rest</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <applicationType>XML</applicationType>
-    <bodyField/>
-    <connectionTimeout>10000</connectionTimeout>
-    <connection_name/>
-    <dynamicMethod>N</dynamicMethod>
-    <headers>
-</headers>
-    <httpLogin/>
-    <httpPassword>Encrypted </httpPassword>
-    <ignoreSsl>N</ignoreSsl>
-    <matrixParameters>
-</matrixParameters>
-    <method>GET</method>
-    <methodFieldName/>
-    <parameters>
-</parameters>
-    <preemptive>N</preemptive>
-    <proxyHost/>
-    <proxyPort/>
-    <readTimeout>10000</readTimeout>
-    <result>
-      <code/>
-      <name>RestQueryResult</name>
-      <response_header/>
-      <response_time/>
-    </result>
-    <trustStoreFile/>
-    <trustStorePassword>Encrypted </trustStorePassword>
-    <url>https://wfs.geodienste.ch/fixpunkte_v1_1_0/deu?SERVICE=WFS&amp;VERSION=2.0.0&amp;REQUEST=GetFeature&amp;TYPENAMES=ms:fixpunkte&amp;SRSNAME=urn:ogc:def:crs:EPSG::2056&amp;OUTPUTFORMAT=application/json%3B%20subtype%3Dgeojson&amp;BBOX=2585191.028,1223288.474,2592286.696,1229113.238,urn:ogc:def:crs:EPSG::2056&amp;CQL_FILTER=kanton%3D%27BE%27%20AND%20punktart%3D%27LFP2%27</url>
-    <urlField/>
-    <urlInField>N</urlInField>
-    <attributes/>
-    <GUI>
-      <xloc>320</xloc>
-      <yloc>864</yloc>
-    </GUI>
-  </transform>
-  <transform>
     <name>JSON input LFP2/HFP2</name>
     <type>JsonInput</type>
     <description/>
@@ -1063,6 +711,330 @@
     <GUI>
       <xloc>560</xloc>
       <yloc>864</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>REST client (request HFP1)</name>
+    <type>Rest</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <applicationType>XML</applicationType>
+    <connectionTimeout>10000</connectionTimeout>
+    <dynamicMethod>N</dynamicMethod>
+    <headers>
+</headers>
+    <httpPassword>Encrypted </httpPassword>
+    <ignoreSsl>N</ignoreSsl>
+    <matrixParameters>
+</matrixParameters>
+    <method>GET</method>
+    <parameters>
+</parameters>
+    <preemptive>N</preemptive>
+    <readTimeout>10000</readTimeout>
+    <result>
+      <name>RestQueryResult</name>
+    </result>
+    <trustStorePassword>Encrypted </trustStorePassword>
+    <url>https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=2585191.028,1223288.474,2592286.696,1229113.238&amp;geometryType=esriGeometryEnvelope&amp;sr=2056&amp;layers=all:ch.swisstopo.fixpunkte-hfp1&amp;tolerance=0&amp;imageDisplay=0,0,0&amp;mapExtent=0,0,0,0&amp;returnGeometry=true&amp;geometryFormat=geojson</url>
+    <urlInField>N</urlInField>
+    <attributes/>
+    <GUI>
+      <xloc>320</xloc>
+      <yloc>768</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>REST client (request LFP1)</name>
+    <type>Rest</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <applicationType>XML</applicationType>
+    <connectionTimeout>10000</connectionTimeout>
+    <dynamicMethod>N</dynamicMethod>
+    <headers>
+</headers>
+    <httpPassword>Encrypted </httpPassword>
+    <ignoreSsl>N</ignoreSsl>
+    <matrixParameters>
+</matrixParameters>
+    <method>GET</method>
+    <parameters>
+</parameters>
+    <preemptive>N</preemptive>
+    <readTimeout>10000</readTimeout>
+    <result>
+      <name>RestQueryResult</name>
+    </result>
+    <trustStorePassword>Encrypted </trustStorePassword>
+    <url>https://api3.geo.admin.ch/rest/services/all/MapServer/identify?geometry=2585191.028,1223288.474,2592286.696,1229113.238&amp;geometryType=esriGeometryEnvelope&amp;sr=2056&amp;layers=all:ch.swisstopo.fixpunkte-lfp1&amp;tolerance=0&amp;imageDisplay=0,0,0&amp;mapExtent=0,0,0,0&amp;returnGeometry=true&amp;geometryFormat=geojson</url>
+    <urlInField>N</urlInField>
+    <attributes/>
+    <GUI>
+      <xloc>320</xloc>
+      <yloc>688</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>REST client (request LFP2/HFP2, Kanton Bern)</name>
+    <type>Rest</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <applicationType>XML</applicationType>
+    <connectionTimeout>10000</connectionTimeout>
+    <dynamicMethod>N</dynamicMethod>
+    <headers>
+</headers>
+    <httpPassword>Encrypted </httpPassword>
+    <ignoreSsl>N</ignoreSsl>
+    <matrixParameters>
+</matrixParameters>
+    <method>GET</method>
+    <parameters>
+</parameters>
+    <preemptive>N</preemptive>
+    <readTimeout>10000</readTimeout>
+    <result>
+      <name>RestQueryResult</name>
+    </result>
+    <trustStorePassword>Encrypted </trustStorePassword>
+    <url>https://wfs.geodienste.ch/fixpunkte_v1_1_0/deu?SERVICE=WFS&amp;VERSION=2.0.0&amp;REQUEST=GetFeature&amp;TYPENAMES=ms:fixpunkte&amp;SRSNAME=urn:ogc:def:crs:EPSG::2056&amp;OUTPUTFORMAT=application/json%3B%20subtype%3Dgeojson&amp;BBOX=2585191.028,1223288.474,2592286.696,1229113.238,urn:ogc:def:crs:EPSG::2056&amp;CQL_FILTER=kanton%3D%27BE%27%20AND%20punktart%3D%27LFP2%27</url>
+    <urlInField>N</urlInField>
+    <attributes/>
+    <GUI>
+      <xloc>320</xloc>
+      <yloc>864</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Select values GP</name>
+    <type>SelectValues</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <fields>
+      <field>
+        <length>-2</length>
+        <name>nummer</name>
+        <precision>-2</precision>
+        <rename>PktNr</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>X</name>
+        <precision>3</precision>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>Y</name>
+        <precision>3</precision>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>hoehengeometrie</name>
+        <precision>3</precision>
+        <rename>Z</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>lagegenauigkeit</name>
+        <precision>-2</precision>
+        <rename>LageGen</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>hoehengenauigkeit</name>
+        <precision>-2</precision>
+        <rename>HoeheGen</rename>
+      </field>
+      <select_unspecified>N</select_unspecified>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>512</xloc>
+      <yloc>544</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Select values HFP3</name>
+    <type>SelectValues</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <fields>
+      <field>
+        <length>-2</length>
+        <name>nummer</name>
+        <precision>-2</precision>
+        <rename>PktNr</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>X</name>
+        <precision>3</precision>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>Y</name>
+        <precision>3</precision>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>hoehengeometrie</name>
+        <precision>3</precision>
+        <rename>Z</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>lagegenauigkeit</name>
+        <precision>-2</precision>
+        <rename>LageGen</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>hoehengenauigkeit</name>
+        <precision>-2</precision>
+        <rename>HoeheGen</rename>
+      </field>
+      <select_unspecified>N</select_unspecified>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>512</xloc>
+      <yloc>464</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Select values LFP3</name>
+    <type>SelectValues</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <fields>
+      <field>
+        <length>-2</length>
+        <name>nummer</name>
+        <precision>-2</precision>
+        <rename>PktNr</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>X</name>
+        <precision>3</precision>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>Y</name>
+        <precision>3</precision>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>hoehengeometrie</name>
+        <precision>3</precision>
+        <rename>Z</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>lagegenauigkeit</name>
+        <precision>-2</precision>
+        <rename>LageGen</rename>
+      </field>
+      <field>
+        <length>-2</length>
+        <name>hoehengenauigkeit</name>
+        <precision>-2</precision>
+        <rename>HoeheGen</rename>
+      </field>
+      <select_unspecified>N</select_unspecified>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>512</xloc>
+      <yloc>384</yloc>
+    </GUI>
+  </transform>
+  <transform>
+    <name>Text file output (CSV)</name>
+    <type>TextFileOutput</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <schema_definition/>
+    <ignore_fields>N</ignore_fields>
+    <separator>;</separator>
+    <enclosure>"</enclosure>
+    <enclosure_forced>N</enclosure_forced>
+    <enclosure_fix_disabled>N</enclosure_fix_disabled>
+    <header>Y</header>
+    <footer>Y</footer>
+    <format>DOS</format>
+    <compression>None</compression>
+    <encoding>UTF-8</encoding>
+    <endedLine/>
+    <fileNameInField>N</fileNameInField>
+    <fileNameField/>
+    <create_parent_folder>N</create_parent_folder>
+    <file>
+      <name>${outputDir}/fixpunkte.csv</name>
+      <servlet_output>N</servlet_output>
+      <do_not_open_new_file_init>N</do_not_open_new_file_init>
+      <extention/>
+      <append>N</append>
+      <split>N</split>
+      <haspartno>N</haspartno>
+      <add_date>N</add_date>
+      <add_time>N</add_time>
+      <SpecifyFormat>N</SpecifyFormat>
+      <date_time_format/>
+      <add_to_result_filenames>Y</add_to_result_filenames>
+      <pad>N</pad>
+      <fast_dump>N</fast_dump>
+      <splitevery/>
+    </file>
+    <fields>
+    </fields>
+    <attributes/>
+    <GUI>
+      <xloc>960</xloc>
+      <yloc>688</yloc>
     </GUI>
   </transform>
   <transform_error_handling>
