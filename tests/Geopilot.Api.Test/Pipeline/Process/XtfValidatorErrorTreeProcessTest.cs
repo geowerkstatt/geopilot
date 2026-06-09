@@ -50,6 +50,11 @@ public class XtfValidatorErrorTreeProcessTest
         var expected = Deserialize(File.ReadAllText("TestData/Expectations/XtfValidatorErrorTree/errorLogWithErrors.json"));
 
         CollectionAssert.AreEqual(expected, errorLog, "error tree is not as expected");
+
+        var errorLeafWithMetadata = errorLog[0].Values[0].Values.Last().Values[0];
+        Assert.IsNotNull(errorLeafWithMetadata.Metadata, "error leaves carry metadata");
+        Assert.AreEqual("19088", errorLeafWithMetadata.Metadata["Line"]);
+        Assert.IsNull(errorLog[0].Metadata, "grouping nodes carry no metadata");
     }
 
     private List<TreeNode>? Deserialize(string json)

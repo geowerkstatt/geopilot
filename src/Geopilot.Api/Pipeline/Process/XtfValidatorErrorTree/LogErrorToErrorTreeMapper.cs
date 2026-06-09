@@ -1,4 +1,5 @@
-using Geopilot.Api.Pipeline.Process.TreeVisualization;
+﻿using Geopilot.Api.Pipeline.Process.TreeVisualization;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree;
@@ -18,9 +19,16 @@ public class LogErrorToErrorTreeMapper
     private const string ColorSuccess = "success";
 
     /// <summary>
-    /// A single leaf of the tree together with the model, topic and class it belongs to and its severity.
+    /// A single leaf of the tree together with the model, topic and class it belongs to, its severity
+    /// and the optional metadata details of the underlying log entry.
     /// </summary>
-    private sealed record LeafEntry(string Model, string Topic, string Class, string Leaf, LogEntryType Severity);
+    private sealed record LeafEntry(
+        string Model,
+        string Topic,
+        string Class,
+        string Leaf,
+        LogEntryType Severity,
+        IDictionary<string, string>? Metadata = null);
 
     /// <summary>
     /// Patterns that match the info log entries which announce the validation of a constraint.
@@ -79,7 +87,7 @@ public class LogErrorToErrorTreeMapper
                 foreach (var classGroup in topicGroup.GroupBy(e => e.Class, StringComparer.Ordinal))
                 {
                     var leaves = classGroup
-                        .Select(e => CreateNode(e.Leaf, e.Severity, new List<TreeNode>()))
+                        .Select(e => CreateNode(e.Leaf, e.Severity, new List<TreeNode>(), e.Metadata))
                         .ToList<TreeNode>();
                     classNodes.Add(CreateNode(classGroup.Key, ReduceSeverity(classGroup), leaves));
                 }
@@ -102,9 +110,9 @@ public class LogErrorToErrorTreeMapper
     }
 
     /// <summary>
-    /// Creates a tree node with the icon and color that match the given severity.
+    /// Creates a tree node with the icon and color that match the given severity and the optional metadata details.
     /// </summary>
-    private static TreeNode CreateNode(string message, LogEntryType severity, IList<TreeNode> children) => new()
+    private static TreeNode CreateNode(string message, LogEntryType severity, IList<TreeNode> children, IDictionary<string, string>? metadata = null) => new()
     {
         Message = message,
         Icon = severity switch
@@ -120,6 +128,7 @@ public class LogErrorToErrorTreeMapper
             _ => ColorSuccess,
         },
         Values = children,
+        Metadata = metadata,
     };
 
     /// <summary>
@@ -170,7 +179,7 @@ public class LogErrorToErrorTreeMapper
             if (objTagParts.Length == 3)
             {
                 var leaf = TrimQualifiedName(logEntry.Message);
-                leafEntries.Add(new LeafEntry(objTagParts[0], objTagParts[1], objTagParts[2], leaf, logEntryType));
+                leafEntries.Add(new LeafEntry(objTagParts[0], objTagParts[1], objTagParts[2], leaf, logEntryType, BuildMetadata(logEntry)));
             }
             else if (logEntryType == LogEntryType.Error)
             {
@@ -181,6 +190,31 @@ public class LogErrorToErrorTreeMapper
                 otherWarningMessages.Add(logEntry.Message);
             }
         }
+    }
+
+    /// <summary>
+    /// Builds the metadata details of a log entry from the fields that are present, preserving a stable display order.
+    /// Returns <see langword="null"/> when the entry carries no usable details.
+    /// </summary>
+    /// <param name="logEntry">The log entry whose details are collected.</param>
+    /// <returns>The metadata details, or <see langword="null"/> when there are none.</returns>
+    private static Dictionary<string, string>? BuildMetadata(LogError logEntry)
+    {
+        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        if (!string.IsNullOrEmpty(logEntry.DataSource))
+            metadata["Data source"] = logEntry.DataSource;
+        if (logEntry.Line.HasValue)
+            metadata["Line"] = logEntry.Line.Value.ToString(CultureInfo.InvariantCulture);
+
+        var coord = logEntry.Geometry?.Coord;
+        if (coord is not null)
+        {
+            metadata["Coordinates"] =
+                $"{coord.C1.ToString(CultureInfo.InvariantCulture)}, {coord.C2.ToString(CultureInfo.InvariantCulture)}";
+        }
+
+        return metadata.Count > 0 ? metadata : null;
     }
 
     /// <summary>

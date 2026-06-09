@@ -1,5 +1,5 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Box, Icon, Typography } from "@mui/material";
+import { ReactNode, SyntheticEvent, useEffect, useMemo, useState } from "react";
+import { Box, Icon, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
 import { useTranslation } from "react-i18next";
 import useFetch from "../../../../hooks/useFetch";
@@ -24,6 +24,7 @@ interface TreeNode {
   message: string;
   icon?: string;
   color?: string;
+  metadata?: Record<string, string>;
   values?: TreeNode[];
 }
 
@@ -50,9 +51,11 @@ const renderLabel = (node: TreeNode): ReactNode => (
   </Box>
 );
 
+const nodeId = (prefix: string, index: number): string => `${prefix}-${index}`;
+
 const renderItems = (nodes: TreeNode[], prefix = "n"): ReactNode =>
   nodes.map((node, index) => {
-    const id = `${prefix}-${index}`;
+    const id = nodeId(prefix, index);
     const hasChildren = node.values && node.values.length > 0;
     return (
       <TreeItem key={id} itemId={id} label={renderLabel(node)}>
@@ -60,6 +63,55 @@ const renderItems = (nodes: TreeNode[], prefix = "n"): ReactNode =>
       </TreeItem>
     );
   });
+
+const indexNodes = (nodes: TreeNode[], target: Map<string, TreeNode>, prefix = "n"): void => {
+  nodes.forEach((node, index) => {
+    const id = nodeId(prefix, index);
+    target.set(id, node);
+    if (node.values && node.values.length > 0) {
+      indexNodes(node.values, target, id);
+    }
+  });
+};
+
+interface MetadataPanelProps {
+  node: TreeNode | null;
+}
+
+const MetadataPanel = ({ node }: MetadataPanelProps) => {
+  const { t } = useTranslation();
+  const entries = node?.metadata ? Object.entries(node.metadata) : [];
+
+  return (
+    <Box sx={{ flex: "0 0 auto", minWidth: 260, maxWidth: 420 }}>
+      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        {t("treeVisualizationMetadataTitle")}
+      </Typography>
+      {entries.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          {t("treeVisualizationMetadataEmpty")}
+        </Typography>
+      ) : (
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>{t("treeVisualizationMetadataProperty")}</TableCell>
+              <TableCell>{t("treeVisualizationMetadataValue")}</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {entries.map(([key, value]) => (
+              <TableRow key={key}>
+                <TableCell sx={{ verticalAlign: "top", fontWeight: 500 }}>{key}</TableCell>
+                <TableCell sx={{ wordBreak: "break-word" }}>{value}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </Box>
+  );
+};
 
 interface TreeVisualizationProps {
   url: string;
@@ -70,11 +122,13 @@ export const TreeVisualization = ({ url }: TreeVisualizationProps) => {
   const { fetchApi } = useFetch();
   const [nodes, setNodes] = useState<TreeNode[] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setNodes(null);
     setErrorMessage(null);
+    setSelectedId(null);
 
     (async () => {
       try {
@@ -92,6 +146,14 @@ export const TreeVisualization = ({ url }: TreeVisualizationProps) => {
 
   const items = useMemo(() => (nodes ? renderItems(nodes) : null), [nodes]);
 
+  const nodesById = useMemo(() => {
+    const map = new Map<string, TreeNode>();
+    if (nodes) indexNodes(nodes, map);
+    return map;
+  }, [nodes]);
+
+  const selectedNode = selectedId ? (nodesById.get(selectedId) ?? null) : null;
+
   if (errorMessage) {
     return (
       <Typography variant="body2" color="error">
@@ -103,7 +165,17 @@ export const TreeVisualization = ({ url }: TreeVisualizationProps) => {
   if (!nodes) return null;
   if (nodes.length === 0) return null;
 
-  return <SimpleTreeView>{items}</SimpleTreeView>;
+  return (
+    <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
+      <SimpleTreeView
+        sx={{ flex: "1 1 auto", minWidth: 0 }}
+        selectedItems={selectedId}
+        onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => setSelectedId(itemId)}>
+        {items}
+      </SimpleTreeView>
+      <MetadataPanel node={selectedNode} />
+    </Box>
+  );
 };
 
 export default TreeVisualization;

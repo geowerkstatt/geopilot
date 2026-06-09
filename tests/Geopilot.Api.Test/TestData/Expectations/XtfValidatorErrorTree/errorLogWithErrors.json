@@ -107,7 +107,12 @@
                 "Message": "Attribute Hoehengenauigkeit requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "19088",
+                  "Coordinates": "2587938.765, 1226259.673"
+                }
               }
             ]
           }
@@ -252,7 +257,12 @@
                 "Message": "Unique constraint is violated! Values BE0200000428, 202110004 already exist in Object: 4a85aaae-adbf-4a45-8ae1-02132ca9bcbb",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "19205",
+                  "Coordinates": "2586288.544, 1224293.354"
+                }
               }
             ]
           }
@@ -382,37 +392,67 @@
                 "Message": "Attribute IstExaktDefiniert requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "12361",
+                  "Coordinates": "2586277.662, 1224148.354"
+                }
               },
               {
                 "Message": "Attribute IstExaktDefiniert requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "12362",
+                  "Coordinates": "2588356.845, 1226312.976"
+                }
               },
               {
                 "Message": "Attribute IstExaktDefiniert requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "12363",
+                  "Coordinates": "2588993.092, 1227227.73"
+                }
               },
               {
                 "Message": "Attribute IstExaktDefiniert requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "12400",
+                  "Coordinates": "2587676.82, 1226886.266"
+                }
               },
               {
                 "Message": "Attribute IstExaktDefiniert requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "12401",
+                  "Coordinates": "2587405.726, 1224913.254"
+                }
               },
               {
                 "Message": "Attribute IstExaktDefiniert requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "12402",
+                  "Coordinates": "2587321.097, 1226455.094"
+                }
               }
             ]
           },
@@ -609,43 +649,78 @@
                 "Message": "Attribute InAenderung requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "25",
+                  "Coordinates": "2589444.843, 1226287.713"
+                }
               },
               {
                 "Message": "Attribute InAenderung requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "26",
+                  "Coordinates": "2589459.442, 1226301.934"
+                }
               },
               {
                 "Message": "Attribute InAenderung requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "27",
+                  "Coordinates": "2589482.269, 1226296.13"
+                }
               },
               {
                 "Message": "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "82",
+                  "Coordinates": "2590475.817, 1228087.007"
+                }
               },
               {
                 "Message": "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "83",
+                  "Coordinates": "2590490.266, 1228093.88"
+                }
               },
               {
                 "Message": "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "84",
+                  "Coordinates": "2587454.373, 1226010.618"
+                }
               },
               {
                 "Message": "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "85",
+                  "Coordinates": "2587404.145, 1226069.931"
+                }
               }
             ]
           },
@@ -832,25 +907,45 @@
                 "Message": "Attribute IstLagezuverlaessig requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "14271",
+                  "Coordinates": "2586922.423, 1225733.365"
+                }
               },
               {
                 "Message": "Attribute IstLagezuverlaessig requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "14272",
+                  "Coordinates": "2588828.981, 1226875.869"
+                }
               },
               {
                 "Message": "Attribute IstLagezuverlaessig requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "14273",
+                  "Coordinates": "2588723.843, 1226470.245"
+                }
               },
               {
                 "Message": "Attribute IstLagezuverlaessig requires a value",
                 "Icon": "error_outline",
                 "Color": "error",
-                "Values": []
+                "Values": [],
+                "Metadata": {
+                  "Data source": "/uploads/64f6427e-92d9-421f-984d-9a55bff04887/z20iozla.xtf",
+                  "Line": "14274",
+                  "Coordinates": "2586388.631, 1225335.052"
+                }
               }
             ]
           },

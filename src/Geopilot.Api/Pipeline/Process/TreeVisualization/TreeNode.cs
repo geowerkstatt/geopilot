@@ -31,6 +31,12 @@ public class TreeNode
     /// </summary>
     public required IList<TreeNode> Values { get; set; }
 
+    /// <summary>
+    /// Gets or sets the key/value details shown by the frontend metadata table when this node is selected.
+    /// When <see langword="null"/>, the node has no metadata.
+    /// </summary>
+    public IDictionary<string, string>? Metadata { get; set; }
+
     /// <inheritdoc/>
     public override bool Equals(object? obj)
     {
@@ -40,9 +46,24 @@ public class TreeNode
         return Message == other.Message
             && Icon == other.Icon
             && Color == other.Color
+            && MetadataEquals(Metadata, other.Metadata)
             && Values.SequenceEqual(other.Values);
     }
 
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(Message, Icon, Color, Values);
+
+    /// <summary>
+    /// Compares two metadata dictionaries for equality, independent of key order.
+    /// </summary>
+    private static bool MetadataEquals(IDictionary<string, string>? first, IDictionary<string, string>? second)
+    {
+        if (first is null || second is null)
+            return first is null && second is null;
+
+        if (first.Count != second.Count)
+            return false;
+
+        return first.All(pair => second.TryGetValue(pair.Key, out var value) && value == pair.Value);
+    }
 }
