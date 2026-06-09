@@ -102,6 +102,30 @@ export interface StepDownload {
   url: string;
 }
 
+/** A single feature inside a feature layer of a map visualization. */
+export interface MapFeature {
+  /** The feature geometry as Well-Known Text (WKT), e.g. "POINT(2600000 1200000)" (EPSG:2056 / LV95). */
+  geom: string;
+  /** The informational text shown for the feature. */
+  info: string;
+}
+
+/**
+ * A single map layer. Exactly one of {@link wmts} or {@link features} is set.
+ */
+export interface MapLayer {
+  /** The capabilities URL of a WMTS map service. Set for WMTS layers. */
+  wmts?: string;
+  /** Features rendered directly from the config. Set for feature layers. */
+  features?: MapFeature[];
+}
+
+/** The map-visualization config produced by the map visualization pipeline step. */
+export interface MapVisualizationConfig {
+  /** The layers displayed in the map, drawn in order. */
+  layers: MapLayer[];
+}
+
 export interface StepResult {
   id: string;
   name: Record<string, string>;

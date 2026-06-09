@@ -84,6 +84,7 @@
   "mandateSaveError": "Si è verificato un errore durante il salvataggio del mandato: {{error}}",
   "mandates": "Mandati",
   "mandatesLoadingError": "Si è verificato un errore durante il caricamento dei mandati: {{error}}",
+  "mapVisualizationError": "Impossibile caricare la visualizzazione cartografica.",
   "name": "Nome",
   "noMandatesFound": "Non è stato trovato un mandato adatto per la vostra consegna.",
   "or": "o",

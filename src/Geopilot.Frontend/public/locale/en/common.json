@@ -84,6 +84,7 @@
   "mandateSaveError": "An error occurred while saving the mandate: {{error}}",
   "mandates": "Mandates",
   "mandatesLoadingError": "An error occurred while loading the mandates: {{error}}",
+  "mapVisualizationError": "The map visualization could not be loaded.",
   "name": "Name",
   "noMandatesFound": "No suitable mandate was found for your delivery.",
   "or": "or",

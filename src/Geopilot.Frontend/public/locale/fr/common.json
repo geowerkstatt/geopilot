@@ -84,6 +84,7 @@
   "mandateSaveError": "Une erreur s'est produite lors de l'enregistrement du mandat: {{error}}",
   "mandates": "Mandats",
   "mandatesLoadingError": "Une erreur s'est produite lors du chargement des mandats: {{error}}",
+  "mapVisualizationError": "La visualisation cartographique n'a pas pu être chargée.",
   "name": "Nom",
   "noMandatesFound": "Aucun mandat approprié n'a été trouvé pour leur livraison.",
   "or": "ou",

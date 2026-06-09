@@ -20,8 +20,10 @@ internal class MapVisualizationProcess
     /// <summary>
     /// WMTS capabilities URL of the swisstopo base map of Switzerland (LV95 / EPSG:2056), matching the
     /// coordinate reference system of INTERLIS error coordinates. Used when no override is configured.
+    /// The host of this URL must be allowed by the client's Content-Security-Policy (see
+    /// <c>WebApplicationExtensions.MapSpaFallback</c>), otherwise the browser blocks the base map.
     /// </summary>
-    private const string DefaultBaseMapWmtsCapabilitiesUrl = "https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml";
+    public const string DefaultBaseMapWmtsCapabilitiesUrl = "https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml";
 
     private static readonly Dictionary<string, string> SuccessfulStatusMessage = new()
     {

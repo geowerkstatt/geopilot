@@ -8,11 +8,13 @@ import i18next from "i18next";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { ProcessingStepIcon } from "./processingStepIcon";
+import { MapVisualization } from "./mapVisualization";
 
 const localized = (entries?: Record<string, string>) =>
   entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
 
-const stepHasContent = (step: StepResult) => Boolean(step.statusMessage) || step.downloads.length > 0;
+const stepHasContent = (step: StepResult) =>
+  Boolean(step.statusMessage) || step.downloads.length > 0 || step.mapVisualization.length > 0;
 
 const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
   StepState.Success,
@@ -143,6 +145,9 @@ export const DeliveryProcessingResults = () => {
                       ))}
                     </FlexRowBox>
                   )}
+                  {step.mapVisualization.map(m => (
+                    <MapVisualization key={m.url} file={m} />
+                  ))}
                 </FlexBox>
               </AccordionDetails>
             </Accordion>
