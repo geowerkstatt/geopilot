@@ -1,95 +1,115 @@
 [
   {
     "Message": "DMAV_FixpunkteAVKategorie3_V1_0",
-    "Icon": "check_circle_outline",
-    "Color": "success",
+    "Icon": "error_outline",
+    "Color": "error",
     "Values": [
       {
-        "Message": "FixpunkteAVKategorie3.LFP3_Gueltig",
-        "Icon": "check_circle_outline",
-        "Color": "success",
+        "Message": "FixpunkteAVKategorie3",
+        "Icon": "error_outline",
+        "Color": "error",
         "Values": [
           {
-            "Message": "CH020502",
+            "Message": "LFP3_Gueltig",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH020502",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH020501",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH020501",
+            "Message": "LFP3",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "FixpunkteAVKategorie3.LFP3",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH020201",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH020201",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH020202",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH020203",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH020202",
+            "Message": "HFP3Nachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH020601",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH020203",
+            "Message": "HFP3_Gueltig",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "FixpunkteAVKategorie3.HFP3Nachfuehrung",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH020601",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "FixpunkteAVKategorie3.HFP3_Gueltig",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH020901",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH020901",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH020902",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH020902",
+            "Message": "LFP3Nachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "FixpunkteAVKategorie3.LFP3Nachfuehrung",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
+            "Values": [
+              {
+                "Message": "CH020101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
+          },
           {
-            "Message": "CH020101",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Message": "HFP3",
+            "Icon": "error_outline",
+            "Color": "error",
+            "Values": [
+              {
+                "Message": "Attribute Hoehengenauigkeit requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -101,28 +121,35 @@
     "Color": "success",
     "Values": [
       {
-        "Message": "Nomenklatur.NKNachfuehrung",
+        "Message": "Nomenklatur",
         "Icon": "check_circle_outline",
         "Color": "success",
         "Values": [
           {
-            "Message": "CH070101",
+            "Message": "NKNachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Nomenklatur.Flurname_Gueltig",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
+            "Values": [
+              {
+                "Message": "CH070101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
+          },
           {
-            "Message": "CH070501",
+            "Message": "Flurname_Gueltig",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH070501",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -134,28 +161,35 @@
     "Color": "success",
     "Values": [
       {
-        "Message": "Dienstbarkeitsgrenzen.Dienstbarkeitsgrenze",
+        "Message": "Dienstbarkeitsgrenzen",
         "Icon": "check_circle_outline",
         "Color": "success",
         "Values": [
           {
-            "Message": "CH050301",
+            "Message": "Dienstbarkeitsgrenze",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Dienstbarkeitsgrenzen.DiBNachfuehrung",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
+            "Values": [
+              {
+                "Message": "CH050301",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
+          },
           {
-            "Message": "CH050101",
+            "Message": "DiBNachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH050101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -167,53 +201,60 @@
     "Color": "error",
     "Values": [
       {
-        "Message": "Einzelobjekte.Messpunkt",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH091201",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          },
-          {
-            "Message": "CH091202",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Einzelobjekte.Einzelobjekt",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH090701",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Einzelobjekte.EONachfuehrung",
+        "Message": "Einzelobjekte",
         "Icon": "error_outline",
         "Color": "error",
         "Values": [
           {
-            "Message": "CH090101",
+            "Message": "Messpunkt",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH091201",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH091202",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "Unique constraint CH090101 is violated! Values BE0200000428, 202110004 already exist in Object: 4a85aaae-adbf-4a45-8ae1-02132ca9bcbb",
+            "Message": "Einzelobjekt",
+            "Icon": "check_circle_outline",
+            "Color": "success",
+            "Values": [
+              {
+                "Message": "CH090701",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
+          },
+          {
+            "Message": "EONachfuehrung",
             "Icon": "error_outline",
             "Color": "error",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH090101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "Unique constraint is violated! Values BE0200000428, 202110004 already exist in Object: 4a85aaae-adbf-4a45-8ae1-02132ca9bcbb",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -225,60 +266,67 @@
     "Color": "success",
     "Values": [
       {
-        "Message": "Rohrleitungen.Messpunkt",
+        "Message": "Rohrleitungen",
         "Icon": "check_circle_outline",
         "Color": "success",
         "Values": [
           {
-            "Message": "CH101501",
+            "Message": "Messpunkt",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH101501",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH101502",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH101502",
+            "Message": "Leitungsobjekt",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Rohrleitungen.Leitungsobjekt",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
+            "Values": [
+              {
+                "Message": "CH100501",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
+          },
           {
-            "Message": "CH100501",
+            "Message": "Flaechenelement",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Rohrleitungen.Flaechenelement",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
+            "Values": [
+              {
+                "Message": "CH100201",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
+          },
           {
-            "Message": "CH100201",
+            "Message": "RLNachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Rohrleitungen.RLNachfuehrung",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH100101",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH100101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -286,202 +334,245 @@
   },
   {
     "Message": "DMAV_Grundstuecke_V1_0",
-    "Icon": "check_circle_outline",
-    "Color": "success",
+    "Icon": "error_outline",
+    "Color": "error",
     "Values": [
       {
-        "Message": "Grundstuecke.Grenzpunkt_Gueltig",
-        "Icon": "check_circle_outline",
-        "Color": "success",
+        "Message": "Grundstuecke",
+        "Icon": "error_outline",
+        "Color": "error",
         "Values": [
           {
-            "Message": "CH040601",
+            "Message": "Grenzpunkt_Gueltig",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Grundstuecke.Grenzpunkt",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH040201",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH040601",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH040202",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Message": "Grenzpunkt",
+            "Icon": "error_outline",
+            "Color": "error",
+            "Values": [
+              {
+                "Message": "CH040201",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH040202",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH040203",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "Attribute IstExaktDefiniert requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "Attribute IstExaktDefiniert requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "Attribute IstExaktDefiniert requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "Attribute IstExaktDefiniert requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "Attribute IstExaktDefiniert requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "Attribute IstExaktDefiniert requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH040203",
+            "Message": "Liegenschaft",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Grundstuecke.Liegenschaft",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH041201",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH041201",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH041401",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH041402",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH041401",
+            "Message": "GrundstueckLiegenschaft",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH041301",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH041302",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH041402",
+            "Message": "Grundstueck_Gueltig",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Grundstuecke.GrundstueckLiegenschaft",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH041301",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH041101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH041102",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH041302",
+            "Message": "Grundstueck",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Grundstuecke.Grundstueck_Gueltig",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH041101",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH040701",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH042401",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH042402",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH041102",
+            "Message": "SelbstaendigesDauerndesRecht",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Grundstuecke.Grundstueck",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH040701",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH041601",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH041801",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH041802",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH042401",
+            "Message": "GrundstueckSelbstaendigesDauerndesRecht",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH041701",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH041702",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH042402",
+            "Message": "GSNachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Grundstuecke.SelbstaendigesDauerndesRecht",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH041601",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH040101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH041801",
+            "Message": "Liegenschaft_Gueltig",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          },
-          {
-            "Message": "CH041802",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Grundstuecke.GrundstueckSelbstaendigesDauerndesRecht",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH041701",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          },
-          {
-            "Message": "CH041702",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Grundstuecke.GSNachfuehrung",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH040101",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Grundstuecke.Liegenschaft_Gueltig",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH041501",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH041501",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -489,76 +580,125 @@
   },
   {
     "Message": "DMAV_Gebaeudeadressen_V1_0",
-    "Icon": "check_circle_outline",
-    "Color": "success",
+    "Icon": "error_outline",
+    "Color": "error",
     "Values": [
       {
-        "Message": "Gebaeudeadressen.Gebaeudeeingang",
-        "Icon": "check_circle_outline",
-        "Color": "success",
+        "Message": "Gebaeudeadressen",
+        "Icon": "error_outline",
+        "Color": "error",
         "Values": [
           {
-            "Message": "CH121201",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Message": "Gebaeudeeingang",
+            "Icon": "error_outline",
+            "Color": "error",
+            "Values": [
+              {
+                "Message": "CH121201",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH121202",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "Attribute InAenderung requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "Attribute InAenderung requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "Attribute InAenderung requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH121202",
+            "Message": "LokalisationGebaeudeeingang",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Gebaeudeadressen.LokalisationGebaeudeeingang",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH121701",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Gebaeudeadressen.Lokalisation",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH120501",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH121701",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH120502",
+            "Message": "Lokalisation",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH120501",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH120502",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH120503",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH120503",
+            "Message": "GANachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Gebaeudeadressen.GANachfuehrung",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH120101",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH120101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -570,21 +710,28 @@
     "Color": "success",
     "Values": [
       {
-        "Message": "FixpunkteLV.LFP1",
+        "Message": "FixpunkteLV",
         "Icon": "check_circle_outline",
         "Color": "success",
         "Values": [
           {
-            "Message": "CH000101",
+            "Message": "LFP1",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          },
-          {
-            "Message": "CH000102",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH000101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH000102",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -596,52 +743,59 @@
     "Color": "success",
     "Values": [
       {
-        "Message": "FixpunkteAVKategorie2.LFP2",
+        "Message": "FixpunkteAVKategorie2",
         "Icon": "check_circle_outline",
         "Color": "success",
         "Values": [
           {
-            "Message": "CH010101",
+            "Message": "LFP2",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH010101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH010102",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH010103",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH010104",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH010102",
+            "Message": "HFP2",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          },
-          {
-            "Message": "CH010103",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          },
-          {
-            "Message": "CH010104",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "FixpunkteAVKategorie2.HFP2",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH010201",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          },
-          {
-            "Message": "CH010202",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH010201",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH010202",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -649,70 +803,101 @@
   },
   {
     "Message": "DMAV_Bodenbedeckung_V1_0",
-    "Icon": "check_circle_outline",
-    "Color": "success",
+    "Icon": "error_outline",
+    "Color": "error",
     "Values": [
       {
-        "Message": "Bodenbedeckung.Messpunkt",
-        "Icon": "check_circle_outline",
-        "Color": "success",
+        "Message": "Bodenbedeckung",
+        "Icon": "error_outline",
+        "Color": "error",
         "Values": [
           {
-            "Message": "CH080901",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Message": "Messpunkt",
+            "Icon": "error_outline",
+            "Color": "error",
+            "Values": [
+              {
+                "Message": "CH080901",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH080902",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "Attribute IstLagezuverlaessig requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "Attribute IstLagezuverlaessig requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "Attribute IstLagezuverlaessig requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              },
+              {
+                "Message": "Attribute IstLagezuverlaessig requires a value",
+                "Icon": "error_outline",
+                "Color": "error",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH080902",
+            "Message": "Bodenbedeckung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Bodenbedeckung.Bodenbedeckung",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH080401",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH080401",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH080402",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH080402",
+            "Message": "BBNachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Bodenbedeckung.BBNachfuehrung",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
+            "Values": [
+              {
+                "Message": "CH080101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
+          },
           {
-            "Message": "CH080101",
+            "Message": "Bodenbedeckung_Gueltig",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Bodenbedeckung.Bodenbedeckung_Gueltig",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH080801",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH080801",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -724,28 +909,35 @@
     "Color": "success",
     "Values": [
       {
-        "Message": "Toleranzstufen.TSNachfuehrung",
+        "Message": "Toleranzstufen",
         "Icon": "check_circle_outline",
         "Color": "success",
         "Values": [
           {
-            "Message": "CH110101",
+            "Message": "TSNachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "Toleranzstufen.Toleranzstufe_Gueltig",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
+            "Values": [
+              {
+                "Message": "CH110101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
+          },
           {
-            "Message": "CH110501",
+            "Message": "Toleranzstufe_Gueltig",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH110501",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -757,15 +949,22 @@
     "Color": "success",
     "Values": [
       {
-        "Message": "DauerndeBodenverschiebungen.DBVNachfuehrung",
+        "Message": "DauerndeBodenverschiebungen",
         "Icon": "check_circle_outline",
         "Color": "success",
         "Values": [
           {
-            "Message": "CH060101",
+            "Message": "DBVNachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH060101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
       }
@@ -777,118 +976,88 @@
     "Color": "success",
     "Values": [
       {
-        "Message": "HoheitsgrenzenAV.HHGNachfuehrung",
+        "Message": "HoheitsgrenzenAV",
         "Icon": "check_circle_outline",
         "Color": "success",
         "Values": [
           {
-            "Message": "CH030101",
+            "Message": "HHGNachfuehrung",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "HoheitsgrenzenAV.Gemeindegrenze",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH030701",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH030101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH030702",
+            "Message": "Gemeindegrenze",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH030701",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH030702",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              },
+              {
+                "Message": "CH030703",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           },
           {
-            "Message": "CH030703",
+            "Message": "GemeindeGemeindegrenze",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "HoheitsgrenzenAV.GemeindeGemeindegrenze",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
+            "Values": [
+              {
+                "Message": "CH031201",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
+          },
           {
-            "Message": "CH031201",
+            "Message": "Gemeinde_Gueltig",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
-          }
-        ]
-      },
-      {
-        "Message": "HoheitsgrenzenAV.Gemeinde_Gueltig",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
+            "Values": [
+              {
+                "Message": "CH030601",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
+          },
           {
-            "Message": "CH030601",
+            "Message": "Gemeindegrenze_Gueltig",
             "Icon": "check_circle_outline",
             "Color": "success",
-            "Values": []
+            "Values": [
+              {
+                "Message": "CH031101",
+                "Icon": "check_circle_outline",
+                "Color": "success",
+                "Values": []
+              }
+            ]
           }
         ]
-      },
-      {
-        "Message": "HoheitsgrenzenAV.Gemeindegrenze_Gueltig",
-        "Icon": "check_circle_outline",
-        "Color": "success",
-        "Values": [
-          {
-            "Message": "CH031101",
-            "Icon": "check_circle_outline",
-            "Color": "success",
-            "Values": []
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "Message": "Other Messages",
-    "Icon": "error_outline",
-    "Color": "error",
-    "Values": [
-      {
-        "Message": "Attribute InAenderung requires a value",
-        "Icon": "error_outline",
-        "Color": "error",
-        "Values": []
-      },
-      {
-        "Message": "value Bodenbedeckungen is not a member of the enumeration in attribute ImModul",
-        "Icon": "error_outline",
-        "Color": "error",
-        "Values": []
-      },
-      {
-        "Message": "Attribute IstExaktDefiniert requires a value",
-        "Icon": "error_outline",
-        "Color": "error",
-        "Values": []
-      },
-      {
-        "Message": "Attribute IstLagezuverlaessig requires a value",
-        "Icon": "error_outline",
-        "Color": "error",
-        "Values": []
-      },
-      {
-        "Message": "Attribute Hoehengenauigkeit requires a value",
-        "Icon": "error_outline",
-        "Color": "error",
-        "Values": []
       }
     ]
   }
