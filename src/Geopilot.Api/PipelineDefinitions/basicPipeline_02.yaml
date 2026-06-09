@@ -16,6 +16,8 @@ processes:
       pollInterval: 1000
   - id: xtf_error_tree
     implementation: Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree.XtfValidatorErrorTreeProcess
+  - id: map_visualizer
+    implementation: Geopilot.Api.Pipeline.Process.MapVisualization.MapVisualizationProcess
   - id: zip_packager
     implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
 pipelines:
@@ -80,6 +82,35 @@ pipelines:
               - StatusMessage
           - take: validation_successful
             as: successful
+      - id: map_visualization
+        display_name:
+          en: Map Visualization
+          de: Kartenvisualisierung
+          it: Visualizzazione cartografica
+          fr: Visualisation cartographique
+        process_id: map_visualizer
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "[validation.successful]"
+                message:
+                  de: "Validierung erfolgreich. Kartenvisualisierung wird übersprungen."
+                  en: "Validation successful. Map visualization will be skipped."
+                  fr: "Validation réussie. La visualisation cartographique sera ignorée."
+                  it: "Validazione riuscita. La visualizzazione cartografica sarà ignorata."
+        input:
+          - from: validation
+            take: xtf_log
+            as: errorLogXtf
+        output:
+          - take: map_visualization_config_file
+            as: map_visualization
+            action:
+              - MapVisualization
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
   - id: ili_validation_with_error_tree
     display_name:
       en: XTF Validation with Error Tree

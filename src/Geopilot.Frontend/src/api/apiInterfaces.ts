@@ -108,6 +108,7 @@ export interface StepResult {
   state: StepState;
   statusMessage?: Record<string, string>;
   downloads: StepDownload[];
+  mapVisualization: StepDownload[];
 }
 
 export interface ProcessingJobResponse {

@@ -98,8 +98,9 @@ public class ProcessingRunner : BackgroundService
             foreach (var output in stepResult.Outputs.Values)
             {
                 var isDownload = output.Action.Contains(OutputAction.Download);
+                var isVisualization = output.Action.Contains(OutputAction.MapVisualization);
                 var isDelivery = output.Action.Contains(OutputAction.Delivery);
-                if (!isDownload && !isDelivery)
+                if (!isDownload && !isVisualization && !isDelivery)
                     continue;
 
                 IEnumerable<IPipelineFile> files = output.Data switch
@@ -111,9 +112,10 @@ public class ProcessingRunner : BackgroundService
                 };
 
                 // Both stores are filled independently so each can be cleaned on its own
-                // retention. A file tagged with both actions is written to both under the
-                // same name — the download endpoint can fall back to the asset copy after
-                // the download retention expires.
+                // retention. A file tagged with multiple actions is written under the same
+                // name — the download endpoint can fall back to the asset copy after the
+                // download retention expires. Download and map-visualization files share the
+                // download store, so a file carrying both actions is persisted there only once.
                 foreach (var transferFile in files)
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
@@ -125,11 +127,14 @@ public class ProcessingRunner : BackgroundService
                         step.DeliveryFiles.Add(persisted);
                     }
 
-                    if (isDownload)
-                    {
+                    if (isDownload || isVisualization)
                         CopyTo(downloadFileStore, pipeline.JobId, fileName, transferFile);
+
+                    if (isDownload)
                         step.Downloads.Add(persisted);
-                    }
+
+                    if (isVisualization)
+                        step.MapVisualization.Add(persisted);
                 }
             }
         }

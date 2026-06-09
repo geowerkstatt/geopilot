@@ -35,6 +35,7 @@ internal static class DtoMapperExtensions
                     stepConfig.DisplayName,
                     StepState.Pending,
                     null,
+                    new List<StepDownload>(),
                     new List<StepDownload>()))
                 .ToList()
             ?? new List<StepResultResponse>();
@@ -59,11 +60,18 @@ internal static class DtoMapperExtensions
                 buildDownloadUrl(jobId, pd.PersistedFileName)))
             .ToList();
 
+        var mapVisualization = step.MapVisualization
+            .Select(pd => new StepDownload(
+                pd.OriginalFileName,
+                buildDownloadUrl(jobId, pd.PersistedFileName)))
+            .ToList();
+
         return new StepResultResponse(
             step.Id,
             step.DisplayName,
             step.State,
             step.StatusMessage,
-            downloads);
+            downloads,
+            mapVisualization);
     }
 }

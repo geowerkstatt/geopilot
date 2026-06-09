@@ -22,4 +22,10 @@ public enum OutputAction
     /// to indicate the result of an action. It is important to ensure that the message is clear and concise to enhance
     /// user experience. The assigned output type has to be a `Dictionary&lt;string, string&gt;` with the localized status message.</remarks>
     StatusMessage,
+
+    /// <summary>
+    /// Provide the output data as a map visualization. The file is persisted to the download store
+    /// (like <see cref="Download"/>) so the client can download it.
+    /// </summary>
+    MapVisualization,
 }

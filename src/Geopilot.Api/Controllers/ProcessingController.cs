@@ -218,7 +218,7 @@ public class ProcessingController : ControllerBase
         // persisted name; by then the temp dirs are usually gone anyway.
         var job = processingService.GetJob(jobId);
         return job?.Pipeline?.Steps
-            .SelectMany(s => s.Downloads.Concat(s.DeliveryFiles))
+            .SelectMany(s => s.Downloads.Concat(s.DeliveryFiles).Concat(s.MapVisualization))
             .FirstOrDefault(f => f.PersistedFileName == persistedFileName)
             ?.OriginalFileName;
     }
