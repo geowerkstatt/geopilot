@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Pipeline.Process.Matcher.FileRenamer;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
+using System.Text.RegularExpressions;
 
 namespace Geopilot.Api.Test.Pipeline.Process;
 
@@ -150,6 +151,39 @@ public class FileRenamerProcessTest
     {
         Assert.ThrowsExactly<ArgumentNullException>(
             () => new FileRenamerProcess(new List<FileMapping>(), null!));
+    }
+
+    [TestMethod]
+    public async Task FilesResolvingToSameTargetAreReportedAsConflicting()
+    {
+        // Two files mapped to the same target cannot both be produced; they are reported as conflicting
+        // instead of renamed (renaming both would later collide in the worker mount).
+        var process = CreateProcess(new FileMapping("^.*\\.xtf$", "merged.xtf"));
+        var files = FileList(SourceFile("first.xtf"), SourceFile("second.xtf"));
+
+        var result = await process.RunAsync(files, CancellationToken.None);
+
+        Assert.IsEmpty((List<IPipelineFile>)result["renamed_files"]!);
+        var conflictingFiles = (List<IPipelineFile>)result["conflicting_files"]!;
+        Assert.HasCount(2, conflictingFiles);
+        CollectionAssert.AreEquivalent(
+            new[] { "first.xtf", "second.xtf" },
+            conflictingFiles.Select(file => file.OriginalFileName).ToArray());
+    }
+
+    [TestMethod]
+    public async Task PathologicalPatternHitsRegexTimeoutInsteadOfHanging()
+    {
+        // Catastrophic-backtracking pattern against a non-matching name: without a match timeout this
+        // hangs; with one it must surface a RegexMatchTimeoutException quickly.
+        var process = new FileRenamerProcess(
+            new List<FileMapping> { new("^(a+)+$", "out.xtf") },
+            new PipelineFileManager(testDirectory, "FileRenamerProcess"),
+            regexTimeoutMilliseconds: 50);
+        var files = FileList(SourceFile(new string('a', 40) + "!"));
+
+        await Assert.ThrowsAsync<RegexMatchTimeoutException>(
+            () => process.RunAsync(files, CancellationToken.None));
     }
 
     private FileRenamerProcess CreateProcess(params FileMapping[] mappings) =>
