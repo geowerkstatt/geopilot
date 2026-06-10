@@ -6,7 +6,11 @@
      compares objects whose class declares a stable OID in the INTERLIS model; the
      Bodenbedeckung topic declares OID AS INTERLIS.UUIDOID, so basket and object ids
      below are UUIDs and stay identical across both files. Compared to this file,
-     test_dmav_2.xtf moves point P1 slightly and adds a new point P3. -->
+     test_dmav_2.xtf moves point P1 slightly, adds a new point P3, changes the surface
+     geometry of the Bodenbedeckung object, adds the optional Perimeter surface to
+     BBNachfuehrung N1 and removes it from N2. The added/deleted cases use an optional
+     geometry attribute on objects present in both files, because the XTF-Diff-Tool
+     reports added/deleted whole objects only as an "object" entry without geometry. -->
 <ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS"
   xmlns:geom="http://www.interlis.ch/geometry/1.0"
   xmlns="http://www.interlis.ch/xtf/2.4/DMAV_Bodenbedeckung_V1_1">
@@ -36,6 +40,52 @@
         <IstLagezuverlaessig>true</IstLagezuverlaessig>
         <IstExaktDefiniert>true</IstExaktDefiniert>
       </Messpunkt>
+      <!-- The class "Bodenbedeckung" collides with its topic name, so its XML element
+           name is the qualified "Bodenbedeckung.Bodenbedeckung" (see ili2c
+           XSD24Generator.createDef2NameMapping). -->
+      <Bodenbedeckung.Bodenbedeckung ili:tid="6f1e9b3c-8d2a-4e7f-b5c0-9a8d7e6f5a4b">
+        <Geometrie>
+          <geom:surface>
+            <geom:exterior>
+              <geom:polyline>
+                <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640340.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640340.000</geom:c1><geom:c2>1172590.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172590.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
+              </geom:polyline>
+            </geom:exterior>
+          </geom:surface>
+        </Geometrie>
+        <Qualitaetsstandard>AV93</Qualitaetsstandard>
+        <Fiktiv>true</Fiktiv>
+        <Objektstatus>real</Objektstatus>
+      </Bodenbedeckung.Bodenbedeckung>
+      <BBNachfuehrung ili:tid="8b2d5e1f-3c4a-4b6d-9e0f-1a2b3c4d5e6a">
+        <NBIdent>CH040800</NBIdent>
+        <Identifikator>NF-2026-001</Identifikator>
+        <Beschreibung>Nachfuehrung N1 - Perimeter kommt im neuen Stand dazu</Beschreibung>
+        <GueltigerEintrag>2026-01-15T08:30:00.000</GueltigerEintrag>
+      </BBNachfuehrung>
+      <BBNachfuehrung ili:tid="4c9e2f7a-6b1d-4e8c-a3f5-0b9c8d7e6f5d">
+        <NBIdent>CH040800</NBIdent>
+        <Identifikator>NF-2026-002</Identifikator>
+        <Beschreibung>Nachfuehrung N2 - Perimeter entfaellt im neuen Stand</Beschreibung>
+        <Perimeter>
+          <geom:surface>
+            <geom:exterior>
+              <geom:polyline>
+                <geom:coord><geom:c1>2640280.000</geom:c1><geom:c2>1172575.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640295.000</geom:c1><geom:c2>1172575.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640295.000</geom:c1><geom:c2>1172590.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640280.000</geom:c1><geom:c2>1172590.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640280.000</geom:c1><geom:c2>1172575.000</geom:c2></geom:coord>
+              </geom:polyline>
+            </geom:exterior>
+          </geom:surface>
+        </Perimeter>
+        <GueltigerEintrag>2026-01-15T08:30:00.000</GueltigerEintrag>
+      </BBNachfuehrung>
     </Bodenbedeckung>
   </ili:datasection>
 </ili:transfer>

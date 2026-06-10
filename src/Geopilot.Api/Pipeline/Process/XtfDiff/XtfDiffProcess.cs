@@ -28,6 +28,9 @@ namespace Geopilot.Api.Pipeline.Process.XtfDiff;
 /// only compares objects whose class declares a stable OID in the INTERLIS model (for example
 /// <c>OID AS INTERLIS.UUIDOID</c> on the topic). Objects of classes without a stable OID
 /// declaration are skipped entirely, so data of such models always yields an empty diff.
+/// Added or deleted whole objects are reported as a single "object" entry without geometry
+/// values; geometry features on the map therefore only appear for changed geometries and for
+/// optional geometry attributes added to or removed from objects present in both files.
 /// </para>
 /// </remarks>
 internal class XtfDiffProcess

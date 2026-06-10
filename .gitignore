@@ -410,6 +410,7 @@ src/Geopilot.Frontend/cypress/screenshots
 certs/
 /.claude/settings.local.json
 
-# Shared bind-mount directories between geopilot and the ili2gpkg-worker container.
-# Created at runtime by docker compose; files inside are transient (XTF in, GPKG out).
+# Shared bind-mount directories between geopilot and the worker containers
+# (ili2gpkg-worker, xtf-diff-worker). Created at runtime by docker compose;
+# files inside are transient job folders.
 shared/
