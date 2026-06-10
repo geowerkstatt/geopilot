@@ -34,17 +34,19 @@ public class XtfDiffMapConfigBuilderTest
         Assert.AreEqual("POINT (2710010.5 1265020.75)", deletedLayer.Features[0].Geom);
         Assert.AreEqual("DMAV_Grundstuecke_V1_0.Grundstuecke.Grenzpunkt.Geometrie (TID 22222222-2222-4222-8222-222222222222)", deletedLayer.Features[0].Info);
 
+        // The fixture's surface values are curve WKT (CURVEPOLYGON / COMPOUNDCURVE) as emitted by
+        // the XTF-Diff-Tool; the builder linearizes them for the map client's WKT parser.
         var changedOldLayer = config.Layers[2];
         Assert.AreEqual(XtfDiffMapConfigBuilder.ChangedOldLayerColor, changedOldLayer.Color);
         Assert.IsNotNull(changedOldLayer.Features);
         Assert.HasCount(1, changedOldLayer.Features);
-        StringAssert.StartsWith(changedOldLayer.Features[0].Geom, "POLYGON ((2710000 1265000, 2710100");
+        Assert.AreEqual("POLYGON ((2710000 1265000, 2710100 1265000, 2710100 1265100, 2710000 1265100, 2710000 1265000))", changedOldLayer.Features[0].Geom);
 
         var changedNewLayer = config.Layers[3];
         Assert.AreEqual(XtfDiffMapConfigBuilder.ChangedNewLayerColor, changedNewLayer.Color);
         Assert.IsNotNull(changedNewLayer.Features);
         Assert.HasCount(1, changedNewLayer.Features);
-        StringAssert.StartsWith(changedNewLayer.Features[0].Geom, "POLYGON ((2710000 1265000, 2710120");
+        Assert.AreEqual("POLYGON ((2710000 1265000, 2710120 1265000, 2710120 1265100, 2710000 1265100, 2710000 1265000))", changedNewLayer.Features[0].Geom);
 
         var addedLayer = config.Layers[4];
         Assert.AreEqual(XtfDiffMapConfigBuilder.AddedLayerColor, addedLayer.Color);

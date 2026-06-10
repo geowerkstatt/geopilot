@@ -138,7 +138,9 @@ internal static class XtfDiffMapConfigBuilder
 
     /// <summary>
     /// Extracts the WKT strings from a diff value, which is either a single WKT string or an array
-    /// of WKT strings. Other value kinds (null, missing, objects) yield no geometries.
+    /// of WKT strings. Other value kinds (null, missing, objects) yield no geometries. Curve WKT
+    /// types (CURVEPOLYGON, COMPOUNDCURVE, ...) emitted by the XTF-Diff-Tool are linearized,
+    /// because the map client's WKT parser only supports linear types.
     /// </summary>
     private static IEnumerable<string> ExtractWktValues(JsonElement value)
     {
@@ -146,7 +148,7 @@ internal static class XtfDiffMapConfigBuilder
         {
             var wkt = value.GetString();
             if (!string.IsNullOrWhiteSpace(wkt))
-                yield return wkt;
+                yield return WktCurveLinearizer.Linearize(wkt);
         }
         else if (value.ValueKind == JsonValueKind.Array)
         {
