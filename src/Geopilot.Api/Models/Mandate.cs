@@ -47,6 +47,13 @@ public class Mandate
     public string? PipelineId { get; set; }
 
     /// <summary>
+    /// Gets or sets the localized names of the pipeline steps referred to by <see cref="PipelineId"/>.
+    /// This is a non-persisted property used for display purposes only.
+    /// </summary>
+    [NotMapped]
+    public List<Dictionary<string, string>> PipelineSteps { get; set; } = new List<Dictionary<string, string>>();
+
+    /// <summary>
     /// The spatial extent of the mandate. The extent is a polygon in WGS84.
     /// Delivered data must be within the extent.
     /// </summary>

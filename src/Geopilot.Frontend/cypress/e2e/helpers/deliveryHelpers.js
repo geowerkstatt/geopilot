@@ -1,4 +1,4 @@
-import { toggleCheckbox, setSelect } from "./formHelpers.js";
+import { toggleCheckbox } from "./formHelpers.js";
 
 export const fileNameExists = (filePath, success) => {
   const fileName = filePath.split("/").pop();
@@ -27,21 +27,22 @@ export const uploadFile = () => {
   cy.wait("@upload");
 };
 
-export const selectMandate = (index, expected) => {
-  setSelect("mandate", index, expected);
+export const selectMandate = id => {
+  cy.wait(200);
+  cy.dataCy("mandate-selection-group").dataCy(`mandate-${id}`).click();
 };
 
 export const startProcessing = () => {
   cy.intercept("PATCH", "/api/v2/processing/*").as("startProcessing");
-  cy.dataCy("process-button").click();
+  cy.dataCy("startProcessing-button").click();
   cy.wait("@startProcessing");
 };
 
 export const stepIsActive = (stepName, isActive = true) => {
   if (isActive) {
-    cy.dataCy(`${stepName}-step`).find(".MuiStepLabel-iconContainer.Mui-active").should("exist");
+    cy.dataCy(`${stepName}-step`).dataCy("active").should("exist");
   } else {
-    cy.dataCy(`${stepName}-step`).find(".MuiStepLabel-iconContainer.Mui-active").should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("active").should("not.exist");
   }
 };
 
@@ -68,4 +69,8 @@ export const stepIsCompleted = (stepName, isCompleted = true) => {
   } else {
     cy.dataCy(`${stepName}-step`).dataCy("stepper-completed").should("not.exist");
   }
+};
+
+export const selectStep = stepName => {
+  cy.dataCy(`${stepName}-step`).click();
 };

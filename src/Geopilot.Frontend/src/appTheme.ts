@@ -10,7 +10,9 @@ const themePalette: AppThemePalette = {
     light: "#124A4F80",
     inactive: "#124A4F99",
     hover: "#124A4F0D",
+    selected: "#124A4F2E",
     contrastText: "#ffffff",
+    background: "#124A4F0A",
   },
   secondary: {
     main: "#00ff97",
@@ -164,6 +166,7 @@ export const geopilotTheme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
+          textTransform: "none",
           fontWeight: "500",
           borderRadius: "4px",
           boxShadow: "none",
@@ -302,6 +305,22 @@ export const geopilotTheme = createTheme({
             "&:hover": {
               color: "#124A4F99",
             },
+          },
+        },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          color: themePalette.primary.main,
+          borderColor: themePalette.primary.light,
+          textTransform: "none",
+          "&:hover": {
+            backgroundColor: themePalette.primary.hover,
+          },
+          "&.Mui-selected, &.Mui-selected:hover": {
+            color: themePalette.primary.main,
+            backgroundColor: themePalette.primary.selected,
           },
         },
       },

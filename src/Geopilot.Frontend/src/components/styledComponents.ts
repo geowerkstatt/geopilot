@@ -31,26 +31,32 @@ export const AppBox = styled(FlexBox)({
   height: "100vh",
 });
 
-export const LayoutBox = styled(FlexBox)({
-  marginTop: "60px",
+export const LayoutBox = styled(FlexBox)(({ theme }) => ({
+  backgroundColor: theme.palette.primary.background,
+  height: "100%",
+  paddingTop: "60px",
   flex: "1",
-});
+}));
+
+export const pageContentPadding = "40px";
 
 export const PageContentBox = styled(FlexBox)({
-  padding: "20px",
+  height: "100%",
+  minHeight: "0",
+  padding: pageContentPadding,
   flex: "1",
   alignItems: "center",
 });
 
 export const CenteredBox = styled(FlexBox)({
-  margin: "40px 0",
   width: "100%",
   height: "100%",
-  maxWidth: "1000px",
+  maxWidth: "1200px",
 });
 
 export const GeopilotBox = styled(FlexBox)(({ theme }) => ({
-  border: `1px solid ${theme.palette.primary.main}`,
+  backgroundColor: "white",
+  border: `1px solid ${theme.palette.primary.light}`,
   borderRadius: "4px",
   padding: "16px",
 }));

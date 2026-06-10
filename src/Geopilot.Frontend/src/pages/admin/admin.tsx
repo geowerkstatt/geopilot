@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Typography } from "@mui/material";
+import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import { FC } from "react";
 import { Outlet } from "react-router-dom";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
@@ -77,13 +77,15 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           display: { xs: "none", md: "block" },
           width: drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box", zIndex: 1000 },
+          [`& .MuiDrawer-paper`]: {
+            width: drawerWidth,
+            zIndex: 1000,
+            borderColor: theme => theme.palette.primary.light,
+          },
         }}
         data-cy="admin-navigation">
         <>
-          {" "}
           <Box sx={{ height: "60px" }} />
-          <Divider />
           {drawerContent(true)}
         </>
       </Drawer>
@@ -97,7 +99,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
         sx={{
           display: { xs: "block", md: "none" },
           width: drawerWidth,
-          "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
+          "& .MuiDrawer-paper": { width: drawerWidth },
         }}>
         <>
           <FlexRowBox
@@ -133,14 +135,13 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           {drawerContent(false)}
         </>
       </Drawer>
-      <Box
+      <Stack
         sx={{
           height: "100%",
           marginLeft: { xs: "0", md: drawerWidth },
-          overflow: "auto",
         }}>
         <Outlet />
-      </Box>
+      </Stack>
     </Box>
   );
 };

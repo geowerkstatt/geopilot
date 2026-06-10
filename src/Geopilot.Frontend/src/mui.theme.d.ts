@@ -9,8 +9,10 @@ declare module "@mui/material/styles" {
       main: string;
       inactive: string;
       hover: string;
+      selected: string;
       contrastText: string;
       light: string;
+      background: string;
     };
     secondary: {
       main: string;
@@ -51,6 +53,7 @@ declare module "@mui/material/styles" {
     MuiDialogContent: object;
     MuiDialogActions: object;
     MuiChip: object;
+    MuiToggleButton: object;
   }
 
   interface AppThemeComponentsOptions extends ComponentsOptions {
@@ -72,6 +75,7 @@ declare module "@mui/material/styles" {
     MuiDialogContent: object;
     MuiDialogActions: object;
     MuiChip: object;
+    MuiToggleButton: object;
   }
 
   interface AppTheme extends Theme {

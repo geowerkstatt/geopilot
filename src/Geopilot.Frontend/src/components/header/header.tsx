@@ -54,7 +54,13 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
 
   return (
     <>
-      <AppBar sx={{ height: "60px", flex: "0" }}>
+      <AppBar
+        sx={{
+          height: "60px",
+          flex: "0",
+          borderBottom: theme => `1px solid ${theme.palette.primary.light}`,
+          backgroundColor: "white",
+        }}>
         <Toolbar
           sx={{
             display: "flex",

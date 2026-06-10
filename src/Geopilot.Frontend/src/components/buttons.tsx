@@ -3,7 +3,6 @@ import * as React from "react";
 import { forwardRef } from "react";
 import { Button } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 
 export interface ButtonProps extends MuiButtonProps {
   onClick: () => void;
@@ -27,5 +26,5 @@ export const BaseButton = forwardRef<HTMLButtonElement, ButtonProps>((props, ref
 });
 
 export const CancelButton = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
-  return <BaseButton ref={ref} {...props} label="cancel" variant="outlined" icon={<CancelOutlinedIcon />} />;
+  return <BaseButton ref={ref} {...props} label="cancel" variant="outlined" sx={{ backgroundColor: "white" }} />;
 });
