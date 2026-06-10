@@ -20,6 +20,7 @@ import BaseLayer from "ol/layer/Base";
 import { MapVisualizationConfig, StepDownload } from "../../../api/apiInterfaces";
 import useFetch from "../../../hooks/useFetch";
 import { useTheme } from "@mui/material/styles";
+import { LayerSwitcher, LayerSwitcherProperties } from "./layerSwitcher";
 import "ol/ol.css";
 
 // The map visualization config uses Swiss LV95 (EPSG:2056) coordinates, matching the swisstopo base
@@ -103,7 +104,8 @@ const buildWmtsLayer = async (capabilitiesUrl: string, layerIds?: string[]): Pro
         // throws a SecurityError, so the base map silently fails to render (while the feature layer still
         // shows). Requesting the tiles with CORS keeps the canvas clean; the host sends
         // Access-Control-Allow-Origin and is allow-listed by the Content-Security-Policy (img-src / connect-src).
-        return new TileLayer({ source: new WMTS({ ...options, crossOrigin: "anonymous" }) });
+        // The layer identifier is used as the title so the layer switcher can label it.
+        return new TileLayer({ source: new WMTS({ ...options, crossOrigin: "anonymous" }), properties: { title: id } });
       })
       .filter((layer): layer is TileLayer<WMTS> => layer !== null);
     if (tileLayers.length === 0) return null;
@@ -125,7 +127,7 @@ const buildWmtsLayer = async (capabilitiesUrl: string, layerIds?: string[]): Pro
 
 // Builds a vector layer with a point marker per feature. Each feature keeps its info text so it can be
 // shown in a popup on click.
-const buildFeatureLayer = (config: MapVisualizationConfig, color: string): VectorLayer<VectorSource> => {
+const buildFeatureLayer = (config: MapVisualizationConfig, color: string, title: string): VectorLayer<VectorSource> => {
   const source = new VectorSource();
   for (const layer of config.layers) {
     if (!layer.features) continue;
@@ -143,6 +145,7 @@ const buildFeatureLayer = (config: MapVisualizationConfig, color: string): Vecto
 
   return new VectorLayer({
     source,
+    properties: { [LayerSwitcherProperties.TITLE]: title },
     style: new Style({
       image: new Circle({
         radius: 6,
@@ -163,16 +166,16 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
   const theme = useTheme();
   const { fetchApi } = useFetch();
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [popupContent, setPopupContent] = useState<string | null>(null);
+  const [map, setMap] = useState<Map | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     let map: Map | undefined;
     setIsLoading(true);
     setHasError(false);
+    setMap(null);
 
     const initialize = async () => {
       try {
@@ -180,7 +183,7 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
         const config = await fetchApi<MapVisualizationConfig>(file.url, { method: "GET" });
         if (cancelled || !mapContainerRef.current) return;
 
-        const featureLayer = buildFeatureLayer(config, theme.palette.error.main);
+        const featureLayer = buildFeatureLayer(config, theme.palette.error.main, t("mapVisualizationFeatureLayer"));
         const layers: BaseLayer[] = [featureLayer];
 
         const wmtsLayerConfig = config.layers.find(layer => layer.wmts);
@@ -192,14 +195,33 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
         }
         if (cancelled || !mapContainerRef.current) return;
 
-        const overlay = popupRef.current
-          ? new Overlay({ element: popupRef.current, positioning: "bottom-center", offset: [0, -12], stopEvent: false })
-          : undefined;
+        // The popup element is created imperatively rather than rendered by React, because OpenLayers'
+        // Overlay moves the element out of its original parent into the map's overlay container. A
+        // React-rendered node handed to OL would no longer be where React expects it, and the next sibling
+        // insert/remove in this component would throw "insertBefore … not a child of this node".
+        const popupElement = document.createElement("div");
+        Object.assign(popupElement.style, {
+          display: "none",
+          backgroundColor: theme.palette.background.paper,
+          border: `1px solid ${theme.palette.primary.light}`,
+          borderRadius: "4px",
+          padding: "8px 12px",
+          maxWidth: "300px",
+          boxShadow: theme.shadows[2],
+          fontSize: "0.875rem",
+          pointerEvents: "none",
+        });
+        const overlay = new Overlay({
+          element: popupElement,
+          positioning: "bottom-center",
+          offset: [0, -12],
+          stopEvent: false,
+        });
 
         map = new Map({
           target: mapContainerRef.current,
           layers,
-          overlays: overlay ? [overlay] : [],
+          overlays: [overlay],
           view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
         });
 
@@ -216,12 +238,13 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
         map.on("click", event => {
           const feature = map?.forEachFeatureAtPixel(event.pixel, f => f);
           const info = feature?.get("info") as string | undefined;
-          if (feature && info && overlay) {
+          if (feature && info) {
+            popupElement.textContent = info;
+            popupElement.style.display = "block";
             overlay.setPosition(event.coordinate);
-            setPopupContent(info);
           } else {
-            overlay?.setPosition(undefined);
-            setPopupContent(null);
+            popupElement.style.display = "none";
+            overlay.setPosition(undefined);
           }
         });
 
@@ -230,7 +253,10 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
           map!.getTargetElement().style.cursor = hit ? "pointer" : "";
         });
 
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled) {
+          setMap(map);
+          setIsLoading(false);
+        }
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to render map visualization.", error);
@@ -244,9 +270,10 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
 
     return () => {
       cancelled = true;
+      setMap(null);
       map?.setTarget(undefined);
     };
-  }, [file.url, fetchApi, theme.palette.error.main]);
+  }, [file.url, fetchApi, theme, t]);
 
   if (hasError) {
     return (
@@ -267,8 +294,11 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
           borderRadius: "4px",
           overflow: "hidden",
           border: theme => `1px solid ${theme.palette.primary.light}`,
+          // Move the default zoom (+/-) control to the top-right so it doesn't sit under the layer switcher.
+          "& .ol-zoom": { top: "8px", left: "auto", right: "8px" },
         }}
       />
+      <LayerSwitcher map={map} />
       {isLoading && (
         <Box
           sx={{
@@ -282,21 +312,6 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
           <CircularProgress />
         </Box>
       )}
-      <Box
-        ref={popupRef}
-        sx={{
-          display: popupContent ? "block" : "none",
-          backgroundColor: "white",
-          border: theme => `1px solid ${theme.palette.primary.light}`,
-          borderRadius: "4px",
-          padding: "8px 12px",
-          maxWidth: "300px",
-          boxShadow: 2,
-          fontSize: "0.875rem",
-          pointerEvents: "none",
-        }}>
-        {popupContent}
-      </Box>
     </Box>
   );
 };

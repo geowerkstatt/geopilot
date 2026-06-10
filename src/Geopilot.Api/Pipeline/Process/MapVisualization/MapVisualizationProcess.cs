@@ -32,6 +32,12 @@ internal class MapVisualizationProcess
     /// </summary>
     private const string DefaultBaseMapLayerId = "ch.swisstopo.pixelkarte-farbe";
 
+    /// <summary>
+    /// Identifier of the swisstopo grey national map, offered as an additional base layer alongside
+    /// <see cref="DefaultBaseMapLayerId"/>. Both are sent to the client and listed in the layer switcher.
+    /// </summary>
+    private const string GrayBaseMapLayerId = "ch.swisstopo.pixelkarte-grau";
+
     private static readonly Dictionary<string, string> SuccessfulStatusMessage = new()
     {
         { "de", "Kartenvisualisierung erstellt" },
@@ -84,7 +90,10 @@ internal class MapVisualizationProcess
         {
             Layers =
             [
-                new MapLayer { Wmts = baseMapWmtsCapabilitiesUrl, LayerIds = [DefaultBaseMapLayerId] },
+                // The client draws layers in array order (later = on top), so the colored map is listed last
+                // to stay the default base map; the grey map sits beneath it and can be selected in the layer
+                // switcher.
+                new MapLayer { Wmts = baseMapWmtsCapabilitiesUrl, LayerIds = [GrayBaseMapLayerId, DefaultBaseMapLayerId] },
                 new MapLayer { Features = errorFeatures },
             ],
         };

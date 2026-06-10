@@ -45,8 +45,10 @@ public class MapVisualizationProcessTest
         Assert.AreEqual(SwisstopoBaseMapWmtsCapabilitiesUrl, baseMapLayer.Wmts);
         Assert.IsNull(baseMapLayer.Features);
         Assert.IsNotNull(baseMapLayer.LayerIds);
-        Assert.HasCount(1, baseMapLayer.LayerIds);
-        Assert.AreEqual("ch.swisstopo.pixelkarte-farbe", baseMapLayer.LayerIds[0]);
+        Assert.HasCount(2, baseMapLayer.LayerIds);
+        // Grey map first (drawn beneath), colored map last so it stays the default base map on top.
+        Assert.AreEqual("ch.swisstopo.pixelkarte-grau", baseMapLayer.LayerIds[0]);
+        Assert.AreEqual("ch.swisstopo.pixelkarte-farbe", baseMapLayer.LayerIds[1]);
 
         var featureLayer = config.Layers[1];
         Assert.IsNull(featureLayer.Wmts);
