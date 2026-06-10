@@ -1,152 +1,19 @@
-import { ReactNode, SyntheticEvent, useEffect, useMemo, useState } from "react";
-import { Box, Icon, IconButton, Table, TableBody, TableCell, TableRow, Tooltip, Typography } from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
+import { SyntheticEvent, useEffect, useMemo, useState } from "react";
+import { Box, Typography } from "@mui/material";
+import { SimpleTreeView } from "@mui/x-tree-view";
 import { useTranslation } from "react-i18next";
-import { GeopilotBox } from "../../../../components/styledComponents";
 import useFetch from "../../../../hooks/useFetch";
-
-type IconColor = "inherit" | "action" | "disabled" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
-
-const MUI_ICON_COLORS: IconColor[] = [
-  "inherit",
-  "action",
-  "disabled",
-  "primary",
-  "secondary",
-  "error",
-  "info",
-  "success",
-  "warning",
-];
-
-const isMuiColor = (value: string): value is IconColor => (MUI_ICON_COLORS as string[]).includes(value);
-
-interface TreeNode {
-  message: string;
-  icon?: string;
-  color?: string;
-  metadata?: Record<string, string>;
-  values?: TreeNode[];
-}
-
-const renderIcon = (node: TreeNode): ReactNode => {
-  if (!node.icon) return null;
-  if (node.color && !isMuiColor(node.color)) {
-    return (
-      <Icon fontSize="small" sx={{ color: node.color }}>
-        {node.icon}
-      </Icon>
-    );
-  }
-  return (
-    <Icon fontSize="small" color={(node.color as IconColor) ?? "inherit"}>
-      {node.icon}
-    </Icon>
-  );
-};
-
-const renderLabel = (node: TreeNode): ReactNode => (
-  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, py: 0.25 }}>
-    {renderIcon(node)}
-    <Typography variant="body2">{node.message}</Typography>
-  </Box>
-);
-
-const nodeId = (prefix: string, index: number): string => `${prefix}-${index}`;
-
-const renderItems = (nodes: TreeNode[], prefix = "n"): ReactNode =>
-  nodes.map((node, index) => {
-    const id = nodeId(prefix, index);
-    const hasChildren = node.values && node.values.length > 0;
-    return (
-      <TreeItem key={id} itemId={id} label={renderLabel(node)}>
-        {hasChildren ? renderItems(node.values!, id) : null}
-      </TreeItem>
-    );
-  });
-
-const indexNodes = (nodes: TreeNode[], target: Map<string, TreeNode>, prefix = "n"): void => {
-  nodes.forEach((node, index) => {
-    const id = nodeId(prefix, index);
-    target.set(id, node);
-    if (node.values && node.values.length > 0) {
-      indexNodes(node.values, target, id);
-    }
-  });
-};
-
-interface MetadataRowProps {
-  label: string;
-  value: string;
-}
-
-const MetadataRow = ({ label, value }: MetadataRowProps) => {
-  const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!copied) return;
-    const timeout = window.setTimeout(() => setCopied(false), 1500);
-    return () => window.clearTimeout(timeout);
-  }, [copied]);
-
-  const copyValue = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
-  };
-
-  return (
-    <TableRow sx={{ "&:last-child td": { border: 0 } }}>
-      <TableCell sx={{ width: "35%", verticalAlign: "top", color: "text.secondary", px: 0 }}>
-        <Typography variant="body2">{label}</Typography>
-      </TableCell>
-      <TableCell sx={{ verticalAlign: "top", wordBreak: "break-word", px: 1 }}>
-        <Typography variant="body2">{value}</Typography>
-      </TableCell>
-      <TableCell sx={{ width: 40, verticalAlign: "top", px: 0, textAlign: "right" }}>
-        <Tooltip title={copied ? t("copied") : t("copy")}>
-          <IconButton size="small" onClick={copyValue} data-cy="metadata-copy-button">
-            {copied ? <CheckIcon fontSize="small" color="success" /> : <ContentCopyIcon fontSize="small" />}
-          </IconButton>
-        </Tooltip>
-      </TableCell>
-    </TableRow>
-  );
-};
-
-interface MetadataPanelProps {
-  node: TreeNode | null;
-}
-
-const MetadataPanel = ({ node }: MetadataPanelProps) => {
-  const { t } = useTranslation();
-  const entries = node?.metadata ? Object.entries(node.metadata) : [];
-
-  return (
-    <GeopilotBox sx={{ width: 380, flexShrink: 0, gap: 1 }}>
-      <Typography variant="subtitle2">{t("treeVisualizationMetadataTitle")}</Typography>
-      {entries.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
-          {t("treeVisualizationMetadataEmpty")}
-        </Typography>
-      ) : (
-        <Table size="small" sx={{ tableLayout: "fixed" }}>
-          <TableBody>
-            {entries.map(([key, value]) => (
-              <MetadataRow key={key} label={key} value={value} />
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </GeopilotBox>
-  );
-};
+import {
+  collectItemIds,
+  collectMetadataAttributes,
+  filterNodes,
+  indexNodes,
+  MetadataFilters,
+  TreeNode,
+} from "./treeNode";
+import { renderTreeItems } from "./renderTreeItems";
+import { MetadataPanel } from "./metadataPanel";
+import { FilterBar } from "./filterBar";
 
 interface TreeVisualizationProps {
   url: string;
@@ -158,12 +25,17 @@ export const TreeVisualization = ({ url }: TreeVisualizationProps) => {
   const [nodes, setNodes] = useState<TreeNode[] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [messageQuery, setMessageQuery] = useState("");
+  const [metadataFilters, setMetadataFilters] = useState<MetadataFilters>({});
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     setNodes(null);
     setErrorMessage(null);
     setSelectedId(null);
+    setMessageQuery("");
+    setMetadataFilters({});
 
     (async () => {
       try {
@@ -179,13 +51,36 @@ export const TreeVisualization = ({ url }: TreeVisualizationProps) => {
     };
   }, [url, t, fetchApi]);
 
-  const items = useMemo(() => (nodes ? renderItems(nodes) : null), [nodes]);
+  const attributes = useMemo(() => (nodes ? collectMetadataAttributes(nodes) : []), [nodes]);
+
+  const hasActiveFilters =
+    messageQuery.trim().length > 0 || Object.values(metadataFilters).some(values => values.length > 0);
+
+  const filteredNodes = useMemo(() => {
+    if (!nodes) return null;
+    if (!hasActiveFilters) return nodes;
+    return filterNodes(nodes, messageQuery.trim().toLowerCase(), metadataFilters);
+  }, [nodes, hasActiveFilters, messageQuery, metadataFilters]);
+
+  const items = useMemo(() => (filteredNodes ? renderTreeItems(filteredNodes) : null), [filteredNodes]);
 
   const nodesById = useMemo(() => {
     const map = new Map<string, TreeNode>();
-    if (nodes) indexNodes(nodes, map);
+    if (filteredNodes) indexNodes(filteredNodes, map);
     return map;
-  }, [nodes]);
+  }, [filteredNodes]);
+
+  // While filters are active, every match should be visible without manual expansion.
+  const expandedFilteredItems = useMemo(() => {
+    if (!hasActiveFilters || !filteredNodes) return null;
+    const ids: string[] = [];
+    collectItemIds(filteredNodes, ids);
+    return ids;
+  }, [hasActiveFilters, filteredNodes]);
+
+  const handleMetadataFilterChange = (key: string, selected: string[]) => {
+    setMetadataFilters(current => ({ ...current, [key]: selected }));
+  };
 
   const selectedNode = selectedId ? (nodesById.get(selectedId) ?? null) : null;
 
@@ -201,14 +96,31 @@ export const TreeVisualization = ({ url }: TreeVisualizationProps) => {
   if (nodes.length === 0) return null;
 
   return (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-start" }}>
-      <SimpleTreeView
-        sx={{ flex: "1 1 auto", minWidth: 0 }}
-        selectedItems={selectedId}
-        onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => setSelectedId(itemId)}>
-        {items}
-      </SimpleTreeView>
-      <MetadataPanel node={selectedNode} />
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
+      <FilterBar
+        attributes={attributes}
+        messageQuery={messageQuery}
+        onMessageQueryChange={setMessageQuery}
+        metadataFilters={metadataFilters}
+        onMetadataFilterChange={handleMetadataFilterChange}
+      />
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-start" }}>
+        {filteredNodes && filteredNodes.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            {t("treeVisualizationNoResults")}
+          </Typography>
+        ) : (
+          <SimpleTreeView
+            sx={{ flex: "1 1 auto", minWidth: 0 }}
+            selectedItems={selectedId}
+            onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => setSelectedId(itemId)}
+            expandedItems={expandedFilteredItems ?? expandedItems}
+            onExpandedItemsChange={(_: SyntheticEvent, itemIds: string[]) => setExpandedItems(itemIds)}>
+            {items}
+          </SimpleTreeView>
+        )}
+        <MetadataPanel node={selectedNode} />
+      </Box>
     </Box>
   );
 };
