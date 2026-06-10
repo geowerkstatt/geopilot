@@ -114,6 +114,8 @@ export interface MapFeature {
  * A single map layer. Exactly one of {@link wmts} or {@link features} is set.
  */
 export interface MapLayer {
+  /** Localized display title of the layer, keyed by language ("de", "en", ...). Shown in the layer switcher. */
+  title?: Record<string, string>;
   /** The capabilities URL of a WMTS map service. Set for WMTS layers. */
   wmts?: string;
   /**
@@ -122,6 +124,11 @@ export interface MapLayer {
    * Only meaningful for WMTS layers.
    */
   layerIds?: string[];
+  /**
+   * Color of the layer's features as a hex color (e.g. "#e53835"): used as the stroke color and, as a
+   * transparent variant, the fill color for polygons. Only meaningful for feature layers.
+   */
+  color?: string;
   /** Features rendered directly from the config. Set for feature layers. */
   features?: MapFeature[];
 }

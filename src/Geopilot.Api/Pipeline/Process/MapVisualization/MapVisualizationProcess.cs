@@ -38,12 +38,34 @@ internal class MapVisualizationProcess
     /// </summary>
     private const string GrayBaseMapLayerId = "ch.swisstopo.pixelkarte-grau";
 
+    /// <summary>
+    /// Color of the error features: stroke color, with a transparent variant as polygon fill on the
+    /// client. Matches the client theme's error color.
+    /// </summary>
+    private const string ErrorLayerColor = "#e53835";
+
     private static readonly Dictionary<string, string> SuccessfulStatusMessage = new()
     {
         { "de", "Kartenvisualisierung erstellt" },
         { "fr", "Visualisation cartographique créée" },
         { "it", "Visualizzazione cartografica creata" },
         { "en", "Map visualization created" },
+    };
+
+    private static readonly Dictionary<string, string> BaseMapLayerTitle = new()
+    {
+        { "de", "Hintergrundkarte" },
+        { "fr", "Carte de base" },
+        { "it", "Mappa di base" },
+        { "en", "Base map" },
+    };
+
+    private static readonly Dictionary<string, string> ErrorLayerTitle = new()
+    {
+        { "de", "Fehler" },
+        { "fr", "Erreurs" },
+        { "it", "Errori" },
+        { "en", "Errors" },
     };
 
     private readonly IPipelineFileManager pipelineFileManager;
@@ -93,8 +115,13 @@ internal class MapVisualizationProcess
                 // The client draws layers in array order (later = on top), so the colored map is listed last
                 // to stay the default base map; the grey map sits beneath it and can be selected in the layer
                 // switcher.
-                new MapLayer { Wmts = baseMapWmtsCapabilitiesUrl, LayerIds = [GrayBaseMapLayerId, DefaultBaseMapLayerId] },
-                new MapLayer { Features = errorFeatures },
+                new MapLayer
+                {
+                    Title = BaseMapLayerTitle,
+                    Wmts = baseMapWmtsCapabilitiesUrl,
+                    LayerIds = [GrayBaseMapLayerId, DefaultBaseMapLayerId],
+                },
+                new MapLayer { Title = ErrorLayerTitle, Color = ErrorLayerColor, Features = errorFeatures },
             ],
         };
 

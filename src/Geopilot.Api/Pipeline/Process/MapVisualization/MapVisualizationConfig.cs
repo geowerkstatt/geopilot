@@ -23,6 +23,14 @@ internal class MapVisualizationConfig
 internal class MapLayer
 {
     /// <summary>
+    /// Localized display title of the layer, keyed by language ("de", "en", ...). Shown in the client's
+    /// layer switcher. Optional; the client falls back to a generic title.
+    /// </summary>
+    [JsonPropertyName("title")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IDictionary<string, string>? Title { get; set; }
+
+    /// <summary>
     /// The capabilities URL of a WMTS map service. Set for WMTS layers; otherwise <see langword="null"/>.
     /// </summary>
     [JsonPropertyName("wmts")]
@@ -37,6 +45,15 @@ internal class MapLayer
     [JsonPropertyName("layerIds")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IList<string>? LayerIds { get; set; }
+
+    /// <summary>
+    /// Color of the layer's features as a hex color (e.g. <c>#e53835</c>). The client uses it as the
+    /// stroke color and a transparent variant of it as the fill color for polygons. Only meaningful for
+    /// feature layers. Optional; the client falls back to its theme color.
+    /// </summary>
+    [JsonPropertyName("color")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Color { get; set; }
 
     /// <summary>
     /// Features rendered directly from the JSON. Set for feature layers; otherwise <see langword="null"/>.

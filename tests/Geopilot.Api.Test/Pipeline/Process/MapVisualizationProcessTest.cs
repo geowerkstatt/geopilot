@@ -44,6 +44,10 @@ public class MapVisualizationProcessTest
         var baseMapLayer = config.Layers[0];
         Assert.AreEqual(SwisstopoBaseMapWmtsCapabilitiesUrl, baseMapLayer.Wmts);
         Assert.IsNull(baseMapLayer.Features);
+        Assert.IsNull(baseMapLayer.Color);
+        Assert.IsNotNull(baseMapLayer.Title);
+        Assert.HasCount(4, baseMapLayer.Title);
+        Assert.AreEqual("Hintergrundkarte", baseMapLayer.Title["de"]);
         Assert.IsNotNull(baseMapLayer.LayerIds);
         Assert.HasCount(2, baseMapLayer.LayerIds);
         // Grey map first (drawn beneath), colored map last so it stays the default base map on top.
@@ -52,6 +56,10 @@ public class MapVisualizationProcessTest
 
         var featureLayer = config.Layers[1];
         Assert.IsNull(featureLayer.Wmts);
+        Assert.AreEqual("#e53835", featureLayer.Color);
+        Assert.IsNotNull(featureLayer.Title);
+        Assert.HasCount(4, featureLayer.Title);
+        Assert.AreEqual("Errors", featureLayer.Title["en"]);
         var features = featureLayer.Features;
         Assert.IsNotNull(features);
 

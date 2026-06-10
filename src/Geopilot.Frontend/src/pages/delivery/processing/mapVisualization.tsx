@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import i18next from "i18next";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import proj4 from "proj4";
 import Map from "ol/Map";
@@ -16,12 +17,16 @@ import Feature from "ol/Feature";
 import { Circle, Fill, Stroke, Style } from "ol/style";
 import { register } from "ol/proj/proj4";
 import { get as getProjection } from "ol/proj";
+import { createEmpty, extend as extendExtent, isEmpty as isExtentEmpty } from "ol/extent";
 import BaseLayer from "ol/layer/Base";
-import { MapVisualizationConfig, StepDownload } from "../../../api/apiInterfaces";
+import { MapLayer, MapVisualizationConfig, StepDownload } from "../../../api/apiInterfaces";
 import useFetch from "../../../hooks/useFetch";
 import { useTheme } from "@mui/material/styles";
 import { LayerSwitcher, LayerSwitcherProperties } from "./layerSwitcher";
 import "ol/ol.css";
+
+const localized = (entries?: Record<string, string>) =>
+  entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
 
 // The map visualization config uses Swiss LV95 (EPSG:2056) coordinates, matching the swisstopo base
 // map and the coordinate reference system of INTERLIS error coordinates. OpenLayers only ships EPSG:4326
@@ -70,11 +75,16 @@ const fetchCapabilitiesDocument = (url: string): Promise<Document> =>
 
 // Builds the base map from a WMTS service. The layers to show are taken from layerIds (in the given
 // order); when layerIds is omitted/empty, all layers the service advertises are used. A single resulting
-// layer is returned directly; multiple layers are wrapped in a group layer titled with the service's
-// advertised title (falling back to the capabilities host) so a layer switcher can label it. Returns null
-// when the capabilities cannot be fetched/parsed (e.g. the map service is unreachable) so the map still
-// renders the feature layer.
-const buildWmtsLayer = async (capabilitiesUrl: string, layerIds?: string[]): Promise<BaseLayer | null> => {
+// layer is returned directly and titled with the config's localized title (falling back to the layer
+// identifier); multiple layers are wrapped in a group layer titled with the config's localized title
+// (falling back to the service's advertised title, then the capabilities host) so the layer switcher can
+// label it. Returns null when the capabilities cannot be fetched/parsed (e.g. the map service is
+// unreachable) so the map still renders the feature layer.
+const buildWmtsLayer = async (
+  capabilitiesUrl: string,
+  layerIds?: string[],
+  title?: string,
+): Promise<BaseLayer | null> => {
   try {
     const capabilitiesDocument = await fetchCapabilitiesDocument(capabilitiesUrl);
     const capabilities = new WMTSCapabilities().read(capabilitiesDocument);
@@ -110,12 +120,14 @@ const buildWmtsLayer = async (capabilitiesUrl: string, layerIds?: string[]): Pro
       .filter((layer): layer is TileLayer<WMTS> => layer !== null);
     if (tileLayers.length === 0) return null;
 
-    // A single layer is added directly; multiple layers are wrapped in a group layer titled with the
-    // service's advertised title, falling back to the capabilities host.
-    if (tileLayers.length === 1) return tileLayers[0];
+    if (tileLayers.length === 1) {
+      if (title) tileLayers[0].set(LayerSwitcherProperties.TITLE, title);
+      return tileLayers[0];
+    }
 
     const serviceTitle = capabilities?.ServiceIdentification?.Title;
-    const groupTitle = (typeof serviceTitle === "string" && serviceTitle.trim()) || new URL(capabilitiesUrl).host;
+    const groupTitle =
+      title || (typeof serviceTitle === "string" && serviceTitle.trim()) || new URL(capabilitiesUrl).host;
     return new LayerGroup({ layers: tileLayers, properties: { title: groupTitle } });
   } catch (error) {
     // Don't fail the whole map if the base map is unavailable (e.g. the map service is unreachable or
@@ -125,21 +137,23 @@ const buildWmtsLayer = async (capabilitiesUrl: string, layerIds?: string[]): Pro
   }
 };
 
-// Builds a vector layer with a point marker per feature. Each feature keeps its info text so it can be
-// shown in a popup on click.
-const buildFeatureLayer = (config: MapVisualizationConfig, color: string, title: string): VectorLayer<VectorSource> => {
+// Returns a transparent variant of a hex color (#rrggbb) by appending a 20% alpha channel, used as the
+// polygon fill so the underlying map stays visible. Other color formats are returned unchanged.
+const toTransparent = (color: string): string => (/^#[0-9a-f]{6}$/i.test(color) ? `${color}33` : color);
+
+// Builds a vector layer for one feature layer of the config. Points are drawn as circle markers filled
+// with the layer color; lines and polygon outlines are stroked with it, polygons filled with a
+// transparent variant of it. Each feature keeps its info text so it can be shown in a popup on click.
+const buildFeatureLayer = (layer: MapLayer, color: string, title: string): VectorLayer<VectorSource> => {
   const source = new VectorSource();
-  for (const layer of config.layers) {
-    if (!layer.features) continue;
-    for (const mapFeature of layer.features) {
-      try {
-        const geometry = wktFormat.readGeometry(mapFeature.geom, { dataProjection: SWISS_PROJECTION });
-        const feature = new Feature({ geometry });
-        feature.set("info", mapFeature.info);
-        source.addFeature(feature);
-      } catch {
-        // Skip features with unparseable geometry rather than failing the whole map.
-      }
+  for (const mapFeature of layer.features ?? []) {
+    try {
+      const geometry = wktFormat.readGeometry(mapFeature.geom, { dataProjection: SWISS_PROJECTION });
+      const feature = new Feature({ geometry });
+      feature.set("info", mapFeature.info);
+      source.addFeature(feature);
+    } catch {
+      // Skip features with unparseable geometry rather than failing the whole map.
     }
   }
 
@@ -152,6 +166,8 @@ const buildFeatureLayer = (config: MapVisualizationConfig, color: string, title:
         fill: new Fill({ color }),
         stroke: new Stroke({ color: "#ffffff", width: 2 }),
       }),
+      stroke: new Stroke({ color, width: 2 }),
+      fill: new Fill({ color: toTransparent(color) }),
     }),
   });
 };
@@ -183,12 +199,24 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
         const config = await fetchApi<MapVisualizationConfig>(file.url, { method: "GET" });
         if (cancelled || !mapContainerRef.current) return;
 
-        const featureLayer = buildFeatureLayer(config, theme.palette.error.main, t("mapVisualizationFeatureLayer"));
-        const layers: BaseLayer[] = [featureLayer];
+        const featureLayers = config.layers
+          .filter(layer => layer.features)
+          .map(layer =>
+            buildFeatureLayer(
+              layer,
+              layer.color ?? theme.palette.error.main,
+              localized(layer.title) || t("mapVisualizationFeatureLayer"),
+            ),
+          );
+        const layers: BaseLayer[] = [...featureLayers];
 
         const wmtsLayerConfig = config.layers.find(layer => layer.wmts);
         if (wmtsLayerConfig?.wmts) {
-          const wmtsLayer = await buildWmtsLayer(wmtsLayerConfig.wmts, wmtsLayerConfig.layerIds);
+          const wmtsLayer = await buildWmtsLayer(
+            wmtsLayerConfig.wmts,
+            wmtsLayerConfig.layerIds,
+            localized(wmtsLayerConfig.title),
+          );
           if (cancelled) return;
           // Base map is drawn below the features.
           if (wmtsLayer) layers.unshift(wmtsLayer);
@@ -225,12 +253,14 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
           view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
         });
 
-        // Fit the view to the error features, falling back to the whole country when there are none.
-        // An empty source reports an "inverted" extent ([Infinity, Infinity, -Infinity, -Infinity]).
-        const featureExtent = featureLayer.getSource()?.getExtent();
-        const hasFeatures =
-          featureExtent && featureExtent[0] <= featureExtent[2] && featureExtent[1] <= featureExtent[3];
-        map.getView().fit(hasFeatures ? featureExtent : SWISS_EXTENT, {
+        // Fit the view to the combined extent of all feature layers, falling back to the whole country
+        // when there are no features.
+        const featureExtent = createEmpty();
+        for (const featureLayer of featureLayers) {
+          const extent = featureLayer.getSource()?.getExtent();
+          if (extent) extendExtent(featureExtent, extent);
+        }
+        map.getView().fit(isExtentEmpty(featureExtent) ? SWISS_EXTENT : featureExtent, {
           padding: [40, 40, 40, 40],
           maxZoom: 12,
         });
