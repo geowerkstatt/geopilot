@@ -2,6 +2,7 @@ import { Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { useCallback, useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { MiddleTruncate } from "../../components/middleTruncate";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
 import { DeliveryContext } from "./deliveryContext";
 import { StepperIcon } from "./stepperIcon";
@@ -88,7 +89,7 @@ export const DeliveryStepper = () => {
             error={!!step.error}
             isLoading={isLoading || isProcessing}
           />
-          <Stack spacing={1} direction={{ xs: "row", md: "column" }} alignItems="baseline">
+          <Stack spacing={1} direction={{ xs: "row", md: "column" }} alignItems="baseline" sx={{ minWidth: "0" }}>
             <Typography variant="h3" color={isEnabled(index) ? "textPrimary" : "textSecondary"}>
               {t(step.label)}
             </Typography>
@@ -98,9 +99,13 @@ export const DeliveryStepper = () => {
                 sx={{
                   display: { xs: "none", md: "block" },
                   color: theme => theme.palette.primary.main,
-                  whiteSpace: "pre-line",
+                  maxWidth: "100%",
                 }}>
-                {t(step.labelAddition)}
+                {t(step.labelAddition)
+                  .split("\n")
+                  .map((line, idx) => (
+                    <MiddleTruncate key={idx} text={line} endLength={10} />
+                  ))}
               </Typography>
             )}
             {step.error && (
