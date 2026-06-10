@@ -70,6 +70,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
 
   useEffect(() => {
     if (jobId) {
+      setStepError(DeliveryStepEnum.SelectMandate, undefined);
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ jobId })).then(mandates => {
         if (mandates.length === 0) {
           setStepError(DeliveryStepEnum.SelectMandate, "noMandatesFound");
