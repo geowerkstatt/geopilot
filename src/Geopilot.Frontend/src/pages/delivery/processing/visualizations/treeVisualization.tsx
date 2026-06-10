@@ -1,7 +1,10 @@
 import { ReactNode, SyntheticEvent, useEffect, useMemo, useState } from "react";
-import { Box, Icon, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Box, Icon, IconButton, Table, TableBody, TableCell, TableRow, Tooltip, Typography } from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
 import { useTranslation } from "react-i18next";
+import { GeopilotBox } from "../../../../components/styledComponents";
 import useFetch from "../../../../hooks/useFetch";
 
 type IconColor = "inherit" | "action" | "disabled" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
@@ -74,6 +77,49 @@ const indexNodes = (nodes: TreeNode[], target: Map<string, TreeNode>, prefix = "
   });
 };
 
+interface MetadataRowProps {
+  label: string;
+  value: string;
+}
+
+const MetadataRow = ({ label, value }: MetadataRowProps) => {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = window.setTimeout(() => setCopied(false), 1500);
+    return () => window.clearTimeout(timeout);
+  }, [copied]);
+
+  const copyValue = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <TableRow sx={{ "&:last-child td": { border: 0 } }}>
+      <TableCell sx={{ width: "35%", verticalAlign: "top", color: "text.secondary", px: 0 }}>
+        <Typography variant="body2">{label}</Typography>
+      </TableCell>
+      <TableCell sx={{ verticalAlign: "top", wordBreak: "break-word", px: 1 }}>
+        <Typography variant="body2">{value}</Typography>
+      </TableCell>
+      <TableCell sx={{ width: 40, verticalAlign: "top", px: 0, textAlign: "right" }}>
+        <Tooltip title={copied ? t("copied") : t("copy")}>
+          <IconButton size="small" onClick={copyValue} data-cy="metadata-copy-button">
+            {copied ? <CheckIcon fontSize="small" color="success" /> : <ContentCopyIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
+      </TableCell>
+    </TableRow>
+  );
+};
+
 interface MetadataPanelProps {
   node: TreeNode | null;
 }
@@ -83,33 +129,22 @@ const MetadataPanel = ({ node }: MetadataPanelProps) => {
   const entries = node?.metadata ? Object.entries(node.metadata) : [];
 
   return (
-    <Box sx={{ flex: "0 0 auto", minWidth: 260, maxWidth: 420 }}>
-      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        {t("treeVisualizationMetadataTitle")}
-      </Typography>
+    <GeopilotBox sx={{ width: 380, flexShrink: 0, gap: 1 }}>
+      <Typography variant="subtitle2">{t("treeVisualizationMetadataTitle")}</Typography>
       {entries.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
           {t("treeVisualizationMetadataEmpty")}
         </Typography>
       ) : (
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>{t("treeVisualizationMetadataProperty")}</TableCell>
-              <TableCell>{t("treeVisualizationMetadataValue")}</TableCell>
-            </TableRow>
-          </TableHead>
+        <Table size="small" sx={{ tableLayout: "fixed" }}>
           <TableBody>
             {entries.map(([key, value]) => (
-              <TableRow key={key}>
-                <TableCell sx={{ verticalAlign: "top", fontWeight: 500 }}>{key}</TableCell>
-                <TableCell sx={{ wordBreak: "break-word" }}>{value}</TableCell>
-              </TableRow>
+              <MetadataRow key={key} label={key} value={value} />
             ))}
           </TableBody>
         </Table>
       )}
-    </Box>
+    </GeopilotBox>
   );
 };
 
@@ -166,7 +201,7 @@ export const TreeVisualization = ({ url }: TreeVisualizationProps) => {
   if (nodes.length === 0) return null;
 
   return (
-    <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "flex-start" }}>
       <SimpleTreeView
         sx={{ flex: "1 1 auto", minWidth: 0 }}
         selectedItems={selectedId}

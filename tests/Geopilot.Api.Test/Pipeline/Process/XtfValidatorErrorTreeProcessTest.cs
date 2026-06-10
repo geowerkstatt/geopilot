@@ -51,10 +51,18 @@ public class XtfValidatorErrorTreeProcessTest
 
         CollectionAssert.AreEqual(expected, errorLog, "error tree is not as expected");
 
-        var errorLeafWithMetadata = errorLog[0].Values[0].Values.Last().Values[0];
-        Assert.IsNotNull(errorLeafWithMetadata.Metadata, "error leaves carry metadata");
-        Assert.AreEqual("19088", errorLeafWithMetadata.Metadata["Line"]);
-        Assert.IsNull(errorLog[0].Metadata, "grouping nodes carry no metadata");
+        Assert.IsTrue(errorLog!.All(group => group.Metadata is null), "group nodes carry no metadata");
+
+        var uniqueConstraintGroup = errorLog.Single(group => group.Message == "Unique constraint violated");
+        var occurrence = uniqueConstraintGroup.Values.Single();
+        Assert.IsNotNull(occurrence.Metadata, "occurrence leaves carry metadata");
+        Assert.AreEqual(occurrence.Message, occurrence.Metadata["TID"], "metadata carries the object TID");
+        Assert.IsFalse(occurrence.Metadata.ContainsKey("Data source"), "metadata carries no data source");
+        Assert.AreEqual("DMAV_Einzelobjekte_V1_0", occurrence.Metadata["Model"]);
+        Assert.AreEqual("Einzelobjekte", occurrence.Metadata["Topic"]);
+        Assert.AreEqual("EONachfuehrung", occurrence.Metadata["Class"]);
+        StringAssert.StartsWith(occurrence.Metadata["Message"], "Unique constraint");
+        Assert.AreEqual("54e42e10-8383-48d3-8391-70baf572f21a", occurrence.Message, "occurrence is displayed by its object TID");
     }
 
     private List<TreeNode>? Deserialize(string json)
