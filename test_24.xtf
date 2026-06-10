@@ -1,10 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- INTERLIS 2.4 sample data for the public federal model "Grundwasservorkommen_V2_0"
-     (https://models.geo.admin.ch/BAFU/, version 2024-10-15). Resolved automatically by
-     the validator from models.geo.admin.ch, so no local .ili is needed. The class
-     "Geringdurchlaessige_Deckschicht" has a single mandatory attribute "Geometrie", a
-     SURFACE in the Swiss LV95 coordinate system (GeometryCHLV95_V2.SurfaceWithoutArcs).
-     One valid polygon below (Bern-area LV95 coordinates). -->
 <ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS"
   xmlns:geom="http://www.interlis.ch/geometry/1.0"
   xmlns="http://www.interlis.ch/xtf/2.4/Grundwasservorkommen_V2_0">

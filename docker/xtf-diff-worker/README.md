@@ -10,6 +10,13 @@ shared filesystem — no network protocol, no socket, no SDK. Anything that can 
 files into the jobs directory and poll for sentinels can drive it. The geopilot
 pipeline client is `Geopilot.Api.Pipeline.Process.XtfDiff.XtfDiffProcess`.
 
+Note that the XTF-Diff-Tool matches objects across the two files by their transfer id
+and only compares objects whose class declares a **stable OID** in the INTERLIS model
+(e.g. `OID AS INTERLIS.UUIDOID` on the topic, as the DMAV models do). Objects of
+classes without a stable OID declaration are skipped entirely, so data of such models
+always yields an empty diff (`[]`). The worker needs outbound HTTPS access to resolve
+the INTERLIS models from the public model repositories on first use.
+
 ## File-drop protocol
 
 A single shared directory is bind-mounted into both the worker and the client. Each

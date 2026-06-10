@@ -15,12 +15,20 @@ namespace Geopilot.Api.Pipeline.Process.XtfDiff;
 /// one as the new state.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The tool runs in the separate, long-running xtf-diff-worker container (see
 /// <c>docker/xtf-diff-worker</c>), driven through a shared jobs directory: this process drops a
 /// job folder with the two XTF files and an <c>input.ready</c> sentinel, then polls until the
 /// worker signals completion with an <c>output.ready</c> sentinel — analogous to how
 /// <see cref="XtfValidation.XtfValidatorProcess"/> uploads to the Interlis check service and
 /// polls its status endpoint.
+/// </para>
+/// <para>
+/// Note that the XTF-Diff-Tool matches objects across the two files by their transfer id and
+/// only compares objects whose class declares a stable OID in the INTERLIS model (for example
+/// <c>OID AS INTERLIS.UUIDOID</c> on the topic). Objects of classes without a stable OID
+/// declaration are skipped entirely, so data of such models always yields an empty diff.
+/// </para>
 /// </remarks>
 internal class XtfDiffProcess
 {

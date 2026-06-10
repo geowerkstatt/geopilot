@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- INTERLIS 2.4 sample data for the public federal model "DMAV_Bodenbedeckung_V1_1"
+     (https://models.geo.admin.ch/V_D/, resolved automatically from the model
+     repositories). Old state for the xtf_comparison pipeline (XTF-Diff-Tool): zip this
+     file together with test_dmav_2.xtf and upload the archive. The XTF-Diff-Tool only
+     compares objects whose class declares a stable OID in the INTERLIS model; the
+     Bodenbedeckung topic declares OID AS INTERLIS.UUIDOID, so basket and object ids
+     below are UUIDs and stay identical across both files. Compared to this file,
+     test_dmav_2.xtf moves point P1 slightly and adds a new point P3. -->
+<ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS"
+  xmlns:geom="http://www.interlis.ch/geometry/1.0"
+  xmlns="http://www.interlis.ch/xtf/2.4/DMAV_Bodenbedeckung_V1_1">
+  <ili:headersection>
+    <ili:models>
+      <ili:model>DMAV_Bodenbedeckung_V1_1</ili:model>
+    </ili:models>
+    <ili:sender>geopilot</ili:sender>
+  </ili:headersection>
+  <ili:datasection>
+    <Bodenbedeckung ili:bid="0bf0a9d9-4d23-4d65-9d27-1a5e3c6f8b2a">
+      <Messpunkt ili:tid="9c5d9a4e-7e2b-4f4e-8a1d-3b6c9d2e5f70">
+        <Nummer>P1</Nummer>
+        <Geometrie>
+          <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
+        </Geometrie>
+        <Lagegenauigkeit>0.035</Lagegenauigkeit>
+        <IstLagezuverlaessig>true</IstLagezuverlaessig>
+        <IstExaktDefiniert>true</IstExaktDefiniert>
+      </Messpunkt>
+      <Messpunkt ili:tid="5e8f3a21-9b4c-4d6e-8f70-1a2b3c4d5e6f">
+        <Nummer>P2</Nummer>
+        <Geometrie>
+          <geom:coord><geom:c1>2640340.000</geom:c1><geom:c2>1172590.000</geom:c2></geom:coord>
+        </Geometrie>
+        <Lagegenauigkeit>0.035</Lagegenauigkeit>
+        <IstLagezuverlaessig>true</IstLagezuverlaessig>
+        <IstExaktDefiniert>true</IstExaktDefiniert>
+      </Messpunkt>
+    </Bodenbedeckung>
+  </ili:datasection>
+</ili:transfer>
