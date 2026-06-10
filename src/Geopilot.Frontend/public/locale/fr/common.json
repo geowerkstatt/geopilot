@@ -91,6 +91,7 @@
   "mandateSaveError": "Une erreur s'est produite lors de l'enregistrement du mandat: {{error}}",
   "mandates": "Mandats",
   "mandatesLoadingError": "Une erreur s'est produite lors du chargement des mandats: {{error}}",
+  "mapResetViewport": "Réinitialiser la vue pour afficher tous les éléments",
   "mapVisualizationError": "La visualisation cartographique n'a pas pu être chargée.",
   "mapVisualizationFeatureLayer": "Entités",
   "name": "Nom",

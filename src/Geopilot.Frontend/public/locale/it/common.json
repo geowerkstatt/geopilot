@@ -91,6 +91,7 @@
   "mandateSaveError": "Si è verificato un errore durante il salvataggio del mandato: {{error}}",
   "mandates": "Mandati",
   "mandatesLoadingError": "Si è verificato un errore durante il caricamento dei mandati: {{error}}",
+  "mapResetViewport": "Reimposta la vista per mostrare tutti gli elementi",
   "mapVisualizationError": "Impossibile caricare la visualizzazione cartografica.",
   "mapVisualizationFeatureLayer": "Elementi",
   "name": "Nome",

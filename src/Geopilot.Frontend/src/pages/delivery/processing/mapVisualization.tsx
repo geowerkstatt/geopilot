@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18next from "i18next";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, IconButton, Tooltip, Typography } from "@mui/material";
+import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import proj4 from "proj4";
 import Map from "ol/Map";
 import View from "ol/View";
@@ -172,6 +173,21 @@ const buildFeatureLayer = (layer: MapLayer, color: string, title: string): Vecto
   });
 };
 
+// Padding and max zoom used whenever the view is fit to the features, both on initial render and via the
+// reset-viewport button, so the two stay in sync.
+const FIT_OPTIONS = { padding: [40, 40, 40, 40], maxZoom: 12 };
+
+// Returns the extent the view should fit: the combined bounding box of all feature layers, falling back to
+// the whole country when there are no features.
+const getFitExtent = (featureLayers: VectorLayer<VectorSource>[]): number[] => {
+  const featureExtent = createEmpty();
+  for (const featureLayer of featureLayers) {
+    const extent = featureLayer.getSource()?.getExtent();
+    if (extent) extendExtent(featureExtent, extent);
+  }
+  return isExtentEmpty(featureExtent) ? SWISS_EXTENT : featureExtent;
+};
+
 interface MapVisualizationProps {
   /** The map visualization config file to render (carries the URL to fetch the JSON config). */
   file: StepDownload;
@@ -182,9 +198,19 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
   const theme = useTheme();
   const { fetchApi } = useFetch();
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  // The map instance and feature layers are kept in refs so the reset-viewport button can re-fit the view
+  // after the initializing effect has finished.
+  const mapRef = useRef<Map | undefined>(undefined);
+  const featureLayersRef = useRef<VectorLayer<VectorSource>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [map, setMap] = useState<Map | null>(null);
+
+  const resetViewport = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.getView().fit(getFitExtent(featureLayersRef.current), FIT_OPTIONS);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -252,18 +278,12 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
           overlays: [overlay],
           view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
         });
+        mapRef.current = map;
+        featureLayersRef.current = featureLayers;
 
         // Fit the view to the combined extent of all feature layers, falling back to the whole country
         // when there are no features.
-        const featureExtent = createEmpty();
-        for (const featureLayer of featureLayers) {
-          const extent = featureLayer.getSource()?.getExtent();
-          if (extent) extendExtent(featureExtent, extent);
-        }
-        map.getView().fit(isExtentEmpty(featureExtent) ? SWISS_EXTENT : featureExtent, {
-          padding: [40, 40, 40, 40],
-          maxZoom: 12,
-        });
+        map.getView().fit(getFitExtent(featureLayers), FIT_OPTIONS);
 
         map.on("click", event => {
           const feature = map?.forEachFeatureAtPixel(event.pixel, f => f);
@@ -302,6 +322,8 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
       cancelled = true;
       setMap(null);
       map?.setTarget(undefined);
+      mapRef.current = undefined;
+      featureLayersRef.current = [];
     };
   }, [file.url, fetchApi, theme, t]);
 
@@ -324,11 +346,32 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
           borderRadius: "4px",
           overflow: "hidden",
           border: theme => `1px solid ${theme.palette.primary.light}`,
-          // Move the default zoom (+/-) control to the top-right so it doesn't sit under the layer switcher.
+          // Move the default zoom (+/-) control to the top-right; the layer switcher and reset-viewport
+          // buttons occupy the top-left corner.
           "& .ol-zoom": { top: "8px", left: "auto", right: "8px" },
         }}
       />
       <LayerSwitcher map={map} />
+      {!isLoading && (
+        <Tooltip title={t("mapResetViewport")}>
+          <IconButton
+            data-cy="map-reset-viewport"
+            onClick={resetViewport}
+            sx={{
+              position: "absolute",
+              // Below the layer switcher button (40px tall at top 8px) with an 8px gap.
+              top: "56px",
+              left: "8px",
+              backgroundColor: "background.paper",
+              color: "text.secondary",
+              boxShadow: 1,
+              borderRadius: "4px",
+              "&:hover": { backgroundColor: "background.paper", color: "text.primary" },
+            }}>
+            <CenterFocusStrongIcon />
+          </IconButton>
+        </Tooltip>
+      )}
       {isLoading && (
         <Box
           sx={{

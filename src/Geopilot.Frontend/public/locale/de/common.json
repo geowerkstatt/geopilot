@@ -91,6 +91,7 @@
   "mandateSaveError": "Beim Speichern des Mandats ist ein Fehler aufgetreten: {{error}}",
   "mandates": "Mandate",
   "mandatesLoadingError": "Beim Laden der Mandate ist ein Fehler aufgetreten: {{error}}",
+  "mapResetViewport": "Ansicht zurücksetzen, um alle Features anzuzeigen",
   "mapVisualizationError": "Die Kartenvisualisierung konnte nicht geladen werden.",
   "mapVisualizationFeatureLayer": "Objekte",
   "name": "Name",
