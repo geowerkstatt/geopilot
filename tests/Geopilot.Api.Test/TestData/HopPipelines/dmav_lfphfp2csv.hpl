@@ -1004,7 +1004,7 @@
     <enclosure_forced>N</enclosure_forced>
     <enclosure_fix_disabled>N</enclosure_fix_disabled>
     <header>Y</header>
-    <footer>Y</footer>
+    <footer>N</footer>
     <format>DOS</format>
     <compression>None</compression>
     <encoding>UTF-8</encoding>
