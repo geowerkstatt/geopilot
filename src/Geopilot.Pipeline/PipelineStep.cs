@@ -55,7 +55,7 @@ public sealed class PipelineStep : IPipelineStep
     public IList<PersistedFile> DeliveryFiles { get; } = new List<PersistedFile>();
 
     /// <inheritdoc/>
-    public IList<PersistedFile> MapVisualization { get; } = new List<PersistedFile>();
+    public IList<StepVisualization> Visualizations { get; } = new List<StepVisualization>();
 
     private readonly ConditionEvaluator conditionEvaluator;
 

@@ -20,7 +20,7 @@ import { register } from "ol/proj/proj4";
 import { get as getProjection } from "ol/proj";
 import { createEmpty, extend as extendExtent, isEmpty as isExtentEmpty } from "ol/extent";
 import BaseLayer from "ol/layer/Base";
-import { MapLayer, MapVisualizationConfig, StepDownload } from "../../../api/apiInterfaces";
+import { MapLayer, MapVisualizationConfig } from "../../../api/apiInterfaces";
 import useFetch from "../../../hooks/useFetch";
 import { useTheme } from "@mui/material/styles";
 import { LayerSwitcher, LayerSwitcherProperties } from "./layerSwitcher";
@@ -189,11 +189,11 @@ const getFitExtent = (featureLayers: VectorLayer<VectorSource>[]): number[] => {
 };
 
 interface MapVisualizationProps {
-  /** The map visualization config file to render (carries the URL to fetch the JSON config). */
-  file: StepDownload;
+  /** Absolute URL to fetch the JSON map visualization config to render. */
+  url: string;
 }
 
-export const MapVisualization = ({ file }: MapVisualizationProps) => {
+export const MapVisualization = ({ url }: MapVisualizationProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const { fetchApi } = useFetch();
@@ -222,7 +222,7 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
     const initialize = async () => {
       try {
         registerSwissProjection();
-        const config = await fetchApi<MapVisualizationConfig>(file.url, { method: "GET" });
+        const config = await fetchApi<MapVisualizationConfig>(url, { method: "GET" });
         if (cancelled || !mapContainerRef.current) return;
 
         const featureLayers = config.layers
@@ -325,7 +325,7 @@ export const MapVisualization = ({ file }: MapVisualizationProps) => {
       mapRef.current = undefined;
       featureLayersRef.current = [];
     };
-  }, [file.url, fetchApi, theme, t]);
+  }, [url, fetchApi, theme, t]);
 
   if (hasError) {
     return (

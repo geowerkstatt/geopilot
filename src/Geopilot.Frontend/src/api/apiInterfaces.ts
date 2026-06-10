@@ -139,13 +139,24 @@ export interface MapVisualizationConfig {
   layers: MapLayer[];
 }
 
+export enum VisualizationKind {
+  Tree = "tree",
+  Map = "map",
+}
+
+export interface StepVisualization {
+  kind: VisualizationKind;
+  originalFileName: string;
+  url: string;
+}
+
 export interface StepResult {
   id: string;
   name: Record<string, string>;
   state: StepState;
   statusMessage?: Record<string, string>;
   downloads: StepDownload[];
-  mapVisualization: StepDownload[];
+  visualizations: StepVisualization[];
 }
 
 export interface ProcessingJobResponse {

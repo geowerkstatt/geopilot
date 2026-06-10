@@ -66,13 +66,15 @@ public interface IPipelineStep : IDisposable
     IList<PersistedFile> DeliveryFiles { get; }
 
     /// <summary>
-    /// Files produced by the step that the client should render in a map component (outputs
-    /// configured with <see cref="OutputAction.MapVisualization"/>). Populated by the processing
-    /// runner after the step completes. These files are persisted to the download store, so each
-    /// entry is fetchable through the same download endpoint as <see cref="Downloads"/>. A file
-    /// tagged with both actions appears in both lists and is persisted only once.
+    /// Visualization configs produced by the step (outputs configured with a visualization
+    /// action such as <see cref="OutputAction.TreeVisualization"/> or
+    /// <see cref="OutputAction.MapVisualization"/>). The underlying file is
+    /// persisted to the download file store so the frontend can fetch it through the regular
+    /// download endpoint. A file tagged with both a visualization action and
+    /// <see cref="OutputAction.Download"/> is persisted once and appears in both
+    /// <see cref="Downloads"/> and this list.
     /// </summary>
-    IList<PersistedFile> MapVisualization { get; }
+    IList<StepVisualization> Visualizations { get; }
 
     /// <summary>
     /// Runs the step with the given context.

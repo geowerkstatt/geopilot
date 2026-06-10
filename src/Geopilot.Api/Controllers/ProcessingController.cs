@@ -217,9 +217,19 @@ public class ProcessingController : ControllerBase
         // human-readable name. After the job ages out of the store we fall back to the
         // persisted name; by then the temp dirs are usually gone anyway.
         var job = processingService.GetJob(jobId);
-        return job?.Pipeline?.Steps
-            .SelectMany(s => s.Downloads.Concat(s.DeliveryFiles).Concat(s.MapVisualization))
+        if (job?.Pipeline == null)
+            return null;
+
+        var fromFiles = job.Pipeline.Steps
+            .SelectMany(s => s.Downloads.Concat(s.DeliveryFiles))
             .FirstOrDefault(f => f.PersistedFileName == persistedFileName)
+            ?.OriginalFileName;
+        if (fromFiles != null)
+            return fromFiles;
+
+        return job.Pipeline.Steps
+            .SelectMany(s => s.Visualizations)
+            .FirstOrDefault(v => v.PersistedFileName == persistedFileName)
             ?.OriginalFileName;
     }
 

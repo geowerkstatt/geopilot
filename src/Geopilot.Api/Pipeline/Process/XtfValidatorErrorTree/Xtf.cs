@@ -61,15 +61,22 @@ public class ErrorLogBasket
 public class LogError
 {
     /// <summary>
-    /// Gets or sets the transaction identifier associated with this instance.
+    /// Gets or sets the OID of the error log entry itself within the IliVErrors transfer (e.g. "o80").
+    /// This is an artifact of the log transfer, not the identifier of the failing data object.
     /// </summary>
     [XmlAttribute("TID")]
-    public string? Tid { get; set; }
+    public string? LogEntryId { get; set; }
 
     /// <summary>
     /// Gets or sets the message text associated with this instance.
     /// </summary>
     public string? Message { get; set; }
+
+    /// <summary>
+    /// Gets or sets the TID of the failing data object that the message refers to.
+    /// </summary>
+    [XmlElement("Tid")]
+    public string? Tid { get; set; }
 
     /// <summary>
     /// Gets or sets the type associated with the current instance.
