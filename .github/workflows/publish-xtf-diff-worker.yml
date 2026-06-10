@@ -1,0 +1,81 @@
+name: Publish xtf-diff-worker image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker/xtf-diff-worker/**'
+      - '.github/workflows/publish-xtf-diff-worker.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'XTF-Diff-Tool image tag to build on (overrides the ARG default in the Dockerfile, e.g. v1.0.19)'
+        required: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: geowerkstatt/xtf-diff-worker
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    name: Build and push xtf-diff-worker image to GHCR
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Determine XTF-Diff-Tool version
+        id: version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(grep -oP '(?<=ARG XTF_DIFF_TOOL_VERSION=)v?[0-9.]+' docker/xtf-diff-worker/Dockerfile | head -1)
+          fi
+          if [ -z "$VERSION" ]; then
+            echo "Could not determine XTF-Diff-Tool version from docker/xtf-diff-worker/Dockerfile" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "Building xtf-diff-worker wrapping XTF-Diff-Tool ${VERSION} (commit $(git rev-parse --short HEAD))"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push xtf-diff-worker image
+        uses: docker/build-push-action@v7
+        with:
+          context: docker/xtf-diff-worker
+          push: true
+          build-args: |
+            XTF_DIFF_TOOL_VERSION=${{ steps.version.outputs.version }}
+          # Tagging strategy:
+          #   :latest                              — always points at the most recent main build.
+          #   :<xtf-diff-tool-version>             — mutable tag that tracks the XTF-Diff-Tool version
+          #                                          bundled in the image (e.g. :v1.0.19). Rebuilt
+          #                                          whenever the wrapper changes.
+          #   :<xtf-diff-tool-version>-sha-<short> — permanent, immutable reference for pinning
+          #                                          a specific wrapper revision of a given
+          #                                          XTF-Diff-Tool release in production.
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}-sha-${{ steps.version.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.title=xtf-diff-worker
+            org.opencontainers.image.description=Long-running worker that compares two XTF files with the XTF-Diff-Tool for GeoPilot's pipeline.
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.licenses=AGPL-3.0-only

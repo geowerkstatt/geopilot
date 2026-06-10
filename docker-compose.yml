@@ -82,6 +82,14 @@ services:
     volumes:
       - ./shared/ili2gpkg/jobs:/shared/ili2gpkg/jobs
 
+  xtf-diff-worker:
+    build:
+      context: ./docker/xtf-diff-worker
+    restart: unless-stopped
+    volumes:
+      - ./shared/xtf-diff/jobs:/shared/xtf-diff/jobs
+      - xtf-diff-cache:/var/cache/xtf-diff-tool
+
   geopilot:
     build:
       context: .
@@ -105,6 +113,7 @@ services:
       Auth__FullScope: "profile email openid geopilot.api"
       Auth__ApiServerScope: "geopilot.api"
       Pipeline__ProcessConfigs__Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess__checkServiceBaseUrl: http://interlis-check-service:8080/
+      Pipeline__ProcessConfigs__Geopilot.Api.Pipeline.Process.XtfDiff.XtfDiffProcess__jobsDirectory: /shared/xtf-diff
       CloudStorage__Enabled: true
       CloudStorage__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://localhost:10000/devstoreaccount1;"
       CloudStorage__BucketName: uploads
@@ -127,6 +136,7 @@ services:
       - ./src/Geopilot.Frontend/devPublic:/public
       - ./certs:/https:ro
       - ./shared/ili2gpkg/jobs:/shared/ili2gpkg
+      - ./shared/xtf-diff/jobs:/shared/xtf-diff
     extra_hosts:
       - "localhost:host-gateway"
     depends_on:
@@ -143,3 +153,8 @@ services:
     ports:
       - "4011:8080"
     command: start-dev --import-realm
+
+volumes:
+  # Persistent INTERLIS model cache of the xtf-diff-worker; avoids re-downloading
+  # models from the model repositories on every worker recycle.
+  xtf-diff-cache:

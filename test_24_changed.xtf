@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Variant of test_24.xtf with a slightly changed geometry, for exercising the
+     xtf_comparison pipeline (XTF-Diff-Tool). Same model, basket id and transfer id
+     as test_24.xtf so the diff tool matches the object and reports a geometry
+     "changed" entry: the polygon's east edge moved from 2640340 to 2640360 and the
+     north edge from 1172590 to 1172600. Zip this file together with test_24.xtf
+     and upload it to the xtf_comparison pipeline. -->
+<ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS"
+  xmlns:geom="http://www.interlis.ch/geometry/1.0"
+  xmlns="http://www.interlis.ch/xtf/2.4/Grundwasservorkommen_V2_0">
+  <ili:headersection>
+    <ili:models>
+      <ili:model>Grundwasservorkommen_V2_0</ili:model>
+    </ili:models>
+    <ili:sender>geopilot</ili:sender>
+  </ili:headersection>
+  <ili:datasection>
+    <Grundwasservorkommen ili:bid="bGwv1">
+      <Geringdurchlaessige_Deckschicht ili:tid="t1">
+        <Geometrie>
+          <geom:surface>
+            <geom:exterior>
+              <geom:polyline>
+                <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640360.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640360.000</geom:c1><geom:c2>1172600.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172600.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
+              </geom:polyline>
+            </geom:exterior>
+          </geom:surface>
+        </Geometrie>
+      </Geringdurchlaessige_Deckschicht>
+    </Grundwasservorkommen>
+  </ili:datasection>
+</ili:transfer>

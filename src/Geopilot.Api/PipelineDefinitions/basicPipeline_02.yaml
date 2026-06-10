@@ -25,6 +25,7 @@ processes:
   - id: xtf_diff
     implementation: Geopilot.Api.Pipeline.Process.XtfDiff.XtfDiffProcess
     default_config:
+      pollInterval: 1000
       modelDirectory: null
 pipelines:
   - id: ili_validation

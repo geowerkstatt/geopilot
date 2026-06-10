@@ -13,6 +13,18 @@ processes:
       pollInterval: 1000
   - id: map_visualizer
     implementation: Geopilot.Api.Pipeline.Process.MapVisualization.MapVisualizationProcess
+  - id: file_matcher
+    implementation: Geopilot.Api.Pipeline.Process.Matcher.FileMatcher.FileMatcherProcess
+    default_config:
+      fileExtensions:
+      fileNamePatterns:
+  - id: unzipper
+    implementation: Geopilot.Api.Pipeline.Process.Unzip.UnzipProcess
+  - id: xtf_diff
+    implementation: Geopilot.Api.Pipeline.Process.XtfDiff.XtfDiffProcess
+    default_config:
+      pollInterval: 1000
+      modelDirectory: null
 pipelines:
   - id: ili_validation
     display_name:
@@ -97,6 +109,90 @@ pipelines:
             take: xtf_log
             as: errorLogXtf
         output:
+          - take: map_visualization_config_file
+            as: map_visualization
+            action:
+              - MapVisualization
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+  - id: xtf_comparison
+    display_name:
+      en: XTF Comparison
+      de: XTF Vergleich
+      fr: Comparaison XTF
+      it: Confronto XTF
+    steps:
+      - id: zip_matching
+        display_name:
+          en: ZIP Matching
+          de: ZIP Zuordnung
+          fr: Correspondance ZIP
+          it: Corrispondenza ZIP
+        process_id: file_matcher
+        process_config_overwrites:
+          fileExtensions:
+            - zip
+        output:
+          - take: matched_files
+            as: zip_files
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+      - id: unzip
+        display_name:
+          en: Unzip
+          de: Entpacken
+          fr: Décompression
+          it: Estrazione
+        process_id: unzipper
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([zip_matching.zip_files]) != 1"
+                message:
+                  de: "Es muss genau eine ZIP-Datei hochgeladen werden."
+                  en: "Exactly one ZIP file must be uploaded."
+                  fr: "Exactement un fichier ZIP doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file ZIP."
+        input:
+          - from: zip_matching
+            take: zip_files
+            as: zipFile
+        output:
+          - take: extracted_files
+            as: extracted_files
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+      - id: comparison
+        display_name:
+          en: XTF Comparison
+          de: XTF Vergleich
+          fr: Comparaison XTF
+          it: Confronto XTF
+        process_id: xtf_diff
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([unzip.extracted_files]) != 2"
+                message:
+                  de: "Das ZIP-Archiv muss genau zwei XTF-Dateien enthalten."
+                  en: "The ZIP archive must contain exactly two XTF files."
+                  fr: "L'archive ZIP doit contenir exactement deux fichiers XTF."
+                  it: "L'archivio ZIP deve contenere esattamente due file XTF."
+        input:
+          - from: unzip
+            take: extracted_files
+            as: xtfFiles
+        output:
+          - take: diff_file
+            as: diff_file
+            action:
+              - Download
           - take: map_visualization_config_file
             as: map_visualization
             action:

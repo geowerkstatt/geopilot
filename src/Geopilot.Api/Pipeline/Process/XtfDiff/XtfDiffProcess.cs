@@ -1,20 +1,27 @@
 using Geopilot.Api.Pipeline.Process.MapVisualization;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 
 namespace Geopilot.Api.Pipeline.Process.XtfDiff;
 
 /// <summary>
-/// Compares two XTF files using the external XTF-Diff-Tool
+/// Compares two XTF files using the XTF-Diff-Tool
 /// (https://github.com/geowerkstatt/XTF-Diff-Tool) and turns the geometry differences into a
 /// map-visualization config (<see cref="MapVisualizationConfig"/>). The raw diff JSON produced by
 /// the tool is exposed as <c>diff_file</c>, the map config as <c>map_visualization_config_file</c>.
 /// The alphabetically first file (by original file name) is treated as the old state, the other
 /// one as the new state.
 /// </summary>
+/// <remarks>
+/// The tool runs in the separate, long-running xtf-diff-worker container (see
+/// <c>docker/xtf-diff-worker</c>), driven through a shared jobs directory: this process drops a
+/// job folder with the two XTF files and an <c>input.ready</c> sentinel, then polls until the
+/// worker signals completion with an <c>output.ready</c> sentinel — analogous to how
+/// <see cref="XtfValidation.XtfValidatorProcess"/> uploads to the Interlis check service and
+/// polls its status endpoint.
+/// </remarks>
 internal class XtfDiffProcess
 {
     private const string OutputMappingDiffFile = "diff_file";
@@ -22,7 +29,15 @@ internal class XtfDiffProcess
     private const string OutputMappingStatusMessage = "status_message";
 
     private const string XtfFileExtension = "xtf";
-    private const string DefaultJavaPath = "java";
+
+    // Fixed file names of the xtf-diff-worker file-drop protocol (see docker/xtf-diff-worker/README.md).
+    private const string OldXtfFileName = "old.xtf";
+    private const string NewXtfFileName = "new.xtf";
+    private const string ArgsFileName = "args.json";
+    private const string DiffFileName = "diff.json";
+    private const string InputReadyFileName = "input.ready";
+    private const string OutputReadyFileName = "output.ready";
+    private const string ErrorLogFileName = "error.log";
 
     private static readonly Dictionary<string, string> SuccessfulStatusMessageFormat = new()
     {
@@ -34,23 +49,23 @@ internal class XtfDiffProcess
 
     private readonly IPipelineFileManager pipelineFileManager;
     private readonly ILogger logger;
-    private readonly string javaPath;
-    private readonly string? xtfDiffToolJarPath;
+    private readonly string jobsDirectory;
+    private readonly TimeSpan pollInterval;
     private readonly string? modelDirectory;
     private readonly string baseMapWmtsCapabilitiesUrl;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="XtfDiffProcess"/> class.
     /// </summary>
-    /// <param name="javaPath">Optional path to the Java executable used to run the XTF-Diff-Tool. Defaults to <c>java</c> on the PATH. The tool requires Java 25 (LTS) or newer.</param>
-    /// <param name="xtfDiffToolJarPath">Path to the XTF-Diff-Tool jar, absolute or relative to the application base directory. Required at run time.</param>
+    /// <param name="jobsDirectory">The jobs directory shared with the xtf-diff-worker container, absolute or relative to the working directory.</param>
+    /// <param name="pollInterval">Optional polling interval in milliseconds for checking job completion. If not provided, a default of 2000ms will be used.</param>
     /// <param name="modelDirectory">Optional INTERLIS model search directories, passed to the tool as <c>--modeldir</c>.</param>
     /// <param name="baseMapWmtsCapabilitiesUrl">Optional override for the base map WMTS capabilities URL. Defaults to the swisstopo map of Switzerland.</param>
     /// <param name="pipelineFileManager">Manages the step's temporary output files.</param>
     /// <param name="logger">Logger instance for logging messages during the comparison.</param>
     public XtfDiffProcess(
-        string? javaPath,
-        string? xtfDiffToolJarPath,
+        string jobsDirectory,
+        int? pollInterval,
         string? modelDirectory,
         string? baseMapWmtsCapabilitiesUrl,
         IPipelineFileManager pipelineFileManager,
@@ -58,8 +73,8 @@ internal class XtfDiffProcess
     {
         this.pipelineFileManager = pipelineFileManager;
         this.logger = logger;
-        this.javaPath = string.IsNullOrWhiteSpace(javaPath) ? DefaultJavaPath : javaPath;
-        this.xtfDiffToolJarPath = xtfDiffToolJarPath;
+        this.jobsDirectory = jobsDirectory;
+        this.pollInterval = pollInterval != null ? TimeSpan.FromMilliseconds((double)pollInterval) : TimeSpan.FromSeconds(2);
         this.modelDirectory = modelDirectory;
         this.baseMapWmtsCapabilitiesUrl = string.IsNullOrWhiteSpace(baseMapWmtsCapabilitiesUrl)
             ? MapVisualizationProcess.DefaultBaseMapWmtsCapabilitiesUrl
@@ -71,9 +86,9 @@ internal class XtfDiffProcess
     /// builds the map-visualization config of the geometry differences.
     /// </summary>
     /// <param name="xtfFiles">The input files. Exactly two of them must have the <c>xtf</c> extension; other files are ignored.</param>
-    /// <param name="cancellationToken">Cancellation token of the pipeline run; cancelling kills the external tool.</param>
+    /// <param name="cancellationToken">Cancellation token of the pipeline run; cancelling abandons the job (the worker's orphan sweep cleans it up).</param>
     /// <returns>The output map with the raw diff JSON, the generated map config and a status message.</returns>
-    /// <exception cref="InvalidOperationException">If not exactly two XTF files are supplied, the tool is not configured or the tool fails.</exception>
+    /// <exception cref="InvalidOperationException">If not exactly two XTF files are supplied or the XTF-Diff-Tool fails.</exception>
     [PipelineProcessRun]
     public async Task<Dictionary<string, object?>> RunAsync(IPipelineFile[] xtfFiles, CancellationToken cancellationToken)
     {
@@ -87,20 +102,40 @@ internal class XtfDiffProcess
 
         var oldXtfFile = orderedXtfFiles[0];
         var newXtfFile = orderedXtfFiles[1];
-        var jarPath = ResolveJarPath();
 
-        // The external tool works on file system paths while pipeline files only expose streams,
-        // so both inputs are copied into a dedicated working directory (separate subdirectories,
-        // as both files may carry the same original name).
-        var workingDirectory = Directory.CreateTempSubdirectory("xtf-diff-").FullName;
+        // Each request gets its own job folder inside the shared jobs directory; the worker only
+        // consumes it once the input.ready sentinel (written last) appears.
+        var jobsRoot = Path.GetFullPath(jobsDirectory);
+        Directory.CreateDirectory(jobsRoot);
+        var jobDirectory = Path.Combine(jobsRoot, Guid.NewGuid().ToString());
+        Directory.CreateDirectory(jobDirectory);
+
         try
         {
-            var oldFilePath = await CopyToDirectoryAsync(oldXtfFile, Path.Combine(workingDirectory, "old"), cancellationToken);
-            var newFilePath = await CopyToDirectoryAsync(newXtfFile, Path.Combine(workingDirectory, "new"), cancellationToken);
-            var diffFilePath = Path.Combine(workingDirectory, "diff.json");
+            await CopyToJobFolderAsync(oldXtfFile, Path.Combine(jobDirectory, OldXtfFileName), cancellationToken);
+            await CopyToJobFolderAsync(newXtfFile, Path.Combine(jobDirectory, NewXtfFileName), cancellationToken);
+            if (!string.IsNullOrWhiteSpace(modelDirectory))
+            {
+                using var argsStream = File.Create(Path.Combine(jobDirectory, ArgsFileName));
+                await JsonSerializer.SerializeAsync(argsStream, new { modeldir = modelDirectory }, cancellationToken: cancellationToken);
+            }
 
-            logger.LogInformation($"Comparing <{oldXtfFile.OriginalFileName}> (old) with <{newXtfFile.OriginalFileName}> (new) using the XTF-Diff-Tool...");
-            await RunDiffToolAsync(jarPath, oldFilePath, newFilePath, diffFilePath, cancellationToken);
+            await File.WriteAllBytesAsync(Path.Combine(jobDirectory, InputReadyFileName), Array.Empty<byte>(), cancellationToken);
+
+            logger.LogInformation($"Comparing <{oldXtfFile.OriginalFileName}> (old) with <{newXtfFile.OriginalFileName}> (new) using the xtf-diff-worker, job <{Path.GetFileName(jobDirectory)}>...");
+            await PollOutputReadyAsync(jobDirectory, cancellationToken);
+
+            var errorLogPath = Path.Combine(jobDirectory, ErrorLogFileName);
+            if (File.Exists(errorLogPath))
+            {
+                var errorLog = await File.ReadAllTextAsync(errorLogPath, cancellationToken);
+                logger.LogError($"XTF-Diff-Tool failed: {errorLog}");
+                throw new InvalidOperationException($"The XTF-Diff-Tool failed: {errorLog.Trim()}");
+            }
+
+            var diffFilePath = Path.Combine(jobDirectory, DiffFileName);
+            if (!File.Exists(diffFilePath))
+                throw new InvalidOperationException("The xtf-diff-worker signalled completion but produced neither a diff result nor an error log.");
 
             List<XtfDiffEntry> diffEntries;
             using (var diffStream = File.OpenRead(diffFilePath))
@@ -133,104 +168,34 @@ internal class XtfDiffProcess
         {
             try
             {
-                Directory.Delete(workingDirectory, recursive: true);
+                Directory.Delete(jobDirectory, recursive: true);
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, $"Failed to delete the XTF-Diff-Tool working directory <{workingDirectory}>.");
+                logger.LogWarning(ex, $"Failed to delete the xtf-diff-worker job folder <{jobDirectory}>. The worker's orphan sweep will clean it up.");
             }
         }
+    }
+
+    private static async Task CopyToJobFolderAsync(IPipelineFile file, string targetPath, CancellationToken cancellationToken)
+    {
+        using var sourceStream = file.OpenReadFileStream();
+        using var targetStream = File.Create(targetPath);
+        await sourceStream.CopyToAsync(targetStream, cancellationToken);
     }
 
     /// <summary>
-    /// Resolves the configured jar path against the application base directory and verifies the jar exists.
+    /// Polls the job folder until the worker drops the <c>output.ready</c> sentinel. The sentinel is
+    /// written last by the worker, after the diff result and log files have been closed, so its
+    /// appearance guarantees the job's output files are complete.
     /// </summary>
-    private string ResolveJarPath()
+    private async Task PollOutputReadyAsync(string jobDirectory, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(xtfDiffToolJarPath))
-            throw new InvalidOperationException($"The XTF-Diff-Tool jar path is not configured. Configure <xtfDiffToolJarPath> for the <{nameof(XtfDiffProcess)}>.");
-
-        var jarPath = Path.IsPathRooted(xtfDiffToolJarPath)
-            ? xtfDiffToolJarPath
-            : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, xtfDiffToolJarPath));
-
-        if (!File.Exists(jarPath))
-            throw new InvalidOperationException($"The XTF-Diff-Tool jar was not found at <{jarPath}>.");
-
-        return jarPath;
-    }
-
-    private static async Task<string> CopyToDirectoryAsync(IPipelineFile file, string directory, CancellationToken cancellationToken)
-    {
-        Directory.CreateDirectory(directory);
-        var filePath = Path.Combine(directory, file.OriginalFileName);
-        using (var sourceStream = file.OpenReadFileStream())
-        using (var targetStream = File.Create(filePath))
+        var outputReadyPath = Path.Combine(jobDirectory, OutputReadyFileName);
+        while (!File.Exists(outputReadyPath))
         {
-            await sourceStream.CopyToAsync(targetStream, cancellationToken);
+            await Task.Delay(pollInterval, cancellationToken);
         }
-
-        return filePath;
-    }
-
-    /// <summary>
-    /// Runs <c>java -jar &lt;tool&gt; [--modeldir &lt;dir&gt;] &lt;old&gt; &lt;new&gt; &lt;diff&gt;</c>
-    /// and throws if the tool cannot be started or exits with a non-zero exit code.
-    /// </summary>
-    private async Task RunDiffToolAsync(string jarPath, string oldFilePath, string newFilePath, string diffFilePath, CancellationToken cancellationToken)
-    {
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = javaPath,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-        };
-        startInfo.ArgumentList.Add("-jar");
-        startInfo.ArgumentList.Add(jarPath);
-        if (!string.IsNullOrWhiteSpace(modelDirectory))
-        {
-            startInfo.ArgumentList.Add("--modeldir");
-            startInfo.ArgumentList.Add(modelDirectory);
-        }
-
-        startInfo.ArgumentList.Add(oldFilePath);
-        startInfo.ArgumentList.Add(newFilePath);
-        startInfo.ArgumentList.Add(diffFilePath);
-
-        using var toolProcess = System.Diagnostics.Process.Start(startInfo)
-            ?? throw new InvalidOperationException($"Failed to start the XTF-Diff-Tool with <{javaPath}>.");
-
-        var standardOutputTask = toolProcess.StandardOutput.ReadToEndAsync(cancellationToken);
-        var standardErrorTask = toolProcess.StandardError.ReadToEndAsync(cancellationToken);
-        try
-        {
-            await toolProcess.WaitForExitAsync(cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            try
-            {
-                toolProcess.Kill(entireProcessTree: true);
-            }
-            catch (InvalidOperationException)
-            {
-                // The tool already exited; nothing to kill.
-            }
-
-            throw;
-        }
-
-        var standardOutput = await standardOutputTask;
-        var standardError = await standardErrorTask;
-        if (!string.IsNullOrWhiteSpace(standardOutput))
-            logger.LogInformation($"XTF-Diff-Tool output: {standardOutput}");
-        if (!string.IsNullOrWhiteSpace(standardError))
-            logger.LogWarning($"XTF-Diff-Tool error output: {standardError}");
-
-        if (toolProcess.ExitCode != 0)
-            throw new InvalidOperationException($"The XTF-Diff-Tool exited with code <{toolProcess.ExitCode}>.");
     }
 
     private static Dictionary<string, string> CreateStatusMessage(IPipelineFile oldXtfFile, IPipelineFile newXtfFile, List<XtfDiffEntry> diffEntries)
