@@ -23,10 +23,10 @@ pipelines:
     steps:
       - id: file_rename
         display_name:
-          en: File Rename
-          de: Dateiumbenennung
-          it: Rinomina file
-          fr: Renommage de fichier
+          en: File Detecter
+          de: Dateierkennung
+          it: Riconoscimento dei file
+          fr: Reconnaissance de fichiers
         process_id: file_renamer
         process_config_overwrites:
           fileMappings:
