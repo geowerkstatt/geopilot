@@ -53,7 +53,7 @@
       <clear_rows>N</clear_rows>
       <create_parent_folder>N</create_parent_folder>
       <exec_per_row>N</exec_per_row>
-      <filename>${inputDir}/dmav_lfphfp2csv.hpl</filename>
+      <filename>${Internal.Workflow.Filename.Folder}/dmav_lfphfp2csv.hpl</filename>
       <logext/>
       <logfile/>
       <loglevel>Basic</loglevel>

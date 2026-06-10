@@ -16,10 +16,10 @@ processes:
 pipelines:
   - id: hop_test
     display_name:
-      en: HOP Test
-      de: HOP Test
-      it: HOP Test
-      fr: HOP Test
+      en: HOP Demo Pipeline
+      de: HOP Demo Pipeline
+      it: HOP Demo Pipeline
+      fr: HOP Demo Pipeline
     steps:
       - id: file_rename
         display_name:
@@ -79,14 +79,14 @@ pipelines:
                   it: "Deve essere caricato esattamente un file GPKG."
           post:
             fail_conditions:
-              - expression: "Length([hop.output_files]) != 1"
+              - expression: "Length([hop.output_files]) == 0"
                 message:
                   de: "Fehlender HOP Output."
                   en: "Missing HOP output."
                   fr: "Sortie HOP manquante."
                   it: "Output HOP mancante."
         process_config_overwrites:
-          pipeline: /shared/hop/pipelines/dmav_lfphfp2csv.hpl
+          pipeline: /shared/hop/pipelines/umbrella_workflow.hwf
           hopParameters:
             foo: bar
         input:
