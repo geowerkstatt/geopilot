@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TRANSFER xmlns="http://www.interlis.ch/INTERLIS2.3">
+	<HEADERSECTION SENDER="geowerkstatt" VERSION="2.3">
+		<MODELS>
+			<MODEL NAME="AllErrors23" VERSION="2026-06-10" URI="mailto:joel.waelti@geowerkstatt.ch"></MODEL>
+		</MODELS>
+	</HEADERSECTION>
+	<DATASECTION>
+		<AllErrors23.MainTopic BID="mainBasket">
+
+			<!-- ===== type / value errors (ValueTypeClass) ===== -->
+			<!-- value <abc> is not a number in attribute numberValue -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="valueNotANumber"><numberValue>abc</numberValue></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- value 999 is out of range in attribute numberValue -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="numberOutOfRange"><numberValue>999.00</numberValue></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- Attribute limitedText is length restricted to 5 -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="textTooLong"><limitedText>toolong</limitedText></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- value <maybe> is not a BOOLEAN in attribute booleanFlag -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="valueNotABoolean"><booleanFlag>maybe</booleanFlag></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- value yellow is not a member of the enumeration in attribute colourValue -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="valueNotInEnumeration"><colourValue>yellow</colourValue></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- invalid format of date value <15.06.2005> in attribute dateValue -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="invalidDateFormat"><dateValue>15.06.2005</dateValue></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- date value <1999-06-15> is not in range in attribute dateValue -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="dateOutOfRange"><dateValue>1999-06-15</dateValue></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- invalid format of time value <99:99:99.999> in attribute timeValue -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="invalidTimeFormat"><timeValue>99:99:99.999</timeValue></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- datetime value <1999-06-15T12:00:00.000> is not in range in attribute dateTimeValue -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="dateTimeOutOfRange"><dateTimeValue>1999-06-15T12:00:00.000</dateTimeValue></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- invalid format of INTERLIS.NAME value <1bad> in attribute interlisName -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="invalidInterlisName"><interlisName>1bad</interlisName></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- value <TRANSFER> is a keyword in attribute interlisName -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="nameIsKeyword"><interlisName>TRANSFER</interlisName></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- invalid format of INTERLIS.URI value <ht tp://b ad> in attribute interlisUri -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="invalidInterlisUri"><interlisUri>ht tp://b ad</interlisUri></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- value <not-a-uuid> is not a valid UUID in attribute uuidValue -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="invalidUuid"><uuidValue>not-a-uuid</uuidValue></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- unknown property <ghostAttribute> -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="unknownProperty"><ghostAttribute>x</ghostAttribute></AllErrors23.MainTopic.ValueTypeClass>
+			<!-- OID duplicateOid already exists (two objects share the same TID) -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="duplicateOid"><numberValue>1.00</numberValue></AllErrors23.MainTopic.ValueTypeClass>
+			<AllErrors23.MainTopic.ValueTypeClass TID="duplicateOid"><numberValue>2.00</numberValue></AllErrors23.MainTopic.ValueTypeClass>
+
+			<!-- ===== control characters (NormalizedTextClass) ===== -->
+			<!-- Attribute normalizedText must not contain control characters (embedded TAB) -->
+			<AllErrors23.MainTopic.NormalizedTextClass TID="textWithControlChar"><normalizedText>tab&#9;here</normalizedText></AllErrors23.MainTopic.NormalizedTextClass>
+
+			<!-- ===== multiplicity (MultiplicityClass) ===== -->
+			<!-- Attribute mandatoryText requires a value (mandatory attribute omitted) -->
+			<AllErrors23.MainTopic.MultiplicityClass TID="missingMandatoryValue">
+				<itemBag><AllErrors23.MainTopic.ItemStructure><itemText>x</itemText></AllErrors23.MainTopic.ItemStructure></itemBag>
+			</AllErrors23.MainTopic.MultiplicityClass>
+			<!-- Attribute itemBag has wrong number of values (3 > max 2) -->
+			<AllErrors23.MainTopic.MultiplicityClass TID="tooManyBagValues">
+				<mandatoryText>present</mandatoryText>
+				<itemBag>
+					<AllErrors23.MainTopic.ItemStructure><itemText>a</itemText></AllErrors23.MainTopic.ItemStructure>
+					<AllErrors23.MainTopic.ItemStructure><itemText>b</itemText></AllErrors23.MainTopic.ItemStructure>
+					<AllErrors23.MainTopic.ItemStructure><itemText>c</itemText></AllErrors23.MainTopic.ItemStructure>
+				</itemBag>
+			</AllErrors23.MainTopic.MultiplicityClass>
+
+			<!-- ===== geometry structure (GeometryClass) ===== -->
+			<!-- Wrong COORD structure, C2 expected -->
+			<AllErrors23.MainTopic.GeometryClass TID="coordMissingC2"><pointCoord><COORD><C1>2645001.000</C1></COORD></pointCoord></AllErrors23.MainTopic.GeometryClass>
+			<!-- Wrong COORD structure, C3 not expected (pointCoord is 2D) -->
+			<AllErrors23.MainTopic.GeometryClass TID="coordUnexpectedC3"><pointCoord><COORD><C1>2645001.000</C1><C2>1245002.000</C2><C3>3.000</C3></COORD></pointCoord></AllErrors23.MainTopic.GeometryClass>
+			<!-- invalid number of segments in POLYLINE (only one vertex) -->
+			<AllErrors23.MainTopic.GeometryClass TID="polylineTooFewSegments"><straightPolyline><POLYLINE><COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD></POLYLINE></straightPolyline></AllErrors23.MainTopic.GeometryClass>
+			<!-- Wrong ARC structure (ARC without A1/A2) -->
+			<AllErrors23.MainTopic.GeometryClass TID="invalidArcStructure"><arcPolyline><POLYLINE><COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD><ARC><C1>2645010.000</C1><C2>1245000.000</C2></ARC></POLYLINE></arcPolyline></AllErrors23.MainTopic.GeometryClass>
+			<!-- failed to validate polygon / missing outerboundary (open ring) -->
+			<AllErrors23.MainTopic.GeometryClass TID="openSurfaceBoundary">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD>
+					<COORD><C1>2645000.000</C1><C2>1245010.000</C2></COORD>
+					<COORD><C1>2645010.000</C1><C2>1245010.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+
+			<!-- ===== AREA topology (AreaTopologyClass) two overlapping identical squares ===== -->
+			<!-- intersection ... / failed to validate AREA AllErrors23.MainTopic.AreaTopologyClass.areaGeometry -->
+			<AllErrors23.MainTopic.AreaTopologyClass TID="overlappingArea1">
+				<categoryValue>a</categoryValue>
+				<areaGeometry><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD>
+					<COORD><C1>2645000.000</C1><C2>1245010.000</C2></COORD>
+					<COORD><C1>2645010.000</C1><C2>1245010.000</C2></COORD>
+					<COORD><C1>2645010.000</C1><C2>1245000.000</C2></COORD>
+					<COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></areaGeometry>
+			</AllErrors23.MainTopic.AreaTopologyClass>
+			<AllErrors23.MainTopic.AreaTopologyClass TID="overlappingArea2">
+				<categoryValue>a</categoryValue>
+				<areaGeometry><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD>
+					<COORD><C1>2645000.000</C1><C2>1245010.000</C2></COORD>
+					<COORD><C1>2645010.000</C1><C2>1245010.000</C2></COORD>
+					<COORD><C1>2645010.000</C1><C2>1245000.000</C2></COORD>
+					<COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></areaGeometry>
+			</AllErrors23.MainTopic.AreaTopologyClass>
+
+			<!-- ===== geometry errors with coordinates distributed over Switzerland ===== -->
+			<!-- intersection / self-intersecting surface boundary near Geneva -->
+			<AllErrors23.MainTopic.GeometryClass TID="selfIntersectionGeneva">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2500000.000</C1><C2>1117500.000</C2></COORD>
+					<COORD><C1>2500010.000</C1><C2>1117510.000</C2></COORD>
+					<COORD><C1>2500000.000</C1><C2>1117510.000</C2></COORD>
+					<COORD><C1>2500010.000</C1><C2>1117500.000</C2></COORD>
+					<COORD><C1>2500000.000</C1><C2>1117500.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+			<!-- dangle / open surface boundary near Basel -->
+			<AllErrors23.MainTopic.GeometryClass TID="openBoundaryBasel">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2611500.000</C1><C2>1267500.000</C2></COORD>
+					<COORD><C1>2611500.000</C1><C2>1267510.000</C2></COORD>
+					<COORD><C1>2611510.000</C1><C2>1267510.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+			<!-- intersection / self-intersecting surface boundary near Zurich -->
+			<AllErrors23.MainTopic.GeometryClass TID="selfIntersectionZurich">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2683000.000</C1><C2>1248000.000</C2></COORD>
+					<COORD><C1>2683010.000</C1><C2>1248010.000</C2></COORD>
+					<COORD><C1>2683000.000</C1><C2>1248010.000</C2></COORD>
+					<COORD><C1>2683010.000</C1><C2>1248000.000</C2></COORD>
+					<COORD><C1>2683000.000</C1><C2>1248000.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+			<!-- dangle / open surface boundary near Lugano -->
+			<AllErrors23.MainTopic.GeometryClass TID="openBoundaryLugano">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2717500.000</C1><C2>1096000.000</C2></COORD>
+					<COORD><C1>2717500.000</C1><C2>1096010.000</C2></COORD>
+					<COORD><C1>2717510.000</C1><C2>1096010.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+			<!-- intersection / self-intersecting surface boundary near St. Gallen -->
+			<AllErrors23.MainTopic.GeometryClass TID="selfIntersectionStGallen">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2746000.000</C1><C2>1254000.000</C2></COORD>
+					<COORD><C1>2746010.000</C1><C2>1254010.000</C2></COORD>
+					<COORD><C1>2746000.000</C1><C2>1254010.000</C2></COORD>
+					<COORD><C1>2746010.000</C1><C2>1254000.000</C2></COORD>
+					<COORD><C1>2746000.000</C1><C2>1254000.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+			<!-- dangle / open surface boundary near Sion -->
+			<AllErrors23.MainTopic.GeometryClass TID="openBoundarySion">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2593500.000</C1><C2>1120500.000</C2></COORD>
+					<COORD><C1>2593500.000</C1><C2>1120510.000</C2></COORD>
+					<COORD><C1>2593510.000</C1><C2>1120510.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+
+			<!-- ===== cluster of several errors at Churwalden GR ===== -->
+			<!-- polygons overlay: two identical squares at Churwalden -->
+			<AllErrors23.MainTopic.AreaTopologyClass TID="overlappingAreaChurwalden1">
+				<categoryValue>b</categoryValue>
+				<areaGeometry><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2761300.000</C1><C2>1182700.000</C2></COORD>
+					<COORD><C1>2761300.000</C1><C2>1182710.000</C2></COORD>
+					<COORD><C1>2761310.000</C1><C2>1182710.000</C2></COORD>
+					<COORD><C1>2761310.000</C1><C2>1182700.000</C2></COORD>
+					<COORD><C1>2761300.000</C1><C2>1182700.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></areaGeometry>
+			</AllErrors23.MainTopic.AreaTopologyClass>
+			<AllErrors23.MainTopic.AreaTopologyClass TID="overlappingAreaChurwalden2">
+				<categoryValue>b</categoryValue>
+				<areaGeometry><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2761300.000</C1><C2>1182700.000</C2></COORD>
+					<COORD><C1>2761300.000</C1><C2>1182710.000</C2></COORD>
+					<COORD><C1>2761310.000</C1><C2>1182710.000</C2></COORD>
+					<COORD><C1>2761310.000</C1><C2>1182700.000</C2></COORD>
+					<COORD><C1>2761300.000</C1><C2>1182700.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></areaGeometry>
+			</AllErrors23.MainTopic.AreaTopologyClass>
+			<!-- intersection / self-intersecting surface boundary at Churwalden -->
+			<AllErrors23.MainTopic.GeometryClass TID="selfIntersectionChurwalden">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2761320.000</C1><C2>1182700.000</C2></COORD>
+					<COORD><C1>2761330.000</C1><C2>1182710.000</C2></COORD>
+					<COORD><C1>2761320.000</C1><C2>1182710.000</C2></COORD>
+					<COORD><C1>2761330.000</C1><C2>1182700.000</C2></COORD>
+					<COORD><C1>2761320.000</C1><C2>1182700.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+			<!-- dangle / open surface boundary at Churwalden -->
+			<AllErrors23.MainTopic.GeometryClass TID="openBoundaryChurwalden">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2761340.000</C1><C2>1182700.000</C2></COORD>
+					<COORD><C1>2761340.000</C1><C2>1182710.000</C2></COORD>
+					<COORD><C1>2761350.000</C1><C2>1182710.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+
+			<!-- ===== constraints ===== -->
+			<!-- Mandatory Constraint ...MandatoryConstraintClass.CONSTRAINT is not true (firstFlag != secondFlag) -->
+			<AllErrors23.MainTopic.MandatoryConstraintClass TID="mandatoryConstraintViolated"><firstFlag>true</firstFlag><secondFlag>false</secondFlag></AllErrors23.MainTopic.MandatoryConstraintClass>
+			<!-- Plausibility Constraint ...PlausibilityConstraintClass.CONSTRAINT is not true (0% satisfy firstNumber>=secondNumber) -->
+			<AllErrors23.MainTopic.PlausibilityConstraintClass TID="plausibilityConstraintViolated"><firstNumber>1</firstNumber><secondNumber>9</secondNumber></AllErrors23.MainTopic.PlausibilityConstraintClass>
+			<!-- Set Constraint ...SetConstraintClass.CONSTRAINT is not true (count of categoryValue=a is 2, expected 5) -->
+			<AllErrors23.MainTopic.SetConstraintClass TID="setConstraintObject1"><categoryValue>a</categoryValue></AllErrors23.MainTopic.SetConstraintClass>
+			<AllErrors23.MainTopic.SetConstraintClass TID="setConstraintObject2"><categoryValue>a</categoryValue></AllErrors23.MainTopic.SetConstraintClass>
+			<!-- Unique constraint ...UniqueConstraintClass.CONSTRAINT is violated -->
+			<AllErrors23.MainTopic.UniqueConstraintClass TID="uniqueConstraintObject1"><keyText>same</keyText><keyNumber>7</keyNumber></AllErrors23.MainTopic.UniqueConstraintClass>
+			<AllErrors23.MainTopic.UniqueConstraintClass TID="uniqueConstraintObject2"><keyText>same</keyText><keyNumber>7</keyNumber></AllErrors23.MainTopic.UniqueConstraintClass>
+			<!-- Existence constraint ... is violated (value "missing" not present in any ConditionClass) -->
+			<AllErrors23.MainTopic.ExistenceConstraintClass TID="existenceConstraintViolated"><referencedText>missing</referencedText></AllErrors23.MainTopic.ExistenceConstraintClass>
+
+			<!-- ===== reference / association (LinkAssociation) ===== -->
+			<!-- valid baseline pair so role target (1..1) of validSource is satisfied -->
+			<AllErrors23.MainTopic.LinkSourceClass TID="validSource"><label>source</label></AllErrors23.MainTopic.LinkSourceClass>
+			<AllErrors23.MainTopic.LinkTargetClass TID="validTarget"><label>target</label></AllErrors23.MainTopic.LinkTargetClass>
+			<AllErrors23.MainTopic.LinkAssociation><source REF="validSource"></source><target REF="validTarget"></target></AllErrors23.MainTopic.LinkAssociation>
+			<!-- role cardinality: LinkSourceClass with no association -> should associate to 1 target object (instead of 0) -->
+			<AllErrors23.MainTopic.LinkSourceClass TID="sourceWithoutLink"><label>lonely</label></AllErrors23.MainTopic.LinkSourceClass>
+			<!-- No object found with OID missingTarget (role source points at a missing object) -->
+			<AllErrors23.MainTopic.LinkAssociation><source REF="missingTarget"></source><target REF="validTarget"></target></AllErrors23.MainTopic.LinkAssociation>
+			<!-- wrong class of target object (role source points at a LinkTargetClass instead of LinkSourceClass) -->
+			<AllErrors23.MainTopic.LinkAssociation><source REF="validTarget"></source><target REF="validTarget"></target></AllErrors23.MainTopic.LinkAssociation>
+
+			<!-- unknown class <AllErrors23.MainTopic.UndefinedClass> -->
+			<AllErrors23.MainTopic.UndefinedClass TID="objectOfUnknownClass"><label>y</label></AllErrors23.MainTopic.UndefinedClass>
+
+		</AllErrors23.MainTopic>
+
+		<!-- ===== TID not a valid UUID (UuidTopic, OID AS UUIDOID) ===== -->
+		<AllErrors23.UuidTopic BID="uuidBasket">
+			<AllErrors23.UuidTopic.UuidObjectClass TID="not-a-uuid"><label>x</label></AllErrors23.UuidTopic.UuidObjectClass>
+		</AllErrors23.UuidTopic>
+
+		<!-- Invalid basket element name AllErrors23.UndefinedTopic (no such topic) -->
+		<AllErrors23.UndefinedTopic BID="undefinedBasket"></AllErrors23.UndefinedTopic>
+
+	</DATASECTION>
+</TRANSFER>

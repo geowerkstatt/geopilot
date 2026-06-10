@@ -235,3 +235,154 @@ pipelines:
             as: status_message
             action:
               - StatusMessage
+  - id: ili_validation_with_map_and_error_tree
+    display_name:
+      en: XTF Validation with Map and Error Tree
+      de: XTF Validierung mit Karte und Error Tree
+      it: Validazione XTF con mappa e albero degli errori
+      fr: Validation XTF avec carte et arbre des erreurs
+    delivery_restrictions:
+      - expression: "!([validation.successful])"
+        message:
+          de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
+          en: "Validation was not successful. Delivery is not possible."
+          fr: "La validation n'a pas réussi. La livraison n'est pas possible."
+          it: "La validazione non è riuscita. La consegna non è possibile."
+    steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+          de: XTF Zuordnung
+          it: Corrispondenza XTF
+          fr: Correspondance XTF
+        process_id: xtf_matcher
+        output:
+          - take: xtf_files
+            as: xtf_files
+      - id: validation
+        display_name:
+          en: XTF Validation
+          de: XTF Validierung
+          it: Validazione XTF
+          fr: Validation XTF
+        process_id: xtf_validator
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([xtf_matching.xtf_files]) != 1"
+                message:
+                  de: "Es muss genau eine XTF-Datei hochgeladen werden."
+                  en: "Exactly one XTF file must be uploaded."
+                  fr: "Exactement un fichier XTF doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file XTF."
+        input:
+          - from: xtf_matching
+            take: xtf_files
+            as: iliFile
+        output:
+          - take: error_log
+            as: error_log
+            action:
+              - Download
+              - Delivery
+          - take: xtf_log
+            as: xtf_log
+            action:
+              - Download
+              - Delivery
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+          - take: validation_successful
+            as: successful
+      - id: map_visualization
+        display_name:
+          en: Map Visualization
+          de: Kartenvisualisierung
+          it: Visualizzazione cartografica
+          fr: Visualisation cartographique
+        process_id: map_visualizer
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "[validation.successful]"
+                message:
+                  de: "Validierung erfolgreich. Kartenvisualisierung wird übersprungen."
+                  en: "Validation successful. Map visualization will be skipped."
+                  fr: "Validation réussie. La visualisation cartographique sera ignorée."
+                  it: "Validazione riuscita. La visualizzazione cartografica sarà ignorata."
+        input:
+          - from: validation
+            take: xtf_log
+            as: errorLogXtf
+        output:
+          - take: map_visualization_config_file
+            as: map_visualization
+            action:
+              - MapVisualization
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+      - id: error_tree
+        display_name:
+          en: Error Tree
+          de: Error Tree
+          it: Albero degli errori
+          fr: Arbre des erreurs
+        process_id: xtf_error_tree
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "[validation.successful]"
+                message:
+                  de: "Validierung erfolgreich. Error Tree wird übersprungen."
+                  en: "Validation successful. Error Tree will be skipped."
+                  fr: "Validation réussie. L'arbre des erreurs sera ignoré."
+                  it: "Validazione riuscita. L'albero degli errori sarà ignorato."
+        input:
+          - from: validation
+            take: xtf_log
+            as: xtfLog
+        output:
+          - take: tree_config
+            as: error_tree
+            action:
+              - Download
+              - Delivery
+              - TreeVisualization
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+      - id: zip_packaging
+        display_name:
+          en: ZIP Packaging
+          de: ZIP Packet
+          it: Creazione ZIP
+          fr: Création ZIP
+        process_id: zip_packager
+        input:
+          - from: xtf_matching
+            take: xtf_files
+            as: input
+          - from: validation
+            take: xtf_log
+            as: input
+          - from: validation
+            take: error_log
+            as: input
+          - from: error_tree
+            take: error_tree
+            as: input
+        output:
+          - take: zip_package
+            as: archive
+            action:
+              - Download
+              - Delivery
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
