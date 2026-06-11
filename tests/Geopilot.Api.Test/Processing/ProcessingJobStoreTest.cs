@@ -25,7 +25,7 @@ public class ProcessingJobStoreTest
         Assert.HasCount(0, job.Files);
         Assert.AreNotEqual(Guid.Empty, job.Id);
         Assert.IsNull(job.Pipeline);
-        Assert.IsFalse(job.IsFailed);
+        Assert.AreEqual(ProcessingState.Pending, job.State);
     }
 
     [TestMethod]
@@ -116,12 +116,63 @@ public class ProcessingJobStoreTest
     }
 
     [TestMethod]
-    public void MarkAsFailedSetsFlag()
+    public void StartJobSetsStateToRunning()
+    {
+        var job = store.CreateJob();
+        var updated = store.StartJob(job.Id, new Mock<IPipeline>().Object, 1);
+
+        Assert.AreEqual(ProcessingState.Running, updated.State);
+    }
+
+    [TestMethod]
+    [DataRow(ProcessingState.Success)]
+    [DataRow(ProcessingState.Failed)]
+    [DataRow(ProcessingState.Cancelled)]
+    public void PipelineFinishedTransitionsFromRunning(ProcessingState pipelineState)
+    {
+        var job = store.CreateJob();
+        store.StartJob(job.Id, new Mock<IPipeline>().Object, 1);
+        var updated = store.PipelineFinished(job.Id, pipelineState);
+
+        Assert.AreEqual(pipelineState, updated.State);
+    }
+
+    [TestMethod]
+    public void PipelineFinishedThrowsIfNotRunning()
+    {
+        var job = store.CreateJob();
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.PipelineFinished(job.Id, ProcessingState.Success));
+    }
+
+    [TestMethod]
+    [DataRow(ProcessingState.Pending)]
+    [DataRow(ProcessingState.Running)]
+    public void PipelineFinishedThrowsIfPipelineStateIsNotTerminal(ProcessingState pipelineState)
+    {
+        var job = store.CreateJob();
+        store.StartJob(job.Id, new Mock<IPipeline>().Object, 1);
+
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => store.PipelineFinished(job.Id, pipelineState));
+    }
+
+    [TestMethod]
+    public void MarkAsFailedSetsState()
     {
         var job = store.CreateJob();
         var updated = store.MarkAsFailed(job.Id);
 
-        Assert.IsTrue(updated.IsFailed);
+        Assert.AreEqual(ProcessingState.Failed, updated.State);
+    }
+
+    [TestMethod]
+    public void MarkAsFailedThrowsIfAlreadyTerminal()
+    {
+        var job = store.CreateJob();
+        store.StartJob(job.Id, new Mock<IPipeline>().Object, 1);
+        store.PipelineFinished(job.Id, ProcessingState.Success);
+
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.MarkAsFailed(job.Id));
     }
 
     [TestMethod]

@@ -58,7 +58,7 @@ public class PreflightBackgroundService : BackgroundService
         var context = scope.ServiceProvider.GetRequiredService<Context>();
 
         var job = jobStore.GetJob(request.JobId);
-        if (job == null || job.Pipeline != null || job.IsFailed)
+        if (job == null || job.Pipeline != null || job.State == ProcessingState.Failed)
         {
             logger.LogWarning("Skipping preflight for job <{JobId}>: job is null, already started, or already failed.", request.JobId);
             return;
