@@ -4,10 +4,11 @@
      with test_dmav_1.xtf and upload the archive. Same basket and object UUIDs as
      test_dmav_1.xtf so the diff tool matches the objects. Differences to the old
      state: point P1 moved by 0.55 m east / 0.30 m north (geometry "changed"), point
-     P3 is new (object "added"), the surface of the Bodenbedeckung object grew
-     (east edge 2640340 -> 2640352, north edge 1172590 -> 1172598; geometry
-     "changed"), BBNachfuehrung N1 gained its optional Perimeter surface (geometry
-     "added") and N2 lost it (geometry "deleted"). P2 is unchanged. -->
+     P3 is new (object "added"), the straight east edge of the L-shaped Bodenbedeckung
+     surface is replaced by an arc bulge (geom:arc; geometry "changed" - also exercises
+     the arc linearization of the map visualization), BBNachfuehrung N1 gained its
+     optional Perimeter surface (geometry "added") and N2 lost it (geometry "deleted").
+     P2 is unchanged. -->
 <ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS"
   xmlns:geom="http://www.interlis.ch/geometry/1.0"
   xmlns="http://www.interlis.ch/xtf/2.4/DMAV_Bodenbedeckung_V1_1">
@@ -50,14 +51,19 @@
            name is the qualified "Bodenbedeckung.Bodenbedeckung" (see ili2c
            XSD24Generator.createDef2NameMapping). -->
       <Bodenbedeckung.Bodenbedeckung ili:tid="6f1e9b3c-8d2a-4e7f-b5c0-9a8d7e6f5a4b">
+        <!-- Same L-shaped footprint as the old state, but the straight east edge is
+             replaced by an arc (geom:arc: a1/a2 = intermediate point on the arc,
+             c1/c2 = arc end point, start = previous coord) bulging 6 m east. -->
         <Geometrie>
           <geom:surface>
             <geom:exterior>
               <geom:polyline>
                 <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640352.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640352.000</geom:c1><geom:c2>1172598.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172598.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640340.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
+                <geom:arc><geom:c1>2640340.000</geom:c1><geom:c2>1172576.000</geom:c2><geom:a1>2640346.000</geom:a1><geom:a2>1172568.000</geom:a2></geom:arc>
+                <geom:coord><geom:c1>2640318.000</geom:c1><geom:c2>1172576.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640318.000</geom:c1><geom:c2>1172588.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172588.000</geom:c2></geom:coord>
                 <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
               </geom:polyline>
             </geom:exterior>
@@ -75,11 +81,12 @@
           <geom:surface>
             <geom:exterior>
               <geom:polyline>
-                <geom:coord><geom:c1>2640360.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640380.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640380.000</geom:c1><geom:c2>1172575.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640360.000</geom:c1><geom:c2>1172575.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640360.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640360.000</geom:c1><geom:c2>1172562.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640378.000</geom:c1><geom:c2>1172558.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640384.000</geom:c1><geom:c2>1172570.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640372.000</geom:c1><geom:c2>1172580.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640358.000</geom:c1><geom:c2>1172574.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640360.000</geom:c1><geom:c2>1172562.000</geom:c2></geom:coord>
               </geom:polyline>
             </geom:exterior>
           </geom:surface>

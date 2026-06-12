@@ -7,10 +7,11 @@
      Bodenbedeckung topic declares OID AS INTERLIS.UUIDOID, so basket and object ids
      below are UUIDs and stay identical across both files. Compared to this file,
      test_dmav_2.xtf moves point P1 slightly, adds a new point P3, changes the surface
-     geometry of the Bodenbedeckung object, adds the optional Perimeter surface to
-     BBNachfuehrung N1 and removes it from N2. The added/deleted cases use an optional
-     geometry attribute on objects present in both files, because the XTF-Diff-Tool
-     reports added/deleted whole objects only as an "object" entry without geometry. -->
+     geometry of the Bodenbedeckung object (the straight east edge of the L-shape
+     becomes an arc bulge), adds the optional Perimeter surface to BBNachfuehrung N1
+     and removes it from N2. The added/deleted cases use an optional geometry attribute
+     on objects present in both files, because the XTF-Diff-Tool reports added/deleted
+     whole objects only as an "object" entry without geometry. -->
 <ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS"
   xmlns:geom="http://www.interlis.ch/geometry/1.0"
   xmlns="http://www.interlis.ch/xtf/2.4/DMAV_Bodenbedeckung_V1_1">
@@ -44,14 +45,18 @@
            name is the qualified "Bodenbedeckung.Bodenbedeckung" (see ili2c
            XSD24Generator.createDef2NameMapping). -->
       <Bodenbedeckung.Bodenbedeckung ili:tid="6f1e9b3c-8d2a-4e7f-b5c0-9a8d7e6f5a4b">
+        <!-- L-shaped building footprint; in the new state the straight east edge
+             (2640340/1172560 to 2640340/1172576) is replaced by an arc bulge. -->
         <Geometrie>
           <geom:surface>
             <geom:exterior>
               <geom:polyline>
                 <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
                 <geom:coord><geom:c1>2640340.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640340.000</geom:c1><geom:c2>1172590.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172590.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640340.000</geom:c1><geom:c2>1172576.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640318.000</geom:c1><geom:c2>1172576.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640318.000</geom:c1><geom:c2>1172588.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172588.000</geom:c2></geom:coord>
                 <geom:coord><geom:c1>2640300.000</geom:c1><geom:c2>1172560.000</geom:c2></geom:coord>
               </geom:polyline>
             </geom:exterior>
@@ -75,11 +80,11 @@
           <geom:surface>
             <geom:exterior>
               <geom:polyline>
-                <geom:coord><geom:c1>2640280.000</geom:c1><geom:c2>1172575.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640295.000</geom:c1><geom:c2>1172575.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640295.000</geom:c1><geom:c2>1172590.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640280.000</geom:c1><geom:c2>1172590.000</geom:c2></geom:coord>
-                <geom:coord><geom:c1>2640280.000</geom:c1><geom:c2>1172575.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640278.000</geom:c1><geom:c2>1172574.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640294.000</geom:c1><geom:c2>1172570.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640297.000</geom:c1><geom:c2>1172584.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640284.000</geom:c1><geom:c2>1172592.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>2640278.000</geom:c1><geom:c2>1172574.000</geom:c2></geom:coord>
               </geom:polyline>
             </geom:exterior>
           </geom:surface>
