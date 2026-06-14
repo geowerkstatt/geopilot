@@ -4,7 +4,6 @@ using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;

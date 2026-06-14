@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline;
 using Geopilot.Api.StacServices;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Process;
