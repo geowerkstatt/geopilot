@@ -14,7 +14,7 @@ const StepperStack = styled(Stack)(({ theme }) => ({
   top: "100px",
   zIndex: 10,
   [theme.breakpoints.down("md")]: {
-    overflowX: "auto",
+    overflowX: "hidden",
     scrollSnapType: "x",
     scrollbarWidth: "none",
     flex: "0 0 58px",
@@ -62,8 +62,10 @@ export const DeliveryStepper = () => {
   );
 
   const onStepClick = (index: number) => {
-    showStep(index, "smooth");
-    showCompletedOrNextStep(index);
+    if (isEnabled(index)) {
+      showStep(index, "smooth");
+      showCompletedOrNextStep(index);
+    }
   };
 
   useEffect(() => {
