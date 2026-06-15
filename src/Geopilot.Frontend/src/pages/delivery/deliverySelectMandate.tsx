@@ -25,12 +25,14 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
 }));
 
 const StyledToggleButton = styled(ToggleButton)({
+  minWidth: "fit-content",
   width: "max-content",
-  maxWidth: "400px",
+  maxWidth: "100%",
   flexDirection: "column",
   alignItems: "flex-start",
   textAlign: "left",
   gap: "0.25rem",
+  flex: "1",
 });
 
 interface MandateToggleButtonProps {
