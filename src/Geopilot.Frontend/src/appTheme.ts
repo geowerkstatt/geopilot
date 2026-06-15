@@ -30,6 +30,7 @@ const themePalette: AppThemePalette = {
   },
   error: {
     main: "#e53835",
+    selected: "#e538352E",
     hover: "#e538350D",
   },
 };

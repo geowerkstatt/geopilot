@@ -30,6 +30,7 @@ declare module "@mui/material/styles" {
     };
     error: {
       main: string;
+      selected: string;
       hover: string;
     };
   }

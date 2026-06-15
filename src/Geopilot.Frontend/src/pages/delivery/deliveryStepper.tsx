@@ -21,11 +21,14 @@ const StepperStack = styled(Stack)(({ theme }) => ({
   },
 }));
 
-const DeliveryStepBox = styled(GeopilotBox, { shouldForwardProp: prop => prop !== "open" && prop !== "enabled" })<{
+const DeliveryStepBox = styled(GeopilotBox, {
+  shouldForwardProp: prop => prop !== "open" && prop !== "enabled" && prop !== "error",
+})<{
   open: boolean;
+  error: boolean;
   enabled: boolean;
-}>(({ open, enabled, theme }) => ({
-  backgroundColor: open ? theme.palette.primary.selected : "white",
+}>(({ open, enabled, error, theme }) => ({
+  backgroundColor: open ? (error ? theme.palette.error.selected : theme.palette.primary.selected) : "white",
   alignItems: "flex-start",
   cursor: enabled ? "pointer" : "default",
   [theme.breakpoints.down("md")]: {
@@ -79,6 +82,7 @@ export const DeliveryStepper = () => {
           data-cy={`${key}-step`}
           direction="row"
           open={isOpen(index)}
+          error={!!step.error}
           enabled={isEnabled(index)}
           onClick={() => onStepClick(index)}>
           <StepperIcon
@@ -109,7 +113,7 @@ export const DeliveryStepper = () => {
               </Typography>
             )}
             {step.error && (
-              <Typography variant="body2" color="error">
+              <Typography variant="body2" color={isOpen(index) ? "textSecondary" : "error"}>
                 {t(step.error)}
               </Typography>
             )}
