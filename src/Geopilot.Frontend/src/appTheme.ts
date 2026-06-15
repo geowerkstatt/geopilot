@@ -7,12 +7,12 @@ const defaultTheme = createTheme();
 const themePalette: AppThemePalette = {
   primary: {
     main: "#124A4F",
-    light: "#124A4F80",
+    light: "#88a4a7",
     inactive: "#124A4F99",
     hover: "#124A4F0D",
     selected: "#124A4F2E",
     contrastText: "#ffffff",
-    background: "#124A4F0A",
+    background: "#f6f8f8",
   },
   secondary: {
     main: "#00ff97",

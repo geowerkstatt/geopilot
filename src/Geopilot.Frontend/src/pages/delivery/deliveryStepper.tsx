@@ -10,6 +10,9 @@ import { StepperIcon } from "./stepperIcon";
 const StepperStack = styled(Stack)(({ theme }) => ({
   minWidth: 300,
   flex: 0,
+  position: "sticky",
+  top: "100px",
+  zIndex: 10,
   [theme.breakpoints.down("md")]: {
     overflowX: "auto",
     scrollSnapType: "x",

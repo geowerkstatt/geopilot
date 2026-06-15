@@ -146,7 +146,7 @@ const AdminDetailForm = <T extends { id: number }>({
   }, [data]);
 
   return (
-    <FlexBox sx={{ minHeight: "0" }}>
+    <FlexBox>
       <FlexRowSpaceBetweenBox>
         <BaseButton variant={"text"} icon={<ChevronLeft />} onClick={() => navigateTo(basePath)} label={backLabel} />
         {data && data.id !== 0 && <Typography variant={"body2"}>{t("id") + ": " + data?.id}</Typography>}
@@ -157,11 +157,9 @@ const AdminDetailForm = <T extends { id: number }>({
         </Stack>
       ) : (
         <FormProvider {...formMethods}>
-          <form
-            style={{ display: "flex", flexDirection: "column", minHeight: "0" }}
-            onSubmit={formMethods.handleSubmit(submitForm)}>
-            <FlexBox sx={{ minHeight: "0" }}>
-              <FlexBox sx={{ overflow: "auto" }}>{children}</FlexBox>
+          <form onSubmit={formMethods.handleSubmit(submitForm)}>
+            <FlexBox>
+              {children}
               <FlexRowEndBox>
                 <BaseButton
                   variant={"outlined"}
