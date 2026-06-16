@@ -9,12 +9,12 @@ public class FileMatcherProcessTest
     private static PipelineFileList FileList(params string[] fileNames) =>
         new PipelineFileList(fileNames.Select(n => (IPipelineFile)new PipelineFile("dummy", n)).ToList());
 
-    private static async Task<(IPipelineFile[] Files, Dictionary<string, string> StatusMessage)> RunAsync(FileMatcherProcess process, IPipelineFileList files)
+    private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(FileMatcherProcess process, IPipelineFileList files)
     {
         var result = await process.RunAsync(files);
         result.TryGetValue("matched_files", out var matchedFiles);
         result.TryGetValue("status_message", out var statusMessage);
-        return ((IPipelineFile[])matchedFiles!, (Dictionary<string, string>)statusMessage!);
+        return ((IPipelineFile[])matchedFiles!, (LocalizedText)statusMessage!);
     }
 
     [TestMethod]

@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Pipeline;
 
@@ -15,7 +16,7 @@ public interface IPipelineStep : IDisposable
     /// <summary>
     /// A human-readable display name for the step in different languages. Key: ISO 639 language code, Value: The display name for that language.
     /// </summary>
-    Dictionary<string, string> DisplayName { get; }
+    LocalizedText DisplayName { get; }
 
     /// <summary>
     /// The input configuration for this step.
@@ -48,7 +49,7 @@ public interface IPipelineStep : IDisposable
     /// pre-fail / pre-skip / post-fail messages added during <see cref="Run"/>. <see langword="null"/>
     /// if the step has not run, or ran without emitting any status message.
     /// </summary>
-    IDictionary<string, string>? StatusMessage { get; }
+    LocalizedText? StatusMessage { get; }
 
     /// <summary>
     /// Files produced by the step that are available for the user to download (outputs

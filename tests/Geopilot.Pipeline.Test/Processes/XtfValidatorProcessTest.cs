@@ -73,9 +73,10 @@ public class XtfValidatorProcessTest
         Assert.IsNotNull(xtfLog);
         Assert.AreEqual("xtfLog.xtf", xtfLog.OriginalFileName);
         processResult.TryGetValue("status_message", out var statusMessageData);
-        var statusMessage = statusMessageData as Dictionary<string, string>;
+        var statusMessage = statusMessageData as LocalizedText;
         Assert.IsNotNull(statusMessage);
-        CollectionAssert.AreEqual(new Dictionary<string, string>() { { "de", "Validation successful" }, { "fr", "Validation successful" }, { "it", "Validation successful" }, { "en", "Validation successful" } }, statusMessage);
+        LocalizedText expectedStatusMessage = new Dictionary<string, string>() { { "de", "Validation successful" }, { "fr", "Validation successful" }, { "it", "Validation successful" }, { "en", "Validation successful" } };
+        Assert.AreEqual(expectedStatusMessage, statusMessage);
         processResult.TryGetValue("validation_successful", out var validationSuccessfulData);
         var validationSuccessful = validationSuccessfulData as bool?;
         Assert.IsTrue(validationSuccessful);

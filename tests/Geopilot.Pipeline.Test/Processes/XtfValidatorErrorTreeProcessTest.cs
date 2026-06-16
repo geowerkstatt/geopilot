@@ -29,21 +29,22 @@ public class XtfValidatorErrorTreeProcessTest
         var errorLog = processResult["error_tree"] as List<ErrorTree>;
         var jsonErrorLog = processResult["json_error_tree"] as string;
         var jsonErrorLogFile = processResult["json_error_tree_file"] as PipelineFile;
-        var statusMessage = processResult["status_message"] as Dictionary<string, string>;
+        var statusMessage = processResult["status_message"] as LocalizedText;
 
         Assert.IsNotEmpty(errorLog);
         Assert.IsNotEmpty(jsonErrorLog);
         Assert.IsNotNull(jsonErrorLogFile);
 
-        Assert.HasCount(4, statusMessage);
-        var expectedStatusMessage = new Dictionary<string, string>()
+        Assert.IsNotNull(statusMessage);
+        Assert.AreEqual(4, statusMessage.Count);
+        LocalizedText expectedStatusMessage = new Dictionary<string, string>()
         {
             { "de", "Error Tree erstellt" },
             { "fr", "Arbre d'erreurs créé" },
             { "it", "Albero degli errori creato" },
             { "en", "Error tree created" },
         };
-        CollectionAssert.AreEqual(expectedStatusMessage, statusMessage);
+        Assert.AreEqual(expectedStatusMessage, statusMessage);
 
         var expected = Deserialize(File.ReadAllText("TestData/Expectations/XtfValidatorErrorTree/errorLogWithErrors.json"));
 

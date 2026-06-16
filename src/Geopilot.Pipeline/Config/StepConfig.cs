@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.ValidationAttributes;
+using Geopilot.PipelineCore.Pipeline;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
@@ -22,7 +23,7 @@ public class StepConfig
     /// </summary>
     [YamlMember(Alias = "display_name")]
     [Required(ErrorMessage = "Step Display Name is required.")]
-    public required Dictionary<string, string> DisplayName { get; set; }
+    public required LocalizedText DisplayName { get; set; }
 
     /// <summary>
     /// The process to execute in this step. References the <see cref="ProcessConfig.Id"/> of a defined process.

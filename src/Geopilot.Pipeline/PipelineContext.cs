@@ -23,5 +23,5 @@ public class PipelineContext
     /// Gets or sets the localized delivery restriction messages.
     /// If delivery is restricted by one or more conditions, this dictionary contains the merged messages per language code.
     /// </summary>
-    public Dictionary<string, string>? DeliveryRestrictionMessage { get; set; }
+    public LocalizedText? DeliveryRestrictionMessage { get; set; }
 }

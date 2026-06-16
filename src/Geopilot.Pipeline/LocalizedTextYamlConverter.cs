@@ -18,6 +18,9 @@ internal sealed class LocalizedTextYamlConverter : IYamlTypeConverter
     /// <inheritdoc/>
     public object ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
     {
+        if (parser.TryConsume<Scalar>(out _))
+            return null!;
+
         var values = new Dictionary<string, string>();
         parser.Consume<MappingStart>();
         while (!parser.TryConsume<MappingEnd>(out _))

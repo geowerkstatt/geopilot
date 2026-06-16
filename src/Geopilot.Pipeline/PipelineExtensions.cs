@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 using System.ComponentModel.DataAnnotations;
 
 namespace Geopilot.Pipeline;
@@ -41,7 +42,8 @@ internal static class PipelineExtensions
             var isDecimal = property.PropertyType == typeof(decimal);
             var isString = property.PropertyType == typeof(string);
             var isParameterization = property.PropertyType == typeof(Parameterization);
-            var goRecursive = !isPrimitive && !isDecimal && !isString && !isParameterization;
+            var isLocalizedText = property.PropertyType == typeof(LocalizedText);
+            var goRecursive = !isPrimitive && !isDecimal && !isString && !isParameterization && !isLocalizedText;
             if (goRecursive)
             {
                 var value = property.GetValue(obj);

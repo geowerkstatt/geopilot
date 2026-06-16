@@ -54,16 +54,16 @@ public class UnzipProcessTest
             Assert.AreEqual("hello", reader.ReadToEnd());
         }
 
-        var statusMessage = result["status_message"] as Dictionary<string, string>;
+        var statusMessage = result["status_message"] as LocalizedText;
         Assert.IsNotNull(statusMessage);
-        var expected = new Dictionary<string, string>
+        LocalizedText expected = new Dictionary<string, string>
         {
             { "de", "2 Datei(en) aus dem ZIP Archiv entpackt." },
             { "fr", "2 fichier(s) extrait(s) de l'archive ZIP." },
             { "it", "2 file estratti dall'archivio ZIP." },
             { "en", "2 file(s) extracted from the ZIP archive." },
         };
-        CollectionAssert.AreEqual(expected, statusMessage);
+        Assert.AreEqual(expected, statusMessage);
     }
 
     [TestMethod]
@@ -78,16 +78,16 @@ public class UnzipProcessTest
         Assert.IsNotNull(extracted);
         Assert.HasCount(0, extracted);
 
-        var statusMessage = result["status_message"] as Dictionary<string, string>;
+        var statusMessage = result["status_message"] as LocalizedText;
         Assert.IsNotNull(statusMessage);
-        var expected = new Dictionary<string, string>
+        LocalizedText expected = new Dictionary<string, string>
         {
             { "de", "Das ZIP Archiv enthält keine Dateien." },
             { "fr", "L'archive ZIP ne contient aucun fichier." },
             { "it", "L'archivio ZIP non contiene file." },
             { "en", "The ZIP archive contains no files." },
         };
-        CollectionAssert.AreEqual(expected, statusMessage);
+        Assert.AreEqual(expected, statusMessage);
     }
 
     [TestMethod]

@@ -14,7 +14,7 @@ namespace Geopilot.Pipeline.Processes.Matcher.FileMatcher;
 /// </remarks>
 internal class FileMatcherProcess
 {
-    private static readonly Dictionary<string, string> StatusMessageFormat = new Dictionary<string, string>
+    private static readonly LocalizedText StatusMessageFormat = new Dictionary<string, string>
     {
         { "de", "{0} von {1} Datei(en) entsprechen den Filterkriterien." },
         { "fr", "{0} fichier(s) sur {1} correspondent aux critères du filtre." },
@@ -22,7 +22,7 @@ internal class FileMatcherProcess
         { "en", "{0} of {1} file(s) match the filter criteria." },
     };
 
-    private static readonly Dictionary<string, string> NoMatchStatusMessage = new Dictionary<string, string>
+    private static readonly LocalizedText NoMatchStatusMessage = new Dictionary<string, string>
     {
         { "de", "Keine Dateien entsprechen den Filterkriterien." },
         { "fr", "Aucun fichier ne correspond aux critères du filtre." },
@@ -60,9 +60,9 @@ internal class FileMatcherProcess
 
         var matchedFiles = filtered.Files.ToArray();
         var totalCount = uploadFiles.Files.Count;
-        var statusMessage = matchedFiles.Length == 0
+        LocalizedText statusMessage = matchedFiles.Length == 0
             ? NoMatchStatusMessage
-            : StatusMessageFormat.ToDictionary(msg => msg.Key, msg => string.Format(CultureInfo.InvariantCulture, msg.Value, matchedFiles.Length, totalCount));
+            : StatusMessageFormat.Map(msg => string.Format(CultureInfo.InvariantCulture, msg, matchedFiles.Length, totalCount));
 
         return Task.FromResult(new Dictionary<string, object?>
         {

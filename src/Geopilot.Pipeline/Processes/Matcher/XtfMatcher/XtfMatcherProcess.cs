@@ -17,7 +17,7 @@ internal class XtfMatcherProcess
 {
     private static readonly XNamespace Interlis24Namespace = "http://www.interlis.ch/xtf/2.4/INTERLIS";
 
-    private static readonly Dictionary<string, string> StatusMessageFormat = new Dictionary<string, string>
+    private static readonly LocalizedText StatusMessageFormat = new Dictionary<string, string>
     {
         { "de", "{0} von {1} Datei(en) entsprechen den XTF-Filterkriterien." },
         { "fr", "{0} fichier(s) sur {1} correspondent aux critères du filtre XTF." },
@@ -25,7 +25,7 @@ internal class XtfMatcherProcess
         { "en", "{0} of {1} file(s) match the XTF filter criteria." },
     };
 
-    private static readonly Dictionary<string, string> NoMatchStatusMessage = new Dictionary<string, string>
+    private static readonly LocalizedText NoMatchStatusMessage = new Dictionary<string, string>
     {
         { "de", "Keine Dateien entsprechen den XTF-Filterkriterien." },
         { "fr", "Aucun fichier ne correspond aux critères du filtre XTF." },
@@ -73,9 +73,9 @@ internal class XtfMatcherProcess
 
         var matchedFiles = filtered.Files.ToArray();
         var totalCount = uploadFiles.Files.Count;
-        var statusMessage = matchedFiles.Length == 0
+        LocalizedText statusMessage = matchedFiles.Length == 0
             ? NoMatchStatusMessage
-            : StatusMessageFormat.ToDictionary(msg => msg.Key, msg => string.Format(CultureInfo.InvariantCulture, msg.Value, matchedFiles.Length, totalCount));
+            : StatusMessageFormat.Map(msg => string.Format(CultureInfo.InvariantCulture, msg, matchedFiles.Length, totalCount));
 
         return Task.FromResult(new Dictionary<string, object?>
         {

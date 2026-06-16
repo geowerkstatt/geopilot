@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
@@ -28,7 +29,7 @@ public sealed class PipelineStep : IPipelineStep
     public string Id { get; }
 
     /// <inheritdoc/>
-    public Dictionary<string, string> DisplayName { get; }
+    public LocalizedText DisplayName { get; }
 
     /// <inheritdoc/>
     public List<InputConfig> InputConfig { get; }
@@ -46,7 +47,7 @@ public sealed class PipelineStep : IPipelineStep
     public StepState State { get; set; }
 
     /// <inheritdoc/>
-    public IDictionary<string, string>? StatusMessage { get; private set; }
+    public LocalizedText? StatusMessage { get; private set; }
 
     /// <inheritdoc/>
     public IList<PersistedFile> Downloads { get; } = new List<PersistedFile>();
@@ -70,7 +71,7 @@ public sealed class PipelineStep : IPipelineStep
     /// <param name="logger">The logger to use for logging.</param>
     private PipelineStep(
         string id,
-        Dictionary<string, string> displayName,
+        LocalizedText displayName,
         List<InputConfig> inputConfig,
         List<OutputConfig> outputConfig,
         PipelineStepConditionsConfig? stepConditions,
@@ -249,30 +250,30 @@ public sealed class PipelineStep : IPipelineStep
 
     /// <summary>
     /// Merges all <see cref="OutputAction.StatusMessage"/> outputs from the step result into a
-    /// single localized dict. Multiple messages for the same language are joined with " - ".
+    /// single localized text. Multiple messages for the same language are joined with " - ".
     /// </summary>
-    private static Dictionary<string, string>? ExtractStatusMessage(StepResult stepResult)
+    private static LocalizedText? ExtractStatusMessage(StepResult stepResult)
     {
-        var localizedMessages = stepResult.Outputs
+        var messages = stepResult.Outputs
             .Where(o => o.Value.Action.Contains(OutputAction.StatusMessage))
-            .Select(o => o.Value.Data as Dictionary<string, string>)
-            .Where(m => m != null)
-            .Cast<Dictionary<string, string>>()
+            .Select(o => NormalizeStatusMessage(o.Value.Data))
+            .Where(m => m is not null)
+            .Cast<LocalizedText>()
             .ToList();
 
-        if (localizedMessages.Count == 0)
+        if (messages.Count == 0)
             return null;
 
-        var languages = localizedMessages.SelectMany(m => m.Keys).Distinct();
-        var merged = new Dictionary<string, string>();
-        foreach (var language in languages)
-        {
-            var parts = localizedMessages.Where(m => m.ContainsKey(language)).Select(m => m[language]);
-            merged[language] = string.Join(" - ", parts);
-        }
-
-        return merged;
+        return LocalizedText.Merge(messages, " - ");
     }
+
+    internal static LocalizedText? NormalizeStatusMessage(object? data) => data switch
+    {
+        LocalizedText localized => localized,
+        IReadOnlyDictionary<string, string> dictionary => new LocalizedText(dictionary),
+        IDictionary<string, string> dictionary => new LocalizedText(new Dictionary<string, string>(dictionary)),
+        _ => null,
+    };
 
     private static void AddConditionMessages(string stepOutputKey, StepResult stepResult, List<ConditionConfig> conditions)
     {
@@ -287,24 +288,10 @@ public sealed class PipelineStep : IPipelineStep
         }
     }
 
-    private static Dictionary<string, string> MergeConditionMessages(List<ConditionConfig> conditions)
-    {
-        var allLanguages = conditions
-            .Where(c => c.Message != null)
-            .SelectMany(c => c.Message!.Keys)
-            .Distinct();
-
-        var merged = new Dictionary<string, string>();
-        foreach (var language in allLanguages)
-        {
-            var messages = conditions
-                .Where(c => c.Message != null && c.Message.ContainsKey(language))
-                .Select(c => c.Message![language]);
-            merged[language] = string.Join(", ", messages);
-        }
-
-        return merged;
-    }
+    private static LocalizedText MergeConditionMessages(List<ConditionConfig> conditions) =>
+        LocalizedText.Merge(
+            conditions.Where(c => c.Message is not null).Select(c => c.Message!),
+            ", ");
 
     private MethodInfo GetProcessRunMethod()
     {
@@ -494,7 +481,7 @@ public sealed class PipelineStep : IPipelineStep
     public class PipelineStepBuilder
     {
         private string? id;
-        private Dictionary<string, string>? displayName;
+        private LocalizedText? displayName;
         private List<InputConfig>? inputConfig;
         private List<OutputConfig>? outputConfig;
         private PipelineStepConditionsConfig? stepConditions;
@@ -513,7 +500,7 @@ public sealed class PipelineStep : IPipelineStep
         /// <summary>
         /// Sets the display name of the <see cref="PipelineStep"/> that will be created by this builder.
         /// </summary>
-        public PipelineStepBuilder DisplayName(Dictionary<string, string> displayName)
+        public PipelineStepBuilder DisplayName(LocalizedText displayName)
         {
             this.displayName = displayName;
             return this;
