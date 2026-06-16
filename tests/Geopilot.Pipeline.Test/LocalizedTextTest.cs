@@ -88,4 +88,24 @@ public class LocalizedTextTest
         var back = JsonSerializer.Deserialize<LocalizedText>(json);
         Assert.AreEqual(text, back);
     }
+
+    [TestMethod]
+    public void MutatingSourceDictionaryDoesNotAffectInstance()
+    {
+        var source = new Dictionary<string, string> { { "de", "Hallo" } };
+        LocalizedText text = source;
+        source["de"] = "Geändert";
+        source["fr"] = "Bonjour";
+        Assert.AreEqual("Hallo", text["de"]);
+        Assert.IsNull(text["fr"]);
+    }
+
+    [TestMethod]
+    public void ToDictionaryReturnsIndependentCopy()
+    {
+        LocalizedText text = new Dictionary<string, string> { { "de", "Hallo" } };
+        var dict = (Dictionary<string, string>)text.ToDictionary();
+        dict["de"] = "Geändert";
+        Assert.AreEqual("Hallo", text["de"]);
+    }
 }

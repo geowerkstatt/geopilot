@@ -30,7 +30,7 @@ public sealed class LocalizedText : IEquatable<LocalizedText>
     public static implicit operator LocalizedText(Dictionary<string, string> values) => new LocalizedText(values);
 
     /// <summary>The language codes present in this text.</summary>
-    public IReadOnlyCollection<string> Languages => values.Keys;
+    public IReadOnlyCollection<string> Languages => [.. values.Keys];
 
     /// <summary>The number of languages present.</summary>
     public int Count => values.Count;
@@ -74,6 +74,7 @@ public sealed class LocalizedText : IEquatable<LocalizedText>
     public static LocalizedText Merge(IEnumerable<LocalizedText> parts, string separator)
     {
         ArgumentNullException.ThrowIfNull(parts);
+        ArgumentNullException.ThrowIfNull(separator);
         var partsList = parts.ToList();
         var merged = new Dictionary<string, string>();
         foreach (var language in partsList.SelectMany(p => p.values.Keys).Distinct())
