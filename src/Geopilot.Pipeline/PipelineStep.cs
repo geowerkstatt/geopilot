@@ -267,10 +267,18 @@ public sealed class PipelineStep : IPipelineStep
         return LocalizedText.Merge(messages, " - ");
     }
 
+    /// <summary>
+    /// Coerces a raw StatusMessage output value to a <see cref="LocalizedText"/>. Accepts a
+    /// <see cref="LocalizedText"/> (returned as-is) or a string-to-string dictionary (for
+    /// backward compatibility with plugins that predate <see cref="LocalizedText"/>), and
+    /// returns <see langword="null"/> for any other or missing value.
+    /// </summary>
     internal static LocalizedText? NormalizeStatusMessage(object? data) => data switch
     {
         LocalizedText localized => localized,
         IReadOnlyDictionary<string, string> dictionary => new LocalizedText(dictionary),
+
+        // Defensive fallback: dictionaries that implement only IDictionary, not IReadOnlyDictionary.
         IDictionary<string, string> dictionary => new LocalizedText(new Dictionary<string, string>(dictionary)),
         _ => null,
     };

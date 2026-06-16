@@ -18,6 +18,8 @@ internal sealed class LocalizedTextYamlConverter : IYamlTypeConverter
     /// <inheritdoc/>
     public object ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
     {
+        // Return null deliberately: an absent or empty display_name yields a null scalar here.
+        // Leaving the property null lets the [Required] attribute flag it during validation.
         if (parser.TryConsume<Scalar>(out _))
             return null!;
 

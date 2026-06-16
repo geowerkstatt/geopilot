@@ -13,7 +13,7 @@ public interface IPipeline : IDisposable
     string Id { get; }
 
     /// <summary>
-    /// A human-readable display name for the pipeline in different languages. Key: ISO 639 language code, Value: The display name for that language.
+    /// The pipeline's localized display name.
     /// </summary>
     LocalizedText DisplayName { get; }
 
@@ -33,9 +33,9 @@ public interface IPipeline : IDisposable
     PipelineDelivery Delivery { get; }
 
     /// <summary>
-    /// Localized message describing why delivery is prevented (key: ISO 639 language code, value: message).
-    /// Set when matched delivery restrictions are evaluated; <see langword="null"/> when delivery is allowed
-    /// or when delivery is prevented for reasons other than restriction matches (e.g. pipeline failure).
+    /// The localized message describing why delivery is prevented, or <see langword="null"/> when delivery is allowed.
+    /// Set when matched delivery restrictions are evaluated; <see langword="null"/> also when delivery is prevented
+    /// for reasons other than restriction matches (e.g. pipeline failure).
     /// </summary>
     LocalizedText? DeliveryRestrictionMessage { get; }
 

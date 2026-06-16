@@ -14,7 +14,7 @@ public interface IPipelineStep : IDisposable
     string Id { get; }
 
     /// <summary>
-    /// A human-readable display name for the step in different languages. Key: ISO 639 language code, Value: The display name for that language.
+    /// The step's localized display name.
     /// </summary>
     LocalizedText DisplayName { get; }
 
@@ -44,10 +44,10 @@ public interface IPipelineStep : IDisposable
     StepState State { get; set; }
 
     /// <summary>
-    /// Localized status message produced by the step (key: ISO 639 language code). Merges all
-    /// outputs tagged with <see cref="OutputAction.StatusMessage"/> — including condition-driven
-    /// pre-fail / pre-skip / post-fail messages added during <see cref="Run"/>. <see langword="null"/>
-    /// if the step has not run, or ran without emitting any status message.
+    /// The localized status message produced by the step. Merges all outputs tagged with
+    /// <see cref="OutputAction.StatusMessage"/>, including condition-driven pre-fail, pre-skip,
+    /// and post-fail messages added during <see cref="Run"/>. <see langword="null"/> if the step
+    /// has not run, or ran without emitting any status message.
     /// </summary>
     LocalizedText? StatusMessage { get; }
 

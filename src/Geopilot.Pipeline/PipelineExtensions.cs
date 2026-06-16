@@ -42,6 +42,8 @@ internal static class PipelineExtensions
             var isDecimal = property.PropertyType == typeof(decimal);
             var isString = property.PropertyType == typeof(string);
             var isParameterization = property.PropertyType == typeof(Parameterization);
+
+            // LocalizedText is a sealed value type; its own properties are not validation targets.
             var isLocalizedText = property.PropertyType == typeof(LocalizedText);
             var goRecursive = !isPrimitive && !isDecimal && !isString && !isParameterization && !isLocalizedText;
             if (goRecursive)

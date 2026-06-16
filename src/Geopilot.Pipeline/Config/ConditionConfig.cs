@@ -16,7 +16,6 @@ public class ConditionConfig
 
     /// <summary>
     /// Gets or sets the localized message associated with this condition.
-    /// The dictionary keys are language codes (e.g. "de", "en", "fr", "it") and the values are the messages in the respective language.
     /// </summary>
     [YamlMember(Alias = "message")]
     public LocalizedText? Message { get; set; }
