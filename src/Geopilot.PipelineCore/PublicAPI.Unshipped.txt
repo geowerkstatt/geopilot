@@ -1,1 +1,17 @@
 #nullable enable
+Geopilot.PipelineCore.Pipeline.LocalizedText
+Geopilot.PipelineCore.Pipeline.LocalizedText.Count.get -> int
+Geopilot.PipelineCore.Pipeline.LocalizedText.Equals(Geopilot.PipelineCore.Pipeline.LocalizedText? other) -> bool
+Geopilot.PipelineCore.Pipeline.LocalizedText.IsEmpty.get -> bool
+Geopilot.PipelineCore.Pipeline.LocalizedText.Languages.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+Geopilot.PipelineCore.Pipeline.LocalizedText.LocalizedText(System.Collections.Generic.IReadOnlyDictionary<string!, string!>! values) -> void
+Geopilot.PipelineCore.Pipeline.LocalizedText.Map(System.Func<string!, string!>! transform) -> Geopilot.PipelineCore.Pipeline.LocalizedText!
+Geopilot.PipelineCore.Pipeline.LocalizedText.this[string! language].get -> string?
+Geopilot.PipelineCore.Pipeline.LocalizedText.ToDictionary() -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Geopilot.PipelineCore.Pipeline.LocalizedText.TryGet(string! language, out string! text) -> bool
+override Geopilot.PipelineCore.Pipeline.LocalizedText.Equals(object? obj) -> bool
+override Geopilot.PipelineCore.Pipeline.LocalizedText.GetHashCode() -> int
+static Geopilot.PipelineCore.Pipeline.LocalizedText.Empty.get -> Geopilot.PipelineCore.Pipeline.LocalizedText!
+static Geopilot.PipelineCore.Pipeline.LocalizedText.FromDictionary(System.Collections.Generic.Dictionary<string!, string!>! values) -> Geopilot.PipelineCore.Pipeline.LocalizedText!
+static Geopilot.PipelineCore.Pipeline.LocalizedText.Merge(System.Collections.Generic.IEnumerable<Geopilot.PipelineCore.Pipeline.LocalizedText!>! parts, string! separator) -> Geopilot.PipelineCore.Pipeline.LocalizedText!
+static Geopilot.PipelineCore.Pipeline.LocalizedText.implicit operator Geopilot.PipelineCore.Pipeline.LocalizedText!(System.Collections.Generic.Dictionary<string!, string!>! values) -> Geopilot.PipelineCore.Pipeline.LocalizedText!
