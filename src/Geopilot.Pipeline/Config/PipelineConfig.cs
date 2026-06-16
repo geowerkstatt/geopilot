@@ -1,4 +1,4 @@
-﻿using Geopilot.Pipeline.Config.Validation;
+﻿using Geopilot.Pipeline.ValidationAttributes;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
@@ -21,6 +21,7 @@ public class PipelineConfig
     /// <summary>
     /// The pipelines display name. A human-readable name for the pipeline.
     /// </summary>
+    [Required(ErrorMessage = "Pipeline Display Name is required.")]
     [YamlMember(Alias = "display_name")]
     public required Dictionary<string, string> DisplayName { get; set; }
 

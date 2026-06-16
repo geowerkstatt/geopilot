@@ -10,7 +10,7 @@ interface PipelineFormSelectProps {
 }
 
 const getLocalisedPipelineName = (pipeline: PipelineSummary, language: string): string => {
-  return pipeline.displayName[language] || pipeline.displayName["de"] || pipeline.id;
+  return pipeline.displayName?.[language] || pipeline.displayName?.["de"] || pipeline.id;
 };
 
 const getPipelineSelectMenuItems = (

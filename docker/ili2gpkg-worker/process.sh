@@ -34,7 +34,8 @@
 #     "sqlEnableNull":         false,
 #     "skipReferenceErrors":   false,
 #     "skipGeometryErrors":    false,
-#     "importTid":             false
+#     "importTid":             false,
+#     "strokeArcs":            false
 #   }
 
 set -eu
@@ -96,6 +97,7 @@ sql_enable_null=$(jq -r '.sqlEnableNull // false' < "${args_file}")
 skip_reference_errors=$(jq -r '.skipReferenceErrors // false' < "${args_file}")
 skip_geometry_errors=$(jq -r '.skipGeometryErrors // false' < "${args_file}")
 import_tid=$(jq -r '.importTid // false' < "${args_file}")
+stroke_arcs=$(jq -r '.strokeArcs // false' < "${args_file}")
 
 # Build ili2gpkg argv based on operation.
 case "${operation}" in
@@ -124,6 +126,7 @@ if [ "${sql_enable_null}" = "true" ]; then set -- "$@" --sqlEnableNull; fi
 if [ "${skip_reference_errors}" = "true" ]; then set -- "$@" --skipReferenceErrors; fi
 if [ "${skip_geometry_errors}" = "true" ]; then set -- "$@" --skipGeometryErrors; fi
 if [ "${import_tid}" = "true" ]; then set -- "$@" --importTid; fi
+if [ "${stroke_arcs}" = "true" ]; then set -- "$@" --strokeArcs; fi
 
 log "starting (operation=${operation})"
 
@@ -135,7 +138,9 @@ export HOME="${ILI2GPKG_CACHE_DIR}"
 cd "${job_dir}"
 
 # Log java command
-echo "java -jar ${ILI2GPKG_HOME}/ili2gpkg-${ILI2GPKG_VERSION}.jar $* ${subject}" >> "${success_log}"
+java_cmd="java -jar ${ILI2GPKG_HOME}/ili2gpkg-${ILI2GPKG_VERSION}.jar $* ${subject}"
+echo "${java_cmd}" >> "${success_log}"
+log "${java_cmd}"
 
 # Run ili2gpkg and capture output to success.log; fail() renames it to error.log on failure.
 set +e

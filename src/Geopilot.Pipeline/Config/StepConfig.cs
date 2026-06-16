@@ -1,4 +1,4 @@
-﻿using Geopilot.Pipeline.Config.Validation;
+﻿using Geopilot.Pipeline.ValidationAttributes;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
@@ -21,6 +21,7 @@ public class StepConfig
     /// A human-readable display name for the step in different languages. Key: ISO 639 language code, Value: The display name for that language.
     /// </summary>
     [YamlMember(Alias = "display_name")]
+    [Required(ErrorMessage = "Step Display Name is required.")]
     public required Dictionary<string, string> DisplayName { get; set; }
 
     /// <summary>

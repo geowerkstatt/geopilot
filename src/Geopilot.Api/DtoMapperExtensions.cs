@@ -22,10 +22,6 @@ internal static class DtoMapperExtensions
     /// </param>
     public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl, PipelineConfig? pipelineConfig = null)
     {
-        var state = job.IsFailed
-            ? ProcessingState.Failed
-            : job.Pipeline?.State ?? ProcessingState.Pending;
-
         var pipelineName = job.Pipeline?.DisplayName
             ?? pipelineConfig?.DisplayName
             ?? new Dictionary<string, string>();
@@ -45,7 +41,7 @@ internal static class DtoMapperExtensions
 
         return new ProcessingJobResponse(
             job.Id,
-            state,
+            job.State,
             job.MandateId,
             pipelineName,
             steps,

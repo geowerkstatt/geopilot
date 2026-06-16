@@ -87,6 +87,7 @@ fixed by the protocol.
 | `skipReferenceErrors` | `--skipReferenceErrors` | |
 | `skipGeometryErrors`  | `--skipGeometryErrors`  | |
 | `importTid`           | `--importTid`           | |
+| `strokeArcs`          | `--strokeArcs`          | |
 
 Per-operation file shape inside the job folder:
 

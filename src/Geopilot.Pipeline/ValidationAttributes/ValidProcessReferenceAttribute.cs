@@ -1,6 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Geopilot.Pipeline.Config;
+using System.ComponentModel.DataAnnotations;
 
-namespace Geopilot.Pipeline.Config.Validation;
+namespace Geopilot.Pipeline.ValidationAttributes;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 internal sealed class ValidProcessReferenceAttribute : ValidationAttribute
