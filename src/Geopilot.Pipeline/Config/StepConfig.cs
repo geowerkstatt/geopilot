@@ -19,7 +19,7 @@ public class StepConfig
     public required string Id { get; set; }
 
     /// <summary>
-    /// A human-readable display name for the step in different languages. Key: ISO 639 language code, Value: The display name for that language.
+    /// The step's localized display name, shown in the user interface.
     /// </summary>
     [YamlMember(Alias = "display_name")]
     [Required(ErrorMessage = "Step Display Name is required.")]
