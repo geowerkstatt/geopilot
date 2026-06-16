@@ -3,6 +3,7 @@ using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -375,7 +376,7 @@ public class DeliveryControllerTest
         pipelineMock.SetupGet(p => p.Delivery).Returns(delivery);
         pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
         pipelineMock.SetupGet(p => p.DisplayName).Returns(new Dictionary<string, string>());
-        pipelineMock.SetupGet(p => p.DeliveryRestrictionMessage).Returns((Dictionary<string, string>?)null);
+        pipelineMock.SetupGet(p => p.DeliveryRestrictionMessage).Returns((LocalizedText?)null);
 
         var job = new ProcessingJob(guid, new List<ProcessingJobFile> { new ProcessingJobFile("ORIGINAL.zip", "TEMP.zip") }, mandateId, DateTime.Now)
         {

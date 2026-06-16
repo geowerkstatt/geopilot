@@ -5,6 +5,7 @@ using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -313,7 +314,7 @@ namespace Geopilot.Api.Controllers
             pipelineMock.SetupGet(p => p.Delivery).Returns(PipelineDelivery.Allow);
             pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
             pipelineMock.SetupGet(p => p.DisplayName).Returns(new Dictionary<string, string>());
-            pipelineMock.SetupGet(p => p.DeliveryRestrictionMessage).Returns((Dictionary<string, string>?)null);
+            pipelineMock.SetupGet(p => p.DeliveryRestrictionMessage).Returns((LocalizedText?)null);
 
             var processingJob = new ProcessingJob(guid, new List<ProcessingJobFile>() { new ProcessingJobFile("ORIGINAL.zip", "TEMP.zip") }, mandateToUpdate.Id, DateTime.Now)
             {
