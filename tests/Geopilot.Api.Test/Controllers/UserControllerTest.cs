@@ -1,7 +1,5 @@
-﻿using Geopilot.Api.Authorization;
-using Geopilot.Api.Contracts;
+﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
