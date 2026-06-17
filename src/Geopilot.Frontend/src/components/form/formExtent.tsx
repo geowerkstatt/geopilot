@@ -50,7 +50,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, label, required, di
         },
       }}
       render={({ field, formState }) => (
-        <Stack sx={{ width: "100%" }}>
+        <Stack sx={{ width: "100%" }} spacing={1}>
           <FormLabel error={getFormFieldError(fieldName, formState.errors)}>
             {t(label) + (required ? " *" : "")}
           </FormLabel>

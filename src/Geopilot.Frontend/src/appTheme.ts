@@ -123,33 +123,23 @@ export const geopilotTheme = createTheme({
     MuiTextField: {
       defaultProps: {
         size: "small",
-        variant: "filled",
       },
       styleOverrides: {
         root: {
           borderRadius: themeSpacing(0.5),
           flex: "1",
 
+          "& .MuiInputBase-input": {
+            height: "32px",
+          },
+
+          "& .MuiSelect-select": {
+            minHeight: "32px",
+            alignContent: "center",
+          },
+
           "&.readonly": {
             pointerEvents: "none",
-          },
-        },
-      },
-    },
-    MuiFormControl: {
-      styleOverrides: {
-        root: {
-          "& .MuiFilledInput-root": {
-            backgroundColor: "rgba(0,0,0,0.04)",
-          },
-          "& .MuiFilledInput-root:hover:not(.Mui-disabled, .Mui-error):before": {
-            borderColor: themePalette.primary.main,
-          },
-          "& .MuiFilledInput-root:not(.Mui-error):before": {
-            borderColor: themePalette.primary.main,
-          },
-          "& .MuiFilledInput-root:not(.Mui-error):after": {
-            borderColor: themePalette.primary.main,
           },
         },
       },
