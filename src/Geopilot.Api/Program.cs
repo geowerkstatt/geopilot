@@ -112,8 +112,8 @@ builder.Services.AddSwaggerGen(options =>
     options.EnableAnnotations();
     options.SupportNonNullableReferenceTypes();
 
-    // Map LocalizedText to an inline object with string additionalProperties so the OpenAPI
-    // schema stays identical to the previous Dictionary<string, string> (no separate component).
+    // Describe LocalizedText in OpenAPI as a string-to-string object (language code -> text),
+    // matching its JSON serialization, instead of as a separate schema component.
     options.MapType<LocalizedText>(() => new OpenApiSchema
     {
         Type = JsonSchemaType.Object,

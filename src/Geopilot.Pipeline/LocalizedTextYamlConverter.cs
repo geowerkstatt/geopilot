@@ -6,9 +6,13 @@ using YamlDotNet.Serialization;
 namespace Geopilot.Pipeline;
 
 /// <summary>
-/// Reads and writes <see cref="LocalizedText"/> as a YAML mapping of language code to
-/// text, matching the historical <c>Dictionary&lt;string, string&gt;</c> shape used for
-/// <c>display_name</c> and condition <c>message</c> entries.
+/// Reads and writes <see cref="LocalizedText"/> as a YAML mapping of language code to text,
+/// as used for <c>display_name</c> and condition <c>message</c> entries, for example:
+/// <code>
+/// display_name:
+///   de: XTF Validierung
+///   en: XTF Validation
+/// </code>
 /// </summary>
 internal sealed class LocalizedTextYamlConverter : IYamlTypeConverter
 {
