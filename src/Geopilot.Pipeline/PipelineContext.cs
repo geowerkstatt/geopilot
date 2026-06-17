@@ -20,8 +20,8 @@ public class PipelineContext
     public required Dictionary<string, StepResult> StepResults { get; set; }
 
     /// <summary>
-    /// Gets or sets the localized delivery restriction messages.
-    /// If delivery is restricted by one or more conditions, this dictionary contains the merged messages per language code.
+    /// Gets or sets the localized delivery restriction message.
+    /// If delivery is restricted by one or more conditions, contains the merged localized message; otherwise <see langword="null"/>.
     /// </summary>
-    public Dictionary<string, string>? DeliveryRestrictionMessage { get; set; }
+    public LocalizedText? DeliveryRestrictionMessage { get; set; }
 }

@@ -97,7 +97,7 @@ internal class XtfValidatorProcess : IDisposable
         var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
         var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
 
-        var statusMessage = new Dictionary<string, string>
+        LocalizedText statusMessage = new Dictionary<string, string>
         {
             { "de", statusResponse.StatusMessage ?? string.Empty },
             { "fr", statusResponse.StatusMessage ?? string.Empty },

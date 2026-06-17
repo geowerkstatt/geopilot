@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
+
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Interface for a pipeline.
@@ -11,9 +13,9 @@ public interface IPipeline : IDisposable
     string Id { get; }
 
     /// <summary>
-    /// A human-readable display name for the pipeline in different languages. Key: ISO 639 language code, Value: The display name for that language.
+    /// The pipeline's localized display name.
     /// </summary>
-    Dictionary<string, string> DisplayName { get; }
+    LocalizedText DisplayName { get; }
 
     /// <summary>
     /// The steps in the pipeline to be executed sequentially.
@@ -31,11 +33,11 @@ public interface IPipeline : IDisposable
     PipelineDelivery Delivery { get; }
 
     /// <summary>
-    /// Localized message describing why delivery is prevented (key: ISO 639 language code, value: message).
-    /// Set when matched delivery restrictions are evaluated; <see langword="null"/> when delivery is allowed
-    /// or when delivery is prevented for reasons other than restriction matches (e.g. pipeline failure).
+    /// The localized message describing why delivery is prevented, or <see langword="null"/> when delivery is allowed.
+    /// Set when matched delivery restrictions are evaluated; <see langword="null"/> also when delivery is prevented
+    /// for reasons other than restriction matches (e.g. pipeline failure).
     /// </summary>
-    Dictionary<string, string>? DeliveryRestrictionMessage { get; }
+    LocalizedText? DeliveryRestrictionMessage { get; }
 
     /// <summary>
     /// The unique identifier for the job associated with this pipeline execution, used for logging and tracking purposes.

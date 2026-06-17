@@ -1,5 +1,6 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Process;
+using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -626,7 +627,7 @@ public class PipelineStepTest
         using var pipelineStep = PipelineStep
             .Builder()
             .Id("my_step")
-            .DisplayName([])
+            .DisplayName(LocalizedText.Empty)
             .InputConfig(inputConfigs)
             .OutputConfig([])
             .Process(processMock)
@@ -700,7 +701,7 @@ public class PipelineStepTest
         using var pipelineStep = PipelineStep
             .Builder()
             .Id("my_step")
-            .DisplayName([])
+            .DisplayName(LocalizedText.Empty)
             .InputConfig(inputConfigs)
             .OutputConfig([])
             .Process(processMock)
@@ -749,7 +750,7 @@ public class PipelineStepTest
         using var pipelineStep = PipelineStep
             .Builder()
             .Id("my_step")
-            .DisplayName([])
+            .DisplayName(LocalizedText.Empty)
             .InputConfig(inputConfigs)
             .OutputConfig([])
             .Process(processMock)
@@ -798,7 +799,7 @@ public class PipelineStepTest
         using var pipelineStep = PipelineStep
             .Builder()
             .Id("my_step")
-            .DisplayName([])
+            .DisplayName(LocalizedText.Empty)
             .InputConfig(inputConfigs)
             .OutputConfig([])
             .Process(processMock)
@@ -1123,7 +1124,7 @@ public class PipelineStepTest
         Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_pre_fail_condition"), "StepResult should contain a status_message output.");
         var statusOutput = stepResult.Outputs["my_step_status_message_pre_fail_condition"];
         Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
-        var message = statusOutput.Data as Dictionary<string, string>;
+        var message = statusOutput.Data as LocalizedText;
         Assert.IsNotNull(message);
         Assert.AreEqual("Step failed.", message["en"]);
         Assert.AreEqual("Schritt fehlgeschlagen.", message["de"]);
@@ -1218,7 +1219,7 @@ public class PipelineStepTest
         Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_pre_skip_condition"), "StepResult should contain a status_message output.");
         var statusOutput = stepResult.Outputs["my_step_status_message_pre_skip_condition"];
         Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
-        var message = statusOutput.Data as Dictionary<string, string>;
+        var message = statusOutput.Data as LocalizedText;
         Assert.IsNotNull(message);
         Assert.AreEqual("Step skipped.", message["en"]);
         Assert.AreEqual("Schritt übersprungen.", message["de"]);
@@ -1322,7 +1323,7 @@ public class PipelineStepTest
         Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_post_fail_condition"), "StepResult should contain a status_message output.");
         var statusOutput = stepResult.Outputs["my_step_status_message_post_fail_condition"];
         Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
-        var message = statusOutput.Data as Dictionary<string, string>;
+        var message = statusOutput.Data as LocalizedText;
         Assert.IsNotNull(message);
         Assert.AreEqual("Post-condition failed.", message["en"]);
         Assert.AreEqual("Post-Bedingung fehlgeschlagen.", message["de"]);
@@ -1437,7 +1438,7 @@ public class PipelineStepTest
         Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_pre_fail_condition"), "StepResult should contain a status_message output.");
         var statusOutput = stepResult.Outputs["my_step_status_message_pre_fail_condition"];
         Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
-        var message = statusOutput.Data as Dictionary<string, string>;
+        var message = statusOutput.Data as LocalizedText;
         Assert.IsNotNull(message);
 
         // First and second conditions match, third does not (999 != 123).
@@ -1477,7 +1478,7 @@ public class PipelineStepTest
         using var pipelineStep = PipelineStep
             .Builder()
             .Id("my_step")
-            .DisplayName([])
+            .DisplayName(LocalizedText.Empty)
             .InputConfig(inputConfigs)
             .OutputConfig([])
             .Process(processMock)

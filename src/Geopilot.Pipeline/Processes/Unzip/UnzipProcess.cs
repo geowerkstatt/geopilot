@@ -18,7 +18,7 @@ internal class UnzipProcess
     private const string OutputMappingExtractedFiles = "extracted_files";
     private const string OutputMappingStatusMessage = "status_message";
 
-    private static readonly Dictionary<string, string> SuccessfulStatusMessageFormat = new Dictionary<string, string>
+    private static readonly LocalizedText SuccessfulStatusMessageFormat = new Dictionary<string, string>
     {
         { "de", "{0} Datei(en) aus dem ZIP Archiv entpackt." },
         { "fr", "{0} fichier(s) extrait(s) de l'archive ZIP." },
@@ -26,7 +26,7 @@ internal class UnzipProcess
         { "en", "{0} file(s) extracted from the ZIP archive." },
     };
 
-    private static readonly Dictionary<string, string> EmptyArchiveStatusMessage = new Dictionary<string, string>
+    private static readonly LocalizedText EmptyArchiveStatusMessage = new Dictionary<string, string>
     {
         { "de", "Das ZIP Archiv enthält keine Dateien." },
         { "fr", "L'archive ZIP ne contient aucun fichier." },
@@ -88,7 +88,7 @@ internal class UnzipProcess
             }
         }
 
-        Dictionary<string, string> statusMessage;
+        LocalizedText statusMessage;
         if (extracted.Count == 0)
         {
             statusMessage = EmptyArchiveStatusMessage;
@@ -97,7 +97,7 @@ internal class UnzipProcess
         else
         {
             statusMessage = SuccessfulStatusMessageFormat
-                .ToDictionary(msg => msg.Key, msg => string.Format(CultureInfo.InvariantCulture, msg.Value, extracted.Count));
+                .Map(msg => string.Format(CultureInfo.InvariantCulture, msg, extracted.Count));
             logger.LogInformation("UnzipProcess: extracted {Count} file(s) from '{Archive}'.", extracted.Count, zipFile.OriginalFileName);
         }
 
