@@ -46,7 +46,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
                 navigate("/admin/delivery-overview");
               }}
               data-cy={isPermanent ? "admin-delivery-overview-nav" : undefined}>
-              <ListItemText primary={t("deliveryOverview").toUpperCase()} />
+              <ListItemText primary={t("deliveryOverview")} />
             </ListItemButton>
           </ListItem>
         </List>
@@ -60,7 +60,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
                   navigate("/admin/" + link);
                 }}
                 data-cy={isPermanent ? `admin-${link}-nav` : undefined}>
-                <ListItemText primary={t(link).toUpperCase()} />
+                <ListItemText primary={t(link)} />
               </ListItemButton>
             </ListItem>
           ))}

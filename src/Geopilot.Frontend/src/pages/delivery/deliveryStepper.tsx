@@ -99,7 +99,7 @@ export const DeliveryStepper = () => {
             isLoading={isLoading || isProcessing}
           />
           <Stack spacing={1} direction={{ xs: "row", md: "column" }} alignItems="baseline" sx={{ minWidth: "0" }}>
-            <Typography variant="h3" color={isEnabled(index) ? "textPrimary" : "textSecondary"}>
+            <Typography variant="h4" color={isEnabled(index) ? "textPrimary" : "textSecondary"}>
               {t(step.label)}
             </Typography>
             {step.labelAddition && (

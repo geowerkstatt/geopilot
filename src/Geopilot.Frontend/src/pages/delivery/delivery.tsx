@@ -24,7 +24,7 @@ const Delivery = () => {
       <Typography variant="h1" zIndex={10}>
         {t("deliveryTitle")}
       </Typography>
-      <DeliveryContainer direction={{ xs: "column", md: "row" }} spacing={{ xs: 2, md: 3 }}>
+      <DeliveryContainer direction={{ xs: "column", md: "row" }} spacing={{ xs: 2, md: 2 }}>
         <DeliveryStepper />
         {Array.from(steps.values())[activeStep]?.content(isCompleted)}
       </DeliveryContainer>

@@ -17,8 +17,6 @@ import {
   Typography,
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import LoginIcon from "@mui/icons-material/Login";
-import LogoutIcon from "@mui/icons-material/Logout";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { useGeopilotAuth } from "../../auth";
 import { LanguagePopup } from "./languagePopup";
@@ -142,16 +140,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 </IconButton>
               ) : (
                 <>
-                  <BaseButton
-                    variant="text"
-                    onClick={login}
-                    icon={<LoginIcon />}
-                    sx={{ display: { xs: "none", md: "flex" } }}
-                    label="logIn"
-                  />
-                  <IconButton onClick={login} sx={{ display: { xs: "flex", md: "none" } }} color="primary">
-                    <LoginIcon />
-                  </IconButton>
+                  <BaseButton variant="text" onClick={login} label="logIn" />
                 </>
               ))}
           </FlexRowBox>
@@ -175,36 +164,36 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             </List>
             <Divider />
             <List>
-              <ListItem key={t("delivery").toUpperCase()} disablePadding>
+              <ListItem key={t("delivery")} disablePadding>
                 <ListItemButton
                   selected={isActive("")}
                   onClick={() => {
                     navigateTo("/");
                   }}
                   data-cy="delivery-nav">
-                  <ListItemText primary={t("delivery").toUpperCase()} />
+                  <ListItemText primary={t("delivery")} />
                 </ListItemButton>
               </ListItem>
               {isAdmin && (
                 <>
-                  <ListItem key={t("administration").toUpperCase()} disablePadding>
+                  <ListItem key={t("administration")} disablePadding>
                     <ListItemButton
                       selected={isActive("admin")}
                       onClick={() => {
                         navigateTo("/admin");
                       }}
                       data-cy="admin-nav">
-                      <ListItemText primary={t("administration").toUpperCase()} />
+                      <ListItemText primary={t("administration")} />
                     </ListItemButton>
                   </ListItem>
-                  <ListItem key={t("stacBrowser").toUpperCase()} disablePadding>
+                  <ListItem key={t("stacBrowser")} disablePadding>
                     <ListItemButton
                       selected={isActive("browser")}
                       onClick={() => {
                         window.open("/browser", "_blank");
                       }}
                       data-cy="stacBrowser-nav">
-                      <ListItemText primary={t("stacBrowser").toUpperCase()} />
+                      <ListItemText primary={t("stacBrowser")} />
                       <ListItemIcon>
                         <OpenInNewIcon fontSize="small" />
                       </ListItemIcon>
@@ -214,7 +203,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </List>
           </Box>
-          <BaseButton sx={{ margin: "0 20px" }} onClick={logout} icon={<LogoutIcon />} label="logOut" />
+          <BaseButton sx={{ margin: "0 20px" }} onClick={logout} label="logOut" />
         </FlexSpaceBetweenBox>
       </Drawer>
     </>

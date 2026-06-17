@@ -3,6 +3,7 @@ import { Box, IconButton, LinearProgress, Stack, Typography } from "@mui/materia
 import ClearIcon from "@mui/icons-material/Clear";
 import { geopilotTheme } from "../appTheme";
 import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
+import { FlexRowSpaceBetweenBox } from "./styledComponents.ts";
 
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
@@ -26,14 +27,7 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
         borderRadius: "4px",
         overflow: "hidden",
       }}>
-      <Stack
-        direction="row"
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "start",
-          padding: "12px 16px",
-        }}>
+      <FlexRowSpaceBetweenBox px={2} pt={1.5} pb={status?.state !== "neutral" ? 1 : 1.5}>
         <Stack spacing={0.5}>
           <Typography variant="body1" color="primary.main">
             {file.name}&nbsp;
@@ -53,7 +47,7 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
           sx={{ color: geopilotTheme.palette.primary.main, padding: "0" }}>
           <ClearIcon />
         </IconButton>
-      </Stack>
+      </FlexRowSpaceBetweenBox>
       {status?.state === "uploading" && <LinearProgress variant="indeterminate" />}
       {status?.state === "completed" && <LinearProgress variant="determinate" value={100} color="success" />}
       {status?.state === "error" && <LinearProgress variant="determinate" value={100} color="error" />}

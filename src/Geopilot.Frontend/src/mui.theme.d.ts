@@ -39,7 +39,6 @@ declare module "@mui/material/styles" {
     MuiTypography: object;
     MuiAvatar: object;
     MuiTextField: object;
-    MuiFormControl: object;
     MuiSelect: object;
     MuiButtonBase: object;
     MuiButton: object;
@@ -61,7 +60,6 @@ declare module "@mui/material/styles" {
     MuiTypography: object;
     MuiAvatar: object;
     MuiTextField: object;
-    MuiFormControl: object;
     MuiSelect: object;
     MuiButtonBase: object;
     MuiButton: object;
