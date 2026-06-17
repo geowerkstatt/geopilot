@@ -41,6 +41,15 @@ export const geopilotTheme = createTheme({
   palette: themePalette,
   shadows: themeShadows,
   spacing: themeSpacing,
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 1004,
+      lg: 1200,
+      xl: 1536,
+    },
+  },
   typography: {
     fontFamily: "NeoGeo, sans-serif",
     body1: {
