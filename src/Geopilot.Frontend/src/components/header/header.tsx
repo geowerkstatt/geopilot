@@ -17,7 +17,6 @@ import {
   Typography,
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import LoginIcon from "@mui/icons-material/Login";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { useGeopilotAuth } from "../../auth";
 import { LanguagePopup } from "./languagePopup";
@@ -141,16 +140,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 </IconButton>
               ) : (
                 <>
-                  <BaseButton
-                    variant="text"
-                    onClick={login}
-                    icon={<LoginIcon />}
-                    sx={{ display: { xs: "none", md: "flex" } }}
-                    label="logIn"
-                  />
-                  <IconButton onClick={login} sx={{ display: { xs: "flex", md: "none" } }} color="primary">
-                    <LoginIcon />
-                  </IconButton>
+                  <BaseButton variant="text" onClick={login} label="logIn" />
                 </>
               ))}
           </FlexRowBox>
