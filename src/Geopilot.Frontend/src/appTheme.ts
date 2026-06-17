@@ -143,7 +143,7 @@ export const geopilotTheme = createTheme({
           },
 
           "& .MuiSelect-select": {
-            minHeight: "32px",
+            minHeight: "32px !important",
             alignContent: "center",
           },
 
