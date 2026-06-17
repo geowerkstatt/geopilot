@@ -16,13 +16,13 @@ export const MiddleTruncate: FC<MiddleTruncateProps> = ({ text, endLength }) => 
             style={{
               overflow: "hidden",
               textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              whiteSpace: "pre",
             }}>
             {text.substring(0, text.length - endLength)}
           </span>
           <span
             style={{
-              whiteSpace: "nowrap",
+              whiteSpace: "pre",
             }}>
             {text.substring(text.length - endLength)}
           </span>

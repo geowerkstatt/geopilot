@@ -19,7 +19,6 @@ import { DeliveryUpload } from "./deliveryUpload.tsx";
 import { DeliveryProcessing } from "./processing/deliveryProcessing.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
-import { DeliveryCompleted } from "./deliveryCompleted.tsx";
 import useFetch from "../../hooks/useFetch.ts";
 import useCloudUpload from "../../hooks/useCloudUpload.ts";
 import { isProcessingDeliverable } from "./deliveryUtils.tsx";
@@ -88,11 +87,6 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
     );
   }
 
-  newSteps.set(
-    DeliveryStepEnum.Done,
-    previousSteps.get(DeliveryStepEnum.Done) ?? { label: "done", content: () => <DeliveryCompleted /> },
-  );
-
   return newSteps;
 };
 
@@ -135,7 +129,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         { status: 404, errorKey: "deliveryErrorNoValidationFound" },
         { status: 500, errorKey: "deliveryErrorUnexpected" },
       ],
-      [DeliveryStepEnum.Done]: [],
     }),
     [],
   );
@@ -197,6 +190,8 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setAbortControllers([]);
     if (activeStep < steps.size - 1) {
       setActiveStep(activeStep + 1);
+    }
+    if (activeStep < steps.size) {
       setLastCompletedStep(completed => Math.max(completed, activeStep));
     }
   }, [activeStep, steps]);

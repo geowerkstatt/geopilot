@@ -8,7 +8,7 @@ import { DeliveryStepProps, DeliverySubmitData } from "./deliveryInterfaces.tsx"
 import { BaseButton } from "../../components/buttons.tsx";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryContent } from "./deliveryContent.tsx";
-import { Typography } from "@mui/material";
+import { Alert, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons.tsx";
 
@@ -43,7 +43,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
       ) : (
         <BaseButton
           label="createDelivery"
-          disabled={completed || !formMethods.formState.isValid || isLoading}
+          disabled={!formMethods.formState.isValid || isLoading}
           onClick={() => formMethods.handleSubmit(submitForm)()}
         />
       )}
@@ -92,6 +92,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
               selectedMandate.evaluateComment === FieldEvaluationType.NotEvaluated && (
                 <Typography variant="body1">{t("deliveryNoInputRequired")}</Typography>
               )}
+            {completed && <Alert severity="success">{t("deliveryCompleted")}</Alert>}
           </FlexBox>
         </form>
       </FormProvider>

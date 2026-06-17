@@ -6,7 +6,6 @@ export enum DeliveryStepEnum {
   SelectMandate = "selectMandate",
   Process = "process",
   Submit = "submit",
-  Done = "done",
 }
 
 export interface FileUploadStatus {

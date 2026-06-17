@@ -4,6 +4,7 @@ import {
   addFile,
   stepHasError,
   stepIsActive,
+  stepIsCompleted,
   stepIsLoading,
   uploadFile,
   selectMandate,
@@ -21,9 +22,9 @@ describe("Delivery tests", () => {
 
     loadWithoutAuth();
     cy.dataCy("upload-step").should("exist");
+    cy.dataCy("selectMandate-step").should("exist");
     cy.dataCy("process-step").should("exist");
     cy.dataCy("submit-step").should("not.exist");
-    cy.dataCy("done-step").should("exist");
     stepIsActive("upload", true);
 
     cy.wait("@fileExtensions");
@@ -92,8 +93,8 @@ describe("Delivery tests", () => {
 
     // Complete delivery
     cy.dataCy("createDelivery-button").should("be.enabled").click();
-    stepIsActive("submit", false);
-    stepIsActive("done");
+    stepIsActive("submit");
+    stepIsCompleted("submit");
   });
 
   it("displays error if no mandates were found", () => {
