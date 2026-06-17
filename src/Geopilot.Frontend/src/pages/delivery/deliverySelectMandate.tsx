@@ -13,9 +13,12 @@ import { DeliveryContext } from "./deliveryContext";
 import { DeliveryStepEnum, DeliveryStepProps } from "./deliveryInterfaces";
 
 const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
-  gap: "1rem",
+  gap: theme.spacing(2),
   flexWrap: "wrap",
   [`& .${toggleButtonClasses.root}`]: {
+    flex: `0 0 calc(50% - ${theme.spacing(2)} / 2)`,
+    maxWidth: `calc(50% - ${theme.spacing(2)} / 2)`,
+    minWidth: 0,
     borderRadius: theme.shape.borderRadius,
     borderLeft: `1px solid ${theme.palette.primary.light}`,
     [`&.${toggleButtonClasses.disabled}`]: {
@@ -25,14 +28,10 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
 }));
 
 const StyledToggleButton = styled(ToggleButton)({
-  minWidth: "fit-content",
-  width: "max-content",
-  maxWidth: "100%",
   flexDirection: "column",
   alignItems: "flex-start",
   textAlign: "left",
   gap: "0.25rem",
-  flex: "1",
 });
 
 interface MandateToggleButtonProps {
