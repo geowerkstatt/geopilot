@@ -3,7 +3,7 @@ import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStep } from "./deliveryInterfaces.tsx";
 
-const SLIDE_TRANSITION_MS = 300;
+export const SLIDE_TRANSITION_MS = 300;
 
 const CarouselViewport = styled("div")({
   position: "relative",
@@ -13,12 +13,13 @@ const CarouselViewport = styled("div")({
   overflowY: "visible",
 });
 
-const CarouselTrack = styled("div")({
+const CarouselTrack = styled("div")(({ theme }) => ({
   display: "flex",
   position: "relative",
   width: "100%",
   alignItems: "flex-start",
-});
+  gap: theme.spacing(2),
+}));
 
 const CarouselSlide = styled("div")({
   flex: "0 0 100%",
@@ -61,7 +62,7 @@ export const DeliveryContentCarousel: FC = () => {
       <CarouselTrack
         onTransitionEnd={handleTransitionEnd}
         style={{
-          left: `calc(${activeStep} * -100%)`,
+          left: `calc(${activeStep} * (-100% - ${theme.spacing(2)}))`,
           transition: animate ? `left ${SLIDE_TRANSITION_MS}ms ease` : "none",
         }}>
         {stepEntries.map(([key, step], index) => (
