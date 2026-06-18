@@ -119,7 +119,7 @@ describe("Footer tests", () => {
 
     // Return to home page
     cy.dataCy("header").click();
-    cy.dataCy("upload-step").should("exist");
+    cy.dataCy("files-step").should("exist");
   });
 
   it("shows and navigates correctly between footer pages without content", () => {

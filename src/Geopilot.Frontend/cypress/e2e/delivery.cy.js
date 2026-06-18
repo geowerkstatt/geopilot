@@ -163,7 +163,7 @@ describe("Delivery tests", () => {
   it("renders content carousel on mobile with only the active step mounted", () => {
     cy.viewport("iphone-x");
     loadWithoutAuth();
-    stepIsActive("upload", true);
+    stepIsActive("files", true);
 
     cy.dataCy("delivery-content-carousel").should("exist");
     cy.dataCy("file-dropzone").should("exist");

@@ -20,7 +20,7 @@ export const FormCheckbox: FC<FormCheckboxProps> = ({ fieldName, label, checked,
   return (
     <FormControlLabel
       sx={{ ...sx, [`& .${formControlLabelClasses.label}`]: { opacity: 1 } }}
-      disabled={disabled}
+      disabled={disabled || undefined} // passing undefined instead of false to prevent marking the form as dirty
       control={
         <Controller
           name={fieldName}
