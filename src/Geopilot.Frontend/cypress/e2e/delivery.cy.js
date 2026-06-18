@@ -28,7 +28,9 @@ describe("Delivery tests", () => {
     stepIsActive("upload", true);
 
     cy.wait("@fileExtensions");
-    cy.contains(".csv, .gpkg, .itf, .xml, .xtf or .zip (max. 100 MB)");
+    cy.contains("one file");
+    cy.contains("100 MB per file");
+    cy.contains("100 MB total");
 
     addFile("deliveryFiles/picture-type.png", false);
     stepHasError("upload", true, "The file type is not supported");

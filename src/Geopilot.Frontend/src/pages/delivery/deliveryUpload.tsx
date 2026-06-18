@@ -87,6 +87,7 @@ export const DeliveryUpload: FC<DeliveryStepProps> = ({ completed }) => {
                 setFileError={setFileError}
                 maxFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxFileSizeMB : undefined}
                 maxFiles={uploadSettings?.enabled ? uploadSettings.maxFilesPerJob : 1}
+                maxTotalFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxJobSizeMB : undefined}
                 isUploading={isLoading}
               />
               <FlexRowSpaceBetweenBox>

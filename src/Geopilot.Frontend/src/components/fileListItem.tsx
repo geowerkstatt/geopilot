@@ -31,7 +31,7 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
         <Stack spacing={0.5}>
           <Typography variant="body1" color="primary.main">
             {file.name}&nbsp;
-            <Typography component="span" variant="caption" color="primary.light">
+            <Typography component="span" variant="caption" color="primary.light" sx={{ verticalAlign: "middle" }}>
               ({formatFileSize(file.size)})
             </Typography>
           </Typography>
@@ -41,15 +41,16 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
             </Typography>
           )}
         </Stack>
-        <IconButton
-          disabled={disabled}
-          onClick={() => onRemove(file)}
-          sx={{ color: geopilotTheme.palette.primary.main, padding: "0" }}>
-          <ClearIcon />
-        </IconButton>
+        {!disabled && (
+          <IconButton onClick={() => onRemove(file)} sx={{ color: geopilotTheme.palette.primary.main, padding: "0" }}>
+            <ClearIcon />
+          </IconButton>
+        )}
       </FlexRowSpaceBetweenBox>
       {status?.state === "uploading" && <LinearProgress variant="indeterminate" />}
-      {status?.state === "completed" && <LinearProgress variant="determinate" value={100} color="success" />}
+      {status?.state === "completed" && !disabled && (
+        <LinearProgress variant="determinate" value={100} color="success" />
+      )}
       {status?.state === "error" && <LinearProgress variant="determinate" value={100} color="error" />}
     </Box>
   );
