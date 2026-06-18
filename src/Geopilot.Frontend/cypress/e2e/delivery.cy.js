@@ -159,4 +159,14 @@ describe("Delivery tests", () => {
     selectStep("processing");
     stepIsActive("processing");
   });
+
+  it("renders content carousel on mobile with only the active step mounted", () => {
+    cy.viewport("iphone-x");
+    loadWithoutAuth();
+    stepIsActive("upload", true);
+
+    cy.dataCy("delivery-content-carousel").should("exist");
+    cy.dataCy("file-dropzone").should("exist");
+    cy.dataCy("mandate-selection-group").should("not.exist");
+  });
 });
