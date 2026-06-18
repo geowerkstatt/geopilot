@@ -15,7 +15,7 @@ import {
   StartJobRequest,
   UploadSettings,
 } from "../../api/apiInterfaces.ts";
-import { DeliveryUpload } from "./deliveryUpload.tsx";
+import { DeliveryFileUpload } from "./deliveryFileUpload.tsx";
 import { DeliveryProcessing } from "./processing/deliveryProcessing.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
@@ -54,34 +54,34 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
 const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelivery: boolean) => {
   const newSteps: Map<DeliveryStepEnum, DeliveryStep> = new Map();
   newSteps.set(
-    DeliveryStepEnum.Upload,
-    previousSteps.get(DeliveryStepEnum.Upload) ?? {
-      label: "upload",
-      content: completed => <DeliveryUpload completed={completed} />,
+    DeliveryStepEnum.Files,
+    previousSteps.get(DeliveryStepEnum.Files) ?? {
+      label: "files",
+      content: completed => <DeliveryFileUpload completed={completed} />,
     },
   );
 
   newSteps.set(
-    DeliveryStepEnum.SelectMandate,
-    previousSteps.get(DeliveryStepEnum.SelectMandate) ?? {
-      label: "selectMandate",
+    DeliveryStepEnum.Mandate,
+    previousSteps.get(DeliveryStepEnum.Mandate) ?? {
+      label: "mandate",
       content: completed => <DeliverySelectMandate completed={completed} />,
     },
   );
 
   newSteps.set(
-    DeliveryStepEnum.Process,
-    previousSteps.get(DeliveryStepEnum.Process) ?? {
-      label: "process",
+    DeliveryStepEnum.Processing,
+    previousSteps.get(DeliveryStepEnum.Processing) ?? {
+      label: "processing",
       content: () => <DeliveryProcessing />,
     },
   );
 
   if (showDelivery) {
     newSteps.set(
-      DeliveryStepEnum.Submit,
-      previousSteps.get(DeliveryStepEnum.Submit) ?? {
-        label: "deliver",
+      DeliveryStepEnum.Delivery,
+      previousSteps.get(DeliveryStepEnum.Delivery) ?? {
+        label: "delivery",
         content: completed => <DeliverySubmit completed={completed} />,
       },
     );
@@ -112,18 +112,18 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = useMemo(
     () => ({
-      [DeliveryStepEnum.Upload]: [
+      [DeliveryStepEnum.Files]: [
         { status: 400, errorKey: "validationErrorFileMalformed" },
         { status: 413, errorKey: "validationErrorFileTooLarge" },
         { status: 500, errorKey: "validationErrorUnexpected" },
       ],
-      [DeliveryStepEnum.SelectMandate]: [],
-      [DeliveryStepEnum.Process]: [
+      [DeliveryStepEnum.Mandate]: [],
+      [DeliveryStepEnum.Processing]: [
         { status: 400, errorKey: "validationErrorRequestMalformed" },
         { status: 404, errorKey: "validationErrorCannotFind" },
         { status: 500, errorKey: "validationErrorUnexpected" },
       ],
-      [DeliveryStepEnum.Submit]: [
+      [DeliveryStepEnum.Delivery]: [
         { status: 400, errorKey: "deliveryErrorMalformedRequest" },
         { status: 401, errorKey: "deliveryErrorUnauthorized" },
         { status: 404, errorKey: "deliveryErrorNoValidationFound" },
@@ -221,7 +221,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setJobId(id);
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
-      const step = newSteps.get(DeliveryStepEnum.Upload);
+      const step = newSteps.get(DeliveryStepEnum.Files);
       if (step) {
         step.labelAddition = selectedFiles.map(f => f.name).join("\n");
       }
@@ -252,7 +252,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         .then(onUploadComplete)
         .catch((error: ApiError) => {
           if (abortController.signal.aborted) return;
-          handleApiError(error, DeliveryStepEnum.Upload);
+          handleApiError(error, DeliveryStepEnum.Files);
           selectedFiles.forEach(f => setFileStatus(f.name, { state: "error", error: error.message }));
         })
         .finally(() => {
@@ -284,7 +284,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         })
         .catch((error: ApiError) => {
           if (abortController.signal.aborted) return;
-          handleApiError(error, DeliveryStepEnum.Upload);
+          handleApiError(error, DeliveryStepEnum.Files);
           setFileStatus(file.name, { state: "error", error: error.message });
         })
         .finally(() => {
@@ -298,7 +298,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     abortControllers.forEach(controller => controller.abort());
     setAbortControllers([]);
     setIsLoading(false);
-    setStepError(DeliveryStepEnum.Upload, undefined);
+    setStepError(DeliveryStepEnum.Files, undefined);
     setFileUploadStatus(prev => {
       const next = new Map(prev);
       next.forEach((_, key) => {
@@ -323,16 +323,16 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
           if (!isProcessingDeliverable(response)) {
             if (response.state === ProcessingState.Success) {
               // Pipeline succeeded but delivery is blocked (e.g. delivery restriction matched).
-              setStepError(DeliveryStepEnum.Process, "completedWithErrors");
+              setStepError(DeliveryStepEnum.Processing, "completedWithErrors");
             } else {
               // ProcessingState.Failed or Cancelled.
-              setStepError(DeliveryStepEnum.Process, response.state);
+              setStepError(DeliveryStepEnum.Processing, response.state);
             }
           }
         }
       })
       .catch((error: ApiError) => {
-        handleApiError(error, DeliveryStepEnum.Process);
+        handleApiError(error, DeliveryStepEnum.Processing);
       });
   };
 
@@ -342,7 +342,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
-      const step = newSteps.get(DeliveryStepEnum.SelectMandate);
+      const step = newSteps.get(DeliveryStepEnum.Mandate);
       if (step) {
         step.labelAddition = mandate.name;
       }
@@ -373,15 +373,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       })
       .catch((error: ApiError) => {
         setIsLoading(false);
-        handleApiError(error, DeliveryStepEnum.Process);
+        handleApiError(error, DeliveryStepEnum.Processing);
       });
   };
 
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);
     setSubmittedData(data);
-    if (steps.get(DeliveryStepEnum.Submit)?.error) {
-      setStepError(DeliveryStepEnum.Submit, undefined);
+    if (steps.get(DeliveryStepEnum.Delivery)?.error) {
+      setStepError(DeliveryStepEnum.Delivery, undefined);
     }
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
@@ -400,7 +400,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         continueToNextStep();
       })
       .catch((error: ApiError) => {
-        handleApiError(error, DeliveryStepEnum.Submit);
+        handleApiError(error, DeliveryStepEnum.Delivery);
       })
       .finally(() => setIsLoading(false));
   };

@@ -21,11 +21,11 @@ describe("Delivery tests", () => {
     }).as("fileExtensions");
 
     loadWithoutAuth();
-    cy.dataCy("upload-step").should("exist");
-    cy.dataCy("selectMandate-step").should("exist");
-    cy.dataCy("process-step").should("exist");
-    cy.dataCy("submit-step").should("not.exist");
-    stepIsActive("upload", true);
+    cy.dataCy("files-step").should("exist");
+    cy.dataCy("mandate-step").should("exist");
+    cy.dataCy("processing-step").should("exist");
+    cy.dataCy("delivery-step").should("not.exist");
+    stepIsActive("files", true);
 
     cy.wait("@fileExtensions");
     cy.contains("one file");
@@ -33,16 +33,16 @@ describe("Delivery tests", () => {
     cy.contains("100 MB total");
 
     addFile("deliveryFiles/picture-type.png", false);
-    stepHasError("upload", true, "The file type is not supported");
+    stepHasError("files", true, "The file type is not supported");
 
     addFile(["deliveryFiles/ilimodels_invalid.xml", "deliveryFiles/ilimodels_valid.xtf"], false);
-    stepHasError("upload", true, "The maximum number of files has been exceeded");
+    stepHasError("files", true, "The maximum number of files has been exceeded");
 
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
-    stepHasError("upload", false);
+    stepHasError("files", false);
     uploadFile();
 
-    stepIsActive("selectMandate");
+    stepIsActive("mandate");
   });
 
   // Skip test as starting the processing currently results in a 500 when running in the github action
@@ -52,13 +52,13 @@ describe("Delivery tests", () => {
     uploadFile();
     selectMandate(1);
     startProcessing();
-    stepIsLoading("process", true);
-    stepHasError("process", true, "Failed");
+    stepIsLoading("processing", true);
+    stepHasError("processing", true, "Failed");
     cy.dataCy("processing-step-validation").dataCy("processing-step-icon-error").should("exist");
     cy.dataCy("errorLog.log-button").should("not.exist");
     cy.dataCy("xtfLog.xtf-button").should("not.exist");
-    stepIsActive("process");
-    stepIsActive("submit", false); // Should not be active if processing has errors
+    stepIsActive("processing");
+    stepIsActive("delivery", false); // Should not be active if processing has errors
     cy.dataCy("continue-button").should("not.exist");
   });
 
@@ -68,21 +68,21 @@ describe("Delivery tests", () => {
 
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
-    stepIsActive("upload");
+    stepIsActive("files");
     uploadFile();
 
-    stepIsActive("selectMandate");
+    stepIsActive("mandate");
     selectMandate(1);
     startProcessing();
 
-    stepIsActive("process");
+    stepIsActive("processing");
 
     // XTF log files should be available
     cy.dataCy("errorLog.log-button").should("exist");
     cy.dataCy("xtfLog.xtf-button").should("exist");
 
     cy.dataCy("continue-button").click();
-    stepIsActive("submit");
+    stepIsActive("delivery");
 
     //Wait for select values to be present on DOM
     cy.wait("@precursors");
@@ -95,16 +95,16 @@ describe("Delivery tests", () => {
 
     // Complete delivery
     cy.dataCy("createDelivery-button").should("be.enabled").click();
-    stepIsActive("submit");
-    stepIsCompleted("submit");
+    stepIsActive("delivery");
+    stepIsCompleted("delivery");
   });
 
   it("displays error if no mandates were found", () => {
     loginAsNewUser();
     addFile("deliveryFiles/ilimodels_invalid.xml", true);
     uploadFile();
-    stepIsActive("selectMandate");
-    stepHasError("selectMandate", true, "No suitable mandate was found for your delivery");
+    stepIsActive("mandate");
+    stepHasError("mandate", true, "No suitable mandate was found for your delivery");
   });
 
   it("displays custom error messages when they don't match predefined errors", () => {
@@ -125,7 +125,7 @@ describe("Delivery tests", () => {
     cy.wait("@customError");
 
     // Should display the actual error message since there's no mapping for 418
-    stepHasError("upload", true, "I'm a teapot");
+    stepHasError("files", true, "I'm a teapot");
   });
 
   it("can show previous steps as read-only", () => {
@@ -135,28 +135,28 @@ describe("Delivery tests", () => {
 
     selectMandate(1);
     startProcessing();
-    stepIsActive("process");
+    stepIsActive("processing");
 
     // Can navigate with back button
     cy.dataCy("back-button").click();
-    stepIsActive("selectMandate");
-    stepIsActive("process", false);
+    stepIsActive("mandate");
+    stepIsActive("processing", false);
 
     // Can navigate by clicking on the step
-    selectStep("upload");
-    stepIsActive("upload");
+    selectStep("files");
+    stepIsActive("files");
     cy.dataCy("upload-button").should("not.exist");
 
     cy.dataCy("continue-button").click();
     // Select mandate step shows previously selected mandate
-    stepIsActive("selectMandate");
+    stepIsActive("mandate");
     cy.dataCy("mandate-1").should("have.class", "Mui-selected").should("have.class", "Mui-disabled");
 
     // Can not navigate to future steps
-    selectStep("submit");
-    stepIsActive("submit", false);
+    selectStep("delivery");
+    stepIsActive("delivery", false);
 
-    selectStep("process");
-    stepIsActive("process");
+    selectStep("processing");
+    stepIsActive("processing");
   });
 });

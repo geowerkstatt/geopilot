@@ -14,7 +14,7 @@ export const DeliveryProcessing = () => {
   const hasSteps = (processingResponse?.steps?.length ?? 0) > 0;
 
   const lastStep = Array.from(steps.keys())[steps.size - 1];
-  const isLastStep = lastStep === DeliveryStepEnum.Process;
+  const isLastStep = lastStep === DeliveryStepEnum.Processing;
   const lastStepIsActive = activeStep === steps.size - 1;
   useEffect(() => {
     if (isLastStep && lastStepIsActive && !isLoading && !isProcessing) {
@@ -33,7 +33,7 @@ export const DeliveryProcessing = () => {
   );
 
   return (
-    <DeliveryContent title="process" buttons={buttons}>
+    <DeliveryContent title="processing" buttons={buttons}>
       {isProcessing && <DeliveryProcessingLoading />}
       {hasSteps && <DeliveryProcessingResults />}
     </DeliveryContent>

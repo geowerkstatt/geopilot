@@ -71,10 +71,10 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
 
   useEffect(() => {
     if (jobId) {
-      setStepError(DeliveryStepEnum.SelectMandate, undefined);
+      setStepError(DeliveryStepEnum.Mandate, undefined);
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ jobId })).then(mandates => {
         if (mandates.length === 0) {
-          setStepError(DeliveryStepEnum.SelectMandate, "noMandatesFound");
+          setStepError(DeliveryStepEnum.Mandate, "noMandatesFound");
         }
         setMandates(mandates);
         setSelectedId(mandates.length === 1 ? mandates[0].id : null);
@@ -111,7 +111,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
   );
 
   return (
-    <DeliveryContent title="selectMandate" subtitle="selectMandateSubtitle" buttons={buttons}>
+    <DeliveryContent title="mandate" subtitle="selectMandateSubtitle" buttons={buttons}>
       <Stack>
         {mandates === null ? (
           <CircularProgress sx={{ alignSelf: "center" }} />

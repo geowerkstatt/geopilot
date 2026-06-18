@@ -14,7 +14,7 @@ import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryContent } from "./deliveryContent.tsx";
 import { DeliveryContinueButton } from "./deliveryButtons.tsx";
 
-export const DeliveryUpload: FC<DeliveryStepProps> = ({ completed }) => {
+export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>();
   const { initialized, termsOfUse } = useAppSettings();
   const { fetchApi } = useFetch();
@@ -39,13 +39,13 @@ export const DeliveryUpload: FC<DeliveryStepProps> = ({ completed }) => {
   }, [fetchApi, processingSettings]);
 
   const submitForm = () => {
-    setStepError(DeliveryStepEnum.Upload, undefined);
+    setStepError(DeliveryStepEnum.Files, undefined);
     uploadFile();
   };
 
   const setFileError = useCallback(
     (error: string | undefined) => {
-      setStepError(DeliveryStepEnum.Upload, error);
+      setStepError(DeliveryStepEnum.Files, error);
     },
     [setStepError],
   );
@@ -71,7 +71,7 @@ export const DeliveryUpload: FC<DeliveryStepProps> = ({ completed }) => {
   );
 
   return (
-    <DeliveryContent title="upload" subtitle="uploadSubtitle" buttons={button}>
+    <DeliveryContent title="files" subtitle="uploadSubtitle" buttons={button}>
       {initialized && (
         <FormProvider {...formMethods}>
           <form onSubmit={formMethods.handleSubmit(submitForm)}>

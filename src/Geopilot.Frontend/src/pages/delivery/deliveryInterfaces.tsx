@@ -2,10 +2,10 @@ import { ReactNode } from "react";
 import { Mandate, ProcessingJobResponse, UploadSettings } from "../../api/apiInterfaces.ts";
 
 export enum DeliveryStepEnum {
-  Upload = "upload",
-  SelectMandate = "selectMandate",
-  Process = "process",
-  Submit = "submit",
+  Files = "files",
+  Mandate = "mandate",
+  Processing = "processing",
+  Delivery = "delivery",
 }
 
 export interface FileUploadStatus {
