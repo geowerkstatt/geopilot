@@ -196,6 +196,10 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   }, [activeStep, steps]);
 
+  const markStepCompleted = useCallback(() => {
+    setLastCompletedStep(prev => Math.max(prev + 1, steps.size - 1));
+  }, [steps]);
+
   const showCompletedOrNextStep = useCallback(
     (index: number) => {
       if (index >= 0 && index <= lastCompletedStep + 1) {
@@ -320,14 +324,14 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         } else {
           setIsProcessing(false);
 
-          if (!isProcessingDeliverable(response)) {
-            if (response.state === ProcessingState.Success) {
-              // Pipeline succeeded but delivery is blocked (e.g. delivery restriction matched).
-              setStepError(DeliveryStepEnum.Processing, "completedWithErrors");
-            } else {
-              // ProcessingState.Failed or Cancelled.
-              setStepError(DeliveryStepEnum.Processing, response.state);
-            }
+          if (isProcessingDeliverable(response)) {
+            markStepCompleted();
+          } else if (response.state === ProcessingState.Success) {
+            // Pipeline succeeded but delivery is blocked (e.g. delivery restriction matched).
+            setStepError(DeliveryStepEnum.Processing, "completedWithErrors");
+          } else {
+            // ProcessingState.Failed or Cancelled.
+            setStepError(DeliveryStepEnum.Processing, response.state);
           }
         }
       })
