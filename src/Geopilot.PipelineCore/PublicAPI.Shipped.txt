@@ -34,3 +34,5 @@ static Geopilot.PipelineCore.Pipeline.LocalizedText.Empty.get -> Geopilot.Pipeli
 static Geopilot.PipelineCore.Pipeline.LocalizedText.FromDictionary(System.Collections.Generic.Dictionary<string!, string!>! values) -> Geopilot.PipelineCore.Pipeline.LocalizedText!
 static Geopilot.PipelineCore.Pipeline.LocalizedText.Merge(System.Collections.Generic.IEnumerable<Geopilot.PipelineCore.Pipeline.LocalizedText!>! parts, string! separator) -> Geopilot.PipelineCore.Pipeline.LocalizedText!
 static Geopilot.PipelineCore.Pipeline.LocalizedText.implicit operator Geopilot.PipelineCore.Pipeline.LocalizedText!(System.Collections.Generic.Dictionary<string!, string!>! values) -> Geopilot.PipelineCore.Pipeline.LocalizedText!
+Geopilot.PipelineCore.Pipeline.IPipelineFile.GetLocalPath() -> string!
+Geopilot.PipelineCore.Pipeline.IPipelineFileManager.CreateWritableCopy(Geopilot.PipelineCore.Pipeline.IPipelineFile! source, string! name) -> Geopilot.PipelineCore.Pipeline.IPipelineFile!

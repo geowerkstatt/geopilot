@@ -42,6 +42,17 @@ public class PipelineFileManager : IPipelineFileManager
         return new PipelineFile(filePath, originalFileName + "." + fileExtension, normalized);
     }
 
+    /// <inheritdoc />
+    public IPipelineFile CreateWritableCopy(IPipelineFile source, string name)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var target = GeneratePipelineFile(source.OriginalRelativePath, name, source.FileExtension);
+        using var sourceStream = source.OpenReadFileStream();
+        using var targetStream = target.OpenWriteFileStream();
+        sourceStream.CopyTo(targetStream);
+        return target;
+    }
+
     /// <summary>
     /// Normalizes a relative path to forward-slash form without leading or trailing separators.
     /// Backslashes are tolerated (treated as separators); empty segments are collapsed.

@@ -8,10 +8,12 @@
 - Optional virus scanning with ClamAV for cloud uploads.
 - Rate limiting and upload capacity limits for the cloud upload endpoint.
 - `LocalizedText` type in the PipelineCore API for multilingual pipeline texts (pipeline and step display names, status messages). Plugins emitting `Dictionary<string, string>` remain supported.
+- `IPipelineFile.GetLocalPath()` and `IPipelineFileManager.CreateWritableCopy(...)` in the PipelineCore API, letting a process hand a file to external tools by path and obtain an owned, writable copy without copying it by hand.
 
 ### Changed
 
 - `Pipeline:Plugins` can now be configured via a single comma-separated value (e.g. `Pipeline__Plugins=a.dll,b.dll`) in addition to the existing JSON array form, making it usable as a flat environment variable.
+- Pipeline process inputs are now isolated per step: a process that modifies a file it received no longer affects the original, so other steps consuming the same file are unaffected. Stream reads stay cheap; requesting a local path materializes a private copy.
 
 ### Fixed
 

@@ -86,6 +86,7 @@ public class PipelineFactory : IPipelineFactory
             .InputConfig(stepConfig.Input ?? new List<InputConfig>())
             .OutputConfig(stepConfig.Output ?? new List<OutputConfig>())
             .StepConditions(stepConfig.Conditions)
+            .PipelineDirectory(pipelineTempDirectory)
             .Process(pipelineProcessFactory.Builder()
                 .PipelineId(pipelineId)
                 .StepConfig(stepConfig)
