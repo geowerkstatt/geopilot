@@ -1,4 +1,5 @@
-﻿using NetTopologySuite.Geometries;
+﻿using Geopilot.PipelineCore.Pipeline;
+using NetTopologySuite.Geometries;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
@@ -51,7 +52,7 @@ public class Mandate
     /// This is a non-persisted property used for display purposes only.
     /// </summary>
     [NotMapped]
-    public List<Dictionary<string, string>> PipelineSteps { get; set; } = new List<Dictionary<string, string>>();
+    public List<LocalizedText> PipelineSteps { get; set; } = new List<LocalizedText>();
 
     /// <summary>
     /// The spatial extent of the mandate. The extent is a polygon in WGS84.

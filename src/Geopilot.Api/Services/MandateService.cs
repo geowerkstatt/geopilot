@@ -1,5 +1,4 @@
 ﻿using Geopilot.Api.Models;
-using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
 using Microsoft.EntityFrameworkCore;
 
