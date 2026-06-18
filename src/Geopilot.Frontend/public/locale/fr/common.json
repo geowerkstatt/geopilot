@@ -98,7 +98,7 @@
   "partialDelivery": "Livraison partielle",
   "pipeline": "Pipeline",
   "pipelineLoadingError": "Une erreur s'est produite lors du chargement des pipelines: {{error}}",
-  "pipelineSteps": "Étapes: {{steps}}",
+  "pipelineSteps": "Étapes:",
   "precursor": "Prédécesseur",
   "privacyPolicy": "Politique de confidentialité",
   "processing": "Traitement",

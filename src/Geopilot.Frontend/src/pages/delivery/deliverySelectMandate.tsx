@@ -49,9 +49,14 @@ const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
       <Typography variant="h5" mt={0}>
         {mandate.name}
       </Typography>
-      <Typography variant="body1" sx={{ textTransform: "none", lineHeight: 1.25 }}>
-        {t("pipelineSteps", { steps })}
-      </Typography>
+      <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
+        <Typography variant="body1" sx={{ textTransform: "none", lineHeight: 1.25 }}>
+          {t("pipelineSteps")}
+        </Typography>
+        <Typography variant="body1" sx={{ textTransform: "none", lineHeight: 1.25 }}>
+          {steps}
+        </Typography>
+      </Stack>
       {user && (
         <Typography variant="body1" sx={{ textTransform: "none" }}>
           {mandate.allowDelivery ? t("deliveryPossible") : t("deliveryNotPossible")}

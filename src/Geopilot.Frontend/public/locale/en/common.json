@@ -98,7 +98,7 @@
   "partialDelivery": "Partial delivery",
   "pipeline": "Pipeline",
   "pipelineLoadingError": "An error occurred while loading the pipelines: {{error}}",
-  "pipelineSteps": "Steps: {{steps}}",
+  "pipelineSteps": "Steps:",
   "precursor": "Precursor",
   "privacyPolicy": "Privacy policy",
   "processing": "Processing",

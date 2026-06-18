@@ -98,7 +98,7 @@
   "partialDelivery": "Consegna parziale",
   "pipeline": "Pipeline",
   "pipelineLoadingError": "Si è verificato un errore durante il caricamento delle pipeline: {{error}}",
-  "pipelineSteps": "Passaggi: {{steps}}",
+  "pipelineSteps": "Passaggi:",
   "precursor": "Precursore",
   "privacyPolicy": "Informativa sulla privacy",
   "processing": "Elaborazione",
