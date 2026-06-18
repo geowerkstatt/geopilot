@@ -29,7 +29,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
     uploadFile,
     cancelUpload,
     uploadSettings,
-    resetDelivery,
+    lastCompletedStep,
   } = useContext(DeliveryContext);
 
   useEffect(() => {
@@ -37,6 +37,11 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
       fetchApi<ProcessingSettings>("/api/v2/processing").then(setProcessingSettings);
     }
   }, [fetchApi, processingSettings]);
+
+  useEffect(() => {
+    // Reset the form state when the user restarts the delivery process
+    formMethods.reset();
+  }, [formMethods, lastCompletedStep]);
 
   const submitForm = () => {
     setStepError(DeliveryStepEnum.Files, undefined);
@@ -51,15 +56,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   );
 
   const button = completed ? (
-    <>
-      <CancelButton
-        onClick={() => {
-          formMethods.reset();
-          resetDelivery();
-        }}
-      />
-      <DeliveryContinueButton />
-    </>
+    <DeliveryContinueButton />
   ) : isLoading ? (
     <CancelButton onClick={() => cancelUpload()} />
   ) : (

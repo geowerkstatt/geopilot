@@ -107,6 +107,8 @@
   "public": "Pubblico",
   "reset": "Reimposta",
   "resetCurrentChanges": "Ripristino delle modifiche correnti",
+  "restart": "Riavvia",
+  "restartPrompt": "Vuoi davvero riavviare la consegna? Questo resetterà tutti i passaggi e non può essere annullato.",
   "save": "Salvare",
   "selectMandateSubtitle": "Seleziona un mandato che corrisponde alle tue esigenze di elaborazione attuali.",
   "spatialExtent": "Misura spaziale",

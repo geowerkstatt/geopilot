@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { MiddleTruncate } from "../../components/middleTruncate";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
 import { DeliveryContext } from "./deliveryContext";
+import { DeliveryRestartButton } from "./deliveryRestartButton";
 import { StepperIcon } from "./stepperIcon";
 
 const StepperStack = styled(Stack)(({ theme }) => ({
@@ -125,6 +126,7 @@ export const DeliveryStepper = () => {
           </Stack>
         </DeliveryStepBox>
       ))}
+      <DeliveryRestartButton sx={{ alignSelf: "flex-end", display: { xs: "none", md: "block" } }} />
     </StepperStack>
   );
 };

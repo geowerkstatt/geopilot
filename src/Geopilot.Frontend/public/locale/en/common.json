@@ -107,6 +107,8 @@
   "public": "Public",
   "reset": "Reset",
   "resetCurrentChanges": "Reset current changes",
+  "restart": "Restart",
+  "restartPrompt": "Do you really want to restart the delivery? This will reset all steps and cannot be undone.",
   "save": "Save",
   "selectMandateSubtitle": "Select a mandate that matches your current processing needs.",
   "spatialExtent": "Spatial extent",

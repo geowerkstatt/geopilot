@@ -2,7 +2,8 @@ import { Typography } from "@mui/material";
 import { styled } from "@mui/system";
 import { FC, PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
-import { FlexBox, FlexRowEndBox, GeopilotBox } from "../../components/styledComponents";
+import { FlexBox, FlexRowEndBox, FlexRowSpaceBetweenBox, GeopilotBox } from "../../components/styledComponents";
+import { DeliveryRestartButton } from "./deliveryRestartButton";
 
 interface DeliveryContentProps {
   title: string;
@@ -84,7 +85,10 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
           {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}
           {children}
         </MainContentBox>
-        <FlexRowEndBox>{buttons}</FlexRowEndBox>
+        <FlexRowSpaceBetweenBox>
+          <DeliveryRestartButton sx={{ display: { xs: "block", md: "none" } }} />
+          <FlexRowEndBox sx={{ flex: 1 }}>{buttons}</FlexRowEndBox>
+        </FlexRowSpaceBetweenBox>
       </DeliveryContentBox>
       <ScrollContentOverlay />
       <ContainerTopBorderOverlay />

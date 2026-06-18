@@ -107,6 +107,8 @@
   "public": "Öffentlich",
   "reset": "Zurücksetzen",
   "resetCurrentChanges": "Aktuelle Änderungen zurücksetzen",
+  "restart": "Neustart",
+  "restartPrompt": "Möchten Sie die Lieferung wirklich neu starten? Dies setzt alle Schritte zurück und kann nicht rückgängig gemacht werden.",
   "save": "Speichern",
   "selectMandateSubtitle": "Wählen Sie ein Mandat, das Ihren aktuellen Verarbeitungsanforderungen entspricht.",
   "spatialExtent": "Räumliche Ausdehnung",
