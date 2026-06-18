@@ -1,13 +1,13 @@
 processes:
   - id: xtf_matcher
-    implementation: Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher.XtfMatcherProcess
+    implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
     default_config:
       fileExtensions:
         - xtf
       iliModels: null
       fileNamePatterns: null
   - id: xtf_validator
-    implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
+    implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile: ""
       pollInterval: 1000

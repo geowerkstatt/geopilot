@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.Controllers;
-using Geopilot.Api.Models;
+﻿using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.CompilerServices;

@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline.Config.Validation;
+﻿using Geopilot.Pipeline.ValidationAttributes;
+using Geopilot.PipelineCore.Pipeline;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
@@ -18,10 +19,11 @@ public class StepConfig
     public required string Id { get; set; }
 
     /// <summary>
-    /// A human-readable display name for the step in different languages. Key: ISO 639 language code, Value: The display name for that language.
+    /// The step's localized display name, shown in the user interface.
     /// </summary>
     [YamlMember(Alias = "display_name")]
-    public required Dictionary<string, string> DisplayName { get; set; }
+    [Required(ErrorMessage = "Step Display Name is required.")]
+    public required LocalizedText DisplayName { get; set; }
 
     /// <summary>
     /// The process to execute in this step. References the <see cref="ProcessConfig.Id"/> of a defined process.

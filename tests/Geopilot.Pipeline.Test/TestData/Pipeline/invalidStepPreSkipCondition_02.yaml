@@ -1,0 +1,45 @@
+processes:
+  - id: xtf_validator
+    implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
+    default_config:
+      log_level: INFO
+      profile: null
+  - id: xtf_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions:
+        - xtf
+      iliModels: null
+      fileNamePatterns: null
+pipelines:
+  - id: ili_validation
+    display_name:
+      en: XTF Validation
+    steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+        process_id: xtf_matcher
+        output:
+          - take: xtf_files
+            as: xtf_files
+      - id: validation
+        display_name:
+          en: XTF Validation
+        process_id: xtf_validator
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "([upload.ili_file]"
+        input:
+          - from: xtf_matching
+            take: xtf_files
+            as: iliFile
+        output:
+          - take: error_log
+            as: error_log
+            action:
+          - take: xtf_log
+            as: xtf_log
+            action:
+              - DOWNLOAD

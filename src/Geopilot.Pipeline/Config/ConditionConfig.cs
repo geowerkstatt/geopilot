@@ -1,4 +1,5 @@
-﻿using YamlDotNet.Serialization;
+﻿using Geopilot.PipelineCore.Pipeline;
+using YamlDotNet.Serialization;
 
 namespace Geopilot.Pipeline.Config;
 
@@ -15,8 +16,7 @@ public class ConditionConfig
 
     /// <summary>
     /// Gets or sets the localized message associated with this condition.
-    /// The dictionary keys are language codes (e.g. "de", "en", "fr", "it") and the values are the messages in the respective language.
     /// </summary>
     [YamlMember(Alias = "message")]
-    public Dictionary<string, string>? Message { get; set; }
+    public LocalizedText? Message { get; set; }
 }

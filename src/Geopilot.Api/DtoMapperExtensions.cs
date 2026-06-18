@@ -2,6 +2,7 @@
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 
 namespace Api;
 
@@ -22,13 +23,9 @@ internal static class DtoMapperExtensions
     /// </param>
     public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl, PipelineConfig? pipelineConfig = null)
     {
-        var state = job.IsFailed
-            ? ProcessingState.Failed
-            : job.Pipeline?.State ?? ProcessingState.Pending;
-
         var pipelineName = job.Pipeline?.DisplayName
             ?? pipelineConfig?.DisplayName
-            ?? new Dictionary<string, string>();
+            ?? LocalizedText.Empty;
 
         var steps = job.Pipeline?.Steps
             .Select(step => step.ToResponse(job.Id, buildDownloadUrl))
@@ -45,7 +42,7 @@ internal static class DtoMapperExtensions
 
         return new ProcessingJobResponse(
             job.Id,
-            state,
+            job.State,
             job.MandateId,
             pipelineName,
             steps,

@@ -1,0 +1,194 @@
+﻿using Geopilot.Pipeline.Processes.XtfValidation;
+using Geopilot.PipelineCore.Pipeline;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Moq.Protected;
+using System.Net;
+using System.Net.Http.Json;
+using System.Reflection;
+
+namespace Geopilot.Pipeline.Test.Processes;
+
+[TestClass]
+public class XtfValidatorProcessTest
+{
+    private static Guid jobId = Guid.Parse("b98559c5-b374-4cbc-a797-1b5a13a297e7");
+
+    [TestMethod]
+    public void SunnyDay()
+    {
+        using HttpResponseMessage uploadMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.Created,
+            Content = JsonContent.Create(new InterlisUploadResponse()
+            {
+                JobId = jobId,
+                StatusUrl = "/api/v1/status/" + jobId.ToString(),
+            }),
+        };
+        using HttpResponseMessage getStatusMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = JsonContent.Create(new InterlisStatusResponse()
+            {
+                JobId = jobId,
+                LogUrl = "/api/v1/download?jobId=" + jobId.ToString() + "&logType=log",
+                XtfLogUrl = "/api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf",
+                Status = InterlisStatusResponseStatus.Completed,
+                StatusMessage = "Validation successful",
+            }),
+        };
+        using FileStream appLogFile = File.Open(@"TestData/DownloadFiles/ilicop/log.log", FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
+        using HttpResponseMessage getAppLogMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StreamContent(appLogFile),
+        };
+        using FileStream xtfLogFile = File.Open(@"TestData/DownloadFiles/ilicop/log.xtf", FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
+        using HttpResponseMessage getXtfLogMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.OK,
+            Content = new StreamContent(xtfLogFile),
+        };
+        using var process = XtfValidatorProcessBuilder.Create()
+            .InterlisCheckServiceBaseUrl("http://localhost/")
+            .UploadMockResponse(uploadMockResponse)
+            .GetStatusMockResponse(getStatusMockResponse)
+            .GetAppLogMockResponse(getAppLogMockResponse)
+            .GetXtfLogMockResponse(getXtfLogMockResponse)
+            .Build();
+        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
+
+        var processResult = Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult();
+        Assert.IsNotNull(processResult);
+        Assert.HasCount(4, processResult);
+        processResult.TryGetValue("error_log", out var appLogData);
+        Assert.IsNotNull(appLogData);
+        var appLog = appLogData as IPipelineFile;
+        Assert.IsNotNull(appLog);
+        Assert.AreEqual("errorLog.log", appLog.OriginalFileName);
+        processResult.TryGetValue("xtf_log", out var xtfLogData);
+        Assert.IsNotNull(xtfLogData);
+        var xtfLog = xtfLogData as IPipelineFile;
+        Assert.IsNotNull(xtfLog);
+        Assert.AreEqual("xtfLog.xtf", xtfLog.OriginalFileName);
+        processResult.TryGetValue("status_message", out var statusMessageData);
+        var statusMessage = statusMessageData as LocalizedText;
+        Assert.IsNotNull(statusMessage);
+        LocalizedText expectedStatusMessage = new Dictionary<string, string>() { { "de", "Validation successful" }, { "fr", "Validation successful" }, { "it", "Validation successful" }, { "en", "Validation successful" } };
+        Assert.AreEqual(expectedStatusMessage, statusMessage);
+        processResult.TryGetValue("validation_successful", out var validationSuccessfulData);
+        var validationSuccessful = validationSuccessfulData as bool?;
+        Assert.IsTrue(validationSuccessful);
+    }
+
+    [TestMethod]
+    public void UploadFailed()
+    {
+        using HttpResponseMessage uploadMockResponse = new()
+        {
+            StatusCode = HttpStatusCode.BadRequest,
+            Content = JsonContent.Create(new InterlisUploadResponse()
+            {
+                JobId = jobId,
+                StatusUrl = "/api/v1/status/" + jobId.ToString(),
+            }),
+        };
+        using var process = XtfValidatorProcessBuilder.Create()
+            .InterlisCheckServiceBaseUrl("http://localhost/")
+            .UploadMockResponse(uploadMockResponse)
+            .Build();
+        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
+        var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult());
+        Assert.AreEqual("Invalid transfer file", exception.Message);
+    }
+
+    private class XtfValidatorProcessBuilder
+    {
+        private string interlisCheckServiceBaseUrl;
+        private string validationProfile = "DEFAULT";
+        private int pollInterval = 500;
+        private HttpResponseMessage uploadMockResponse;
+        private HttpResponseMessage getStatusMockResponse;
+        private HttpResponseMessage getAppLogMockResponse;
+        private HttpResponseMessage getXtfLogMockResponse;
+
+        public static XtfValidatorProcessBuilder Create()
+        {
+            return new XtfValidatorProcessBuilder();
+        }
+
+        public XtfValidatorProcessBuilder InterlisCheckServiceBaseUrl(string interlisCheckServiceBaseUrl)
+        {
+            this.interlisCheckServiceBaseUrl = interlisCheckServiceBaseUrl;
+            return this;
+        }
+
+        public XtfValidatorProcessBuilder UploadMockResponse(HttpResponseMessage uploadMockResponse)
+        {
+            this.uploadMockResponse = uploadMockResponse;
+            return this;
+        }
+
+        public XtfValidatorProcessBuilder GetStatusMockResponse(HttpResponseMessage getStatusMockResponse)
+        {
+            this.getStatusMockResponse = getStatusMockResponse;
+            return this;
+        }
+
+        public XtfValidatorProcessBuilder GetAppLogMockResponse(HttpResponseMessage getAppLogMockResponse)
+        {
+            this.getAppLogMockResponse = getAppLogMockResponse;
+            return this;
+        }
+
+        public XtfValidatorProcessBuilder GetXtfLogMockResponse(HttpResponseMessage getXtfLogMockResponse)
+        {
+            this.getXtfLogMockResponse = getXtfLogMockResponse;
+            return this;
+        }
+
+        public XtfValidatorProcess Build()
+        {
+            var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
+            var process = new XtfValidatorProcess(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+
+            var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
+            interlisValidatorMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/upload"),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(this.uploadMockResponse);
+            interlisValidatorMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/status/" + jobId.ToString()),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(this.getStatusMockResponse);
+            interlisValidatorMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=log"),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(this.getAppLogMockResponse);
+            interlisValidatorMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf"),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(this.getXtfLogMockResponse);
+            #pragma warning disable CA2000 // Dispose objects before losing scope
+            var httpClient = new HttpClient(interlisValidatorMessageHandlerMock.Object) { BaseAddress = new Uri(interlisCheckServiceBaseUrl) };
+            #pragma warning restore CA2000 // Dispose objects before losing scope
+            typeof(XtfValidatorProcess)
+                ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.SetValue(process, httpClient);
+            return process;
+        }
+    }
+}

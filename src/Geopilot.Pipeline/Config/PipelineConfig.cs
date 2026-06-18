@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline.Config.Validation;
+﻿using Geopilot.Pipeline.ValidationAttributes;
+using Geopilot.PipelineCore.Pipeline;
 using System.ComponentModel.DataAnnotations;
 using YamlDotNet.Serialization;
 
@@ -21,8 +22,9 @@ public class PipelineConfig
     /// <summary>
     /// The pipelines display name. A human-readable name for the pipeline.
     /// </summary>
+    [Required(ErrorMessage = "Pipeline Display Name is required.")]
     [YamlMember(Alias = "display_name")]
-    public required Dictionary<string, string> DisplayName { get; set; }
+    public required LocalizedText DisplayName { get; set; }
 
     /// <summary>
     /// The steps in the pipeline that will be executed sequentially. Each step defines a process to execute and its data handling configuration.

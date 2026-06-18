@@ -34,7 +34,7 @@ public sealed class Pipeline : IPipeline
     public string Id { get; }
 
     /// <inheritdoc/>
-    public Dictionary<string, string> DisplayName { get; }
+    public LocalizedText DisplayName { get; }
 
     private List<ConditionConfig>? deliveryRestrictions;
 
@@ -86,7 +86,7 @@ public sealed class Pipeline : IPipeline
     public PipelineDelivery Delivery { get; set; } = PipelineDelivery.Allow;
 
     /// <inheritdoc/>
-    public Dictionary<string, string>? DeliveryRestrictionMessage { get; private set; }
+    public LocalizedText? DeliveryRestrictionMessage { get; private set; }
 
     /// <summary>
     /// The files to be processed for the pipeline.
@@ -108,7 +108,7 @@ public sealed class Pipeline : IPipeline
     /// <param name="jobId">The job id associated with the pipeline execution, used for logging and tracking purposes.</param>
     private Pipeline(
         string id,
-        Dictionary<string, string> displayName,
+        LocalizedText displayName,
         List<IPipelineStep> steps,
         List<ConditionConfig>? deliveryRestrictions,
         IPipelineFileList uploadFiles,
@@ -216,31 +216,17 @@ public sealed class Pipeline : IPipeline
         }
     }
 
-    private static Dictionary<string, string> MergeConditionMessages(List<ConditionConfig> conditions)
-    {
-        var allLanguages = conditions
-            .Where(c => c.Message != null)
-            .SelectMany(c => c.Message!.Keys)
-            .Distinct();
-
-        var merged = new Dictionary<string, string>();
-        foreach (var language in allLanguages)
-        {
-            var messages = conditions
-                .Where(c => c.Message != null && c.Message.ContainsKey(language))
-                .Select(c => c.Message![language]);
-            merged[language] = string.Join(", ", messages);
-        }
-
-        return merged;
-    }
+    private static LocalizedText MergeConditionMessages(List<ConditionConfig> conditions) =>
+        LocalizedText.Merge(
+            conditions.Where(c => c.Message is not null).Select(c => c.Message!),
+            ", ");
 
     internal static PipelineBuilder Builder() => new PipelineBuilder();
 
     internal class PipelineBuilder
     {
         private string? id;
-        private Dictionary<string, string>? displayName;
+        private LocalizedText? displayName;
         private List<IPipelineStep>? steps;
         private List<ConditionConfig>? deliveryRestrictions;
         private IPipelineFileList? uploadFiles;
@@ -254,7 +240,7 @@ public sealed class Pipeline : IPipeline
             return this;
         }
 
-        public PipelineBuilder DisplayName(Dictionary<string, string> displayName)
+        public PipelineBuilder DisplayName(LocalizedText displayName)
         {
             this.displayName = displayName;
             return this;

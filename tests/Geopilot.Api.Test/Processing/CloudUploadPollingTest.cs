@@ -2,7 +2,6 @@
 using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
-using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
@@ -84,7 +83,7 @@ public class CloudUploadPollingTest
         var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
-        Assert.IsFalse(polledJob.IsFailed);
+        Assert.AreNotEqual(ProcessingState.Failed, polledJob.State);
     }
 
     [TestMethod]
@@ -100,7 +99,7 @@ public class CloudUploadPollingTest
         var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
-        Assert.IsFalse(polledJob.IsFailed);
+        Assert.AreNotEqual(ProcessingState.Failed, polledJob.State);
         Assert.AreEqual(mandate.Id, polledJob.MandateId);
     }
 
@@ -125,7 +124,7 @@ public class CloudUploadPollingTest
         var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
-        Assert.IsTrue(polledJob.IsFailed);
+        Assert.AreEqual(ProcessingState.Failed, polledJob.State);
     }
 
     [TestMethod]
@@ -146,7 +145,7 @@ public class CloudUploadPollingTest
         var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
-        Assert.IsTrue(polledJob.IsFailed);
+        Assert.AreEqual(ProcessingState.Failed, polledJob.State);
     }
 
     [TestMethod]
@@ -167,7 +166,7 @@ public class CloudUploadPollingTest
         var polledJob = processingService.GetJob(jobId);
 
         Assert.IsNotNull(polledJob);
-        Assert.IsTrue(polledJob.IsFailed);
+        Assert.AreEqual(ProcessingState.Failed, polledJob.State);
     }
 
     private async Task<(Guid JobId, Mandate Mandate, User User)> CreateAndStartCloudJobAsync()

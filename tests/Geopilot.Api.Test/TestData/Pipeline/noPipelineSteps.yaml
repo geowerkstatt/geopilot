@@ -1,7 +1,0 @@
-processes:
-  - id: xtf_validator
-    implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
-pipelines:
-  - id: ili_validation
-    display_name:
-      en: XTF Validation

@@ -69,7 +69,42 @@ public class ProcessingJobStore : IProcessingJobStore
         return jobs.AddOrUpdate(
             jobId,
             id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
-            (id, currentJob) => currentJob with { IsFailed = true });
+            (id, currentJob) =>
+            {
+                if (currentJob.State is not (ProcessingState.Pending or ProcessingState.Running))
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot transition job <{id}> from <{currentJob.State}> to <{ProcessingState.Failed}>.");
+                }
+
+                return currentJob with { State = ProcessingState.Failed };
+            });
+    }
+
+    /// <inheritdoc/>
+    public ProcessingJob PipelineFinished(Guid jobId, ProcessingState pipelineState)
+    {
+        if (pipelineState is not (ProcessingState.Success or ProcessingState.Failed or ProcessingState.Cancelled))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pipelineState),
+                pipelineState,
+                "Pipeline must have finished in a terminal state.");
+        }
+
+        return jobs.AddOrUpdate(
+            jobId,
+            id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
+            (id, currentJob) =>
+            {
+                if (currentJob.State != ProcessingState.Running)
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot transition job <{id}> from <{currentJob.State}> to <{pipelineState}>.");
+                }
+
+                return currentJob with { State = pipelineState };
+            });
     }
 
     /// <inheritdoc/>
@@ -94,7 +129,13 @@ public class ProcessingJobStore : IProcessingJobStore
             (id, job) =>
             {
                 EnsureJobIsPrePipeline(id, job, "start");
-                return job with { MandateId = mandateId, Pipeline = pipeline, PipelineId = pipeline.Id };
+                return job with
+                {
+                    MandateId = mandateId,
+                    Pipeline = pipeline,
+                    PipelineId = pipeline.Id,
+                    State = ProcessingState.Running,
+                };
             });
 
         pipelineQueue.Writer.TryWrite(pipeline);
@@ -119,7 +160,7 @@ public class ProcessingJobStore : IProcessingJobStore
     {
         if (job.Pipeline != null)
             throw new InvalidOperationException($"Cannot {operation} for job <{jobId}> because a pipeline has already been associated.");
-        if (job.IsFailed)
+        if (job.State == ProcessingState.Failed)
             throw new InvalidOperationException($"Cannot {operation} for job <{jobId}> because the job has been marked as failed.");
     }
 }

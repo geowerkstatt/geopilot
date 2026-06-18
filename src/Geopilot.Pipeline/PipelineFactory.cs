@@ -116,6 +116,7 @@ public class PipelineFactory : IPipelineFactory
         {
             var deserializer = new DeserializerBuilder()
                 .WithNamingConvention(UnderscoredNamingConvention.Instance)
+                .WithTypeConverter(new LocalizedTextYamlConverter())
                 .Build();
             this.pipelineProcessConfig = deserializer.Deserialize<PipelineProcessConfig>(processDefinition);
             return this;

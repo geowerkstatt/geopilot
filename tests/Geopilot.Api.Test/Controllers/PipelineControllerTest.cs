@@ -1,7 +1,8 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Controllers;
-using Geopilot.Api.Pipeline;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -67,9 +68,9 @@ public sealed class PipelineControllerTest
         var availablePipeline2 = availablePipelines.Pipelines.ElementAt(1);
 
         Assert.AreEqual("Pipeline1", availablePipeline1.Id, "pipeline 1 ID not as expected");
-        CollectionAssert.AreEqual(new Dictionary<string, string>() { { "en", "pipeline 1" }, { "de", "Pipeline 1" }, }, availablePipeline1.DisplayName, "pipeline 1 Display Name not as expected");
+        Assert.AreEqual(LocalizedText.FromDictionary(new Dictionary<string, string>() { { "en", "pipeline 1" }, { "de", "Pipeline 1" } }), availablePipeline1.DisplayName, "pipeline 1 Display Name not as expected");
 
         Assert.AreEqual("Pipeline2", availablePipeline2.Id, "pipeline 2 ID not as expected");
-        CollectionAssert.AreEqual(new Dictionary<string, string>() { { "en", "pipeline 2" }, { "de", "Pipeline 2" }, }, availablePipeline2.DisplayName, "pipeline 2 Display Name not as expected");
+        Assert.AreEqual(LocalizedText.FromDictionary(new Dictionary<string, string>() { { "en", "pipeline 2" }, { "de", "Pipeline 2" } }), availablePipeline2.DisplayName, "pipeline 2 Display Name not as expected");
     }
 }

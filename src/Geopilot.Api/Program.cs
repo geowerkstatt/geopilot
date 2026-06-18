@@ -4,11 +4,11 @@ using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.Conventions;
 using Geopilot.Api.FileAccess;
-using Geopilot.Api.Pipeline;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Process;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
@@ -111,6 +111,14 @@ builder.Services.AddSwaggerGen(options =>
 
     options.EnableAnnotations();
     options.SupportNonNullableReferenceTypes();
+
+    // Describe LocalizedText in OpenAPI as a string-to-string object (language code -> text),
+    // matching its JSON serialization, instead of as a separate schema component.
+    options.MapType<LocalizedText>(() => new OpenApiSchema
+    {
+        Type = JsonSchemaType.Object,
+        AdditionalProperties = new OpenApiSchema { Type = JsonSchemaType.String },
+    });
 
     // Workaround for STAC API having multiple actions mapped to the "search" route.
     options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());

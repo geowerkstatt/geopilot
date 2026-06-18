@@ -1,23 +1,23 @@
 processes:
   - id: xtf_matcher
-    implementation: Geopilot.Api.Pipeline.Process.Matcher.XtfMatcher.XtfMatcherProcess
+    implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
     default_config:
       fileExtensions:
         - xtf
   - id: file_matcher
-    implementation: Geopilot.Api.Pipeline.Process.Matcher.FileMatcher.FileMatcherProcess
+    implementation: Geopilot.Pipeline.Processes.Matcher.FileMatcher.FileMatcherProcess
     default_config:
       fileExtensions:
       fileNamePatterns:
   - id: xtf_validator
-    implementation: Geopilot.Api.Pipeline.Process.XtfValidation.XtfValidatorProcess
+    implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile: DEFAULT
       pollInterval: 1000
   - id: xtf_error_tree
-    implementation: Geopilot.Api.Pipeline.Process.XtfValidatorErrorTree.XtfValidatorErrorTreeProcess
+    implementation: Geopilot.Pipeline.Processes.XtfValidatorErrorTree.XtfValidatorErrorTreeProcess
   - id: zip_packager
-    implementation: Geopilot.Api.Pipeline.Process.ZipPackage.ZipPackageProcess
+    implementation: Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess
 pipelines:
   - id: ili_validation
     display_name:

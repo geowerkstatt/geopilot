@@ -31,7 +31,7 @@
     "react-i18next": "^14.1.2",
     "react-markdown": "^9.0.1",
     "react-oidc-context": "^3.1.0",
-    "react-router-dom": "^6.30.3",
+    "react-router-dom": "^6.30.4",
     "rehype-external-links": "^3.0.0"
   },
   "devDependencies": {
@@ -41,7 +41,7 @@
     "@typescript-eslint/eslint-plugin": "^7.15.0",
     "@typescript-eslint/parser": "^7.15.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "cypress": "^13.13.0",
+    "cypress": "^15.15.0",
     "cypress-file-upload": "^5.0.8",
     "cypress-vite": "^1.5.0",
     "eslint": "^8.57.0",

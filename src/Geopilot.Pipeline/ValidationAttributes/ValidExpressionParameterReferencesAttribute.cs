@@ -1,9 +1,10 @@
-﻿using Microsoft.Extensions.Logging.Abstractions;
+﻿using Geopilot.Pipeline.Config;
+using Microsoft.Extensions.Logging.Abstractions;
 using NCalc.Exceptions;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 
-namespace Geopilot.Pipeline.Config.Validation;
+namespace Geopilot.Pipeline.ValidationAttributes;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAttribute
