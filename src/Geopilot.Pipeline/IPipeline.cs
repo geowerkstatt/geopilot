@@ -45,6 +45,14 @@ public interface IPipeline : IDisposable
     Guid JobId { get; }
 
     /// <summary>
+    /// Optional callback invoked by <see cref="Run"/> after each step has finished, in step order, with the
+    /// just-completed step and its <see cref="StepResult"/>. Awaited before the next step runs, so a handler can
+    /// reliably react to a step (e.g. persist its outputs) before the pipeline progresses. <see langword="null"/>
+    /// (the default) disables the callback.
+    /// </summary>
+    Func<IPipelineStep, StepResult, CancellationToken, Task>? OnStepCompleted { get; set; }
+
+    /// <summary>
     /// Runs the pipeline with the specified input files.
     /// </summary>
     /// <param name="files">The files to be processed by the pipeline.</param>

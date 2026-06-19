@@ -8,6 +8,7 @@ namespace Geopilot.Pipeline.Test;
 [TestClass]
 public class PipelineTest
 {
+    private readonly IPipelineFileList uploadFiles = Mock.Of<IPipelineFileList>();
     private Mock<ILoggerFactory> loggerFactory;
     private Mock<ILogger<Geopilot.Pipeline.Pipeline>> loggerMock;
 
@@ -242,4 +243,144 @@ public class PipelineTest
         Assert.AreEqual("Erste Einschränkung, Zweite Einschränkung", context.DeliveryRestrictionMessage["de"]);
         Assert.AreEqual("Deuxième restriction", context.DeliveryRestrictionMessage["fr"]);
     }
+
+    [TestMethod]
+    public async Task RunInvokesOnStepCompletedOncePerStepInOrder()
+    {
+        var result1 = new StepResult();
+        var result2 = new StepResult();
+        var step1 = NewMockStep("step_1", result1);
+        var step2 = NewMockStep("step_2", result2);
+
+        var completed = new List<(string Id, StepResult Result)>();
+
+        using var pipeline = BuildPipeline(step1.Object, step2.Object);
+        pipeline.OnStepCompleted = (step, result, cancellationToken) =>
+        {
+            completed.Add((step.Id, result));
+            return Task.CompletedTask;
+        };
+
+        await pipeline.Run(uploadFiles, CancellationToken.None);
+
+        Assert.HasCount(2, completed, "OnStepCompleted should fire once per step.");
+        Assert.AreEqual("step_1", completed[0].Id);
+        Assert.AreSame(result1, completed[0].Result, "First callback should carry the first step's result.");
+        Assert.AreEqual("step_2", completed[1].Id);
+        Assert.AreSame(result2, completed[1].Result, "Second callback should carry the second step's result.");
+    }
+
+    [TestMethod]
+    public async Task RunAwaitsOnStepCompletedBeforeRunningNextStep()
+    {
+        var events = new List<string>();
+        var step1 = NewMockStep("step_1", new StepResult(), () => events.Add("run:step_1"));
+        var step2 = NewMockStep("step_2", new StepResult(), () => events.Add("run:step_2"));
+
+        using var pipeline = BuildPipeline(step1.Object, step2.Object);
+        pipeline.OnStepCompleted = (step, result, cancellationToken) =>
+        {
+            events.Add($"hook:{step.Id}");
+            return Task.CompletedTask;
+        };
+
+        await pipeline.Run(uploadFiles, CancellationToken.None);
+
+        CollectionAssert.AreEqual(
+            new[] { "run:step_1", "hook:step_1", "run:step_2", "hook:step_2" },
+            events,
+            "Each step's callback must complete before the next step runs.");
+    }
+
+    [TestMethod]
+    public async Task RunInvokesOnStepCompletedOnlyForCompletedStepsWhenLaterStepThrows()
+    {
+        var step1 = NewMockStep("step_1", new StepResult());
+        var step2 = new Mock<IPipelineStep>();
+        step2.SetupGet(s => s.Id).Returns("step_2");
+        step2.SetupProperty(s => s.State, StepState.Pending);
+        step2.Setup(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+
+        var completed = new List<string>();
+        using var pipeline = BuildPipeline(step1.Object, step2.Object);
+        pipeline.OnStepCompleted = (step, result, cancellationToken) =>
+        {
+            completed.Add(step.Id);
+            return Task.CompletedTask;
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.Run(uploadFiles, CancellationToken.None));
+
+        Assert.HasCount(1, completed);
+        Assert.AreEqual("step_1", completed[0], "The throwing step must not be reported as completed.");
+    }
+
+    [TestMethod]
+    public async Task RunInvokesOnStepCompletedForCompletedStepsWhenCancelled()
+    {
+        using var cts = new CancellationTokenSource();
+        var step1 = NewMockStep("step_1", new StepResult());
+        var step2 = new Mock<IPipelineStep>();
+        step2.SetupGet(s => s.Id).Returns("step_2");
+        step2.SetupProperty(s => s.State, StepState.Pending);
+        step2.Setup(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                cts.Cancel();
+                return Task.FromException<StepResult>(new OperationCanceledException(cts.Token));
+            });
+
+        var completed = new List<string>();
+        using var pipeline = BuildPipeline(step1.Object, step2.Object);
+        pipeline.OnStepCompleted = (step, result, cancellationToken) =>
+        {
+            completed.Add(step.Id);
+            return Task.CompletedTask;
+        };
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => pipeline.Run(uploadFiles, cts.Token));
+
+        Assert.HasCount(1, completed);
+        Assert.AreEqual("step_1", completed[0], "The cancelled step must not be reported as completed.");
+    }
+
+    [TestMethod]
+    public async Task RunWithoutOnStepCompletedRunsAllSteps()
+    {
+        var step1 = NewMockStep("step_1", new StepResult());
+        var step2 = NewMockStep("step_2", new StepResult());
+
+        using var pipeline = BuildPipeline(step1.Object, step2.Object);
+
+        await pipeline.Run(uploadFiles, CancellationToken.None);
+
+        step1.Verify(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()), Times.Once);
+        step2.Verify(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private static Mock<IPipelineStep> NewMockStep(string id, StepResult result, Action? onRun = null)
+    {
+        var step = new Mock<IPipelineStep>();
+        step.SetupGet(s => s.Id).Returns(id);
+        step.SetupProperty(s => s.State, StepState.Pending);
+        step.Setup(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                onRun?.Invoke();
+                return Task.FromResult(result);
+            });
+        return step;
+    }
+
+    private Geopilot.Pipeline.Pipeline BuildPipeline(params IPipelineStep[] steps) =>
+        Geopilot.Pipeline.Pipeline
+            .Builder()
+            .Id("test_pipeline")
+            .DisplayName(new Dictionary<string, string> { { "de", "test pipeline" } })
+            .Steps(steps.ToList())
+            .Logger(loggerMock.Object)
+            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
+            .JobId(Guid.NewGuid())
+            .Build();
 }

@@ -2,6 +2,7 @@
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
+using System.Collections.Immutable;
 using System.Reflection;
 
 namespace Geopilot.Pipeline;
@@ -49,11 +50,22 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public LocalizedText? StatusMessage { get; private set; }
 
-    /// <inheritdoc/>
-    public IList<PersistedFile> Downloads { get; } = new List<PersistedFile>();
+    private ImmutableList<PersistedFile> downloads = ImmutableList<PersistedFile>.Empty;
+    private ImmutableList<PersistedFile> deliveryFiles = ImmutableList<PersistedFile>.Empty;
 
     /// <inheritdoc/>
-    public IList<PersistedFile> DeliveryFiles { get; } = new List<PersistedFile>();
+    public IReadOnlyList<PersistedFile> Downloads => downloads;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<PersistedFile> DeliveryFiles => deliveryFiles;
+
+    /// <inheritdoc/>
+    public void AddDownload(PersistedFile file) =>
+        ImmutableInterlocked.Update(ref downloads, static (list, f) => list.Add(f), file);
+
+    /// <inheritdoc/>
+    public void AddDeliveryFile(PersistedFile file) =>
+        ImmutableInterlocked.Update(ref deliveryFiles, static (list, f) => list.Add(f), file);
 
     private readonly ConditionEvaluator conditionEvaluator;
 
