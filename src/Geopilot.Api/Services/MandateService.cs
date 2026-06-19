@@ -8,21 +8,21 @@ namespace Geopilot.Api.Services;
 public class MandateService : IMandateService
 {
     private readonly Context context;
-    private readonly IProcessingJobStore jobStore;
+    private readonly IUploadStore uploadStore;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MandateService"/> class.
     /// </summary>
-    public MandateService(Context context, IProcessingJobStore jobStore)
+    public MandateService(Context context, IUploadStore uploadStore)
     {
         this.context = context;
-        this.jobStore = jobStore;
+        this.uploadStore = uploadStore;
     }
 
     /// <inheritdoc/>
-    public async Task<List<Mandate>> GetMandatesAsync(User? user = null, Guid? jobId = null)
+    public async Task<List<Mandate>> GetMandatesAsync(User? user = null, Guid? uploadId = null)
     {
-        return await GetMandatesQuery(user, jobId).ToListAsync();
+        return await GetMandatesQuery(user, uploadId).ToListAsync();
     }
 
     /// <inheritdoc/>
@@ -53,7 +53,7 @@ public class MandateService : IMandateService
             .ToHashSet();
     }
 
-    private IQueryable<Mandate> GetMandatesQuery(User? user = null, Guid? jobId = null)
+    private IQueryable<Mandate> GetMandatesQuery(User? user = null, Guid? uploadId = null)
     {
         var mandates = context.MandatesWithIncludes.AsNoTracking();
 
@@ -61,42 +61,35 @@ public class MandateService : IMandateService
         {
             mandates = mandates.Where(m => m.IsPublic);
         }
-        else if (!user.IsAdmin || jobId != null)
+        else if (!user.IsAdmin || uploadId != null)
         {
             mandates = mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
         }
 
-        if (jobId != null)
-            mandates = FilterMandatesByJob(mandates, jobId.Value);
+        if (uploadId != null)
+            mandates = FilterMandatesByUpload(mandates, uploadId.Value);
 
         return mandates;
     }
 
-    private IQueryable<Mandate> FilterMandatesByJob(IQueryable<Mandate> mandates, Guid jobId)
+    private IQueryable<Mandate> FilterMandatesByUpload(IQueryable<Mandate> mandates, Guid uploadId)
     {
-        var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Processing job with id <{jobId}> not found.", nameof(jobId));
+        var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
 
-        IEnumerable<string> fileExtensions = job.Files
-            .Select(f => f.OriginalFileName)
-            .Select(Path.GetExtension)
+        var fileExtensions = upload.Files
+            .Select(f => Path.GetExtension(f.FileName))
             .Where(ext => !string.IsNullOrEmpty(ext))
-            .Cast<string>();
+            .Distinct()
+            .ToList();
 
-        if (fileExtensions.Any())
+        if (fileExtensions.Count == 0)
+            throw new InvalidOperationException($"Upload with id <{uploadId}> has no file associated.");
+
+        foreach (var extension in fileExtensions)
         {
-            return mandates.FilterMandatesByFileExtensions(fileExtensions);
+            mandates = mandates.FilterMandatesByFileExtension(extension);
         }
 
-        if (job.CloudFiles is { Count: > 0 })
-        {
-            foreach (var extension in job.CloudFiles.Select(f => Path.GetExtension(f.FileName)).Distinct())
-            {
-                mandates = mandates.FilterMandatesByFileExtension(extension);
-            }
-
-            return mandates;
-        }
-
-        throw new InvalidOperationException($"Processing job with id <{jobId}> has no file associated.");
+        return mandates;
     }
 }

@@ -1,6 +1,4 @@
-﻿using Geopilot.Api.Enums;
-using Geopilot.Pipeline;
-using System.Collections.Immutable;
+﻿using Geopilot.Pipeline;
 
 namespace Geopilot.Api.Processing;
 
@@ -11,9 +9,7 @@ public record class ProcessingJob(
     Guid Id,
     List<ProcessingJobFile> Files,
     int? MandateId,
-    DateTime CreatedAt,
-    UploadMethod UploadMethod = UploadMethod.Direct,
-    ImmutableList<CloudFileInfo>? CloudFiles = null)
+    DateTime CreatedAt)
 {
     /// <summary>
     /// The pipeline running (or already run) for this job. <see langword="null"/> until the job has been started.

@@ -19,14 +19,15 @@ public interface ICloudOrchestrationService
     /// <summary>
     /// Runs preflight checks on uploaded cloud files including completeness verification and malware scanning.
     /// </summary>
-    /// <param name="jobId">The job ID to run preflight checks for.</param>
+    /// <param name="uploadId">The upload ID to run preflight checks for.</param>
     /// <exception cref="CloudUploadPreflightException">Thrown when preflight checks fail.</exception>
-    Task RunPreflightChecksAsync(Guid jobId);
+    Task RunPreflightChecksAsync(Guid uploadId);
 
     /// <summary>
-    /// Downloads cloud files to local storage and updates the job with local file information.
+    /// Downloads the upload's cloud files to local storage and registers them on the job.
     /// </summary>
-    /// <param name="jobId">The job ID to stage files for.</param>
+    /// <param name="uploadId">The upload ID to stage files from.</param>
+    /// <param name="jobId">The job ID to register the staged files on.</param>
     /// <returns>The updated processing job.</returns>
-    Task<ProcessingJob> StageFilesLocallyAsync(Guid jobId);
+    Task<ProcessingJob> StageFilesLocallyAsync(Guid uploadId, Guid jobId);
 }

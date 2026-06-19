@@ -4,7 +4,7 @@
 
 ### Added
 
-- Optional cloud upload via presigned URLs with Azure Blob Storage support.
+- Cloud upload via presigned URLs with Azure Blob Storage support for files exceeding the API request size limit.
 - Optional virus scanning with ClamAV for cloud uploads.
 - Rate limiting and upload capacity limits for the cloud upload endpoint.
 - `LocalizedText` type in the PipelineCore API for multilingual pipeline texts (pipeline and step display names, status messages). Plugins emitting `Dictionary<string, string>` remain supported.
@@ -12,6 +12,8 @@
 
 ### Changed
 
+- File upload and processing are now decoupled: uploading files returns an upload id, and a separate request starts the processing job for that upload.
+- Cloud upload (Azure Blob Storage) is now the single upload mechanism; the previous direct multipart upload and the `CloudStorage:Enabled` configuration switch were removed.
 - `Pipeline:Plugins` can now be configured via a single comma-separated value (e.g. `Pipeline__Plugins=a.dll,b.dll`) in addition to the existing JSON array form, making it usable as a flat environment variable.
 - Pipeline process inputs are now isolated per step: a process that modifies a file it received no longer affects the original, so other steps consuming the same file are unaffected. Stream reads stay cheap; requesting a local path materializes a private copy.
 

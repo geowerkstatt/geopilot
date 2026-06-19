@@ -49,6 +49,7 @@ public class PreflightBackgroundService : BackgroundService
 
         using var scope = serviceScopeFactory.CreateScope();
         var jobStore = scope.ServiceProvider.GetRequiredService<IProcessingJobStore>();
+        var uploadStore = scope.ServiceProvider.GetRequiredService<IUploadStore>();
         var cloudOrchestrationService = scope.ServiceProvider.GetRequiredService<ICloudOrchestrationService>();
         var cloudStorageService = scope.ServiceProvider.GetRequiredService<ICloudStorageService>();
         var mandateService = scope.ServiceProvider.GetRequiredService<IMandateService>();
@@ -65,8 +66,8 @@ public class PreflightBackgroundService : BackgroundService
 
         try
         {
-            await cloudOrchestrationService.RunPreflightChecksAsync(request.JobId);
-            var stagedJob = await cloudOrchestrationService.StageFilesLocallyAsync(request.JobId);
+            await cloudOrchestrationService.RunPreflightChecksAsync(request.UploadId);
+            var stagedJob = await cloudOrchestrationService.StageFilesLocallyAsync(request.UploadId, request.JobId);
 
             Models.User? user = null;
             if (request.UserAuthId != null)
@@ -103,11 +104,12 @@ public class PreflightBackgroundService : BackgroundService
 
             try
             {
-                await cloudStorageService.DeletePrefixAsync($"uploads/{request.JobId}/");
+                await cloudStorageService.DeletePrefixAsync($"uploads/{request.UploadId}/");
+                uploadStore.RemoveUpload(request.UploadId);
             }
             catch (Exception cleanupEx)
             {
-                logger.LogError(cleanupEx, "Failed to clean up cloud files for job <{JobId}>.", request.JobId);
+                logger.LogError(cleanupEx, "Failed to clean up cloud files for upload <{UploadId}>.", request.UploadId);
             }
 
             try

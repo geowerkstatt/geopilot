@@ -1,6 +1,4 @@
-﻿using Geopilot.Api.Enums;
-using Geopilot.Pipeline;
-using System.Collections.Immutable;
+﻿using Geopilot.Pipeline;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Processing;
@@ -28,13 +26,6 @@ public interface IProcessingJobStore
     /// Creates and stores a new <see cref="ProcessingJob"/>.
     /// </summary>
     ProcessingJob CreateJob();
-
-    /// <summary>
-    /// Adds cloud upload information to the specified job.
-    /// </summary>
-    /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
-    /// <exception cref="InvalidOperationException">If the job already has files, a pipeline, or has been marked failed.</exception>
-    ProcessingJob AddUploadInfoToJob(Guid jobId, UploadMethod uploadMethod, ImmutableList<CloudFileInfo> cloudFiles);
 
     /// <summary>
     /// Adds the specified file to the job.
@@ -76,11 +67,6 @@ public interface IProcessingJobStore
     /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found, or <paramref name="pipeline"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">If the job already has a pipeline or has been marked failed.</exception>
     ProcessingJob StartJob(Guid jobId, IPipeline pipeline, int mandateId);
-
-    /// <summary>
-    /// Number of active jobs that were uploaded via <see cref="UploadMethod.Cloud"/>.
-    /// </summary>
-    int GetActiveCloudJobCount();
 
     /// <summary>
     /// Removes the job from the store and disposes its pipeline (if any).

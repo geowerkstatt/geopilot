@@ -1,7 +1,5 @@
-﻿using Geopilot.Api.Enums;
-using Geopilot.Pipeline;
+﻿using Geopilot.Pipeline;
 using Moq;
-using System.Collections.Immutable;
 
 namespace Geopilot.Api.Processing;
 
@@ -179,60 +177,6 @@ public class ProcessingJobStoreTest
     public void MarkAsFailedThrowsIfJobNotFound()
     {
         Assert.ThrowsExactly<ArgumentException>(() => store.MarkAsFailed(Guid.NewGuid()));
-    }
-
-    [TestMethod]
-    public void AddUploadInfoToJob()
-    {
-        var job = store.CreateJob();
-        var cloudFiles = ImmutableList.Create(
-            new CloudFileInfo("file1.xtf", "jobs/file1.xtf", 1024),
-            new CloudFileInfo("file2.xtf", "jobs/file2.xtf", 2048));
-
-        store.AddUploadInfoToJob(job.Id, UploadMethod.Cloud, cloudFiles);
-        var updated = store.GetJob(job.Id);
-
-        Assert.IsNotNull(updated);
-        Assert.AreEqual(UploadMethod.Cloud, updated.UploadMethod);
-        Assert.IsNotNull(updated.CloudFiles);
-        Assert.HasCount(2, updated.CloudFiles);
-    }
-
-    [TestMethod]
-    public void AddUploadInfoToJobThrowsIfJobNotFound()
-    {
-        var cloudFiles = ImmutableList.Create(new CloudFileInfo("file.xtf", "jobs/file.xtf", 1024));
-        Assert.ThrowsExactly<ArgumentException>(() => store.AddUploadInfoToJob(Guid.NewGuid(), UploadMethod.Cloud, cloudFiles));
-    }
-
-    [TestMethod]
-    public void AddUploadInfoToJobThrowsIfFilesAlreadyAdded()
-    {
-        var job = store.CreateJob();
-        store.AddFileToJob(job.Id, "a", "b");
-
-        var cloudFiles = ImmutableList.Create(new CloudFileInfo("file.xtf", "jobs/file.xtf", 1024));
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.AddUploadInfoToJob(job.Id, UploadMethod.Cloud, cloudFiles));
-    }
-
-    [TestMethod]
-    public void GetActiveCloudJobCountReturnsCorrectCount()
-    {
-        Assert.AreEqual(0, store.GetActiveCloudJobCount());
-
-        store.CreateJob(); // Direct upload — not counted
-        Assert.AreEqual(0, store.GetActiveCloudJobCount());
-
-        var cloudJob = store.CreateJob();
-        store.AddUploadInfoToJob(cloudJob.Id, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("f.xtf", "key", 100)));
-        Assert.AreEqual(1, store.GetActiveCloudJobCount());
-
-        var cloudJob2 = store.CreateJob();
-        store.AddUploadInfoToJob(cloudJob2.Id, UploadMethod.Cloud, ImmutableList.Create(new CloudFileInfo("g.xtf", "key2", 200)));
-        Assert.AreEqual(2, store.GetActiveCloudJobCount());
-
-        store.RemoveJob(cloudJob.Id);
-        Assert.AreEqual(1, store.GetActiveCloudJobCount());
     }
 
     [TestMethod]

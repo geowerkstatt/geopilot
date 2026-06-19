@@ -1,7 +1,5 @@
-﻿using Geopilot.Api.Enums;
-using Geopilot.Pipeline;
+﻿using Geopilot.Pipeline;
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Processing;
@@ -31,22 +29,6 @@ public class ProcessingJobStore : IProcessingJobStore
 
         jobs[newJob.Id] = newJob;
         return newJob;
-    }
-
-    /// <inheritdoc/>
-    public ProcessingJob AddUploadInfoToJob(Guid jobId, UploadMethod uploadMethod, ImmutableList<CloudFileInfo> cloudFiles)
-    {
-        return jobs.AddOrUpdate(
-            jobId,
-            id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
-            (id, currentJob) =>
-            {
-                EnsureJobIsPrePipeline(id, currentJob, "add upload info");
-                if (currentJob.Files.Count > 0)
-                    throw new InvalidOperationException($"Cannot add upload info to job <{id}> because it already has files.");
-
-                return currentJob with { UploadMethod = uploadMethod, CloudFiles = cloudFiles };
-            });
     }
 
     /// <inheritdoc/>
@@ -141,9 +123,6 @@ public class ProcessingJobStore : IProcessingJobStore
         pipelineQueue.Writer.TryWrite(pipeline);
         return updatedJob;
     }
-
-    /// <inheritdoc/>
-    public int GetActiveCloudJobCount() => jobs.Values.Count(j => j.UploadMethod == UploadMethod.Cloud);
 
     /// <inheritdoc/>
     public bool RemoveJob(Guid jobId)

@@ -16,7 +16,7 @@ export const DeliveryProcessingForm = () => {
   const {
     resetDelivery,
     startProcessing,
-    jobId,
+    uploadId,
     processingResponse,
     setStepError,
     setSelectedMandate,
@@ -30,15 +30,15 @@ export const DeliveryProcessingForm = () => {
   const [mandates, setMandates] = useState<Mandate[]>([]);
 
   useEffect(() => {
-    if (jobId) {
-      fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ jobId })).then(mandates => {
+    if (uploadId) {
+      fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ uploadId })).then(mandates => {
         if (mandates.length === 0) {
           setStepError(DeliveryStepEnum.Process, "noMandatesFound");
         }
         setMandates(mandates);
       });
     }
-  }, [jobId, fetchApi, setStepError, t, user]);
+  }, [uploadId, fetchApi, setStepError, t, user]);
 
   const submitForm = (data: FieldValues) => {
     startProcessing({

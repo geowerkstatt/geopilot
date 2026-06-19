@@ -19,13 +19,13 @@ namespace Geopilot.Api.Controllers;
 public class UploadController : ControllerBase
 {
     private readonly ILogger<UploadController> logger;
-    private readonly ICloudOrchestrationService? orchestrationService;
+    private readonly ICloudOrchestrationService orchestrationService;
     private readonly CloudStorageOptions options;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UploadController"/> class.
     /// </summary>
-    public UploadController(ILogger<UploadController> logger, IOptions<CloudStorageOptions> options, ICloudOrchestrationService? orchestrationService = null)
+    public UploadController(ILogger<UploadController> logger, IOptions<CloudStorageOptions> options, ICloudOrchestrationService orchestrationService)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -43,7 +43,6 @@ public class UploadController : ControllerBase
     public IActionResult GetUploadSettings()
     {
         return Ok(new UploadSettingsResponse(
-            options.Enabled,
             options.MaxFileSizeMB,
             options.MaxFilesPerJob,
             options.MaxJobSizeMB));
@@ -62,14 +61,11 @@ public class UploadController : ControllerBase
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected error.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> InitiateUploadAsync([FromBody] CloudUploadRequest request)
     {
-        if (!options.Enabled || orchestrationService == null)
-            return Problem("Cloud storage uploads are not enabled.", statusCode: StatusCodes.Status400BadRequest);
-
         try
         {
             logger.LogInformation("Cloud upload session initiated.");
             var response = await orchestrationService.InitiateUploadAsync(request);
-            logger.LogInformation("Cloud upload session created for job <{JobId}>.", response.JobId);
+            logger.LogInformation("Cloud upload session created for upload <{UploadId}>.", response.UploadId);
             return StatusCode(StatusCodes.Status201Created, response);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)

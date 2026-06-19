@@ -9,7 +9,7 @@ namespace Geopilot.Api.Services;
 public class CloudCleanupService : BackgroundService
 {
     private readonly ICloudStorageService cloudStorageService;
-    private readonly IProcessingJobStore jobStore;
+    private readonly IUploadStore uploadStore;
     private readonly ILogger<CloudCleanupService> logger;
     private readonly CloudStorageOptions options;
     private readonly SemaphoreSlim cleanupSemaphore = new SemaphoreSlim(1);
@@ -19,14 +19,14 @@ public class CloudCleanupService : BackgroundService
     /// </summary>
     public CloudCleanupService(
         ICloudStorageService cloudStorageService,
-        IProcessingJobStore jobStore,
+        IUploadStore uploadStore,
         ILogger<CloudCleanupService> logger,
         IOptions<CloudStorageOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         this.cloudStorageService = cloudStorageService;
-        this.jobStore = jobStore;
+        this.uploadStore = uploadStore;
         this.logger = logger;
         this.options = options.Value;
     }
@@ -76,44 +76,44 @@ public class CloudCleanupService : BackgroundService
 
             var uploadFiles = await cloudStorageService.ListFilesAsync("uploads/");
 
-            var filesByJobId = uploadFiles
-                .GroupBy(f => ExtractJobId(f.Key))
+            var filesByUploadId = uploadFiles
+                .GroupBy(f => ExtractUploadId(f.Key))
                 .ToList();
 
             // Delete blobs with invalid paths (no valid GUID)
-            foreach (var file in filesByJobId.Where(g => g.Key == null).SelectMany(g => g))
+            foreach (var file in filesByUploadId.Where(g => g.Key == null).SelectMany(g => g))
             {
                 await cloudStorageService.DeleteAsync(file.Key);
                 logger.LogTrace("Deleted invalid blob: {Key}.", file.Key);
             }
 
-            foreach (var group in filesByJobId.Where(g => g.Key != null))
+            foreach (var group in filesByUploadId.Where(g => g.Key != null))
             {
-                var jobId = group.Key!.Value;
+                var uploadId = group.Key!.Value;
 
                 if (group.Any(f => f.LastModified < cutoff))
                 {
-                    await cloudStorageService.DeletePrefixAsync($"uploads/{jobId}/");
-                    jobStore.RemoveJob(jobId);
+                    await cloudStorageService.DeletePrefixAsync($"uploads/{uploadId}/");
+                    uploadStore.RemoveUpload(uploadId);
                     deletedPrefixes++;
-                    logger.LogTrace("Deleted stale cloud files for job <{JobId}>.", jobId);
+                    logger.LogTrace("Deleted stale cloud files for upload <{UploadId}>.", uploadId);
                     continue;
                 }
 
                 if (group.Any(f => f.Size > maxFileSizeBytes))
                 {
-                    await cloudStorageService.DeletePrefixAsync($"uploads/{jobId}/");
-                    jobStore.RemoveJob(jobId);
+                    await cloudStorageService.DeletePrefixAsync($"uploads/{uploadId}/");
+                    uploadStore.RemoveUpload(uploadId);
                     deletedPrefixes++;
-                    logger.LogTrace("Deleted oversized cloud files for job <{JobId}>.", jobId);
+                    logger.LogTrace("Deleted oversized cloud files for upload <{UploadId}>.", uploadId);
                     continue;
                 }
 
-                if (jobStore.GetJob(jobId) == null)
+                if (uploadStore.GetUpload(uploadId) == null)
                 {
-                    await cloudStorageService.DeletePrefixAsync($"uploads/{jobId}/");
+                    await cloudStorageService.DeletePrefixAsync($"uploads/{uploadId}/");
                     deletedPrefixes++;
-                    logger.LogTrace("Deleted orphaned cloud files for job <{JobId}>.", jobId);
+                    logger.LogTrace("Deleted orphaned cloud files for upload <{UploadId}>.", uploadId);
                 }
             }
 
@@ -137,12 +137,12 @@ public class CloudCleanupService : BackgroundService
         }
     }
 
-    private static Guid? ExtractJobId(string key)
+    private static Guid? ExtractUploadId(string key)
     {
-        // Expected format: "uploads/{jobId}/filename"
+        // Expected format: "uploads/{uploadId}/filename"
         var parts = key.Split('/');
-        if (parts.Length >= 2 && Guid.TryParse(parts[1], out var jobId))
-            return jobId;
+        if (parts.Length >= 2 && Guid.TryParse(parts[1], out var uploadId))
+            return uploadId;
 
         return null;
     }
