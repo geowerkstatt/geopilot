@@ -48,6 +48,7 @@ public class CloudUploadPollingTest
             jobStore,
             uploadStore,
             mandateServiceMock.Object,
+            pipelineFactoryMock.Object,
             preflightChannel.Writer);
 
         var serviceProviderMock = new Mock<IServiceProvider>();
@@ -184,6 +185,13 @@ public class CloudUploadPollingTest
 
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
 
+        // The pipeline is now instantiated up front in StartJob (without files) and attached to the job.
+        // On a preflight failure the service disposes the attached pipeline, so allow Dispose on the strict mock.
+        var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
+        pipeline.SetupGet(p => p.Id).Returns(pipelineId);
+        pipeline.Setup(p => p.Dispose());
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<Guid>())).Returns(pipeline.Object);
+
         var job = await processingService.StartJob(uploadId, mandate.Id, user);
 
         return (job.Id, uploadId, mandate, user);
@@ -191,9 +199,6 @@ public class CloudUploadPollingTest
 
     private void SetupSuccessfulPreflight(Guid jobId, Guid uploadId, Mandate mandate, User user)
     {
-        var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
-        pipeline.SetupGet(p => p.Id).Returns(mandate.PipelineId!);
-
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).Returns(Task.CompletedTask);
         cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(uploadId, jobId))
             .Returns(() =>
@@ -201,9 +206,7 @@ public class CloudUploadPollingTest
                 var stagedJob = jobStore.AddFileToJob(jobId, "test.xtf", "random.xtf");
                 return Task.FromResult(stagedJob);
             });
-        mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, It.Is<User>(u => u.AuthIdentifier == user.AuthIdentifier))).ReturnsAsync(mandate);
         uploadFileStoreMock.Setup(x => x.Exists(jobId, "random.xtf")).Returns(true);
         uploadFileStoreMock.Setup(x => x.GetPath(jobId, "random.xtf")).Returns("path/to/random.xtf");
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(mandate.PipelineId!, It.Is<PipelineFileList>(f => f.Files.Any(file => file.OriginalFileName == "test.xtf")), It.IsAny<Guid>())).Returns(pipeline.Object);
     }
 }

@@ -88,11 +88,6 @@ public sealed class Pipeline : IPipeline
     /// <inheritdoc/>
     public LocalizedText? DeliveryRestrictionMessage { get; private set; }
 
-    /// <summary>
-    /// The files to be processed for the pipeline.
-    /// </summary>
-    private readonly IPipelineFileList uploadFiles;
-
     private ILogger logger;
 
     /// <summary>
@@ -102,7 +97,6 @@ public sealed class Pipeline : IPipeline
     /// <param name="displayName">The pipelines display name. A human-readable name for the pipeline.</param>
     /// <param name="steps">The steps in the pipeline.</param>
     /// <param name="deliveryRestrictions">Restrictions to determine when the pipeline data can not be delivered. If any restriction evaluates to true, delivery is prevented.</param>
-    /// <param name="uploadFiles">The files to be processed for the pipeline.</param>
     /// <param name="logger">The logger to use for logging.</param>
     /// <param name="pipelineDirectory">The directory for the pipeline to use for storing temporary files. The pipeline is responsible for cleaning up the temporary files during dispose.</param>
     /// <param name="jobId">The job id associated with the pipeline execution, used for logging and tracking purposes.</param>
@@ -111,7 +105,6 @@ public sealed class Pipeline : IPipeline
         LocalizedText displayName,
         List<IPipelineStep> steps,
         List<ConditionConfig>? deliveryRestrictions,
-        IPipelineFileList uploadFiles,
         ILogger logger,
         string pipelineDirectory,
         Guid jobId)
@@ -120,7 +113,6 @@ public sealed class Pipeline : IPipeline
         this.DisplayName = displayName;
         this.Steps = steps;
         this.deliveryRestrictions = deliveryRestrictions;
-        this.uploadFiles = uploadFiles ?? throw new ArgumentNullException(nameof(uploadFiles));
         this.conditionEvaluator = new ConditionEvaluator(logger);
         this.pipelineFileDirectory = pipelineDirectory;
         this.logger = logger;
@@ -128,12 +120,14 @@ public sealed class Pipeline : IPipeline
     }
 
     /// <inheritdoc/>
-    public async Task<PipelineContext> Run(CancellationToken cancellationToken)
+    public async Task<PipelineContext> Run(IPipelineFileList files, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(files);
+
         logger.LogInformation("starting pipeline");
         var context = new PipelineContext()
         {
-            Upload = this.uploadFiles,
+            Upload = files,
             StepResults = new Dictionary<string, StepResult>(),
         };
 
@@ -229,7 +223,6 @@ public sealed class Pipeline : IPipeline
         private LocalizedText? displayName;
         private List<IPipelineStep>? steps;
         private List<ConditionConfig>? deliveryRestrictions;
-        private IPipelineFileList? uploadFiles;
         private ILogger? logger;
         private string? pipelineDirectory;
         private Guid? jobId;
@@ -255,12 +248,6 @@ public sealed class Pipeline : IPipeline
         public PipelineBuilder DeliveryRestrictions(List<ConditionConfig>? deliveryRestrictions)
         {
             this.deliveryRestrictions = deliveryRestrictions;
-            return this;
-        }
-
-        public PipelineBuilder UploadFiles(IPipelineFileList uploadFiles)
-        {
-            this.uploadFiles = uploadFiles;
             return this;
         }
 
@@ -290,8 +277,6 @@ public sealed class Pipeline : IPipeline
                 throw new InvalidOperationException("Pipeline DisplayName must be provided.");
             if (steps == null)
                 throw new InvalidOperationException("Pipeline Steps must be provided.");
-            if (uploadFiles == null || uploadFiles.Files.Count == 0)
-                throw new InvalidOperationException("Pipeline File must be provided.");
             if (logger == null)
                 throw new InvalidOperationException("Logger must be provided.");
             if (pipelineDirectory == null)
@@ -299,7 +284,7 @@ public sealed class Pipeline : IPipeline
             if (jobId == null)
                 throw new InvalidOperationException("Pipeline JobId must be provided.");
 
-            return new Pipeline(id, displayName, steps, deliveryRestrictions, uploadFiles, logger, pipelineDirectory, jobId.Value);
+            return new Pipeline(id, displayName, steps, deliveryRestrictions, logger, pipelineDirectory, jobId.Value);
         }
     }
 }

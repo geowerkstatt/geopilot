@@ -1,7 +1,6 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
-using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 
 namespace Api;
@@ -16,28 +15,13 @@ internal static class DtoMapperExtensions
     /// </summary>
     /// <param name="job">The processing job to map.</param>
     /// <param name="buildDownloadUrl">Builds an absolute download URL for a (jobId, fileName) pair.</param>
-    /// <param name="pipelineConfig">
-    /// Optional pipeline definition used to fill in display names + steps when the job has not yet
-    /// instantiated a live <see cref="ProcessingJob.Pipeline"/> (e.g. cloud upload between PATCH and
-    /// preflight completion). All synthesized steps are reported as <see cref="StepState.Pending"/>.
-    /// </param>
-    public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl, PipelineConfig? pipelineConfig = null)
+    public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl)
     {
-        var pipelineName = job.Pipeline?.DisplayName
-            ?? pipelineConfig?.DisplayName
-            ?? LocalizedText.Empty;
+        var pipelineName = job.Pipeline?.DisplayName ?? LocalizedText.Empty;
 
         var steps = job.Pipeline?.Steps
             .Select(step => step.ToResponse(job.Id, buildDownloadUrl))
             .ToList()
-            ?? pipelineConfig?.Steps
-                .Select(stepConfig => new StepResultResponse(
-                    stepConfig.Id,
-                    stepConfig.DisplayName,
-                    StepState.Pending,
-                    null,
-                    new List<StepDownload>()))
-                .ToList()
             ?? new List<StepResultResponse>();
 
         return new ProcessingJobResponse(

@@ -14,6 +14,7 @@
 
 - File upload and processing are now decoupled: uploading files returns an upload id, and a separate request starts the processing job for that upload.
 - Cloud upload (Azure Blob Storage) is now the single upload mechanism; the previous direct multipart upload and the `CloudStorage:Enabled` configuration switch were removed.
+- `GeoWerkstatt.Geopilot.Pipeline` 2.0.0 (breaking): upload files are now passed to `IPipeline.Run` (and `IPipelineFactory.CreatePipeline` no longer takes them) instead of being held on the pipeline instance.
 - `Pipeline:Plugins` can now be configured via a single comma-separated value (e.g. `Pipeline__Plugins=a.dll,b.dll`) in addition to the existing JSON array form, making it usable as a flat environment variable.
 - Pipeline process inputs are now isolated per step: a process that modifies a file it received no longer affects the original, so other steps consuming the same file are unaffected. Stream reads stay cheap; requesting a local path materializes a private copy.
 

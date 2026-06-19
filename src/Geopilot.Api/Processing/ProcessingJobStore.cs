@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
@@ -10,10 +11,10 @@ namespace Geopilot.Api.Processing;
 public class ProcessingJobStore : IProcessingJobStore
 {
     private readonly ConcurrentDictionary<Guid, ProcessingJob> jobs = new();
-    private readonly Channel<IPipeline> pipelineQueue = Channel.CreateUnbounded<IPipeline>();
+    private readonly Channel<ProcessingWorkItem> pipelineQueue = Channel.CreateUnbounded<ProcessingWorkItem>();
 
     /// <inheritdoc/>
-    public ChannelReader<IPipeline> ProcessingQueue => pipelineQueue.Reader;
+    public ChannelReader<ProcessingWorkItem> ProcessingQueue => pipelineQueue.Reader;
 
     /// <inheritdoc/>
     public ProcessingJob? GetJob(Guid jobId) => jobs.TryGetValue(jobId, out var job) ? job : null;
@@ -39,7 +40,7 @@ public class ProcessingJobStore : IProcessingJobStore
             id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
             (id, currentJob) =>
             {
-                EnsureJobIsPrePipeline(id, currentJob, "add file");
+                EnsureJobIsPending(id, currentJob, "add file");
                 currentJob.Files.Add(new ProcessingJobFile(originalFileName, tempFileName));
                 return currentJob;
             });
@@ -90,37 +91,43 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
-    public ProcessingJob SetPipelineId(Guid jobId, string pipelineId)
+    public ProcessingJob AttachPipeline(Guid jobId, IPipeline pipeline, int mandateId)
     {
-        ArgumentNullException.ThrowIfNull(pipelineId);
+        ArgumentNullException.ThrowIfNull(pipeline);
 
         return jobs.AddOrUpdate(
             jobId,
             id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
-            (id, currentJob) => currentJob with { PipelineId = pipelineId });
+            (id, job) =>
+            {
+                EnsureJobIsPrePipeline(id, job, "attach pipeline");
+                return job with
+                {
+                    MandateId = mandateId,
+                    Pipeline = pipeline,
+                };
+            });
     }
 
     /// <inheritdoc/>
-    public ProcessingJob StartJob(Guid jobId, IPipeline pipeline, int mandateId)
+    public ProcessingJob EnqueueForProcessing(Guid jobId, IPipelineFileList files)
     {
-        ArgumentNullException.ThrowIfNull(pipeline);
+        ArgumentNullException.ThrowIfNull(files);
 
         var updatedJob = jobs.AddOrUpdate(
             jobId,
             id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
             (id, job) =>
             {
-                EnsureJobIsPrePipeline(id, job, "start");
-                return job with
-                {
-                    MandateId = mandateId,
-                    Pipeline = pipeline,
-                    PipelineId = pipeline.Id,
-                    State = ProcessingState.Running,
-                };
+                if (job.Pipeline == null)
+                    throw new InvalidOperationException($"Cannot enqueue job <{id}> because no pipeline has been attached.");
+                if (job.State != ProcessingState.Pending)
+                    throw new InvalidOperationException($"Cannot enqueue job <{id}> because it is in state <{job.State}>.");
+
+                return job with { State = ProcessingState.Running };
             });
 
-        pipelineQueue.Writer.TryWrite(pipeline);
+        pipelineQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files));
         return updatedJob;
     }
 
@@ -141,5 +148,11 @@ public class ProcessingJobStore : IProcessingJobStore
             throw new InvalidOperationException($"Cannot {operation} for job <{jobId}> because a pipeline has already been associated.");
         if (job.State == ProcessingState.Failed)
             throw new InvalidOperationException($"Cannot {operation} for job <{jobId}> because the job has been marked as failed.");
+    }
+
+    private static void EnsureJobIsPending(Guid jobId, ProcessingJob job, string operation)
+    {
+        if (job.State != ProcessingState.Pending)
+            throw new InvalidOperationException($"Cannot {operation} for job <{jobId}> because it is in state <{job.State}>.");
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Processing;
@@ -10,10 +11,11 @@ namespace Geopilot.Api.Processing;
 public interface IProcessingJobStore
 {
     /// <summary>
-    /// Channel reader for the processing queue. Yields <see cref="IPipeline"/> instances ready for execution.
-    /// The job's lifecycle state is reflected on the pipeline itself; consumers do not need to report a result back.
+    /// Channel reader for the processing queue. Yields <see cref="ProcessingWorkItem"/> instances (a pipeline plus
+    /// its staged files) ready for execution. The job's lifecycle state is reflected on the pipeline itself;
+    /// consumers do not need to report a result back.
     /// </summary>
-    ChannelReader<IPipeline> ProcessingQueue { get; }
+    ChannelReader<ProcessingWorkItem> ProcessingQueue { get; }
 
     /// <summary>
     /// Retrieves a <see cref="ProcessingJob"/> by its id.
@@ -28,10 +30,10 @@ public interface IProcessingJobStore
     ProcessingJob CreateJob();
 
     /// <summary>
-    /// Adds the specified file to the job.
+    /// Adds the specified staged file to the job. Allowed only while the job is still pending (before it is queued).
     /// </summary>
     /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
-    /// <exception cref="InvalidOperationException">If the job already has a pipeline or has been marked failed.</exception>
+    /// <exception cref="InvalidOperationException">If the job is no longer pending.</exception>
     ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName);
 
     /// <summary>
@@ -55,18 +57,20 @@ public interface IProcessingJobStore
     ProcessingJob PipelineFinished(Guid jobId, ProcessingState pipelineState);
 
     /// <summary>
-    /// Records the pipeline id the job will run with, so consumers can render step display info before the
-    /// pipeline is actually instantiated (cloud upload flow).
-    /// </summary>
-    /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
-    ProcessingJob SetPipelineId(Guid jobId, string pipelineId);
-
-    /// <summary>
-    /// Associates the given <paramref name="pipeline"/> with the job and queues it for execution.
+    /// Associates the given <paramref name="pipeline"/> with the job at creation time, without queuing it.
+    /// The pipeline is started only later via <see cref="EnqueueForProcessing"/>, once its files have been staged.
     /// </summary>
     /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found, or <paramref name="pipeline"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">If the job already has a pipeline or has been marked failed.</exception>
-    ProcessingJob StartJob(Guid jobId, IPipeline pipeline, int mandateId);
+    ProcessingJob AttachPipeline(Guid jobId, IPipeline pipeline, int mandateId);
+
+    /// <summary>
+    /// Queues the job's already-attached pipeline for execution together with its staged <paramref name="files"/>,
+    /// transitioning the job to <see cref="ProcessingState.Running"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found, or <paramref name="files"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">If no pipeline is attached or the job is no longer pending.</exception>
+    ProcessingJob EnqueueForProcessing(Guid jobId, IPipelineFileList files);
 
     /// <summary>
     /// Removes the job from the store and disposes its pipeline (if any).

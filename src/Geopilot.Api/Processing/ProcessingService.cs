@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Api.Services;
+using Geopilot.Pipeline;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Processing;
@@ -12,16 +13,18 @@ public class ProcessingService : IProcessingService
     private readonly IProcessingJobStore jobStore;
     private readonly IUploadStore uploadStore;
     private readonly IMandateService mandateService;
+    private readonly IPipelineFactory pipelineFactory;
     private readonly ChannelWriter<PreflightRequest> preflightQueue;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingService"/> class.
     /// </summary>
-    public ProcessingService(IProcessingJobStore jobStore, IUploadStore uploadStore, IMandateService mandateService, ChannelWriter<PreflightRequest> preflightQueue)
+    public ProcessingService(IProcessingJobStore jobStore, IUploadStore uploadStore, IMandateService mandateService, IPipelineFactory pipelineFactory, ChannelWriter<PreflightRequest> preflightQueue)
     {
         this.jobStore = jobStore;
         this.uploadStore = uploadStore;
         this.mandateService = mandateService;
+        this.pipelineFactory = pipelineFactory;
         this.preflightQueue = preflightQueue;
     }
 
@@ -37,11 +40,12 @@ public class ProcessingService : IProcessingService
 
         var job = jobStore.CreateJob();
 
-        // Record the pipeline id early so the response can render step display info while preflight runs
-        // and before the actual pipeline is instantiated.
-        jobStore.SetPipelineId(job.Id, mandate.PipelineId);
+        // Instantiate the pipeline up front (without files) and attach it to the job, so the status response
+        // can render the pipeline's steps while preflight runs. The pipeline is started later, after staging.
+        var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, job.Id);
+        jobStore.AttachPipeline(job.Id, pipeline, mandateId);
 
-        await preflightQueue.WriteAsync(new PreflightRequest(job.Id, uploadId, mandateId, user?.AuthIdentifier));
+        await preflightQueue.WriteAsync(new PreflightRequest(job.Id, uploadId));
 
         return jobStore.GetJob(job.Id)!;
     }

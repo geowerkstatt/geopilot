@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
+using Geopilot.Pipeline;
 using Moq;
 using System.Collections.Immutable;
 using System.Threading.Channels;
@@ -15,6 +16,7 @@ public class ProcessingServiceTest
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IProcessingJobStore> processingJobStoreMock;
     private Mock<IUploadStore> uploadStoreMock;
+    private Mock<IPipelineFactory> pipelineFactoryMock;
     private Channel<PreflightRequest> preflightQueue;
 
     [TestInitialize]
@@ -24,12 +26,14 @@ public class ProcessingServiceTest
         processingJobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         uploadStoreMock = new Mock<IUploadStore>(MockBehavior.Strict);
+        pipelineFactoryMock = new Mock<IPipelineFactory>(MockBehavior.Strict);
         preflightQueue = Channel.CreateUnbounded<PreflightRequest>();
 
         processingService = new ProcessingService(
             processingJobStoreMock.Object,
             uploadStoreMock.Object,
             mandateServiceMock.Object,
+            pipelineFactoryMock.Object,
             preflightQueue.Writer);
     }
 
@@ -39,6 +43,7 @@ public class ProcessingServiceTest
         processingJobStoreMock.VerifyAll();
         mandateServiceMock.VerifyAll();
         uploadStoreMock.VerifyAll();
+        pipelineFactoryMock.VerifyAll();
         context.Dispose();
     }
 
@@ -57,22 +62,24 @@ public class ProcessingServiceTest
     }
 
     [TestMethod]
-    public async Task StartJobSuccessSetsPipelineIdAndQueuesPreflight()
+    public async Task StartJobSuccessAttachesPipelineAndQueuesPreflight()
     {
         // Arrange
         var uploadId = Guid.NewGuid();
         var jobId = Guid.NewGuid();
         var pipelineId = "pipeline1";
-        var mandate = new Mandate { Id = 1, Name = nameof(StartJobSuccessSetsPipelineIdAndQueuesPreflight), FileTypes = [".xtf"], PipelineId = pipelineId };
-        var user = new User { Id = 2, FullName = nameof(StartJobSuccessSetsPipelineIdAndQueuesPreflight), AuthIdentifier = "auth-123" };
+        var mandate = new Mandate { Id = 1, Name = nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight), FileTypes = [".xtf"], PipelineId = pipelineId };
+        var user = new User { Id = 2, FullName = nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight), AuthIdentifier = "auth-123" };
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
         var job = new ProcessingJob(jobId, new List<ProcessingJobFile>(), null, DateTime.Now);
+        var pipeline = new Mock<IPipeline>().Object;
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
         processingJobStoreMock.Setup(x => x.CreateJob()).Returns(job);
-        processingJobStoreMock.Setup(x => x.SetPipelineId(jobId, pipelineId)).Returns(job);
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, jobId)).Returns(pipeline);
+        processingJobStoreMock.Setup(x => x.AttachPipeline(jobId, pipeline, mandate.Id)).Returns(job);
         processingJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
 
         // Act
@@ -80,13 +87,13 @@ public class ProcessingServiceTest
 
         // Assert
         Assert.AreEqual(job, result);
-        processingJobStoreMock.Verify(x => x.SetPipelineId(jobId, pipelineId), Times.Once);
+        processingJobStoreMock.Verify(x => x.CreateJob(), Times.Once);
+        pipelineFactoryMock.Verify(x => x.CreatePipeline(pipelineId, jobId), Times.Once);
+        processingJobStoreMock.Verify(x => x.AttachPipeline(jobId, pipeline, mandate.Id), Times.Once);
 
         Assert.IsTrue(preflightQueue.Reader.TryRead(out var request));
         Assert.AreEqual(jobId, request.JobId);
         Assert.AreEqual(uploadId, request.UploadId);
-        Assert.AreEqual(mandate.Id, request.MandateId);
-        Assert.AreEqual("auth-123", request.UserAuthId);
     }
 
     [TestMethod]

@@ -21,7 +21,6 @@ public sealed class ProcessingControllerTest
     private Mock<IProcessingService> validationServiceMock;
     private Mock<IDownloadFileStore> downloadFileStoreMock;
     private Mock<IContentTypeProvider> contentTypeProviderMock;
-    private Mock<IPipelineService> pipelineServiceMock;
     private ProcessingController controller;
 
     [TestInitialize]
@@ -32,12 +31,10 @@ public sealed class ProcessingControllerTest
         validationServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
         downloadFileStoreMock = new Mock<IDownloadFileStore>(MockBehavior.Strict);
         contentTypeProviderMock = new Mock<IContentTypeProvider>(MockBehavior.Strict);
-        pipelineServiceMock = new Mock<IPipelineService>(MockBehavior.Loose);
 
         controller = new ProcessingController(
             loggerMock.Object,
             validationServiceMock.Object,
-            pipelineServiceMock.Object,
             downloadFileStoreMock.Object,
             contentTypeProviderMock.Object,
             context);

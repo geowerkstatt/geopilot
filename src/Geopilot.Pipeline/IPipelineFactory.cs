@@ -1,5 +1,4 @@
 ﻿using Geopilot.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Pipeline;
 
@@ -17,9 +16,8 @@ public interface IPipelineFactory
     /// Creates a pipeline instance with the specified id.
     /// </summary>
     /// <param name="id">The id of the pipeline to be created.</param>
-    /// <param name="uploadFiles">The files to be processed by the pipeline.</param>
     /// <param name="jobId">Job-Id for the pipeline.</param>
     /// <returns>A <see cref="Pipeline"/> instance.</returns>
     /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
-    IPipeline CreatePipeline(string id, IPipelineFileList uploadFiles, Guid jobId);
+    IPipeline CreatePipeline(string id, Guid jobId);
 }

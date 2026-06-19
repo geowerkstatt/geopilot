@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
 
     <!-- NuGet package metadata (shared metadata comes from Directory.Build.props) -->
     <IsPackable>true</IsPackable>
