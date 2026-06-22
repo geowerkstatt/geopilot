@@ -53,7 +53,6 @@ export interface DeliveryContextInterface {
   isLoading: boolean;
   isProcessing: boolean;
   uploadFile: () => void;
-  cancelUpload: () => void;
   startProcessing: (mandate: Mandate) => void;
   submitDelivery: (data: DeliverySubmitData) => void;
   resetDelivery: () => void;

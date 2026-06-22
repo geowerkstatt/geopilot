@@ -1,6 +1,7 @@
-import { useContext } from "react";
-import { DeliveryContext } from "./deliveryContext";
+import { ButtonProps } from "@mui/material/Button";
+import { FC, useContext } from "react";
 import { BaseButton } from "../../components/buttons";
+import { DeliveryContext } from "./deliveryContext";
 
 export const DeliveryBackButton = () => {
   const { activeStep, showCompletedOrNextStep } = useContext(DeliveryContext);
@@ -12,8 +13,8 @@ export const DeliveryBackButton = () => {
   );
 };
 
-export const DeliveryContinueButton = () => {
+export const DeliveryContinueButton: FC<Omit<ButtonProps, "onClick" | "label">> = props => {
   const { activeStep, steps, continueToNextStep } = useContext(DeliveryContext);
 
-  return activeStep < steps.size - 1 && <BaseButton onClick={continueToNextStep} label="continue" />;
+  return activeStep < steps.size - 1 && <BaseButton {...props} onClick={continueToNextStep} label="continue" />;
 };

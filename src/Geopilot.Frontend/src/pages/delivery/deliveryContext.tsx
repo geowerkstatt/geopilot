@@ -41,7 +41,6 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   isLoading: false,
   isProcessing: false,
   uploadFile: () => {},
-  cancelUpload: () => {},
   startProcessing: () => {},
   submitDelivery: () => {},
   resetDelivery: () => {},
@@ -298,20 +297,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   };
 
-  const cancelUpload = useCallback(() => {
-    abortControllers.forEach(controller => controller.abort());
-    setAbortControllers([]);
-    setIsLoading(false);
-    setStepError(DeliveryStepEnum.Files, undefined);
-    setFileUploadStatus(prev => {
-      const next = new Map(prev);
-      next.forEach((_, key) => {
-        next.set(key, { state: "neutral" });
-      });
-      return next;
-    });
-  }, [abortControllers, setStepError]);
-
   const pollProcessingStatusUntilFinished = (jobId: string, abortController: AbortController) => {
     fetchApi<ProcessingJobResponse>(`/api/v2/processing/${jobId}`, {
       method: "GET",
@@ -460,7 +445,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         isLoading,
         isProcessing,
         uploadFile,
-        cancelUpload,
         startProcessing,
         submitDelivery,
         resetDelivery,

@@ -9,7 +9,7 @@ import { FormCheckbox } from "../../components/form/form.ts";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepEnum, DeliveryStepProps } from "./deliveryInterfaces.tsx";
-import { BaseButton, CancelButton } from "../../components/buttons.tsx";
+import { BaseButton } from "../../components/buttons.tsx";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryContent } from "./deliveryContent.tsx";
 import { DeliveryContinueButton } from "./deliveryButtons.tsx";
@@ -27,7 +27,6 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
     fileUploadStatus,
     isLoading,
     uploadFile,
-    cancelUpload,
     uploadSettings,
     lastCompletedStep,
   } = useContext(DeliveryContext);
@@ -57,11 +56,9 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
 
   const button = completed ? (
     <DeliveryContinueButton />
-  ) : isLoading ? (
-    <CancelButton onClick={() => cancelUpload()} />
   ) : (
     <BaseButton
-      disabled={!formMethods.formState.isValid || selectedFiles.length === 0}
+      disabled={isLoading || !formMethods.formState.isValid || selectedFiles.length === 0}
       onClick={() => formMethods.handleSubmit(submitForm)()}
       label="upload"
     />
