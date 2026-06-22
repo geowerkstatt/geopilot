@@ -1,11 +1,12 @@
-import { FC, TransitionEvent, useContext, useEffect, useState } from "react";
+import { Box, Stack } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
+import { FC, TransitionEvent, useContext, useEffect, useState } from "react";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStep } from "./deliveryInterfaces.tsx";
 
 export const SLIDE_TRANSITION_MS = 300;
 
-const CarouselViewport = styled("div")({
+const CarouselViewport = styled(Box)({
   position: "relative",
   flex: 1,
   minWidth: 0,
@@ -13,18 +14,17 @@ const CarouselViewport = styled("div")({
   overflowY: "visible",
 });
 
-const CarouselTrack = styled("div")(({ theme }) => ({
-  display: "flex",
+const CarouselTrack = styled(Stack)(({ theme }) => ({
   position: "relative",
   width: "100%",
   alignItems: "flex-start",
+  flexDirection: "row",
   gap: theme.spacing(2),
 }));
 
-const CarouselSlide = styled("div")({
+const CarouselSlide = styled(Stack)({
   flex: "0 0 100%",
   minWidth: 0,
-  display: "flex",
 });
 
 export const DeliveryContentCarousel: FC = () => {

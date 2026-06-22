@@ -1,4 +1,4 @@
-import { Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,7 +9,7 @@ import { DeliveryContext } from "./deliveryContext";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 import { StepperIcon } from "./stepperIcon";
 
-const StepperViewport = styled("div")(({ theme }) => ({
+const StepperViewport = styled(Box)(({ theme }) => ({
   minWidth: 300,
   flex: 0,
   position: "sticky",
