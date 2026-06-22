@@ -70,10 +70,10 @@ public class ProcessingController : ControllerBase
                         : null;
 
             logger.LogInformation("Starting job for upload <{UploadId}> with mandate <{MandateId}> for user <{AuthIdentifier}>.", startJobRequest.UploadId, startJobRequest.MandateId, user?.AuthIdentifier ?? "Unauthenticated");
-            var job = await processingService.StartJob(startJobRequest.UploadId, startJobRequest.MandateId, user);
+            var job = await processingService.StartJobAsync(startJobRequest.UploadId, startJobRequest.MandateId, user);
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", job.Id);
 
-            return AcceptedAtAction(nameof(GetStatus), new { jobId = job.Id }, BuildResponse(job));
+            return AcceptedAtAction(nameof(GetStatus), new { jobId = job.Id }, job.ToResponse(BuildDownloadUrl));
         }
         catch (ArgumentException ex)
         {
@@ -110,7 +110,7 @@ public class ProcessingController : ControllerBase
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        return Ok(BuildResponse(job));
+        return Ok(job.ToResponse(BuildDownloadUrl));
     }
 
     /// <summary>
@@ -146,11 +146,6 @@ public class ProcessingController : ControllerBase
             .SelectMany(s => s.Downloads.Concat(s.DeliveryFiles))
             .FirstOrDefault(f => f.PersistedFileName == persistedFileName)
             ?.OriginalFileName;
-    }
-
-    private ProcessingJobResponse BuildResponse(ProcessingJob job)
-    {
-        return job.ToResponse(BuildDownloadUrl);
     }
 
     private Uri BuildDownloadUrl(Guid jobId, string fileName)

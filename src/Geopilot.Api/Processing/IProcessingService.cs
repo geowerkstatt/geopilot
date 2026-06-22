@@ -15,7 +15,7 @@ public interface IProcessingService
     /// <param name="user">The user starting the job, or <see langword="null"/> for an anonymous public mandate.</param>
     /// <exception cref="ArgumentException">If no upload with the specified <paramref name="uploadId"/> exists.</exception>
     /// <exception cref="InvalidOperationException">If the job could not be started with the given mandate.</exception>
-    Task<ProcessingJob> StartJob(Guid uploadId, int mandateId, User? user);
+    Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, User? user);
 
     /// <summary>
     /// Gets the processing job.

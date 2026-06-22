@@ -29,7 +29,7 @@ public class ProcessingService : IProcessingService
     }
 
     /// <inheritdoc/>
-    public async Task<ProcessingJob> StartJob(Guid uploadId, int mandateId, User? user)
+    public async Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, User? user)
     {
         if (uploadStore.GetUpload(uploadId) == null)
             throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));

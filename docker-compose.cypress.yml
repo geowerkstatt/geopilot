@@ -1,6 +1,6 @@
 services:
   geopilot:
     environment:
-      # Direct upload was removed; Cypress now exercises the cloud-upload (Azurite) flow
-      # configured in docker-compose.yml. Ensure the blob container exists on each run.
+      # Cypress exercises the cloud-upload (Azurite) flow from docker-compose.yml;
+      # auto-create the blob container so it exists on each run.
       CloudStorage__AutoCreateContainer: "true"

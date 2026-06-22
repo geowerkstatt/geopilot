@@ -20,7 +20,9 @@ public class UploadStore : IUploadStore
             Files: files,
             CreatedAt: DateTime.Now);
 
-        uploads[id] = upload;
+        if (!uploads.TryAdd(id, upload))
+            throw new InvalidOperationException($"An upload with id <{id}> already exists.");
+
         return upload;
     }
 

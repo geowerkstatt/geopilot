@@ -11,10 +11,10 @@ namespace Geopilot.Api.Processing;
 public class ProcessingJobStore : IProcessingJobStore
 {
     private readonly ConcurrentDictionary<Guid, ProcessingJob> jobs = new();
-    private readonly Channel<ProcessingWorkItem> pipelineQueue = Channel.CreateUnbounded<ProcessingWorkItem>();
+    private readonly Channel<ProcessingWorkItem> processingQueue = Channel.CreateUnbounded<ProcessingWorkItem>();
 
     /// <inheritdoc/>
-    public ChannelReader<ProcessingWorkItem> ProcessingQueue => pipelineQueue.Reader;
+    public ChannelReader<ProcessingWorkItem> ProcessingQueue => processingQueue.Reader;
 
     /// <inheritdoc/>
     public ProcessingJob? GetJob(Guid jobId) => jobs.TryGetValue(jobId, out var job) ? job : null;
@@ -127,7 +127,7 @@ public class ProcessingJobStore : IProcessingJobStore
                 return job with { State = ProcessingState.Running };
             });
 
-        pipelineQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files));
+        processingQueue.Writer.TryWrite(new ProcessingWorkItem(updatedJob.Pipeline!, files));
         return updatedJob;
     }
 

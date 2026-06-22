@@ -162,7 +162,7 @@ public sealed class ProcessingControllerTest
             mandate.Id,
             DateTime.Now);
 
-        validationServiceMock.Setup(x => x.StartJob(uploadId, mandate.Id, user)).ReturnsAsync(processingJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Id, user)).ReturnsAsync(processingJob);
 
         // Act
         var response = await controller.StartJobAsync(startJobRequest) as AcceptedAtActionResult;
@@ -179,7 +179,7 @@ public sealed class ProcessingControllerTest
         Assert.AreEqual(mandate.Id, jobResponse.MandateId);
         Assert.AreEqual(ProcessingState.Pending, jobResponse.State);
 
-        validationServiceMock.Verify(x => x.StartJob(uploadId, mandate.Id, user), Times.Once);
+        validationServiceMock.Verify(x => x.StartJobAsync(uploadId, mandate.Id, user), Times.Once);
     }
 
     [TestMethod]
@@ -213,7 +213,7 @@ public sealed class ProcessingControllerTest
             publicMandate.Entity.Id,
             DateTime.Now);
 
-        validationServiceMock.Setup(x => x.StartJob(uploadId, publicMandate.Entity.Id, It.IsAny<User?>())).ReturnsAsync(processingJob);
+        validationServiceMock.Setup(x => x.StartJobAsync(uploadId, publicMandate.Entity.Id, It.IsAny<User?>())).ReturnsAsync(processingJob);
 
         // Act
         var response = await controller.StartJobAsync(startJobRequest) as AcceptedAtActionResult;
@@ -229,7 +229,7 @@ public sealed class ProcessingControllerTest
         // Arrange
         var startJobRequest = new StartJobRequest { UploadId = Guid.NewGuid(), MandateId = 42 };
 
-        validationServiceMock.Setup(x => x.StartJob(startJobRequest.UploadId, startJobRequest.MandateId, null))
+        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, startJobRequest.MandateId, null))
             .ThrowsAsync(new ArgumentException($"Upload with id <{startJobRequest.UploadId}> not found."));
 
         // Act
@@ -240,7 +240,7 @@ public sealed class ProcessingControllerTest
         Assert.AreEqual(StatusCodes.Status404NotFound, response!.StatusCode);
         Assert.AreEqual($"Upload with id <{startJobRequest.UploadId}> not found.", ((ProblemDetails)response.Value!).Detail);
 
-        validationServiceMock.Verify(x => x.StartJob(startJobRequest.UploadId, startJobRequest.MandateId, null), Times.Once);
+        validationServiceMock.Verify(x => x.StartJobAsync(startJobRequest.UploadId, startJobRequest.MandateId, null), Times.Once);
     }
 
     [TestMethod]
@@ -254,7 +254,7 @@ public sealed class ProcessingControllerTest
 
         controller.SetupTestUser(user);
 
-        validationServiceMock.Setup(x => x.StartJob(startJobRequest.UploadId, mandate.Id, It.IsAny<User>()))
+        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, mandate.Id, It.IsAny<User>()))
             .ThrowsAsync(new InvalidOperationException("User not authorized for mandate"));
 
         // Act
@@ -273,7 +273,7 @@ public sealed class ProcessingControllerTest
         var startJobRequest = new StartJobRequest { UploadId = Guid.NewGuid(), MandateId = 42 };
 
 #pragma warning disable CA2201 // Do not raise reserved exception types
-        validationServiceMock.Setup(x => x.StartJob(startJobRequest.UploadId, startJobRequest.MandateId, null))
+        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, startJobRequest.MandateId, null))
             .ThrowsAsync(new Exception());
 #pragma warning restore CA2201 // Do not raise reserved exception types
 
@@ -300,7 +300,7 @@ public sealed class ProcessingControllerTest
 
         var startJobRequest = new StartJobRequest { UploadId = Guid.NewGuid(), MandateId = nonPublicMandate.Entity.Id };
 
-        validationServiceMock.Setup(x => x.StartJob(startJobRequest.UploadId, nonPublicMandate.Entity.Id, null))
+        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, nonPublicMandate.Entity.Id, null))
             .ThrowsAsync(new InvalidOperationException("User not authorized for mandate"));
 
         // Act
@@ -322,7 +322,7 @@ public sealed class ProcessingControllerTest
         var startJobRequest = new StartJobRequest { UploadId = Guid.NewGuid(), MandateId = mandate.Id };
 
         controller.SetupTestUser(user);
-        validationServiceMock.Setup(x => x.StartJob(startJobRequest.UploadId, mandate.Id, It.IsAny<User>()))
+        validationServiceMock.Setup(x => x.StartJobAsync(startJobRequest.UploadId, mandate.Id, It.IsAny<User>()))
             .ThrowsAsync(new InvalidOperationException("The user is not authorized to start the job with the specified mandate."));
 
         // Act

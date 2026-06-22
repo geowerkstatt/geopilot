@@ -185,14 +185,14 @@ public class CloudUploadPollingTest
 
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
 
-        // The pipeline is now instantiated up front in StartJob (without files) and attached to the job.
+        // The pipeline is now instantiated up front in StartJobAsync (without files) and attached to the job.
         // On a preflight failure the service disposes the attached pipeline, so allow Dispose on the strict mock.
         var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
         pipeline.SetupGet(p => p.Id).Returns(pipelineId);
         pipeline.Setup(p => p.Dispose());
         pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<Guid>())).Returns(pipeline.Object);
 
-        var job = await processingService.StartJob(uploadId, mandate.Id, user);
+        var job = await processingService.StartJobAsync(uploadId, mandate.Id, user);
 
         return (job.Id, uploadId, mandate, user);
     }
