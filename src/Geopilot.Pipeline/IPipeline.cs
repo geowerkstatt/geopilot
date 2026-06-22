@@ -45,11 +45,12 @@ public interface IPipeline : IDisposable
     Guid JobId { get; }
 
     /// <summary>
-    /// Runs the pipeline with the specified input file.
+    /// Runs the pipeline with the specified input files.
     /// </summary>
+    /// <param name="files">The files to be processed by the pipeline.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the pipeline run.</param>
     /// <returns>The context containing the results of the pipeline execution.</returns>
     /// <exception cref="PipelineRunException">The pipeline run failed due to a misconfigured pipeline or an misbehaving process.</exception>
     /// <exception cref="OperationCanceledException">The pipeline run was cancelled.</exception>
-    Task<PipelineContext> Run(CancellationToken cancellationToken);
+    Task<PipelineContext> Run(IPipelineFileList files, CancellationToken cancellationToken);
 }

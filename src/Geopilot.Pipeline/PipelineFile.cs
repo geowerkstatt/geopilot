@@ -74,4 +74,10 @@ public class PipelineFile : IPipelineFile
     {
         return File.Open(this.filePath, FileMode.CreateNew);
     }
+
+    /// <inheritdoc/>
+    public string GetLocalPath()
+    {
+        return this.filePath;
+    }
 }

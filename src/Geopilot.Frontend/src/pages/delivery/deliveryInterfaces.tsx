@@ -47,6 +47,7 @@ export interface DeliveryContextInterface {
   removeFile: (file: File) => void;
   fileUploadStatus: Map<string, FileUploadStatus>;
   selectedMandate?: Mandate;
+  uploadId?: string;
   jobId?: string;
   uploadSettings?: UploadSettings;
   processingResponse?: ProcessingJobResponse;

@@ -16,6 +16,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     private readonly ICloudStorageService cloudStorageService;
     private readonly ICloudScanService cloudScanService;
     private readonly IProcessingJobStore jobStore;
+    private readonly IUploadStore uploadStore;
     private readonly IUploadFileStore uploadFileStore;
     private readonly IOptions<CloudStorageOptions> options;
     private readonly ILogger<CloudOrchestrationService> logger;
@@ -27,6 +28,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         ICloudStorageService cloudStorageService,
         ICloudScanService cloudScanService,
         IProcessingJobStore jobStore,
+        IUploadStore uploadStore,
         IUploadFileStore uploadFileStore,
         IOptions<CloudStorageOptions> options,
         ILogger<CloudOrchestrationService> logger)
@@ -34,6 +36,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         this.cloudStorageService = cloudStorageService;
         this.cloudScanService = cloudScanService;
         this.jobStore = jobStore;
+        this.uploadStore = uploadStore;
         this.uploadFileStore = uploadFileStore;
         this.options = options;
         this.logger = logger;
@@ -44,9 +47,9 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     {
         ValidateRequest(request);
 
-        var activeJobs = jobStore.GetActiveCloudJobCount();
-        if (activeJobs >= options.Value.MaxActiveJobs)
-            throw new InvalidOperationException($"Maximum number of active cloud upload jobs ({options.Value.MaxActiveJobs}) reached.");
+        var activeUploads = uploadStore.GetActiveUploadCount();
+        if (activeUploads >= options.Value.MaxActiveJobs)
+            throw new InvalidOperationException($"Maximum number of active cloud uploads ({options.Value.MaxActiveJobs}) reached.");
 
         var declaredTotalSize = request.Files.Sum(f => f.Size);
         var maxGlobalBytes = (long)options.Value.MaxGlobalActiveSizeMB * 1024 * 1024;
@@ -54,8 +57,8 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         if (currentSize + declaredTotalSize > maxGlobalBytes)
             throw new InvalidOperationException($"Global active upload size limit ({options.Value.MaxGlobalActiveSizeMB} MB) would be exceeded.");
 
-        var job = jobStore.CreateJob();
-        var cloudPrefix = $"uploads/{job.Id}/";
+        var uploadId = Guid.NewGuid();
+        var cloudPrefix = $"uploads/{uploadId}/";
 
         var cloudFiles = new List<CloudFileInfo>();
         var fileUploadInfos = new List<FileUploadInfo>();
@@ -71,30 +74,27 @@ public class CloudOrchestrationService : ICloudOrchestrationService
             fileUploadInfos.Add(new FileUploadInfo(sanitizedName, presignedUrl));
         }
 
-        jobStore.AddUploadInfoToJob(job.Id, UploadMethod.Cloud, cloudFiles.ToImmutableList());
+        uploadStore.CreateUpload(uploadId, cloudFiles.ToImmutableList());
 
-        logger.LogInformation("Initiated cloud upload for job <{JobId}> with {FileCount} file(s).", job.Id, request.Files.Count);
+        logger.LogInformation("Initiated cloud upload <{UploadId}> with {FileCount} file(s).", uploadId, request.Files.Count);
 
-        return new CloudUploadResponse(job.Id, fileUploadInfos, DateTime.UtcNow.Add(expiresIn));
+        return new CloudUploadResponse(uploadId, fileUploadInfos, DateTime.UtcNow.Add(expiresIn));
     }
 
     /// <inheritdoc/>
-    public async Task RunPreflightChecksAsync(Guid jobId)
+    public async Task RunPreflightChecksAsync(Guid uploadId)
     {
-        var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId));
+        var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
 
-        if (job.UploadMethod != UploadMethod.Cloud)
-            throw new InvalidOperationException($"Job <{jobId}> is not a cloud upload job.");
+        if (upload.Files.Count == 0)
+            throw new InvalidOperationException($"Upload <{uploadId}> has no cloud files configured.");
 
-        if (job.CloudFiles == null || job.CloudFiles.Count == 0)
-            throw new InvalidOperationException($"Job <{jobId}> has no cloud files configured.");
+        logger.LogInformation("Starting preflight checks for upload <{UploadId}>.", uploadId);
 
-        logger.LogInformation("Starting preflight checks for job <{JobId}>.", jobId);
-
-        var cloudPrefix = $"uploads/{jobId}/";
+        var cloudPrefix = $"uploads/{uploadId}/";
         var uploadedFiles = await cloudStorageService.ListFilesAsync(cloudPrefix);
 
-        foreach (var expectedFile in job.CloudFiles)
+        foreach (var expectedFile in upload.Files)
         {
             var uploaded = uploadedFiles.FirstOrDefault(f => f.Key == expectedFile.CloudKey);
             if (uploaded == default)
@@ -109,36 +109,34 @@ public class CloudOrchestrationService : ICloudOrchestrationService
 
             if (uploaded.Size > expectedFile.ExpectedSize)
             {
-                logger.LogError("File '{FileName}' for job <{JobId}> exceeds declared size ({Actual} > {Expected}).", expectedFile.FileName, jobId, uploaded.Size, expectedFile.ExpectedSize);
+                logger.LogError("File '{FileName}' for upload <{UploadId}> exceeds declared size ({Actual} > {Expected}).", expectedFile.FileName, uploadId, uploaded.Size, expectedFile.ExpectedSize);
                 throw new CloudUploadPreflightException(PreflightFailureReason.SizeExceeded, "The uploaded files could not be processed.");
             }
         }
 
-        var keys = job.CloudFiles.Select(f => f.CloudKey).ToList();
+        var keys = upload.Files.Select(f => f.CloudKey).ToList();
         var scanResult = await cloudScanService.CheckFilesAsync(keys);
 
         if (!scanResult.IsClean)
         {
-            logger.LogError("Threat detected in cloud files for job <{JobId}>: {ThreatDetails}", jobId, scanResult.ThreatDetails);
+            logger.LogError("Threat detected in cloud files for upload <{UploadId}>: {ThreatDetails}", uploadId, scanResult.ThreatDetails);
             throw new CloudUploadPreflightException(PreflightFailureReason.ThreatDetected, "The uploaded files could not be processed.");
         }
     }
 
     /// <inheritdoc/>
-    public async Task<ProcessingJob> StageFilesLocallyAsync(Guid jobId)
+    public async Task<ProcessingJob> StageFilesLocallyAsync(Guid uploadId, Guid jobId)
     {
+        var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
         var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId));
 
-        if (job.UploadMethod != UploadMethod.Cloud)
-            throw new InvalidOperationException($"Job <{jobId}> is not a cloud upload job.");
+        if (upload.Files.Count == 0)
+            throw new InvalidOperationException($"Upload <{uploadId}> has no cloud files to stage.");
 
-        if (job.CloudFiles == null || job.CloudFiles.Count == 0)
-            throw new InvalidOperationException($"Job <{jobId}> has no cloud files to stage.");
-
-        logger.LogInformation("Staging cloud files locally for job <{JobId}>.", jobId);
+        logger.LogInformation("Staging cloud files for upload <{UploadId}> locally on job <{JobId}>.", uploadId, jobId);
 
         ProcessingJob updatedJob = job;
-        foreach (var file in job.CloudFiles)
+        foreach (var file in upload.Files)
         {
             var stagedName = UploadFileNaming.MakeUnique(jobId, file.FileName, uploadFileStore);
 
@@ -150,10 +148,10 @@ public class CloudOrchestrationService : ICloudOrchestrationService
             updatedJob = jobStore.AddFileToJob(jobId, file.FileName, stagedName);
         }
 
-        var cloudPrefix = $"uploads/{jobId}/";
-        await cloudStorageService.DeletePrefixAsync(cloudPrefix);
+        await cloudStorageService.DeletePrefixAsync($"uploads/{uploadId}/");
+        uploadStore.RemoveUpload(uploadId);
 
-        logger.LogInformation("Cloud files staged locally and cleaned up for job <{JobId}>.", jobId);
+        logger.LogInformation("Cloud files for upload <{UploadId}> staged on job <{JobId}> and cleaned up.", uploadId, jobId);
 
         return updatedJob;
     }

@@ -2,7 +2,6 @@
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
-using Microsoft.EntityFrameworkCore;
 using System.Threading.Channels;
 
 namespace Geopilot.Api.Services;
@@ -10,7 +9,7 @@ namespace Geopilot.Api.Services;
 /// <summary>
 /// Background worker that processes cloud upload preflight checks and staging.
 /// Reads <see cref="PreflightRequest"/> messages from the channel and runs
-/// verify → scan → stage → create pipeline for each job.
+/// verify → scan → stage → queue for processing for each job.
 /// </summary>
 public class PreflightBackgroundService : BackgroundService
 {
@@ -46,38 +45,30 @@ public class PreflightBackgroundService : BackgroundService
     internal async Task ProcessRequestAsync(PreflightRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
 
         using var scope = serviceScopeFactory.CreateScope();
         var jobStore = scope.ServiceProvider.GetRequiredService<IProcessingJobStore>();
+        var uploadStore = scope.ServiceProvider.GetRequiredService<IUploadStore>();
         var cloudOrchestrationService = scope.ServiceProvider.GetRequiredService<ICloudOrchestrationService>();
         var cloudStorageService = scope.ServiceProvider.GetRequiredService<ICloudStorageService>();
-        var mandateService = scope.ServiceProvider.GetRequiredService<IMandateService>();
         var uploadFileStore = scope.ServiceProvider.GetRequiredService<IUploadFileStore>();
-        var pipelineFactory = scope.ServiceProvider.GetRequiredService<IPipelineFactory>();
-        var context = scope.ServiceProvider.GetRequiredService<Context>();
 
         var job = jobStore.GetJob(request.JobId);
-        if (job == null || job.Pipeline != null || job.State == ProcessingState.Failed)
+        if (job == null || job.State != ProcessingState.Pending)
         {
-            logger.LogWarning("Skipping preflight for job <{JobId}>: job is null, already started, or already failed.", request.JobId);
+            logger.LogWarning("Skipping preflight for job <{JobId}>: job is null or no longer pending.", request.JobId);
             return;
         }
 
         try
         {
-            await cloudOrchestrationService.RunPreflightChecksAsync(request.JobId);
-            var stagedJob = await cloudOrchestrationService.StageFilesLocallyAsync(request.JobId);
+            await cloudOrchestrationService.RunPreflightChecksAsync(request.UploadId);
+            var stagedJob = await cloudOrchestrationService.StageFilesLocallyAsync(request.UploadId, request.JobId);
 
-            Models.User? user = null;
-            if (request.UserAuthId != null)
+            if (stagedJob.Files == null || stagedJob.Files.Count == 0)
             {
-                user = await context.Users.FirstOrDefaultAsync(u => u.AuthIdentifier == request.UserAuthId, cancellationToken);
-            }
-
-            var mandate = await mandateService.GetMandateForUser(request.MandateId, user);
-            if (mandate?.PipelineId == null || stagedJob.Files == null || stagedJob.Files.Count == 0)
-            {
-                throw new InvalidOperationException($"The job <{request.JobId}> could not be started with mandate <{request.MandateId}>.");
+                throw new InvalidOperationException($"No files were staged for job <{request.JobId}>.");
             }
 
             var pipelineFiles = stagedJob.Files
@@ -92,8 +83,7 @@ public class PreflightBackgroundService : BackgroundService
                 .Cast<IPipelineFile>()
                 .ToList();
 
-            var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, new PipelineFileList(pipelineFiles), request.JobId);
-            jobStore.StartJob(request.JobId, pipeline, request.MandateId);
+            jobStore.EnqueueForProcessing(request.JobId, new PipelineFileList(pipelineFiles));
 
             logger.LogInformation("Preflight complete for job <{JobId}>. Pipeline queued.", request.JobId);
         }
@@ -103,16 +93,20 @@ public class PreflightBackgroundService : BackgroundService
 
             try
             {
-                await cloudStorageService.DeletePrefixAsync($"uploads/{request.JobId}/");
+                await cloudStorageService.DeletePrefixAsync($"uploads/{request.UploadId}/");
+                uploadStore.RemoveUpload(request.UploadId);
             }
             catch (Exception cleanupEx)
             {
-                logger.LogError(cleanupEx, "Failed to clean up cloud files for job <{JobId}>.", request.JobId);
+                logger.LogError(cleanupEx, "Failed to clean up cloud files for upload <{UploadId}>.", request.UploadId);
             }
 
             try
             {
                 jobStore.MarkAsFailed(request.JobId);
+
+                // The pipeline was instantiated up front but never queued, so the runner will not dispose it.
+                job.Pipeline?.Dispose();
             }
             catch (Exception statusEx)
             {

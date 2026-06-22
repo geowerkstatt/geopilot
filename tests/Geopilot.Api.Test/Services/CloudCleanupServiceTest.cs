@@ -3,6 +3,7 @@ using Geopilot.Api.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Collections.Immutable;
 
 namespace Geopilot.Api.Test.Services;
 
@@ -10,7 +11,7 @@ namespace Geopilot.Api.Test.Services;
 public class CloudCleanupServiceTest
 {
     private Mock<ICloudStorageService> cloudStorageServiceMock;
-    private Mock<IProcessingJobStore> jobStoreMock;
+    private Mock<IUploadStore> uploadStoreMock;
     private Mock<ILogger<CloudCleanupService>> loggerMock;
     private CloudStorageOptions cloudStorageOptions;
     private CloudCleanupService service;
@@ -19,7 +20,7 @@ public class CloudCleanupServiceTest
     public void Initialize()
     {
         cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
-        jobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Loose);
+        uploadStoreMock = new Mock<IUploadStore>(MockBehavior.Loose);
         loggerMock = new Mock<ILogger<CloudCleanupService>>();
 
         cloudStorageOptions = new CloudStorageOptions { CleanupAgeHours = 48, MaxFileSizeMB = 2048 };
@@ -29,7 +30,7 @@ public class CloudCleanupServiceTest
 
         service = new CloudCleanupService(
             cloudStorageServiceMock.Object,
-            jobStoreMock.Object,
+            uploadStoreMock.Object,
             loggerMock.Object,
             optionsMock.Object);
     }
@@ -44,42 +45,42 @@ public class CloudCleanupServiceTest
     [TestMethod]
     public async Task RunCleanupAsyncDeletesStaleFiles()
     {
-        var staleJobId = Guid.NewGuid();
+        var staleUploadId = Guid.NewGuid();
         var staleTimestamp = DateTime.UtcNow.AddHours(-49);
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync("uploads/"))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
             {
-                ($"uploads/{staleJobId}/test.xtf", 1024, staleTimestamp),
+                ($"uploads/{staleUploadId}/test.xtf", 1024, staleTimestamp),
             });
 
         cloudStorageServiceMock
-            .Setup(s => s.DeletePrefixAsync($"uploads/{staleJobId}/"))
+            .Setup(s => s.DeletePrefixAsync($"uploads/{staleUploadId}/"))
             .Returns(Task.CompletedTask);
 
         SetupEmptyContainerListing();
 
         await service.RunCleanupAsync();
 
-        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{staleJobId}/"), Times.Once);
-        jobStoreMock.Verify(s => s.RemoveJob(staleJobId), Times.Once);
+        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{staleUploadId}/"), Times.Once);
+        uploadStoreMock.Verify(s => s.RemoveUpload(staleUploadId), Times.Once);
     }
 
     [TestMethod]
     public async Task RunCleanupAsyncSkipsRecentFiles()
     {
-        var recentJobId = Guid.NewGuid();
+        var recentUploadId = Guid.NewGuid();
         var recentTimestamp = DateTime.UtcNow.AddHours(-1);
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync("uploads/"))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
             {
-                ($"uploads/{recentJobId}/test.xtf", 1024, recentTimestamp),
+                ($"uploads/{recentUploadId}/test.xtf", 1024, recentTimestamp),
             });
 
-        jobStoreMock.Setup(s => s.GetJob(recentJobId)).Returns(new ProcessingJob(recentJobId, new List<ProcessingJobFile>(), null, DateTime.Now));
+        uploadStoreMock.Setup(s => s.GetUpload(recentUploadId)).Returns(CreateUpload(recentUploadId));
 
         SetupEmptyContainerListing();
 
@@ -89,25 +90,25 @@ public class CloudCleanupServiceTest
     }
 
     [TestMethod]
-    public async Task RunCleanupAsyncDeletesMultipleStaleJobs()
+    public async Task RunCleanupAsyncDeletesMultipleStaleUploads()
     {
-        var staleJobId1 = Guid.NewGuid();
-        var staleJobId2 = Guid.NewGuid();
+        var staleUploadId1 = Guid.NewGuid();
+        var staleUploadId2 = Guid.NewGuid();
         var staleTimestamp = DateTime.UtcNow.AddHours(-49);
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync("uploads/"))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
             {
-                ($"uploads/{staleJobId1}/file1.xtf", 1024, staleTimestamp),
-                ($"uploads/{staleJobId2}/file2.xtf", 2048, staleTimestamp),
+                ($"uploads/{staleUploadId1}/file1.xtf", 1024, staleTimestamp),
+                ($"uploads/{staleUploadId2}/file2.xtf", 2048, staleTimestamp),
             });
 
         cloudStorageServiceMock
-            .Setup(s => s.DeletePrefixAsync($"uploads/{staleJobId1}/"))
+            .Setup(s => s.DeletePrefixAsync($"uploads/{staleUploadId1}/"))
             .Returns(Task.CompletedTask);
         cloudStorageServiceMock
-            .Setup(s => s.DeletePrefixAsync($"uploads/{staleJobId2}/"))
+            .Setup(s => s.DeletePrefixAsync($"uploads/{staleUploadId2}/"))
             .Returns(Task.CompletedTask);
 
         SetupEmptyContainerListing();
@@ -115,31 +116,33 @@ public class CloudCleanupServiceTest
         await service.RunCleanupAsync();
 
         cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync(It.IsAny<string>()), Times.Exactly(2));
+        uploadStoreMock.Verify(s => s.RemoveUpload(staleUploadId1), Times.Once);
+        uploadStoreMock.Verify(s => s.RemoveUpload(staleUploadId2), Times.Once);
     }
 
     [TestMethod]
-    public async Task RunCleanupAsyncDeletesOncePerJobWithMultipleFiles()
+    public async Task RunCleanupAsyncDeletesOncePerUploadWithMultipleFiles()
     {
-        var staleJobId = Guid.NewGuid();
+        var staleUploadId = Guid.NewGuid();
         var staleTimestamp = DateTime.UtcNow.AddHours(-49);
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync("uploads/"))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
             {
-                ($"uploads/{staleJobId}/file1.xtf", 1024, staleTimestamp),
-                ($"uploads/{staleJobId}/file2.xtf", 2048, staleTimestamp),
+                ($"uploads/{staleUploadId}/file1.xtf", 1024, staleTimestamp),
+                ($"uploads/{staleUploadId}/file2.xtf", 2048, staleTimestamp),
             });
 
         cloudStorageServiceMock
-            .Setup(s => s.DeletePrefixAsync($"uploads/{staleJobId}/"))
+            .Setup(s => s.DeletePrefixAsync($"uploads/{staleUploadId}/"))
             .Returns(Task.CompletedTask);
 
         SetupEmptyContainerListing();
 
         await service.RunCleanupAsync();
 
-        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{staleJobId}/"), Times.Once);
+        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{staleUploadId}/"), Times.Once);
     }
 
     [TestMethod]
@@ -183,70 +186,70 @@ public class CloudCleanupServiceTest
     [TestMethod]
     public async Task RunCleanupAsyncOnlyDeletesStaleNotRecent()
     {
-        var staleJobId = Guid.NewGuid();
-        var recentJobId = Guid.NewGuid();
+        var staleUploadId = Guid.NewGuid();
+        var recentUploadId = Guid.NewGuid();
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync("uploads/"))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
             {
-                ($"uploads/{staleJobId}/test.xtf", 1024, DateTime.UtcNow.AddHours(-49)),
-                ($"uploads/{recentJobId}/test.xtf", 1024, DateTime.UtcNow.AddHours(-1)),
+                ($"uploads/{staleUploadId}/test.xtf", 1024, DateTime.UtcNow.AddHours(-49)),
+                ($"uploads/{recentUploadId}/test.xtf", 1024, DateTime.UtcNow.AddHours(-1)),
             });
 
         cloudStorageServiceMock
-            .Setup(s => s.DeletePrefixAsync($"uploads/{staleJobId}/"))
+            .Setup(s => s.DeletePrefixAsync($"uploads/{staleUploadId}/"))
             .Returns(Task.CompletedTask);
 
-        jobStoreMock.Setup(s => s.GetJob(recentJobId)).Returns(new ProcessingJob(recentJobId, new List<ProcessingJobFile>(), null, DateTime.Now));
+        uploadStoreMock.Setup(s => s.GetUpload(recentUploadId)).Returns(CreateUpload(recentUploadId));
 
         SetupEmptyContainerListing();
 
         await service.RunCleanupAsync();
 
-        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{staleJobId}/"), Times.Once);
-        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{recentJobId}/"), Times.Never);
+        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{staleUploadId}/"), Times.Once);
+        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{recentUploadId}/"), Times.Never);
     }
 
     [TestMethod]
     public async Task RunCleanupAsyncDeletesOversizedFiles()
     {
-        var jobId = Guid.NewGuid();
+        var uploadId = Guid.NewGuid();
         var oversizedBytes = ((long)cloudStorageOptions.MaxFileSizeMB * 1024 * 1024) + 1;
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync("uploads/"))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
             {
-                ($"uploads/{jobId}/test.xtf", oversizedBytes, DateTime.UtcNow),
+                ($"uploads/{uploadId}/test.xtf", oversizedBytes, DateTime.UtcNow),
             });
 
         cloudStorageServiceMock
-            .Setup(s => s.DeletePrefixAsync($"uploads/{jobId}/"))
+            .Setup(s => s.DeletePrefixAsync($"uploads/{uploadId}/"))
             .Returns(Task.CompletedTask);
 
         SetupEmptyContainerListing();
 
         await service.RunCleanupAsync();
 
-        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{jobId}/"), Times.Once);
-        jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
+        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{uploadId}/"), Times.Once);
+        uploadStoreMock.Verify(s => s.RemoveUpload(uploadId), Times.Once);
     }
 
     [TestMethod]
     public async Task RunCleanupAsyncSkipsNormalSizedFiles()
     {
-        var jobId = Guid.NewGuid();
+        var uploadId = Guid.NewGuid();
         var normalBytes = (long)cloudStorageOptions.MaxFileSizeMB * 1024 * 1024;
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync("uploads/"))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
             {
-                ($"uploads/{jobId}/test.xtf", normalBytes, DateTime.UtcNow),
+                ($"uploads/{uploadId}/test.xtf", normalBytes, DateTime.UtcNow),
             });
 
-        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>(), null, DateTime.Now));
+        uploadStoreMock.Setup(s => s.GetUpload(uploadId)).Returns(CreateUpload(uploadId));
 
         SetupEmptyContainerListing();
 
@@ -256,28 +259,28 @@ public class CloudCleanupServiceTest
     }
 
     [TestMethod]
-    public async Task RunCleanupAsyncDeletesOrphanedJobBlobs()
+    public async Task RunCleanupAsyncDeletesOrphanedUploadBlobs()
     {
-        var orphanJobId = Guid.NewGuid();
+        var orphanUploadId = Guid.NewGuid();
 
         cloudStorageServiceMock
             .Setup(s => s.ListFilesAsync("uploads/"))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>
             {
-                ($"uploads/{orphanJobId}/test.xtf", 1024, DateTime.UtcNow),
+                ($"uploads/{orphanUploadId}/test.xtf", 1024, DateTime.UtcNow),
             });
 
-        jobStoreMock.Setup(s => s.GetJob(orphanJobId)).Returns((ProcessingJob?)null);
+        uploadStoreMock.Setup(s => s.GetUpload(orphanUploadId)).Returns((UploadInfo?)null);
 
         cloudStorageServiceMock
-            .Setup(s => s.DeletePrefixAsync($"uploads/{orphanJobId}/"))
+            .Setup(s => s.DeletePrefixAsync($"uploads/{orphanUploadId}/"))
             .Returns(Task.CompletedTask);
 
         SetupEmptyContainerListing();
 
         await service.RunCleanupAsync();
 
-        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{orphanJobId}/"), Times.Once);
+        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{orphanUploadId}/"), Times.Once);
     }
 
     [TestMethod]
@@ -309,6 +312,9 @@ public class CloudCleanupServiceTest
         cloudStorageServiceMock.Verify(s => s.DeleteAsync("other/stuff.bin"), Times.Once);
         cloudStorageServiceMock.Verify(s => s.DeleteAsync("uploads/some-valid-path"), Times.Never);
     }
+
+    private static UploadInfo CreateUpload(Guid uploadId) =>
+        new UploadInfo(uploadId, ImmutableList<CloudFileInfo>.Empty, DateTime.Now);
 
     private void SetupEmptyContainerListing()
     {

@@ -130,6 +130,7 @@ export interface Profile {
 }
 
 export interface StartJobRequest {
+  uploadId: string;
   mandateId: number;
 }
 
@@ -143,7 +144,6 @@ export interface AvailablePipelinesResponse {
 }
 
 export interface UploadSettings {
-  enabled: boolean;
   maxFileSizeMB: number;
   maxFilesPerJob: number;
   maxJobSizeMB: number;
@@ -154,7 +154,7 @@ export interface CloudUploadRequest {
 }
 
 export interface CloudUploadResponse {
-  jobId: string;
+  uploadId: string;
   files: { fileName: string; uploadUrl: string }[];
   expiresAt: string;
 }

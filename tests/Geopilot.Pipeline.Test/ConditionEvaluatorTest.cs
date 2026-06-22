@@ -175,4 +175,15 @@ public class ConditionEvaluatorTest
         var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 3 and [step2.result1] == 'foo'", expressionParameters).ConfigureAwait(false);
         Assert.IsTrue(result);
     }
+
+    [TestMethod(DisplayName = "Length of a null parameter returns zero")]
+    public async Task LengthOfNullParameter()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", null },
+        };
+        var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 0", expressionParameters).ConfigureAwait(false);
+        Assert.IsTrue(result);
+    }
 }

@@ -4,6 +4,7 @@ using Geopilot.Api.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Collections.Immutable;
 
 namespace Geopilot.Api.Test.Services;
 
@@ -17,7 +18,7 @@ public class CloudCleanupServiceIntegrationTest
 
     private BlobContainerClient containerClient;
     private AzureBlobStorageService storageService;
-    private ProcessingJobStore jobStore;
+    private UploadStore uploadStore;
     private CloudCleanupService cleanupService;
     private string containerName;
 
@@ -42,11 +43,11 @@ public class CloudCleanupServiceIntegrationTest
         containerClient.CreateIfNotExists();
 
         storageService = new AzureBlobStorageService(optionsMock.Object, Mock.Of<ILogger<AzureBlobStorageService>>());
-        jobStore = new ProcessingJobStore();
+        uploadStore = new UploadStore();
 
         cleanupService = new CloudCleanupService(
             storageService,
-            jobStore,
+            uploadStore,
             new Mock<ILogger<CloudCleanupService>>().Object,
             optionsMock.Object);
     }
@@ -59,21 +60,23 @@ public class CloudCleanupServiceIntegrationTest
     }
 
     [TestMethod]
-    public async Task RunCleanupAsyncDeletesOversizedBlobsAndRemovesJob()
+    public async Task RunCleanupAsyncDeletesOversizedBlobsAndRemovesUpload()
     {
-        var job = jobStore.CreateJob();
+        var uploadId = Guid.NewGuid();
+        var cloudKey = $"uploads/{uploadId}/large.xtf";
+        var upload = uploadStore.CreateUpload(uploadId, CloudFiles("large.xtf", cloudKey));
         var oversizedContent = new byte[(1 * 1024 * 1024) + 1];
-        await UploadTestBlobAsync($"uploads/{job.Id}/large.xtf", oversizedContent);
+        await UploadTestBlobAsync(cloudKey, oversizedContent);
 
         await cleanupService.RunCleanupAsync();
 
-        var remaining = await storageService.ListFilesAsync($"uploads/{job.Id}/");
+        var remaining = await storageService.ListFilesAsync($"uploads/{upload.Id}/");
         Assert.IsEmpty(remaining);
-        Assert.IsNull(jobStore.GetJob(job.Id));
+        Assert.IsNull(uploadStore.GetUpload(upload.Id));
     }
 
     [TestMethod]
-    public async Task RunCleanupAsyncDeletesOrphanedBlobsWithNoJob()
+    public async Task RunCleanupAsyncDeletesOrphanedBlobsWithNoUpload()
     {
         var orphanId = Guid.NewGuid();
         await UploadTestBlobAsync($"uploads/{orphanId}/orphan.xtf", "orphaned data");
@@ -87,21 +90,25 @@ public class CloudCleanupServiceIntegrationTest
     [TestMethod]
     public async Task RunCleanupAsyncPreservesRecentValidBlobs()
     {
-        var job = jobStore.CreateJob();
-        await UploadTestBlobAsync($"uploads/{job.Id}/valid.xtf", "small valid file");
+        var uploadId = Guid.NewGuid();
+        var cloudKey = $"uploads/{uploadId}/valid.xtf";
+        var upload = uploadStore.CreateUpload(uploadId, CloudFiles("valid.xtf", cloudKey));
+        await UploadTestBlobAsync(cloudKey, "small valid file");
 
         await cleanupService.RunCleanupAsync();
 
-        var remaining = await storageService.ListFilesAsync($"uploads/{job.Id}/");
+        var remaining = await storageService.ListFilesAsync($"uploads/{upload.Id}/");
         Assert.HasCount(1, remaining);
-        Assert.IsNotNull(jobStore.GetJob(job.Id));
+        Assert.IsNotNull(uploadStore.GetUpload(upload.Id));
     }
 
     [TestMethod]
     public async Task RunCleanupAsyncDeletesBlobsOutsideUploadsPrefix()
     {
-        var job = jobStore.CreateJob();
-        await UploadTestBlobAsync($"uploads/{job.Id}/valid.xtf", "keep me");
+        var uploadId = Guid.NewGuid();
+        var cloudKey = $"uploads/{uploadId}/valid.xtf";
+        uploadStore.CreateUpload(uploadId, CloudFiles("valid.xtf", cloudKey));
+        await UploadTestBlobAsync(cloudKey, "keep me");
         await UploadTestBlobAsync("rogue/file.txt", "delete me");
 
         await cleanupService.RunCleanupAsync();
@@ -120,6 +127,9 @@ public class CloudCleanupServiceIntegrationTest
         var remaining = await storageService.ListFilesAsync("uploads/not-a-guid/");
         Assert.IsEmpty(remaining);
     }
+
+    private static ImmutableList<CloudFileInfo> CloudFiles(string fileName, string cloudKey) =>
+        ImmutableList.Create(new CloudFileInfo(fileName, cloudKey, 0));
 
     private async Task UploadTestBlobAsync(string key, string content)
     {

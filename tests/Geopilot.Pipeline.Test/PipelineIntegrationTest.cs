@@ -76,7 +76,7 @@ public class PipelineIntegrationTest
                 new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf"),
                 new PipelineFile("TestData/UploadFiles/iseltwald_gwp_be13_1.xtf", "iseltwald_gwp_be13_1.xtf"),
             });
-        using var pipeline = factory.CreatePipeline("two_steps_roadsexdm2ien", pipelineFiles, Guid.NewGuid());
+        using var pipeline = factory.CreatePipeline("two_steps_roadsexdm2ien", Guid.NewGuid());
 
         using HttpResponseMessage uploadMockResponse = new()
         {
@@ -157,7 +157,7 @@ public class PipelineIntegrationTest
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(3, pipeline.Steps);
 
-        var context = await pipeline.Run(CancellationToken.None);
+        var context = await pipeline.Run(pipelineFiles, CancellationToken.None);
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery);
@@ -207,12 +207,12 @@ public class PipelineIntegrationTest
                 new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien1.xtf"),
                 new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien2.xtf"),
             });
-        using var pipeline = factory.CreatePipeline("two_steps_roadsexdm2ien", pipelineFiles, Guid.NewGuid());
+        using var pipeline = factory.CreatePipeline("two_steps_roadsexdm2ien", Guid.NewGuid());
 
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(3, pipeline.Steps);
 
-        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipeline.Run(CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipeline.Run(pipelineFiles, CancellationToken.None));
         Assert.IsNotNull(exception);
         Assert.AreEqual("<2> values found for parameter <iliFile> of type <Geopilot.PipelineCore.Pipeline.IPipelineFile> in process run method.", exception.Message);
     }
@@ -230,12 +230,12 @@ public class PipelineIntegrationTest
                 new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien1.xtf"),
                 new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien2.xtf"),
             });
-        using var pipeline = factory.CreatePipeline("two_steps_skip_validation", pipelineFiles, Guid.NewGuid());
+        using var pipeline = factory.CreatePipeline("two_steps_skip_validation", Guid.NewGuid());
 
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(3, pipeline.Steps);
 
-        var context = await pipeline.Run(CancellationToken.None);
+        var context = await pipeline.Run(pipelineFiles, CancellationToken.None);
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery);

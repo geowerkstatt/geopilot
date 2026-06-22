@@ -43,25 +43,25 @@ public class MandateController : ControllerBase
     /// <summary>
     /// Gets a list of all mandates that the current user has access to and match all filter criteria.
     /// </summary>
-    /// <param name="jobId">Optional. When specified, only mandates that can be used for the specified validation job are returned.</param>
+    /// <param name="uploadId">Optional. When specified, only mandates that accept the uploaded files' extensions are returned.</param>
     /// <returns>List of mandates matching optional filter criteria.</returns>
     [HttpGet]
     [AllowAnonymous]
     [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandates that the current user has access to and match all filter criteria.", typeof(IEnumerable<Mandate>), "application/json")]
     public async Task<IActionResult> Get(
-        [FromQuery, SwaggerParameter("Filter mandates matching validation job file extension.")]
-        Guid jobId = default)
+        [FromQuery, SwaggerParameter("Filter mandates matching the uploaded files' extensions.")]
+        Guid uploadId = default)
     {
-        logger.LogInformation("Getting mandates for job with id <{JobId}>.", jobId);
+        logger.LogInformation("Getting mandates for upload with id <{UploadId}>.", uploadId);
 
         var user = User?.Identity?.IsAuthenticated == true
             ? await context.GetUserByPrincipalAsync(User)
             : null;
 
-        var result = await mandateService.GetMandatesAsync(user, jobId != default ? jobId : null);
+        var result = await mandateService.GetMandatesAsync(user, uploadId != default ? uploadId : null);
         result.ForEach(m => m.SetCoordinateListFromPolygon());
 
-        logger.LogInformation("Getting mandates for job with id <{JobId}> resulted in <{ResultCount}> matching mandates.", jobId, result.Count);
+        logger.LogInformation("Getting mandates for upload with id <{UploadId}> resulted in <{ResultCount}> matching mandates.", uploadId, result.Count);
         return Ok(result);
     }
 

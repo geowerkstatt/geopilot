@@ -79,9 +79,9 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                 disabled={completed || isLoading}
                 hideDropzone={completed}
                 setFileError={setFileError}
-                maxFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxFileSizeMB : undefined}
-                maxFiles={uploadSettings?.enabled ? uploadSettings.maxFilesPerJob : 1}
-                maxTotalFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxJobSizeMB : undefined}
+                maxFileSizeMB={uploadSettings?.maxFileSizeMB}
+                maxFiles={uploadSettings?.maxFilesPerJob}
+                maxTotalFileSizeMB={uploadSettings?.maxJobSizeMB}
                 isUploading={isLoading}
               />
               <FlexRowSpaceBetweenBox>

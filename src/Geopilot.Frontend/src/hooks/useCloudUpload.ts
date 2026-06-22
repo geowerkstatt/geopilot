@@ -32,7 +32,7 @@ const useCloudUpload = () => {
         ),
       );
 
-      return session.jobId;
+      return session.uploadId;
     },
     [fetchApi],
   );

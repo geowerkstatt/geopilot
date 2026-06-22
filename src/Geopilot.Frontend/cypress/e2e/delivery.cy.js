@@ -109,7 +109,7 @@ describe("Delivery tests", () => {
 
   it("displays custom error messages when they don't match predefined errors", () => {
     cy.intercept(
-      { url: "/api/v2/processing", method: "POST" },
+      { url: "/api/v2/upload", method: "POST" },
       {
         statusCode: 418, // I'm a teapot
         body: {

@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
 
     <!-- NuGet package metadata (shared metadata comes from Directory.Build.props) -->
     <IsPackable>true</IsPackable>
@@ -23,7 +23,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
-    <PackageReference Include="NCalcAsync" Version="5.12.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.8" />
+    <PackageReference Include="NCalc.Core" Version="6.2.0" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.7" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>

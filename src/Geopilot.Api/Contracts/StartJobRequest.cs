@@ -8,6 +8,12 @@ namespace Geopilot.Api.Contracts;
 public class StartJobRequest
 {
     /// <summary>
+    /// The id of the upload whose files should be processed.
+    /// </summary>
+    [Required]
+    public Guid UploadId { get; set; }
+
+    /// <summary>
     /// The id of the mandate the job should be started with.
     /// </summary>
     [Required]

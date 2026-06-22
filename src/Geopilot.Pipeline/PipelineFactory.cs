@@ -41,7 +41,7 @@ public class PipelineFactory : IPipelineFactory
     public List<PipelineConfig> Pipelines => PipelineProcessConfig.Pipelines;
 
     /// <inheritdoc />
-    public IPipeline CreatePipeline(string id, IPipelineFileList uploadFiles, Guid jobId)
+    public IPipeline CreatePipeline(string id, Guid jobId)
     {
         var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Id == id);
 
@@ -54,7 +54,6 @@ public class PipelineFactory : IPipelineFactory
                 .DisplayName(pipelineConfig.DisplayName)
                 .Steps(CreateSteps(pipelineConfig, jobPipelineDirectory, jobId))
                 .DeliveryRestrictions(pipelineConfig.DeliveryRestrictions)
-                .UploadFiles(uploadFiles)
                 .Logger(PipelineLogger
                     .Builder()
                     .Logger(loggerFactory.CreateLogger<Geopilot.Pipeline.Pipeline>())
@@ -86,6 +85,7 @@ public class PipelineFactory : IPipelineFactory
             .InputConfig(stepConfig.Input ?? new List<InputConfig>())
             .OutputConfig(stepConfig.Output ?? new List<OutputConfig>())
             .StepConditions(stepConfig.Conditions)
+            .PipelineDirectory(pipelineTempDirectory)
             .Process(pipelineProcessFactory.Builder()
                 .PipelineId(pipelineId)
                 .StepConfig(stepConfig)

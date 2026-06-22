@@ -35,6 +35,7 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   removeFile: () => {},
   fileUploadStatus: new Map(),
   selectedMandate: undefined,
+  uploadId: undefined,
   jobId: undefined,
   uploadSettings: undefined,
   processingResponse: undefined,
@@ -98,6 +99,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileUploadStatus, setFileUploadStatus] = useState<Map<string, FileUploadStatus>>(new Map());
   const [selectedMandate, setSelectedMandate] = useState<Mandate>();
+  const [uploadId, setUploadId] = useState<string>();
   const [jobId, setJobId] = useState<string>();
   const [processingResponse, setProcessingResponse] = useState<ProcessingJobResponse>();
   const [uploadSettings, setUploadSettings] = useState<UploadSettings>();
@@ -221,7 +223,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   );
 
   const onUploadComplete = (id: string) => {
-    setJobId(id);
+    setUploadId(id);
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
       const step = newSteps.get(DeliveryStepEnum.Files);
@@ -250,51 +252,26 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
     selectedFiles.forEach(f => setFileStatus(f.name, { state: "uploading" }));
 
-    if (uploadSettings?.enabled) {
-      cloudUpload(selectedFiles, abortController.signal)
-        .then(onUploadComplete)
-        .catch((error: ApiError) => {
-          if (abortController.signal.aborted) return;
-          handleApiError(error, DeliveryStepEnum.Files);
-          selectedFiles.forEach(f => setFileStatus(f.name, { state: "error", error: error.message }));
-        })
-        .finally(() => {
-          if (abortController.signal.aborted) return;
-          setIsLoading(false);
-          setFileUploadStatus(prev => {
-            const next = new Map(prev);
-            next.forEach((status, key) => {
-              if (status.state === "uploading") {
-                next.set(key, { state: "completed" });
-              }
-            });
-            return next;
-          });
-        });
-    } else {
-      const file = selectedFiles[0];
-      const formData = new FormData();
-      formData.append("file", file, file.name);
-      fetchApi<ProcessingJobResponse>("/api/v2/processing", {
-        method: "POST",
-        body: formData,
-        signal: abortController.signal,
+    cloudUpload(selectedFiles, abortController.signal)
+      .then(onUploadComplete)
+      .catch((error: ApiError) => {
+        if (abortController.signal.aborted) return;
+        handleApiError(error, DeliveryStepEnum.Files);
+        selectedFiles.forEach(f => setFileStatus(f.name, { state: "error", error: error.message }));
       })
-        .then(response => {
-          setProcessingResponse(response);
-          setFileStatus(file.name, { state: "completed" });
-          onUploadComplete(response.jobId);
-        })
-        .catch((error: ApiError) => {
-          if (abortController.signal.aborted) return;
-          handleApiError(error, DeliveryStepEnum.Files);
-          setFileStatus(file.name, { state: "error", error: error.message });
-        })
-        .finally(() => {
-          if (abortController.signal.aborted) return;
-          setIsLoading(false);
+      .finally(() => {
+        if (abortController.signal.aborted) return;
+        setIsLoading(false);
+        setFileUploadStatus(prev => {
+          const next = new Map(prev);
+          next.forEach((status, key) => {
+            if (status.state === "uploading") {
+              next.set(key, { state: "completed" });
+            }
+          });
+          return next;
         });
-    }
+      });
   };
 
   const pollProcessingStatusUntilFinished = (jobId: string, abortController: AbortController) => {
@@ -326,8 +303,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   };
 
   const startProcessing = (mandate: Mandate) => {
-    if (!jobId || isLoading) return;
-    if (!uploadSettings?.enabled && processingResponse?.state !== ProcessingState.Pending) return;
+    if (!uploadId || isLoading) return;
 
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
@@ -347,18 +323,20 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
     const startJobRequest: StartJobRequest = {
       mandateId: mandate.id,
+      uploadId,
     };
 
-    fetchApi<ProcessingJobResponse>(`/api/v2/processing/${jobId}`, {
-      method: "PATCH",
+    fetchApi<ProcessingJobResponse>("/api/v2/processing", {
+      method: "POST",
       body: JSON.stringify(startJobRequest),
       signal: abortController.signal,
     })
       .then(response => {
+        setJobId(response.jobId);
         setProcessingResponse(response);
         setIsLoading(false);
         setIsProcessing(true);
-        pollProcessingStatusUntilFinished(jobId, abortController);
+        pollProcessingStatusUntilFinished(response.jobId, abortController);
       })
       .catch((error: ApiError) => {
         setIsLoading(false);
@@ -403,6 +381,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setSelectedFiles([]);
     setFileUploadStatus(new Map());
     setSelectedMandate(undefined);
+    setUploadId(undefined);
     setJobId(undefined);
     setProcessingResponse(undefined);
     setActiveStep(0);
@@ -439,6 +418,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         removeFile,
         fileUploadStatus,
         selectedMandate,
+        uploadId,
         jobId,
         uploadSettings,
         processingResponse,
