@@ -41,4 +41,15 @@ public interface IPipelineFile
     /// <returns>A filestream for writing the file contents.</returns>
     /// <exception cref="Exception">Thrown if the file already exists. Overwriting not allowed.</exception>
     FileStream OpenWriteFileStream();
+
+    /// <summary>
+    /// Returns the local filesystem path of a private copy of this file, so it can be handed to external
+    /// tools (for example SQLite or command line utilities) that operate on files by path rather than streams.
+    /// For a file received from another step the runtime creates a content-identical copy in the consuming
+    /// step's working directory on first access and returns that copy's path; the originating step's file is
+    /// never exposed or modified. For a file created by the current step the path is returned directly.
+    /// Reading via <see cref="OpenReadFileStream"/> stays cheap and never copies.
+    /// </summary>
+    /// <returns>The local filesystem path of a copy that is safe to read and modify in place.</returns>
+    string GetLocalPath();
 }

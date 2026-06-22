@@ -27,4 +27,14 @@ public interface IPipelineFileManager
     /// <param name="fileExtension">The file extension to use for the generated file, without the leading dot (for example, "txt").</param>
     /// <returns>An instance of IPipelineFile that represents the generated transfer file. The relative directory is exposed via <see cref="IPipelineFile.OriginalRelativePath"/>.</returns>
     IPipelineFile GeneratePipelineFile(string originalRelativePath, string originalFileName, string fileExtension);
+
+    /// <summary>
+    /// Creates an owned, content-identical copy of <paramref name="source"/> in this step's working directory,
+    /// for example to keep an inspectable intermediate stage. The returned file belongs to the current step and
+    /// may be freely modified, including in place by path via <see cref="IPipelineFile.GetLocalPath"/>.
+    /// </summary>
+    /// <param name="source">The file to copy. Cannot be null.</param>
+    /// <param name="name">The original name of the copy without file extension; extension and relative directory are taken from <paramref name="source"/>.</param>
+    /// <returns>A new <see cref="IPipelineFile"/> owned by the current step with the same content as <paramref name="source"/>.</returns>
+    IPipelineFile CreateWritableCopy(IPipelineFile source, string name);
 }

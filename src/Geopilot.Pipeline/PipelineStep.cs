@@ -57,6 +57,8 @@ public sealed class PipelineStep : IPipelineStep
 
     private readonly ConditionEvaluator conditionEvaluator;
 
+    private readonly string? pipelineDirectory;
+
     private ILogger logger;
 
     /// <summary>
@@ -68,6 +70,7 @@ public sealed class PipelineStep : IPipelineStep
     /// <param name="outputConfig">The output configuration for the step.</param>
     /// <param name="stepConditions">The step conditions for the step.</param>
     /// <param name="process">The process associated with the step.</param>
+    /// <param name="pipelineDirectory">The pipeline working directory used to isolate input files copied into this step. When null (only when a step is constructed outside a job, for example in unit tests), input files are passed through without isolation.</param>
     /// <param name="logger">The logger to use for logging.</param>
     private PipelineStep(
         string id,
@@ -76,6 +79,7 @@ public sealed class PipelineStep : IPipelineStep
         List<OutputConfig> outputConfig,
         PipelineStepConditionsConfig? stepConditions,
         object process,
+        string? pipelineDirectory,
         ILogger logger)
     {
         this.Id = id;
@@ -84,6 +88,7 @@ public sealed class PipelineStep : IPipelineStep
         this.OutputConfigs = outputConfig;
         this.StepConditions = stepConditions;
         this.Process = process;
+        this.pipelineDirectory = pipelineDirectory;
         this.logger = logger;
         this.conditionEvaluator = new ConditionEvaluator(logger);
         this.State = StepState.Pending;
@@ -338,7 +343,7 @@ public sealed class PipelineStep : IPipelineStep
         if (uploadFilesAttribute != null)
         {
             if (parameterInfo.ParameterType.IsAssignableFrom(context.Upload.GetType()))
-                return context.Upload;
+                return this.WrapInput(context.Upload);
             else if (IsArrayElementNullable(parameterInfo))
                 return null;
             throw new PipelineRunException($"The parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> was marked with the UploadFilesAttribute, but was not assignable from the injected upload files collection of type <{context.Upload.GetType().FullName}>.");
@@ -370,15 +375,39 @@ public sealed class PipelineStep : IPipelineStep
                     if (parameterInfo.Name == inputConfig.As)
                     {
                         if (stepOutput.Data is IEnumerable<object?> collection)
-                            mappedValues.AddRange(collection);
+                            mappedValues.AddRange(collection.Select(this.WrapInput));
                         else
-                            mappedValues.Add(stepOutput.Data);
+                            mappedValues.Add(this.WrapInput(stepOutput.Data));
                     }
                 }
             }
         }
 
         return mappedValues;
+    }
+
+    /// <summary>
+    /// Wraps a value that is about to be injected into the process run method so that input files
+    /// (single files and file lists) are isolated per step via <see cref="CopyOnWriteFile"/>.
+    /// Non-file values are passed through unchanged.
+    /// </summary>
+    private object? WrapInput(object? value)
+    {
+        if (this.pipelineDirectory is null)
+            return value;
+
+        return value switch
+        {
+            IPipelineFileList list => new PipelineFileList(list.Files.Select(this.WrapFile).ToList()),
+            IPipelineFile file => this.WrapFile(file),
+            _ => value,
+        };
+    }
+
+    private IPipelineFile WrapFile(IPipelineFile file)
+    {
+        var directory = this.pipelineDirectory;
+        return directory is null ? file : new CopyOnWriteFile(file, directory, this.Id);
     }
 
     private Array GenerateArrayParameter(ParameterInfo parameterInfo, List<object?> mappedValues)
@@ -494,6 +523,7 @@ public sealed class PipelineStep : IPipelineStep
         private List<OutputConfig>? outputConfig;
         private PipelineStepConditionsConfig? stepConditions;
         private object? process;
+        private string? pipelineDirectory;
         private ILogger? logger;
 
         /// <summary>
@@ -554,6 +584,15 @@ public sealed class PipelineStep : IPipelineStep
         }
 
         /// <summary>
+        /// Sets the pipeline working directory used to isolate input files copied into the <see cref="PipelineStep"/> that will be created by this builder.
+        /// </summary>
+        public PipelineStepBuilder PipelineDirectory(string pipelineDirectory)
+        {
+            this.pipelineDirectory = pipelineDirectory;
+            return this;
+        }
+
+        /// <summary>
         /// Sets the logger to be used by the <see cref="PipelineStep"/> that will be created by this builder.
         /// </summary>
         public PipelineStepBuilder Logger(ILogger logger)
@@ -581,7 +620,7 @@ public sealed class PipelineStep : IPipelineStep
             if (logger == null)
                 throw new InvalidOperationException("logger is required to build a PipelineStep.");
 
-            return new PipelineStep(id, displayName, inputConfig, outputConfig, stepConditions, process, logger);
+            return new PipelineStep(id, displayName, inputConfig, outputConfig, stepConditions, process, pipelineDirectory, logger);
         }
     }
 }
