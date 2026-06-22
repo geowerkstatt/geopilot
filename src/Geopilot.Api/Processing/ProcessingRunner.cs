@@ -39,14 +39,15 @@ public class ProcessingRunner : BackgroundService
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await Parallel.ForEachAsync(jobStore.ProcessingQueue.ReadAllAsync(stoppingToken), stoppingToken, async (pipeline, cancellationToken) =>
+        await Parallel.ForEachAsync(jobStore.ProcessingQueue.ReadAllAsync(stoppingToken), stoppingToken, async (workItem, cancellationToken) =>
         {
+            var pipeline = workItem.Pipeline;
             using var timeoutCts = new CancellationTokenSource(processingOptions.JobTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
             try
             {
-                var pipelineContext = await pipeline.Run(linkedCts.Token);
+                var pipelineContext = await pipeline.Run(workItem.Files, linkedCts.Token);
                 ExtractPersistentFiles(pipeline, pipelineContext);
                 jobStore.PipelineFinished(pipeline.JobId, pipeline.State);
             }

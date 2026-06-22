@@ -17,6 +17,7 @@ namespace Geopilot.Api.Test.Processing;
 public class CloudUploadPollingTest
 {
     private ProcessingJobStore jobStore;
+    private UploadStore uploadStore;
     private Channel<PreflightRequest> preflightChannel;
     private ProcessingService processingService;
     private PreflightBackgroundService backgroundService;
@@ -40,18 +41,19 @@ public class CloudUploadPollingTest
 
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
         jobStore = new ProcessingJobStore();
+        uploadStore = new UploadStore();
         preflightChannel = Channel.CreateUnbounded<PreflightRequest>();
 
         processingService = new ProcessingService(
             jobStore,
+            uploadStore,
             mandateServiceMock.Object,
-            uploadFileStoreMock.Object,
             pipelineFactoryMock.Object,
-            cloudOrchestrationServiceMock.Object,
             preflightChannel.Writer);
 
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IProcessingJobStore))).Returns(jobStore);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadStore))).Returns(uploadStore);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudOrchestrationService))).Returns(cloudOrchestrationServiceMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudStorageService))).Returns(cloudStorageServiceMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IMandateService))).Returns(mandateServiceMock.Object);
@@ -78,7 +80,7 @@ public class CloudUploadPollingTest
     [TestMethod]
     public async Task PollReturnsVerifyingUploadBeforePreflightCompletes()
     {
-        var (jobId, _, _) = await CreateAndStartCloudJobAsync();
+        var (jobId, _, _, _) = await CreateAndStartCloudJobAsync();
 
         var polledJob = processingService.GetJob(jobId);
 
@@ -89,9 +91,9 @@ public class CloudUploadPollingTest
     [TestMethod]
     public async Task PollReturnsProcessingAfterSuccessfulPreflight()
     {
-        var (jobId, mandate, user) = await CreateAndStartCloudJobAsync();
+        var (jobId, uploadId, mandate, user) = await CreateAndStartCloudJobAsync();
 
-        SetupSuccessfulPreflight(jobId, mandate, user);
+        SetupSuccessfulPreflight(jobId, uploadId, mandate, user);
 
         var request = await preflightChannel.Reader.ReadAsync();
         await backgroundService.ProcessRequestAsync(request);
@@ -109,13 +111,13 @@ public class CloudUploadPollingTest
     [DataRow(PreflightFailureReason.SizeExceeded)]
     public async Task PollReturnsFailedAfterPreflightFailure(PreflightFailureReason reason)
     {
-        var (jobId, _, _) = await CreateAndStartCloudJobAsync();
+        var (jobId, uploadId, _, _) = await CreateAndStartCloudJobAsync();
 
         cloudOrchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(jobId))
+            .Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new CloudUploadPreflightException(reason, "Preflight check failed."));
         cloudStorageServiceMock
-            .Setup(x => x.DeletePrefixAsync($"uploads/{jobId}/"))
+            .Setup(x => x.DeletePrefixAsync($"uploads/{uploadId}/"))
             .Returns(Task.CompletedTask);
 
         var request = await preflightChannel.Reader.ReadAsync();
@@ -130,13 +132,13 @@ public class CloudUploadPollingTest
     [TestMethod]
     public async Task PollReturnsFailedAfterGenericException()
     {
-        var (jobId, _, _) = await CreateAndStartCloudJobAsync();
+        var (jobId, uploadId, _, _) = await CreateAndStartCloudJobAsync();
 
         cloudOrchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(jobId))
+            .Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new InvalidOperationException("Unexpected error during processing."));
         cloudStorageServiceMock
-            .Setup(x => x.DeletePrefixAsync($"uploads/{jobId}/"))
+            .Setup(x => x.DeletePrefixAsync($"uploads/{uploadId}/"))
             .Returns(Task.CompletedTask);
 
         var request = await preflightChannel.Reader.ReadAsync();
@@ -151,13 +153,13 @@ public class CloudUploadPollingTest
     [TestMethod]
     public async Task PollReturnsFailedEvenWhenCleanupFails()
     {
-        var (jobId, _, _) = await CreateAndStartCloudJobAsync();
+        var (jobId, uploadId, _, _) = await CreateAndStartCloudJobAsync();
 
         cloudOrchestrationServiceMock
-            .Setup(x => x.RunPreflightChecksAsync(jobId))
+            .Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.ThreatDetected, "Threat detected."));
         cloudStorageServiceMock
-            .Setup(x => x.DeletePrefixAsync($"uploads/{jobId}/"))
+            .Setup(x => x.DeletePrefixAsync($"uploads/{uploadId}/"))
             .ThrowsAsync(new InvalidOperationException("Storage unavailable."));
 
         var request = await preflightChannel.Reader.ReadAsync();
@@ -169,7 +171,7 @@ public class CloudUploadPollingTest
         Assert.AreEqual(ProcessingState.Failed, polledJob.State);
     }
 
-    private async Task<(Guid JobId, Mandate Mandate, User User)> CreateAndStartCloudJobAsync()
+    private async Task<(Guid JobId, Guid UploadId, Mandate Mandate, User User)> CreateAndStartCloudJobAsync()
     {
         var pipelineId = "pipeline1";
         var mandate = new Mandate { Id = 1, Name = "Test Mandate", PipelineId = pipelineId };
@@ -177,33 +179,34 @@ public class CloudUploadPollingTest
         context.Users.Add(user);
         await context.SaveChangesAsync();
 
+        var uploadId = Guid.NewGuid();
         var cloudFiles = ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024));
-
-        var job = jobStore.CreateJob();
-        jobStore.AddUploadInfoToJob(job.Id, UploadMethod.Cloud, cloudFiles);
+        uploadStore.CreateUpload(uploadId, cloudFiles);
 
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
 
-        await processingService.StartJobAsync(job.Id, mandate.Id, user);
+        // The pipeline is now instantiated up front in StartJobAsync (without files) and attached to the job.
+        // On a preflight failure the service disposes the attached pipeline, so allow Dispose on the strict mock.
+        var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
+        pipeline.SetupGet(p => p.Id).Returns(pipelineId);
+        pipeline.Setup(p => p.Dispose());
+        pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, It.IsAny<Guid>())).Returns(pipeline.Object);
 
-        return (job.Id, mandate, user);
+        var job = await processingService.StartJobAsync(uploadId, mandate.Id, user);
+
+        return (job.Id, uploadId, mandate, user);
     }
 
-    private void SetupSuccessfulPreflight(Guid jobId, Mandate mandate, User user)
+    private void SetupSuccessfulPreflight(Guid jobId, Guid uploadId, Mandate mandate, User user)
     {
-        var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
-        pipeline.SetupGet(p => p.Id).Returns(mandate.PipelineId!);
-
-        cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(jobId)).Returns(Task.CompletedTask);
-        cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(jobId))
+        cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).Returns(Task.CompletedTask);
+        cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(uploadId, jobId))
             .Returns(() =>
             {
                 var stagedJob = jobStore.AddFileToJob(jobId, "test.xtf", "random.xtf");
                 return Task.FromResult(stagedJob);
             });
-        mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, It.Is<User>(u => u.AuthIdentifier == user.AuthIdentifier))).ReturnsAsync(mandate);
         uploadFileStoreMock.Setup(x => x.Exists(jobId, "random.xtf")).Returns(true);
         uploadFileStoreMock.Setup(x => x.GetPath(jobId, "random.xtf")).Returns("path/to/random.xtf");
-        pipelineFactoryMock.Setup(x => x.CreatePipeline(mandate.PipelineId!, It.Is<PipelineFileList>(f => f.Files.Any(file => file.OriginalFileName == "test.xtf")), It.IsAny<Guid>())).Returns(pipeline.Object);
     }
 }

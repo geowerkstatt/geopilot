@@ -174,22 +174,19 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-if (builder.Configuration.GetValue<bool>("CloudStorage:Enabled"))
-{
-    builder.Services.AddSingleton<ICloudStorageService, AzureBlobStorageService>();
-    builder.Services.AddTransient<ICloudOrchestrationService, CloudOrchestrationService>();
-    builder.Services.AddHostedService<CloudCleanupService>();
-    builder.Services.AddPreflightChannel();
-    builder.Services.AddHostedService<PreflightBackgroundService>();
+builder.Services.AddSingleton<ICloudStorageService, AzureBlobStorageService>();
+builder.Services.AddTransient<ICloudOrchestrationService, CloudOrchestrationService>();
+builder.Services.AddHostedService<CloudCleanupService>();
+builder.Services.AddPreflightChannel();
+builder.Services.AddHostedService<PreflightBackgroundService>();
 
-    if (builder.Configuration.GetValue<bool>("ClamAV:Enabled"))
-    {
-        builder.Services.AddTransient<ICloudScanService, ClamAvScanService>();
-    }
-    else
-    {
-        builder.Services.AddTransient<ICloudScanService, NoOpScanService>();
-    }
+if (builder.Configuration.GetValue<bool>("ClamAV:Enabled"))
+{
+    builder.Services.AddTransient<ICloudScanService, ClamAvScanService>();
+}
+else
+{
+    builder.Services.AddTransient<ICloudScanService, NoOpScanService>();
 }
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
@@ -198,6 +195,7 @@ contentTypeProvider.Mappings.TryAdd(".xtf", "application/interlis+xml");
 builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 builder.Services.AddSingleton<IProcessingJobStore, ProcessingJobStore>();
+builder.Services.AddSingleton<IUploadStore, UploadStore>();
 builder.Services.AddTransient<IProcessingService, ProcessingService>();
 builder.Services.AddTransient<IPipelineService, PipelineService>();
 builder.Services.AddTransient<IMandateService, MandateService>();

@@ -134,6 +134,37 @@ docker run --rm \
 | `ILI2GPKG_ORPHAN_MAX_AGE_MINUTES` | `1440` | Orphan-folder sweep age threshold |
 | `ILI2GPKG_POLL_FALLBACK_SECONDS` | `2` | inotifywait timeout — safety-net rescan interval for filesystems with unreliable inotify (e.g. Docker Desktop on Windows bind mounts) |
 
+## Image versioning and tags
+
+The worker image is versioned independently of the bundled ili2gpkg release, so a change
+to the wrapper (Dockerfile, `entrypoint.sh`, `process.sh`) produces a new image version
+even when the ili2gpkg version is unchanged.
+
+- The base version `MAJOR.MINOR` lives in [`VERSION`](VERSION); the published version is
+  `MAJOR.MINOR.<run>`, where `<run>` is the CI run number of the publish workflow.
+- Bump `MAJOR` for a breaking change to the file-drop protocol or the worker contract,
+  `MINOR` for a backward-compatible change. The patch is assigned automatically.
+
+Tags pushed to `ghcr.io/geowerkstatt/ili2gpkg-worker`:
+
+| Tag | Mutability | Use |
+|---|---|---|
+| `:v<major>` (e.g. `:v1`) | rolling | Recommended production pin. Always resolves to the newest build of that major and survives retention. |
+| `:v<major.minor.run>` (e.g. `:v1.0.42`) | immutable, short-lived | Granular per-build reference. Pruned shortly after the next build by the retention step. |
+| `:latest` | rolling | Most recent build across all majors. Not recommended for production. |
+
+The bundled ili2gpkg version is not part of the tag; it is recorded in the
+`ch.geowerkstatt.ili2gpkg.version` image label (`org.opencontainers.image.version` carries
+the worker version). Inspect both with:
+
+```shell
+docker buildx imagetools inspect ghcr.io/geowerkstatt/ili2gpkg-worker:v1
+```
+
+Retention is aggressive: the publish workflow keeps only the newest few image digests and
+prunes older granular tags and untagged manifests. Because exact `:v<major.minor.run>` tags
+are short-lived, pin the rolling `:v<major>` tag in production.
+
 ## Bumping the ili2gpkg version
 
 `Dockerfile` has `ARG ILI2GPKG_VERSION=5.1.0` which controls the release downloaded
@@ -147,3 +178,8 @@ from `https://downloads.interlis.ch/ili2gpkg/` at build time. To bump:
    an arbitrary version can also be triggered manually via the workflow's
    `workflow_dispatch` input.
 3. For local rebuilds, use `docker compose build ili2gpkg-worker`.
+
+Bumping ili2gpkg does not require a manual worker version change: the next build picks up a
+new `MAJOR.MINOR.<run>` automatically and records the new ili2gpkg version in the
+`ch.geowerkstatt.ili2gpkg.version` label. Consider a `MINOR` bump in [`VERSION`](VERSION) for
+a notable ili2gpkg upgrade so the jump is visible in the worker version too.

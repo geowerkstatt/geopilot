@@ -1,5 +1,4 @@
-﻿using Geopilot.Api.FileAccess;
-using Geopilot.Api.Models;
+﻿using Geopilot.Api.Models;
 
 namespace Geopilot.Api.Processing;
 
@@ -9,25 +8,14 @@ namespace Geopilot.Api.Processing;
 public interface IProcessingService
 {
     /// <summary>
-    /// Creates a new <see cref="ProcessingJob"/>.
+    /// Creates a processing job for the given upload, starts the asynchronous preflight, and queues the pipeline.
     /// </summary>
-    ProcessingJob CreateJob();
-
-    /// <summary>
-    /// Creates a file handle associated with the specified job and original file name.
-    /// </summary>
-    /// <exception cref="ArgumentException">If no job with the specified <paramref name="jobId"/> exists.</exception>
-    FileHandle CreateFileHandleForJob(Guid jobId, string originalFileName);
-
-    /// <summary>
-    /// Adds the uploaded file to the specified job.
-    /// </summary>
-    ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName);
-
-    /// <summary>
-    /// Starts the processing job with the pipeline associated with the specified mandate.
-    /// </summary>
-    Task<ProcessingJob> StartJobAsync(Guid jobId, int mandateId, User? user);
+    /// <param name="uploadId">The id of the upload whose files should be processed.</param>
+    /// <param name="mandateId">The mandate selecting the pipeline to run.</param>
+    /// <param name="user">The user starting the job, or <see langword="null"/> for an anonymous public mandate.</param>
+    /// <exception cref="ArgumentException">If no upload with the specified <paramref name="uploadId"/> exists.</exception>
+    /// <exception cref="InvalidOperationException">If the job could not be started with the given mandate.</exception>
+    Task<ProcessingJob> StartJobAsync(Guid uploadId, int mandateId, User? user);
 
     /// <summary>
     /// Gets the processing job.

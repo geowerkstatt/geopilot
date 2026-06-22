@@ -55,7 +55,7 @@ public class ConditionEvaluator : IConditionEvaluator
     public class ConditionEvaluatorRunner
     {
         private readonly ILogger logger;
-        private readonly AsyncExpression expression;
+        private readonly Expression expression;
 
         /// <summary>
         /// Initializes a new instance of the ConditionEvaluatorRunner class with the specified expression and logger.
@@ -64,7 +64,7 @@ public class ConditionEvaluator : IConditionEvaluator
         /// <param name="logger">The logger used to record diagnostic or error information during evaluation.</param>
         public ConditionEvaluatorRunner(string expression, ILogger logger)
         {
-            this.expression = new AsyncExpression(expression, ExpressionOptions.AllowNullParameter | ExpressionOptions.NoCache);
+            this.expression = new Expression(expression, ExpressionOptions.AllowNullParameter | ExpressionOptions.NoCache);
             this.RegisterCustomFunctions();
             this.logger = logger;
         }
@@ -124,24 +124,22 @@ public class ConditionEvaluator : IConditionEvaluator
         /// evaluation. This enables support for additional operations beyond the built-in set.</remarks>
         private void RegisterCustomFunctions()
         {
-            this.expression.EvaluateFunctionAsync += lengthFunction;
+            this.expression.AsyncFunctions["Length"] = lengthFunction;
         }
 
-        private static readonly AsyncEvaluateFunctionHandler lengthFunction = async (name, args) =>
+        private static readonly AsyncExpressionFunction lengthFunction = async parameters =>
         {
-            if (name == "Length")
+            if (parameters.Count != 1)
+                throw new ArgumentException("Length() requires exactly 1 argument.");
+
+            var value = await parameters.EvaluateAsync(0);
+            return value switch
             {
-                if (args.Parameters.Length != 1)
-                    throw new ArgumentException("Length() requires exactly 1 argument.");
-                var value = await args.Parameters[0].EvaluateAsync();
-                args.Result = value switch
-                {
-                    Array array => array.Length,
-                    ICollection collection => collection.Count,
-                    null => 0,
-                    _ => throw new ArgumentException($"Length() requires an array or collection argument but got {value.GetType().Name}."),
-                };
-            }
+                Array array => array.Length,
+                ICollection collection => collection.Count,
+                null => 0,
+                _ => throw new ArgumentException($"Length() requires an array or collection argument but got {value.GetType().Name}."),
+            };
         };
     }
 }

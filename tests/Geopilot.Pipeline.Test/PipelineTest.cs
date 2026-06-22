@@ -51,7 +51,6 @@ public class PipelineTest
             .Id("test_pipeline")
             .DisplayName(pipelineDisplayName)
             .Steps(steps)
-            .UploadFiles(new PipelineFileList(new List<IPipelineFile> { Mock.Of<IPipelineFile>() }))
             .Logger(loggerMock.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
             .JobId(Guid.NewGuid())
@@ -78,13 +77,13 @@ public class PipelineTest
         var steps = new List<IPipelineStep> { firstStep.Object, secondStep.Object };
 
         var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
+        var uploadFiles = new PipelineFileList(new List<IPipelineFile> { uploadFile });
 
         using var pipeline = Geopilot.Pipeline.Pipeline
             .Builder()
             .Id("test_pipeline")
             .DisplayName(pipelineDisplayName)
             .Steps(steps)
-            .UploadFiles(new PipelineFileList(new List<IPipelineFile> { uploadFile }))
             .Logger(loggerMock.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
             .JobId(Guid.NewGuid())
@@ -92,7 +91,7 @@ public class PipelineTest
 
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
 
-        var context = pipeline.Run(CancellationToken.None);
+        var context = pipeline.Run(uploadFiles, CancellationToken.None);
 
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed after running the pipeline");
 
@@ -141,6 +140,8 @@ public class PipelineTest
             },
         };
 
+        var uploadFiles = new PipelineFileList(new List<IPipelineFile> { uploadFile });
+
         using var pipeline = Geopilot.Pipeline.Pipeline
             .Builder()
             .Id("test_pipeline")
@@ -148,14 +149,13 @@ public class PipelineTest
             .Steps(steps)
             .JobId(Guid.NewGuid())
             .DeliveryRestrictions(deliveryRestrictions)
-            .UploadFiles(new PipelineFileList(new List<IPipelineFile> { uploadFile }))
             .Logger(loggerMock.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
             .Build();
 
         Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
 
-        var context = await pipeline.Run(CancellationToken.None);
+        var context = await pipeline.Run(uploadFiles, CancellationToken.None);
 
         Assert.AreEqual(PipelineDelivery.Prevent, pipeline.Delivery, "pipeline delivery should be prevented after running the pipeline");
 
@@ -220,6 +220,8 @@ public class PipelineTest
             },
         };
 
+        var uploadFiles = new PipelineFileList(new List<IPipelineFile> { uploadFile });
+
         using var pipeline = Geopilot.Pipeline.Pipeline
             .Builder()
             .Id("test_pipeline")
@@ -227,12 +229,11 @@ public class PipelineTest
             .Steps(steps)
             .JobId(Guid.NewGuid())
             .DeliveryRestrictions(deliveryRestrictions)
-            .UploadFiles(new PipelineFileList(new List<IPipelineFile> { uploadFile }))
             .Logger(loggerMock.Object)
             .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
             .Build();
 
-        var context = await pipeline.Run(CancellationToken.None);
+        var context = await pipeline.Run(uploadFiles, CancellationToken.None);
 
         Assert.AreEqual(PipelineDelivery.Prevent, pipeline.Delivery);
 

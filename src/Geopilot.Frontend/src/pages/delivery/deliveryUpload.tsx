@@ -61,8 +61,8 @@ export const DeliveryUpload = () => {
               fileExtensions={processingSettings?.allowedFileExtensions}
               disabled={isLoading}
               setFileError={setFileError}
-              maxFileSizeMB={uploadSettings?.enabled ? uploadSettings.maxFileSizeMB : undefined}
-              maxFiles={uploadSettings?.enabled ? uploadSettings.maxFilesPerJob : 1}
+              maxFileSizeMB={uploadSettings?.maxFileSizeMB}
+              maxFiles={uploadSettings?.maxFilesPerJob}
               isUploading={isLoading}
             />
             <FlexRowSpaceBetweenBox>

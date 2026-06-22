@@ -22,7 +22,6 @@ public sealed class UploadControllerTest
         optionsMock = new Mock<IOptions<CloudStorageOptions>>();
         optionsMock.Setup(o => o.Value).Returns(new CloudStorageOptions
         {
-            Enabled = true,
             MaxFileSizeMB = 2048,
             MaxFilesPerJob = 12,
             MaxJobSizeMB = 10240,
@@ -36,6 +35,19 @@ public sealed class UploadControllerTest
     public void Cleanup()
     {
         orchestrationServiceMock.VerifyAll();
+    }
+
+    [TestMethod]
+    public void GetUploadSettingsReturnsConfiguredLimits()
+    {
+        var result = controller.GetUploadSettings() as OkObjectResult;
+        var settings = result?.Value as UploadSettingsResponse;
+
+        Assert.IsInstanceOfType<OkObjectResult>(result);
+        Assert.IsInstanceOfType<UploadSettingsResponse>(settings);
+        Assert.AreEqual(2048, settings!.MaxFileSizeMB);
+        Assert.AreEqual(12, settings.MaxFilesPerJob);
+        Assert.AreEqual(10240, settings.MaxJobSizeMB);
     }
 
     [TestMethod]

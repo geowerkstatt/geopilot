@@ -44,6 +44,7 @@ export interface DeliveryContextInterface {
   fileUploadStatus: Map<string, FileUploadStatus>;
   selectedMandate?: Mandate;
   setSelectedMandate: (mandate: Mandate | undefined) => void;
+  uploadId?: string;
   jobId?: string;
   uploadSettings?: UploadSettings;
   processingResponse?: ProcessingJobResponse;

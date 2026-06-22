@@ -1,7 +1,6 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
-using Moq;
 using System.Collections.Immutable;
 
 namespace Geopilot.Api.Test.Services;
@@ -11,7 +10,7 @@ public class MandateServiceTest
 {
     private Context context;
     private MandateService mandateService;
-    private Mock<IProcessingJobStore> processingJobStoreMock;
+    private UploadStore uploadStore;
     private User editUser;
     private User adminUser;
     private Mandate unrestrictedMandate;
@@ -25,9 +24,9 @@ public class MandateServiceTest
     public void Initialize()
     {
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        processingJobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Strict);
+        uploadStore = new UploadStore();
 
-        mandateService = new MandateService(context, processingJobStoreMock.Object);
+        mandateService = new MandateService(context, uploadStore);
 
         unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate), AllowDelivery = true };
         noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noDeliveryMandate), AllowDelivery = false };
@@ -69,7 +68,6 @@ public class MandateServiceTest
     [TestCleanup]
     public void Cleanup()
     {
-        processingJobStoreMock.VerifyAll();
         context.Dispose();
     }
 
@@ -170,14 +168,11 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesWithJobIdAsNonAdmin()
+    public async Task GetMandatesWithUploadIdAsNonAdmin()
     {
-        var jobId = Guid.NewGuid();
-        processingJobStoreMock
-            .Setup(m => m.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.xtf", "tmp.xtf") }, null, DateTime.Now));
+        var uploadId = CreateUpload("Original.xtf");
 
-        var result = await mandateService.GetMandatesAsync(editUser, jobId);
+        var result = await mandateService.GetMandatesAsync(editUser, uploadId);
 
         ContainsMandate(result, unrestrictedMandate);
         ContainsMandate(result, noDeliveryMandate);
@@ -188,14 +183,11 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesWithJobIdAsAdmin()
+    public async Task GetMandatesWithUploadIdAsAdmin()
     {
-        var jobId = Guid.NewGuid();
-        processingJobStoreMock
-            .Setup(m => m.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.xtf", "tmp.xtf") }, null, DateTime.Now));
+        var uploadId = CreateUpload("Original.xtf");
 
-        var result = await mandateService.GetMandatesAsync(adminUser, jobId);
+        var result = await mandateService.GetMandatesAsync(adminUser, uploadId);
 
         ContainsMandate(result, unrestrictedMandate);
         ContainsMandate(result, noDeliveryMandate);
@@ -219,14 +211,11 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesWithJobIdAsUnauthenticated()
+    public async Task GetMandatesWithUploadIdAsUnauthenticated()
     {
-        var jobId = Guid.NewGuid();
-        processingJobStoreMock
-            .Setup(m => m.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.xtf", "tmp.xtf") }, null, DateTime.Now));
+        var uploadId = CreateUpload("Original.xtf");
 
-        var result = await mandateService.GetMandatesAsync(null, jobId);
+        var result = await mandateService.GetMandatesAsync(null, uploadId);
 
         DoesNotContainMandate(result, publicCsvMandate);
         DoesNotContainMandate(result, unrestrictedMandate);
@@ -237,14 +226,11 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesWithJobIdIgnoresCase()
+    public async Task GetMandatesWithUploadIdIgnoresCase()
     {
-        var jobId = Guid.NewGuid();
-        processingJobStoreMock
-            .Setup(m => m.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("Original.XTF", "tmp.XTF") }, null, DateTime.Now));
+        var uploadId = CreateUpload("Original.XTF");
 
-        var result = await mandateService.GetMandatesAsync(editUser, jobId);
+        var result = await mandateService.GetMandatesAsync(editUser, uploadId);
 
         ContainsMandate(result, unrestrictedMandate);
         ContainsMandate(result, noDeliveryMandate);
@@ -254,33 +240,29 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesWithInvalidJobIdThrows()
+    public async Task GetMandatesWithUnknownUploadIdThrows()
     {
-        var jobId = Guid.NewGuid();
-        processingJobStoreMock
-            .Setup(m => m.GetJob(jobId))
-            .Returns((ProcessingJob?)null);
+        var unknownUploadId = Guid.NewGuid();
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await mandateService.GetMandatesAsync(editUser, jobId));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await mandateService.GetMandatesAsync(editUser, unknownUploadId));
     }
 
     [TestMethod]
-    public async Task GetMandatesWithCloudFilesFiltersByExtension()
+    public async Task GetMandatesWithUploadWithoutFileExtensionsThrows()
     {
-        var jobId = Guid.NewGuid();
-        var cloudFiles = ImmutableList.Create(new CloudFileInfo("data.xtf", "blobs/data.xtf", 1024));
-        processingJobStoreMock
-            .Setup(m => m.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>(), null, DateTime.Now, Enums.UploadMethod.Cloud, cloudFiles));
+        var uploadId = CreateUpload("noextension");
 
-        var result = await mandateService.GetMandatesAsync(editUser, jobId);
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await mandateService.GetMandatesAsync(editUser, uploadId));
+    }
 
-        ContainsMandate(result, unrestrictedMandate);
-        ContainsMandate(result, noDeliveryMandate);
-        ContainsMandate(result, xtfMandate);
-        DoesNotContainMandate(result, publicCsvMandate);
-        DoesNotContainMandate(result, noOrganisationsMandate);
-        DoesNotContainMandate(result, noPermissionMandate);
+    private Guid CreateUpload(params string[] fileNames)
+    {
+        var uploadId = Guid.NewGuid();
+        var files = fileNames
+            .Select(name => new CloudFileInfo(name, $"blobs/{name}", 1024))
+            .ToImmutableList();
+        uploadStore.CreateUpload(uploadId, files);
+        return uploadId;
     }
 
     private void ContainsMandate(IEnumerable<Mandate> mandates, Mandate mandate)
