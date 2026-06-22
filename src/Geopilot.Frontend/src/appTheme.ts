@@ -173,6 +173,9 @@ export const geopilotTheme = createTheme({
           "&:hover": {
             boxShadow: "none",
           },
+          "&.MuiButton-outlined": {
+            backgroundColor: "white",
+          },
           "&.Mui-disabled": {
             "&.MuiButton-text": {
               backgroundColor: "transparent",
@@ -183,7 +186,6 @@ export const geopilotTheme = createTheme({
               color: themePalette.primary.contrastText,
             },
             "&.MuiButton-outlined": {
-              backgroundColor: "transparent",
               color: themePalette.primary.inactive,
               borderColor: themePalette.primary.inactive,
             },

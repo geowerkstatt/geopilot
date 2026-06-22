@@ -7,12 +7,7 @@ export const DeliveryBackButton = () => {
 
   return (
     activeStep > 0 && (
-      <BaseButton
-        onClick={() => showCompletedOrNextStep(activeStep - 1)}
-        label="back"
-        variant="outlined"
-        sx={{ backgroundColor: "white" }}
-      />
+      <BaseButton onClick={() => showCompletedOrNextStep(activeStep - 1)} label="back" variant="outlined" />
     )
   );
 };

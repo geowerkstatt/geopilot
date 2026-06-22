@@ -34,13 +34,7 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
   return props.addLabel && props.onSelect ? (
     <Stack sx={{ height: "100%" }} gap={2}>
       <Box sx={{ flex: "0" }}>
-        <BaseButton
-          variant="outlined"
-          icon={<AddIcon />}
-          onClick={handleAddClick}
-          label={props.addLabel}
-          sx={{ backgroundColor: "white" }}
-        />
+        <BaseButton variant="outlined" icon={<AddIcon />} onClick={handleAddClick} label={props.addLabel} />
       </Box>
       <StyledDataGrid
         data-cy={`${props.name}-grid`}
