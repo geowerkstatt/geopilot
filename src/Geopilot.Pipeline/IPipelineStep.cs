@@ -52,19 +52,34 @@ public interface IPipelineStep : IDisposable
     LocalizedText? StatusMessage { get; }
 
     /// <summary>
-    /// Files produced by the step that are available for the user to download (outputs
-    /// configured with <see cref="OutputAction.Download"/>). Populated by the processing runner
-    /// after the step completes. Order matches the order of the step's output configs.
+    /// Files produced by the step that are available for the user to download (outputs configured
+    /// with <see cref="OutputAction.Download"/>). Populated by the processing runner (via
+    /// <see cref="AddDownload"/>) as soon as the step completes, so they can be offered while later
+    /// steps still run. Order matches the order of the step's output configs. Read-only; append via
+    /// <see cref="AddDownload"/>.
     /// </summary>
-    IList<PersistedFile> Downloads { get; }
+    IReadOnlyList<PersistedFile> Downloads { get; }
 
     /// <summary>
-    /// Files produced by the step that should be included in the delivery (outputs configured
-    /// with <see cref="OutputAction.Delivery"/>). Populated by the processing runner after the
-    /// step completes. A file tagged with both <see cref="OutputAction.Download"/> and
-    /// <see cref="OutputAction.Delivery"/> appears in both lists and is persisted only once.
+    /// Files produced by the step that should be included in the delivery (outputs configured with
+    /// <see cref="OutputAction.Delivery"/>). Populated by the processing runner (via
+    /// <see cref="AddDeliveryFile"/>) only after a successful, deliverable run. A file tagged with both
+    /// <see cref="OutputAction.Download"/> and <see cref="OutputAction.Delivery"/> appears in both lists.
+    /// Read-only; append via <see cref="AddDeliveryFile"/>.
     /// </summary>
-    IList<PersistedFile> DeliveryFiles { get; }
+    IReadOnlyList<PersistedFile> DeliveryFiles { get; }
+
+    /// <summary>
+    /// Appends a file to <see cref="Downloads"/>. Safe to call while another thread reads
+    /// <see cref="Downloads"/>; readers observe a consistent snapshot.
+    /// </summary>
+    void AddDownload(PersistedFile file);
+
+    /// <summary>
+    /// Appends a file to <see cref="DeliveryFiles"/>. Safe to call while another thread reads
+    /// <see cref="DeliveryFiles"/>; readers observe a consistent snapshot.
+    /// </summary>
+    void AddDeliveryFile(PersistedFile file);
 
     /// <summary>
     /// Runs the step with the given context.

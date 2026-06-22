@@ -8,9 +8,11 @@ namespace Geopilot.Api.Processing;
 
 /// <summary>
 /// Background worker that consumes pipelines from the <see cref="IProcessingJobStore.ProcessingQueue"/>
-/// and runs them. After each run, files produced by the pipeline are extracted to disk and split into
-/// <see cref="IPipelineStep.Downloads"/> (user-downloadable) and <see cref="IPipelineStep.DeliveryFiles"/>
-/// (delivery payload) according to each output's <see cref="OutputAction"/> tags.
+/// and runs them. A step's user-downloadable files (<see cref="OutputAction.Download"/>) are extracted to
+/// disk as soon as that step finishes, via <see cref="IPipeline.OnStepCompleted"/>, so the supplier can
+/// download them while later steps still run. Delivery payload files (<see cref="OutputAction.Delivery"/>)
+/// are extracted once, only when the run finished successfully and delivery is allowed. They populate
+/// <see cref="IPipelineStep.Downloads"/> and <see cref="IPipelineStep.DeliveryFiles"/> respectively.
 /// </summary>
 public class ProcessingRunner : BackgroundService
 {
@@ -45,17 +47,33 @@ public class ProcessingRunner : BackgroundService
             using var timeoutCts = new CancellationTokenSource(processingOptions.JobTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
+            // Persist each step's downloadable files the moment the step finishes, so the supplier can
+            // download them while later steps run (and so they survive a later step failing or timing out).
+            pipeline.OnStepCompleted = (step, stepResult, stepCancellationToken) =>
+            {
+                ExtractStepDownloads(pipeline.JobId, step, stepResult);
+                return Task.CompletedTask;
+            };
+
             try
             {
                 var pipelineContext = await pipeline.Run(workItem.Files, linkedCts.Token);
-                ExtractPersistentFiles(pipeline, pipelineContext);
+
+                // Stage the delivery payload only when the job is actually deliverable — the same gate the
+                // submission endpoint enforces (DeliveryController.Create). This keeps incomplete or
+                // non-deliverable payloads (a failed/aborted pipeline, or a matched delivery restriction)
+                // out of the asset store.
+                if (pipeline.State == ProcessingState.Success && pipeline.Delivery == PipelineDelivery.Allow)
+                    ExtractDeliveryFiles(pipeline, pipelineContext);
+
                 jobStore.PipelineFinished(pipeline.JobId, pipeline.State);
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
-                // Pipeline state is already Cancelled (set by the running step). Pipeline.Run threw
-                // before returning the context, so any partial step results are unreachable for
-                // file extraction here; the pre-timeout files are not persisted.
+                // Pipeline state is already Cancelled (set by the running step). Downloads from steps that
+                // completed before the timeout were already persisted by the per-step callback; only the
+                // in-flight step's files are lost, and no delivery files are persisted (delivery is staged
+                // only for a successful, deliverable run).
                 logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, processingOptions.JobTimeout);
                 jobStore.PipelineFinished(pipeline.JobId, ProcessingState.Cancelled);
             }
@@ -79,62 +97,78 @@ public class ProcessingRunner : BackgroundService
         });
     }
 
-    private void ExtractPersistentFiles(IPipeline pipeline, PipelineContext context)
+    /// <summary>
+    /// Persists the user-downloadable files (<see cref="OutputAction.Download"/>) produced by a single step the
+    /// moment it finishes and records them on <see cref="IPipelineStep.Downloads"/>. Called once per step via
+    /// <see cref="IPipeline.OnStepCompleted"/>, so a step's downloads become available before later steps run.
+    /// </summary>
+    internal void ExtractStepDownloads(Guid jobId, IPipelineStep step, StepResult stepResult)
+    {
+        using var scope = serviceScopeFactory.CreateScope();
+        var downloadFileStore = scope.ServiceProvider.GetRequiredService<IDownloadFileStore>();
+
+        // Names are deterministic per step so they're readable on disk; collisions within the same
+        // step (rare — same originalFileName twice) get a numeric suffix to avoid silent overwrites.
+        var stepIdPrefix = step.Id.SanitizeFileName();
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var output in stepResult.Outputs.Values)
+        {
+            if (!output.Action.Contains(OutputAction.Download))
+                continue;
+
+            foreach (var transferFile in ResolveFiles(output.Data))
+            {
+                var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
+                CopyTo(downloadFileStore, jobId, fileName, transferFile);
+                step.AddDownload(new PersistedFile(transferFile.OriginalFileName, fileName));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Persists the delivery payload files (<see cref="OutputAction.Delivery"/>) of every completed step to the
+    /// asset store and records them on <see cref="IPipelineStep.DeliveryFiles"/>. Only called for a successfully
+    /// completed, deliverable run (gated in <see cref="ExecuteAsync"/>). Download and delivery names are assigned
+    /// independently; for a file tagged with both actions they coincide except in the rare case of two outputs
+    /// sharing an original file name within one step, which is harmless because the download endpoint serves only
+    /// from the download store.
+    /// </summary>
+    internal void ExtractDeliveryFiles(IPipeline pipeline, PipelineContext context)
     {
         using var scope = serviceScopeFactory.CreateScope();
         var assetFileStore = scope.ServiceProvider.GetRequiredService<IAssetFileStore>();
-        var downloadFileStore = scope.ServiceProvider.GetRequiredService<IDownloadFileStore>();
 
         foreach (var step in pipeline.Steps)
         {
             if (!context.StepResults.TryGetValue(step.Id, out var stepResult))
                 continue;
 
-            // Names are deterministic per step so they're readable on disk; collisions
-            // within the same step (rare — same originalFileName twice) get a numeric
-            // suffix to avoid silent overwrites.
             var stepIdPrefix = step.Id.SanitizeFileName();
             var usedNames = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var output in stepResult.Outputs.Values)
             {
-                var isDownload = output.Action.Contains(OutputAction.Download);
-                var isDelivery = output.Action.Contains(OutputAction.Delivery);
-                if (!isDownload && !isDelivery)
+                if (!output.Action.Contains(OutputAction.Delivery))
                     continue;
 
-                IEnumerable<IPipelineFile> files = output.Data switch
-                {
-                    IPipelineFileList fileList => fileList.Files,
-                    IPipelineFile[] fileArray => fileArray,
-                    IPipelineFile singleFile => [singleFile],
-                    _ => [],
-                };
-
-                // Both stores are filled independently so each can be cleaned on its own
-                // retention. A file tagged with both actions is written to both under the
-                // same name — the download endpoint can fall back to the asset copy after
-                // the download retention expires.
-                foreach (var transferFile in files)
+                foreach (var transferFile in ResolveFiles(output.Data))
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
-                    var persisted = new PersistedFile(transferFile.OriginalFileName, fileName);
-
-                    if (isDelivery)
-                    {
-                        CopyTo(assetFileStore, pipeline.JobId, fileName, transferFile);
-                        step.DeliveryFiles.Add(persisted);
-                    }
-
-                    if (isDownload)
-                    {
-                        CopyTo(downloadFileStore, pipeline.JobId, fileName, transferFile);
-                        step.Downloads.Add(persisted);
-                    }
+                    CopyTo(assetFileStore, pipeline.JobId, fileName, transferFile);
+                    step.AddDeliveryFile(new PersistedFile(transferFile.OriginalFileName, fileName));
                 }
             }
         }
     }
+
+    private static IEnumerable<IPipelineFile> ResolveFiles(object? data) => data switch
+    {
+        IPipelineFileList fileList => fileList.Files,
+        IPipelineFile[] fileArray => fileArray,
+        IPipelineFile singleFile => [singleFile],
+        _ => [],
+    };
 
     private string MakeUniqueStepFileName(string stepIdPrefix, string originalFileName, HashSet<string> usedNames)
     {

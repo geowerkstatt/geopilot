@@ -1494,6 +1494,85 @@ public class PipelineStepTest
         Assert.IsNull(processMock.NullableData);
     }
 
+    [TestMethod]
+    public void DownloadsReturnsImmutableSnapshotNotAffectedByLaterAdds()
+    {
+        using var step = BuildBareStep();
+
+        step.AddDownload(new PersistedFile("a.txt", "my_step_a.txt"));
+        var snapshot = step.Downloads;
+        step.AddDownload(new PersistedFile("b.txt", "my_step_b.txt"));
+
+        Assert.HasCount(1, snapshot, "A previously read reference must not observe later additions.");
+        Assert.HasCount(2, step.Downloads, "A fresh read must observe all additions.");
+    }
+
+    [TestMethod]
+    public void DeliveryFilesReturnsImmutableSnapshotNotAffectedByLaterAdds()
+    {
+        using var step = BuildBareStep();
+
+        step.AddDeliveryFile(new PersistedFile("a.txt", "my_step_a.txt"));
+        var snapshot = step.DeliveryFiles;
+        step.AddDeliveryFile(new PersistedFile("b.txt", "my_step_b.txt"));
+
+        Assert.HasCount(1, snapshot, "A previously read reference must not observe later additions.");
+        Assert.HasCount(2, step.DeliveryFiles, "A fresh read must observe all additions.");
+    }
+
+    [TestMethod]
+    public void AddDownloadPreservesInsertionOrder()
+    {
+        using var step = BuildBareStep();
+        var a = new PersistedFile("a.txt", "my_step_a.txt");
+        var b = new PersistedFile("b.txt", "my_step_b.txt");
+        var c = new PersistedFile("c.txt", "my_step_c.txt");
+
+        step.AddDownload(a);
+        step.AddDownload(b);
+        step.AddDownload(c);
+
+        CollectionAssert.AreEqual(new[] { a, b, c }, step.Downloads.ToList());
+    }
+
+    [TestMethod]
+    public async Task AddDownloadIsThreadSafeWhileEnumerating()
+    {
+        using var step = BuildBareStep();
+        const int count = 1000;
+
+        var enumerate = Task.Run(() =>
+        {
+            for (var i = 0; i < count; i++)
+            {
+                // Enumerate concurrently with additions; this must never throw.
+                foreach (var file in step.Downloads)
+                    Assert.IsNotNull(file);
+            }
+        });
+
+        var add = Task.Run(() =>
+        {
+            for (var i = 0; i < count; i++)
+                step.AddDownload(new PersistedFile($"f{i}.txt", $"my_step_f{i}.txt"));
+        });
+
+        await Task.WhenAll(enumerate, add);
+
+        Assert.HasCount(count, step.Downloads);
+    }
+
+    private PipelineStep BuildBareStep() =>
+        PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(LocalizedText.Empty)
+            .InputConfig([])
+            .OutputConfig([])
+            .Process(new MockPipelineProcessOptionalSingleInput())
+            .Logger(loggerMock.Object)
+            .Build();
+
     private InputConfig NewInputConfig(string from, string take, string asInput)
     {
         return new InputConfig

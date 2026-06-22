@@ -83,6 +83,9 @@ public sealed class Pipeline : IPipeline
     public Guid JobId { get; }
 
     /// <inheritdoc/>
+    public Func<IPipelineStep, StepResult, CancellationToken, Task>? OnStepCompleted { get; set; }
+
+    /// <inheritdoc/>
     public PipelineDelivery Delivery { get; set; } = PipelineDelivery.Allow;
 
     /// <inheritdoc/>
@@ -140,6 +143,9 @@ public sealed class Pipeline : IPipeline
 
                 var stepResult = await step.Run(context, cancellationToken).ConfigureAwait(false);
                 context.StepResults[step.Id] = stepResult;
+
+                if (this.OnStepCompleted is not null)
+                    await this.OnStepCompleted(step, stepResult, cancellationToken).ConfigureAwait(false);
             }
 
             await this.EvaluateDeliveryCondition(context);
