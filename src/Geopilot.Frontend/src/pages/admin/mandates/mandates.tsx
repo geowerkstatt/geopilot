@@ -1,19 +1,22 @@
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useState } from "react";
-import { Mandate, Organisation } from "../../../api/apiInterfaces";
+import { AvailablePipelinesResponse, Mandate, Organisation, PipelineSummary } from "../../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../../auth";
-import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
-import { Tooltip } from "@mui/material";
+import { GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
+import { Box, Tooltip } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
+import { findPipeline, getLocalisedPipelineName } from "./pipelineDisplay";
 
 export const Mandates = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [mandates, setMandates] = useState<Mandate[]>();
+  const [pipelines, setPipelines] = useState<PipelineSummary[]>();
   const [isLoading, setIsLoading] = useState(true);
   const { fetchApi } = useFetch();
 
@@ -21,6 +24,12 @@ export const Mandates = () => {
     fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" })
       .then(setMandates)
       .finally(() => setIsLoading(false));
+  }, [fetchApi]);
+
+  const loadPipelines = useCallback(() => {
+    fetchApi<AvailablePipelinesResponse>("/api/v1/pipeline", { errorMessageLabel: "pipelineLoadingError" }).then(
+      response => setPipelines(response?.pipelines ?? []),
+    );
   }, [fetchApi]);
 
   const startEditing = (id: GridRowId) => {
@@ -32,8 +41,11 @@ export const Mandates = () => {
       if (mandates === undefined) {
         loadMandates();
       }
+      if (pipelines === undefined) {
+        loadPipelines();
+      }
     }
-  }, [loadMandates, mandates, user?.isAdmin]);
+  }, [loadMandates, loadPipelines, mandates, pipelines, user?.isAdmin]);
 
   const columns: GridColDef[] = [
     {
@@ -41,6 +53,30 @@ export const Mandates = () => {
       headerName: t("name"),
       flex: 0.5,
       minWidth: 200,
+    },
+    {
+      field: "pipelineId",
+      headerName: t("pipeline"),
+      flex: 0.5,
+      minWidth: 200,
+      renderCell: (params: GridRenderCellParams) => {
+        const pipelineId = params.value as string | undefined;
+        if (!pipelineId) {
+          return "";
+        }
+        const pipeline = findPipeline(pipelines, pipelineId);
+        if (pipeline) {
+          return getLocalisedPipelineName(pipeline, i18n.language);
+        }
+        return (
+          <Tooltip title={t("pipelineNotKnown", { pipelineId })}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "error.main" }}>
+              <ErrorOutlineIcon fontSize="small" />
+              {pipelineId}
+            </Box>
+          </Tooltip>
+        );
+      },
     },
     {
       field: "fileTypes",

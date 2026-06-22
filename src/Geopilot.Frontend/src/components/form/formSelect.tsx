@@ -13,6 +13,7 @@ export interface FormSelectProps {
   values?: FormSelectValue[];
   sx?: SxProps;
   onUpdate?: (value: number) => void;
+  validate?: (value: number | string) => boolean | string;
 }
 
 export interface FormSelectValue {
@@ -37,6 +38,7 @@ export const FormSelect: FC<FormSelectProps> = ({
   values,
   sx,
   onUpdate,
+  validate,
 }) => {
   const { t } = useTranslation();
   const { control } = useFormContext();
@@ -63,6 +65,7 @@ export const FormSelect: FC<FormSelectProps> = ({
       defaultValue={selected ?? ""}
       rules={{
         required: required ?? false,
+        validate,
         onChange: e => {
           if (onUpdate) {
             onUpdate(e.target.value);
@@ -74,6 +77,9 @@ export const FormSelect: FC<FormSelectProps> = ({
           select
           required={required ?? false}
           error={getFormFieldError(fieldName, formState.errors)}
+          helperText={
+            formState.errors[fieldName]?.message ? (formState.errors[fieldName]?.message as string) : undefined
+          }
           sx={{ ...sx }}
           label={t(label)}
           name={field.name}
