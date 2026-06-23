@@ -15,17 +15,18 @@ import {
   StartJobRequest,
   UploadSettings,
 } from "../../api/apiInterfaces.ts";
-import { DeliveryUpload } from "./deliveryUpload.tsx";
+import { DeliveryFileUpload } from "./deliveryFileUpload.tsx";
 import { DeliveryProcessing } from "./processing/deliveryProcessing.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
-import { DeliveryCompleted } from "./deliveryCompleted.tsx";
 import useFetch from "../../hooks/useFetch.ts";
 import useCloudUpload from "../../hooks/useCloudUpload.ts";
 import { isProcessingDeliverable } from "./deliveryUtils.tsx";
+import { DeliverySelectMandate } from "./deliverySelectMandate.tsx";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
+  lastCompletedStep: 0,
   activeStep: 0,
   isActiveStep: () => false,
   setStepError: () => {},
@@ -34,7 +35,6 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   removeFile: () => {},
   fileUploadStatus: new Map(),
   selectedMandate: undefined,
-  setSelectedMandate: () => {},
   uploadId: undefined,
   jobId: undefined,
   uploadSettings: undefined,
@@ -42,45 +42,56 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   isLoading: false,
   isProcessing: false,
   uploadFile: () => {},
-  cancelUpload: () => {},
   startProcessing: () => {},
   submitDelivery: () => {},
   resetDelivery: () => {},
+  continueToNextStep: () => {},
+  showCompletedOrNextStep: () => {},
+  submittedData: undefined,
 });
 
 // Gets the current steps while reusing previous steps if possible to keep their state (e.g. errors)
 const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelivery: boolean) => {
   const newSteps: Map<DeliveryStepEnum, DeliveryStep> = new Map();
   newSteps.set(
-    DeliveryStepEnum.Upload,
-    previousSteps.get(DeliveryStepEnum.Upload) ?? { label: "upload", content: <DeliveryUpload /> },
+    DeliveryStepEnum.Files,
+    previousSteps.get(DeliveryStepEnum.Files) ?? {
+      label: "files",
+      content: completed => <DeliveryFileUpload completed={completed} />,
+    },
   );
 
   newSteps.set(
-    DeliveryStepEnum.Process,
-    previousSteps.get(DeliveryStepEnum.Process) ?? {
-      label: "process",
-      keepOpen: true,
-      content: <DeliveryProcessing />,
+    DeliveryStepEnum.Mandate,
+    previousSteps.get(DeliveryStepEnum.Mandate) ?? {
+      label: "mandate",
+      content: completed => <DeliverySelectMandate completed={completed} />,
+    },
+  );
+
+  newSteps.set(
+    DeliveryStepEnum.Processing,
+    previousSteps.get(DeliveryStepEnum.Processing) ?? {
+      label: "processing",
+      content: () => <DeliveryProcessing />,
     },
   );
 
   if (showDelivery) {
     newSteps.set(
-      DeliveryStepEnum.Submit,
-      previousSteps.get(DeliveryStepEnum.Submit) ?? { label: "deliver", content: <DeliverySubmit /> },
+      DeliveryStepEnum.Delivery,
+      previousSteps.get(DeliveryStepEnum.Delivery) ?? {
+        label: "delivery",
+        content: completed => <DeliverySubmit completed={completed} />,
+      },
     );
   }
-
-  newSteps.set(
-    DeliveryStepEnum.Done,
-    previousSteps.get(DeliveryStepEnum.Done) ?? { label: "done", content: <DeliveryCompleted /> },
-  );
 
   return newSteps;
 };
 
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
+  const [lastCompletedStep, setLastCompletedStep] = useState(-1);
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -98,26 +109,27 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const { user } = useGeopilotAuth();
   const prevUserIdRef = useRef<number | undefined>(user?.id);
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), false));
+  const [submittedData, setSubmittedData] = useState<DeliverySubmitData>();
 
   const deliveryStepErrors: Record<DeliveryStepEnum, DeliveryStepError[]> = useMemo(
     () => ({
-      [DeliveryStepEnum.Upload]: [
+      [DeliveryStepEnum.Files]: [
         { status: 400, errorKey: "validationErrorFileMalformed" },
         { status: 413, errorKey: "validationErrorFileTooLarge" },
         { status: 500, errorKey: "validationErrorUnexpected" },
       ],
-      [DeliveryStepEnum.Process]: [
+      [DeliveryStepEnum.Mandate]: [],
+      [DeliveryStepEnum.Processing]: [
         { status: 400, errorKey: "validationErrorRequestMalformed" },
         { status: 404, errorKey: "validationErrorCannotFind" },
         { status: 500, errorKey: "validationErrorUnexpected" },
       ],
-      [DeliveryStepEnum.Submit]: [
+      [DeliveryStepEnum.Delivery]: [
         { status: 400, errorKey: "deliveryErrorMalformedRequest" },
         { status: 401, errorKey: "deliveryErrorUnauthorized" },
         { status: 404, errorKey: "deliveryErrorNoValidationFound" },
         { status: 500, errorKey: "deliveryErrorUnexpected" },
       ],
-      [DeliveryStepEnum.Done]: [],
     }),
     [],
   );
@@ -180,7 +192,23 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     if (activeStep < steps.size - 1) {
       setActiveStep(activeStep + 1);
     }
+    if (activeStep < steps.size) {
+      setLastCompletedStep(completed => Math.max(completed, activeStep));
+    }
   }, [activeStep, steps]);
+
+  const markStepCompleted = useCallback(() => {
+    setLastCompletedStep(prev => Math.max(prev + 1, steps.size - 1));
+  }, [steps]);
+
+  const showCompletedOrNextStep = useCallback(
+    (index: number) => {
+      if (index >= 0 && index <= lastCompletedStep + 1) {
+        setActiveStep(index);
+      }
+    },
+    [lastCompletedStep],
+  );
 
   const handleApiError = useCallback(
     (error: ApiError, key: DeliveryStepEnum) => {
@@ -198,9 +226,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setUploadId(id);
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
-      const step = newSteps.get(DeliveryStepEnum.Upload);
+      const step = newSteps.get(DeliveryStepEnum.Files);
       if (step) {
-        step.labelAddition = selectedFiles.map(f => f.name).join(", ");
+        step.labelAddition = selectedFiles.map(f => f.name).join("\n");
       }
       return newSteps;
     });
@@ -228,7 +256,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       .then(onUploadComplete)
       .catch((error: ApiError) => {
         if (abortController.signal.aborted) return;
-        handleApiError(error, DeliveryStepEnum.Upload);
+        handleApiError(error, DeliveryStepEnum.Files);
         selectedFiles.forEach(f => setFileStatus(f.name, { state: "error", error: error.message }));
       })
       .finally(() => {
@@ -246,20 +274,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
   };
 
-  const cancelUpload = useCallback(() => {
-    abortControllers.forEach(controller => controller.abort());
-    setAbortControllers([]);
-    setIsLoading(false);
-    setStepError(DeliveryStepEnum.Upload, undefined);
-    setFileUploadStatus(prev => {
-      const next = new Map(prev);
-      next.forEach((_, key) => {
-        next.set(key, { state: "neutral" });
-      });
-      return next;
-    });
-  }, [abortControllers, setStepError]);
-
   const pollProcessingStatusUntilFinished = (jobId: string, abortController: AbortController) => {
     fetchApi<ProcessingJobResponse>(`/api/v2/processing/${jobId}`, {
       method: "GET",
@@ -273,33 +287,48 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
           setIsProcessing(false);
 
           if (isProcessingDeliverable(response)) {
-            continueToNextStep();
+            markStepCompleted();
           } else if (response.state === ProcessingState.Success) {
             // Pipeline succeeded but delivery is blocked (e.g. delivery restriction matched).
-            setStepError(DeliveryStepEnum.Process, "completedWithErrors");
+            setStepError(DeliveryStepEnum.Processing, "completedWithErrors");
           } else {
             // ProcessingState.Failed or Cancelled.
-            setStepError(DeliveryStepEnum.Process, response.state);
+            setStepError(DeliveryStepEnum.Processing, response.state);
           }
         }
       })
       .catch((error: ApiError) => {
-        handleApiError(error, DeliveryStepEnum.Process);
+        handleApiError(error, DeliveryStepEnum.Processing);
       });
   };
 
-  const startProcessing = (startJobRequest: StartJobRequest) => {
+  const startProcessing = (mandate: Mandate) => {
     if (!uploadId || isLoading) return;
 
+    setSteps(prevSteps => {
+      const newSteps = new Map(prevSteps);
+      const step = newSteps.get(DeliveryStepEnum.Mandate);
+      if (step) {
+        step.labelAddition = mandate.name;
+      }
+      return newSteps;
+    });
+    setSelectedMandate(mandate);
     setIsLoading(true);
     setProcessingStarted(true);
+    continueToNextStep();
 
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
 
+    const startJobRequest: StartJobRequest = {
+      mandateId: mandate.id,
+      uploadId,
+    };
+
     fetchApi<ProcessingJobResponse>("/api/v2/processing", {
       method: "POST",
-      body: JSON.stringify({ ...startJobRequest, uploadId }),
+      body: JSON.stringify(startJobRequest),
       signal: abortController.signal,
     })
       .then(response => {
@@ -311,14 +340,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       })
       .catch((error: ApiError) => {
         setIsLoading(false);
-        handleApiError(error, DeliveryStepEnum.Process);
+        handleApiError(error, DeliveryStepEnum.Processing);
       });
   };
 
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);
-    if (steps.get(DeliveryStepEnum.Submit)?.error) {
-      setStepError(DeliveryStepEnum.Submit, undefined);
+    setSubmittedData(data);
+    if (steps.get(DeliveryStepEnum.Delivery)?.error) {
+      setStepError(DeliveryStepEnum.Delivery, undefined);
     }
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
@@ -337,7 +367,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         continueToNextStep();
       })
       .catch((error: ApiError) => {
-        handleApiError(error, DeliveryStepEnum.Submit);
+        handleApiError(error, DeliveryStepEnum.Delivery);
       })
       .finally(() => setIsLoading(false));
   };
@@ -355,6 +385,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setJobId(undefined);
     setProcessingResponse(undefined);
     setActiveStep(0);
+    setLastCompletedStep(-1);
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
       newSteps.forEach(step => {
@@ -363,6 +394,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
       return newSteps;
     });
+    setSubmittedData(undefined);
   }, [abortControllers]);
 
   // Reset delivery when user changes AFTER processing was already started
@@ -377,6 +409,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     <DeliveryContext.Provider
       value={{
         steps,
+        lastCompletedStep,
         activeStep,
         isActiveStep,
         setStepError,
@@ -385,7 +418,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         removeFile,
         fileUploadStatus,
         selectedMandate,
-        setSelectedMandate,
         uploadId,
         jobId,
         uploadSettings,
@@ -393,10 +425,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         isLoading,
         isProcessing,
         uploadFile,
-        cancelUpload,
         startProcessing,
         submitDelivery,
         resetDelivery,
+        continueToNextStep,
+        showCompletedOrNextStep,
+        submittedData,
       }}>
       {children}
     </DeliveryContext.Provider>

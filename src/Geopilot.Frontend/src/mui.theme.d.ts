@@ -9,8 +9,10 @@ declare module "@mui/material/styles" {
       main: string;
       inactive: string;
       hover: string;
+      selected: string;
       contrastText: string;
       light: string;
+      background: string;
     };
     secondary: {
       main: string;
@@ -28,6 +30,7 @@ declare module "@mui/material/styles" {
     };
     error: {
       main: string;
+      selected: string;
       hover: string;
     };
   }
@@ -36,7 +39,6 @@ declare module "@mui/material/styles" {
     MuiTypography: object;
     MuiAvatar: object;
     MuiTextField: object;
-    MuiFormControl: object;
     MuiSelect: object;
     MuiButtonBase: object;
     MuiButton: object;
@@ -51,13 +53,13 @@ declare module "@mui/material/styles" {
     MuiDialogContent: object;
     MuiDialogActions: object;
     MuiChip: object;
+    MuiToggleButton: object;
   }
 
   interface AppThemeComponentsOptions extends ComponentsOptions {
     MuiTypography: object;
     MuiAvatar: object;
     MuiTextField: object;
-    MuiFormControl: object;
     MuiSelect: object;
     MuiButtonBase: object;
     MuiButton: object;
@@ -72,6 +74,7 @@ declare module "@mui/material/styles" {
     MuiDialogContent: object;
     MuiDialogActions: object;
     MuiChip: object;
+    MuiToggleButton: object;
   }
 
   interface AppTheme extends Theme {

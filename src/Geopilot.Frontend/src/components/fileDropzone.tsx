@@ -16,9 +16,11 @@ interface FileDropzoneProps {
   fileUploadStatus: Map<string, FileUploadStatus>;
   fileExtensions?: string[];
   disabled?: boolean;
+  hideDropzone?: boolean;
   setFileError: (error: string | undefined) => void;
   maxFileSizeMB?: number;
   maxFiles?: number;
+  maxTotalFileSizeMB?: number;
   isUploading?: boolean;
 }
 
@@ -29,9 +31,11 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   fileUploadStatus,
   fileExtensions,
   disabled,
+  hideDropzone,
   setFileError,
   maxFileSizeMB = defaultMaxFileSizeMB,
   maxFiles = 1,
+  maxTotalFileSizeMB = defaultMaxFileSizeMB,
   isUploading,
 }) => {
   const { t } = useTranslation();
@@ -45,14 +49,6 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   useEffect(() => {
     setAcceptsAllFileTypes(!fileExtensions || fileExtensions?.includes(".*"));
   }, [fileExtensions]);
-
-  const getAcceptedFileTypesText = useCallback(() => {
-    return acceptsAllFileTypes
-      ? ""
-      : (fileExtensions?.length ?? 0) > 1
-        ? `${fileExtensions!.slice(0, -1).join(", ")} ${t("or")} ${fileExtensions!.slice(-1)}`
-        : (fileExtensions?.join(", ") ?? "");
-  }, [acceptsAllFileTypes, fileExtensions, t]);
 
   const onDrop = useCallback(
     (acceptedFiles: File[], fileRejections: FileRejection[]) => {
@@ -106,7 +102,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
 
   const dropzoneStyle = useMemo<CSSProperties>(
     () => ({
-      display: "flex",
+      display: hideDropzone ? "none" : "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
@@ -124,22 +120,30 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       transition: "border .24s ease-in-out",
       cursor: disabled ? "default" : "pointer",
     }),
-    [disabled, error],
+    [disabled, hideDropzone, error],
   );
+
+  const formatMB = (sizeMB: number) => (sizeMB >= 1024 ? `${(sizeMB / 1024).toFixed(0)} GB` : `${sizeMB} MB`);
+  const fileCountText = t("maxFileCount", { count: maxFiles });
+  const maxPerFileText = t("maxPerFile", { size: formatMB(maxFileSizeMB) });
+  const maxTotalSizeText = t("maxTotalSize", { size: formatMB(maxTotalFileSizeMB) });
 
   return (
     <FlexBox>
-      <div {...getRootProps({ style: dropzoneStyle })}>
-        <input {...getInputProps()} data-cy="file-dropzone" />
-        <Typography variant="body1" className={disabled ? "Mui-disabled" : ""}>
+      <div {...getRootProps({ style: dropzoneStyle })} data-cy="file-dropzone">
+        <input {...getInputProps()} />
+        <Typography variant="body1" color="text.primary" className={disabled ? "Mui-disabled" : ""}>
           <Link>{t("clickToSelect")}</Link>
           &nbsp;
           {t("or")} {t("dragAndDrop")}
         </Typography>
         {fileExtensions && fileExtensions.length > 0 && (
-          <Typography variant="caption" className={disabled ? "Mui-disabled" : ""}>
-            {getAcceptedFileTypesText()}&nbsp;(max.{" "}
-            {maxFileSizeMB >= 1024 ? `${(maxFileSizeMB / 1024).toFixed(0)} GB` : `${maxFileSizeMB} MB`})
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            className={disabled ? "Mui-disabled" : ""}
+            sx={{ display: "flex", gap: 1 }}>
+            <span>{fileCountText}</span> | <span>{maxPerFileText}</span> | <span>{maxTotalSizeText}</span>
           </Typography>
         )}
       </div>
@@ -148,7 +152,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
           key={file.name}
           file={file}
           status={fileUploadStatus.get(file.name)}
-          disabled={isUploading}
+          disabled={disabled || isUploading}
           onRemove={removeFile}
         />
       ))}
