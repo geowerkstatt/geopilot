@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.tsx",
+    "aspnetcore-https.js",
+    "cypress/e2e/**/*.{ts,tsx,js,jsx}",
+    "cypress/support/**/*.{ts,tsx,js,jsx}"
+  ],
+  "project": ["src/**/*.{ts,tsx,js,jsx}", "cypress/**/*.{ts,tsx,js,jsx}"]
+}
