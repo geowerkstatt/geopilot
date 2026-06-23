@@ -26,7 +26,8 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
         border: `1px solid ${geopilotTheme.palette.primary.light}`,
         borderRadius: "4px",
         overflow: "hidden",
-      }}>
+      }}
+      data-cy="file-list-item">
       <FlexRowSpaceBetweenBox px={2} pt={1.5} pb={status?.state !== "neutral" ? 1 : 1.5}>
         <Stack spacing={0.5}>
           <Typography variant="body1" color="primary.main">

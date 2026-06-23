@@ -130,8 +130,8 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
 
   return (
     <FlexBox>
-      <div {...getRootProps({ style: dropzoneStyle })}>
-        <input {...getInputProps()} data-cy="file-dropzone" />
+      <div {...getRootProps({ style: dropzoneStyle })} data-cy="file-dropzone">
+        <input {...getInputProps()} />
         <Typography variant="body1" color="text.primary" className={disabled ? "Mui-disabled" : ""}>
           <Link>{t("clickToSelect")}</Link>
           &nbsp;

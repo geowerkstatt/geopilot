@@ -10,7 +10,9 @@ export const fileNameExists = (filePath, success) => {
 };
 
 export const addFile = (filePath, success) => {
-  cy.dataCy("file-dropzone").attachFile(filePath, { subjectType: "drag-n-drop" });
+  const mapPath = path => `cypress/fixtures/${path}`;
+  const files = Array.isArray(filePath) ? filePath.map(mapPath) : mapPath(filePath);
+  cy.dataCy("file-dropzone").selectFile(files, { action: "drag-drop" });
   Array.isArray(filePath) ? filePath.forEach(file => fileNameExists(file, success)) : fileNameExists(filePath, success);
 };
 

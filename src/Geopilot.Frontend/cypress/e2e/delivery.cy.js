@@ -13,7 +13,7 @@ import {
 } from "./helpers/deliveryHelpers.js";
 
 describe("Delivery tests", () => {
-  it("can only upload one supported file", () => {
+  it("can only upload supported file types", () => {
     // Limit the file types to a few extensions
     cy.intercept("GET", "/api/v2/processing", {
       statusCode: 200,
@@ -28,18 +28,18 @@ describe("Delivery tests", () => {
     stepIsActive("files", true);
 
     cy.wait("@fileExtensions");
-    cy.contains("one file");
-    cy.contains("100 MB per file");
-    cy.contains("100 MB total");
 
     addFile("deliveryFiles/picture-type.png", false);
     stepHasError("files", true, "The file type is not supported");
 
-    addFile(["deliveryFiles/ilimodels_invalid.xml", "deliveryFiles/ilimodels_valid.xtf"], false);
-    stepHasError("files", true, "The maximum number of files has been exceeded");
-
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     stepHasError("files", false);
+
+    addFile(["deliveryFiles/ilimodels_invalid.xml", "deliveryFiles/ilimodels_not_conform.xml"], true);
+    stepHasError("files", false);
+
+    cy.dataCy("file-list-item").should("have.length", 3);
+
     uploadFile();
 
     stepIsActive("mandate");
@@ -59,7 +59,7 @@ describe("Delivery tests", () => {
     cy.dataCy("xtfLog.xtf-button").should("not.exist");
     stepIsActive("processing");
     stepIsActive("delivery", false); // Should not be active if processing has errors
-    cy.dataCy("continue-button").should("not.exist");
+    cy.dataCy("continue-button").should("be.disabled");
   });
 
   // Skip test as starting the processing currently results in a 500 when running in the github action
@@ -132,6 +132,9 @@ describe("Delivery tests", () => {
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     uploadFile();
+
+    cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
+    cy.wait("@getMandates");
 
     selectMandate(1);
     startProcessing();
