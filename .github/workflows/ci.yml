@@ -37,6 +37,10 @@ jobs:
         working-directory: ./src/Geopilot.Frontend
         run: npm run build --if-present
 
+      - name: Check frontend types
+        working-directory: ./src/Geopilot.Frontend
+        run: npm run ts
+
       - name: Lint frontend
         working-directory: ./src/Geopilot.Frontend
         run: npm run lint

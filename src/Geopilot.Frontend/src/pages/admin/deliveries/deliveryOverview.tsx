@@ -12,7 +12,7 @@ import useFetch from "../../../hooks/useFetch.ts";
 
 interface DeliveryMandate {
   id: number;
-  date: Date;
+  date: string;
   userName: string;
   mandateName: string;
   comment: string;
