@@ -12,7 +12,7 @@ import { FlexRowBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { findPipeline, getLocalisedPipelineName } from "./pipelineDisplay";
 
-export const Mandates = () => {
+const Mandates = () => {
   const { t, i18n } = useTranslation();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();

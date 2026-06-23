@@ -18,7 +18,7 @@ interface DeliveryMandate {
   comment: string;
 }
 
-export const DeliveryOverview = () => {
+const DeliveryOverview = () => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [deliveries, setDeliveries] = useState<DeliveryMandate[]>([]);

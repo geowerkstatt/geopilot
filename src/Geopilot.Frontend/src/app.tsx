@@ -22,7 +22,7 @@ import { Imprint } from "./pages/footer/imprint.tsx";
 import { Licenses } from "./pages/footer/licenses.tsx";
 import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
 
-export const App: FC = () => {
+const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
   const { isLoading, isAdmin } = useGeopilotAuth();
 

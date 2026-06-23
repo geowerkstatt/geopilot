@@ -37,7 +37,7 @@ const getPipelineSelectMenuItems = (
   return items;
 };
 
-export const PipelineFormSelect: FC<PipelineFormSelectProps> = ({ pipelines, selected }) => {
+const PipelineFormSelect: FC<PipelineFormSelectProps> = ({ pipelines, selected }) => {
   const { t, i18n } = useTranslation();
   const { trigger } = useFormContext();
 
