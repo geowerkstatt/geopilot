@@ -390,15 +390,20 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public void Delete()
+    public async Task DeleteAsAdmin()
     {
+        var admin = context.Users.First(u => u.IsAdmin);
+        var user = context.Users.First(u => !u.IsAdmin);
+
+        deliveryController.SetupTestUser(admin);
+
         var guid = Guid.NewGuid();
-        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = context.Users.First() };
+        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = user };
         delivery.Assets.Add(new Asset());
         context.Deliveries.Add(delivery);
         context.SaveChanges();
 
-        var result = deliveryController.Delete(delivery.Id) as OkResult;
+        var result = await deliveryController.Delete(delivery.Id) as OkResult;
 
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status200OK, result.StatusCode);
@@ -412,11 +417,68 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public void DeleteFailsDeliveryNotFound()
+    public async Task DeleteAsUploader()
     {
-        var result = deliveryController.Delete(context.Deliveries.Max(d => d.Id) + 1) as ObjectResult;
+        var user = context.Users.First(u => !u.IsAdmin);
+
+        deliveryController.SetupTestUser(user);
+
+        var guid = Guid.NewGuid();
+        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = user };
+        delivery.Assets.Add(new Asset());
+        context.Deliveries.Add(delivery);
+        context.SaveChanges();
+
+        var result = await deliveryController.Delete(delivery.Id) as OkResult;
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(StatusCodes.Status200OK, result.StatusCode);
+
+        var dbDelivery = context.DeliveriesWithIncludes
+            .IgnoreQueryFilters()
+            .FirstOrDefault(d => d.Id == delivery.Id);
+        Assert.IsNotNull(dbDelivery);
+        Assert.IsTrue(dbDelivery.Deleted);
+        Assert.IsTrue(dbDelivery.Assets.All(a => a.Deleted));
+    }
+
+    [TestMethod]
+    public async Task DeleteAsAdminFailsDeliveryNotFound()
+    {
+        var admin = context.Users.First(u => u.IsAdmin);
+
+        deliveryController.SetupTestUser(admin);
+
+        var result = await deliveryController.Delete(context.Deliveries.Max(d => d.Id) + 1) as ObjectResult;
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task DeleteAsUserFailsIfNotUploader()
+    {
+        var uploader = context.Users.First();
+        var deleter = context.Users.First(u => u.Id != uploader.Id && !u.IsAdmin);
+
+        deliveryController.SetupTestUser(deleter);
+
+        var guid = Guid.NewGuid();
+        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = uploader };
+        delivery.Assets.Add(new Asset());
+        context.Deliveries.Add(delivery);
+        context.SaveChanges();
+
+        var result = await deliveryController.Delete(delivery.Id) as ObjectResult;
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
+
+        var dbDelivery = context.DeliveriesWithIncludes
+            .IgnoreQueryFilters()
+            .FirstOrDefault(d => d.Id == delivery.Id);
+        Assert.IsNotNull(dbDelivery);
+        Assert.IsFalse(dbDelivery.Deleted);
+        Assert.IsTrue(dbDelivery.Assets.All(a => !a.Deleted));
     }
 
     [TestMethod]
@@ -539,5 +601,19 @@ public class DeliveryControllerTest
         Assert.AreNotEqual(0, deliveris.Count);
         Assert.HasCount(deliveris.Count, list);
         CollectionAssert.AllItemsAreUnique(list);
+    }
+
+    [TestMethod]
+    public async Task GetUploadsReturnsDeliveriesOfUser()
+    {
+        var user = context.Users.First(u => !u.IsAdmin);
+        deliveryController.SetupTestUser(user);
+
+        var response = (await deliveryController.GetUploads()) as ObjectResult;
+
+        var deliveries = Assert.IsInstanceOfType<List<Delivery>>(response?.Value);
+        CollectionAssert.AllItemsAreUnique(deliveries);
+        Assert.IsTrue(deliveries.All(d => d.DeclaringUser.Id == user.Id), "All deliveries should belong to the user.");
+        Assert.IsTrue(deliveries.All(d => !d.Deleted), "Should not return deleted deliveries.");
     }
 }

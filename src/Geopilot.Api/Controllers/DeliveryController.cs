@@ -196,21 +196,52 @@ public class DeliveryController : ControllerBase
     }
 
     /// <summary>
+    /// Gets a filtered list of deliveries uploaded by the user.
+    /// </summary>
+    /// <returns>A list of <see cref="Delivery"/>.</returns>
+    [HttpGet("uploads")]
+    [Authorize(Policy = GeopilotPolicies.User)]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list of deliveries uploaded by the user.", typeof(List<Delivery>), "application/json")]
+    public async Task<IActionResult> GetUploads()
+    {
+        var user = await context.GetUserByPrincipalAsync(User);
+
+        logger.LogInformation(
+            "User <{UserId}> accessed list of their uploaded deliveries",
+            user.AuthIdentifier);
+
+        var result = await context.DeliveriesWithIncludes
+            .AsNoTracking()
+            .Where(d => d.DeclaringUser.Id == user.Id)
+            .ToListAsync();
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Performs a soft delete in the database and deletes the files from the storage.
     /// </summary>
     /// <returns>An updated list of <see cref="Delivery"/>.</returns>
     [HttpDelete("{deliveryId}")]
-    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [Authorize(Policy = GeopilotPolicies.User)]
     [SwaggerResponse(StatusCodes.Status200OK, "The delivery was successfully deleted.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
-    [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could be found.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could not be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was an error deleting the assets.", typeof(ProblemDetails), "application/json")]
-    public IActionResult Delete([FromRoute] int deliveryId)
+    public async Task<IActionResult> Delete([FromRoute] int deliveryId)
     {
         logger.LogInformation("Deleting of delivery with id <{DeliveryId}> started.", deliveryId);
         try
         {
-            var delivery = context.Deliveries.Include(d => d.Assets).SingleOrDefault(d => d.Id == deliveryId);
+            IQueryable<Delivery> deliveries = context.Deliveries.Include(d => d.Assets);
+
+            var user = await context.GetUserByPrincipalAsync(User);
+            if (!user.IsAdmin)
+            {
+                deliveries = deliveries.Where(d => d.DeclaringUser.Id == user.Id);
+            }
+
+            var delivery = await deliveries.SingleOrDefaultAsync(d => d.Id == deliveryId);
             if (delivery == default)
             {
                 logger.LogTrace("No delivery with id <{DeliveryId}> found.", deliveryId);
@@ -221,7 +252,7 @@ public class DeliveryController : ControllerBase
             delivery.Assets.ForEach(a => a.Deleted = true);
             assetHandler.DeleteJobAssets(delivery.JobId);
 
-            context.SaveChanges();
+            await context.SaveChangesAsync();
 
             logger.LogInformation("Deleting of delivery with id <{DeliveryId}> successful.", deliveryId);
             return Ok();
@@ -241,7 +272,7 @@ public class DeliveryController : ControllerBase
     [Authorize(Policy = GeopilotPolicies.Admin)]
     [SwaggerResponse(StatusCodes.Status200OK, "A file has been downloaded.", typeof(File), "application/json")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
-    [SwaggerResponse(StatusCodes.Status404NotFound, "The asset could be found.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The asset could not be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely the file could not be read.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> DownloadAsync([FromRoute] int assetId)
     {
@@ -251,8 +282,8 @@ public class DeliveryController : ControllerBase
             var asset = context.Assets.Include(a => a.Delivery).SingleOrDefault(a => a.Id == assetId && !a.Deleted);
             if (asset == default)
             {
-                logger.LogTrace("No delivery with id <{AssetId}> found.", assetId);
-                return NotFound($"No delivery with id <{assetId}> found.");
+                logger.LogTrace("No asset with id <{AssetId}> found.", assetId);
+                return NotFound($"No asset with id <{assetId}> found.");
             }
 
             if (asset.Delivery == null)
