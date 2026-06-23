@@ -52,6 +52,7 @@ declare module "@mui/material/styles" {
     MuiDialogTitle: object;
     MuiDialogContent: object;
     MuiDialogActions: object;
+    MuiTooltip: object;
     MuiChip: object;
     MuiToggleButton: object;
   }
@@ -73,6 +74,7 @@ declare module "@mui/material/styles" {
     MuiDialogTitle: object;
     MuiDialogContent: object;
     MuiDialogActions: object;
+    MuiTooltip: object;
     MuiChip: object;
     MuiToggleButton: object;
   }
