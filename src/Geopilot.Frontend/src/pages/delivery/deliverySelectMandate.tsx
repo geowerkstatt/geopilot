@@ -75,7 +75,9 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
   const [mandates, setMandates] = useState<Mandate[] | null>(null);
 
   useEffect(() => {
-    if (uploadId) {
+    if (selectedMandate) {
+      setMandates([selectedMandate]);
+    } else if (uploadId) {
       setStepError(DeliveryStepEnum.Mandate, undefined);
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ uploadId })).then(mandates => {
         if (mandates.length === 0) {
@@ -85,7 +87,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
         setSelectedId(mandates.length === 1 ? mandates[0].id : null);
       });
     }
-  }, [uploadId, fetchApi, setStepError, t, user]);
+  }, [uploadId, fetchApi, setStepError, t, user, selectedMandate]);
 
   const submitForm = () => {
     const mandate = selectedId !== null && mandates?.find(m => m.id === selectedId);
