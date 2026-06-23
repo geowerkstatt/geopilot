@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
 import { Organisation, User, UserState } from "../../../api/apiInterfaces.ts";
-import { useGeopilotAuth } from "../../../auth/index.ts";
+import { useGeopilotAuth } from "../../../auth";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import { FormAutocomplete, FormCheckbox, FormContainer, FormInput } from "../../../components/form/form.ts";
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
