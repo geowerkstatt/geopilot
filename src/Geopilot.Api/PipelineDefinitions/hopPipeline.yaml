@@ -1,0 +1,104 @@
+processes:
+  - id: file_renamer
+    implementation: Geopilot.Api.Pipeline.Process.Matcher.FileRenamer.FileRenamerProcess
+    default_config:
+      fileMappings:
+      regexTimeoutMilliseconds: 5000
+  - id: hop
+    implementation: Geopilot.Api.Pipeline.Process.Hop.HopProcess
+    default_config:
+      pipeline:
+      hopParameters:
+      jobsDirectory: ./shared/hop/jobs/
+      timeoutSeconds: 60
+      pollInterval: 1000
+
+pipelines:
+  - id: hop_test
+    display_name:
+      en: HOP Demo Pipeline
+      de: HOP Demo Pipeline
+      it: HOP Demo Pipeline
+      fr: HOP Demo Pipeline
+    steps:
+      - id: file_rename
+        display_name:
+          en: File Detecter
+          de: Dateierkennung
+          it: Riconoscimento dei file
+          fr: Reconnaissance de fichiers
+        process_id: file_renamer
+        process_config_overwrites:
+          fileMappings:
+            - pattern: "^.*[.]gpkg$"
+              target: "testdata_dmav_v1_1.gpkg"
+        conditions:
+          post:
+            fail_conditions:
+              - expression: "Length([file_rename.unmatched_mappings]) != 0"
+                message:
+                  de: "Fehlende Dateien."
+                  en: "Missing files."
+                  fr: "Fichiers manquants."
+                  it: "File mancanti."
+              - expression: "Length([file_rename.unmatched_files]) != 0"
+              - expression: "Length([file_rename.conflicting_files]) != 0"
+                message:
+                  de: "Mehrere Dateien ergeben denselben Zielpfad."
+                  en: "Multiple files resolve to the same target path."
+                  fr: "Plusieurs fichiers correspondent au même chemin cible."
+                  it: "Più file corrispondono allo stesso percorso di destinazione."
+        output:
+          - take: renamed_files
+            as: gpkg_files
+          - take: unmatched_mappings
+            as: unmatched_mappings
+          - take: unmatched_files
+            as: unmatched_files
+          - take: conflicting_files
+            as: conflicting_files
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
+      - id: hop
+        display_name:
+          en: HOP
+          de: HOP
+          it: HOP
+          fr: HOP
+        process_id: hop
+        conditions:
+          pre:
+            fail_conditions:
+              - expression: "Length([file_rename.gpkg_files]) != 1"
+                message:
+                  de: "Es muss genau eine GPKG-Datei hochgeladen werden."
+                  en: "Exactly one GPKG file must be uploaded."
+                  fr: "Exactement un fichier GPKG doit être téléchargé."
+                  it: "Deve essere caricato esattamente un file GPKG."
+          post:
+            fail_conditions:
+              - expression: "Length([hop.output_files]) == 0"
+                message:
+                  de: "Fehlender HOP Output."
+                  en: "Missing HOP output."
+                  fr: "Sortie HOP manquante."
+                  it: "Output HOP mancante."
+        process_config_overwrites:
+          pipeline: /shared/hop/pipelines/umbrella_workflow.hwf
+          hopParameters:
+            foo: bar
+        input:
+          - from: file_rename
+            take: gpkg_files
+            as: inputFiles
+        output:
+          - take: output_files
+            as: output_files
+            action:
+              - Download
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage
