@@ -126,9 +126,6 @@ export const Mandates = () => {
     },
   ];
 
-  // Derive loading from the data instead of a separate flag: keep the overlay until both mandates
-  // and pipelines are present, so the pipeline column never briefly renders valid pipelines as
-  // "unknown". Both loaders fall back to [] on error so this still resolves.
   const isGridLoading = mandates === undefined || pipelines === undefined;
 
   return (
