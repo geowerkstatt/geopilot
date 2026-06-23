@@ -3,13 +3,14 @@ import { useCallback, useEffect, useState } from "react";
 import { AvailablePipelinesResponse, Mandate, Organisation, PipelineSummary } from "../../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../../auth";
 import { GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
-import { Box, Tooltip } from "@mui/material";
+import { Tooltip } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { findPipeline, getLocalisedPipelineName } from "./pipelineDisplay";
+import { FlexRowBox } from "../../../components/styledComponents.ts";
 
 export const Mandates = () => {
   const { t, i18n } = useTranslation();
@@ -69,11 +70,13 @@ export const Mandates = () => {
           return getLocalisedPipelineName(pipeline, i18n.language);
         }
         return (
-          <Tooltip title={t("pipelineNotKnown", { pipelineId })}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "error.main" }}>
+          <Tooltip
+            title={t("pipelineNotKnown", { pipelineId })}
+            slotProps={{ popper: { modifiers: [{ name: "offset", options: { offset: [-20, -16] } }] } }}>
+            <FlexRowBox sx={{ alignItems: "center", gap: 0.5, color: "error.main" }}>
               <ErrorOutlineIcon fontSize="small" />
               {pipelineId}
-            </Box>
+            </FlexRowBox>
           </Tooltip>
         );
       },
