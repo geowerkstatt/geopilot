@@ -28,9 +28,10 @@ export const Mandates = () => {
   }, [fetchApi]);
 
   const loadPipelines = useCallback(() => {
-    fetchApi<AvailablePipelinesResponse>("/api/v1/pipeline", { errorMessageLabel: "pipelineLoadingError" }).then(
-      response => setPipelines(response?.pipelines ?? []),
-    );
+    fetchApi<AvailablePipelinesResponse>("/api/v1/pipeline", { errorMessageLabel: "pipelineLoadingError" })
+      .then(response => setPipelines(response?.pipelines ?? []))
+      // Resolve to an empty list on error so the loading gate clears instead of spinning forever.
+      .catch(() => setPipelines([]));
   }, [fetchApi]);
 
   const startEditing = (id: GridRowId) => {
@@ -127,11 +128,15 @@ export const Mandates = () => {
     },
   ];
 
+  // Keep the grid in its loading state until the pipelines are loaded as well, otherwise the
+  // pipeline column briefly renders valid pipelines as "unknown" while the list is still fetching.
+  const isGridLoading = isLoading || pipelines === undefined;
+
   return (
     <GeopilotDataGrid
       name="mandates"
       addLabel="addMandate"
-      loading={isLoading}
+      loading={isGridLoading}
       rows={mandates}
       columns={columns}
       onSelect={startEditing}
