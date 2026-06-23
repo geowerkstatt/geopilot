@@ -102,12 +102,61 @@ export interface StepDownload {
   url: string;
 }
 
+/** A single feature inside a feature layer of a map visualization. */
+export interface MapFeature {
+  /** The feature geometry as Well-Known Text (WKT), e.g. "POINT(2600000 1200000)" (EPSG:2056 / LV95). */
+  geom: string;
+  /** The informational text shown for the feature. */
+  info: string;
+}
+
+/**
+ * A single map layer. Exactly one of {@link wmts} or {@link features} is set.
+ */
+export interface MapLayer {
+  /** Localized display title of the layer, keyed by language ("de", "en", ...). Shown in the layer switcher. */
+  title?: Record<string, string>;
+  /** The capabilities URL of a WMTS map service. Set for WMTS layers. */
+  wmts?: string;
+  /**
+   * Identifiers of the layers to display from the WMTS service referenced by {@link wmts}. When omitted
+   * or empty, all layers the service advertises are displayed (wrapped in a group layer if more than one).
+   * Only meaningful for WMTS layers.
+   */
+  layerIds?: string[];
+  /**
+   * Color of the layer's features as a hex color (e.g. "#e53835"): used as the stroke color and, as a
+   * transparent variant, the fill color for polygons. Only meaningful for feature layers.
+   */
+  color?: string;
+  /** Features rendered directly from the config. Set for feature layers. */
+  features?: MapFeature[];
+}
+
+/** The map-visualization config produced by the map visualization pipeline step. */
+export interface MapVisualizationConfig {
+  /** The layers displayed in the map, drawn in order. */
+  layers: MapLayer[];
+}
+
+export enum VisualizationKind {
+  Tree = "tree",
+  Map = "map",
+}
+
+export interface StepVisualization {
+  kind: VisualizationKind;
+  originalFileName: string;
+  url: string;
+}
+
 export interface StepResult {
   id: string;
   name: Record<string, string>;
   state: StepState;
   statusMessage?: Record<string, string>;
   downloads: StepDownload[];
+  visualizations: StepVisualization[];
 }
 
 export interface ProcessingJobResponse {

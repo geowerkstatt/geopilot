@@ -1,7 +1,7 @@
-﻿using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.Pipeline.Processes.TreeVisualization;
+using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
 
@@ -9,10 +9,10 @@ internal class XtfValidatorErrorTreeProcess
 {
     private const string OutputMappingErrorLog = "error_tree";
     private const string OutputMappingJsonErrorLog = "json_error_tree";
-    private const string OutputMappingJsonErrorLogFile = "json_error_tree_file";
+    private const string OutputMappingTreeConfig = "tree_config";
     private const string OutputMappingStatusMessage = "status_message";
 
-    private static readonly LocalizedText SuccessfulStatusMessage = new Dictionary<string, string>
+    private static readonly Dictionary<string, string> SuccessfulStatusMessage = new Dictionary<string, string>
         {
             { "de", "Error Tree erstellt" },
             { "fr", "Arbre d'erreurs créé" },
@@ -25,8 +25,11 @@ internal class XtfValidatorErrorTreeProcess
 
     static XtfValidatorErrorTreeProcess()
     {
-        JsonOptions = new() { };
-        JsonOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        JsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+        };
     }
 
     public XtfValidatorErrorTreeProcess(IPipelineFileManager pipelineFileManager)
@@ -45,9 +48,9 @@ internal class XtfValidatorErrorTreeProcess
         var errorLog = errorTreeMapper.Map();
         var jsonErrorLog = JsonSerializer.Serialize(errorLog, JsonOptions);
 
-        var jsonErrorLogFile = pipelineFileManager.GeneratePipelineFile("errorTree", "json");
+        var treeConfigFile = pipelineFileManager.GeneratePipelineFile("treeConfig", "json");
 
-        using (FileStream fileStream = jsonErrorLogFile.OpenWriteFileStream())
+        using (FileStream fileStream = treeConfigFile.OpenWriteFileStream())
         using (StreamWriter streamWriter = new(fileStream))
         {
             await streamWriter.WriteAsync(jsonErrorLog);
@@ -57,7 +60,7 @@ internal class XtfValidatorErrorTreeProcess
         {
             { OutputMappingErrorLog, errorLog },
             { OutputMappingJsonErrorLog, jsonErrorLog },
-            { OutputMappingJsonErrorLogFile, jsonErrorLogFile },
+            { OutputMappingTreeConfig, treeConfigFile },
             { OutputMappingStatusMessage, SuccessfulStatusMessage },
         };
     }

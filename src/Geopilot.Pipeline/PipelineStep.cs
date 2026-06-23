@@ -67,6 +67,9 @@ public sealed class PipelineStep : IPipelineStep
     public void AddDeliveryFile(PersistedFile file) =>
         ImmutableInterlocked.Update(ref deliveryFiles, static (list, f) => list.Add(f), file);
 
+    /// <inheritdoc/>
+    public IList<StepVisualization> Visualizations { get; } = new List<StepVisualization>();
+
     private readonly ConditionEvaluator conditionEvaluator;
 
     private readonly string? pipelineDirectory;

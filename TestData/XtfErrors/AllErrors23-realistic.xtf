@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TRANSFER xmlns="http://www.interlis.ch/INTERLIS2.3">
+	<HEADERSECTION SENDER="geowerkstatt" VERSION="2.3">
+		<MODELS>
+			<MODEL NAME="AllErrors23" VERSION="2026-06-10" URI="mailto:joel.waelti@geowerkstatt.ch"></MODEL>
+		</MODELS>
+	</HEADERSECTION>
+	<DATASECTION>
+		<!--
+			Realistic sample: an environmental monitoring network in canton Aargau.
+			Most objects are valid. A few carry the kind of mistakes a surveyor or
+			data editor makes in practice. The station code overflow (limitedText
+			restricted to 5 characters) occurs on more than one station so the same
+			error message shows up for several objects.
+		-->
+		<AllErrors23.MainTopic BID="aargauMonitoringNetwork">
+
+			<!-- ===== lookup table of accepted surface materials ===== -->
+			<AllErrors23.MainTopic.ConditionClass TID="materialAsphalt"><lookupText>asphalt</lookupText></AllErrors23.MainTopic.ConditionClass>
+			<AllErrors23.MainTopic.ConditionClass TID="materialGravel"><lookupText>gravel</lookupText></AllErrors23.MainTopic.ConditionClass>
+			<AllErrors23.MainTopic.ConditionClass TID="materialConcrete"><lookupText>concrete</lookupText></AllErrors23.MainTopic.ConditionClass>
+
+			<!-- ===== monitoring stations ===== -->
+			<!-- valid station in Aarau -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="stationAarau">
+				<numberValue>23.50</numberValue>
+				<limitedText>AAR01</limitedText>
+				<booleanFlag>true</booleanFlag>
+				<colourValue>green</colourValue>
+				<dateValue>2008-04-12</dateValue>
+				<timeValue>08:15:00.000</timeValue>
+				<dateTimeValue>2008-04-12T08:15:00.000</dateTimeValue>
+				<interlisName>Aarau_Nord</interlisName>
+				<interlisUri>https://example.ch/stations/aarau</interlisUri>
+				<uuidValue>550e8400-e29b-41d4-a716-446655440000</uuidValue>
+			</AllErrors23.MainTopic.ValueTypeClass>
+
+			<!-- valid station in Windisch -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="stationWindisch">
+				<numberValue>47.80</numberValue>
+				<limitedText>WIN03</limitedText>
+				<booleanFlag>true</booleanFlag>
+				<colourValue>green</colourValue>
+				<dateValue>2008-05-03</dateValue>
+				<interlisName>Windisch_Reuss</interlisName>
+				<interlisUri>https://example.ch/stations/windisch</interlisUri>
+			</AllErrors23.MainTopic.ValueTypeClass>
+
+			<!-- valid station in Lenzburg -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="stationLenzburg">
+				<numberValue>12.10</numberValue>
+				<limitedText>LEN06</limitedText>
+				<booleanFlag>false</booleanFlag>
+				<colourValue>blue</colourValue>
+				<dateValue>2009-02-20</dateValue>
+			</AllErrors23.MainTopic.ValueTypeClass>
+
+			<!-- error: reading 150.00 is outside the allowed range 0.00 .. 100.00 -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="stationBaden">
+				<numberValue>150.00</numberValue>
+				<limitedText>BAD02</limitedText>
+				<booleanFlag>true</booleanFlag>
+				<colourValue>green</colourValue>
+				<dateValue>2008-06-18</dateValue>
+			</AllErrors23.MainTopic.ValueTypeClass>
+
+			<!-- error (first occurrence): station code BRUGG7 exceeds the 5 character limit -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="stationBrugg">
+				<numberValue>41.20</numberValue>
+				<limitedText>BRUGG7</limitedText>
+				<booleanFlag>true</booleanFlag>
+				<colourValue>green</colourValue>
+				<dateValue>2008-07-09</dateValue>
+			</AllErrors23.MainTopic.ValueTypeClass>
+
+			<!-- error (second occurrence): station code ZOFI12 exceeds the 5 character limit -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="stationZofingen">
+				<numberValue>55.00</numberValue>
+				<limitedText>ZOFI12</limitedText>
+				<booleanFlag>false</booleanFlag>
+				<colourValue>blue</colourValue>
+				<dateValue>2009-03-11</dateValue>
+			</AllErrors23.MainTopic.ValueTypeClass>
+
+			<!-- error (third occurrence): station code OLTEN9 exceeds the 5 character limit -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="stationOlten">
+				<numberValue>33.40</numberValue>
+				<limitedText>OLTEN9</limitedText>
+				<booleanFlag>true</booleanFlag>
+				<colourValue>green</colourValue>
+				<dateValue>2009-04-22</dateValue>
+			</AllErrors23.MainTopic.ValueTypeClass>
+
+			<!-- error: status colour orange is not part of the enumeration (red, green, blue) -->
+			<AllErrors23.MainTopic.ValueTypeClass TID="stationWohlen">
+				<numberValue>28.90</numberValue>
+				<limitedText>WOH04</limitedText>
+				<booleanFlag>true</booleanFlag>
+				<colourValue>orange</colourValue>
+				<dateValue>2009-05-30</dateValue>
+			</AllErrors23.MainTopic.ValueTypeClass>
+
+			<!-- ===== field notes ===== -->
+			<!-- valid note -->
+			<AllErrors23.MainTopic.NormalizedTextClass TID="noteRoutine">
+				<normalizedText>Routine inspection ok</normalizedText>
+			</AllErrors23.MainTopic.NormalizedTextClass>
+			<!-- error: note contains an embedded TAB control character -->
+			<AllErrors23.MainTopic.NormalizedTextClass TID="noteWithTab">
+				<normalizedText>sensor&#9;replaced</normalizedText>
+			</AllErrors23.MainTopic.NormalizedTextClass>
+
+			<!-- ===== equipment inventory ===== -->
+			<!-- valid: one item in the bag -->
+			<AllErrors23.MainTopic.MultiplicityClass TID="inventorySensorA">
+				<mandatoryText>SensorA</mandatoryText>
+				<itemBag>
+					<AllErrors23.MainTopic.ItemStructure><itemText>probe</itemText></AllErrors23.MainTopic.ItemStructure>
+				</itemBag>
+			</AllErrors23.MainTopic.MultiplicityClass>
+			<!-- valid: two items in the bag -->
+			<AllErrors23.MainTopic.MultiplicityClass TID="inventorySensorB">
+				<mandatoryText>SensorB</mandatoryText>
+				<itemBag>
+					<AllErrors23.MainTopic.ItemStructure><itemText>probe</itemText></AllErrors23.MainTopic.ItemStructure>
+					<AllErrors23.MainTopic.ItemStructure><itemText>cable</itemText></AllErrors23.MainTopic.ItemStructure>
+				</itemBag>
+			</AllErrors23.MainTopic.MultiplicityClass>
+			<!-- error: mandatory label is missing -->
+			<AllErrors23.MainTopic.MultiplicityClass TID="inventoryUnlabelled">
+				<itemBag>
+					<AllErrors23.MainTopic.ItemStructure><itemText>probe</itemText></AllErrors23.MainTopic.ItemStructure>
+				</itemBag>
+			</AllErrors23.MainTopic.MultiplicityClass>
+
+			<!-- ===== station locations ===== -->
+			<!-- valid point at Aarau -->
+			<AllErrors23.MainTopic.GeometryClass TID="locationAarau">
+				<pointCoord><COORD><C1>2645800.000</C1><C2>1249400.000</C2></COORD></pointCoord>
+			</AllErrors23.MainTopic.GeometryClass>
+			<!-- valid point at Baden -->
+			<AllErrors23.MainTopic.GeometryClass TID="locationBaden">
+				<pointCoord><COORD><C1>2665900.000</C1><C2>1257900.000</C2></COORD></pointCoord>
+			</AllErrors23.MainTopic.GeometryClass>
+			<!-- valid catchment surface near Brugg -->
+			<AllErrors23.MainTopic.GeometryClass TID="catchmentBrugg">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2657500.000</C1><C2>1259200.000</C2></COORD>
+					<COORD><C1>2657500.000</C1><C2>1259250.000</C2></COORD>
+					<COORD><C1>2657560.000</C1><C2>1259250.000</C2></COORD>
+					<COORD><C1>2657560.000</C1><C2>1259200.000</C2></COORD>
+					<COORD><C1>2657500.000</C1><C2>1259200.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+			<!-- error: self intersecting catchment boundary near Wohlen (digitizing mistake) -->
+			<AllErrors23.MainTopic.GeometryClass TID="catchmentWohlen">
+				<surface><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2659000.000</C1><C2>1245000.000</C2></COORD>
+					<COORD><C1>2659060.000</C1><C2>1245060.000</C2></COORD>
+					<COORD><C1>2659000.000</C1><C2>1245060.000</C2></COORD>
+					<COORD><C1>2659060.000</C1><C2>1245000.000</C2></COORD>
+					<COORD><C1>2659000.000</C1><C2>1245000.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></surface>
+			</AllErrors23.MainTopic.GeometryClass>
+
+			<!-- ===== protection zones (single area, no overlap) ===== -->
+			<AllErrors23.MainTopic.AreaTopologyClass TID="zoneLenzburg">
+				<categoryValue>a</categoryValue>
+				<areaGeometry><SURFACE><BOUNDARY><POLYLINE>
+					<COORD><C1>2655400.000</C1><C2>1248900.000</C2></COORD>
+					<COORD><C1>2655400.000</C1><C2>1248960.000</C2></COORD>
+					<COORD><C1>2655460.000</C1><C2>1248960.000</C2></COORD>
+					<COORD><C1>2655460.000</C1><C2>1248900.000</C2></COORD>
+					<COORD><C1>2655400.000</C1><C2>1248900.000</C2></COORD>
+				</POLYLINE></BOUNDARY></SURFACE></areaGeometry>
+			</AllErrors23.MainTopic.AreaTopologyClass>
+
+			<!-- ===== paired status flags ===== -->
+			<!-- valid: both flags agree -->
+			<AllErrors23.MainTopic.MandatoryConstraintClass TID="flagsAarau">
+				<firstFlag>true</firstFlag><secondFlag>true</secondFlag>
+			</AllErrors23.MainTopic.MandatoryConstraintClass>
+			<!-- error: flags must be equal but differ -->
+			<AllErrors23.MainTopic.MandatoryConstraintClass TID="flagsBaden">
+				<firstFlag>true</firstFlag><secondFlag>false</secondFlag>
+			</AllErrors23.MainTopic.MandatoryConstraintClass>
+
+			<!-- ===== plausibility samples (at least half must have firstNumber >= secondNumber) ===== -->
+			<AllErrors23.MainTopic.PlausibilityConstraintClass TID="sampleAarau"><firstNumber>8</firstNumber><secondNumber>3</secondNumber></AllErrors23.MainTopic.PlausibilityConstraintClass>
+			<AllErrors23.MainTopic.PlausibilityConstraintClass TID="sampleBaden"><firstNumber>5</firstNumber><secondNumber>5</secondNumber></AllErrors23.MainTopic.PlausibilityConstraintClass>
+			<AllErrors23.MainTopic.PlausibilityConstraintClass TID="sampleBrugg"><firstNumber>2</firstNumber><secondNumber>7</secondNumber></AllErrors23.MainTopic.PlausibilityConstraintClass>
+
+			<!-- ===== unique station identifiers (text plus number must be unique) ===== -->
+			<AllErrors23.MainTopic.UniqueConstraintClass TID="keyZoneOne"><keyText>ZONE</keyText><keyNumber>1</keyNumber></AllErrors23.MainTopic.UniqueConstraintClass>
+			<AllErrors23.MainTopic.UniqueConstraintClass TID="keyZoneTwo"><keyText>ZONE</keyText><keyNumber>2</keyNumber></AllErrors23.MainTopic.UniqueConstraintClass>
+
+			<!-- ===== material references checked against the lookup table ===== -->
+			<!-- valid: asphalt exists in the lookup table -->
+			<AllErrors23.MainTopic.ExistenceConstraintClass TID="surfaceAarau"><referencedText>asphalt</referencedText></AllErrors23.MainTopic.ExistenceConstraintClass>
+			<!-- error: rubber is not an accepted material -->
+			<AllErrors23.MainTopic.ExistenceConstraintClass TID="surfaceBaden"><referencedText>rubber</referencedText></AllErrors23.MainTopic.ExistenceConstraintClass>
+
+			<!-- ===== inlet to outlet link (valid) ===== -->
+			<AllErrors23.MainTopic.LinkSourceClass TID="inletReuss">
+				<label>inlet</label>
+				<target REF="outletAare"></target>
+			</AllErrors23.MainTopic.LinkSourceClass>
+			<AllErrors23.MainTopic.LinkTargetClass TID="outletAare">
+				<label>outlet</label>
+			</AllErrors23.MainTopic.LinkTargetClass>
+
+		</AllErrors23.MainTopic>
+
+		<!-- ===== assets identified by UUID ===== -->
+		<AllErrors23.UuidTopic BID="aargauMonitoringAssets">
+			<!-- valid UUID typed identifier -->
+			<AllErrors23.UuidTopic.UuidObjectClass TID="7c9e6679-7425-40de-944b-e07fc1f90ae7">
+				<label>gauge</label>
+			</AllErrors23.UuidTopic.UuidObjectClass>
+			<!-- error: identifier ASSET-7 is not a valid UUID -->
+			<AllErrors23.UuidTopic.UuidObjectClass TID="ASSET-7">
+				<label>logger</label>
+			</AllErrors23.UuidTopic.UuidObjectClass>
+		</AllErrors23.UuidTopic>
+
+	</DATASECTION>
+</TRANSFER>

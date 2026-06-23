@@ -8,11 +8,13 @@ namespace Geopilot.Api.Processing;
 
 /// <summary>
 /// Background worker that consumes pipelines from the <see cref="IProcessingJobStore.ProcessingQueue"/>
-/// and runs them. A step's user-downloadable files (<see cref="OutputAction.Download"/>) are extracted to
-/// disk as soon as that step finishes, via <see cref="IPipeline.OnStepCompleted"/>, so the supplier can
-/// download them while later steps still run. Delivery payload files (<see cref="OutputAction.Delivery"/>)
-/// are extracted once, only when the run finished successfully and delivery is allowed. They populate
-/// <see cref="IPipelineStep.Downloads"/> and <see cref="IPipelineStep.DeliveryFiles"/> respectively.
+/// and runs them. A step's user-downloadable files (<see cref="OutputAction.Download"/>) and its visualization
+/// configs (<see cref="OutputAction.MapVisualization"/>, <see cref="OutputAction.TreeVisualization"/>) are
+/// extracted to disk as soon as that step finishes, via <see cref="IPipeline.OnStepCompleted"/>, so they are
+/// available while later steps still run and regardless of whether the run ultimately succeeds. Delivery payload
+/// files (<see cref="OutputAction.Delivery"/>) are extracted once, only when the run finished successfully and
+/// delivery is allowed. They populate <see cref="IPipelineStep.Downloads"/>, <see cref="IPipelineStep.Visualizations"/>
+/// and <see cref="IPipelineStep.DeliveryFiles"/> respectively.
 /// </summary>
 public class ProcessingRunner : BackgroundService
 {
@@ -114,14 +116,24 @@ public class ProcessingRunner : BackgroundService
 
         foreach (var output in stepResult.Outputs.Values)
         {
-            if (!output.Action.Contains(OutputAction.Download))
+            var isDownload = output.Action.Contains(OutputAction.Download);
+            var visualizationKind = ResolveVisualizationKind(output.Action);
+            if (!isDownload && !visualizationKind.HasValue)
                 continue;
 
+            // A visualization config is fetched by the frontend through the same download endpoint, so it is
+            // persisted to the download store as well and additionally recorded as a visualization. The file is
+            // written once even when an output is tagged as both a download and a visualization.
             foreach (var transferFile in ResolveFiles(output.Data))
             {
                 var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
                 CopyTo(downloadFileStore, jobId, fileName, transferFile);
-                step.AddDownload(new PersistedFile(transferFile.OriginalFileName, fileName));
+
+                if (isDownload)
+                    step.AddDownload(new PersistedFile(transferFile.OriginalFileName, fileName));
+
+                if (visualizationKind.HasValue)
+                    step.Visualizations.Add(new StepVisualization(visualizationKind.Value, transferFile.OriginalFileName, fileName));
             }
         }
     }
@@ -194,6 +206,17 @@ public class ProcessingRunner : BackgroundService
 
         throw new InvalidOperationException(
             $"Could not generate a unique on-disk name for <{originalFileName}> in step <{stepIdPrefix}>.");
+    }
+
+    private static VisualizationKind? ResolveVisualizationKind(IReadOnlyCollection<OutputAction> actions)
+    {
+        if (actions.Contains(OutputAction.TreeVisualization))
+            return VisualizationKind.Tree;
+
+        if (actions.Contains(OutputAction.MapVisualization))
+            return VisualizationKind.Map;
+
+        return null;
     }
 
     private static void CopyTo(IJobFileStore store, Guid jobId, string fileName, IPipelineFile source)

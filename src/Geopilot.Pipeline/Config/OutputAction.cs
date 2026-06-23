@@ -22,4 +22,22 @@ public enum OutputAction
     /// to indicate the result of an action. It is important to ensure that the message is clear and concise to enhance
     /// user experience. The assigned output type has to be a `Dictionary&lt;string, string&gt;` with the localized status message.</remarks>
     StatusMessage,
+
+    /// <summary>
+    /// Marks the output as the JSON config for the built-in map visualization. The assigned output
+    /// must be an <c>IPipelineFile</c> containing a JSON document the frontend map component can render.
+    /// The file is persisted to the download file store and exposed on the step result as a visualization
+    /// (separate from <see cref="Download"/>). Combine with <see cref="Download"/> to also expose the
+    /// raw JSON as a user download.
+    /// </summary>
+    MapVisualization,
+
+    /// <summary>
+    /// Marks the output as the JSON config for the built-in tree visualization. The assigned output
+    /// must be an <c>IPipelineFile</c> containing a JSON document the frontend tree component can render.
+    /// The file is persisted to the download file store and exposed on the step result as a visualization
+    /// (separate from <see cref="Download"/>). Combine with <see cref="Download"/> to also expose the
+    /// raw JSON as a user download.
+    /// </summary>
+    TreeVisualization,
 }

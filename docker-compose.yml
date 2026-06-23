@@ -76,6 +76,8 @@ services:
     restart: unless-stopped
     ports:
       - 3080:8080
+    volumes:
+      - ./TestData/XtfErrors/ili-repository:/repository
 
   ili2gpkg-worker:
     build:

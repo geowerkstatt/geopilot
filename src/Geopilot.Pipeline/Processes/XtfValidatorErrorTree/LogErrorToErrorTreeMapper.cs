@@ -1,225 +1,173 @@
-﻿using System.Text.RegularExpressions;
+﻿using Geopilot.Pipeline.Processes.TreeVisualization;
+using System.Globalization;
 
 namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
 
 /// <summary>
-/// Provides methods to create a hierarchical structure from log entries.
+/// Builds a generic <see cref="TreeNode"/> hierarchy from XTF validator log entries.
+/// The tree groups errors and warnings by their error type. Each group lists its individual
+/// occurrences as leaves, displayed by the object TID, with the model, topic, class and full
+/// message carried as metadata. Entries without a TID are collected under a single trailing group.
 /// </summary>
 public class LogErrorToErrorTreeMapper
 {
-    private class ConstraintEntry
+    private const string IconError = "error_outline";
+    private const string IconWarning = "warning_amber";
+
+    private const string ColorError = "error";
+    private const string ColorWarning = "warning";
+
+    private const string OtherGroupName = "Other Errors/Warnings";
+
+    /// <summary>
+    /// A single occurrence of an error or warning, with the text shown for it, its severity and its metadata.
+    /// </summary>
+    private sealed record Occurrence(string Display, LogEntryType Severity, IDictionary<string, string> Metadata);
+
+    private readonly Dictionary<string, List<Occurrence>> occurrencesByCategory = new(StringComparer.Ordinal);
+    private readonly List<Occurrence> otherOccurrences = new List<Occurrence>();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LogErrorToErrorTreeMapper"/> class using the specified collection of log entries.
+    /// </summary>
+    /// <remarks>The constructor collects the errors and warnings so that <see cref="Map"/> can build the tree from them.</remarks>
+    /// <param name="logEntries">The collection of log entries to be processed for building the tree. Cannot be null.</param>
+    public LogErrorToErrorTreeMapper(IEnumerable<LogError> logEntries)
     {
-        public required string ConstraintName { get; set; }
-
-        public required LogEntryType LogEntryType { get; set; }
-
-        public ConstraintType? ConstraintType { get; set; }
-
-        public required string Message { get; set; }
+        ArgumentNullException.ThrowIfNull(logEntries);
+        CollectWarningsAndErrors(logEntries);
     }
 
-    private static readonly (ConstraintType Type, Regex Pattern)[] ConstraintPatterns =
+    /// <summary>
+    /// Converts the collected errors and warnings into a <see cref="TreeNode"/> hierarchy.
+    /// Group nodes carry the severity of their most severe occurrence, leaf nodes carry their own severity.
+    /// Groups are ordered by severity, then by occurrence count descending, then by category name.
+    /// The group of entries without a TID is appended last.
+    /// </summary>
+    /// <returns>The tree nodes ready for the frontend tree visualization.</returns>
+    public IReadOnlyList<TreeNode> Map()
     {
-        (ConstraintType.Mandatory, new Regex(@"^validate mandatory constraint (\S+)\.\.\.$")),
-        (ConstraintType.Plausibility, new Regex(@"^validate plausibility constraint (\S+)\.\.\.$")),
-        (ConstraintType.Existence, new Regex(@"^validate existence constraint (\S+)\.\.\.$")),
-        (ConstraintType.Uniqueness, new Regex(@"^validate unique constraint (\S+)\.\.\.$")),
-        (ConstraintType.Set, new Regex(@"^validate set constraint (\S+)\.\.\.$")),
+        var rootNodes = occurrencesByCategory
+            .OrderByDescending(group => ReduceSeverity(group.Value))
+            .ThenByDescending(group => group.Value.Count)
+            .ThenBy(group => group.Key, StringComparer.Ordinal)
+            .Select(group => CreateGroup(group.Key, group.Value))
+            .ToList();
+
+        if (otherOccurrences.Count > 0)
+            rootNodes.Add(CreateGroup(OtherGroupName, otherOccurrences));
+
+        return rootNodes;
+    }
+
+    /// <summary>
+    /// Creates a group node with its occurrence leaves, carrying the severity of its most severe occurrence.
+    /// </summary>
+    private static TreeNode CreateGroup(string name, IReadOnlyList<Occurrence> occurrences)
+    {
+        var leaves = occurrences
+            .Select(occurrence => CreateNode(occurrence.Display, occurrence.Severity, new List<TreeNode>(), occurrence.Metadata))
+            .ToList<TreeNode>();
+
+        return CreateNode(name, ReduceSeverity(occurrences), leaves);
+    }
+
+    /// <summary>
+    /// Creates a tree node with the icon and color that match the given severity and the optional metadata details.
+    /// </summary>
+    private static TreeNode CreateNode(string message, LogEntryType severity, IList<TreeNode> children, IDictionary<string, string>? metadata = null) => new()
+    {
+        Message = message,
+        Icon = severity == LogEntryType.Error ? IconError : IconWarning,
+        Color = severity == LogEntryType.Error ? ColorError : ColorWarning,
+        Values = children,
+        Metadata = metadata,
     };
 
     /// <summary>
-    /// Pattern to extract the custom error message of a constraint from a log entry.
-    /// Requires verbose logging to be enabled that the qualified name and INTERLIS syntax of the constraint is included.
-    /// e.g. "Custom message ModelA.TopicA.ClassA.ConstraintName (INTERLIS syntax)" will result in "Custom message".
-    /// </summary>
-    private static readonly Regex CustomConstraintMessagePattern = new Regex(@"^(.*) (\w+\.\w+\.\w+\.\w+) \(.*\)$");
-
-    /// <summary>
-    /// Pattern to detect a message related to a constraint from a log entry.
-    /// e.g. " ModelA.TopicA.ClassA.ConstraintName (INTERLIS syntax) " (the INTERLIS syntax is optional and will be removed from the message).
-    /// </summary>
-    private static readonly Regex ConstraintNamePattern = new Regex(@"\s(\w+\.\w+\.\w+\.\w+)(\s\(.+\))?\s");
-
-    private readonly List<ConstraintEntry> logEntries = new List<ConstraintEntry>();
-    private readonly HashSet<string> otherErrorMessages = new HashSet<string>();
-    private readonly HashSet<string> otherWarningMessages = new HashSet<string>();
-
-    /// <summary>
-    /// Initializes a new instance of the LogHierarchy class using the specified collection of log entries.
-    /// </summary>
-    /// <remarks>The constructor processes the provided log entries to collect constraint information,
-    /// warnings, and errors. Ensure that the collection contains valid LogError objects to accurately represent the log
-    /// hierarchy.</remarks>
-    /// <param name="logEntries">The collection of log entries to be processed for building the log hierarchy. Cannot be null.</param>
-    public LogErrorToErrorTreeMapper(IEnumerable<LogError> logEntries)
-    {
-        var logEntryList = logEntries.ToList();
-        CollectConstraintInfos(logEntryList);
-        CollectWarningsAndErrors(logEntryList);
-    }
-
-    /// <summary>
-    /// Converts the collected log entries into a hierarchical structure.
-    /// </summary>
-    /// <returns>Hierarchical log entries.</returns>
-    public List<ErrorTree> Map()
-    {
-        var hierarchicalEntries = new List<ErrorTree>();
-        var modelGroups = logEntries.GroupBy(e => GetModelName(e.ConstraintName));
-
-        foreach (var modelGroup in modelGroups)
-        {
-            var modelName = modelGroup.Key;
-            var modelEntry = new ErrorTree
-            {
-                Message = modelName,
-                Type = LogEntryType.Info,
-                Values = new List<ErrorTree>(),
-            };
-            hierarchicalEntries.Add(modelEntry);
-
-            var classGroups = modelGroup.GroupBy(e => GetClassNameOfConstraint(e.ConstraintName));
-            foreach (var classGroup in classGroups)
-            {
-                var fullClassName = classGroup.Key;
-                var className = fullClassName.Substring(modelName.Length + 1);
-                var classEntry = new ErrorTree
-                {
-                    Message = className,
-                    Type = classGroup.Aggregate(LogEntryType.Info, (type, constraintEntry) => ReduceType(type, constraintEntry.LogEntryType)),
-                    Values = classGroup.Select(e => new ErrorTree
-                    {
-                        Message = e.Message.Replace(fullClassName + ".", string.Empty),
-                        Type = e.LogEntryType,
-                        Values = new List<ErrorTree>(),
-                    }).ToList(),
-                };
-                modelEntry.Type = ReduceType(modelEntry.Type, classEntry.Type);
-                modelEntry.Values.Add(classEntry);
-            }
-        }
-
-        if (otherErrorMessages.Count > 0 || otherWarningMessages.Count > 0)
-        {
-            var errors = otherErrorMessages.Select(message => new ErrorTree
-            {
-                Message = message,
-                Type = LogEntryType.Error,
-                Values = new List<ErrorTree>(),
-            });
-            var warnings = otherWarningMessages.Select(message => new ErrorTree
-            {
-                Message = message,
-                Type = LogEntryType.Warning,
-                Values = new List<ErrorTree>(),
-            });
-            hierarchicalEntries.Add(new ErrorTree
-            {
-                Message = "Other Messages",
-                Type = otherErrorMessages.Count > 0 ? LogEntryType.Error : LogEntryType.Warning,
-                Values = errors.Concat(warnings).ToList(),
-            });
-        }
-
-        return hierarchicalEntries;
-    }
-
-    /// <summary>
-    /// Collects all constraints from the given logEntries without checking their validation results.
+    /// Collects warnings and errors as occurrences. An entry with a TID whose message matches a known error type
+    /// is grouped under that type and displayed by its TID. Any other entry is collected under the other group
+    /// and displayed by its full message.
     /// </summary>
     /// <param name="logEntries">Entries of the validator log.</param>
-    private void CollectConstraintInfos(IList<LogError> logEntries)
+    private void CollectWarningsAndErrors(IEnumerable<LogError> logEntries)
     {
         foreach (var logEntry in logEntries)
         {
             if (string.IsNullOrEmpty(logEntry.Message))
                 continue;
-            if (Enum.TryParse(logEntry.Type, out LogEntryType logEntryType) && logEntryType == LogEntryType.Info)
-            {
-                foreach (var (constraintType, pattern) in ConstraintPatterns)
-                {
-                    var constraintMatch = pattern.Match(logEntry.Message);
-                    if (constraintMatch.Success)
-                    {
-                        var constraintName = constraintMatch.Groups[1].Value;
-                        AddLogEntry(constraintName, logEntryType, constraintType, constraintName);
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Collects warnings and errors of the constraints and other entries from the given logEntries.
-    /// </summary>
-    /// <param name="logEntries">Entries of the validator log.</param>
-    private void CollectWarningsAndErrors(IList<LogError> logEntries)
-    {
-        foreach (var logEntry in logEntries)
-        {
-            if (string.IsNullOrEmpty(logEntry.Message))
+            if (!Enum.TryParse(logEntry.Type, out LogEntryType logEntryType) || logEntryType == LogEntryType.Info)
                 continue;
-            if (Enum.TryParse(logEntry.Type, out LogEntryType logEntryType) && logEntryType != LogEntryType.Info)
+
+            var metadata = BuildMetadata(logEntry);
+            var category = string.IsNullOrEmpty(logEntry.Tid) ? null : ErrorTypeClassifier.Classify(logEntry.Message);
+
+            if (category is not null)
             {
-                var customMessageMatch = CustomConstraintMessagePattern.Match(logEntry.Message);
-                if (customMessageMatch.Success)
-                {
-                    var customMessage = customMessageMatch.Groups[1].Value;
-                    var constraintName = customMessageMatch.Groups[2].Value;
-                    AddLogEntry(constraintName, logEntryType, customMessage);
-                }
-                else
-                {
-                    var nameMatch = ConstraintNamePattern.Match(logEntry.Message);
-                    if (nameMatch.Success)
-                    {
-                        var constraintName = nameMatch.Groups[1].Value;
-                        var interlisSyntax = nameMatch.Groups[2].Success ? nameMatch.Groups[2].Value : null;
-                        var logMessage = interlisSyntax != null ? logEntry.Message.Replace(interlisSyntax, string.Empty) : logEntry.Message;
-                        AddLogEntry(constraintName, logEntryType, logMessage);
-                    }
-                    else if (logEntryType == LogEntryType.Error)
-                    {
-                        otherErrorMessages.Add(logEntry.Message);
-                    }
-                    else
-                    {
-                        otherWarningMessages.Add(logEntry.Message);
-                    }
-                }
+                var occurrences = occurrencesByCategory.TryGetValue(category, out var existing)
+                    ? existing
+                    : occurrencesByCategory[category] = new List<Occurrence>();
+                occurrences.Add(new Occurrence(logEntry.Tid!, logEntryType, metadata));
+            }
+            else
+            {
+                otherOccurrences.Add(new Occurrence(logEntry.Message, logEntryType, metadata));
             }
         }
     }
 
     /// <summary>
-    /// Updates the log entry of the constraint with the given name.
+    /// Builds the metadata of a log entry, preserving a stable display order: the TID of the failing object,
+    /// model, topic and class from the object tag, the full message, then the line and coordinates when present.
     /// </summary>
-    /// <param name="constraintName">The qualified name of the constraint.</param>
-    /// <param name="logEntryType">The log entry type.</param>
-    /// <param name="message">The log message.</param>
-    private void AddLogEntry(string constraintName, LogEntryType logEntryType, string message)
+    /// <param name="logEntry">The log entry whose details are collected.</param>
+    /// <returns>The metadata details.</returns>
+    private static Dictionary<string, string> BuildMetadata(LogError logEntry)
     {
-        AddLogEntry(constraintName, logEntryType, null, message);
+        var metadata = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        if (!string.IsNullOrEmpty(logEntry.Tid))
+            metadata["TID"] = logEntry.Tid;
+
+        var objTagParts = string.IsNullOrEmpty(logEntry.ObjTag)
+            ? Array.Empty<string>()
+            : SplitQualifiedName(logEntry.ObjTag);
+
+        if (objTagParts.Length == 3)
+        {
+            metadata["Model"] = objTagParts[0];
+            metadata["Topic"] = objTagParts[1];
+            metadata["Class"] = objTagParts[2];
+        }
+
+        metadata["Message"] = logEntry.Message!;
+
+        if (logEntry.Line.HasValue)
+            metadata["Line"] = logEntry.Line.Value.ToString(CultureInfo.InvariantCulture);
+
+        var coord = logEntry.Geometry?.Coord;
+        if (coord is not null)
+        {
+            metadata["Coordinates"] =
+                $"{coord.C1.ToString(CultureInfo.InvariantCulture)}, {coord.C2.ToString(CultureInfo.InvariantCulture)}";
+        }
+
+        return metadata;
     }
 
     /// <summary>
-    /// Updates the log entry of the constraint with the given name.
+    /// Splits a qualified name on dots, ignoring empty segments.
     /// </summary>
-    /// <param name="constraintName">The qualified name of the constraint.</param>
-    /// <param name="logEntryType">The log entry type.</param>
-    /// <param name="constraintType">The type of the constraint.</param>
-    /// <param name="message">The log message.</param>
-    private void AddLogEntry(string constraintName, LogEntryType logEntryType, ConstraintType? constraintType, string message)
-    {
-        logEntries.Add(new ConstraintEntry
-        {
-            ConstraintName = constraintName,
-            LogEntryType = logEntryType,
-            ConstraintType = constraintType,
-            Message = message,
-        });
-    }
+    /// <param name="qualifiedName">The qualified name, e.g. "Model.Topic.Class".</param>
+    /// <returns>The name parts.</returns>
+    private static string[] SplitQualifiedName(string qualifiedName) =>
+        qualifiedName.Split('.', StringSplitOptions.RemoveEmptyEntries);
+
+    /// <summary>
+    /// Reduces the severities of the given occurrences to the most severe one (Error before Warning).
+    /// </summary>
+    private static LogEntryType ReduceSeverity(IEnumerable<Occurrence> occurrences) =>
+        occurrences.Aggregate(LogEntryType.Info, (severity, occurrence) => ReduceType(severity, occurrence.Severity));
 
     /// <summary>
     /// Reduces the given types (Error, Warning or Info) to the type with higher priority.
@@ -239,27 +187,5 @@ public class LogErrorToErrorTreeMapper
         }
 
         return LogEntryType.Info;
-    }
-
-    /// <summary>
-    /// Gets the model name of the given qualified constraint name.
-    /// </summary>
-    /// <param name="qualifiedName">The qualified name of the constraint.</param>
-    /// <returns>The model name of the constraint.</returns>
-    private static string GetModelName(string qualifiedName)
-    {
-        var index = qualifiedName.IndexOf('.');
-        return index == -1 ? qualifiedName : qualifiedName.Substring(0, index);
-    }
-
-    /// <summary>
-    /// Gets the class name of the given qualified constraint name.
-    /// </summary>
-    /// <param name="qualifiedName">The qualified name of the constraint.</param>
-    /// <returns>The class name of the constraint.</returns>
-    private static string GetClassNameOfConstraint(string qualifiedName)
-    {
-        var index = qualifiedName.LastIndexOf('.');
-        return index == -1 ? qualifiedName : qualifiedName.Substring(0, index);
     }
 }

@@ -44,11 +44,19 @@ internal static class DtoMapperExtensions
                 buildDownloadUrl(jobId, pd.PersistedFileName)))
             .ToList();
 
+        var visualizations = step.Visualizations
+            .Select(v => new StepVisualizationResponse(
+                v.Kind,
+                v.OriginalFileName,
+                buildDownloadUrl(jobId, v.PersistedFileName)))
+            .ToList();
+
         return new StepResultResponse(
             step.Id,
             step.DisplayName,
             step.State,
             step.StatusMessage,
-            downloads);
+            downloads,
+            visualizations);
     }
 }

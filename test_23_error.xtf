@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample data for the public federal model "Schutzwald_LV95_V1"
+     (https://models.geo.admin.ch/BAFU/, version 2020-06-16, INTERLIS 2.3) containing a
+     DELIBERATE GEOMETRY ERROR. The Schutzwald.Flaeche boundary below is a self-intersecting
+     "bowtie": edge 1 (2640300,1172560)->(2640340,1172590) crosses edge 3
+     (2640340,1172560)->(2640300,1172590) at LV95 position (2640320, 1172575).
+     A surface boundary must be a simple (non-self-intersecting) ring, so ilivalidator
+     reports an intersection error AT THAT POSITION (the "red" path). All coordinates are
+     valid LV95 values; the only error is the self-intersection. -->
+<TRANSFER xmlns="http://www.interlis.ch/INTERLIS2.3">
+  <HEADERSECTION SENDER="geopilot" VERSION="2.3">
+    <MODELS>
+      <MODEL NAME="Schutzwald_LV95_V1" VERSION="2020-06-16" URI="https://models.geo.admin.ch/BAFU/"/>
+    </MODELS>
+  </HEADERSECTION>
+  <DATASECTION>
+    <Schutzwald_LV95_V1.Schutzwald BID="Schutzwald_LV95_V1.Schutzwald">
+      <!-- ERROR: self-intersecting boundary (bowtie); edges cross at (2640320, 1172575). -->
+      <Schutzwald_LV95_V1.Schutzwald.Schutzwald TID="f1">
+        <Flaeche>
+          <SURFACE>
+            <BOUNDARY>
+              <POLYLINE>
+                <COORD><C1>2640300.000</C1><C2>1172560.000</C2></COORD>
+                <COORD><C1>2640340.000</C1><C2>1172590.000</C2></COORD>
+                <COORD><C1>2640340.000</C1><C2>1172560.000</C2></COORD>
+                <COORD><C1>2640300.000</C1><C2>1172590.000</C2></COORD>
+                <COORD><C1>2640300.000</C1><C2>1172560.000</C2></COORD>
+              </POLYLINE>
+            </BOUNDARY>
+          </SURFACE>
+        </Flaeche>
+      </Schutzwald_LV95_V1.Schutzwald.Schutzwald>
+    </Schutzwald_LV95_V1.Schutzwald>
+  </DATASECTION>
+</TRANSFER>

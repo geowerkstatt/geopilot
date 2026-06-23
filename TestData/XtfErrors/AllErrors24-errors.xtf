@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS" xmlns="http://www.interlis.ch/xtf/2.4/AllErrors24" xmlns:geom="http://www.interlis.ch/geometry/1.0">
+	<ili:headersection>
+		<ili:models>
+			<ili:model>AllErrors24</ili:model>
+		</ili:models>
+	</ili:headersection>
+	<ili:datasection>
+		<MainTopic ili:bid="mainBasket">
+
+			<!-- ===== type / value errors (ValueTypeClass) ===== -->
+			<!-- value <abc> is not a number in attribute numberValue -->
+			<ValueTypeClass ili:tid="valueNotANumber"><numberValue>abc</numberValue></ValueTypeClass>
+			<!-- value 999 is out of range in attribute numberValue -->
+			<ValueTypeClass ili:tid="numberOutOfRange"><numberValue>999.00</numberValue></ValueTypeClass>
+			<!-- Attribute limitedText is length restricted to 5 -->
+			<ValueTypeClass ili:tid="textTooLong"><limitedText>toolong</limitedText></ValueTypeClass>
+			<!-- value <maybe> is not a BOOLEAN in attribute booleanFlag -->
+			<ValueTypeClass ili:tid="valueNotABoolean"><booleanFlag>maybe</booleanFlag></ValueTypeClass>
+			<!-- value yellow is not a member of the enumeration in attribute colourValue -->
+			<ValueTypeClass ili:tid="valueNotInEnumeration"><colourValue>yellow</colourValue></ValueTypeClass>
+			<!-- invalid format of date value <15.06.2005> in attribute dateValue -->
+			<ValueTypeClass ili:tid="invalidDateFormat"><dateValue>15.06.2005</dateValue></ValueTypeClass>
+			<!-- date value <1999-06-15> is not in range in attribute dateValue -->
+			<ValueTypeClass ili:tid="dateOutOfRange"><dateValue>1999-06-15</dateValue></ValueTypeClass>
+			<!-- invalid format of time value <99:99:99.999> in attribute timeValue -->
+			<ValueTypeClass ili:tid="invalidTimeFormat"><timeValue>99:99:99.999</timeValue></ValueTypeClass>
+			<!-- datetime value <1999-06-15T12:00:00.000> is not in range in attribute dateTimeValue -->
+			<ValueTypeClass ili:tid="dateTimeOutOfRange"><dateTimeValue>1999-06-15T12:00:00.000</dateTimeValue></ValueTypeClass>
+			<!-- invalid format of INTERLIS.NAME value <1bad> in attribute interlisName -->
+			<ValueTypeClass ili:tid="invalidInterlisName"><interlisName>1bad</interlisName></ValueTypeClass>
+			<!-- value <TRANSFER> is a keyword in attribute interlisName -->
+			<ValueTypeClass ili:tid="nameIsKeyword"><interlisName>TRANSFER</interlisName></ValueTypeClass>
+			<!-- invalid format of INTERLIS.URI value <ht tp://b ad> in attribute interlisUri -->
+			<ValueTypeClass ili:tid="invalidInterlisUri"><interlisUri>ht tp://b ad</interlisUri></ValueTypeClass>
+			<!-- value <not-a-uuid> is not a valid UUID in attribute uuidValue -->
+			<ValueTypeClass ili:tid="invalidUuid"><uuidValue>not-a-uuid</uuidValue></ValueTypeClass>
+			<!-- OID duplicateOid already exists (two objects share the same TID) -->
+			<ValueTypeClass ili:tid="duplicateOid"><numberValue>1.00</numberValue></ValueTypeClass>
+			<ValueTypeClass ili:tid="duplicateOid"><numberValue>2.00</numberValue></ValueTypeClass>
+
+			<!-- ===== control characters (NormalizedTextClass) ===== -->
+			<!-- Attribute normalizedText must not contain control characters (embedded TAB) -->
+			<NormalizedTextClass ili:tid="textWithControlChar"><normalizedText>tab&#9;here</normalizedText></NormalizedTextClass>
+
+			<!-- ===== multiplicity (MultiplicityClass) ===== -->
+			<!-- Attribute mandatoryText requires a value (mandatory attribute omitted) -->
+			<MultiplicityClass ili:tid="missingMandatoryValue">
+				<itemBag><ItemStructure><itemText>x</itemText></ItemStructure></itemBag>
+			</MultiplicityClass>
+			<!-- Attribute itemBag has wrong number of values (3 > max 2) -->
+			<MultiplicityClass ili:tid="tooManyBagValues">
+				<mandatoryText>present</mandatoryText>
+				<itemBag>
+					<ItemStructure><itemText>a</itemText></ItemStructure>
+					<ItemStructure><itemText>b</itemText></ItemStructure>
+					<ItemStructure><itemText>c</itemText></ItemStructure>
+				</itemBag>
+			</MultiplicityClass>
+
+			<!-- ===== geometry structure (GeometryClass) ===== -->
+			<!-- Wrong COORD structure, C2 expected -->
+			<GeometryClass ili:tid="coordMissingC2"><pointCoord><geom:coord><geom:c1>2645001.000</geom:c1></geom:coord></pointCoord></GeometryClass>
+			<!-- Wrong COORD structure, C3 not expected (pointCoord is 2D) -->
+			<GeometryClass ili:tid="coordUnexpectedC3"><pointCoord><geom:coord><geom:c1>2645001.000</geom:c1><geom:c2>1245002.000</geom:c2><geom:c3>3.000</geom:c3></geom:coord></pointCoord></GeometryClass>
+			<!-- invalid number of segments in POLYLINE (only one vertex) -->
+			<GeometryClass ili:tid="polylineTooFewSegments"><straightPolyline><geom:polyline><geom:coord><geom:c1>2645000.000</geom:c1><geom:c2>1245000.000</geom:c2></geom:coord></geom:polyline></straightPolyline></GeometryClass>
+			<!-- Wrong ARC structure (arc without a1/a2) -->
+			<GeometryClass ili:tid="invalidArcStructure"><arcPolyline><geom:polyline><geom:coord><geom:c1>2645000.000</geom:c1><geom:c2>1245000.000</geom:c2></geom:coord><geom:arc><geom:c1>2645010.000</geom:c1><geom:c2>1245000.000</geom:c2></geom:arc></geom:polyline></arcPolyline></GeometryClass>
+			<!-- failed to validate polygon / missing outerboundary (open ring) -->
+			<GeometryClass ili:tid="openSurfaceBoundary">
+				<surface><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2645000.000</geom:c1><geom:c2>1245000.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2645000.000</geom:c1><geom:c2>1245010.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2645010.000</geom:c1><geom:c2>1245010.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></surface>
+			</GeometryClass>
+			<!-- ===== AREA topology (AreaTopologyClass) two overlapping identical squares ===== -->
+			<AreaTopologyClass ili:tid="overlappingArea1">
+				<categoryValue>a</categoryValue>
+				<areaGeometry><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2645000.000</geom:c1><geom:c2>1245000.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2645000.000</geom:c1><geom:c2>1245010.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2645010.000</geom:c1><geom:c2>1245010.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2645010.000</geom:c1><geom:c2>1245000.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2645000.000</geom:c1><geom:c2>1245000.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></areaGeometry>
+			</AreaTopologyClass>
+			<AreaTopologyClass ili:tid="overlappingArea2">
+				<categoryValue>a</categoryValue>
+				<areaGeometry><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2645000.000</geom:c1><geom:c2>1245000.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2645000.000</geom:c1><geom:c2>1245010.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2645010.000</geom:c1><geom:c2>1245010.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2645010.000</geom:c1><geom:c2>1245000.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2645000.000</geom:c1><geom:c2>1245000.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></areaGeometry>
+			</AreaTopologyClass>
+
+			<!-- ===== geometry errors with coordinates distributed over Switzerland ===== -->
+			<!-- intersection / self-intersecting surface boundary near Geneva -->
+			<GeometryClass ili:tid="selfIntersectionGeneva">
+				<surface><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2500000.000</geom:c1><geom:c2>1117500.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2500010.000</geom:c1><geom:c2>1117510.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2500000.000</geom:c1><geom:c2>1117510.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2500010.000</geom:c1><geom:c2>1117500.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2500000.000</geom:c1><geom:c2>1117500.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></surface>
+			</GeometryClass>
+			<!-- dangle / open surface boundary near Basel -->
+			<GeometryClass ili:tid="openBoundaryBasel">
+				<surface><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2611500.000</geom:c1><geom:c2>1267500.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2611500.000</geom:c1><geom:c2>1267510.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2611510.000</geom:c1><geom:c2>1267510.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></surface>
+			</GeometryClass>
+			<!-- intersection / self-intersecting surface boundary near Zurich -->
+			<GeometryClass ili:tid="selfIntersectionZurich">
+				<surface><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2683000.000</geom:c1><geom:c2>1248000.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2683010.000</geom:c1><geom:c2>1248010.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2683000.000</geom:c1><geom:c2>1248010.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2683010.000</geom:c1><geom:c2>1248000.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2683000.000</geom:c1><geom:c2>1248000.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></surface>
+			</GeometryClass>
+			<!-- dangle / open surface boundary near Lugano -->
+			<GeometryClass ili:tid="openBoundaryLugano">
+				<surface><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2717500.000</geom:c1><geom:c2>1096000.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2717500.000</geom:c1><geom:c2>1096010.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2717510.000</geom:c1><geom:c2>1096010.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></surface>
+			</GeometryClass>
+			<!-- intersection / self-intersecting surface boundary near St. Gallen -->
+			<GeometryClass ili:tid="selfIntersectionStGallen">
+				<surface><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2746000.000</geom:c1><geom:c2>1254000.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2746010.000</geom:c1><geom:c2>1254010.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2746000.000</geom:c1><geom:c2>1254010.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2746010.000</geom:c1><geom:c2>1254000.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2746000.000</geom:c1><geom:c2>1254000.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></surface>
+			</GeometryClass>
+			<!-- dangle / open surface boundary near Sion -->
+			<GeometryClass ili:tid="openBoundarySion">
+				<surface><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2593500.000</geom:c1><geom:c2>1120500.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2593500.000</geom:c1><geom:c2>1120510.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2593510.000</geom:c1><geom:c2>1120510.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></surface>
+			</GeometryClass>
+
+			<!-- ===== cluster of several errors at Churwalden GR ===== -->
+			<!-- polygons overlay: two identical squares at Churwalden -->
+			<AreaTopologyClass ili:tid="overlappingAreaChurwalden1">
+				<categoryValue>b</categoryValue>
+				<areaGeometry><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2761300.000</geom:c1><geom:c2>1182700.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761300.000</geom:c1><geom:c2>1182710.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761310.000</geom:c1><geom:c2>1182710.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761310.000</geom:c1><geom:c2>1182700.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761300.000</geom:c1><geom:c2>1182700.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></areaGeometry>
+			</AreaTopologyClass>
+			<AreaTopologyClass ili:tid="overlappingAreaChurwalden2">
+				<categoryValue>b</categoryValue>
+				<areaGeometry><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2761300.000</geom:c1><geom:c2>1182700.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761300.000</geom:c1><geom:c2>1182710.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761310.000</geom:c1><geom:c2>1182710.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761310.000</geom:c1><geom:c2>1182700.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761300.000</geom:c1><geom:c2>1182700.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></areaGeometry>
+			</AreaTopologyClass>
+			<!-- intersection / self-intersecting surface boundary at Churwalden -->
+			<GeometryClass ili:tid="selfIntersectionChurwalden">
+				<surface><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2761320.000</geom:c1><geom:c2>1182700.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761330.000</geom:c1><geom:c2>1182710.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761320.000</geom:c1><geom:c2>1182710.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761330.000</geom:c1><geom:c2>1182700.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761320.000</geom:c1><geom:c2>1182700.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></surface>
+			</GeometryClass>
+			<!-- dangle / open surface boundary at Churwalden -->
+			<GeometryClass ili:tid="openBoundaryChurwalden">
+				<surface><geom:surface><geom:exterior><geom:polyline>
+					<geom:coord><geom:c1>2761340.000</geom:c1><geom:c2>1182700.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761340.000</geom:c1><geom:c2>1182710.000</geom:c2></geom:coord>
+					<geom:coord><geom:c1>2761350.000</geom:c1><geom:c2>1182710.000</geom:c2></geom:coord>
+				</geom:polyline></geom:exterior></geom:surface></surface>
+			</GeometryClass>
+
+			<!-- ===== constraints ===== -->
+			<!-- Mandatory Constraint ... is not true (firstFlag != secondFlag) -->
+			<MandatoryConstraintClass ili:tid="mandatoryConstraintViolated"><firstFlag>true</firstFlag><secondFlag>false</secondFlag></MandatoryConstraintClass>
+			<!-- Plausibility Constraint ... is not true (0% satisfy firstNumber>=secondNumber) -->
+			<PlausibilityConstraintClass ili:tid="plausibilityConstraintViolated"><firstNumber>1</firstNumber><secondNumber>9</secondNumber></PlausibilityConstraintClass>
+			<!-- Set Constraint ... is not true (count of categoryValue=a is 2, expected 5) -->
+			<SetConstraintClass ili:tid="setConstraintObject1"><categoryValue>a</categoryValue></SetConstraintClass>
+			<SetConstraintClass ili:tid="setConstraintObject2"><categoryValue>a</categoryValue></SetConstraintClass>
+			<!-- Unique constraint ... is violated -->
+			<UniqueConstraintClass ili:tid="uniqueConstraintObject1"><keyText>same</keyText><keyNumber>7</keyNumber></UniqueConstraintClass>
+			<UniqueConstraintClass ili:tid="uniqueConstraintObject2"><keyText>same</keyText><keyNumber>7</keyNumber></UniqueConstraintClass>
+			<!-- Existence constraint ... is violated (value "missing" not in any ConditionClass) -->
+			<ExistenceConstraintClass ili:tid="existenceConstraintViolated"><referencedText>missing</referencedText></ExistenceConstraintClass>
+
+			<!-- ===== reference / association (LinkAssociation) ===== -->
+			<LinkSourceClass ili:tid="validSource"><label>source</label></LinkSourceClass>
+			<LinkTargetClass ili:tid="validTarget"><label>target</label></LinkTargetClass>
+			<LinkAssociation><source ili:ref="validSource"/><target ili:ref="validTarget"/></LinkAssociation>
+			<!-- role cardinality: LinkSourceClass with no association -> should associate to 1 target object (instead of 0) -->
+			<LinkSourceClass ili:tid="sourceWithoutLink"><label>lonely</label></LinkSourceClass>
+			<!-- No object found with OID missingTarget (role source points at a missing object) -->
+			<LinkAssociation><source ili:ref="missingTarget"/><target ili:ref="validTarget"/></LinkAssociation>
+			<!-- wrong class of target object (role source points at a LinkTargetClass instead of LinkSourceClass) -->
+			<LinkAssociation><source ili:ref="validTarget"/><target ili:ref="validTarget"/></LinkAssociation>
+
+		</MainTopic>
+
+		<!-- ===== TID not a valid UUID (UuidTopic, OID AS UUIDOID) ===== -->
+		<UuidTopic ili:bid="uuidBasket">
+			<UuidObjectClass ili:tid="not-a-uuid"><label>x</label></UuidObjectClass>
+		</UuidTopic>
+
+		<!-- Structural cases (unknown class/property, empty multi geometries, unknown topic)
+		     abort the XTF 2.4 reader and would suppress all basket-end validations,
+		     so they live in AllErrors24-structural-errors.xtf instead. -->
+
+	</ili:datasection>
+</ili:transfer>
