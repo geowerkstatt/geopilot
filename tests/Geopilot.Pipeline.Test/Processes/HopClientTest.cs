@@ -1,11 +1,11 @@
-﻿using Geopilot.Api.Pipeline.Process.Hop;
-using Geopilot.Pipeline;
+﻿using Geopilot.Pipeline;
+using Geopilot.Pipeline.Processes.Hop;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Text.Json;
 
-namespace Geopilot.Api.Test.Pipeline.Process;
+namespace Geopilot.Pipeline.Test.Processes;
 
 [TestClass]
 public class HopClientTest

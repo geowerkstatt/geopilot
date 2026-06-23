@@ -1,8 +1,9 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Geopilot.Api.Pipeline.Process.Hop;
+namespace Geopilot.Pipeline.Processes.Hop;
 
 /// <summary>
 /// File-drop client for the Hop worker service. Writes the input files, <c>args.json</c> and the

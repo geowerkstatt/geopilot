@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline.Process.Matcher.FileRenamer;
+﻿namespace Geopilot.Pipeline.Processes.Matcher.FileRenamer;
 
 /// <summary>
 /// Configuration parameter for the <see cref="FileRenamerProcess"/>.

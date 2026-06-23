@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Test.Pipeline.Process;
+﻿namespace Geopilot.Pipeline.Test.Processes;
 
 /// <summary>
 /// What the fake Hop worker observed the client write into a job folder before it produced output.

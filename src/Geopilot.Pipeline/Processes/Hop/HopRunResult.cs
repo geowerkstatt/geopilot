@@ -1,6 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 
-namespace Geopilot.Api.Pipeline.Process.Hop;
+namespace Geopilot.Pipeline.Processes.Hop;
 
 /// <summary>
 /// Outcome of a single Hop worker job.

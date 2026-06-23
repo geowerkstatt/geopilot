@@ -3,7 +3,7 @@ using Geopilot.PipelineCore.Pipeline.Process;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Geopilot.Api.Pipeline.Process.Matcher.FileRenamer;
+namespace Geopilot.Pipeline.Processes.Matcher.FileRenamer;
 
 /// <summary>
 /// Renames the uploaded files according to the mapping rules configured by <c>fileMappings</c>.

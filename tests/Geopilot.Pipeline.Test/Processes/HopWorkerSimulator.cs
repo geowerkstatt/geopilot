@@ -1,9 +1,9 @@
-﻿namespace Geopilot.Api.Test.Pipeline.Process;
+﻿namespace Geopilot.Pipeline.Test.Processes;
 
 /// <summary>
 /// Plays the role of the Hop worker against a shared jobs directory: waits for the client's
 /// <c>input.ready</c> sentinel, captures what was dropped, writes the requested output files and log,
-/// then signals <c>output.ready</c> last. Used to drive <see cref="Geopilot.Api.Pipeline.Process.Hop.HopClient"/>
+/// then signals <c>output.ready</c> last. Used to drive <see cref="Geopilot.Pipeline.Processes.Hop.HopClient"/>
 /// from tests without a real worker container.
 /// </summary>
 internal static class HopWorkerSimulator

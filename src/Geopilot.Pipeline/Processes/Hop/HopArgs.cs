@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline.Process.Hop;
+﻿namespace Geopilot.Pipeline.Processes.Hop;
 
 /// <summary>
 /// Per-run arguments serialized to <c>args.json</c> for the Hop worker.

@@ -7,7 +7,7 @@ distribution carries the GIS and geometry plugins the geopilot pipelines need.
 The worker is a self-contained service. Clients interact with it purely through the
 shared filesystem: no network protocol, no socket, no SDK. Anything that can write files
 into the jobs directory and poll for sentinels can drive it. In geopilot the client is
-[`HopClient.cs`](../../src/Geopilot.Api/Pipeline/Process/Hop/HopClient.cs).
+[`HopClient.cs`](../../src/Geopilot.Pipeline/Processes/Hop/HopClient.cs).
 
 This worker follows the same file-drop protocol as the `ili2gpkg-worker`;
 [`docker/ili2gpkg-worker/README.md`](../ili2gpkg-worker/README.md) is the canonical,

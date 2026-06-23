@@ -1,8 +1,9 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 
-namespace Geopilot.Api.Pipeline.Process.Hop;
+namespace Geopilot.Pipeline.Processes.Hop;
 
 /// <summary>
 /// Pipeline process that runs a Hop pipeline (or workflow) on the supplied input files via the

@@ -1,11 +1,11 @@
 processes:
   - id: file_renamer
-    implementation: Geopilot.Api.Pipeline.Process.Matcher.FileRenamer.FileRenamerProcess
+    implementation: Geopilot.Pipeline.Processes.Matcher.FileRenamer.FileRenamerProcess
     default_config:
       fileMappings:
       regexTimeoutMilliseconds: 5000
   - id: hop
-    implementation: Geopilot.Api.Pipeline.Process.Hop.HopProcess
+    implementation: Geopilot.Pipeline.Processes.Hop.HopProcess
     default_config:
       pipeline:
       hopParameters:

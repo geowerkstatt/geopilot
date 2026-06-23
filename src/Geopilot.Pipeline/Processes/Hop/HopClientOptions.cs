@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Api.Pipeline.Process.Hop;
+﻿namespace Geopilot.Pipeline.Processes.Hop;
 
 /// <summary>
 /// Options for <see cref="HopClient"/>. <see cref="JobsDirectory"/> must point at the host-side path

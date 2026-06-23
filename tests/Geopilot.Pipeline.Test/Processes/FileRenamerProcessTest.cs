@@ -1,9 +1,9 @@
-﻿using Geopilot.Api.Pipeline.Process.Matcher.FileRenamer;
-using Geopilot.Pipeline;
+﻿using Geopilot.Pipeline;
+using Geopilot.Pipeline.Processes.Matcher.FileRenamer;
 using Geopilot.PipelineCore.Pipeline;
 using System.Text.RegularExpressions;
 
-namespace Geopilot.Api.Test.Pipeline.Process;
+namespace Geopilot.Pipeline.Test.Processes;
 
 [TestClass]
 public class FileRenamerProcessTest
