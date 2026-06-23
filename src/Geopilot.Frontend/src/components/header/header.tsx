@@ -174,6 +174,16 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                   <ListItemText primary={t("delivery")} />
                 </ListItemButton>
               </ListItem>
+              <ListItem key={t("myDeliveries")} disablePadding>
+                <ListItemButton
+                  selected={isActive("user")}
+                  onClick={() => {
+                    navigateTo("/user/deliveries");
+                  }}
+                  data-cy="my-deliveries-nav">
+                  <ListItemText primary={t("myDeliveries")} />
+                </ListItemButton>
+              </ListItem>
               {isAdmin && (
                 <>
                   <ListItem key={t("administration")} disablePadding>
