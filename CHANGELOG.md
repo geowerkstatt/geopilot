@@ -9,6 +9,7 @@
 - Rate limiting and upload capacity limits for the cloud upload endpoint.
 - `LocalizedText` type in the PipelineCore API for multilingual pipeline texts (pipeline and step display names, status messages). Plugins emitting `Dictionary<string, string>` remain supported.
 - `IPipelineFile.GetLocalPath()` and `IPipelineFileManager.CreateWritableCopy(...)` in the PipelineCore API, letting a process hand a file to external tools by path and obtain an owned, writable copy without copying it by hand.
+- Users can view and delete their own uploaded deliveries when logged in.
 
 ### Changed
 
