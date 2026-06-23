@@ -1,14 +1,14 @@
 import { isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
-import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
 import {
   evaluateAutocomplete,
   evaluateInput,
   getFormField,
   hasError,
   removeAutocompleteValue,
-  setNonFreeSoloAutocomplete,
   setInput,
+  setNonFreeSoloAutocomplete,
 } from "./helpers/formHelpers.js";
+import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
 
 const getRandomOrganisationName = () => `Organisation-${Math.random().toString(36).substring(2, 15)}`;
 

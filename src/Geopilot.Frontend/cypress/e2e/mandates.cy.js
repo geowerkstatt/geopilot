@@ -4,10 +4,10 @@ import {
   evaluateInput,
   evaluateSelect,
   hasError,
-  setNonFreeSoloAutocomplete,
-  setInput,
-  setSelect,
   setFreeSoloAutocomplete,
+  setInput,
+  setNonFreeSoloAutocomplete,
+  setSelect,
 } from "./helpers/formHelpers.js";
 import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
 

@@ -1,9 +1,9 @@
-import { Autocomplete, Chip, SxProps, TextField } from "@mui/material";
-import { useTranslation } from "react-i18next";
-import { Controller, useFormContext } from "react-hook-form";
 import { SyntheticEvent, useMemo, useState } from "react";
-import { getFormFieldError } from "./form";
+import { Controller, useFormContext } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Autocomplete, Chip, SxProps, TextField } from "@mui/material";
+import { getFormFieldError } from "./form";
 
 export interface FormAutocompleteProps<T> {
   fieldName: string;

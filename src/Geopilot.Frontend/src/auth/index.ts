@@ -1,7 +1,7 @@
 import { useContext } from "react";
-import { UserContext } from "./userContext";
 import { ApiAuthConfigurationContext } from "./apiAuthConfigurationContext";
 import { GeopilotAuthContext } from "./geopilotAuthComponent";
+import { UserContext } from "./userContext";
 
 export const useGeopilotAuth = () => useContext(GeopilotAuthContext);
 export const useUser = () => useContext(UserContext);

@@ -1,6 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
+import { FieldValues } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
-import { GeopilotBox } from "../../../components/styledComponents.ts";
+import {
+  AvailablePipelinesResponse,
+  FieldEvaluationType,
+  Mandate,
+  Organisation,
+  PipelineSummary,
+} from "../../../api/apiInterfaces.ts";
+import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import {
   FormAutocomplete,
   FormCheckbox,
@@ -10,18 +20,8 @@ import {
   FormInput,
   FormSelect,
 } from "../../../components/form/form.ts";
-import {
-  AvailablePipelinesResponse,
-  FieldEvaluationType,
-  Mandate,
-  Organisation,
-  PipelineSummary,
-} from "../../../api/apiInterfaces.ts";
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
-import AdminDetailForm from "../../../components/adminDetailForm.tsx";
-import { FieldValues } from "react-hook-form";
-import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
+import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import PipelineFormSelect from "./pipelineFormSelect.tsx";
 

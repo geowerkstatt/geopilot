@@ -1,6 +1,6 @@
 import { FC } from "react";
-import { Box, IconButton, LinearProgress, Stack, Typography } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
+import { Box, IconButton, LinearProgress, Stack, Typography } from "@mui/material";
 import { geopilotTheme } from "../appTheme";
 import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
 import { FlexRowSpaceBetweenBox } from "./styledComponents.ts";

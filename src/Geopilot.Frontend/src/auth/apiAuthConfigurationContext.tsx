@@ -1,6 +1,6 @@
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
-import { AuthSettings } from "./authInterfaces";
 import useFetch from "../hooks/useFetch.ts";
+import { AuthSettings } from "./authInterfaces";
 
 export const ApiAuthConfigurationContext = createContext<AuthSettings | undefined>(undefined);
 

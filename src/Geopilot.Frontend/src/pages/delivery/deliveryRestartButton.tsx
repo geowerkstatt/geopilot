@@ -1,5 +1,5 @@
-import { ButtonProps } from "@mui/material/Button";
 import { FC, useContext } from "react";
+import { ButtonProps } from "@mui/material/Button";
 import { BaseButton } from "../../components/buttons";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { PromptAction } from "../../components/prompt/promptInterfaces";

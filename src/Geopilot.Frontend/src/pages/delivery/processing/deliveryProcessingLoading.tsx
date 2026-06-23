@@ -1,9 +1,9 @@
 import { useContext } from "react";
-import i18next from "i18next";
-import { DeliveryContext } from "../deliveryContext.tsx";
 import { useTranslation } from "react-i18next";
 import { Typography } from "@mui/material";
+import i18next from "i18next";
 import { FlexRowSpaceBetweenBox } from "../../../components/styledComponents.ts";
+import { DeliveryContext } from "../deliveryContext.tsx";
 
 const localized = (entries?: Record<string, string>) =>
   entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
