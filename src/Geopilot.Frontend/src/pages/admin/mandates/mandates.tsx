@@ -18,19 +18,17 @@ export const Mandates = () => {
   const { navigateTo } = useControlledNavigate();
   const [mandates, setMandates] = useState<Mandate[]>();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>();
-  const [isLoading, setIsLoading] = useState(true);
   const { fetchApi } = useFetch();
 
   const loadMandates = useCallback(() => {
     fetchApi<Mandate[]>("/api/v1/mandate", { errorMessageLabel: "mandatesLoadingError" })
       .then(setMandates)
-      .finally(() => setIsLoading(false));
+      .catch(() => setMandates([]));
   }, [fetchApi]);
 
   const loadPipelines = useCallback(() => {
     fetchApi<AvailablePipelinesResponse>("/api/v1/pipeline", { errorMessageLabel: "pipelineLoadingError" })
       .then(response => setPipelines(response?.pipelines ?? []))
-      // Resolve to an empty list on error so the loading gate clears instead of spinning forever.
       .catch(() => setPipelines([]));
   }, [fetchApi]);
 
@@ -128,9 +126,10 @@ export const Mandates = () => {
     },
   ];
 
-  // Keep the grid in its loading state until the pipelines are loaded as well, otherwise the
-  // pipeline column briefly renders valid pipelines as "unknown" while the list is still fetching.
-  const isGridLoading = isLoading || pipelines === undefined;
+  // Derive loading from the data instead of a separate flag: keep the overlay until both mandates
+  // and pipelines are present, so the pipeline column never briefly renders valid pipelines as
+  // "unknown". Both loaders fall back to [] on error so this still resolves.
+  const isGridLoading = mandates === undefined || pipelines === undefined;
 
   return (
     <GeopilotDataGrid
