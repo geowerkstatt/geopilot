@@ -1,12 +1,11 @@
 import { Accordion, AccordionDetails, AccordionSummary, Box, Typography } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { FlexBox, FlexRowBox, FlexRowEndBox } from "../../../components/styledComponents";
-import { BaseButton, CancelButton } from "../../../components/buttons";
+import { FlexBox, FlexRowBox } from "../../../components/styledComponents";
+import { BaseButton } from "../../../components/buttons";
 import { DeliveryContext } from "../deliveryContext";
 import { SyntheticEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
 import i18next from "i18next";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import { isProcessingDeliverable } from "../deliveryUtils";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { ProcessingStepIcon } from "./processingStepIcon";
 
@@ -14,6 +13,8 @@ const localized = (entries?: Record<string, string>) =>
   entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
 
 const stepHasContent = (step: StepResult) => Boolean(step.statusMessage) || step.downloads.length > 0;
+
+const stepIsExpandable = (step: StepResult) => step && step.state !== StepState.Pending && stepHasContent(step);
 
 const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
   StepState.Success,
@@ -23,11 +24,13 @@ const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
 ]);
 
 export const DeliveryProcessingResults = () => {
-  const { processingResponse, resetDelivery, isProcessing } = useContext(DeliveryContext);
+  const { processingResponse } = useContext(DeliveryContext);
   const [expandedStepIds, setExpandedStepIds] = useState<Set<string>>(new Set());
   const autoExpandedIds = useRef<Set<string>>(new Set());
 
   const steps = useMemo(() => processingResponse?.steps ?? [], [processingResponse?.steps]);
+  const stepRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [scrollToStep, setScrollToStep] = useState<StepResult | null>(null);
 
   // Auto-expand each step once it has reached a terminal state and has displayable
   // content. State and content can arrive in separate polls, so we re-evaluate on
@@ -52,7 +55,24 @@ export const DeliveryProcessingResults = () => {
       for (const id of newlyExpanded) next.add(id);
       return next;
     });
+    setScrollToStep(steps.find(s => s.id === newlyExpanded[newlyExpanded.length - 1]) ?? null);
   }, [steps]);
+
+  useEffect(() => {
+    if (!scrollToStep) return;
+    // Scroll immediately if the step is not expandable
+    if (!stepIsExpandable(scrollToStep)) {
+      stepRefs.current[scrollToStep.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setScrollToStep(null);
+    }
+  }, [scrollToStep]);
+
+  // Scroll after the accordion is expanded
+  const handleStepExpanded = (stepId: string) => () => {
+    if (scrollToStep?.id !== stepId) return;
+    stepRefs.current[stepId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setScrollToStep(null);
+  };
 
   const download = (url: string, fileName: string) => {
     const anchor = document.createElement("a");
@@ -82,12 +102,12 @@ export const DeliveryProcessingResults = () => {
       )}
       <Box>
         {steps.map((step, index) => {
-          const isExpandable = step.state !== StepState.Pending && stepHasContent(step);
+          const isExpandable = stepIsExpandable(step);
           const isExpanded = isExpandable && expandedStepIds.has(step.id);
 
           const isStepExpanded = (i: number) => {
             const s = steps[i];
-            return s.state !== StepState.Pending && stepHasContent(s) && expandedStepIds.has(s.id);
+            return stepIsExpandable(s) && expandedStepIds.has(s.id);
           };
 
           const prevExpanded = index > 0 && isStepExpanded(index - 1);
@@ -98,13 +118,15 @@ export const DeliveryProcessingResults = () => {
           return (
             <Accordion
               key={step.id}
+              ref={el => (stepRefs.current[step.id] = el)}
               expanded={isExpanded}
               onChange={isExpandable ? handleAccordionChange(step.id) : undefined}
+              slotProps={{ transition: { onEntered: handleStepExpanded(step.id) } }}
               disableGutters
               sx={{
                 boxShadow: "none",
                 border: 1,
-                borderColor: "divider",
+                borderColor: theme => theme.palette.primary.light,
                 "&:before": { display: "none" },
                 ...(isExpanded
                   ? {
@@ -150,11 +172,6 @@ export const DeliveryProcessingResults = () => {
           );
         })}
       </Box>
-      {!isProcessing && !isProcessingDeliverable(processingResponse) && (
-        <FlexRowEndBox>
-          <CancelButton onClick={resetDelivery} />
-        </FlexRowEndBox>
-      )}
     </FlexBox>
   );
 };

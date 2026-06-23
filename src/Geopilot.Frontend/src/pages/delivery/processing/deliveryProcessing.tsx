@@ -1,19 +1,26 @@
 import { useContext } from "react";
 import { DeliveryContext } from "../deliveryContext";
-import { DeliveryProcessingForm } from "./deliveryProcessingForm";
 import { DeliveryProcessingLoading } from "./deliveryProcessingLoading";
 import { DeliveryProcessingResults } from "./deliveryProcessingResults";
-import { FlexBox } from "../../../components/styledComponents";
+import { DeliveryContent } from "../deliveryContent";
+import { isProcessingDeliverable } from "../deliveryUtils";
+import { DeliveryBackButton, DeliveryContinueButton } from "../deliveryButtons";
 
 export const DeliveryProcessing = () => {
   const { isProcessing, processingResponse } = useContext(DeliveryContext);
   const hasSteps = (processingResponse?.steps?.length ?? 0) > 0;
 
+  const buttons = (
+    <>
+      <DeliveryBackButton />
+      <DeliveryContinueButton disabled={isProcessing || !isProcessingDeliverable(processingResponse)} />
+    </>
+  );
+
   return (
-    <FlexBox>
-      <DeliveryProcessingForm />
+    <DeliveryContent title="processing" buttons={buttons}>
       {isProcessing && <DeliveryProcessingLoading />}
       {hasSteps && <DeliveryProcessingResults />}
-    </FlexBox>
+    </DeliveryContent>
   );
 };

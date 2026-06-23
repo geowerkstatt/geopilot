@@ -7,10 +7,12 @@ const defaultTheme = createTheme();
 const themePalette: AppThemePalette = {
   primary: {
     main: "#124A4F",
-    light: "#124A4F80",
+    light: "#88a4a7",
     inactive: "#124A4F99",
     hover: "#124A4F0D",
+    selected: "#124A4F2E",
     contrastText: "#ffffff",
+    background: "#f6f8f8",
   },
   secondary: {
     main: "#00ff97",
@@ -28,6 +30,7 @@ const themePalette: AppThemePalette = {
   },
   error: {
     main: "#e53835",
+    selected: "#e538352E",
     hover: "#e538350D",
   },
 };
@@ -38,6 +41,15 @@ export const geopilotTheme = createTheme({
   palette: themePalette,
   shadows: themeShadows,
   spacing: themeSpacing,
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 1004,
+      lg: 1200,
+      xl: 1536,
+    },
+  },
   typography: {
     fontFamily: "NeoGeo, sans-serif",
     body1: {
@@ -120,33 +132,23 @@ export const geopilotTheme = createTheme({
     MuiTextField: {
       defaultProps: {
         size: "small",
-        variant: "filled",
       },
       styleOverrides: {
         root: {
           borderRadius: themeSpacing(0.5),
           flex: "1",
 
+          "& .MuiInputBase-input": {
+            height: "32px",
+          },
+
+          "& .MuiSelect-select": {
+            minHeight: "32px !important",
+            alignContent: "center",
+          },
+
           "&.readonly": {
             pointerEvents: "none",
-          },
-        },
-      },
-    },
-    MuiFormControl: {
-      styleOverrides: {
-        root: {
-          "& .MuiFilledInput-root": {
-            backgroundColor: "rgba(0,0,0,0.04)",
-          },
-          "& .MuiFilledInput-root:hover:not(.Mui-disabled, .Mui-error):before": {
-            borderColor: themePalette.primary.main,
-          },
-          "& .MuiFilledInput-root:not(.Mui-error):before": {
-            borderColor: themePalette.primary.main,
-          },
-          "& .MuiFilledInput-root:not(.Mui-error):after": {
-            borderColor: themePalette.primary.main,
           },
         },
       },
@@ -164,11 +166,15 @@ export const geopilotTheme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
+          textTransform: "none",
           fontWeight: "500",
           borderRadius: "4px",
           boxShadow: "none",
           "&:hover": {
             boxShadow: "none",
+          },
+          "&.MuiButton-outlined": {
+            backgroundColor: "white",
           },
           "&.Mui-disabled": {
             "&.MuiButton-text": {
@@ -180,7 +186,6 @@ export const geopilotTheme = createTheme({
               color: themePalette.primary.contrastText,
             },
             "&.MuiButton-outlined": {
-              backgroundColor: "transparent",
               color: themePalette.primary.inactive,
               borderColor: themePalette.primary.inactive,
             },
@@ -302,6 +307,22 @@ export const geopilotTheme = createTheme({
             "&:hover": {
               color: "#124A4F99",
             },
+          },
+        },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          color: themePalette.primary.main,
+          borderColor: themePalette.primary.light,
+          textTransform: "none",
+          "&:hover": {
+            backgroundColor: themePalette.primary.hover,
+          },
+          "&.Mui-selected, &.Mui-selected:hover": {
+            color: themePalette.primary.main,
+            backgroundColor: themePalette.primary.selected,
           },
         },
       },

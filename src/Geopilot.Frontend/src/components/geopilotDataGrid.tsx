@@ -1,6 +1,7 @@
 import { DataGrid, DataGridProps, GridRowSelectionModel } from "@mui/x-data-grid";
 import { FC } from "react";
 import { Box, Stack } from "@mui/material";
+import { styled } from "@mui/system";
 import { BaseButton } from "./buttons.tsx";
 import AddIcon from "@mui/icons-material/Add";
 import { GridRowId } from "@mui/x-data-grid/models/gridRows";
@@ -10,6 +11,12 @@ interface GeopilotDataGridProps extends DataGridProps {
   addLabel?: string;
   onSelect?: (id: GridRowId) => void;
 }
+
+const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
+  height: "100%",
+  backgroundColor: "white",
+  borderColor: theme.palette.primary.light,
+}));
 
 const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
   const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {
@@ -29,9 +36,9 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
       <Box sx={{ flex: "0" }}>
         <BaseButton variant="outlined" icon={<AddIcon />} onClick={handleAddClick} label={props.addLabel} />
       </Box>
-      <DataGrid
+      <StyledDataGrid
         data-cy={`${props.name}-grid`}
-        sx={{ flex: "1", height: "100%" }}
+        sx={{ flex: "1" }}
         autoPageSize
         disableColumnSelector
         hideFooterSelectedRowCount
@@ -40,9 +47,8 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
       />
     </Stack>
   ) : (
-    <DataGrid
+    <StyledDataGrid
       data-cy={`${props.name}-grid`}
-      sx={{ height: "100%" }}
       autoPageSize
       disableColumnSelector
       hideFooterSelectedRowCount

@@ -140,7 +140,6 @@ export const FormAutocomplete = <T,>({
         <Autocomplete
           sx={{ ...sx }}
           fullWidth={true}
-          size={"small"}
           popupIcon={<ExpandMoreIcon />}
           multiple
           freeSolo={freeSolo ?? false}

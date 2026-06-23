@@ -1,4 +1,5 @@
 import { Checkbox, FormControlLabel, SxProps } from "@mui/material";
+import { formControlLabelClasses } from "@mui/material/FormControlLabel";
 import { useTranslation } from "react-i18next";
 import { Controller, useFormContext } from "react-hook-form";
 import { FC, ReactNode } from "react";
@@ -18,7 +19,8 @@ export const FormCheckbox: FC<FormCheckboxProps> = ({ fieldName, label, checked,
 
   return (
     <FormControlLabel
-      sx={{ ...sx }}
+      sx={{ ...sx, [`& .${formControlLabelClasses.label}`]: { opacity: 1 } }}
+      disabled={disabled || undefined} // passing undefined instead of false to prevent marking the form as dirty
       control={
         <Controller
           name={fieldName}
