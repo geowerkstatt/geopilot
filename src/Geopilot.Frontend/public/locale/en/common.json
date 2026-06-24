@@ -93,7 +93,6 @@
   "mandates": "Mandates",
   "mandatesLoadingError": "An error occurred while loading the mandates: {{error}}",
   "mapResetViewport": "Reset view to show all features",
-  "mapVisualizationError": "The map visualization could not be loaded.",
   "mapVisualizationFeatureLayer": "Features",
   "maxFileCount_one": "one file",
   "maxFileCount_other": "up to {{count}} files",
@@ -139,7 +138,6 @@
   "stepStateSkipped": "Skipped",
   "termsOfUseAcceptance": "I accept the <termsLink>terms of use</termsLink>.",
   "treeVisualizationFilterSearch": "Search options",
-  "treeVisualizationLoadFailed": "Could not load the tree.",
   "treeVisualizationMessageSearch": "Search messages",
   "treeVisualizationMetadataEmpty": "Select a node to see its details.",
   "treeVisualizationMetadataTitle": "Details",
@@ -167,5 +165,6 @@
   "validationProfile": "Validation profile",
   "validatorsLoadingError": "An error occurred while loading the validators: {{error}}",
   "version": "Version",
+  "visualizationLoadFailed": "The visualization could not be loaded.",
   "zoomToLayerExtent": "Zoom to layer extent"
 }

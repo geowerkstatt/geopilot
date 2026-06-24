@@ -82,15 +82,19 @@ public interface IPipelineStep : IDisposable
     void AddDeliveryFile(PersistedFile file);
 
     /// <summary>
-    /// Visualization configs produced by the step (outputs configured with a visualization
-    /// action such as <see cref="OutputAction.TreeVisualization"/> or
-    /// <see cref="OutputAction.MapVisualization"/>). The underlying file is
-    /// persisted to the download file store so the frontend can fetch it through the regular
-    /// download endpoint. A file tagged with both a visualization action and
-    /// <see cref="OutputAction.Download"/> is persisted once and appears in both
-    /// <see cref="Downloads"/> and this list.
+    /// Visualization configs produced by the step (outputs configured with
+    /// <see cref="OutputAction.Visualization"/>). Populated by the processing runner (via
+    /// <see cref="AddVisualization"/>) as soon as the step completes. The config object is serialized
+    /// to JSON in the dedicated visualization store and served from the visualization endpoint;
+    /// it is not a download. Read-only; append via <see cref="AddVisualization"/>.
     /// </summary>
-    IList<StepVisualization> Visualizations { get; }
+    IReadOnlyList<StepVisualization> Visualizations { get; }
+
+    /// <summary>
+    /// Appends a visualization to <see cref="Visualizations"/>. Safe to call while another thread
+    /// reads <see cref="Visualizations"/>; readers observe a consistent snapshot.
+    /// </summary>
+    void AddVisualization(StepVisualization visualization);
 
     /// <summary>
     /// Runs the step with the given context.

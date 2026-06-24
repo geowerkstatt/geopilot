@@ -15,12 +15,13 @@ internal static class DtoMapperExtensions
     /// </summary>
     /// <param name="job">The processing job to map.</param>
     /// <param name="buildDownloadUrl">Builds an absolute download URL for a (jobId, fileName) pair.</param>
-    public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl)
+    /// <param name="buildVisualizationUrl">Builds an absolute visualization-config URL for a (jobId, fileName) pair.</param>
+    public static ProcessingJobResponse ToResponse(this ProcessingJob job, Func<Guid, string, Uri> buildDownloadUrl, Func<Guid, string, Uri> buildVisualizationUrl)
     {
         var pipelineName = job.Pipeline?.DisplayName ?? LocalizedText.Empty;
 
         var steps = job.Pipeline?.Steps
-            .Select(step => step.ToResponse(job.Id, buildDownloadUrl))
+            .Select(step => step.ToResponse(job.Id, buildDownloadUrl, buildVisualizationUrl))
             .ToList()
             ?? new List<StepResultResponse>();
 
@@ -36,7 +37,7 @@ internal static class DtoMapperExtensions
     /// <summary>
     /// Maps a single <see cref="IPipelineStep"/> to a <see cref="StepResultResponse"/>.
     /// </summary>
-    private static StepResultResponse ToResponse(this IPipelineStep step, Guid jobId, Func<Guid, string, Uri> buildDownloadUrl)
+    private static StepResultResponse ToResponse(this IPipelineStep step, Guid jobId, Func<Guid, string, Uri> buildDownloadUrl, Func<Guid, string, Uri> buildVisualizationUrl)
     {
         var downloads = step.Downloads
             .Select(pd => new StepDownload(
@@ -46,9 +47,8 @@ internal static class DtoMapperExtensions
 
         var visualizations = step.Visualizations
             .Select(v => new StepVisualizationResponse(
-                v.Kind,
                 v.OriginalFileName,
-                buildDownloadUrl(jobId, v.PersistedFileName)))
+                buildVisualizationUrl(jobId, v.PersistedFileName)))
             .ToList();
 
         return new StepResultResponse(

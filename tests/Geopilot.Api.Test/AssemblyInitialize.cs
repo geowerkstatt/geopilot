@@ -17,6 +17,7 @@ public sealed class AssemblyInitialize
 
         var uploadDirectory = Path.Combine(testContext.DeploymentDirectory, "Uploads");
         var downloadDirectory = Path.Combine(testContext.DeploymentDirectory, "Downloads");
+        var visualizationDirectory = Path.Combine(testContext.DeploymentDirectory, "Visualizations");
         var assetDirectory = Path.Combine(testContext.DeploymentDirectory, "Asset");
         var pipelineDirectory = Path.Combine(testContext.DeploymentDirectory, "Pipeline");
         var resourcesDirectory = Path.Combine(testContext.DeploymentDirectory, "Resources");
@@ -26,6 +27,7 @@ public sealed class AssemblyInitialize
         {
             UploadDirectory = uploadDirectory,
             DownloadDirectory = downloadDirectory,
+            VisualizationDirectory = visualizationDirectory,
             AssetsDirectory = assetDirectory,
             PipelineDirectory = pipelineDirectory,
             ResourcesDirectory = resourcesDirectory,

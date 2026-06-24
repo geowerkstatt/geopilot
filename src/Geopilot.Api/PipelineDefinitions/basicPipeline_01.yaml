@@ -97,10 +97,10 @@ pipelines:
             take: xtf_log
             as: errorLogXtf
         output:
-          - take: map_visualization_config_file
+          - take: visualization
             as: map_visualization
             action:
-              - MapVisualization
+              - Visualization
           - take: status_message
             as: status_message
             action:

@@ -1,4 +1,4 @@
-﻿using Geopilot.Pipeline.Processes.TreeVisualization;
+﻿using Geopilot.Pipeline.Visualization;
 using System.Globalization;
 
 namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
@@ -9,7 +9,7 @@ namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
 /// occurrences as leaves, displayed by the object TID, with the model, topic, class and full
 /// message carried as metadata. Entries without a TID are collected under a single trailing group.
 /// </summary>
-public class LogErrorToErrorTreeMapper
+internal class LogErrorToErrorTreeMapper
 {
     private const string IconError = "error_outline";
     private const string IconWarning = "warning_amber";

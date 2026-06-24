@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Geopilot.Pipeline.Processes.MapVisualization;
+namespace Geopilot.Pipeline.Visualization;
 
 /// <summary>
 /// Describes what is displayed in the map visualization on the client. Serializes to the custom

@@ -27,6 +27,13 @@ public class FileAccessOptions
     public required string DownloadDirectory { get; set; }
 
     /// <summary>
+    /// Gets or sets the root directory for visualization config files produced by pipeline steps and
+    /// served via the visualization endpoint. Cleaned up on a short, dedicated retention.
+    /// </summary>
+    [Required(AllowEmptyStrings = false)]
+    public required string VisualizationDirectory { get; set; }
+
+    /// <summary>
     /// Gets or sets the directory for asset files. Pipeline outputs marked as part of
     /// the delivery payload are written here directly, and the originals from the
     /// upload directory are copied here on submission. Survives the cleanup sweep.

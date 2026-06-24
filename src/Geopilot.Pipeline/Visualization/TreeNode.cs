@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace Geopilot.Pipeline.Processes.TreeVisualization;
+namespace Geopilot.Pipeline.Visualization;
 
 /// <summary>
 /// A node in a hierarchical message tree rendered by the frontend tree visualization.

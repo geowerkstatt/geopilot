@@ -24,20 +24,11 @@ public enum OutputAction
     StatusMessage,
 
     /// <summary>
-    /// Marks the output as the JSON config for the built-in map visualization. The assigned output
-    /// must be an <c>IPipelineFile</c> containing a JSON document the frontend map component can render.
-    /// The file is persisted to the download file store and exposed on the step result as a visualization
-    /// (separate from <see cref="Download"/>). Combine with <see cref="Download"/> to also expose the
-    /// raw JSON as a user download.
+    /// Marks the output as a visualization config. The assigned output value is a serializable object
+    /// (not a file): the runtime serializes it to JSON, stores it in the dedicated visualization store,
+    /// and records a reference on the step result, served from the visualization endpoint. The config is
+    /// self-describing, a <c>type</c> discriminator in the JSON selects the frontend component, so the
+    /// backend stays kind-agnostic.
     /// </summary>
-    MapVisualization,
-
-    /// <summary>
-    /// Marks the output as the JSON config for the built-in tree visualization. The assigned output
-    /// must be an <c>IPipelineFile</c> containing a JSON document the frontend tree component can render.
-    /// The file is persisted to the download file store and exposed on the step result as a visualization
-    /// (separate from <see cref="Download"/>). Combine with <see cref="Download"/> to also expose the
-    /// raw JSON as a user download.
-    /// </summary>
-    TreeVisualization,
+    Visualization,
 }

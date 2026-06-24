@@ -93,7 +93,6 @@
   "mandates": "Mandats",
   "mandatesLoadingError": "Une erreur s'est produite lors du chargement des mandats: {{error}}",
   "mapResetViewport": "Réinitialiser la vue pour afficher tous les éléments",
-  "mapVisualizationError": "La visualisation cartographique n'a pas pu être chargée.",
   "mapVisualizationFeatureLayer": "Entités",
   "maxFileCount_one": "un fichier",
   "maxFileCount_other": "jusqu'à {{count}} fichiers",
@@ -139,7 +138,6 @@
   "stepStateSkipped": "Ignoré",
   "termsOfUseAcceptance": "J'accepte les <termsLink>conditions d'utilisation</termsLink>.",
   "treeVisualizationFilterSearch": "Rechercher des options",
-  "treeVisualizationLoadFailed": "L'arborescence n'a pas pu être chargée.",
   "treeVisualizationMessageSearch": "Rechercher dans les messages",
   "treeVisualizationMetadataEmpty": "Sélectionnez un nœud pour voir ses détails.",
   "treeVisualizationMetadataTitle": "Détails",
@@ -167,5 +165,6 @@
   "validationProfile": "Profil de validation",
   "validatorsLoadingError": "Une erreur s'est produite lors du chargement des validateurs: {{error}}",
   "version": "Version",
+  "visualizationLoadFailed": "La visualisation n'a pas pu être chargée.",
   "zoomToLayerExtent": "Zoomer sur l'étendue de la couche"
 }

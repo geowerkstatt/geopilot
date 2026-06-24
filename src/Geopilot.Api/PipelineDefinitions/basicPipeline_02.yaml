@@ -103,10 +103,10 @@ pipelines:
             take: xtf_log
             as: errorLogXtf
         output:
-          - take: map_visualization_config_file
+          - take: visualization
             as: map_visualization
             action:
-              - MapVisualization
+              - Visualization
           - take: status_message
             as: status_message
             action:
@@ -195,12 +195,10 @@ pipelines:
             take: xtf_log
             as: xtfLog
         output:
-          - take: tree_config
+          - take: visualization
             as: error_tree
             action:
-              - Download
-              - Delivery
-              - TreeVisualization
+              - Visualization
           - take: status_message
             as: status_message
             action:
@@ -221,9 +219,6 @@ pipelines:
             as: input
           - from: validation
             take: error_log
-            as: input
-          - from: error_tree
-            take: error_tree
             as: input
         output:
           - take: zip_package
@@ -317,11 +312,10 @@ pipelines:
             take: xtf_log
             as: errorLogXtf
         output:
-          - take: map_visualization_config_file
+          - take: visualization
             as: map_visualization
             action:
-              - MapVisualization
-              - Download
+              - Visualization
       - id: error_tree
         display_name:
           en: Error Messages
@@ -343,8 +337,7 @@ pipelines:
             take: xtf_log
             as: xtfLog
         output:
-          - take: tree_config
+          - take: visualization
             as: error_tree
             action:
-              - TreeVisualization
-              - Download
+              - Visualization

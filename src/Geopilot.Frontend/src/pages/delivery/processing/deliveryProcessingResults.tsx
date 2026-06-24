@@ -8,7 +8,7 @@ import i18next from "i18next";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { ProcessingStepIcon } from "./processingStepIcon";
-import { visualizationComponents } from "./visualizations/visualizationRegistry";
+import { VisualizationLoader } from "./visualizations/visualizationLoader";
 
 const localized = (entries?: Record<string, string>) =>
   entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
@@ -168,10 +168,7 @@ export const DeliveryProcessingResults = () => {
                       ))}
                     </FlexRowBox>
                   )}
-                  {step.visualizations?.map(v => {
-                    const Component = visualizationComponents[v.kind];
-                    return Component ? <Component key={v.url} url={v.url} /> : null;
-                  })}
+                  {isExpanded && step.visualizations?.map(v => <VisualizationLoader key={v.url} url={v.url} />)}
                 </FlexBox>
               </AccordionDetails>
             </Accordion>

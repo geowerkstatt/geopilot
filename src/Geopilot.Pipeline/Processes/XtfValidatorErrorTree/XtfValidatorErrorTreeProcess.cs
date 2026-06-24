@@ -1,15 +1,12 @@
-﻿using Geopilot.Pipeline.Processes.TreeVisualization;
+﻿using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
-using System.Text.Json;
 
 namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
 
 internal class XtfValidatorErrorTreeProcess
 {
-    private const string OutputMappingErrorLog = "error_tree";
-    private const string OutputMappingJsonErrorLog = "json_error_tree";
-    private const string OutputMappingTreeConfig = "tree_config";
+    private const string OutputMappingVisualization = "visualization";
     private const string OutputMappingStatusMessage = "status_message";
 
     private static readonly Dictionary<string, string> SuccessfulStatusMessage = new Dictionary<string, string>
@@ -20,48 +17,17 @@ internal class XtfValidatorErrorTreeProcess
             { "en", "Error tree created" },
         };
 
-    private static readonly JsonSerializerOptions JsonOptions;
-    private readonly IPipelineFileManager pipelineFileManager;
-
-    static XtfValidatorErrorTreeProcess()
-    {
-        JsonOptions = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-        };
-    }
-
-    public XtfValidatorErrorTreeProcess(IPipelineFileManager pipelineFileManager)
-    {
-        this.pipelineFileManager = pipelineFileManager;
-    }
-
     [PipelineProcessRun]
-    public async Task<Dictionary<string, object?>> RunAsync(IPipelineFile xtfLog)
+    public Task<Dictionary<string, object?>> RunAsync(IPipelineFile xtfLog)
     {
-        using var xtfLogFileStream = xtfLog.OpenReadFileStream();
+        var errors = XtfLogParser.Parse(xtfLog);
+        var errorTreeMapper = new LogErrorToErrorTreeMapper(errors);
+        var config = new TreeVisualizationConfig { Nodes = errorTreeMapper.Map() };
 
-        var xtfErrors = XtfLogParser.Parse(new StreamReader(xtfLogFileStream));
-
-        var errorTreeMapper = new LogErrorToErrorTreeMapper(xtfErrors);
-        var errorLog = errorTreeMapper.Map();
-        var jsonErrorLog = JsonSerializer.Serialize(errorLog, JsonOptions);
-
-        var treeConfigFile = pipelineFileManager.GeneratePipelineFile("treeConfig", "json");
-
-        using (FileStream fileStream = treeConfigFile.OpenWriteFileStream())
-        using (StreamWriter streamWriter = new(fileStream))
+        return Task.FromResult(new Dictionary<string, object?>
         {
-            await streamWriter.WriteAsync(jsonErrorLog);
-        }
-
-        return new Dictionary<string, object?>()
-        {
-            { OutputMappingErrorLog, errorLog },
-            { OutputMappingJsonErrorLog, jsonErrorLog },
-            { OutputMappingTreeConfig, treeConfigFile },
+            { OutputMappingVisualization, VisualizationFactory.Tree(config) },
             { OutputMappingStatusMessage, SuccessfulStatusMessage },
-        };
+        });
     }
 }

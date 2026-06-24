@@ -133,19 +133,13 @@ export interface MapLayer {
   features?: MapFeature[];
 }
 
-/** The map-visualization config produced by the map visualization pipeline step. */
+/** The map-visualization payload produced by the map visualization pipeline step. */
 export interface MapVisualizationConfig {
   /** The layers displayed in the map, drawn in order. */
   layers: MapLayer[];
 }
 
-export enum VisualizationKind {
-  Tree = "tree",
-  Map = "map",
-}
-
 export interface StepVisualization {
-  kind: VisualizationKind;
   originalFileName: string;
   url: string;
 }

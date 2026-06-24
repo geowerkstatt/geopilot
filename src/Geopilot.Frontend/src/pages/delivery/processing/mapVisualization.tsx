@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18next from "i18next";
-import { Box, CircularProgress, IconButton, Tooltip, Typography } from "@mui/material";
+import { Box, IconButton, Tooltip } from "@mui/material";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import proj4 from "proj4";
 import Map from "ol/Map";
@@ -21,7 +21,6 @@ import { get as getProjection } from "ol/proj";
 import { createEmpty, extend as extendExtent, isEmpty as isExtentEmpty } from "ol/extent";
 import BaseLayer from "ol/layer/Base";
 import { MapLayer, MapVisualizationConfig } from "../../../api/apiInterfaces";
-import useFetch from "../../../hooks/useFetch";
 import { useTheme } from "@mui/material/styles";
 import { LayerSwitcher, LayerSwitcherProperties } from "./layerSwitcher";
 import "ol/ol.css";
@@ -189,21 +188,18 @@ const getFitExtent = (featureLayers: VectorLayer<VectorSource>[]): number[] => {
 };
 
 interface MapVisualizationProps {
-  /** Absolute URL to fetch the JSON map visualization config to render. */
-  url: string;
+  /** The map visualization config to render. */
+  config: MapVisualizationConfig;
 }
 
-export const MapVisualization = ({ url }: MapVisualizationProps) => {
+export const MapVisualization = ({ config }: MapVisualizationProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { fetchApi } = useFetch();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   // The map instance and feature layers are kept in refs so the reset-viewport button can re-fit the view
   // after the initializing effect has finished.
   const mapRef = useRef<Map | undefined>(undefined);
   const featureLayersRef = useRef<VectorLayer<VectorSource>[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
   const [map, setMap] = useState<Map | null>(null);
 
   const resetViewport = useCallback(() => {
@@ -215,14 +211,11 @@ export const MapVisualization = ({ url }: MapVisualizationProps) => {
   useEffect(() => {
     let cancelled = false;
     let map: Map | undefined;
-    setIsLoading(true);
-    setHasError(false);
     setMap(null);
 
     const initialize = async () => {
       try {
         registerSwissProjection();
-        const config = await fetchApi<MapVisualizationConfig>(url, { method: "GET" });
         if (cancelled || !mapContainerRef.current) return;
 
         const featureLayers = config.layers
@@ -305,14 +298,9 @@ export const MapVisualization = ({ url }: MapVisualizationProps) => {
 
         if (!cancelled) {
           setMap(map);
-          setIsLoading(false);
         }
       } catch (error) {
-        if (!cancelled) {
-          console.error("Failed to render map visualization.", error);
-          setHasError(true);
-          setIsLoading(false);
-        }
+        console.error("Failed to render map visualization.", error);
       }
     };
 
@@ -325,15 +313,7 @@ export const MapVisualization = ({ url }: MapVisualizationProps) => {
       mapRef.current = undefined;
       featureLayersRef.current = [];
     };
-  }, [url, fetchApi, theme, t]);
-
-  if (hasError) {
-    return (
-      <Typography variant="body1" color="error">
-        {t("mapVisualizationError")}
-      </Typography>
-    );
-  }
+  }, [config, theme, t]);
 
   return (
     <Box sx={{ position: "relative", width: "100%", height: "400px" }}>
@@ -352,7 +332,7 @@ export const MapVisualization = ({ url }: MapVisualizationProps) => {
         }}
       />
       <LayerSwitcher map={map} />
-      {!isLoading && (
+      {map && (
         <Tooltip title={t("mapResetViewport")}>
           <IconButton
             data-cy="map-reset-viewport"
@@ -371,19 +351,6 @@ export const MapVisualization = ({ url }: MapVisualizationProps) => {
             <CenterFocusStrongIcon />
           </IconButton>
         </Tooltip>
-      )}
-      {isLoading && (
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(255, 255, 255, 0.6)",
-          }}>
-          <CircularProgress />
-        </Box>
       )}
     </Box>
   );

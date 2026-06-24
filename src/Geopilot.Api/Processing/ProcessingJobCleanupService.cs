@@ -71,6 +71,7 @@ public class ProcessingJobCleanupService : BackgroundService
             var dbContext = scope.ServiceProvider.GetRequiredService<Context>();
             var now = DateTime.UtcNow;
             int cleanedDownloads = 0;
+            int cleanedVisualizations = 0;
             int retiredJobs = 0;
 
             // Downloads expire on a separate (typically much shorter) retention so the
@@ -82,6 +83,18 @@ public class ProcessingJobCleanupService : BackgroundService
                 {
                     if (DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId)))
                         cleanedDownloads++;
+                }
+            }
+
+            // Visualizations expire on their own (typically shortest) retention: a visualization is only
+            // needed while the user views the job result in the browser.
+            foreach (var jobId in EnumerateJobIds(directoryProvider.VisualizationDirectory))
+            {
+                var job = jobStore.GetJob(jobId);
+                if (job == null || now - job.CreatedAt > processingOptions.VisualizationRetention)
+                {
+                    if (DeleteIfExists(directoryProvider.GetVisualizationDirectoryPath(jobId)))
+                        cleanedVisualizations++;
                 }
             }
 
@@ -102,7 +115,7 @@ public class ProcessingJobCleanupService : BackgroundService
                     retiredJobs++;
             }
 
-            logger.LogInformation("ProcessingJobCleanupService completed. Retired jobs: {Retired}, expired download dirs: {Downloads}.", retiredJobs, cleanedDownloads);
+            logger.LogInformation("ProcessingJobCleanupService completed. Retired jobs: {Retired}, expired download dirs: {Downloads}, expired visualization dirs: {Visualizations}.", retiredJobs, cleanedDownloads, cleanedVisualizations);
         }
         catch (Exception ex)
         {
@@ -134,6 +147,7 @@ public class ProcessingJobCleanupService : BackgroundService
         {
             DeleteIfExists(directoryProvider.GetUploadDirectoryPath(jobId));
             DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId));
+            DeleteIfExists(directoryProvider.GetVisualizationDirectoryPath(jobId));
             if (!hasSubmittedDelivery)
                 DeleteIfExists(directoryProvider.GetAssetDirectoryPath(jobId));
             jobStore.RemoveJob(jobId);

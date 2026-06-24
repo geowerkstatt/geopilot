@@ -12,6 +12,9 @@ public class DirectoryProvider : IDirectoryProvider
     public string DownloadDirectory { get; }
 
     /// <inheritdoc/>
+    public string VisualizationDirectory { get; }
+
+    /// <inheritdoc/>
     public string AssetDirectory { get; }
 
     /// <inheritdoc/>
@@ -32,6 +35,7 @@ public class DirectoryProvider : IDirectoryProvider
 
         UploadDirectory = fileAccess.UploadDirectory;
         DownloadDirectory = fileAccess.DownloadDirectory;
+        VisualizationDirectory = fileAccess.VisualizationDirectory;
         AssetDirectory = fileAccess.AssetsDirectory;
         PipelineDirectory = fileAccess.PipelineDirectory;
         SharedDirectory = fileAccess.SharedDirectory;
@@ -44,6 +48,10 @@ public class DirectoryProvider : IDirectoryProvider
     /// <inheritdoc/>
     public string GetDownloadDirectoryPath(Guid jobId)
         => Path.Combine(DownloadDirectory, jobId.ToString());
+
+    /// <inheritdoc/>
+    public string GetVisualizationDirectoryPath(Guid jobId)
+        => Path.Combine(VisualizationDirectory, jobId.ToString());
 
     /// <inheritdoc/>
     public string GetAssetDirectoryPath(Guid jobId)

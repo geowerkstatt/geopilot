@@ -93,7 +93,6 @@
   "mandates": "Mandati",
   "mandatesLoadingError": "Si è verificato un errore durante il caricamento dei mandati: {{error}}",
   "mapResetViewport": "Reimposta la vista per mostrare tutti gli elementi",
-  "mapVisualizationError": "Impossibile caricare la visualizzazione cartografica.",
   "mapVisualizationFeatureLayer": "Elementi",
   "maxFileCount_one": "un file",
   "maxFileCount_other": "fino a {{count}} file",
@@ -139,7 +138,6 @@
   "stepStateSkipped": "Saltato",
   "termsOfUseAcceptance": "Accetto i <termsLink>Termini di utilizzo</termsLink>.",
   "treeVisualizationFilterSearch": "Cerca opzioni",
-  "treeVisualizationLoadFailed": "Impossibile caricare l'albero.",
   "treeVisualizationMessageSearch": "Cerca nei messaggi",
   "treeVisualizationMetadataEmpty": "Selezionare un nodo per visualizzarne i dettagli.",
   "treeVisualizationMetadataTitle": "Dettagli",
@@ -167,5 +165,6 @@
   "validationProfile": "Profilo di convalida",
   "validatorsLoadingError": "Si è verificato un errore durante il caricamento dei validatori: {{error}}",
   "version": "Versione",
+  "visualizationLoadFailed": "Impossibile caricare la visualizzazione.",
   "zoomToLayerExtent": "Zoom sull'estensione del livello"
 }

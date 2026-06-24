@@ -6,6 +6,12 @@ export interface TreeNode {
   values?: TreeNode[];
 }
 
+/** The tree-visualization payload produced by the error-tree pipeline step. */
+export interface TreeVisualizationConfig {
+  /** The root nodes of the tree, rendered in order. */
+  nodes: TreeNode[];
+}
+
 export type MetadataFilters = Record<string, string[]>;
 
 export interface MetadataAttribute {

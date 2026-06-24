@@ -1,8 +1,7 @@
 ﻿using Geopilot.Pipeline;
-using Geopilot.Pipeline.Processes.TreeVisualization;
 using Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
+using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
-using Moq;
 using Newtonsoft.Json;
 
 namespace Geopilot.Pipeline.Test.Processes;
@@ -13,29 +12,22 @@ public class XtfValidatorErrorTreeProcessTest
     [TestMethod]
     public async Task SunnyDay()
     {
-        var pipelineFileManagerMock = new Mock<IPipelineFileManager>();
-
-        pipelineFileManagerMock.Setup(m => m.GeneratePipelineFile(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns((string originalFileName, string fileExtension) =>
-            {
-                var filePath = Path.Combine(Path.GetTempPath(), $"{originalFileName}_{Guid.NewGuid()}.{fileExtension}");
-                return new PipelineFile(filePath, originalFileName + "." + fileExtension);
-            });
-        var process = new XtfValidatorErrorTreeProcess(pipelineFileManagerMock.Object);
-
+        var process = new XtfValidatorErrorTreeProcess();
         var uploadFile = new PipelineFile("TestData/DownloadFiles/ilicop/errorLogWithErrors.xtf", "errorLogWithErrors.xtf");
+
         var processResult = await process.RunAsync(uploadFile).ConfigureAwait(false);
         Assert.IsNotNull(processResult);
-        Assert.HasCount(4, processResult);
+        Assert.HasCount(2, processResult);
 
-        var errorLog = processResult["error_tree"] as List<TreeNode>;
-        var jsonErrorLog = processResult["json_error_tree"] as string;
-        var treeConfigFile = processResult["tree_config"] as PipelineFile;
+        var visualization = processResult["visualization"] as Visualization<TreeVisualizationConfig>;
         var statusMessage = processResult["status_message"] as Dictionary<string, string>;
+        Assert.IsNotNull(visualization);
 
+        // The envelope carries the discriminator; the frontend selects the tree component from it.
+        Assert.AreEqual("tree", visualization.Type);
+
+        var errorLog = visualization.Data.Nodes;
         Assert.IsNotEmpty(errorLog);
-        Assert.IsNotEmpty(jsonErrorLog);
-        Assert.IsNotNull(treeConfigFile);
 
         Assert.HasCount(4, statusMessage);
         var expectedStatusMessage = new Dictionary<string, string>()
@@ -49,9 +41,9 @@ public class XtfValidatorErrorTreeProcessTest
 
         var expected = Deserialize(File.ReadAllText("TestData/Expectations/XtfValidatorErrorTree/errorLogWithErrors.json"));
 
-        CollectionAssert.AreEqual(expected, errorLog, "error tree is not as expected");
+        CollectionAssert.AreEqual(expected, errorLog.ToList(), "error tree is not as expected");
 
-        Assert.IsTrue(errorLog!.All(group => group.Metadata is null), "group nodes carry no metadata");
+        Assert.IsTrue(errorLog.All(group => group.Metadata is null), "group nodes carry no metadata");
 
         var uniqueConstraintGroup = errorLog.Single(group => group.Message == "Unique constraint violated");
         var occurrence = uniqueConstraintGroup.Values.Single();

@@ -20,6 +20,7 @@ public sealed class ProcessingControllerTest
     private Mock<ILogger<ProcessingController>> loggerMock;
     private Mock<IProcessingService> validationServiceMock;
     private Mock<IDownloadFileStore> downloadFileStoreMock;
+    private Mock<IVisualizationFileStore> visualizationFileStoreMock;
     private Mock<IContentTypeProvider> contentTypeProviderMock;
     private ProcessingController controller;
 
@@ -30,12 +31,14 @@ public sealed class ProcessingControllerTest
         loggerMock = new Mock<ILogger<ProcessingController>>();
         validationServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
         downloadFileStoreMock = new Mock<IDownloadFileStore>(MockBehavior.Strict);
+        visualizationFileStoreMock = new Mock<IVisualizationFileStore>(MockBehavior.Strict);
         contentTypeProviderMock = new Mock<IContentTypeProvider>(MockBehavior.Strict);
 
         controller = new ProcessingController(
             loggerMock.Object,
             validationServiceMock.Object,
             downloadFileStoreMock.Object,
+            visualizationFileStoreMock.Object,
             contentTypeProviderMock.Object,
             context);
     }
@@ -46,6 +49,7 @@ public sealed class ProcessingControllerTest
         loggerMock.VerifyAll();
         validationServiceMock.VerifyAll();
         downloadFileStoreMock.VerifyAll();
+        visualizationFileStoreMock.VerifyAll();
         contentTypeProviderMock.VerifyAll();
         context.Dispose();
     }

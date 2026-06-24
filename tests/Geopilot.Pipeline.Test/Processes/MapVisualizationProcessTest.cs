@@ -1,8 +1,7 @@
 ﻿using Geopilot.Pipeline;
 using Geopilot.Pipeline.Processes.MapVisualization;
+using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
-using Moq;
-using System.Text.Json;
 
 namespace Geopilot.Pipeline.Test.Processes;
 
@@ -14,29 +13,24 @@ public class MapVisualizationProcessTest
     [TestMethod]
     public async Task SunnyDay()
     {
-        var pipelineFileManagerMock = new Mock<IPipelineFileManager>();
-        pipelineFileManagerMock.Setup(m => m.GeneratePipelineFile(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns((string originalFileName, string fileExtension) =>
-            {
-                var filePath = Path.Combine(Path.GetTempPath(), $"{originalFileName}_{Guid.NewGuid()}.{fileExtension}");
-                return new PipelineFile(filePath, originalFileName + "." + fileExtension);
-            });
-        var process = new MapVisualizationProcess(pipelineFileManagerMock.Object);
-
+        var process = new MapVisualizationProcess();
         var errorLogXtf = new PipelineFile("TestData/DownloadFiles/ilicop/errorLogWithErrors.xtf", "errorLogWithErrors.xtf");
+
         var processResult = await process.RunAsync(errorLogXtf).ConfigureAwait(false);
 
         Assert.IsNotNull(processResult);
         Assert.HasCount(2, processResult);
 
-        var configFile = processResult["map_visualization_config_file"] as PipelineFile;
+        var visualization = processResult["visualization"] as Visualization<MapVisualizationConfig>;
         var statusMessage = processResult["status_message"] as Dictionary<string, string>;
-        Assert.IsNotNull(configFile);
+        Assert.IsNotNull(visualization);
         Assert.IsNotNull(statusMessage);
         Assert.HasCount(4, statusMessage);
 
-        var config = ReadConfig(configFile);
-        Assert.IsNotNull(config);
+        // The envelope carries the discriminator; the frontend selects the map component from it.
+        Assert.AreEqual("map", visualization.Type);
+
+        var config = visualization.Data;
 
         // Always a base map (WMTS) layer followed by a feature layer.
         Assert.HasCount(2, config.Layers);
@@ -71,11 +65,5 @@ public class MapVisualizationProcessTest
             StringAssert.StartsWith(feature.Geom, "POINT(");
             Assert.IsNotEmpty(feature.Info);
         }
-    }
-
-    private static MapVisualizationConfig? ReadConfig(PipelineFile configFile)
-    {
-        using var stream = configFile.OpenReadFileStream();
-        return JsonSerializer.Deserialize<MapVisualizationConfig>(stream);
     }
 }

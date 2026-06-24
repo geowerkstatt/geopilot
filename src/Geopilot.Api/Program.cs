@@ -203,6 +203,7 @@ builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
 builder.Services.AddTransient<IUploadFileStore, PhysicalUploadFileStore>();
 builder.Services.AddTransient<IAssetFileStore, PhysicalAssetFileStore>();
 builder.Services.AddTransient<IDownloadFileStore, PhysicalDownloadFileStore>();
+builder.Services.AddTransient<IVisualizationFileStore, PhysicalVisualizationFileStore>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
 builder.Services.AddHostedService<ProcessingRunner>();
 builder.Services.AddHostedService<ProcessingJobCleanupService>();
