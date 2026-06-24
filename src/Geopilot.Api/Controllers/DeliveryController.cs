@@ -7,6 +7,7 @@ using Geopilot.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Globalization;
 
@@ -23,16 +24,18 @@ public class DeliveryController : ControllerBase
     private readonly Context context;
     private readonly IProcessingService processingService;
     private readonly IAssetHandler assetHandler;
+    private readonly IOptions<DeliveryOptions> deliveryOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IProcessingService processingService, IAssetHandler assetHandler)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IProcessingService processingService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions)
     {
         this.logger = logger;
         this.context = context;
         this.processingService = processingService;
         this.assetHandler = assetHandler;
+        this.deliveryOptions = deliveryOptions;
     }
 
     /// <summary>
@@ -226,6 +229,7 @@ public class DeliveryController : ControllerBase
     [Authorize(Policy = GeopilotPolicies.User)]
     [SwaggerResponse(StatusCodes.Status200OK, "The delivery was successfully deleted.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status403Forbidden, "The user is not allowed to delete the delivery. This can mean delete is disabled for uploaders or the time to delete has expired.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could not be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was an error deleting the assets.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Delete([FromRoute] int deliveryId)
@@ -246,6 +250,12 @@ public class DeliveryController : ControllerBase
             {
                 logger.LogTrace("No delivery with id <{DeliveryId}> found.", deliveryId);
                 return NotFound($"No delivery with id <{deliveryId}> found.");
+            }
+
+            if (!user.IsAdmin && !IsDeleteAllowedForUploader(delivery, DateTime.UtcNow))
+            {
+                logger.LogTrace("Delete of delivery with id <{DeliveryId}> not allowed for uploader <{UserId}>.", deliveryId, user.AuthIdentifier);
+                return Forbid($"Deleting delivery with id <{deliveryId}> is not allowed.");
             }
 
             delivery.Deleted = true;
@@ -299,5 +309,26 @@ public class DeliveryController : ControllerBase
             logger.LogError(e, "Error while accessing delivery asset with id <{AssetId}>.", assetId);
             return Problem($"Error while accessing delivery asset with id <{assetId}>.");
         }
+    }
+
+    internal bool IsDeleteAllowedForUploader(Delivery delivery, DateTime now)
+    {
+        var options = deliveryOptions.Value;
+        if (!options.UploaderDeleteEnabled)
+        {
+            return false;
+        }
+
+        if (options.DeleteDuration is TimeSpan deleteDuration && deleteDuration <= now - delivery.Date)
+        {
+            return false;
+        }
+
+        if (options.DeleteRestrictIntervalExpression?.GetNextOccurrence(delivery.Date) is DateTime nextOccurrence && nextOccurrence <= now)
+        {
+            return false;
+        }
+
+        return true;
     }
 }

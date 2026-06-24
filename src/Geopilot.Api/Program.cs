@@ -169,6 +169,7 @@ builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pi
 builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
 builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
+builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
 builder.Services.AddOptions<FileAccessOptions>()
     .BindConfiguration(FileAccessOptions.SectionName)
     .ValidateDataAnnotations()
