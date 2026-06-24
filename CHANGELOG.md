@@ -37,7 +37,6 @@
 
 - Plugin compatibility is now verified before a plugin assembly is loaded for execution (plugins built against a higher PipelineCore minor version are rejected), and plugin dependencies are resolved correctly.
 - Download outputs could be missing immediately after a pipeline run, and outputs flagged for delivery could be lost during processing.
-- Pipeline resources (such as the validator's HTTP client) are now disposed after each run instead of leaking until job cleanup.
 - The application no longer crashes when a pipeline or step is missing its display name; such definitions are rejected at startup.
 - The application can start without needing the permission to install PostgreSQL extensions if PostGIS is already installed.
 
