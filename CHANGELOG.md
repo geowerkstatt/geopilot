@@ -2,12 +2,25 @@
 
 ## [Unreleased]
 
+## v3.0.341 - 2026-06-17
+
 ### Added
 
+- Configurable validation pipelines defined in YAML replace the previous fixed INTERLIS validator: each mandate selects a pipeline of ordered processing steps, with multilingual pipeline and step display names shown in the delivery view.
+- Pipeline process plugin system: external processing steps can be written against the new public `GeoWerkstatt.Geopilot.PipelineCore` API and loaded via `Pipeline:Plugins`. The pipeline runtime (`GeoWerkstatt.Geopilot.Pipeline`) and its contracts (`GeoWerkstatt.Geopilot.PipelineCore`) are now published as NuGet packages and version-checked for compatibility when a plugin is loaded.
+- Pipeline step conditions and delivery restrictions: steps can fail or be skipped based on expressions, and deliveries can be gated per pipeline. Both surface localized messages per step in the delivery view.
+- Per-step localized status messages in the processing result.
+- Multi-file upload: a single delivery can contain several files, routed to the matching steps by file matchers.
+- Upload of ZIP archives, unpacked and processed by the pipeline.
+- Optional cloud upload via presigned URLs with Azure Blob Storage support.
 - Cloud upload via presigned URLs with Azure Blob Storage support for files exceeding the API request size limit.
 - Optional virus scanning with ClamAV for cloud uploads.
 - Rate limiting and upload capacity limits for the cloud upload endpoint.
 - `LocalizedText` type in the PipelineCore API for multilingual pipeline texts (pipeline and step display names, status messages). Plugins emitting `Dictionary<string, string>` remain supported.
+- Support for public mandates.
+- Per-mandate option to allow or disallow deliveries.
+- Admins can activate and deactivate users.
+- Strict Content-Security-Policy with a per-request nonce for the application and STAC Browser.
 - `IPipelineFile.GetLocalPath()` and `IPipelineFileManager.CreateWritableCopy(...)` in the PipelineCore API, letting a process hand a file to external tools by path and obtain an owned, writable copy without copying it by hand.
 - Users can view and delete their own uploaded deliveries when logged in.
 
@@ -22,6 +35,9 @@
 
 ### Fixed
 
+- Plugin compatibility is now verified before a plugin assembly is loaded for execution (plugins built against a higher PipelineCore minor version are rejected), and plugin dependencies are resolved correctly.
+- Download outputs could be missing immediately after a pipeline run, and outputs flagged for delivery could be lost during processing.
+- The application no longer crashes when a pipeline or step is missing its display name; such definitions are rejected at startup.
 - The application can start without needing the permission to install PostgreSQL extensions if PostGIS is already installed.
 
 ## v3.0.227 - 2026-01-07
