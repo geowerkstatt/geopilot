@@ -18,6 +18,8 @@ services:
       POSTGRES_USER: HAPPYWALK
       POSTGRES_PASSWORD: SOMBERSPORK
       POSTGRES_DB: geopilot
+    volumes:
+      - geopilot-db:/var/lib/postgresql/data
     healthcheck:
       test: "pg_isready -U HAPPYWALK -d geopilot -h db"
       interval: 3s
@@ -143,3 +145,6 @@ services:
     ports:
       - "4011:8080"
     command: start-dev --import-realm
+
+volumes:
+  geopilot-db:
