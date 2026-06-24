@@ -250,9 +250,9 @@ public class DeliveryController : ControllerBase
 
             delivery.Deleted = true;
             delivery.Assets.ForEach(a => a.Deleted = true);
-            assetHandler.DeleteJobAssets(delivery.JobId);
-
             await context.SaveChangesAsync();
+
+            assetHandler.DeleteJobAssets(delivery.JobId);
 
             logger.LogInformation("Deleting of delivery with id <{DeliveryId}> successful.", deliveryId);
             return Ok();
