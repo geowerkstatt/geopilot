@@ -3,5 +3,9 @@
   "entry": ["cypress/e2e/**/*.{ts,tsx,js,jsx}", "cypress/support/**/*.{ts,tsx,js,jsx}"],
   "ignoreBinaries": ["dotnet"],
   "ignoreDependencies": ["license-checker"],
-  "project": ["src/**/*.{ts,tsx,js,jsx}", "cypress/**/*.{ts,tsx,js,jsx}"]
+  "project": ["src/**/*.{ts,tsx,js,jsx}", "cypress/**/*.{ts,tsx,js,jsx}"],
+  "rules": {
+    "enumMembers": "off"
+  },
+  "tags": ["-knipignore"]
 }

@@ -97,7 +97,7 @@ export enum StepState {
   Cancelled = "cancelled",
 }
 
-export interface StepDownload {
+interface StepDownload {
   originalFileName: string;
   url: string;
 }
@@ -119,11 +119,16 @@ export interface ProcessingJobResponse {
   deliveryRestrictionMessage?: Record<string, string>;
 }
 
-export interface LocalisedText {
+interface LocalisedText {
   language: string;
   text: string;
 }
 
+/**
+ * TODO: Currently unreferenced in the frontend. Verify manually whether the
+ * corresponding endpoint is still planned before keeping or removing.
+ * @knipignore
+ */
 export interface Profile {
   id: string;
   titles: LocalisedText[];
@@ -149,6 +154,11 @@ export interface UploadSettings {
   maxJobSizeMB: number;
 }
 
+/**
+ * TODO: Currently unreferenced in the frontend. Verify manually whether the
+ * corresponding endpoint is still planned before keeping or removing.
+ * @knipignore
+ */
 export interface CloudUploadRequest {
   files: { fileName: string; size: number }[];
 }

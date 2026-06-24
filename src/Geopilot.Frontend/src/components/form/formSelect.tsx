@@ -23,7 +23,7 @@ export interface FormSelectValue {
   hidden?: boolean;
 }
 
-export interface FormSelectMenuItem {
+interface FormSelectMenuItem {
   key: number;
   value?: number | string;
   label: string;
