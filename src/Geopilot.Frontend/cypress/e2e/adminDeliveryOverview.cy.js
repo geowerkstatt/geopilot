@@ -1,7 +1,7 @@
 import { loginAsAdmin } from "./helpers/appHelpers.js";
-import { handlePrompt } from "./helpers/promptHelpers.js";
+import { assertCancelDoesNotDeleteDelivery, assertConfirmDeletesDelivery } from "./helpers/deliveryOverviewHelper.js";
 
-describe("Delivery Overview tests", () => {
+describe("Admin Delivery Overview tests", () => {
   it("can delete delivery", () => {
     cy.intercept({ url: "/api/v1/delivery", method: "GET" }).as("deliveries");
     cy.intercept("DELETE", "/api/v1/delivery/*", { statusCode: 200 }).as("deleteDelivery");
@@ -36,21 +36,9 @@ describe("Delivery Overview tests", () => {
     cy.dataCy("deliveryOverview-grid").contains("ID").click();
     cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("1");
 
-    cy.dataCy("deliveryOverview-grid")
-      .find(".MuiDataGrid-row")
-      .first()
-      .find('[data-testid="DeleteOutlinedIcon"]')
-      .click();
-    handlePrompt("Do you really want to delete the delivery data? This action cannot be undone.", "cancel");
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("1");
-    cy.dataCy("deliveryOverview-grid")
-      .find(".MuiDataGrid-row")
-      .first()
-      .find('[data-testid="DeleteOutlinedIcon"]')
-      .click();
-    handlePrompt("Do you really want to delete the delivery data? This action cannot be undone.", "delete");
+    assertCancelDoesNotDeleteDelivery();
+    assertConfirmDeletesDelivery();
 
-    cy.wait("@deleteDelivery");
     cy.wait("@deliveries");
   });
 });
