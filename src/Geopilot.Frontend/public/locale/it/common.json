@@ -99,6 +99,7 @@
   "partialDelivery": "Consegna parziale",
   "pipeline": "Pipeline",
   "pipelineLoadingError": "Si è verificato un errore durante il caricamento delle pipeline: {{error}}",
+  "pipelineNotKnown": "Pipeline '{{pipelineId}}' sconosciuta",
   "pipelineSteps": "Passaggi:",
   "precursor": "Precursore",
   "privacyPolicy": "Informativa sulla privacy",

@@ -29,7 +29,7 @@ describe("Users tests", () => {
 
   it("checks for unsaved changes when navigating and allows editing users", () => {
     getGridRowThatContains("users-grid", "Bobbie Waelchi")
-      .find('[data-field="isAdmin"] [data-value="false"]')
+      .find('[data-field="isAdmin"] [data-testid="CloseIcon"]')
       .should("exist");
     getGridRowThatContains("users-grid", "Bobbie Waelchi").click();
     cy.location().should(location => {
@@ -78,7 +78,7 @@ describe("Users tests", () => {
     isPromptVisible(false);
     getGridRowThatContains("users-grid", "Bobbie Waelchi").contains("Brown and Sons");
     getGridRowThatContains("users-grid", "Bobbie Waelchi")
-      .find('[data-field="isAdmin"] [data-value="true"]')
+      .find('[data-field="isAdmin"] [data-testid="CheckIcon"]')
       .should("exist");
     cy.dataCy("admin-organisations-nav").click();
     getGridRowThatContains("organisations-grid", "Brown and Sons").click();

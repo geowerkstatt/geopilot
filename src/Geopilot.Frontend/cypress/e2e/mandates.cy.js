@@ -352,3 +352,72 @@ describe("Mandate tests", () => {
     cy.get("@slowSave.all").should("have.length", 1);
   });
 });
+
+describe("Mandate with a removed pipeline", () => {
+  // A pipeline definition can be changed between restarts: a pipeline a mandate
+  // was configured with may no longer exist. The stored pipelineId then dangles.
+  const ghostPipelineId = "ghost-pipeline";
+  const availablePipelines = {
+    pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }],
+  };
+  const mandateWithGhostPipeline = {
+    id: 9999,
+    name: "Ghost Pipeline Mandate",
+    isPublic: false,
+    allowDelivery: true,
+    fileTypes: [".xml"],
+    coordinates: [
+      { x: 7.3, y: 47.13 },
+      { x: 8.05, y: 47.46 },
+    ],
+    organisations: [],
+    deliveries: [],
+    evaluatePrecursorDelivery: "optional",
+    evaluatePartial: "required",
+    evaluateComment: "notEvaluated",
+    pipelineId: ghostPipelineId,
+  };
+
+  beforeEach(() => {
+    loginAsAdmin();
+    cy.intercept("GET", "/api/v1/pipeline", { statusCode: 200, body: availablePipelines }).as("getPipelines");
+  });
+
+  it("shows the missing pipeline as invalid in the edit form and blocks saving", () => {
+    cy.intercept("GET", "/api/v1/mandate/9999", { statusCode: 200, body: mandateWithGhostPipeline }).as("getMandate");
+
+    cy.visit("/admin/mandates/9999");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    // The configured-but-missing pipeline must be surfaced, not rendered as a blank "nothing selected".
+    cy.dataCy("pipelineId-formSelect").should("contain", ghostPipelineId);
+
+    // The field must be in an error state so the mandate is flagged as needing correction.
+    hasError("pipelineId", true);
+
+    // Dirtying the form must not enable saving while the pipeline reference is invalid.
+    setInput("name", "Ghost Pipeline Mandate (edited)");
+    cy.dataCy("save-button").should("be.disabled");
+  });
+
+  it("flags a mandate in the overview whose pipeline no longer exists", () => {
+    cy.intercept("GET", "/api/v1/mandate", {
+      statusCode: 200,
+      body: [
+        { ...mandateWithGhostPipeline, id: 9001, name: "Healthy Mandate", pipelineId: "valid-pipeline" },
+        { ...mandateWithGhostPipeline, id: 9002, name: "Ghost Pipeline Mandate" },
+      ],
+    }).as("getMandates");
+
+    cy.visit("/admin/mandates");
+    cy.wait("@getMandates");
+    cy.wait("@getPipelines");
+
+    // A healthy mandate resolves its pipeline to the localised display name.
+    getGridRowThatContains("mandates-grid", "Healthy Mandate").should("contain", "Valid Pipeline");
+
+    // The broken mandate is flagged with the id of the pipeline that no longer exists.
+    getGridRowThatContains("mandates-grid", "Ghost Pipeline Mandate").should("contain", ghostPipelineId);
+  });
+});
