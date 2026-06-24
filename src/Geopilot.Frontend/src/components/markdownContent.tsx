@@ -1,10 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 
-import ReactMarkdown from "react-markdown";
-import rehypeExternalLinks from "rehype-external-links";
 import { FC } from "react";
+import ReactMarkdown from "react-markdown";
 import { Link, Typography } from "@mui/material";
+import rehypeExternalLinks from "rehype-external-links";
 
 interface MarkdownContentProps {
   content: string;

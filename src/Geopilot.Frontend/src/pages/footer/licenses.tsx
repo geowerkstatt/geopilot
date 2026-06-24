@@ -1,11 +1,11 @@
-import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
-import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Typography } from "@mui/material";
-import { ContentType } from "../../api/apiInterfaces.ts";
-import { CenteredBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ExpandMore } from "@mui/icons-material";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Typography } from "@mui/material";
+import { ContentType } from "../../api/apiInterfaces.ts";
 import { BaseButton } from "../../components/buttons.tsx";
+import { CenteredBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 
 interface PackageList {

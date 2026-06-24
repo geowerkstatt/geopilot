@@ -1,7 +1,7 @@
-import { Box, Stack, Typography } from "@mui/material";
-import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
+import { Box, Stack, Typography } from "@mui/material";
+import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { MiddleTruncate } from "../../components/middleTruncate";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
 import { SLIDE_TRANSITION_MS } from "./deliveryContentCarousel";

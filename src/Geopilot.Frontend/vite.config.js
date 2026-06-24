@@ -1,12 +1,11 @@
-import { fileURLToPath, URL } from "node:url";
-import process from "node:process";
-
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import viteTsconfigPaths from "vite-tsconfig-paths";
 import fs from "fs";
+import process from "node:process";
+import { fileURLToPath, URL } from "node:url";
 import path from "path";
+import react from "@vitejs/plugin-react";
 import mime from "mime-types";
+import { defineConfig } from "vite";
+import viteTsconfigPaths from "vite-tsconfig-paths";
 
 const baseFolder =
   process.env.APPDATA !== undefined && process.env.APPDATA !== ""

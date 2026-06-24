@@ -1,7 +1,7 @@
-import { Typography } from "@mui/material";
-import { styled } from "@mui/system";
 import { FC, PropsWithChildren } from "react";
 import { useTranslation } from "react-i18next";
+import { Typography } from "@mui/material";
+import { styled } from "@mui/system";
 import { FlexBox, FlexRowEndBox, FlexRowSpaceBetweenBox, GeopilotBox } from "../../components/styledComponents";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 

@@ -1,16 +1,16 @@
-import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useState } from "react";
-import { AvailablePipelinesResponse, Mandate, Organisation, PipelineSummary } from "../../../api/apiInterfaces";
-import { useGeopilotAuth } from "../../../auth";
-import { GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
-import { Tooltip } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import { Tooltip } from "@mui/material";
+import { GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
+import { AvailablePipelinesResponse, Mandate, Organisation, PipelineSummary } from "../../../api/apiInterfaces";
+import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/geopilotDataGrid.tsx";
+import { FlexRowBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { findPipeline, getLocalisedPipelineName } from "./pipelineDisplay";
-import { FlexRowBox } from "../../../components/styledComponents.ts";
 
 export const Mandates = () => {
   const { t, i18n } = useTranslation();

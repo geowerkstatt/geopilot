@@ -1,8 +1,8 @@
+import { FC, useContext, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CircularProgress, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { toggleButtonClasses } from "@mui/material/ToggleButton";
 import { styled } from "@mui/system";
-import { FC, useContext, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { Mandate } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { BaseButton } from "../../components/buttons";

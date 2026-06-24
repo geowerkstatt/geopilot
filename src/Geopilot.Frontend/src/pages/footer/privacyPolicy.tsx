@@ -1,6 +1,6 @@
-import { Typography } from "@mui/material";
-import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Typography } from "@mui/material";
 import { MarkdownContent } from "../../components/markdownContent.tsx";
 import { CenteredBox } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";

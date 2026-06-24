@@ -1,8 +1,8 @@
-import { MenuItem, SxProps, TextField } from "@mui/material";
-import { useTranslation } from "react-i18next";
-import { Controller, useFormContext } from "react-hook-form";
-import { getFormFieldError } from "./form";
 import { FC } from "react";
+import { Controller, useFormContext } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { MenuItem, SxProps, TextField } from "@mui/material";
+import { getFormFieldError } from "./form";
 
 export interface FormSelectProps {
   fieldName: string;

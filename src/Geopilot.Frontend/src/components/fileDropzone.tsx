@@ -1,11 +1,11 @@
 import { CSSProperties, FC, useCallback, useEffect, useMemo, useState } from "react";
-import { Link, Typography } from "@mui/material";
 import { FileRejection, useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
+import { Link, Typography } from "@mui/material";
 import { geopilotTheme } from "../appTheme";
-import { FlexBox } from "./styledComponents.ts";
 import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
 import { FileListItem } from "./fileListItem.tsx";
+import { FlexBox } from "./styledComponents.ts";
 
 const defaultMaxFileSizeMB = 100;
 

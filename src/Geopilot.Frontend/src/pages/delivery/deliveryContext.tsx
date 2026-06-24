@@ -1,11 +1,3 @@
-import {
-  DeliveryContextInterface,
-  DeliveryStep,
-  DeliveryStepEnum,
-  DeliveryStepError,
-  DeliverySubmitData,
-  FileUploadStatus,
-} from "./deliveryInterfaces.tsx";
 import { createContext, FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ApiError,
@@ -15,14 +7,22 @@ import {
   StartJobRequest,
   UploadSettings,
 } from "../../api/apiInterfaces.ts";
-import { DeliveryFileUpload } from "./deliveryFileUpload.tsx";
-import { DeliveryProcessing } from "./processing/deliveryProcessing.tsx";
-import { DeliverySubmit } from "./deliverySubmit.tsx";
 import { useGeopilotAuth } from "../../auth";
-import useFetch from "../../hooks/useFetch.ts";
 import useCloudUpload from "../../hooks/useCloudUpload.ts";
-import { isProcessingDeliverable } from "./deliveryUtils.tsx";
+import useFetch from "../../hooks/useFetch.ts";
+import { DeliveryFileUpload } from "./deliveryFileUpload.tsx";
+import {
+  DeliveryContextInterface,
+  DeliveryStep,
+  DeliveryStepEnum,
+  DeliveryStepError,
+  DeliverySubmitData,
+  FileUploadStatus,
+} from "./deliveryInterfaces.tsx";
 import { DeliverySelectMandate } from "./deliverySelectMandate.tsx";
+import { DeliverySubmit } from "./deliverySubmit.tsx";
+import { isProcessingDeliverable } from "./deliveryUtils.tsx";
+import { DeliveryProcessing } from "./processing/deliveryProcessing.tsx";
 
 export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
