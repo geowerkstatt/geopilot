@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["cypress/e2e/**/*.{ts,tsx,js,jsx}", "cypress/support/**/*.{ts,tsx,js,jsx}"],
+  "ignoreBinaries": ["dotnet"],
+  "ignoreDependencies": ["license-checker"],
+  "project": ["src/**/*.{ts,tsx,js,jsx}", "cypress/**/*.{ts,tsx,js,jsx}"],
+  "rules": {
+    "enumMembers": "off"
+  }
+}

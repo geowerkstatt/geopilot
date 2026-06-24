@@ -1,8 +1,8 @@
+import { FC, ReactNode } from "react";
+import { Controller, useFormContext } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Checkbox, FormControlLabel, SxProps } from "@mui/material";
 import { formControlLabelClasses } from "@mui/material/FormControlLabel";
-import { useTranslation } from "react-i18next";
-import { Controller, useFormContext } from "react-hook-form";
-import { FC, ReactNode } from "react";
 
 export interface FormCheckboxProps {
   fieldName: string;

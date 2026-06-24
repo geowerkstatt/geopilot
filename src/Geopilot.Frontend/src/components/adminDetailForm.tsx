@@ -1,15 +1,15 @@
-import { FlexBox, FlexRowEndBox, FlexRowSpaceBetweenBox } from "./styledComponents.ts";
-import { BaseButton } from "./buttons.tsx";
-import { ChevronLeft } from "@mui/icons-material";
-import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { ReactNode, useCallback, useContext, useEffect, useRef } from "react";
-import { PromptAction } from "./prompt/promptInterfaces.ts";
-import { useControlledNavigate } from "./controlledNavigate";
-import { PromptContext } from "./prompt/promptContext.tsx";
-import { CircularProgress, Stack, Typography } from "@mui/material";
+import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { ChevronLeft } from "@mui/icons-material";
+import { CircularProgress, Stack, Typography } from "@mui/material";
 import useFetch from "../hooks/useFetch.ts";
+import { BaseButton } from "./buttons.tsx";
+import { useControlledNavigate } from "./controlledNavigate";
+import { PromptContext } from "./prompt/promptContext.tsx";
+import { PromptAction } from "./prompt/promptInterfaces.ts";
+import { FlexBox, FlexRowEndBox, FlexRowSpaceBetweenBox } from "./styledComponents.ts";
 
 interface AdminDetailFormProps<T> {
   basePath: string;

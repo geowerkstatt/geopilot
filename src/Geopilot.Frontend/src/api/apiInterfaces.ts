@@ -99,7 +99,7 @@ export enum StepState {
   Cancelled = "cancelled",
 }
 
-export interface StepDownload {
+interface StepDownload {
   originalFileName: string;
   url: string;
 }
@@ -121,16 +121,6 @@ export interface ProcessingJobResponse {
   deliveryRestrictionMessage?: Record<string, string>;
 }
 
-export interface LocalisedText {
-  language: string;
-  text: string;
-}
-
-export interface Profile {
-  id: string;
-  titles: LocalisedText[];
-}
-
 export interface StartJobRequest {
   uploadId: string;
   mandateId: number;
@@ -149,10 +139,6 @@ export interface UploadSettings {
   maxFileSizeMB: number;
   maxFilesPerJob: number;
   maxJobSizeMB: number;
-}
-
-export interface CloudUploadRequest {
-  files: { fileName: string; size: number }[];
 }
 
 export interface CloudUploadResponse {

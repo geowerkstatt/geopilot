@@ -1,12 +1,12 @@
 import { FC, ReactElement } from "react";
-import { Box, CircularProgress, Tooltip, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
-import { useTranslation } from "react-i18next";
-import { FlexRowCenterBox } from "../../../components/styledComponents";
-import { geopilotTheme } from "../../../appTheme";
+import { Box, CircularProgress, Tooltip, Typography } from "@mui/material";
 import { StepState } from "../../../api/apiInterfaces";
+import { geopilotTheme } from "../../../appTheme";
+import { FlexRowCenterBox } from "../../../components/styledComponents";
 
 interface ProcessingStepIconProps {
   state: StepState;

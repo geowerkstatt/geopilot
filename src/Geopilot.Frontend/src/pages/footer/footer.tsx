@@ -1,7 +1,7 @@
-import { Button, useMediaQuery, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import { FlexRowCenterBox } from "../../components/styledComponents.ts";
+import { Button, useMediaQuery, useTheme } from "@mui/material";
 import { useControlledNavigate } from "../../components/controlledNavigate";
+import { FlexRowCenterBox } from "../../components/styledComponents.ts";
 
 const Footer = () => {
   const { t } = useTranslation();

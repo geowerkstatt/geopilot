@@ -1,6 +1,6 @@
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { AppThemePalette, createTheme, Shadows } from "@mui/material/styles";
 import { Spacing } from "@mui/system";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 const defaultTheme = createTheme();
 

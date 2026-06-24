@@ -1,9 +1,9 @@
-import { Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import { CenteredBox } from "../../components/styledComponents.ts";
+import { Stack, Typography } from "@mui/material";
 import { styled } from "@mui/system";
-import { DeliveryStepper } from "./deliveryStepper.tsx";
+import { CenteredBox } from "../../components/styledComponents.ts";
 import { DeliveryContentCarousel } from "./deliveryContentCarousel.tsx";
+import { DeliveryStepper } from "./deliveryStepper.tsx";
 
 const DeliveryContainer = styled(Stack)(({ theme }) => ({
   flex: 1,

@@ -22,9 +22,9 @@ export interface PromptAction {
   disabled?: boolean;
 }
 
-export type PromptActionColor = "inherit" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
+type PromptActionColor = "inherit" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
 
-export type PromptActionVariant = "text" | "outlined" | "contained";
+type PromptActionVariant = "text" | "outlined" | "contained";
 
 export interface PromptProviderProps {
   children: ReactNode;

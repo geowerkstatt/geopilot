@@ -1,15 +1,15 @@
-import { useTranslation } from "react-i18next";
-import { Tooltip } from "@mui/material";
-import { Organisation, User } from "../../../api/apiInterfaces.ts";
 import { useCallback, useEffect, useState } from "react";
-import { useGeopilotAuth } from "../../../auth/index.ts";
-import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
+import { useTranslation } from "react-i18next";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import { useControlledNavigate } from "../../../components/controlledNavigate/index.ts";
+import { Tooltip } from "@mui/material";
+import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
+import { Organisation, User } from "../../../api/apiInterfaces.ts";
+import { useGeopilotAuth } from "../../../auth";
+import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 
-export const Users = () => {
+const Users = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();

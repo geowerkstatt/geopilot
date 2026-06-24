@@ -1,10 +1,10 @@
-import { useTranslation } from "react-i18next";
-import { Controller, useFormContext } from "react-hook-form";
-import { FormContainer, FormValueType, getFormFieldError } from "./form";
 import { ChangeEvent, FC } from "react";
+import { Controller, useFormContext } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { FormLabel, Stack, SxProps, TextField } from "@mui/material";
-import { FlexBox } from "../styledComponents.ts";
 import { Coordinate } from "../../api/apiInterfaces.ts";
+import { FlexBox } from "../styledComponents.ts";
+import { FormContainer, FormValueType, getFormFieldError } from "./form";
 
 export interface FormExtentProps {
   fieldName: string;

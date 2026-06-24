@@ -1,8 +1,8 @@
 import { createContext, FC, PropsWithChildren, useEffect, useState } from "react";
-import { AppSettingsContextInterface, ClientSettings } from "./appSettingsInterface";
-import { ContentType } from "../../api/apiInterfaces.ts";
 import { useTranslation } from "react-i18next";
+import { ContentType } from "../../api/apiInterfaces.ts";
 import useFetch from "../../hooks/useFetch.ts";
+import { AppSettingsContextInterface, ClientSettings } from "./appSettingsInterface";
 
 export const AppSettingsContext = createContext<AppSettingsContextInterface>({
   initialized: false,
