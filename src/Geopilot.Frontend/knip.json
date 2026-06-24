@@ -6,6 +6,5 @@
   "project": ["src/**/*.{ts,tsx,js,jsx}", "cypress/**/*.{ts,tsx,js,jsx}"],
   "rules": {
     "enumMembers": "off"
-  },
-  "tags": ["-knipignore"]
+  }
 }

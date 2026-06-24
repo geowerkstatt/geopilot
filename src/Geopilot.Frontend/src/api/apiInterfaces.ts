@@ -119,21 +119,6 @@ export interface ProcessingJobResponse {
   deliveryRestrictionMessage?: Record<string, string>;
 }
 
-interface LocalisedText {
-  language: string;
-  text: string;
-}
-
-/**
- * TODO: Currently unreferenced in the frontend. Verify manually whether the
- * corresponding endpoint is still planned before keeping or removing.
- * @knipignore
- */
-export interface Profile {
-  id: string;
-  titles: LocalisedText[];
-}
-
 export interface StartJobRequest {
   uploadId: string;
   mandateId: number;
@@ -152,15 +137,6 @@ export interface UploadSettings {
   maxFileSizeMB: number;
   maxFilesPerJob: number;
   maxJobSizeMB: number;
-}
-
-/**
- * TODO: Currently unreferenced in the frontend. Verify manually whether the
- * corresponding endpoint is still planned before keeping or removing.
- * @knipignore
- */
-export interface CloudUploadRequest {
-  files: { fileName: string; size: number }[];
 }
 
 export interface CloudUploadResponse {
