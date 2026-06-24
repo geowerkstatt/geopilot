@@ -296,6 +296,18 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: {
+          backgroundColor: "#616161",
+          color: "#ffffff",
+          borderRadius: themeSpacing(0.5),
+        },
+        arrow: {
+          color: "#616161",
+        },
+      },
+    },
     MuiChip: {
       styleOverrides: {
         root: {

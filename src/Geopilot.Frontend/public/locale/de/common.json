@@ -98,6 +98,7 @@
   "partialDelivery": "Teillieferung",
   "pipeline": "Pipeline",
   "pipelineLoadingError": "Beim Laden der Pipelines ist ein Fehler aufgetreten: {{error}}",
+  "pipelineNotKnown": "Pipeline '{{pipelineId}}' nicht bekannt",
   "pipelineSteps": "Schritte:",
   "precursor": "Vorgänger",
   "privacyPolicy": "Datenschutz",
