@@ -44,7 +44,7 @@
   "deliveryOverviewDeleteIdNotExistError": "Die Lieferung mit der ID {{id}} existiert nicht und kann daher nicht gelöscht werden.",
   "deliveryOverviewLoadingError": "Beim Laden der Lieferungen ist ein Fehler aufgetreten: {{error}}",
   "deliveryPossible": "Lieferung möglich",
-  "deliveryTitle": "Online Validierung & Lieferung von Geodaten",
+  "deliveryTitle": "Online Verarbeitung von Geodaten",
   "description": "Beschreibung",
   "development": "Entwicklung",
   "disconnect": "Verbindungen trennen",
