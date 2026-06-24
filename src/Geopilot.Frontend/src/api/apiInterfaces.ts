@@ -60,7 +60,9 @@ export interface Delivery {
   declaringUser: User;
   mandate: Mandate;
   comment: string;
+  canDelete?: boolean;
 }
+
 export enum UserState {
   Inactive = "inactive",
   Active = "active",

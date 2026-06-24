@@ -218,6 +218,11 @@ public class DeliveryController : ControllerBase
             .Where(d => d.DeclaringUser.Id == user.Id)
             .ToListAsync();
 
+        foreach (var delivery in result)
+        {
+            delivery.CanDelete = IsDeleteAllowedForUploader(delivery, DateTime.UtcNow);
+        }
+
         return Ok(result);
     }
 

@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api.Models;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace Geopilot.Api.Models;
 
 /// <summary>
 /// A fullfillment of a <see cref="Mandate"/>. Contains all relevant meta information and assets provided or created by the validation and delivery process.
@@ -54,4 +56,10 @@ public class Delivery
     /// The deletion status of the delivery.
     /// </summary>
     public bool Deleted { get; set; }
+
+    /// <summary>
+    /// Indicates whether the delivery can be deleted by the uploader.
+    /// </summary>
+    [NotMapped]
+    public bool? CanDelete { get; set; }
 }

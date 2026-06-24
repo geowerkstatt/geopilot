@@ -175,7 +175,8 @@ internal static class ContextExtensions
             .RuleFor(d => d.Partial, f => f.Random.Bool())
             .RuleFor(d => d.PrecursorDelivery, f => f.PickRandom(context.Deliveries.ToList().Append(null)))
             .RuleFor(d => d.Comment, f => f.Rant.Review())
-            .RuleFor(d => d.Deleted, false);
+            .RuleFor(d => d.Deleted, false)
+            .Ignore(d => d.CanDelete);
 
         Delivery SeedDelivery(int seed) => deliveryFaker.UseSeed(seed).Generate();
         for (int i = 0; i < 20; i++)
