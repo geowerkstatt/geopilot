@@ -1,12 +1,12 @@
-import { Accordion, AccordionDetails, AccordionSummary, Box, Typography } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { FlexBox, FlexRowBox } from "../../../components/styledComponents";
-import { BaseButton } from "../../../components/buttons";
-import { DeliveryContext } from "../deliveryContext";
 import { SyntheticEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
-import i18next from "i18next";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Typography } from "@mui/material";
+import i18next from "i18next";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
+import { BaseButton } from "../../../components/buttons";
+import { FlexBox, FlexRowBox } from "../../../components/styledComponents";
+import { DeliveryContext } from "../deliveryContext";
 import { ProcessingStepIcon } from "./processingStepIcon";
 import { VisualizationLoader } from "./visualizations/visualizationLoader";
 

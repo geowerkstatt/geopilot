@@ -1,16 +1,16 @@
 import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appHelpers.js";
-import { hasError, setSelect } from "./helpers/formHelpers.js";
 import {
   addFile,
+  selectMandate,
+  selectStep,
+  startProcessing,
   stepHasError,
   stepIsActive,
   stepIsCompleted,
   stepIsLoading,
   uploadFile,
-  selectMandate,
-  startProcessing,
-  selectStep,
 } from "./helpers/deliveryHelpers.js";
+import { hasError, setSelect } from "./helpers/formHelpers.js";
 
 describe("Delivery tests", () => {
   it("can only upload supported file types", () => {

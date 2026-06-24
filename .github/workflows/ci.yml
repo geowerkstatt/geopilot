@@ -37,9 +37,17 @@ jobs:
         working-directory: ./src/Geopilot.Frontend
         run: npm run build --if-present
 
+      - name: Check frontend types
+        working-directory: ./src/Geopilot.Frontend
+        run: npm run ts
+
       - name: Lint frontend
         working-directory: ./src/Geopilot.Frontend
         run: npm run lint
+
+      - name: Knip frontend
+        working-directory: ./src/Geopilot.Frontend
+        run: npm run knip
 
       - name: Check migration history
         working-directory: ./src/Geopilot.Api

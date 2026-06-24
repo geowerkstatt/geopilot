@@ -1,9 +1,9 @@
 import { FC, useEffect } from "react";
+import { useFormContext } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { PipelineSummary } from "../../../api/apiInterfaces";
 import { FormSelect } from "../../../components/form/form";
 import { FormSelectValue } from "../../../components/form/formSelect";
-import { useFormContext } from "react-hook-form";
-import { useTranslation } from "react-i18next";
 import { findPipeline, getLocalisedPipelineName } from "./pipelineDisplay";
 
 interface PipelineFormSelectProps {
@@ -37,7 +37,7 @@ const getPipelineSelectMenuItems = (
   return items;
 };
 
-export const PipelineFormSelect: FC<PipelineFormSelectProps> = ({ pipelines, selected }) => {
+const PipelineFormSelect: FC<PipelineFormSelectProps> = ({ pipelines, selected }) => {
   const { t, i18n } = useTranslation();
   const { trigger } = useFormContext();
 

@@ -1,7 +1,7 @@
 /* eslint-disable no-undef */
 // This script sets up HTTPS for the application using the ASP.NET Core HTTPS certificate
-import fs from "fs";
 import { spawn } from "child_process";
+import fs from "fs";
 import path from "path";
 
 const baseFolder =

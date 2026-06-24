@@ -1,7 +1,7 @@
 import { useContext } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText } from "@mui/material";
 import { PromptContext } from "./promptContext";
-import { useTranslation } from "react-i18next";
 
 export const Prompt = () => {
   const { t } = useTranslation();
