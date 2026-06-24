@@ -25,7 +25,7 @@ public class DeliveryOptions
     public string? DeleteRestrictInterval
     {
         get => DeleteRestrictIntervalExpression?.ToString();
-        set => DeleteRestrictIntervalExpression = value == null ? null : CronExpression.Parse(value);
+        set => DeleteRestrictIntervalExpression = string.IsNullOrEmpty(value) ? null : CronExpression.Parse(value);
     }
 
     /// <summary>
