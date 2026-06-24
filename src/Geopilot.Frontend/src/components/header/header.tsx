@@ -164,7 +164,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             </List>
             <Divider />
             <List>
-              <ListItem key={t("delivery")} disablePadding>
+              <ListItem key="delivery" disablePadding>
                 <ListItemButton
                   selected={isActive("")}
                   onClick={() => {
@@ -174,7 +174,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                   <ListItemText primary={t("delivery")} />
                 </ListItemButton>
               </ListItem>
-              <ListItem key={t("myDeliveries")} disablePadding>
+              <ListItem key="myDeliveries" disablePadding>
                 <ListItemButton
                   selected={isActive("user")}
                   onClick={() => {
@@ -186,7 +186,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               </ListItem>
               {isAdmin && (
                 <>
-                  <ListItem key={t("administration")} disablePadding>
+                  <ListItem key="administration" disablePadding>
                     <ListItemButton
                       selected={isActive("admin")}
                       onClick={() => {
@@ -196,7 +196,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                       <ListItemText primary={t("administration")} />
                     </ListItemButton>
                   </ListItem>
-                  <ListItem key={t("stacBrowser")} disablePadding>
+                  <ListItem key="stacBrowser" disablePadding>
                     <ListItemButton
                       selected={isActive("browser")}
                       onClick={() => {

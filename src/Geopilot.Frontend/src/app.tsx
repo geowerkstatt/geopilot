@@ -52,8 +52,8 @@ export const App: FC = () => {
                   />
                   {user ? (
                     <>
-                      <Route path="user" element={<Navigate to="/user/deliveries" replace />} />
                       <Route path="user">
+                        <Route index element={<Navigate to="/user/deliveries" replace />} />
                         <Route path="deliveries" element={<UserDeliveryOverview />} />
                       </Route>
                     </>
@@ -62,10 +62,10 @@ export const App: FC = () => {
                   )}
                   {isAdmin ? (
                     <>
-                      <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
                       <Route
                         path="admin"
                         element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
+                        <Route index element={<Navigate to="/admin/delivery-overview" replace />} />
                         <Route path="delivery-overview" element={<DeliveryOverview />} />
                         <Route path="users" element={<Users />} />
                         <Route path="users/:id" element={<UserDetail />} />

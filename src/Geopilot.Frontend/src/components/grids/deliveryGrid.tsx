@@ -86,7 +86,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
     },
     userName: { field: "userName", headerName: t("deliveredBy"), flex: 0.5, minWidth: 200 },
     mandateName: { field: "mandateName", headerName: t("mandate"), flex: 0.5, minWidth: 200 },
-    comment: { field: "comment", headerName: t("comment"), flex: 1, width: 600, minWidth: 400 },
+    comment: { field: "comment", headerName: t("comment"), flex: 1, minWidth: 400 },
   };
 
   const columnDefs = columns.map(column => namedColumnDefs[column]);
