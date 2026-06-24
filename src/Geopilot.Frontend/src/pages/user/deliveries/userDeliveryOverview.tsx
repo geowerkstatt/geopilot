@@ -1,8 +1,8 @@
-import { Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { Typography } from "@mui/material";
+import { styled } from "@mui/system";
 import { DeliveryGrid } from "../../../components/grids/deliveryGrid.tsx";
 import { CenteredBox } from "../../../components/styledComponents.ts";
-import { styled } from "@mui/system";
 
 const DeliveryOverviewBox = styled(CenteredBox)({
   height: "100%",
