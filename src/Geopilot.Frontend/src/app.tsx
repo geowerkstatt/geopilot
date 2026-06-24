@@ -6,7 +6,7 @@ import Header from "./components/header/header";
 import { useGeopilotAuth } from "./auth";
 import Delivery from "./pages/delivery/delivery";
 import Admin from "./pages/admin/admin";
-import DeliveryOverview from "./pages/admin/deliveries/deliveryOverview.tsx";
+import { DeliveryOverview } from "./pages/admin/deliveries/deliveryOverview.tsx";
 import Footer from "./pages/footer/footer";
 import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
 import { About } from "./pages/footer/about.tsx";
@@ -21,10 +21,11 @@ import MandateDetail from "./pages/admin/mandates/mandateDetail.tsx";
 import Mandates from "./pages/admin/mandates/mandates.tsx";
 import OrganisationDetail from "./pages/admin/organisations/organisationDetail.tsx";
 import Organisations from "./pages/admin/organisations/organisations.tsx";
+import { UserDeliveryOverview } from "./pages/user/deliveries/userDeliveryOverview.tsx";
 
 export const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
-  const { isLoading, isAdmin } = useGeopilotAuth();
+  const { isLoading, isAdmin, user } = useGeopilotAuth();
 
   return (
     <AppBox>
@@ -49,12 +50,22 @@ export const App: FC = () => {
                       </DeliveryProvider>
                     }
                   />
+                  {user ? (
+                    <>
+                      <Route path="user">
+                        <Route index element={<Navigate to="/user/deliveries" replace />} />
+                        <Route path="deliveries" element={<UserDeliveryOverview />} />
+                      </Route>
+                    </>
+                  ) : (
+                    <Route path="user/*" element={<Navigate to="/" replace />} />
+                  )}
                   {isAdmin ? (
                     <>
-                      <Route path="admin" element={<Navigate to="/admin/delivery-overview" replace />} />
                       <Route
                         path="admin"
                         element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
+                        <Route index element={<Navigate to="/admin/delivery-overview" replace />} />
                         <Route path="delivery-overview" element={<DeliveryOverview />} />
                         <Route path="users" element={<Users />} />
                         <Route path="users/:id" element={<UserDetail />} />

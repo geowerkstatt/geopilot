@@ -87,6 +87,7 @@
   "maxFileCount_other": "jusqu'à {{count}} fichiers",
   "maxPerFile": "{{size}} par fichier",
   "maxTotalSize": "{{size}} au total",
+  "myDeliveries": "Mes livraisons",
   "name": "Nom",
   "noMandatesFound": "Aucun mandat approprié n'a été trouvé pour leur livraison.",
   "or": "ou",

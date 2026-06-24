@@ -22,6 +22,7 @@
 - Admins can activate and deactivate users.
 - Strict Content-Security-Policy with a per-request nonce for the application and STAC Browser.
 - `IPipelineFile.GetLocalPath()` and `IPipelineFileManager.CreateWritableCopy(...)` in the PipelineCore API, letting a process hand a file to external tools by path and obtain an owned, writable copy without copying it by hand.
+- Users can view and delete their own uploaded deliveries when logged in.
 
 ### Changed
 
