@@ -21,6 +21,8 @@ Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Optio
 - Damit die Applikation mit HTTPS funktioniert, muss ein lokales dev-cert erstellt werden. Dieses wird durch das npm Script `predev` vor dem Start automatisch erstellt. Sollte dies nicht funktionieren, kann mit folgendem Befehl ein Zertifikat manuell erstellt und vertraut werden: `dotnet dev-certs https --trust`. HTTPS muss verwendet werden, damit die STAC-Urls korrekt funktionieren und so der STAC-Browser wie in einer produktiven Umgebung verwendet werden kann.
 
 - Das Projekt kann mit dem Launch Profile "Development" gestartet werden.
+  
+  ℹ️ Beim Start hält Visual Studio im Frontend wegen Fetch-Errors, während die API selbst noch am starten ist. Das kann in Visual Studio über `Debug → Windows → Exception Settings → JavaScript Exceptions → Uncaught Exceptions` deaktiviert werden.
 
 ### Starten der Applikation (Docker Compose) 🐳
 
