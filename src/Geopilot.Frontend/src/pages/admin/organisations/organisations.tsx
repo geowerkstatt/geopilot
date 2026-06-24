@@ -9,7 +9,7 @@ import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 
-export const Organisations = () => {
+const Organisations = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();

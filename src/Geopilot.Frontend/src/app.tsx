@@ -23,7 +23,7 @@ import { Licenses } from "./pages/footer/licenses.tsx";
 import { PrivacyPolicy } from "./pages/footer/privacyPolicy.tsx";
 import { UserDeliveryOverview } from "./pages/user/deliveries/userDeliveryOverview.tsx";
 
-export const App: FC = () => {
+const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
   const { isLoading, isAdmin, user } = useGeopilotAuth();
 
