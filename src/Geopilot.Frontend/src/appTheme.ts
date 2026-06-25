@@ -340,5 +340,20 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiAccordion: {
+      defaultProps: {
+        disableGutters: true,
+      },
+      styleOverrides: {
+        root: {
+          boxShadow: "none",
+          border: `1px solid ${themePalette.primary.light}`,
+          borderRadius: themeSpacing(0.5),
+          "&:before": {
+            display: "none",
+          },
+        },
+      },
+    },
   },
 });

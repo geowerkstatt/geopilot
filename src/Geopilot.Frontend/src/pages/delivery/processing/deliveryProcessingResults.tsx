@@ -2,16 +2,13 @@ import { SyntheticEvent, useContext, useEffect, useMemo, useRef, useState } from
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { Accordion, AccordionDetails, AccordionSummary, Box, Typography } from "@mui/material";
-import i18next from "i18next";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { BaseButton } from "../../../components/buttons";
 import { FlexBox, FlexRowBox } from "../../../components/styledComponents";
+import { useLocalized } from "../../../hooks/useLocalized";
 import { DeliveryContext } from "../deliveryContext";
 import { ProcessingStepIcon } from "./processingStepIcon";
 import { VisualizationLoader } from "./visualizations/visualizationLoader";
-
-const localized = (entries?: Record<string, string>) =>
-  entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
 
 const stepHasContent = (step: StepResult) =>
   Boolean(step.statusMessage) || step.downloads.length > 0 || (step.visualizations?.length ?? 0) > 0;
@@ -26,6 +23,7 @@ const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
 ]);
 
 export const DeliveryProcessingResults = () => {
+  const localized = useLocalized();
   const { processingResponse } = useContext(DeliveryContext);
   const [expandedStepIds, setExpandedStepIds] = useState<Set<string>>(new Set());
   const autoExpandedIds = useRef<Set<string>>(new Set());
@@ -124,12 +122,7 @@ export const DeliveryProcessingResults = () => {
               expanded={isExpanded}
               onChange={isExpandable ? handleAccordionChange(step.id) : undefined}
               slotProps={{ transition: { onEntered: handleStepExpanded(step.id) } }}
-              disableGutters
               sx={{
-                boxShadow: "none",
-                border: 1,
-                borderColor: theme => theme.palette.primary.light,
-                "&:before": { display: "none" },
                 ...(isExpanded
                   ? {
                       borderRadius: "4px",
