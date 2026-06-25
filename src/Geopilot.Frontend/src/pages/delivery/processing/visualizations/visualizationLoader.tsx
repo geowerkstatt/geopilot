@@ -1,6 +1,6 @@
 import { FC, ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { CircularProgress, Stack, Typography } from "@mui/material";
 import { ContentType, MapVisualizationConfig } from "../../../../api/apiInterfaces";
 import useFetch from "../../../../hooks/useFetch";
 import { MapVisualization } from "./map/mapVisualization";
@@ -65,7 +65,7 @@ export const VisualizationLoader: FC<VisualizationLoaderProps> = ({ url }) => {
 
   if (hasError) {
     return (
-      <Typography variant="body1" color="error" data-cy="visualization-error">
+      <Typography color="error" data-cy="visualization-error">
         {t("visualizationLoadFailed")}
       </Typography>
     );
@@ -73,9 +73,9 @@ export const VisualizationLoader: FC<VisualizationLoaderProps> = ({ url }) => {
 
   if (!visualization) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 2 }} data-cy="visualization-loading">
+      <Stack sx={{ justifyContent: "center", p: 2 }} data-cy="visualization-loading">
         <CircularProgress />
-      </Box>
+      </Stack>
     );
   }
 
