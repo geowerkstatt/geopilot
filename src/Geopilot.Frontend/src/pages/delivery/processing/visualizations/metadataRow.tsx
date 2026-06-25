@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { IconButton, TableCell, TableRow, Tooltip, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import CheckIcon from "@mui/icons-material/Check";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { useTranslation } from "react-i18next";
+import { IconButton, TableCell, TableRow, Tooltip, Typography } from "@mui/material";
 
 interface MetadataRowProps {
   label: string;

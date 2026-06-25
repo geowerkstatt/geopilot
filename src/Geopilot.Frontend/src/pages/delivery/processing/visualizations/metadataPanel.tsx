@@ -1,8 +1,8 @@
-import { Table, TableBody, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { Table, TableBody, Typography } from "@mui/material";
 import { GeopilotBox } from "../../../../components/styledComponents";
-import { TreeNode } from "./treeNode";
 import { MetadataRow } from "./metadataRow";
+import { TreeNode } from "./treeNode";
 
 interface MetadataPanelProps {
   node: TreeNode | null;

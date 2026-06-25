@@ -1,4 +1,5 @@
 import { KeyboardEvent, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Checkbox,
   FormControl,
@@ -10,7 +11,6 @@ import {
   SelectChangeEvent,
   TextField,
 } from "@mui/material";
-import { useTranslation } from "react-i18next";
 import { MetadataAttribute } from "./treeNode";
 
 /** A metadata dropdown shows an inline option search once it holds more than this many distinct values. */

@@ -1,24 +1,24 @@
 import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Checkbox, IconButton, InputBase, Paper, Slider, Tooltip, Typography } from "@mui/material";
-import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
-import SearchIcon from "@mui/icons-material/Search";
-import CloseIcon from "@mui/icons-material/Close";
-import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
-import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
+import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import OlMap from "ol/Map";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import RemoveIcon from "@mui/icons-material/Remove";
+import SearchIcon from "@mui/icons-material/Search";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
+import { Box, Checkbox, IconButton, InputBase, Paper, Slider, Tooltip, Typography } from "@mui/material";
 import Collection from "ol/Collection";
+import { isEmpty } from "ol/extent";
 import BaseLayer from "ol/layer/Base";
-import LayerGroup from "ol/layer/Group";
 import BaseVectorLayer from "ol/layer/BaseVector";
+import LayerGroup from "ol/layer/Group";
+import OlMap from "ol/Map";
 import { ObjectEvent } from "ol/Object";
 import { unByKey } from "ol/Observable";
 import { getUid } from "ol/util";
-import { isEmpty } from "ol/extent";
 
 // Custom layer properties read/written by the switcher. The map sets at least TITLE on the layers it
 // adds so they have a label here. The others default sensibly when absent, so existing layers work

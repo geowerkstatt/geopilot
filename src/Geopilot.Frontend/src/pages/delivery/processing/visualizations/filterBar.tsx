@@ -1,8 +1,8 @@
-import { TextField } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { TextField } from "@mui/material";
 import { FlexRowBox } from "../../../../components/styledComponents";
-import { MetadataAttribute, MetadataFilters } from "./treeNode";
 import { MetadataFilter } from "./metadataFilter";
+import { MetadataAttribute, MetadataFilters } from "./treeNode";
 
 interface FilterBarProps {
   attributes: MetadataAttribute[];

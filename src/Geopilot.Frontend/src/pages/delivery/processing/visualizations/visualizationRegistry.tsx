@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { MapVisualizationConfig } from "../../../../api/apiInterfaces";
-import { TreeVisualizationConfig } from "./treeNode";
 import { MapVisualization } from "../mapVisualization";
+import { TreeVisualizationConfig } from "./treeNode";
 import { TreeVisualization } from "./treeVisualization";
 
 /**

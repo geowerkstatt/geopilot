@@ -1,7 +1,10 @@
 import { SyntheticEvent, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Box, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
-import { useTranslation } from "react-i18next";
+import { FilterBar } from "./filterBar";
+import { MetadataPanel } from "./metadataPanel";
+import { renderTreeItems } from "./renderTreeItems";
 import {
   collectItemIds,
   collectMetadataAttributes,
@@ -11,9 +14,6 @@ import {
   TreeNode,
   TreeVisualizationConfig,
 } from "./treeNode";
-import { renderTreeItems } from "./renderTreeItems";
-import { MetadataPanel } from "./metadataPanel";
-import { FilterBar } from "./filterBar";
 
 interface TreeVisualizationProps {
   config: TreeVisualizationConfig;
