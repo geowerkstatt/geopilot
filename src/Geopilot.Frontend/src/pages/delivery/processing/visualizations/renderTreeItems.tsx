@@ -1,5 +1,7 @@
-import { ReactNode } from "react";
-import { Box, Icon, Typography } from "@mui/material";
+import { ComponentType, ReactNode } from "react";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { Box, Icon, Stack, SvgIconProps, Typography } from "@mui/material";
 import { TreeItem } from "@mui/x-tree-view";
 import { nodeId, TreeNode } from "./treeNode";
 
@@ -17,38 +19,65 @@ const MUI_ICON_COLORS: IconColor[] = [
   "warning",
 ];
 
+// Crisp SVG icons for the ligatures the backend emits; the Material Icons webfont is not loaded.
+const SVG_ICONS: Record<string, ComponentType<SvgIconProps>> = {
+  error_outline: ErrorOutlineIcon,
+  warning_amber: WarningAmberIcon,
+};
+
 const isMuiColor = (value: string): value is IconColor => (MUI_ICON_COLORS as string[]).includes(value);
+
+const iconColorProps = (node: TreeNode): { color?: IconColor; sx?: { color: string } } =>
+  node.color && !isMuiColor(node.color)
+    ? { sx: { color: node.color } }
+    : { color: (node.color as IconColor) ?? "inherit" };
 
 const renderIcon = (node: TreeNode): ReactNode => {
   if (!node.icon) return null;
-  if (node.color && !isMuiColor(node.color)) {
-    return (
-      <Icon fontSize="small" sx={{ color: node.color }}>
-        {node.icon}
-      </Icon>
-    );
+  const colorProps = iconColorProps(node);
+  const SvgIcon = SVG_ICONS[node.icon];
+  if (SvgIcon) {
+    return <SvgIcon fontSize="small" {...colorProps} />;
   }
+  // Fall back to the font ligature for icon names without a mapped SVG.
   return (
-    <Icon fontSize="small" color={(node.color as IconColor) ?? "inherit"}>
+    <Icon fontSize="small" {...colorProps}>
       {node.icon}
     </Icon>
   );
 };
 
 const renderLabel = (node: TreeNode): ReactNode => (
-  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, py: 0.25 }}>
+  <Stack direction="row" sx={{ alignItems: "flex-start", gap: 0.5, py: 0.25 }}>
     {renderIcon(node)}
     <Typography variant="body2">{node.message}</Typography>
-  </Box>
+  </Stack>
 );
 
-export const renderTreeItems = (nodes: TreeNode[], prefix = "n"): ReactNode =>
-  nodes.map((node, index) => {
+interface RenderTreeOptions {
+  // When set, the panel is rendered directly below the matching item, indented to its level.
+  selectedId?: string | null;
+  inlinePanel?: ReactNode;
+}
+
+export const renderTreeItems = (nodes: TreeNode[], prefix = "n", options?: RenderTreeOptions): ReactNode =>
+  nodes.flatMap((node, index) => {
     const id = nodeId(prefix, index);
     const hasChildren = node.values && node.values.length > 0;
-    return (
+    const item = (
       <TreeItem key={id} itemId={id} label={renderLabel(node)}>
-        {hasChildren ? renderTreeItems(node.values!, id) : null}
+        {hasChildren ? renderTreeItems(node.values!, id, options) : null}
       </TreeItem>
     );
+
+    if (options?.inlinePanel && options.selectedId === id) {
+      return [
+        item,
+        <Box key={`${id}-panel`} sx={{ pl: 4, py: 1 }}>
+          {options.inlinePanel}
+        </Box>,
+      ];
+    }
+
+    return item;
   });

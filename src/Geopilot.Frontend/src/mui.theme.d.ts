@@ -7,6 +7,7 @@ declare module "@mui/material/styles" {
   export interface AppThemePalette {
     primary: {
       main: string;
+      active: string;
       inactive: string;
       hover: string;
       selected: string;

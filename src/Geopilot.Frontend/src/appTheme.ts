@@ -8,6 +8,7 @@ const themePalette: AppThemePalette = {
   primary: {
     main: "#124A4F",
     light: "#88a4a7",
+    active: "#124A4F14",
     inactive: "#124A4F99",
     hover: "#124A4F0D",
     selected: "#124A4F2E",

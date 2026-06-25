@@ -38,7 +38,12 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
       </TableCell>
       <TableCell sx={{ width: 40, verticalAlign: "top", px: 0, textAlign: "right" }}>
         <Tooltip title={copied ? t("copied") : t("copy")}>
-          <IconButton size="small" onClick={copyValue} data-cy="metadata-copy-button">
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={copyValue}
+            data-cy="metadata-copy-button"
+            sx={{ mt: "-5px" }}>
             {copied ? <CheckIcon fontSize="small" color="success" /> : <ContentCopyIcon fontSize="small" />}
           </IconButton>
         </Tooltip>
