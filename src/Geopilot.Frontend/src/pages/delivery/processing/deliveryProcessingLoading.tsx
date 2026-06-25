@@ -2,7 +2,7 @@ import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { Typography } from "@mui/material";
 import i18next from "i18next";
-import { FlexRowSpaceBetweenBox } from "../../../components/styledComponents.ts";
+import { FlexRowBox } from "../../../components/styledComponents.ts";
 import { DeliveryContext } from "../deliveryContext.tsx";
 
 const localized = (entries?: Record<string, string>) =>
@@ -16,8 +16,8 @@ export const DeliveryProcessingLoading = () => {
   const message = pipelineName ? t("processingIsRunning", { pipeline: pipelineName }) : t("processingIsBeingPrepared");
 
   return (
-    <FlexRowSpaceBetweenBox>
+    <FlexRowBox sx={{ justifyContent: "space-between" }}>
       <Typography variant="body1">{message}</Typography>
-    </FlexRowSpaceBetweenBox>
+    </FlexRowBox>
   );
 };

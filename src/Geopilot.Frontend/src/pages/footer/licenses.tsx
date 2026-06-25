@@ -5,7 +5,7 @@ import { ChevronLeft, ExpandMore } from "@mui/icons-material";
 import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Typography } from "@mui/material";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { BaseButton } from "../../components/buttons.tsx";
-import { CenteredBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
+import { CenteredBox, FlexRowBox } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 
 interface PackageList {
@@ -93,7 +93,7 @@ export const Licenses = () => {
 
   return (
     <CenteredBox>
-      <FlexRowSpaceBetweenBox>
+      <FlexRowBox sx={{ justifyContent: "space-between" }}>
         <BaseButton
           id="backButton"
           variant={"text"}
@@ -102,7 +102,7 @@ export const Licenses = () => {
           onClick={() => navigate(-1)}
           label="back"
         />
-      </FlexRowSpaceBetweenBox>
+      </FlexRowBox>
       {(licenseInfo || licenseInfoCustom) && (
         <Typography variant="h1" id="licenses">
           {t("licenseInformation")}

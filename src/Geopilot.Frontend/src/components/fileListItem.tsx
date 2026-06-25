@@ -3,7 +3,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import { Box, IconButton, LinearProgress, Stack, Typography } from "@mui/material";
 import { geopilotTheme } from "../appTheme";
 import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
-import { FlexRowSpaceBetweenBox } from "./styledComponents.ts";
+import { FlexRowBox } from "./styledComponents.ts";
 
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
@@ -28,7 +28,7 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
         overflow: "hidden",
       }}
       data-cy="file-list-item">
-      <FlexRowSpaceBetweenBox px={2} pt={1.5} pb={status?.state !== "neutral" ? 1 : 1.5}>
+      <FlexRowBox px={2} pt={1.5} pb={status?.state !== "neutral" ? 1 : 1.5} justifyContent={"space-between"}>
         <Stack spacing={0.5}>
           <Typography variant="body1" color="primary.main">
             {file.name}&nbsp;
@@ -47,7 +47,7 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
             <ClearIcon />
           </IconButton>
         )}
-      </FlexRowSpaceBetweenBox>
+      </FlexRowBox>
       {status?.state === "uploading" && <LinearProgress variant="indeterminate" />}
       {status?.state === "completed" && !disabled && (
         <LinearProgress variant="determinate" value={100} color="success" />

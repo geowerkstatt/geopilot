@@ -7,7 +7,7 @@ import { useAppSettings } from "../../components/appSettings/appSettingsInterfac
 import { BaseButton } from "../../components/buttons.tsx";
 import { FileDropzone } from "../../components/fileDropzone.tsx";
 import { FormCheckbox } from "../../components/form/form.ts";
-import { FlexBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
+import { FlexBox, FlexRowBox } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryContinueButton } from "./deliveryButtons.tsx";
 import { DeliveryContent } from "./deliveryContent.tsx";
@@ -84,7 +84,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                 maxTotalFileSizeMB={uploadSettings?.maxJobSizeMB}
                 isUploading={isLoading}
               />
-              <FlexRowSpaceBetweenBox>
+              <FlexRowBox sx={{ justifyContent: "space-between" }}>
                 <FormCheckbox
                   fieldName="acceptTermsOfUse"
                   label={
@@ -100,7 +100,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                   validation={{ required: true }}
                   sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
                 />
-              </FlexRowSpaceBetweenBox>
+              </FlexRowBox>
             </FlexBox>
           </form>
         </FormProvider>

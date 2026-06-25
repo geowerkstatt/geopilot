@@ -11,18 +11,6 @@ export const FlexRowBox = styled(FlexBox)({
   flexWrap: "wrap",
 });
 
-export const FlexRowSpaceBetweenBox = styled(FlexRowBox)({
-  justifyContent: "space-between",
-});
-
-export const FlexRowCenterBox = styled(FlexRowBox)({
-  justifyContent: "center",
-});
-
-export const FlexRowEndBox = styled(FlexRowBox)({
-  justifyContent: "flex-end",
-});
-
 export const AppBox = styled(FlexBox)({
   height: "100vh",
 });

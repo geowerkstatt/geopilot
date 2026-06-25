@@ -3,7 +3,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import WarningIcon from "@mui/icons-material/Warning";
 import { CircularProgress } from "@mui/material";
 import { geopilotTheme } from "../../appTheme.ts";
-import { FlexRowCenterBox } from "../../components/styledComponents.ts";
+import { FlexRowBox } from "../../components/styledComponents.ts";
 
 interface StepperIconProps {
   index: number;
@@ -16,13 +16,14 @@ interface StepperIconProps {
 
 export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, completed, error, isLoading }) => {
   return (
-    <FlexRowCenterBox sx={{ position: "relative" }} {...(open ? { "data-cy": "active" } : {})}>
+    <FlexRowBox sx={{ position: "relative", justifyContent: "center" }} {...(open ? { "data-cy": "active" } : {})}>
       {error ? (
         <WarningIcon color="error" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-error" />
       ) : (
         <>
-          <FlexRowCenterBox
+          <FlexRowBox
             sx={{
+              justifyContent: "center",
               borderRadius: "50%",
               width: "24px",
               height: "24px",
@@ -35,7 +36,7 @@ export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, comple
             }}
             data-cy={`stepper-${completed ? "completed" : "number"}`}>
             {completed ? <CheckIcon fontSize="small" /> : index + 1}
-          </FlexRowCenterBox>
+          </FlexRowBox>
           {enabled && !completed && isLoading && (
             <CircularProgress
               size={32}
@@ -48,6 +49,6 @@ export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, comple
           )}
         </>
       )}
-    </FlexRowCenterBox>
+    </FlexRowBox>
   );
 };
