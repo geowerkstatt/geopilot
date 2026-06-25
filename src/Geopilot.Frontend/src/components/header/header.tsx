@@ -22,7 +22,7 @@ import { useGeopilotAuth } from "../../auth";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { BaseButton } from "../buttons.tsx";
 import { useControlledNavigate } from "../controlledNavigate";
-import { FlexRowBox, FlexSpaceBetweenBox } from "../styledComponents.ts";
+import { FlexBox, FlexRowBox } from "../styledComponents.ts";
 import { LanguagePopup } from "./languagePopup";
 
 interface HeaderProps {
@@ -147,8 +147,9 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
         </Toolbar>
       </AppBar>
       <Drawer anchor={"right"} open={userMenuOpen} onClose={toggleUserMenu(false)} data-cy="tool-navigation">
-        <FlexSpaceBetweenBox
+        <FlexBox
           sx={{
+            justifyContent: "space-between",
             height: "100%",
             padding: "20px 0",
           }}>
@@ -214,7 +215,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             </List>
           </Box>
           <BaseButton sx={{ margin: "0 20px" }} onClick={logout} label="logOut" />
-        </FlexSpaceBetweenBox>
+        </FlexBox>
       </Drawer>
     </>
   );

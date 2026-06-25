@@ -23,10 +23,6 @@ export const FlexRowEndBox = styled(FlexRowBox)({
   justifyContent: "flex-end",
 });
 
-export const FlexSpaceBetweenBox = styled(FlexBox)({
-  justifyContent: "space-between",
-});
-
 export const AppBox = styled(FlexBox)({
   height: "100vh",
 });
