@@ -11,7 +11,7 @@ import {
   SelectChangeEvent,
   TextField,
 } from "@mui/material";
-import { MetadataAttribute } from "./treeNode";
+import { MetadataAttribute } from "../treeNode";
 
 /** A metadata dropdown shows an inline option search once it holds more than this many distinct values. */
 const OPTION_SEARCH_THRESHOLD = 5;

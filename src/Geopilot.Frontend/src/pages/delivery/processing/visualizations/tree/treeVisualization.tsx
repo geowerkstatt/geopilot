@@ -2,9 +2,9 @@ import { SyntheticEvent, useCallback, useLayoutEffect, useMemo, useRef, useState
 import { useTranslation } from "react-i18next";
 import { Box, Stack, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
-import { FlexBox } from "../../../../components/styledComponents";
-import { FilterBar } from "./filterBar";
-import { MetadataPanel } from "./metadataPanel";
+import { FlexBox } from "../../../../../components/styledComponents";
+import { FilterBar } from "./filter/filterBar";
+import { MetadataPanel } from "./metadata/metadataPanel";
 import { renderTreeItems } from "./renderTreeItems";
 import {
   collectItemIds,

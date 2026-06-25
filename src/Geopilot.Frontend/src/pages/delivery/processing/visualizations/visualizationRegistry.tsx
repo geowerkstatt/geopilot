@@ -1,8 +1,8 @@
 import { ReactNode } from "react";
 import { MapVisualizationConfig } from "../../../../api/apiInterfaces";
-import { MapVisualization } from "../mapVisualization";
-import { TreeVisualizationConfig } from "./treeNode";
-import { TreeVisualization } from "./treeVisualization";
+import { MapVisualization } from "./map/mapVisualization";
+import { TreeVisualizationConfig } from "./tree/treeNode";
+import { TreeVisualization } from "./tree/treeVisualization";
 
 /**
  * A visualization produced by a pipeline step: a `type` discriminator plus its typed `data` payload.

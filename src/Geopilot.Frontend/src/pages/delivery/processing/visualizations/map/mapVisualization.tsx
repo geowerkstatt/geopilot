@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import i18next from "i18next";
 import { createEmpty, extend as extendExtent, isEmpty as isExtentEmpty } from "ol/extent";
 import Feature from "ol/Feature";
 import WKT from "ol/format/WKT";
@@ -21,12 +20,10 @@ import WMTS, { optionsFromCapabilities } from "ol/source/WMTS";
 import { Circle, Fill, Stroke, Style } from "ol/style";
 import View from "ol/View";
 import proj4 from "proj4";
-import { MapLayer, MapVisualizationConfig } from "../../../api/apiInterfaces";
+import { MapLayer, MapVisualizationConfig } from "../../../../../api/apiInterfaces";
+import { useLocalized } from "../../../../../hooks/useLocalized";
 import { LayerSwitcher, LayerSwitcherProperties } from "./layerSwitcher";
 import "ol/ol.css";
-
-const localized = (entries?: Record<string, string>) =>
-  entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
 
 // The map visualization config uses Swiss LV95 (EPSG:2056) coordinates, matching the swisstopo base
 // map and the coordinate reference system of INTERLIS error coordinates. OpenLayers only ships EPSG:4326
@@ -194,6 +191,7 @@ interface MapVisualizationProps {
 
 export const MapVisualization = ({ config }: MapVisualizationProps) => {
   const { t } = useTranslation();
+  const localized = useLocalized();
   const theme = useTheme();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   // The map instance and feature layers are kept in refs so the reset-viewport button can re-fit the view
@@ -313,7 +311,9 @@ export const MapVisualization = ({ config }: MapVisualizationProps) => {
       mapRef.current = undefined;
       featureLayersRef.current = [];
     };
-  }, [config, theme, t]);
+    // `localized` is a dependency on purpose: a language change returns a new resolver, rebuilding the map
+    // so layer titles are re-localized. Do not drop it from the deps.
+  }, [config, theme, t, localized]);
 
   return (
     <Box sx={{ position: "relative", width: "100%", height: "400px" }}>
