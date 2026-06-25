@@ -17,7 +17,7 @@ const Delivery = () => {
   const { t } = useTranslation();
 
   return (
-    <CenteredBox data-cy="delivery">
+    <CenteredBox data-cy="delivery" sx={{ maxWidth: "1400px" }}>
       <Typography variant="h1" zIndex={10}>
         {t("deliveryTitle")}
       </Typography>
