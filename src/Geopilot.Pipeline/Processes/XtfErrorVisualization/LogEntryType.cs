@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
+﻿namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// Specifies the severity level of a log entry.

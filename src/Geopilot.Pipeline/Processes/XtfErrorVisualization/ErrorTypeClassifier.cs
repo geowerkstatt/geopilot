@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
+namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// Classifies an XTF validator message into a human readable error category.

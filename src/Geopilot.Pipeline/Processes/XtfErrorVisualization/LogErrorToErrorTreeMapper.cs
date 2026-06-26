@@ -1,7 +1,7 @@
 ﻿using Geopilot.Pipeline.Visualization;
 using System.Globalization;
 
-namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
+namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// Builds a generic <see cref="TreeNode"/> hierarchy from XTF validator log entries.

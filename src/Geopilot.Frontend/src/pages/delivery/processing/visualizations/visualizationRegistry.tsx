@@ -1,30 +1,21 @@
 import { ReactNode } from "react";
-import { MapVisualizationConfig } from "../../../../api/apiInterfaces";
-import { MapVisualization } from "../mapVisualization";
-import { TreeVisualizationConfig } from "./treeNode";
-import { TreeVisualization } from "./treeVisualization";
+import { XtfErrorVisualization, XtfErrorVisualizationConfig } from "./xtfErrorVisualization";
 
 /**
  * A visualization produced by a pipeline step: a `type` discriminator plus its typed `data` payload.
  * Mirrors the backend Visualization&lt;TData&gt; envelope.
  */
-export type Visualization =
-  | { type: "map"; data: MapVisualizationConfig }
-  | { type: "tree"; data: TreeVisualizationConfig };
+export type Visualization = { type: "xtfError"; data: XtfErrorVisualizationConfig };
 
 /** Renders the built-in visualization component selected by the envelope's `type` discriminator. */
 export const renderVisualization = (visualization: Visualization): ReactNode => {
   switch (visualization.type) {
-    case "map":
-      return <MapVisualization config={visualization.data} />;
-    case "tree":
-      return <TreeVisualization config={visualization.data} />;
-    default: {
-      // Exhaustiveness guard: adding a new visualization type without handling it here fails to compile.
-      // An unknown type at runtime renders nothing rather than throwing.
-      const unknownVisualization: never = visualization;
-      console.warn("Unknown visualization type.", unknownVisualization);
+    case "xtfError":
+      return <XtfErrorVisualization config={visualization.data} />;
+    default:
+      // Renders nothing for an unrecognized type rather than throwing. Once a second visualization
+      // type exists, turn this into a compile-time exhaustiveness guard (assign to `never`).
+      console.warn("Unknown visualization type.", visualization);
       return null;
-    }
   }
 };

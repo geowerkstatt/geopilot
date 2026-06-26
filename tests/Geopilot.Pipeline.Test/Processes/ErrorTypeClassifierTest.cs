@@ -1,4 +1,4 @@
-﻿using Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
+﻿using Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 namespace Geopilot.Pipeline.Test.Processes;
 
