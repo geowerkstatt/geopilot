@@ -67,8 +67,13 @@ export const collectMetadataAttributes = (nodes: TreeNode[]): MetadataAttribute[
 };
 
 const nodeMatchesFilters = (node: TreeNode, messageQuery: string, metadataFilters: MetadataFilters): boolean => {
-  if (messageQuery && !node.message.toLowerCase().includes(messageQuery)) {
-    return false;
+  if (messageQuery) {
+    // Match the displayed label and every metadata value (message, model, topic, class, TID, ...), not just
+    // the label, so an error can be found by any of its attributes. messageQuery is already lower-cased.
+    const haystacks = [node.message, ...Object.values(node.metadata ?? {})];
+    if (!haystacks.some(value => value.toLowerCase().includes(messageQuery))) {
+      return false;
+    }
   }
 
   return Object.entries(metadataFilters).every(([key, selected]) => {
