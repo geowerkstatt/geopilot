@@ -15,7 +15,7 @@ import Organisations from "./pages/admin/organisations/organisations.tsx";
 import UserDetail from "./pages/admin/users/userDetail.tsx";
 import Users from "./pages/admin/users/users.tsx";
 import Delivery from "./pages/delivery/delivery";
-import { DeliveryProvider } from "./pages/delivery/deliveryContext.tsx";
+import { DeliveryProvider } from "./pages/delivery/deliveryProvider.tsx";
 import { About } from "./pages/footer/about.tsx";
 import Footer from "./pages/footer/footer";
 import { Imprint } from "./pages/footer/imprint.tsx";
