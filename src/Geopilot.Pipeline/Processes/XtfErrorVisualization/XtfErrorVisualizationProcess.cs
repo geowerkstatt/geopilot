@@ -53,7 +53,9 @@ internal class XtfErrorVisualizationProcess
     [PipelineProcessRun]
     public Task<Dictionary<string, object?>> RunAsync(IPipelineFile xtfLog)
     {
-        var errors = XtfLogParser.Parse(xtfLog);
+        var errors = XtfLogParser.Parse(xtfLog)
+            .Select((error, index) => new IndexedError($"e{index}", error))
+            .ToList();
 
         var config = new XtfErrorVisualizationConfig
         {

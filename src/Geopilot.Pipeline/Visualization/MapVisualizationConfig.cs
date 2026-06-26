@@ -69,6 +69,13 @@ internal class MapLayer
 internal class MapFeature
 {
     /// <summary>
+    /// Stable id of the validation error this feature represents, shared with the error's tree node so the
+    /// frontend can cross-select map and tree.
+    /// </summary>
+    [JsonPropertyName("errorId")]
+    public required string ErrorId { get; set; }
+
+    /// <summary>
     /// The feature geometry as Well-Known Text (WKT), for example <c>POINT(2600000 1200000)</c>.
     /// </summary>
     [JsonPropertyName("geom")]

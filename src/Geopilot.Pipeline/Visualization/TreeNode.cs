@@ -37,6 +37,14 @@ public class TreeNode
     /// </summary>
     public IDictionary<string, string>? Metadata { get; set; }
 
+    /// <summary>
+    /// Gets or sets the stable id of the validation error this leaf represents, shared with the error's map
+    /// feature so the frontend can cross-select map and tree. <see langword="null"/> for group nodes.
+    /// Intentionally excluded from <see cref="Equals(object?)"/>: it is a correlation detail, not part of the
+    /// displayed tree structure.
+    /// </summary>
+    public string? ErrorId { get; set; }
+
     /// <inheritdoc/>
     public override bool Equals(object? obj)
     {

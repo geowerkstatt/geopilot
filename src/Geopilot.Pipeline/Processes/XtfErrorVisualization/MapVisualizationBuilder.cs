@@ -59,14 +59,15 @@ internal static class MapVisualizationBuilder
     /// <param name="errors">The parsed validator errors.</param>
     /// <param name="baseMapWmtsCapabilitiesUrl">The base map WMTS capabilities URL to use.</param>
     /// <returns>The map visualization config.</returns>
-    public static MapVisualizationConfig Build(IEnumerable<LogError> errors, string baseMapWmtsCapabilitiesUrl)
+    public static MapVisualizationConfig Build(IReadOnlyList<IndexedError> errors, string baseMapWmtsCapabilitiesUrl)
     {
         var errorFeatures = errors
-            .Where(error => error.Geometry?.Coord != null)
+            .Where(error => error.Error.Geometry?.Coord != null)
             .Select(error => new MapFeature
             {
-                Geom = ToPointWkt(error.Geometry!.Coord!),
-                Info = error.Message ?? string.Empty,
+                ErrorId = error.Id,
+                Geom = ToPointWkt(error.Error.Geometry!.Coord!),
+                Info = error.Error.Message ?? string.Empty,
             })
             .ToList();
 

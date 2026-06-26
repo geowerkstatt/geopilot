@@ -1,23 +1,21 @@
-import { SyntheticEvent, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { SyntheticEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Stack, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
 import { FlexBox } from "../../../../components/styledComponents";
-import { FilterBar } from "./filterBar";
 import { MetadataPanel } from "./metadataPanel";
 import { renderTreeItems } from "./renderTreeItems";
-import {
-  collectItemIds,
-  collectMetadataAttributes,
-  filterNodes,
-  indexNodes,
-  MetadataFilters,
-  TreeNode,
-  TreeVisualizationConfig,
-} from "./treeNode";
+import { collectItemIds, indexNodes, TreeNode } from "./treeNode";
 
 interface TreeVisualizationProps {
-  config: TreeVisualizationConfig;
+  /** The nodes to render (already filtered by the coordinator). */
+  nodes: TreeNode[];
+  /** Structural id of the selected node, or null. */
+  selectedId: string | null;
+  /** Called with the structural node id when the selection changes (null when cleared). */
+  onSelect: (nodeId: string | null) => void;
+  /** Whether a filter is active: expands every node so all matches are visible, and shows the no-results hint. */
+  filterActive?: boolean;
 }
 
 // Once the tree can no longer keep its minimum width next to the detail box, the box is
@@ -27,12 +25,18 @@ const PANEL_GAP = 16;
 const MIN_TREE_WIDTH = 400;
 const SIDE_BY_SIDE_THRESHOLD = MIN_TREE_WIDTH + PANEL_GAP + PANEL_WIDTH;
 
-export const TreeVisualization = ({ config }: TreeVisualizationProps) => {
+// Ancestor structural ids of a node id, e.g. "n-0-2" -> ["n-0"]. The root prefix "n" alone is not a node.
+const ancestorIds = (id: string): string[] => {
+  const segments = id.split("-");
+  const ancestors: string[] = [];
+  for (let end = 2; end < segments.length; end++) {
+    ancestors.push(segments.slice(0, end).join("-"));
+  }
+  return ancestors;
+};
+
+export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = false }: TreeVisualizationProps) => {
   const { t } = useTranslation();
-  const nodes = config.nodes;
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [messageQuery, setMessageQuery] = useState("");
-  const [metadataFilters, setMetadataFilters] = useState<MetadataFilters>({});
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [containerWidth, setContainerWidth] = useState(0);
   const [panelTop, setPanelTop] = useState(0);
@@ -53,33 +57,27 @@ export const TreeVisualization = ({ config }: TreeVisualizationProps) => {
     resizeObserverRef.current = observer;
   }, []);
 
-  const attributes = useMemo(() => collectMetadataAttributes(nodes), [nodes]);
-
-  const hasActiveFilters =
-    messageQuery.trim().length > 0 || Object.values(metadataFilters).some(values => values.length > 0);
-
-  const filteredNodes = useMemo(() => {
-    if (!hasActiveFilters) return nodes;
-    return filterNodes(nodes, messageQuery.trim().toLowerCase(), metadataFilters);
-  }, [nodes, hasActiveFilters, messageQuery, metadataFilters]);
+  const allItemIds = useMemo(() => {
+    const ids: string[] = [];
+    collectItemIds(nodes, ids);
+    return ids;
+  }, [nodes]);
 
   const nodesById = useMemo(() => {
     const map = new Map<string, TreeNode>();
-    indexNodes(filteredNodes, map);
+    indexNodes(nodes, map);
     return map;
-  }, [filteredNodes]);
+  }, [nodes]);
 
-  // While filters are active, every match should be visible without manual expansion.
-  const expandedFilteredItems = useMemo(() => {
-    if (!hasActiveFilters) return null;
-    const ids: string[] = [];
-    collectItemIds(filteredNodes, ids);
-    return ids;
-  }, [hasActiveFilters, filteredNodes]);
+  // Expand the ancestors of an externally selected node (e.g. selected by clicking a map feature) so it is
+  // visible without manual expansion.
+  useEffect(() => {
+    if (!selectedId) return;
+    setExpandedItems(prev => Array.from(new Set([...prev, ...ancestorIds(selectedId)])));
+  }, [selectedId]);
 
-  const handleMetadataFilterChange = (key: string, selected: string[]) => {
-    setMetadataFilters(current => ({ ...current, [key]: selected }));
-  };
+  // While a filter is active every match is shown expanded; otherwise expansion is user-controlled.
+  const expanded = filterActive ? allItemIds : expandedItems;
 
   const selectedNode = selectedId ? (nodesById.get(selectedId) ?? null) : null;
   const hasMetadata = !!selectedNode?.metadata && Object.keys(selectedNode.metadata).length > 0;
@@ -87,13 +85,13 @@ export const TreeVisualization = ({ config }: TreeVisualizationProps) => {
   // In narrow layouts the box is woven into the tree right below the selected item.
   const items = useMemo(() => {
     if (!sideBySide && hasMetadata) {
-      return renderTreeItems(filteredNodes, "n", {
+      return renderTreeItems(nodes, "n", {
         selectedId,
         inlinePanel: <MetadataPanel node={selectedNode} fullWidth />,
       });
     }
-    return renderTreeItems(filteredNodes);
-  }, [filteredNodes, sideBySide, hasMetadata, selectedId, selectedNode]);
+    return renderTreeItems(nodes);
+  }, [nodes, sideBySide, hasMetadata, selectedId, selectedNode]);
 
   // Align the box's top with the selected row; recompute when layout-affecting state changes.
   useLayoutEffect(() => {
@@ -109,21 +107,20 @@ export const TreeVisualization = ({ config }: TreeVisualizationProps) => {
     }
     const offset = selected.getBoundingClientRect().top - wrapper.getBoundingClientRect().top;
     setPanelTop(Math.max(0, offset));
-  }, [sideBySide, selectedId, expandedItems, expandedFilteredItems, items, containerWidth]);
+  }, [sideBySide, selectedId, expanded, items, containerWidth]);
 
-  if (nodes.length === 0) return null;
+  // Scroll the selected node into view once it (and its now-expanded ancestors) are rendered.
+  useEffect(() => {
+    if (!selectedId) return;
+    treeWrapperRef.current?.querySelector<HTMLElement>(".Mui-selected")?.scrollIntoView({ block: "nearest" });
+  }, [selectedId, expanded]);
+
+  if (nodes.length === 0 && !filterActive) return null;
 
   return (
     <FlexBox ref={measureContainer} sx={{ width: "100%" }}>
-      <FilterBar
-        attributes={attributes}
-        messageQuery={messageQuery}
-        onMessageQueryChange={setMessageQuery}
-        metadataFilters={metadataFilters}
-        onMetadataFilterChange={handleMetadataFilterChange}
-      />
       <Stack direction="row" sx={{ gap: 2, alignItems: "flex-start" }}>
-        {filteredNodes.length === 0 ? (
+        {nodes.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
             {t("treeVisualizationNoResults")}
           </Typography>
@@ -132,8 +129,8 @@ export const TreeVisualization = ({ config }: TreeVisualizationProps) => {
             <Box ref={treeWrapperRef} sx={{ flex: "1 1 auto", minWidth: 0 }}>
               <SimpleTreeView
                 selectedItems={selectedId}
-                onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => setSelectedId(itemId)}
-                expandedItems={expandedFilteredItems ?? expandedItems}
+                onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
+                expandedItems={expanded}
                 onExpandedItemsChange={(_: SyntheticEvent, itemIds: string[]) => setExpandedItems(itemIds)}>
                 {items}
               </SimpleTreeView>

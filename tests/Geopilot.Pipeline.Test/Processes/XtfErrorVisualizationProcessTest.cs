@@ -52,6 +52,12 @@ public class XtfErrorVisualizationProcessTest
             Assert.IsNotEmpty(feature.Info);
         }
 
+        // Every feature carries an errorId, and that id also appears on a tree leaf (cross-select correlation).
+        var featureIds = features.Select(f => f.ErrorId).ToList();
+        Assert.IsTrue(featureIds.All(id => !string.IsNullOrEmpty(id)), "every feature has an errorId");
+        var treeErrorIds = CollectErrorIds(config.Tree.Nodes).ToHashSet();
+        Assert.IsTrue(featureIds.All(treeErrorIds.Contains), "every feature's errorId is present on a tree leaf");
+
         // Tree: matches the recorded expectation.
         var expectedTree = Deserialize(File.ReadAllText("TestData/Expectations/XtfValidatorErrorTree/errorLogWithErrors.json"));
         CollectionAssert.AreEqual(expectedTree, config.Tree.Nodes.ToList(), "error tree is not as expected");
@@ -89,6 +95,11 @@ public class XtfErrorVisualizationProcessTest
         Assert.IsNull(visualization.Data.Map);
         Assert.IsNotNull(visualization.Data.Tree);
     }
+
+    private static IEnumerable<string> CollectErrorIds(IReadOnlyList<TreeNode> nodes) =>
+        nodes.SelectMany(node =>
+            (node.ErrorId is null ? Enumerable.Empty<string>() : new[] { node.ErrorId })
+                .Concat(CollectErrorIds(node.Values.ToList())));
 
     private static List<TreeNode>? Deserialize(string json)
     {

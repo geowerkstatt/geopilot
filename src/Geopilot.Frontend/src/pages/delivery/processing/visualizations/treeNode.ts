@@ -4,6 +4,8 @@ export interface TreeNode {
   color?: string;
   metadata?: Record<string, string>;
   values?: TreeNode[];
+  /** Stable id of the validation error this leaf represents, shared with its map feature for cross-select. Absent on group nodes. */
+  errorId?: string;
 }
 
 /** The tree-visualization payload produced by the error-tree pipeline step. */
@@ -88,3 +90,28 @@ export const filterNodes = (nodes: TreeNode[], messageQuery: string, metadataFil
     }
     return kept;
   }, []);
+
+/**
+ * Walks the tree (with the same structural ids as indexNodes/renderTreeItems) and returns the bidirectional
+ * correlation between an error's id and its structural tree-node id, plus, per node id, the set of error ids
+ * in that node's subtree (one for a leaf, many for a group).
+ */
+export const buildErrorIdIndex = (
+  nodes: TreeNode[],
+  prefix = "n",
+): { nodeIdByErrorId: Map<string, string>; errorIdsByNodeId: Map<string, string[]> } => {
+  const nodeIdByErrorId = new Map<string, string>();
+  const errorIdsByNodeId = new Map<string, string[]>();
+
+  const visit = (node: TreeNode, id: string): string[] => {
+    const childIds = (node.values ?? []).flatMap((child, index) => visit(child, nodeId(id, index)));
+    const own = node.errorId ? [node.errorId] : [];
+    const subtree = [...own, ...childIds];
+    if (node.errorId) nodeIdByErrorId.set(node.errorId, id);
+    errorIdsByNodeId.set(id, subtree);
+    return subtree;
+  };
+
+  nodes.forEach((node, index) => visit(node, nodeId(prefix, index)));
+  return { nodeIdByErrorId, errorIdsByNodeId };
+};
