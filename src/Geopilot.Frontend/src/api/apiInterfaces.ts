@@ -103,7 +103,7 @@ interface StepDownload {
 }
 
 /** A single feature inside a feature layer of a map visualization. */
-export interface MapFeature {
+interface MapFeature {
   /** The feature geometry as Well-Known Text (WKT), e.g. "POINT(2600000 1200000)" (EPSG:2056 / LV95). */
   geom: string;
   /** The informational text shown for the feature. */
@@ -139,7 +139,7 @@ export interface MapVisualizationConfig {
   layers: MapLayer[];
 }
 
-export interface StepVisualization {
+interface StepVisualization {
   originalFileName: string;
   url: string;
 }
