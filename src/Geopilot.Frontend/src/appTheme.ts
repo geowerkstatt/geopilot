@@ -339,5 +339,6 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiStack: { defaultProps: { gap: 2 } },
   },
 });

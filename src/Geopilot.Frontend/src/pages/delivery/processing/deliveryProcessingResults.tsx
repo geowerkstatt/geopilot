@@ -1,11 +1,10 @@
 import { SyntheticEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import { Accordion, AccordionDetails, AccordionSummary, Box, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Stack, Typography } from "@mui/material";
 import i18next from "i18next";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { BaseButton } from "../../../components/buttons";
-import { FlexBox, FlexRowBox } from "../../../components/styledComponents";
 import { DeliveryContext } from "../deliveryContext";
 import { ProcessingStepIcon } from "./processingStepIcon";
 
@@ -94,7 +93,7 @@ export const DeliveryProcessingResults = () => {
   };
 
   return (
-    <FlexBox>
+    <Stack>
       {processingResponse?.deliveryRestrictionMessage && (
         <Typography variant="body1" color="error">
           {localized(processingResponse.deliveryRestrictionMessage)}
@@ -143,18 +142,18 @@ export const DeliveryProcessingResults = () => {
               }}
               data-cy={`processing-step-${step.id}`}>
               <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
-                <FlexRowBox sx={{ alignItems: "center", gap: 2 }}>
+                <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
                   <ProcessingStepIcon state={step.state} index={index} />
                   <Typography variant="h5" sx={{ margin: 0 }}>
                     {localized(step.name)}
                   </Typography>
-                </FlexRowBox>
+                </Stack>
               </AccordionSummary>
               <AccordionDetails>
-                <FlexBox>
+                <Stack>
                   {step.statusMessage && <Typography variant="body1">{localized(step.statusMessage)}</Typography>}
                   {step.downloads.length > 0 && (
-                    <FlexRowBox>
+                    <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
                       {step.downloads.map(d => (
                         <BaseButton
                           key={d.originalFileName}
@@ -164,14 +163,14 @@ export const DeliveryProcessingResults = () => {
                           label={d.originalFileName}
                         />
                       ))}
-                    </FlexRowBox>
+                    </Stack>
                   )}
-                </FlexBox>
+                </Stack>
               </AccordionDetails>
             </Accordion>
           );
         })}
       </Box>
-    </FlexBox>
+    </Stack>
   );
 };

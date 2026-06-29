@@ -1,17 +1,17 @@
-import { FC, PropsWithChildren } from "react";
+import { FC, PropsWithChildren, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { styled } from "@mui/system";
-import { FlexBox, FlexRowBox, GeopilotBox } from "../../components/styledComponents";
+import { GeopilotBox } from "../../components/styledComponents";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 
 interface DeliveryContentProps {
   title: string;
   subtitle?: string;
-  buttons?: React.ReactNode;
+  buttons?: ReactNode;
 }
 
-const DeliveryContentGrid = styled("div")({
+const DeliveryContentGrid = styled(Box)({
   display: "grid",
   flex: 1,
 });
@@ -20,7 +20,7 @@ const desktopTopDistance = 100; // header and spacing
 const mobileTopDistance = desktopTopDistance + 58 + 16; // top distance + stepper + spacing
 
 // place all elements in the same grid cell and add sticky scrolling
-const Overlay = styled("div")(({ theme }) => ({
+const Overlay = styled(Box)(({ theme }) => ({
   gridArea: "1 / 1",
   position: "sticky",
   top: `${desktopTopDistance}px`,
@@ -56,7 +56,7 @@ const ContainerTopBorderOverlay = styled(Overlay)(({ theme }) => ({
   borderRight: `1px solid ${theme.palette.primary.background}`,
 }));
 
-const DeliveryContentBox = styled(FlexBox)({
+const DeliveryContentBox = styled(Stack)({
   gridArea: "1 / 1",
   minHeight: "0",
   maxHeight: "100%",
@@ -85,10 +85,12 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
           {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}
           {children}
         </MainContentBox>
-        <FlexRowBox sx={{ justifyContent: "space-between" }}>
+        <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
           <DeliveryRestartButton sx={{ display: { xs: "block", md: "none" } }} />
-          <FlexRowBox sx={{ flex: 1, justifyContent: "flex-end" }}>{buttons}</FlexRowBox>
-        </FlexRowBox>
+          <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", flex: 1, justifyContent: "flex-end" }}>
+            {buttons}
+          </Stack>
+        </Stack>
       </DeliveryContentBox>
       <ScrollContentOverlay />
       <ContainerTopBorderOverlay />

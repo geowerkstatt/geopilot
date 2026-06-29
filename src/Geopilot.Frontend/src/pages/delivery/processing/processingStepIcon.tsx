@@ -3,10 +3,9 @@ import { useTranslation } from "react-i18next";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
-import { Box, CircularProgress, Tooltip, Typography } from "@mui/material";
+import { Box, CircularProgress, Stack, Tooltip, Typography } from "@mui/material";
 import { StepState } from "../../../api/apiInterfaces";
 import { geopilotTheme } from "../../../appTheme";
-import { FlexRowBox } from "../../../components/styledComponents";
 
 interface ProcessingStepIconProps {
   state: StepState;
@@ -52,20 +51,31 @@ const renderIcon = (state: StepState, index: number): ReactElement => {
       return (
         <Box sx={{ position: "relative", width: ICON_SIZE, height: ICON_SIZE }} data-cy="processing-step-icon-running">
           <CircularProgress size={ICON_SIZE} sx={{ position: "absolute", color: geopilotTheme.palette.primary.main }} />
-          <FlexRowBox sx={{ justifyContent: "center", width: "100%", height: "100%" }}>
+          <Stack
+            direction="row"
+            sx={{
+              alignItems: "center",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              width: "100%",
+              height: "100%",
+            }}>
             <Typography
               variant="caption"
               sx={{ color: geopilotTheme.palette.primary.main, fontWeight: 600, lineHeight: 1 }}>
               {index + 1}
             </Typography>
-          </FlexRowBox>
+          </Stack>
         </Box>
       );
     case StepState.Pending:
     default:
       return (
-        <FlexRowBox
+        <Stack
+          direction="row"
           sx={{
+            alignItems: "center",
+            flexWrap: "wrap",
             justifyContent: "center",
             width: ICON_SIZE,
             height: ICON_SIZE,
@@ -78,7 +88,7 @@ const renderIcon = (state: StepState, index: number): ReactElement => {
             sx={{ color: geopilotTheme.palette.primary.inactive, fontWeight: 600, lineHeight: 1 }}>
             {index + 1}
           </Typography>
-        </FlexRowBox>
+        </Stack>
       );
   }
 };

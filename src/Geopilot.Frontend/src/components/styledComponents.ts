@@ -1,21 +1,11 @@
 import { Stack } from "@mui/material";
 import { styled } from "@mui/system";
 
-export const FlexBox = styled(Stack)(({ theme }) => ({
-  gap: theme.spacing(2),
-}));
-
-export const FlexRowBox = styled(FlexBox)({
-  flexDirection: "row",
-  alignItems: "center",
-  flexWrap: "wrap",
-});
-
-export const AppBox = styled(FlexBox)({
+export const AppBox = styled(Stack)({
   height: "100vh",
 });
 
-export const LayoutBox = styled(FlexBox)(({ theme }) => ({
+export const LayoutBox = styled(Stack)(({ theme }) => ({
   backgroundColor: theme.palette.primary.background,
   paddingTop: "60px",
   flex: "1",
@@ -23,19 +13,19 @@ export const LayoutBox = styled(FlexBox)(({ theme }) => ({
 
 export const pageContentPadding = "40px";
 
-export const PageContentBox = styled(FlexBox)({
+export const PageContentBox = styled(Stack)({
   height: "100%",
   padding: pageContentPadding,
   flex: "1",
   alignItems: "center",
 });
 
-export const CenteredBox = styled(FlexBox)({
+export const CenteredBox = styled(Stack)({
   width: "100%",
   maxWidth: "1200px",
 });
 
-export const GeopilotBox = styled(FlexBox)(({ theme }) => ({
+export const GeopilotBox = styled(Stack)(({ theme }) => ({
   backgroundColor: "white",
   border: `1px solid ${theme.palette.primary.light}`,
   borderRadius: "4px",

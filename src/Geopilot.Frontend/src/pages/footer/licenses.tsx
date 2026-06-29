@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ExpandMore } from "@mui/icons-material";
-import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Stack, Typography } from "@mui/material";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { BaseButton } from "../../components/buttons.tsx";
-import { CenteredBox, FlexRowBox } from "../../components/styledComponents.ts";
+import { CenteredBox } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 
 interface PackageList {
@@ -93,7 +93,7 @@ export const Licenses = () => {
 
   return (
     <CenteredBox>
-      <FlexRowBox sx={{ justifyContent: "space-between" }}>
+      <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
         <BaseButton
           id="backButton"
           variant={"text"}
@@ -102,7 +102,7 @@ export const Licenses = () => {
           onClick={() => navigate(-1)}
           label="back"
         />
-      </FlexRowBox>
+      </Stack>
       {(licenseInfo || licenseInfoCustom) && (
         <Typography variant="h1" id="licenses">
           {t("licenseInformation")}

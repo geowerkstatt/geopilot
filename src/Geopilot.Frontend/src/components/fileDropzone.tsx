@@ -1,11 +1,10 @@
 import { CSSProperties, FC, useCallback, useEffect, useMemo, useState } from "react";
 import { FileRejection, useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
-import { Link, Typography } from "@mui/material";
+import { Link, Stack, Typography } from "@mui/material";
 import { geopilotTheme } from "../appTheme";
 import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
 import { FileListItem } from "./fileListItem.tsx";
-import { FlexBox } from "./styledComponents.ts";
 
 const defaultMaxFileSizeMB = 100;
 
@@ -107,7 +106,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       alignItems: "center",
       justifyContent: "center",
       minHeight: "56px",
-      padding: "20px",
+      padding: geopilotTheme.spacing(3),
       border: `2px dashed`,
       borderColor: disabled
         ? geopilotTheme.palette.primary.inactive
@@ -129,7 +128,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
   const maxTotalSizeText = t("maxTotalSize", { size: formatMB(maxTotalFileSizeMB) });
 
   return (
-    <FlexBox>
+    <Stack>
       <div {...getRootProps({ style: dropzoneStyle })} data-cy="file-dropzone">
         <input {...getInputProps()} />
         <Typography variant="body1" color="text.primary" className={disabled ? "Mui-disabled" : ""}>
@@ -156,6 +155,6 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
           onRemove={removeFile}
         />
       ))}
-    </FlexBox>
+    </Stack>
   );
 };

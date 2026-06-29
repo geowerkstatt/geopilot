@@ -55,6 +55,7 @@ declare module "@mui/material/styles" {
     MuiTooltip: object;
     MuiChip: object;
     MuiToggleButton: object;
+    MuiStack: object;
   }
 
   interface AppThemeComponentsOptions extends ComponentsOptions {
@@ -77,6 +78,7 @@ declare module "@mui/material/styles" {
     MuiTooltip: object;
     MuiChip: object;
     MuiToggleButton: object;
+    MuiStack: object;
   }
 
   interface AppTheme extends Theme {

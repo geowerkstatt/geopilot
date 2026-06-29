@@ -21,7 +21,7 @@ const Delivery = () => {
       <Typography variant="h1" zIndex={10}>
         {t("deliveryTitle")}
       </Typography>
-      <DeliveryContainer direction={{ xs: "column", md: "row" }} spacing={{ xs: 2, md: 2 }}>
+      <DeliveryContainer direction={{ xs: "column", md: "row" }} m={{ xs: 0, md: 0 }}>
         <DeliveryStepper />
         <DeliveryContentCarousel />
       </DeliveryContainer>
