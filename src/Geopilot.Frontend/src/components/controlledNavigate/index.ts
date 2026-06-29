@@ -1,4 +1,4 @@
 import { useContext } from "react";
-import { ControlledNavigateContext } from "./controlledNavigateProvider.tsx";
+import { ControlledNavigateContext } from "./controlledNavigateContext";
 
 export const useControlledNavigate = () => useContext(ControlledNavigateContext);

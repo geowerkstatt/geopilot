@@ -19,6 +19,13 @@ public class ProcessingOptions
     public TimeSpan DownloadRetention { get; set; }
 
     /// <summary>
+    /// The duration after which visualization configs are eligible for cleanup. Typically the
+    /// shortest retention, since a visualization is only needed while the user views the job
+    /// result in the browser.
+    /// </summary>
+    public TimeSpan VisualizationRetention { get; set; }
+
+    /// <summary>
     /// The interval at which the cleanup service runs to remove old processing jobs.
     /// </summary>
     public TimeSpan JobCleanupInterval { get; set; }

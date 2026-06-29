@@ -1,11 +1,11 @@
-﻿namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
+﻿namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// Specifies the severity level of a log entry.
 /// </summary>
 /// <remarks>Use this enumeration to indicate whether a log entry represents informational messages, warnings, or
 /// errors. The value helps consumers of log data filter or process entries based on their importance.</remarks>
-public enum LogEntryType
+internal enum LogEntryType
 {
     /// <summary>
     /// Informational message or data associated with the current context.

@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
@@ -66,6 +67,15 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public void AddDeliveryFile(PersistedFile file) =>
         ImmutableInterlocked.Update(ref deliveryFiles, static (list, f) => list.Add(f), file);
+
+    private ImmutableList<StepVisualization> visualizations = ImmutableList<StepVisualization>.Empty;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<StepVisualization> Visualizations => visualizations;
+
+    /// <inheritdoc/>
+    public void AddVisualization(StepVisualization visualization) =>
+        ImmutableInterlocked.Update(ref visualizations, static (list, v) => list.Add(v), visualization);
 
     private readonly ConditionEvaluator conditionEvaluator;
 
@@ -487,10 +497,18 @@ public sealed class PipelineStep : IPipelineStep
         {
             if (outputConfig.Take != null && outputConfig.As != null && outputProcessData.TryGetValue(outputConfig.Take, out var processDataPart))
             {
+                var action = outputConfig.Action ?? new HashSet<OutputAction>();
+                if (action.Contains(OutputAction.Visualization) && processDataPart is not IVisualization)
+                {
+                    var visualizationError = $"Output <{outputConfig.As}> of process <{Process.GetType().Name}> is tagged as a visualization, but its value is <{processDataPart?.GetType().Name ?? "null"}> and not a Visualization<T> envelope. Build it with VisualizationFactory.";
+                    logger.LogError(visualizationError);
+                    throw new PipelineRunException(visualizationError);
+                }
+
                 var stepOutput = new StepOutput
                 {
                     Data = processDataPart,
-                    Action = outputConfig.Action ?? new HashSet<OutputAction>(),
+                    Action = action,
                 };
                 stepResult.Outputs[outputConfig.As] = stepOutput;
             }

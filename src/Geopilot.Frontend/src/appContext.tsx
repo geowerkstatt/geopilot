@@ -10,12 +10,12 @@ import { itIT as gridIt } from "@mui/x-data-grid/locales/itIT";
 import App from "./app.tsx";
 import { Language } from "./appInterfaces.ts";
 import { geopilotTheme } from "./appTheme.ts";
-import { GeopilotAuthProvider } from "./auth/geopilotAuthComponent.tsx";
+import { GeopilotAuthProvider } from "./auth/geopilotAuthProvider.tsx";
 import { AlertBanner } from "./components/alert/alertBanner.tsx";
-import { AlertProvider } from "./components/alert/alertContext.tsx";
-import { AppSettingsProvider } from "./components/appSettings/appSettingsContext.tsx";
+import { AlertProvider } from "./components/alert/alertProvider.tsx";
+import { AppSettingsProvider } from "./components/appSettings/appSettingsProvider.tsx";
 import { Prompt } from "./components/prompt/prompt.tsx";
-import { PromptProvider } from "./components/prompt/promptContext.tsx";
+import { PromptProvider } from "./components/prompt/promptProvider.tsx";
 import i18n from "./i18n";
 
 export const AppContext = () => {

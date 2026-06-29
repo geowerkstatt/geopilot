@@ -3,16 +3,20 @@ using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Geopilot.Api.Processing;
 
 /// <summary>
 /// Background worker that consumes pipelines from the <see cref="IProcessingJobStore.ProcessingQueue"/>
-/// and runs them. A step's user-downloadable files (<see cref="OutputAction.Download"/>) are extracted to
-/// disk as soon as that step finishes, via <see cref="IPipeline.OnStepCompleted"/>, so the supplier can
-/// download them while later steps still run. Delivery payload files (<see cref="OutputAction.Delivery"/>)
-/// are extracted once, only when the run finished successfully and delivery is allowed. They populate
-/// <see cref="IPipelineStep.Downloads"/> and <see cref="IPipelineStep.DeliveryFiles"/> respectively.
+/// and runs them. A step's user-downloadable files (<see cref="OutputAction.Download"/>) are extracted to the
+/// download store, and its visualization configs (<see cref="OutputAction.Visualization"/>) are serialized to
+/// JSON in the dedicated visualization store, as soon as that step finishes via <see cref="IPipeline.OnStepCompleted"/>,
+/// so they are available while later steps still run and regardless of whether the run ultimately succeeds. Delivery
+/// payload files (<see cref="OutputAction.Delivery"/>) are extracted once, only when the run finished successfully and
+/// delivery is allowed. They populate <see cref="IPipelineStep.Downloads"/>, <see cref="IPipelineStep.Visualizations"/>
+/// and <see cref="IPipelineStep.DeliveryFiles"/> respectively.
 /// </summary>
 public class ProcessingRunner : BackgroundService
 {
@@ -20,6 +24,12 @@ public class ProcessingRunner : BackgroundService
     private readonly IProcessingJobStore jobStore;
     private readonly ProcessingOptions processingOptions;
     private readonly IServiceScopeFactory serviceScopeFactory;
+
+    private static readonly JsonSerializerOptions VisualizationJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingRunner"/> class.
@@ -98,30 +108,46 @@ public class ProcessingRunner : BackgroundService
     }
 
     /// <summary>
-    /// Persists the user-downloadable files (<see cref="OutputAction.Download"/>) produced by a single step the
-    /// moment it finishes and records them on <see cref="IPipelineStep.Downloads"/>. Called once per step via
-    /// <see cref="IPipeline.OnStepCompleted"/>, so a step's downloads become available before later steps run.
+    /// Persists a single step's outputs the moment it finishes, via <see cref="IPipeline.OnStepCompleted"/>,
+    /// so they become available before later steps run. Files tagged <see cref="OutputAction.Download"/> are
+    /// copied to the download store and recorded on <see cref="IPipelineStep.Downloads"/>; objects tagged
+    /// <see cref="OutputAction.Visualization"/> are serialized to JSON in the visualization store and recorded
+    /// on <see cref="IPipelineStep.Visualizations"/>.
     /// </summary>
     internal void ExtractStepDownloads(Guid jobId, IPipelineStep step, StepResult stepResult)
     {
         using var scope = serviceScopeFactory.CreateScope();
         var downloadFileStore = scope.ServiceProvider.GetRequiredService<IDownloadFileStore>();
+        var visualizationFileStore = scope.ServiceProvider.GetRequiredService<IVisualizationFileStore>();
 
-        // Names are deterministic per step so they're readable on disk; collisions within the same
-        // step (rare — same originalFileName twice) get a numeric suffix to avoid silent overwrites.
+        // Names are deterministic per step so they're readable on disk; collisions within the same store get a
+        // numeric suffix to avoid silent overwrites. Downloads and visualizations live in separate stores and
+        // track their used names independently.
         var stepIdPrefix = step.Id.SanitizeFileName();
-        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        var usedDownloadNames = new HashSet<string>(StringComparer.Ordinal);
+        var usedVisualizationNames = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var output in stepResult.Outputs.Values)
+        foreach (var (outputName, output) in stepResult.Outputs)
         {
-            if (!output.Action.Contains(OutputAction.Download))
-                continue;
-
-            foreach (var transferFile in ResolveFiles(output.Data))
+            if (output.Action.Contains(OutputAction.Download))
             {
-                var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
-                CopyTo(downloadFileStore, jobId, fileName, transferFile);
-                step.AddDownload(new PersistedFile(transferFile.OriginalFileName, fileName));
+                foreach (var transferFile in ResolveFiles(output.Data))
+                {
+                    var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedDownloadNames);
+                    CopyTo(downloadFileStore, jobId, fileName, transferFile);
+                    step.AddDownload(new PersistedFile(transferFile.OriginalFileName, fileName));
+                }
+            }
+
+            if (output.Action.Contains(OutputAction.Visualization))
+            {
+                // The visualization output value is the config object itself (not a file): serialize it to JSON
+                // in the dedicated visualization store. The frontend fetches it and renders the component the
+                // config's own type discriminator selects.
+                var originalFileName = $"{outputName}.json";
+                var fileName = MakeUniqueStepFileName(stepIdPrefix, originalFileName, usedVisualizationNames);
+                SerializeVisualization(visualizationFileStore, jobId, fileName, output.Data);
+                step.AddVisualization(new StepVisualization(originalFileName, fileName));
             }
         }
     }
@@ -194,6 +220,13 @@ public class ProcessingRunner : BackgroundService
 
         throw new InvalidOperationException(
             $"Could not generate a unique on-disk name for <{originalFileName}> in step <{stepIdPrefix}>.");
+    }
+
+    private static void SerializeVisualization(IJobFileStore store, Guid jobId, string fileName, object? data)
+    {
+        var json = JsonSerializer.SerializeToUtf8Bytes(data, VisualizationJsonOptions);
+        using var outStream = store.CreateFile(jobId, fileName);
+        outStream.Write(json);
     }
 
     private static void CopyTo(IJobFileStore store, Guid jobId, string fileName, IPipelineFile source)

@@ -1,21 +1,6 @@
-import { createContext, FC, PropsWithChildren, useCallback, useRef, useState } from "react";
+import { FC, PropsWithChildren, useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-interface ControlledNavigateContextValue {
-  navigateTo: (path: string) => void;
-  checkIsDirty: boolean;
-  registerCheckIsDirty: (path: string) => void;
-  unregisterCheckIsDirty: (path: string) => void;
-  leaveEditingPage: (canLeave: boolean) => void;
-}
-
-export const ControlledNavigateContext = createContext<ControlledNavigateContextValue>({
-  navigateTo: () => {},
-  checkIsDirty: false,
-  registerCheckIsDirty: () => {},
-  unregisterCheckIsDirty: () => {},
-  leaveEditingPage: () => {},
-});
+import { ControlledNavigateContext } from "./controlledNavigateContext";
 
 export const ControlledNavigateProvider: FC<PropsWithChildren> = ({ children }) => {
   const pathRef = useRef<string | undefined>(undefined);

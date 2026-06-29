@@ -1,5 +1,6 @@
 ﻿using Geopilot.Pipeline;
 using Geopilot.Pipeline.Process;
+using Geopilot.Pipeline.Processes.XtfErrorVisualization;
 using System.Security.Cryptography;
 
 namespace Geopilot.Api;
@@ -85,16 +86,32 @@ public static class WebApplicationExtensions
             blobEndpoint = blobUri.GetLeftPart(UriPartial.Authority);
         }
 
-        var connectSrc = string.IsNullOrWhiteSpace(blobEndpoint)
-            ? $"'self' {authorityOrigin}"
-            : $"'self' {authorityOrigin} {blobEndpoint}";
+        // The map visualization step renders a WMTS base map in the browser. The client both fetches the
+        // capabilities document (connect-src) and loads tile images (img-src) from the base map host, so
+        // that origin has to be allow-listed. Defaults to the swisstopo base map; keep this in sync with
+        // any override of the map visualization base map URL.
+        var mapBaseMapUrl = configuration["MapVisualization:BaseMapWmtsCapabilitiesUrl"];
+        if (string.IsNullOrWhiteSpace(mapBaseMapUrl))
+        {
+            mapBaseMapUrl = MapVisualizationBuilder.DefaultBaseMapWmtsCapabilitiesUrl;
+        }
+
+        if (!Uri.TryCreate(mapBaseMapUrl, UriKind.Absolute, out var mapBaseMapUri))
+            throw new InvalidOperationException($"MapVisualization:BaseMapWmtsCapabilitiesUrl '{mapBaseMapUrl}' is not a valid absolute URI.");
+        var mapBaseMapOrigin = mapBaseMapUri.GetLeftPart(UriPartial.Authority);
+
+        var connectSrcParts = new List<string> { "'self'", authorityOrigin };
+        if (!string.IsNullOrWhiteSpace(blobEndpoint))
+            connectSrcParts.Add(blobEndpoint);
+        connectSrcParts.Add(mapBaseMapOrigin);
+        var connectSrc = string.Join(' ', connectSrcParts);
 
         app.MapFallback(async context =>
         {
             var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
             context.Response.Headers.Append(
                 "Content-Security-Policy",
-                $"default-src 'self'; script-src 'strict-dynamic' 'nonce-{nonce}'; style-src 'nonce-{nonce}'; object-src 'none'; base-uri 'none'; connect-src {connectSrc}; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script';");
+                $"default-src 'self'; script-src 'strict-dynamic' 'nonce-{nonce}'; style-src 'nonce-{nonce}'; img-src 'self' data: {mapBaseMapOrigin}; object-src 'none'; base-uri 'none'; connect-src {connectSrc}; form-action 'self'; frame-ancestors 'none'; require-trusted-types-for 'script';");
             context.Response.ContentType = "text/html";
             await context.Response.WriteAsync(indexHtmlTemplate.Replace("__CSP_NONCE__", nonce));
         }).AllowAnonymous();

@@ -23,17 +23,19 @@ public class ProcessingController : ControllerBase
     private readonly ILogger<ProcessingController> logger;
     private readonly IProcessingService processingService;
     private readonly IDownloadFileStore downloadFileStore;
+    private readonly IVisualizationFileStore visualizationFileStore;
     private readonly IContentTypeProvider contentTypeProvider;
     private readonly Context context;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ProcessingController"/> class.
     /// </summary>
-    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IDownloadFileStore downloadFileStore, IContentTypeProvider contentTypeProvider, Context context)
+    public ProcessingController(ILogger<ProcessingController> logger, IProcessingService processingService, IDownloadFileStore downloadFileStore, IVisualizationFileStore visualizationFileStore, IContentTypeProvider contentTypeProvider, Context context)
     {
         this.logger = logger;
         this.processingService = processingService;
         this.downloadFileStore = downloadFileStore;
+        this.visualizationFileStore = visualizationFileStore;
         this.contentTypeProvider = contentTypeProvider;
         this.context = context;
     }
@@ -73,7 +75,7 @@ public class ProcessingController : ControllerBase
             var job = await processingService.StartJobAsync(startJobRequest.UploadId, startJobRequest.MandateId, user);
             logger.LogInformation("Job with id <{JobId}> is scheduled for execution.", job.Id);
 
-            return AcceptedAtAction(nameof(GetStatus), new { jobId = job.Id }, job.ToResponse(BuildDownloadUrl));
+            return AcceptedAtAction(nameof(GetStatus), new { jobId = job.Id }, job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl));
         }
         catch (ArgumentException ex)
         {
@@ -110,7 +112,7 @@ public class ProcessingController : ControllerBase
             return Problem($"No job information available for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
         }
 
-        return Ok(job.ToResponse(BuildDownloadUrl));
+        return Ok(job.ToResponse(BuildDownloadUrl, BuildVisualizationUrl));
     }
 
     /// <summary>
@@ -136,13 +138,37 @@ public class ProcessingController : ControllerBase
         return File(stream, contentType, downloadName);
     }
 
+    /// <summary>
+    /// Fetch a visualization config produced by the processing pipeline for a job.
+    /// </summary>
+    [HttpGet("{jobId}/visualizations/{file}", Name = nameof(GetVisualization))]
+    [SwaggerResponse(StatusCodes.Status200OK, "The specified visualization config was found.", typeof(VisualizationResponse), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "The job or visualization config cannot be found.", typeof(ProblemDetails), "application/json")]
+    public IActionResult GetVisualization(Guid jobId, string file)
+    {
+        logger.LogInformation("Visualization config <{File}> for job <{JobId}> requested.", HttpUtility.HtmlEncode(file), jobId);
+
+        if (!visualizationFileStore.Exists(jobId, file))
+        {
+            logger.LogTrace("No visualization config <{File}> found for job id <{JobId}>", HttpUtility.HtmlEncode(file), jobId);
+            return Problem($"No visualization config <{file}> found for job id <{jobId}>", statusCode: StatusCodes.Status404NotFound);
+        }
+
+        var stream = visualizationFileStore.OpenFile(jobId, file);
+        return File(stream, "application/json");
+    }
+
     private string? ResolveOriginalFileName(Guid jobId, string persistedFileName)
     {
         // Each step keeps an in-memory mapping from persisted (random) name → original
         // human-readable name. After the job ages out of the store we fall back to the
         // persisted name; by then the temp dirs are usually gone anyway.
         var job = processingService.GetJob(jobId);
-        return job?.Pipeline?.Steps
+        if (job?.Pipeline == null)
+            return null;
+
+        return job.Pipeline.Steps
             .SelectMany(s => s.Downloads.Concat(s.DeliveryFiles))
             .FirstOrDefault(f => f.PersistedFileName == persistedFileName)
             ?.OriginalFileName;
@@ -152,6 +178,13 @@ public class ProcessingController : ControllerBase
     {
         var url = Url.RouteUrl(nameof(Download), new { jobId, file = fileName }, Request.Scheme, Request.Host.Value)
             ?? throw new InvalidOperationException($"Could not generate download URL for job <{jobId}> file <{fileName}>.");
+        return new Uri(url);
+    }
+
+    private Uri BuildVisualizationUrl(Guid jobId, string fileName)
+    {
+        var url = Url.RouteUrl(nameof(GetVisualization), new { jobId, file = fileName }, Request.Scheme, Request.Host.Value)
+            ?? throw new InvalidOperationException($"Could not generate visualization URL for job <{jobId}> file <{fileName}>.");
         return new Uri(url);
     }
 }
