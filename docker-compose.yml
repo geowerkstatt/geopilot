@@ -117,6 +117,9 @@ services:
       ClamAV__Host: clamav
       ClamAV__Port: 3310
       Pipeline__Definition: /pipelines/pipelines.yaml
+      Delivery__UploaderDeleteEnabled: true
+      Delivery__DeleteDuration: ""
+      Delivery__DeleteRestrictInterval: ""
       PUID: 1000
       PGID: 1000
     volumes:

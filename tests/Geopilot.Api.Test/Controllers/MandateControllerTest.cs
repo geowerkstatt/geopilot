@@ -8,6 +8,7 @@ using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using NetTopologySuite.Geometries;
 
@@ -308,7 +309,7 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(mandateToUpdate);
 
             var guid = Guid.NewGuid();
-            var validationServiceMock = new Mock<IProcessingService>();
+            var processingServiceMock = new Mock<IProcessingService>();
             var pipelineMock = new Mock<IPipeline>();
             pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Success);
             pipelineMock.SetupGet(p => p.Delivery).Returns(PipelineDelivery.Allow);
@@ -321,7 +322,7 @@ namespace Geopilot.Api.Controllers
                 Pipeline = pipelineMock.Object,
             };
 
-            validationServiceMock
+            processingServiceMock
                 .Setup(s => s.GetJob(guid))
                 .Returns(processingJob);
             var assetHandlerMock = new Mock<IAssetHandler>();
@@ -329,7 +330,9 @@ namespace Geopilot.Api.Controllers
                 .Setup(p => p.PersistJobAssets(guid))
                 .Returns(new List<Asset> { new Asset(), new Asset() });
 
-            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, validationServiceMock.Object, assetHandlerMock.Object);
+            var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
+            deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
+            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, processingServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
             deliveryController.SetupTestUser(editUser);
 
             var request = new DeliveryRequest
