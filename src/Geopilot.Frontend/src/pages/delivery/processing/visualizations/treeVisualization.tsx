@@ -117,8 +117,8 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
   if (nodes.length === 0 && !filterActive) return null;
 
   return (
-    <Stack ref={measureContainer} sx={{ width: "100%", gap: 2 }}>
-      <Stack direction="row" sx={{ gap: 2, alignItems: "flex-start" }}>
+    <Stack ref={measureContainer} sx={{ width: "100%" }}>
+      <Stack direction="row" sx={{ alignItems: "flex-start" }}>
         {nodes.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
             {t("treeVisualizationNoResults")}
