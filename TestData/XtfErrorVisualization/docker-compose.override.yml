@@ -1,0 +1,4 @@
+services:
+  interlis-check-service:
+    volumes:
+      - ./TestData/XtfErrorVisualization/ili-repository:/repository
