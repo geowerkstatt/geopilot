@@ -34,16 +34,9 @@ internal interface IVisualization
 internal static class VisualizationFactory
 {
     /// <summary>
-    /// Wraps a map visualization config in its envelope.
+    /// Wraps a composite XTF error visualization config (map and/or tree) in its envelope.
     /// </summary>
-    /// <param name="data">The map config payload.</param>
-    /// <returns>The map visualization envelope.</returns>
-    public static Visualization<MapVisualizationConfig> Map(MapVisualizationConfig data) => new("map", data);
-
-    /// <summary>
-    /// Wraps a tree visualization config in its envelope.
-    /// </summary>
-    /// <param name="data">The tree config payload.</param>
-    /// <returns>The tree visualization envelope.</returns>
-    public static Visualization<TreeVisualizationConfig> Tree(TreeVisualizationConfig data) => new("tree", data);
+    /// <param name="data">The composite config payload.</param>
+    /// <returns>The XTF error visualization envelope.</returns>
+    public static Visualization<XtfErrorVisualizationConfig> XtfError(XtfErrorVisualizationConfig data) => new("xtfError", data);
 }

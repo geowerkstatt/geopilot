@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { createEmpty, extend as extendExtent, isEmpty as isExtentEmpty } from "ol/extent";
+import i18next from "i18next";
+import { containsExtent, createEmpty, extend as extendExtent, getCenter, isEmpty as isExtentEmpty } from "ol/extent";
 import Feature from "ol/Feature";
 import WKT from "ol/format/WKT";
 import WMTSCapabilities from "ol/format/WMTSCapabilities";
@@ -20,10 +21,12 @@ import WMTS, { optionsFromCapabilities } from "ol/source/WMTS";
 import { Circle, Fill, Stroke, Style } from "ol/style";
 import View from "ol/View";
 import proj4 from "proj4";
-import { MapLayer, MapVisualizationConfig } from "../../../../../api/apiInterfaces";
-import { useLocalized } from "../../../../../hooks/useLocalized";
+import { MapLayer, MapVisualizationConfig } from "../../../../api/apiInterfaces";
 import { LayerSwitcher, LayerSwitcherProperties } from "./layerSwitcher";
 import "ol/ol.css";
+
+const localized = (entries?: Record<string, string>) =>
+  entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
 
 // The map visualization config uses Swiss LV95 (EPSG:2056) coordinates, matching the swisstopo base
 // map and the coordinate reference system of INTERLIS error coordinates. OpenLayers only ships EPSG:4326
@@ -141,31 +144,58 @@ const toTransparent = (color: string): string => (/^#[0-9a-f]{6}$/i.test(color) 
 // Builds a vector layer for one feature layer of the config. Points are drawn as circle markers filled
 // with the layer color; lines and polygon outlines are stroked with it, polygons filled with a
 // transparent variant of it. Each feature keeps its info text so it can be shown in a popup on click.
-const buildFeatureLayer = (layer: MapLayer, color: string, title: string): VectorLayer<VectorSource> => {
+const buildFeatureLayer = (
+  layer: MapLayer,
+  color: string,
+  title: string,
+  highlightColor: string,
+  visibleIdsRef: MutableRefObject<ReadonlySet<string> | undefined>,
+  highlightedIdsRef: MutableRefObject<ReadonlySet<string>>,
+): VectorLayer<VectorSource> => {
   const source = new VectorSource();
   for (const mapFeature of layer.features ?? []) {
     try {
       const geometry = wktFormat.readGeometry(mapFeature.geom, { dataProjection: SWISS_PROJECTION });
       const feature = new Feature({ geometry });
       feature.set("info", mapFeature.info);
+      feature.set("errorId", mapFeature.errorId);
       source.addFeature(feature);
     } catch {
       // Skip features with unparseable geometry rather than failing the whole map.
     }
   }
 
+  const defaultStyle = new Style({
+    image: new Circle({
+      radius: 6,
+      fill: new Fill({ color }),
+      stroke: new Stroke({ color: "#ffffff", width: 2 }),
+    }),
+    stroke: new Stroke({ color, width: 2 }),
+    fill: new Fill({ color: toTransparent(color) }),
+  });
+  const highlightStyle = new Style({
+    image: new Circle({
+      radius: 9,
+      fill: new Fill({ color }),
+      stroke: new Stroke({ color: highlightColor, width: 3 }),
+    }),
+    stroke: new Stroke({ color: highlightColor, width: 3 }),
+    fill: new Fill({ color: toTransparent(color) }),
+  });
+
   return new VectorLayer({
     source,
     properties: { [LayerSwitcherProperties.TITLE]: title },
-    style: new Style({
-      image: new Circle({
-        radius: 6,
-        fill: new Fill({ color }),
-        stroke: new Stroke({ color: "#ffffff", width: 2 }),
-      }),
-      stroke: new Stroke({ color, width: 2 }),
-      fill: new Fill({ color: toTransparent(color) }),
-    }),
+    // A style function (not a static style): filtering hides non-matching features and selection emphasizes
+    // highlighted ones. It reads the current sets from refs, which the map's update effect keeps in sync,
+    // so changing filter/selection only restyles the existing layer instead of rebuilding the map.
+    style: feature => {
+      const errorId = feature.get("errorId") as string | undefined;
+      const visible = visibleIdsRef.current;
+      if (errorId !== undefined && visible !== undefined && !visible.has(errorId)) return undefined;
+      return errorId !== undefined && highlightedIdsRef.current.has(errorId) ? highlightStyle : defaultStyle;
+    },
   });
 };
 
@@ -187,11 +217,24 @@ const getFitExtent = (featureLayers: VectorLayer<VectorSource>[]): number[] => {
 interface MapVisualizationProps {
   /** The map visualization config to render. */
   config: MapVisualizationConfig;
+  /** Error ids currently visible (filter result); undefined means no filter (show all). */
+  visibleErrorIds?: ReadonlySet<string>;
+  /** Error ids to highlight (current selection); empty set means none. */
+  highlightedErrorIds: ReadonlySet<string>;
+  /** Called with the error id when a feature is clicked. */
+  onSelectFeature: (errorId: string) => void;
+  /** Whether to show the info popup on feature click. Suppressed when the tree below already shows the details. */
+  showPopup: boolean;
 }
 
-export const MapVisualization = ({ config }: MapVisualizationProps) => {
+export const MapVisualization = ({
+  config,
+  visibleErrorIds,
+  highlightedErrorIds,
+  onSelectFeature,
+  showPopup,
+}: MapVisualizationProps) => {
   const { t } = useTranslation();
-  const localized = useLocalized();
   const theme = useTheme();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   // The map instance and feature layers are kept in refs so the reset-viewport button can re-fit the view
@@ -199,6 +242,15 @@ export const MapVisualization = ({ config }: MapVisualizationProps) => {
   const mapRef = useRef<Map | undefined>(undefined);
   const featureLayersRef = useRef<VectorLayer<VectorSource>[]>([]);
   const [map, setMap] = useState<Map | null>(null);
+
+  // The feature style function reads the current filter/selection from refs, so changing them only restyles
+  // the existing layers (cheap) instead of rebuilding the map (which would re-fetch the WMTS base map).
+  const visibleIdsRef = useRef<ReadonlySet<string> | undefined>(visibleErrorIds);
+  const highlightedIdsRef = useRef<ReadonlySet<string>>(highlightedErrorIds);
+  const onSelectRef = useRef(onSelectFeature);
+  onSelectRef.current = onSelectFeature;
+  const showPopupRef = useRef(showPopup);
+  showPopupRef.current = showPopup;
 
   const resetViewport = useCallback(() => {
     const map = mapRef.current;
@@ -223,6 +275,9 @@ export const MapVisualization = ({ config }: MapVisualizationProps) => {
               layer,
               layer.color ?? theme.palette.error.main,
               localized(layer.title) || t("mapVisualizationFeatureLayer"),
+              theme.palette.primary.main,
+              visibleIdsRef,
+              highlightedIdsRef,
             ),
           );
         const layers: BaseLayer[] = [...featureLayers];
@@ -279,7 +334,8 @@ export const MapVisualization = ({ config }: MapVisualizationProps) => {
         map.on("click", event => {
           const feature = map?.forEachFeatureAtPixel(event.pixel, f => f);
           const info = feature?.get("info") as string | undefined;
-          if (feature && info) {
+          const errorId = feature?.get("errorId") as string | undefined;
+          if (showPopupRef.current && feature && info) {
             popupElement.textContent = info;
             popupElement.style.display = "block";
             overlay.setPosition(event.coordinate);
@@ -287,6 +343,7 @@ export const MapVisualization = ({ config }: MapVisualizationProps) => {
             popupElement.style.display = "none";
             overlay.setPosition(undefined);
           }
+          if (errorId) onSelectRef.current(errorId);
         });
 
         map.on("pointermove", event => {
@@ -311,9 +368,44 @@ export const MapVisualization = ({ config }: MapVisualizationProps) => {
       mapRef.current = undefined;
       featureLayersRef.current = [];
     };
-    // `localized` is a dependency on purpose: a language change returns a new resolver, rebuilding the map
-    // so layer titles are re-localized. Do not drop it from the deps.
-  }, [config, theme, t, localized]);
+  }, [config, theme, t]);
+
+  // Apply filter (hide non-matching) and selection (highlight + center) without rebuilding the map: update
+  // the refs the style function reads, restyle the existing layers, and center on the current selection.
+  useEffect(() => {
+    visibleIdsRef.current = visibleErrorIds;
+    highlightedIdsRef.current = highlightedErrorIds;
+    if (!map) return;
+    featureLayersRef.current.forEach(layer => layer.changed());
+
+    if (highlightedErrorIds.size === 0) return;
+    const extent = createEmpty();
+    let count = 0;
+    for (const layer of featureLayersRef.current) {
+      for (const feature of layer.getSource()?.getFeatures() ?? []) {
+        const errorId = feature.get("errorId") as string | undefined;
+        if (errorId !== undefined && highlightedErrorIds.has(errorId)) {
+          const geometry = feature.getGeometry();
+          if (geometry) {
+            extendExtent(extent, geometry.getExtent());
+            count += 1;
+          }
+        }
+      }
+    }
+    if (isExtentEmpty(extent)) return;
+    // Only move the map when the selection is not already visible: clicking a feature on the map must not
+    // yank it out from under the cursor, and an already-visible selection should stay put. An off-screen
+    // single error gently centers (keeps zoom); an off-screen group fits to show all its points.
+    const size = map.getSize();
+    const viewExtent = size ? map.getView().calculateExtent(size) : undefined;
+    if (viewExtent && containsExtent(viewExtent, extent)) return;
+    if (count === 1) {
+      map.getView().setCenter(getCenter(extent));
+    } else {
+      map.getView().fit(extent, FIT_OPTIONS);
+    }
+  }, [map, visibleErrorIds, highlightedErrorIds]);
 
   return (
     <Box sx={{ position: "relative", width: "100%", height: "400px" }}>

@@ -1,6 +1,6 @@
 ﻿using System.Xml.Serialization;
 
-namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
+namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// Represents the root element of an INTERLIS 2.3 transfer file, containing the data section and associated metadata.

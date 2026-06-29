@@ -1,7 +1,7 @@
 ﻿using Geopilot.Pipeline.Visualization;
 using System.Globalization;
 
-namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
+namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// Builds a generic <see cref="TreeNode"/> hierarchy from XTF validator log entries.
@@ -22,7 +22,7 @@ internal class LogErrorToErrorTreeMapper
     /// <summary>
     /// A single occurrence of an error or warning, with the text shown for it, its severity and its metadata.
     /// </summary>
-    private sealed record Occurrence(string Display, LogEntryType Severity, IDictionary<string, string> Metadata);
+    private sealed record Occurrence(string ErrorId, string Display, LogEntryType Severity, IDictionary<string, string> Metadata);
 
     private readonly Dictionary<string, List<Occurrence>> occurrencesByCategory = new(StringComparer.Ordinal);
     private readonly List<Occurrence> otherOccurrences = new List<Occurrence>();
@@ -32,7 +32,7 @@ internal class LogErrorToErrorTreeMapper
     /// </summary>
     /// <remarks>The constructor collects the errors and warnings so that <see cref="Map"/> can build the tree from them.</remarks>
     /// <param name="logEntries">The collection of log entries to be processed for building the tree. Cannot be null.</param>
-    public LogErrorToErrorTreeMapper(IEnumerable<LogError> logEntries)
+    public LogErrorToErrorTreeMapper(IReadOnlyList<IndexedError> logEntries)
     {
         ArgumentNullException.ThrowIfNull(logEntries);
         CollectWarningsAndErrors(logEntries);
@@ -66,7 +66,7 @@ internal class LogErrorToErrorTreeMapper
     private static TreeNode CreateGroup(string name, IReadOnlyList<Occurrence> occurrences)
     {
         var leaves = occurrences
-            .Select(occurrence => CreateNode(occurrence.Display, occurrence.Severity, new List<TreeNode>(), occurrence.Metadata))
+            .Select(occurrence => CreateNode(occurrence.Display, occurrence.Severity, new List<TreeNode>(), occurrence.Metadata, occurrence.ErrorId))
             .ToList<TreeNode>();
 
         return CreateNode(name, ReduceSeverity(occurrences), leaves);
@@ -75,13 +75,14 @@ internal class LogErrorToErrorTreeMapper
     /// <summary>
     /// Creates a tree node with the icon and color that match the given severity and the optional metadata details.
     /// </summary>
-    private static TreeNode CreateNode(string message, LogEntryType severity, IList<TreeNode> children, IDictionary<string, string>? metadata = null) => new()
+    private static TreeNode CreateNode(string message, LogEntryType severity, IList<TreeNode> children, IDictionary<string, string>? metadata = null, string? errorId = null) => new()
     {
         Message = message,
         Icon = severity == LogEntryType.Error ? IconError : IconWarning,
         Color = severity == LogEntryType.Error ? ColorError : ColorWarning,
         Values = children,
         Metadata = metadata,
+        ErrorId = errorId,
     };
 
     /// <summary>
@@ -90,10 +91,11 @@ internal class LogErrorToErrorTreeMapper
     /// and displayed by its full message.
     /// </summary>
     /// <param name="logEntries">Entries of the validator log.</param>
-    private void CollectWarningsAndErrors(IEnumerable<LogError> logEntries)
+    private void CollectWarningsAndErrors(IReadOnlyList<IndexedError> logEntries)
     {
-        foreach (var logEntry in logEntries)
+        foreach (var indexedError in logEntries)
         {
+            var logEntry = indexedError.Error;
             if (string.IsNullOrEmpty(logEntry.Message))
                 continue;
             if (!Enum.TryParse(logEntry.Type, out LogEntryType logEntryType) || logEntryType == LogEntryType.Info)
@@ -107,11 +109,11 @@ internal class LogErrorToErrorTreeMapper
                 var occurrences = occurrencesByCategory.TryGetValue(category, out var existing)
                     ? existing
                     : occurrencesByCategory[category] = new List<Occurrence>();
-                occurrences.Add(new Occurrence(logEntry.Tid!, logEntryType, metadata));
+                occurrences.Add(new Occurrence(indexedError.Id, logEntry.Tid!, logEntryType, metadata));
             }
             else
             {
-                otherOccurrences.Add(new Occurrence(logEntry.Message, logEntryType, metadata));
+                otherOccurrences.Add(new Occurrence(indexedError.Id, logEntry.Message, logEntryType, metadata));
             }
         }
     }

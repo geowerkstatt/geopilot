@@ -2,7 +2,7 @@
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace Geopilot.Pipeline.Processes.XtfValidatorErrorTree;
+namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// Provides a method to parse XTF log files.

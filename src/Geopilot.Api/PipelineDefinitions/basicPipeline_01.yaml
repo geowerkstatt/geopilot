@@ -11,8 +11,12 @@ processes:
     default_config:
       validationProfile: ""
       pollInterval: 1000
-  - id: map_visualizer
-    implementation: Geopilot.Pipeline.Processes.MapVisualization.MapVisualizationProcess
+  - id: xtf_error_visualizer
+    implementation: Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess
+    default_config:
+      include:
+        - map
+        - tree
 pipelines:
   - id: ili_validation
     display_name:
@@ -82,7 +86,10 @@ pipelines:
           de: Kartenvisualisierung
           it: Visualizzazione cartografica
           fr: Visualisation cartographique
-        process_id: map_visualizer
+        process_id: xtf_error_visualizer
+        process_config_overwrites:
+          include:
+            - map
         conditions:
           pre:
             skip_conditions:
@@ -95,7 +102,7 @@ pipelines:
         input:
           - from: validation
             take: xtf_log
-            as: errorLogXtf
+            as: xtfLog
         output:
           - take: visualization
             as: map_visualization
