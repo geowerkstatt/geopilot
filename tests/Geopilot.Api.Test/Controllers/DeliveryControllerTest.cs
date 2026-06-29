@@ -552,6 +552,37 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
+    [DataRow(DateTimeKind.Utc)]
+    [DataRow(DateTimeKind.Local)]
+    [DataRow(DateTimeKind.Unspecified)]
+    public async Task IsDeleteAllowedForUploaderConvertsToUtc(DateTimeKind deliveryDateTimeKind)
+    {
+        var restrictedDate = new DateTime(2026, 1, 1, 12, 30, 0, DateTimeKind.Utc);
+        var allowedDate = new DateTime(2026, 1, 1, 11, 45, 0, DateTimeKind.Utc);
+        var deliveryDate = new DateTime(2026, 1, 1, 11, 30, 0, DateTimeKind.Utc);
+        deliveryDate = deliveryDateTimeKind switch
+        {
+            DateTimeKind.Utc => deliveryDate,
+            DateTimeKind.Local => deliveryDate.ToLocalTime(),
+            DateTimeKind.Unspecified => DateTime.SpecifyKind(deliveryDate, DateTimeKind.Unspecified),
+            _ => throw new ArgumentOutOfRangeException(nameof(deliveryDateTimeKind), deliveryDateTimeKind, null),
+        };
+
+        var options = new DeliveryOptions
+        {
+            UploaderDeleteEnabled = true,
+            DeleteDuration = null,
+            DeleteRestrictInterval = "0 * * * *", // every hour at :00
+        };
+        deliveryOptionsMock.Setup(o => o.Value).Returns(options);
+
+        var delivery = new Delivery { Date = deliveryDate };
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(delivery, restrictedDate));
+        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(delivery, allowedDate));
+        Assert.AreEqual(deliveryDateTimeKind, delivery.Date.Kind);
+    }
+
+    [TestMethod]
     public async Task Download()
     {
         assetHandlerMock.Setup(p => p.DownloadAssetAsync(It.IsAny<Guid>(), It.IsAny<string>())).ReturnsAsync((Encoding.UTF8.GetBytes("Test"), "text/xml"));

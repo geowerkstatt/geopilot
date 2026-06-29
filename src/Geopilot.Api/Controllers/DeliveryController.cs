@@ -220,7 +220,7 @@ public class DeliveryController : ControllerBase
 
         foreach (var delivery in result)
         {
-            delivery.CanDelete = IsDeleteAllowedForUploader(delivery, DateTime.UtcNow);
+            delivery.CanDelete = IsDeleteAllowedForUploader(delivery);
         }
 
         return Ok(result);
@@ -257,7 +257,7 @@ public class DeliveryController : ControllerBase
                 return NotFound($"No delivery with id <{deliveryId}> found.");
             }
 
-            if (!user.IsAdmin && !IsDeleteAllowedForUploader(delivery, DateTime.UtcNow))
+            if (!user.IsAdmin && !IsDeleteAllowedForUploader(delivery))
             {
                 logger.LogTrace("Delete of delivery with id <{DeliveryId}> not allowed for uploader <{UserId}>.", deliveryId, user.AuthIdentifier);
                 return Problem($"Deleting delivery with id <{deliveryId}> is not allowed.", statusCode: StatusCodes.Status403Forbidden);
@@ -316,7 +316,7 @@ public class DeliveryController : ControllerBase
         }
     }
 
-    internal bool IsDeleteAllowedForUploader(Delivery delivery, DateTime now)
+    internal bool IsDeleteAllowedForUploader(Delivery delivery, DateTime? utcNow = null)
     {
         var options = deliveryOptions.Value;
         if (!options.UploaderDeleteEnabled)
@@ -324,12 +324,21 @@ public class DeliveryController : ControllerBase
             return false;
         }
 
-        if (options.DeleteDuration is TimeSpan deleteDuration && deleteDuration <= now - delivery.Date)
+        utcNow ??= DateTime.UtcNow;
+
+        var deliveryDateUtc = delivery.Date.Kind switch
+        {
+            DateTimeKind.Utc => delivery.Date,
+            DateTimeKind.Local => delivery.Date.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(delivery.Date, DateTimeKind.Utc),
+        };
+
+        if (options.DeleteDuration is TimeSpan deleteDuration && deleteDuration <= utcNow - deliveryDateUtc)
         {
             return false;
         }
 
-        if (options.DeleteRestrictIntervalExpression?.GetNextOccurrence(delivery.Date) is DateTime nextOccurrence && nextOccurrence <= now)
+        if (options.DeleteRestrictIntervalExpression?.GetNextOccurrence(deliveryDateUtc) is DateTime nextOccurrence && nextOccurrence <= utcNow)
         {
             return false;
         }
