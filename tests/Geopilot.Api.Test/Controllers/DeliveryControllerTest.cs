@@ -519,7 +519,8 @@ public class DeliveryControllerTest
         };
         deliveryOptionsMock.Setup(o => o.Value).Returns(options);
 
-        Assert.IsInstanceOfType<ForbidResult>(await deliveryController.Delete(delivery.Id));
+        var result = Assert.IsInstanceOfType<ObjectResult>(await deliveryController.Delete(delivery.Id));
+        Assert.AreEqual(StatusCodes.Status403Forbidden, result.StatusCode);
 
         AssertNotDeleted(delivery);
     }

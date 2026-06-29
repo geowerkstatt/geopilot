@@ -234,7 +234,7 @@ public class DeliveryController : ControllerBase
     [Authorize(Policy = GeopilotPolicies.User)]
     [SwaggerResponse(StatusCodes.Status200OK, "The delivery was successfully deleted.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
-    [SwaggerResponse(StatusCodes.Status403Forbidden, "The user is not allowed to delete the delivery. This can mean delete is disabled for uploaders or the time to delete has expired.")]
+    [SwaggerResponse(StatusCodes.Status403Forbidden, "The user is not allowed to delete the delivery. This can mean delete is disabled for uploaders or the time to delete has expired.", typeof(ProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The delivery could not be found.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was an error deleting the assets.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Delete([FromRoute] int deliveryId)
@@ -260,7 +260,7 @@ public class DeliveryController : ControllerBase
             if (!user.IsAdmin && !IsDeleteAllowedForUploader(delivery, DateTime.UtcNow))
             {
                 logger.LogTrace("Delete of delivery with id <{DeliveryId}> not allowed for uploader <{UserId}>.", deliveryId, user.AuthIdentifier);
-                return Forbid($"Deleting delivery with id <{deliveryId}> is not allowed.");
+                return Problem($"Deleting delivery with id <{deliveryId}> is not allowed.", statusCode: StatusCodes.Status403Forbidden);
             }
 
             delivery.Deleted = true;
