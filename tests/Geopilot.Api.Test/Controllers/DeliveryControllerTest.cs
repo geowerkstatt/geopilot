@@ -8,7 +8,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
+using System.Globalization;
 using System.Text;
 
 namespace Geopilot.Api.Controllers;
@@ -19,6 +21,7 @@ public class DeliveryControllerTest
     private Mock<IProcessingService> processingServiceMock;
     private Mock<IAssetHandler> assetHandlerMock;
     private Mock<ILogger<DeliveryController>> loggerMock;
+    private Mock<IOptions<DeliveryOptions>> deliveryOptionsMock;
     private DeliveryController deliveryController;
     private Context context;
 
@@ -29,7 +32,9 @@ public class DeliveryControllerTest
         processingServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
         assetHandlerMock = new Mock<IAssetHandler>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
-        deliveryController = new DeliveryController(loggerMock.Object, context, processingServiceMock.Object, assetHandlerMock.Object);
+        deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
+        deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
+        deliveryController = new DeliveryController(loggerMock.Object, context, processingServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
     }
 
     [TestCleanup]
@@ -487,14 +492,94 @@ public class DeliveryControllerTest
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status404NotFound, result.StatusCode);
 
-        var dbDelivery = context.DeliveriesWithIncludes
-            .IgnoreQueryFilters()
-            .FirstOrDefault(d => d.Id == delivery.Id);
-        Assert.IsNotNull(dbDelivery);
-        Assert.IsFalse(dbDelivery.Deleted);
-        Assert.IsTrue(dbDelivery.Assets.All(a => !a.Deleted));
+        AssertNotDeleted(delivery);
+    }
 
-        assetHandlerMock.Verify(h => h.DeleteJobAssets(It.IsAny<Guid>()), Times.Never());
+    [TestMethod]
+    [DataRow(false, null, null)]
+    [DataRow(true, "10:00:00", null)]
+    [DataRow(true, null, "0 * * * *")] // every hour at :00
+    public async Task DeleteAsUserFailsIfDisabledByOptions(bool enabled, string? duration, string? interval)
+    {
+        var uploader = context.Users.First(u => !u.IsAdmin);
+
+        deliveryController.SetupTestUser(uploader);
+
+        var guid = Guid.NewGuid();
+        var delivery = new Delivery { JobId = guid, Mandate = context.Mandates.First(), DeclaringUser = uploader, Date = DateTime.UtcNow.AddHours(-12) };
+        delivery.Assets.Add(new Asset());
+        context.Deliveries.Add(delivery);
+        context.SaveChanges();
+
+        var options = new DeliveryOptions
+        {
+            UploaderDeleteEnabled = enabled,
+            DeleteDuration = duration == null ? null : TimeSpan.Parse(duration, CultureInfo.InvariantCulture),
+            DeleteRestrictInterval = interval,
+        };
+        deliveryOptionsMock.Setup(o => o.Value).Returns(options);
+
+        var result = Assert.IsInstanceOfType<ObjectResult>(await deliveryController.Delete(delivery.Id));
+        Assert.AreEqual(StatusCodes.Status403Forbidden, result.StatusCode);
+
+        AssertNotDeleted(delivery);
+    }
+
+    [TestMethod]
+    [DataRow(true, true, null, null)]
+    [DataRow(true, true, "0:45:00", null)]
+    [DataRow(true, true, null, "0 * * * *")] // every hour at :00
+    [DataRow(true, true, "0:45:00", "0 * * * *")]
+    [DataRow(false, false, null, null)]
+    [DataRow(false, true, "0:15:00", null)]
+    [DataRow(false, true, null, "*/30 * * * *")] // every half an hour at :00 and :30
+    [DataRow(false, true, "0:15:00", "0 * * * *")]
+    public async Task IsDeleteAllowedForUploader(bool expected, bool enabled, string? duration, string? interval)
+    {
+        var deliveryDate = new DateTime(2026, 1, 1, 12, 10, 0, DateTimeKind.Utc);
+        var currentDate = new DateTime(2026, 1, 1, 12, 40, 0, DateTimeKind.Utc);
+
+        var options = new DeliveryOptions
+        {
+            UploaderDeleteEnabled = enabled,
+            DeleteDuration = duration == null ? null : TimeSpan.Parse(duration, CultureInfo.InvariantCulture),
+            DeleteRestrictInterval = interval,
+        };
+        deliveryOptionsMock.Setup(o => o.Value).Returns(options);
+
+        var delivery = new Delivery { Date = deliveryDate };
+        Assert.AreEqual(expected, deliveryController.IsDeleteAllowedForUploader(delivery, currentDate));
+    }
+
+    [TestMethod]
+    [DataRow(DateTimeKind.Utc)]
+    [DataRow(DateTimeKind.Local)]
+    [DataRow(DateTimeKind.Unspecified)]
+    public async Task IsDeleteAllowedForUploaderConvertsToUtc(DateTimeKind deliveryDateTimeKind)
+    {
+        var restrictedDate = new DateTime(2026, 1, 1, 12, 30, 0, DateTimeKind.Utc);
+        var allowedDate = new DateTime(2026, 1, 1, 11, 45, 0, DateTimeKind.Utc);
+        var deliveryDate = new DateTime(2026, 1, 1, 11, 30, 0, DateTimeKind.Utc);
+        deliveryDate = deliveryDateTimeKind switch
+        {
+            DateTimeKind.Utc => deliveryDate,
+            DateTimeKind.Local => deliveryDate.ToLocalTime(),
+            DateTimeKind.Unspecified => DateTime.SpecifyKind(deliveryDate, DateTimeKind.Unspecified),
+            _ => throw new ArgumentOutOfRangeException(nameof(deliveryDateTimeKind), deliveryDateTimeKind, null),
+        };
+
+        var options = new DeliveryOptions
+        {
+            UploaderDeleteEnabled = true,
+            DeleteDuration = null,
+            DeleteRestrictInterval = "0 * * * *", // every hour at :00
+        };
+        deliveryOptionsMock.Setup(o => o.Value).Returns(options);
+
+        var delivery = new Delivery { Date = deliveryDate };
+        Assert.IsFalse(deliveryController.IsDeleteAllowedForUploader(delivery, restrictedDate));
+        Assert.IsTrue(deliveryController.IsDeleteAllowedForUploader(delivery, allowedDate));
+        Assert.AreEqual(deliveryDateTimeKind, delivery.Date.Kind);
     }
 
     [TestMethod]
@@ -631,5 +716,17 @@ public class DeliveryControllerTest
         CollectionAssert.AllItemsAreUnique(deliveries);
         Assert.IsTrue(deliveries.All(d => d.DeclaringUser.Id == user.Id), "All deliveries should belong to the user.");
         Assert.IsTrue(deliveries.All(d => !d.Deleted), "Should not return deleted deliveries.");
+    }
+
+    private void AssertNotDeleted(Delivery delivery)
+    {
+        var dbDelivery = context.DeliveriesWithIncludes
+            .IgnoreQueryFilters()
+            .FirstOrDefault(d => d.Id == delivery.Id);
+        Assert.IsNotNull(dbDelivery);
+        Assert.IsFalse(dbDelivery.Deleted);
+        Assert.IsTrue(dbDelivery.Assets.All(a => !a.Deleted));
+
+        assetHandlerMock.Verify(h => h.DeleteJobAssets(It.IsAny<Guid>()), Times.Never());
     }
 }

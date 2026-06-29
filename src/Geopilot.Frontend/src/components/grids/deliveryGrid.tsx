@@ -15,11 +15,14 @@ interface DeliveryInfo {
   userName: string;
   mandateName: string;
   comment: string;
+  canDelete?: boolean;
 }
+
+type ColumnName = keyof Omit<DeliveryInfo, "canDelete">;
 
 interface DeliveryGridProps {
   fetchUrl: string;
-  columns: (keyof DeliveryInfo)[];
+  columns: ColumnName[];
 }
 
 export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
@@ -40,6 +43,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
             userName: d.declaringUser.fullName,
             mandateName: d.mandate.name,
             comment: d.comment,
+            canDelete: d.canDelete,
           })),
         );
       })
@@ -73,7 +77,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
     ]);
   };
 
-  const namedColumnDefs: Record<keyof DeliveryInfo, GridColDef> = {
+  const namedColumnDefs: Record<ColumnName, GridColDef> = {
     id: { field: "id", headerName: t("id"), width: 60 },
     date: {
       field: "date",
@@ -97,16 +101,19 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
     flex: 0,
     resizable: false,
     cellClassName: "actions",
-    getActions: ({ id }) => [
-      <Tooltip title={t("delete")} key={`delete-${id}`}>
-        <GridActionsCellItem
-          icon={<DeleteOutlinedIcon />}
-          label={t("delete")}
-          onClick={() => confirmDelete(id)}
-          color="error"
-        />
-      </Tooltip>,
-    ],
+    getActions: ({ id, row }) =>
+      row.canDelete !== false
+        ? [
+            <Tooltip title={t("delete")} key={`delete-${id}`}>
+              <GridActionsCellItem
+                icon={<DeleteOutlinedIcon />}
+                label={t("delete")}
+                onClick={() => confirmDelete(id)}
+                color="error"
+              />
+            </Tooltip>,
+          ]
+        : [],
   });
 
   return <GeopilotDataGrid name="deliveryOverview" loading={isLoading} rows={deliveries} columns={columnDefs} />;
