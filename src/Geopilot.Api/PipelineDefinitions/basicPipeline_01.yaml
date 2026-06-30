@@ -17,6 +17,10 @@ processes:
       include:
         - map
         - tree
+      groupBy:
+        - Model
+        - Topic
+        - Class
 pipelines:
   - id: ili_validation
     display_name:

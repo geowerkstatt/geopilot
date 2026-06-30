@@ -105,4 +105,18 @@ public class XtfErrorVisualizationProcessTest
         Assert.IsNull(visualization.Data.Map);
         Assert.IsNotNull(visualization.Data.Tree);
     }
+
+    [TestMethod]
+    public async Task TreeUsesConfiguredGroupBy()
+    {
+        var process = new XtfErrorVisualizationProcess(include: ["tree"], groupBy: ["Class"]);
+        var xtfLog = new PipelineFile(XtfLogPath, "errorLogWithErrors.xtf");
+
+        var processResult = await process.RunAsync(xtfLog).ConfigureAwait(false);
+
+        var visualization = processResult["visualization"] as Visualization<XtfErrorVisualizationConfig>;
+        Assert.IsNotNull(visualization);
+        Assert.IsNotNull(visualization.Data.Tree);
+        CollectionAssert.AreEqual(new[] { "Class" }, visualization.Data.Tree.GroupBy.ToList());
+    }
 }

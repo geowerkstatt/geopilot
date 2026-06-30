@@ -20,6 +20,10 @@ processes:
       include:
         - map
         - tree
+      groupBy:
+        - Model
+        - Topic
+        - Class
   - id: zip_packager
     implementation: Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess
 pipelines:
@@ -189,6 +193,8 @@ pipelines:
         process_config_overwrites:
           include:
             - tree
+          groupBy:
+            - Class
         conditions:
           pre:
             skip_conditions:
