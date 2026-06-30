@@ -141,6 +141,7 @@
   "treeVisualizationMessageSearch": "Search messages",
   "treeVisualizationMetadataTitle": "Details",
   "treeVisualizationNoResults": "No nodes match the current filters.",
+  "treeVisualizationUngrouped": "Unassigned",
   "unsavedChanges": "You have unsaved changes. How would you like to proceed?",
   "upload": "Upload",
   "uploadSubtitle": "Upload the files you would like to process.",
