@@ -24,6 +24,7 @@ processes:
         - Model
         - Topic
         - Class
+        - Error type
   - id: zip_packager
     implementation: Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess
 pipelines:
