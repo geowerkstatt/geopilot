@@ -1,7 +1,6 @@
 ﻿using Geopilot.Pipeline;
 using Geopilot.Pipeline.Processes.XtfErrorVisualization;
 using Geopilot.Pipeline.Visualization;
-using Newtonsoft.Json;
 
 namespace Geopilot.Pipeline.Test.Processes;
 
@@ -52,15 +51,26 @@ public class XtfErrorVisualizationProcessTest
             Assert.IsNotEmpty(feature.Info);
         }
 
-        // Every feature carries an errorId, and that id also appears on a tree leaf (cross-select correlation).
+        // Every feature carries an errorId.
         var featureIds = features.Select(f => f.ErrorId).ToList();
         Assert.IsTrue(featureIds.All(id => !string.IsNullOrEmpty(id)), "every feature has an errorId");
-        var treeErrorIds = CollectErrorIds(config.Tree.Nodes).ToHashSet();
-        Assert.IsTrue(featureIds.All(treeErrorIds.Contains), "every feature's errorId is present on a tree leaf");
 
-        // Tree: matches the recorded expectation.
-        var expectedTree = Deserialize(File.ReadAllText("TestData/Expectations/XtfValidatorErrorTree/errorLogWithErrors.json"));
-        CollectionAssert.AreEqual(expectedTree, config.Tree.Nodes.ToList(), "error tree is not as expected");
+        // Tree: the backend ships a flat item list plus the grouping keys; the frontend builds the hierarchy.
+        CollectionAssert.AreEqual(new[] { "Model", "Topic", "Class" }, config.Tree.GroupBy.ToList(), "default grouping is model, topic, class");
+        Assert.IsNotEmpty(config.Tree.Items);
+
+        // Each feature's errorId also appears on a flat tree item (cross-select correlation).
+        var itemIds = config.Tree.Items.Where(i => i.Id is not null).Select(i => i.Id!).ToHashSet();
+        Assert.IsTrue(featureIds.All(itemIds.Contains), "every feature's errorId is present on a tree item");
+
+        // Each item carries a display label, severity icon/color and metadata including the raw validator message.
+        foreach (var item in config.Tree.Items)
+        {
+            Assert.IsNotEmpty(item.Label);
+            Assert.IsNotNull(item.Icon);
+            Assert.IsNotNull(item.Color);
+            Assert.IsTrue(item.Metadata.ContainsKey("Message"), "item metadata carries the validator message");
+        }
 
         var statusMessage = processResult["status_message"] as Dictionary<string, string>;
         Assert.IsNotNull(statusMessage);
@@ -94,18 +104,5 @@ public class XtfErrorVisualizationProcessTest
         Assert.IsNotNull(visualization);
         Assert.IsNull(visualization.Data.Map);
         Assert.IsNotNull(visualization.Data.Tree);
-    }
-
-    private static IEnumerable<string> CollectErrorIds(IReadOnlyList<TreeNode> nodes) =>
-        nodes.SelectMany(node =>
-            (node.ErrorId is null ? Enumerable.Empty<string>() : new[] { node.ErrorId })
-                .Concat(CollectErrorIds(node.Values.ToList())));
-
-    private static List<TreeNode>? Deserialize(string json)
-    {
-        using var stringReader = new StringReader(json);
-        using var jsonReader = new JsonTextReader(stringReader);
-        var serializer = new JsonSerializer();
-        return serializer.Deserialize<List<TreeNode>>(jsonReader);
     }
 }

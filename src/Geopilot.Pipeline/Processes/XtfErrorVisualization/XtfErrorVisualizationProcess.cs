@@ -24,16 +24,20 @@ internal class XtfErrorVisualizationProcess
         { "en", "Error visualization created" },
     };
 
+    private static readonly string[] DefaultGroupBy = ["Model", "Topic", "Class"];
+
     private readonly bool includeMap;
     private readonly bool includeTree;
     private readonly string baseMapWmtsCapabilitiesUrl;
+    private readonly IReadOnlyList<string> groupBy;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="XtfErrorVisualizationProcess"/> class.
     /// </summary>
     /// <param name="include">Views to produce ("map", "tree"). Null or empty means both.</param>
     /// <param name="baseMapWmtsCapabilitiesUrl">Optional override for the base map WMTS capabilities URL.</param>
-    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null)
+    /// <param name="groupBy">Metadata keys the frontend groups the tree items by. Null or empty means model, topic, class.</param>
+    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<string>? groupBy = null)
     {
         var selected = include is { Count: > 0 }
             ? new HashSet<string>(include, StringComparer.OrdinalIgnoreCase)
@@ -43,6 +47,7 @@ internal class XtfErrorVisualizationProcess
         this.baseMapWmtsCapabilitiesUrl = string.IsNullOrWhiteSpace(baseMapWmtsCapabilitiesUrl)
             ? MapVisualizationBuilder.DefaultBaseMapWmtsCapabilitiesUrl
             : baseMapWmtsCapabilitiesUrl;
+        this.groupBy = groupBy is { Count: > 0 } ? groupBy : DefaultGroupBy;
     }
 
     /// <summary>
@@ -60,7 +65,9 @@ internal class XtfErrorVisualizationProcess
         var config = new XtfErrorVisualizationConfig
         {
             Map = includeMap ? MapVisualizationBuilder.Build(errors, baseMapWmtsCapabilitiesUrl) : null,
-            Tree = includeTree ? new TreeVisualizationConfig { Nodes = new LogErrorToErrorTreeMapper(errors).Map() } : null,
+            Tree = includeTree
+                ? new TreeVisualizationConfig { Items = LogErrorToTreeItemMapper.Map(errors), GroupBy = groupBy }
+                : null,
         };
 
         return Task.FromResult(new Dictionary<string, object?>
