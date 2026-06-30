@@ -1,5 +1,6 @@
 ﻿using Geopilot.Pipeline.Visualization;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
@@ -16,6 +17,10 @@ internal static class LogErrorToTreeItemMapper
 
     private const string ColorError = "error";
     private const string ColorWarning = "warning";
+
+    // A qualified INTERLIS name with at least three segments (Model.Topic.Class...), used to recover the failing
+    // object's class from the message when the entry carries no object tag (e.g. constraint or association errors).
+    private static readonly Regex QualifiedNamePattern = new(@"[A-Za-z_]\w*(?:\.[A-Za-z_]\w*){2,}", RegexOptions.Compiled);
 
     /// <summary>
     /// Maps the warnings and errors of the given log entries to flat tree items, skipping informational entries
@@ -67,15 +72,12 @@ internal static class LogErrorToTreeItemMapper
         if (!string.IsNullOrEmpty(logEntry.Tid))
             metadata["TID"] = logEntry.Tid;
 
-        var objTagParts = string.IsNullOrEmpty(logEntry.ObjTag)
-            ? Array.Empty<string>()
-            : logEntry.ObjTag.Split('.', StringSplitOptions.RemoveEmptyEntries);
-
-        if (objTagParts.Length == 3)
+        var qualifiedName = QualifiedClassName(logEntry);
+        if (qualifiedName is not null)
         {
-            metadata["Model"] = objTagParts[0];
-            metadata["Topic"] = objTagParts[1];
-            metadata["Class"] = objTagParts[2];
+            metadata["Model"] = qualifiedName[0];
+            metadata["Topic"] = qualifiedName[1];
+            metadata["Class"] = qualifiedName[2];
         }
 
         metadata["Message"] = logEntry.Message!;
@@ -91,5 +93,36 @@ internal static class LogErrorToTreeItemMapper
         }
 
         return metadata;
+    }
+
+    /// <summary>
+    /// Resolves the failing object's model, topic and class. Prefers the object tag; when that carries no
+    /// qualified name, falls back to the first qualified name in the message (e.g. a constraint or association
+    /// name such as <c>Model.Topic.Class.Constraint</c>), so those errors still group by class instead of landing
+    /// in the ungrouped bucket.
+    /// </summary>
+    /// <param name="logEntry">The log entry.</param>
+    /// <returns>The model, topic and class, or <see langword="null"/> when none can be determined.</returns>
+    private static string[]? QualifiedClassName(LogError logEntry)
+    {
+        var fromObjTag = FirstThreeSegments(logEntry.ObjTag);
+        if (fromObjTag is not null)
+            return fromObjTag;
+
+        var match = QualifiedNamePattern.Match(logEntry.Message!);
+        return match.Success ? FirstThreeSegments(match.Value) : null;
+    }
+
+    /// <summary>
+    /// Splits a qualified name on dots and returns its first three segments, or <see langword="null"/> when it has
+    /// fewer than three.
+    /// </summary>
+    private static string[]? FirstThreeSegments(string? qualifiedName)
+    {
+        if (string.IsNullOrEmpty(qualifiedName))
+            return null;
+
+        var parts = qualifiedName.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 3 ? parts[..3] : null;
     }
 }
