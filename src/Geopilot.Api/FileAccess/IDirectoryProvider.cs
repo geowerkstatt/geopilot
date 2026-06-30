@@ -17,6 +17,11 @@ public interface IDirectoryProvider
     string DownloadDirectory { get; }
 
     /// <summary>
+    /// Gets the root directory for visualization config files produced by pipeline steps.
+    /// </summary>
+    string VisualizationDirectory { get; }
+
+    /// <summary>
     /// Gets the root directory for persisted assets — pipeline outputs marked as part
     /// of the delivery payload land here directly, and originals from the upload
     /// directory are copied here on submission.
@@ -42,6 +47,11 @@ public interface IDirectoryProvider
     /// Gets the per-job download directory for the specified <paramref name="jobId"/>.
     /// </summary>
     string GetDownloadDirectoryPath(Guid jobId);
+
+    /// <summary>
+    /// Gets the per-job visualization directory for the specified <paramref name="jobId"/>.
+    /// </summary>
+    string GetVisualizationDirectoryPath(Guid jobId);
 
     /// <summary>
     /// Gets the per-job asset directory for the specified <paramref name="jobId"/>.

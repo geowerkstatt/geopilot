@@ -1,24 +1,11 @@
-import { createContext, FC, PropsWithChildren } from "react";
+import { FC, PropsWithChildren } from "react";
 import { useAuth } from "react-oidc-context";
 import { useApiAuthConfiguration, useUser } from ".";
-import { ApiAuthConfigurationProvider } from "./apiAuthConfigurationContext";
-import { GeopilotAuthContextInterface } from "./authInterfaces";
+import { ApiAuthConfigurationProvider } from "./apiAuthConfigurationProvider";
 import { CookieSynchronizer } from "./cookieSynchronizer";
+import { GeopilotAuthContext } from "./geopilotAuthContext";
 import { OidcContainerProvider } from "./oidcContainerContext";
-import { UserProvider } from "./userContext";
-
-export const GeopilotAuthContext = createContext<GeopilotAuthContextInterface>({
-  authLoaded: false,
-  isLoading: false,
-  user: undefined,
-  isAdmin: false,
-  login: () => {
-    throw new Error();
-  },
-  logout: () => {
-    throw new Error();
-  },
-});
+import { UserProvider } from "./userProvider";
 
 export const GeopilotAuthProvider: FC<PropsWithChildren> = ({ children }) => {
   return (

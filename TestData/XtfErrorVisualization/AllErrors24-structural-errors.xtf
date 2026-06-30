@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS" xmlns="http://www.interlis.ch/xtf/2.4/AllErrors24" xmlns:geom="http://www.interlis.ch/geometry/1.0">
+	<ili:headersection>
+		<ili:models>
+			<ili:model>AllErrors24</ili:model>
+		</ili:models>
+	</ili:headersection>
+	<ili:datasection>
+		<MainTopic ili:bid="structuralBasket">
+
+			<!-- The XTF 2.4 reader aborts at the first structural error, so only the
+			     first of the following cases is reported per validation run. These cases
+			     are kept separate from AllErrors24-errors.xtf because an abort would
+			     suppress all basket-end validations (constraints, AREA topology) there. -->
+			<!-- unknown property <ghostAttribute> -->
+			<ValueTypeClass ili:tid="unknownProperty"><ghostAttribute>x</ghostAttribute></ValueTypeClass>
+			<!-- empty multi geometries crash the XTF 2.4 parser instead of reporting a validation error -->
+			<GeometryClass ili:tid="emptyMultiCoord"><multiCoord><geom:multicoord></geom:multicoord></multiCoord></GeometryClass>
+			<GeometryClass ili:tid="emptyMultiPolyline"><multiPolyline><geom:multipolyline></geom:multipolyline></multiPolyline></GeometryClass>
+			<GeometryClass ili:tid="emptyMultiSurface"><multiSurface><geom:multisurface></geom:multisurface></multiSurface></GeometryClass>
+			<!-- unknown class <UndefinedClass> -->
+			<UndefinedClass ili:tid="objectOfUnknownClass"><label>y</label></UndefinedClass>
+
+		</MainTopic>
+
+		<!-- Invalid basket element name UndefinedTopic (no such topic) -->
+		<UndefinedTopic ili:bid="undefinedBasket"></UndefinedTopic>
+
+	</ili:datasection>
+</ili:transfer>

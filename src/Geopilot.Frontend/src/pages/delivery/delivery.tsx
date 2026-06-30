@@ -17,11 +17,11 @@ const Delivery = () => {
   const { t } = useTranslation();
 
   return (
-    <CenteredBox data-cy="delivery">
+    <CenteredBox data-cy="delivery" sx={{ maxWidth: "1400px" }}>
       <Typography variant="h1" zIndex={10}>
         {t("deliveryTitle")}
       </Typography>
-      <DeliveryContainer direction={{ xs: "column", md: "row" }} spacing={{ xs: 2, md: 2 }}>
+      <DeliveryContainer direction={{ xs: "column", md: "row" }} m={{ xs: 0, md: 0 }}>
         <DeliveryStepper />
         <DeliveryContentCarousel />
       </DeliveryContainer>

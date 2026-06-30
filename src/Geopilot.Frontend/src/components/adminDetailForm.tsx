@@ -9,7 +9,6 @@ import { BaseButton } from "./buttons.tsx";
 import { useControlledNavigate } from "./controlledNavigate";
 import { PromptContext } from "./prompt/promptContext.tsx";
 import { PromptAction } from "./prompt/promptInterfaces.ts";
-import { FlexBox, FlexRowEndBox, FlexRowSpaceBetweenBox } from "./styledComponents.ts";
 
 interface AdminDetailFormProps<T> {
   basePath: string;
@@ -146,11 +145,11 @@ const AdminDetailForm = <T extends { id: number }>({
   }, [data]);
 
   return (
-    <FlexBox>
-      <FlexRowSpaceBetweenBox>
+    <Stack>
+      <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
         <BaseButton variant={"text"} icon={<ChevronLeft />} onClick={() => navigateTo(basePath)} label={backLabel} />
         {data && data.id !== 0 && <Typography variant={"body2"}>{t("id") + ": " + data?.id}</Typography>}
-      </FlexRowSpaceBetweenBox>
+      </Stack>
       {!data ? (
         <Stack sx={{ flex: "1 0 0", justifyContent: "center", alignItems: "center", height: "100%" }}>
           <CircularProgress />
@@ -158,9 +157,9 @@ const AdminDetailForm = <T extends { id: number }>({
       ) : (
         <FormProvider {...formMethods}>
           <form onSubmit={formMethods.handleSubmit(submitForm)}>
-            <FlexBox>
+            <Stack>
               {children}
-              <FlexRowEndBox>
+              <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <BaseButton
                   variant={"outlined"}
                   disabled={!formMethods.formState.isDirty}
@@ -176,12 +175,12 @@ const AdminDetailForm = <T extends { id: number }>({
                   onClick={() => formMethods.handleSubmit(submitForm)()}
                   label={"save"}
                 />
-              </FlexRowEndBox>
-            </FlexBox>
+              </Stack>
+            </Stack>
           </form>
         </FormProvider>
       )}
-    </FlexBox>
+    </Stack>
   );
 };
 

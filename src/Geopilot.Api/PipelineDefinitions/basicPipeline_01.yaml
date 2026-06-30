@@ -11,6 +11,12 @@ processes:
     default_config:
       validationProfile: ""
       pollInterval: 1000
+  - id: xtf_error_visualizer
+    implementation: Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess
+    default_config:
+      include:
+        - map
+        - tree
 pipelines:
   - id: ili_validation
     display_name:
@@ -74,3 +80,35 @@ pipelines:
               - StatusMessage
           - take: validation_successful
             as: successful
+      - id: map_visualization
+        display_name:
+          en: Map Visualization
+          de: Kartenvisualisierung
+          it: Visualizzazione cartografica
+          fr: Visualisation cartographique
+        process_id: xtf_error_visualizer
+        process_config_overwrites:
+          include:
+            - map
+        conditions:
+          pre:
+            skip_conditions:
+              - expression: "[validation.successful]"
+                message:
+                  de: "Validierung erfolgreich. Kartenvisualisierung wird übersprungen."
+                  en: "Validation successful. Map visualization will be skipped."
+                  fr: "Validation réussie. La visualisation cartographique sera ignorée."
+                  it: "Validazione riuscita. La visualizzazione cartografica sarà ignorata."
+        input:
+          - from: validation
+            take: xtf_log
+            as: xtfLog
+        output:
+          - take: visualization
+            as: map_visualization
+            action:
+              - Visualization
+          - take: status_message
+            as: status_message
+            action:
+              - StatusMessage

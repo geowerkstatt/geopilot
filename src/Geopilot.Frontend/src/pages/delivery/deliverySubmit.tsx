@@ -1,11 +1,10 @@
 import { FC, useContext, useEffect, useState } from "react";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Alert, Typography } from "@mui/material";
+import { Alert, Stack, Typography } from "@mui/material";
 import { Delivery, FieldEvaluationType } from "../../api/apiInterfaces.ts";
 import { BaseButton } from "../../components/buttons.tsx";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
-import { FlexBox } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons.tsx";
 import { DeliveryContent } from "./deliveryContent.tsx";
@@ -54,7 +53,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
     <DeliveryContent title="createDelivery" buttons={buttons}>
       <FormProvider {...formMethods}>
         <form onSubmit={formMethods.handleSubmit(submitForm)}>
-          <FlexBox>
+          <Stack>
             {selectedMandate && selectedMandate.evaluatePrecursorDelivery !== FieldEvaluationType.NotEvaluated ? (
               <FormContainer>
                 <FormSelect
@@ -93,7 +92,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
                 <Typography variant="body1">{t("deliveryNoInputRequired")}</Typography>
               )}
             {completed && <Alert severity="success">{t("deliveryCompleted")}</Alert>}
-          </FlexBox>
+          </Stack>
         </form>
       </FormProvider>
     </DeliveryContent>

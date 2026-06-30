@@ -3,7 +3,6 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { FormLabel, Stack, SxProps, TextField } from "@mui/material";
 import { Coordinate } from "../../api/apiInterfaces.ts";
-import { FlexBox } from "../styledComponents.ts";
 import { FormContainer, FormValueType, getFormFieldError } from "./form";
 
 export interface FormExtentProps {
@@ -50,11 +49,11 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, label, required, di
         },
       }}
       render={({ field, formState }) => (
-        <Stack sx={{ width: "100%" }} spacing={1}>
+        <Stack sx={{ width: "100%" }} gap={1}>
           <FormLabel error={getFormFieldError(fieldName, formState.errors)}>
             {t(label) + (required ? " *" : "")}
           </FormLabel>
-          <FlexBox>
+          <Stack>
             <FormContainer>
               <TextField
                 label={t("bottomLeft") + " - " + t("longitude")}
@@ -99,7 +98,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, label, required, di
                 data-cy="extent-upper-right-latitude-formInput"
               />
             </FormContainer>
-          </FlexBox>
+          </Stack>
         </Stack>
       )}
     />

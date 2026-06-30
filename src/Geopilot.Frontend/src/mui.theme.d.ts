@@ -7,6 +7,7 @@ declare module "@mui/material/styles" {
   export interface AppThemePalette {
     primary: {
       main: string;
+      active: string;
       inactive: string;
       hover: string;
       selected: string;
@@ -55,6 +56,8 @@ declare module "@mui/material/styles" {
     MuiTooltip: object;
     MuiChip: object;
     MuiToggleButton: object;
+    MuiStack: object;
+    MuiAccordion: object;
   }
 
   interface AppThemeComponentsOptions extends ComponentsOptions {
@@ -77,6 +80,8 @@ declare module "@mui/material/styles" {
     MuiTooltip: object;
     MuiChip: object;
     MuiToggleButton: object;
+    MuiStack: object;
+    MuiAccordion: object;
   }
 
   interface AppTheme extends Theme {

@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TRANSFER xmlns="http://www.interlis.ch/INTERLIS2.3">
+	<HEADERSECTION SENDER="geowerkstatt" VERSION="2.3">
+		<MODELS>
+			<MODEL NAME="AllErrors23" VERSION="2026-06-10" URI="mailto:joel.waelti@geowerkstatt.ch"></MODEL>
+		</MODELS>
+	</HEADERSECTION>
+	<DATASECTION>
+		<AllErrors23.MainTopic BID="mainBasket">
+
+			<AllErrors23.MainTopic.ConditionClass TID="conditionObject">
+				<lookupText>lookup</lookupText>
+			</AllErrors23.MainTopic.ConditionClass>
+
+			<AllErrors23.MainTopic.ValueTypeClass TID="validValues">
+				<numberValue>50.00</numberValue>
+				<limitedText>abc</limitedText>
+				<booleanFlag>true</booleanFlag>
+				<colourValue>red</colourValue>
+				<dateValue>2005-06-15</dateValue>
+				<timeValue>12:30:00.000</timeValue>
+				<dateTimeValue>2005-06-15T12:30:00.000</dateTimeValue>
+				<interlisName>ValidName</interlisName>
+				<interlisUri>http://example.com/x</interlisUri>
+				<uuidValue>550e8400-e29b-41d4-a716-446655440000</uuidValue>
+			</AllErrors23.MainTopic.ValueTypeClass>
+
+			<AllErrors23.MainTopic.NormalizedTextClass TID="validNormalizedText">
+				<normalizedText>normal text</normalizedText>
+			</AllErrors23.MainTopic.NormalizedTextClass>
+
+			<AllErrors23.MainTopic.MultiplicityClass TID="validMultiplicity">
+				<mandatoryText>present</mandatoryText>
+				<itemBag>
+					<AllErrors23.MainTopic.ItemStructure>
+						<itemText>x</itemText>
+					</AllErrors23.MainTopic.ItemStructure>
+				</itemBag>
+			</AllErrors23.MainTopic.MultiplicityClass>
+
+			<AllErrors23.MainTopic.GeometryClass TID="validGeometry">
+				<pointCoord>
+					<COORD>
+						<C1>2645100.000</C1>
+						<C2>1245100.000</C2>
+					</COORD>
+				</pointCoord>
+				<straightPolyline>
+					<POLYLINE>
+						<COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD>
+						<COORD><C1>2645100.000</C1><C2>1245100.000</C2></COORD>
+					</POLYLINE>
+				</straightPolyline>
+				<arcPolyline>
+					<POLYLINE>
+						<COORD><C1>2645010.000</C1><C2>1245000.000</C2></COORD>
+						<ARC>
+							<C1>2645000.000</C1><C2>1245010.000</C2>
+							<A1>2645007.071</A1><A2>1245007.071</A2>
+						</ARC>
+					</POLYLINE>
+				</arcPolyline>
+				<surface>
+					<SURFACE>
+						<BOUNDARY>
+							<POLYLINE>
+								<COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD>
+								<COORD><C1>2645000.000</C1><C2>1245010.000</C2></COORD>
+								<COORD><C1>2645010.000</C1><C2>1245010.000</C2></COORD>
+								<COORD><C1>2645010.000</C1><C2>1245000.000</C2></COORD>
+								<COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD>
+							</POLYLINE>
+						</BOUNDARY>
+					</SURFACE>
+				</surface>
+			</AllErrors23.MainTopic.GeometryClass>
+
+			<AllErrors23.MainTopic.AreaTopologyClass TID="validArea">
+				<categoryValue>a</categoryValue>
+				<areaGeometry>
+					<SURFACE>
+						<BOUNDARY>
+							<POLYLINE>
+								<COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD>
+								<COORD><C1>2645000.000</C1><C2>1245010.000</C2></COORD>
+								<COORD><C1>2645010.000</C1><C2>1245010.000</C2></COORD>
+								<COORD><C1>2645010.000</C1><C2>1245000.000</C2></COORD>
+								<COORD><C1>2645000.000</C1><C2>1245000.000</C2></COORD>
+							</POLYLINE>
+						</BOUNDARY>
+					</SURFACE>
+				</areaGeometry>
+			</AllErrors23.MainTopic.AreaTopologyClass>
+
+			<AllErrors23.MainTopic.MandatoryConstraintClass TID="satisfiedMandatory">
+				<firstFlag>true</firstFlag>
+				<secondFlag>true</secondFlag>
+			</AllErrors23.MainTopic.MandatoryConstraintClass>
+
+			<AllErrors23.MainTopic.PlausibilityConstraintClass TID="satisfiedPlausibility">
+				<firstNumber>5</firstNumber>
+				<secondNumber>3</secondNumber>
+			</AllErrors23.MainTopic.PlausibilityConstraintClass>
+
+			<AllErrors23.MainTopic.SetConstraintClass TID="nonMatchingCategory">
+				<categoryValue>b</categoryValue>
+			</AllErrors23.MainTopic.SetConstraintClass>
+			<!-- the set constraint requires exactly 5 objects with categoryValue a -->
+			<AllErrors23.MainTopic.SetConstraintClass TID="setMember1"><categoryValue>a</categoryValue></AllErrors23.MainTopic.SetConstraintClass>
+			<AllErrors23.MainTopic.SetConstraintClass TID="setMember2"><categoryValue>a</categoryValue></AllErrors23.MainTopic.SetConstraintClass>
+			<AllErrors23.MainTopic.SetConstraintClass TID="setMember3"><categoryValue>a</categoryValue></AllErrors23.MainTopic.SetConstraintClass>
+			<AllErrors23.MainTopic.SetConstraintClass TID="setMember4"><categoryValue>a</categoryValue></AllErrors23.MainTopic.SetConstraintClass>
+			<AllErrors23.MainTopic.SetConstraintClass TID="setMember5"><categoryValue>a</categoryValue></AllErrors23.MainTopic.SetConstraintClass>
+
+			<AllErrors23.MainTopic.UniqueConstraintClass TID="uniqueRow">
+				<keyText>key</keyText>
+				<keyNumber>1</keyNumber>
+			</AllErrors23.MainTopic.UniqueConstraintClass>
+
+			<AllErrors23.MainTopic.ExistenceConstraintClass TID="existingReference">
+				<referencedText>lookup</referencedText>
+			</AllErrors23.MainTopic.ExistenceConstraintClass>
+
+			<!-- the target role has max cardinality 1, so the link is embedded in LinkSourceClass -->
+			<AllErrors23.MainTopic.LinkSourceClass TID="validSource">
+				<label>source</label>
+				<target REF="validTarget"></target>
+			</AllErrors23.MainTopic.LinkSourceClass>
+			<AllErrors23.MainTopic.LinkTargetClass TID="validTarget">
+				<label>target</label>
+			</AllErrors23.MainTopic.LinkTargetClass>
+
+		</AllErrors23.MainTopic>
+
+		<AllErrors23.UuidTopic BID="uuidBasket">
+			<AllErrors23.UuidTopic.UuidObjectClass TID="550e8400-e29b-41d4-a716-446655440010">
+				<label>ok</label>
+			</AllErrors23.UuidTopic.UuidObjectClass>
+		</AllErrors23.UuidTopic>
+
+	</DATASECTION>
+</TRANSFER>

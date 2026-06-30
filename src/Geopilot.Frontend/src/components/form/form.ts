@@ -1,7 +1,7 @@
 import { Merge } from "react-hook-form";
 import { FieldError, FieldErrorsImpl } from "react-hook-form/dist/types/errors";
+import { Stack } from "@mui/material";
 import { styled } from "@mui/system";
-import { FlexBox } from "../styledComponents.ts";
 
 export const getFormFieldError = (
   fieldName: string | undefined,
@@ -31,7 +31,7 @@ export enum FormValueType {
   DateTime = "datetime-local",
 }
 
-export const FormContainer = styled(FlexBox)(({ theme }) => ({
+export const FormContainer = styled(Stack)(({ theme }) => ({
   [theme.breakpoints.up("md")]: {
     flexDirection: "row",
   },

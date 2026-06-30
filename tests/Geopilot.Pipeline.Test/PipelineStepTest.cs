@@ -1033,6 +1033,60 @@ public class PipelineStepTest
     }
 
     [TestMethod]
+    public async Task StepRunFailsWhenVisualizationOutputIsNotAnEnvelope()
+    {
+        var inputConfigs = new List<InputConfig>
+        {
+            NewInputConfig("upload", "xtf_file", "data"),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "viz",
+                As = "my_viz",
+                Action = new HashSet<OutputAction> { OutputAction.Visualization },
+            },
+        };
+        var uploadStepResult = new StepResult()
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { "xtf_file", new StepOutput { Action = new HashSet<OutputAction>(), Data = "some_data" } },
+            },
+        };
+        var pipelineContext = new PipelineContext()
+        {
+            Upload = new PipelineFileList(),
+            StepResults = new Dictionary<string, StepResult>()
+            {
+                { "upload", uploadStepResult },
+            },
+        };
+        var processData = new Dictionary<string, object>()
+        {
+            { "viz", "not an envelope" },
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(LocalizedText.Empty)
+            .InputConfig(inputConfigs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
+
+        Assert.Contains("visualization", exception.Message);
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
+    }
+
+    [TestMethod]
     public async Task StepShouldFailBecauseOfPreCondition()
     {
         var inputConfigs = new List<InputConfig>

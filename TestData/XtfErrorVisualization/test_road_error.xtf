@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- INTERLIS 2.4 sample data for the public reference model "RoadsExdm2ben"
+     (http://www.interlis.ch/models/refhb24) that contains a DELIBERATE GEOMETRY ERROR.
+     The LandCover surface boundary below is a self-intersecting "bowtie": the vertex
+     order makes edge 1 (40,60)->(60,80) cross edge 3 (60,60)->(40,80) at (50,70).
+     A surface boundary must be a simple (non-self-intersecting) ring, so ilivalidator
+     reports an intersection/self-overlap error AT THAT POSITION (~50, 70) - the "red"
+     path. All coordinates stay inside the Point2D domain (0..200), so the only error
+     is the self-intersection. Everything else (model, mandate, pipeline) stays valid. -->
+<ili:transfer xmlns:ili="http://www.interlis.ch/xtf/2.4/INTERLIS"
+  xmlns:geom="http://www.interlis.ch/geometry/1.0"
+  xmlns="http://www.interlis.ch/xtf/2.4/RoadsExdm2ben">
+  <ili:headersection>
+    <ili:models>
+      <ili:model>RoadsExdm2ben</ili:model>
+    </ili:models>
+    <ili:sender>geopilot</ili:sender>
+  </ili:headersection>
+  <ili:datasection>
+    <Roads ili:bid="REFHANDB00000001">
+
+      <!-- ERROR: self-intersecting boundary (bowtie); edges cross at ~(50, 70). -->
+      <LandCover ili:tid="16">
+        <Type>water</Type>
+        <Geometry>
+          <geom:surface>
+            <geom:exterior>
+              <geom:polyline>
+                <geom:coord><geom:c1>40.000</geom:c1><geom:c2>60.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>60.000</geom:c1><geom:c2>80.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>60.000</geom:c1><geom:c2>60.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>40.000</geom:c1><geom:c2>80.000</geom:c2></geom:coord>
+                <geom:coord><geom:c1>40.000</geom:c1><geom:c2>60.000</geom:c2></geom:coord>
+              </geom:polyline>
+            </geom:exterior>
+          </geom:surface>
+        </Geometry>
+      </LandCover>
+
+    </Roads>
+  </ili:datasection>
+</ili:transfer>

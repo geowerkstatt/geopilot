@@ -11,9 +11,11 @@ namespace Geopilot.Api.Contracts;
 /// <param name="State">The current state of the step.</param>
 /// <param name="StatusMessage">Localized status message produced by the step (e.g. condition-driven skip/fail messages, validator summaries). <see langword="null"/> when no status message was emitted.</param>
 /// <param name="Downloads">Files produced by the step that are available for download. Each entry carries the original file name and an absolute download URL.</param>
+/// <param name="Visualizations">Visualization configs produced by the step. Each entry carries the original file name and an absolute URL to fetch the self-describing JSON config from the visualization endpoint.</param>
 public record StepResultResponse(
     string Id,
     LocalizedText Name,
     StepState State,
     LocalizedText? StatusMessage,
-    IList<StepDownload> Downloads);
+    IList<StepDownload> Downloads,
+    IList<StepVisualizationResponse> Visualizations);

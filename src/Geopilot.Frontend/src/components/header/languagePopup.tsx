@@ -54,7 +54,6 @@ export function LanguagePopup() {
         onClick={handleClick}
         endIcon={anchorEl ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         sx={{
-          marginRight: "10px",
           ...(anchorEl && { backgroundColor: geopilotTheme.palette.primary.hover }),
         }}
         data-cy="language-selector">
@@ -64,7 +63,7 @@ export function LanguagePopup() {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleClose}
-        sx={{ marginTop: "5px" }}
+        sx={{ mt: 0.5 }}
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "right",

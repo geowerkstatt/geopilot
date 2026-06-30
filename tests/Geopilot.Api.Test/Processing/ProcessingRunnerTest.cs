@@ -22,6 +22,7 @@ public class ProcessingRunnerTest
 
     private PhysicalDownloadFileStore downloadStore;
     private PhysicalAssetFileStore assetStore;
+    private PhysicalVisualizationFileStore visualizationStore;
     private IServiceScopeFactory scopeFactory;
 
     [TestInitialize]
@@ -29,10 +30,12 @@ public class ProcessingRunnerTest
     {
         downloadStore = new PhysicalDownloadFileStore(AssemblyInitialize.TestDirectoryProvider);
         assetStore = new PhysicalAssetFileStore(AssemblyInitialize.TestDirectoryProvider);
+        visualizationStore = new PhysicalVisualizationFileStore(AssemblyInitialize.TestDirectoryProvider);
 
         var serviceProvider = new Mock<IServiceProvider>();
         serviceProvider.Setup(p => p.GetService(typeof(IDownloadFileStore))).Returns(downloadStore);
         serviceProvider.Setup(p => p.GetService(typeof(IAssetFileStore))).Returns(assetStore);
+        serviceProvider.Setup(p => p.GetService(typeof(IVisualizationFileStore))).Returns(visualizationStore);
 
         var scope = new Mock<IServiceScope>();
         scope.SetupGet(s => s.ServiceProvider).Returns(serviceProvider.Object);
@@ -49,6 +52,7 @@ public class ProcessingRunnerTest
         {
             downloadStore.DeleteJob(jobId);
             assetStore.DeleteJob(jobId);
+            visualizationStore.DeleteJob(jobId);
         }
 
         foreach (var path in tempFiles.Where(File.Exists))
@@ -111,6 +115,29 @@ public class ProcessingRunnerTest
         Assert.IsTrue(downloadStore.Exists(jobId, persisted.PersistedFileName));
         Assert.IsFalse(assetStore.Exists(jobId, persisted.PersistedFileName), "Download files must not be written to the asset store.");
         Assert.AreEqual("log-content", File.ReadAllText(downloadStore.GetPath(jobId, persisted.PersistedFileName)));
+    }
+
+    [TestMethod]
+    public void ExtractStepDownloadsWritesVisualizationToVisualizationStoreOnly()
+    {
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+        var step = BuildBareStep("step_1");
+        var config = new { type = "map", layers = Array.Empty<object>() };
+        var stepResult = ObjectStepResult("viz", config, OutputAction.Visualization);
+
+        runner.ExtractStepDownloads(jobId, step, stepResult);
+
+        Assert.HasCount(1, step.Visualizations);
+        var persisted = step.Visualizations[0];
+        Assert.AreEqual("viz.json", persisted.OriginalFileName);
+        Assert.AreEqual("step_1_viz.json", persisted.PersistedFileName);
+        Assert.IsTrue(visualizationStore.Exists(jobId, persisted.PersistedFileName));
+        Assert.IsFalse(downloadStore.Exists(jobId, persisted.PersistedFileName), "Visualizations must not be written to the download store.");
+        Assert.IsEmpty(step.Downloads);
+
+        var json = File.ReadAllText(visualizationStore.GetPath(jobId, persisted.PersistedFileName));
+        StringAssert.Contains(json, "\"type\":\"map\"");
     }
 
     [TestMethod]
@@ -184,7 +211,9 @@ public class ProcessingRunnerTest
             var persistedName = step1.Downloads[0].PersistedFileName;
             Assert.IsTrue(downloadStore.Exists(jobId, persistedName), "Step 1's download must be on disk before the pipeline finishes.");
 
-            var response = job.ToResponse((id, file) => new Uri($"https://localhost/api/v2/processing/{id}/files/{file}"));
+            var response = job.ToResponse(
+                (id, file) => new Uri($"https://localhost/api/v2/processing/{id}/files/{file}"),
+                (id, file) => new Uri($"https://localhost/api/v2/processing/{id}/visualizations/{file}"));
             Assert.HasCount(1, response.Steps[0].Downloads);
             Assert.AreEqual("first.log", response.Steps[0].Downloads[0].OriginalFileName);
 
@@ -366,6 +395,15 @@ public class ProcessingRunnerTest
             Outputs = new Dictionary<string, StepOutput>
             {
                 { outputKey, new StepOutput { Action = new HashSet<OutputAction>(actions), Data = new PipelineFile(WriteTempFile(content), originalFileName) } },
+            },
+        };
+
+    private static StepResult ObjectStepResult(string outputKey, object data, params OutputAction[] actions) =>
+        new StepResult
+        {
+            Outputs = new Dictionary<string, StepOutput>
+            {
+                { outputKey, new StepOutput { Action = new HashSet<OutputAction>(actions), Data = data } },
             },
         };
 

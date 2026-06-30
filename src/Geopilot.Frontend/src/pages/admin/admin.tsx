@@ -4,7 +4,6 @@ import { Outlet } from "react-router-dom";
 import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { useControlledNavigate } from "../../components/controlledNavigate";
-import { FlexRowBox } from "../../components/styledComponents.ts";
 
 interface AdminProps {
   isSubMenuOpen: boolean;
@@ -102,8 +101,11 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           "& .MuiDrawer-paper": { width: drawerWidth },
         }}>
         <>
-          <FlexRowBox
-            sx={{ padding: "8px 16px", cursor: "pointer" }}
+          <Stack
+            direction="row"
+            py={1}
+            px={2}
+            sx={{ alignItems: "center", flexWrap: "wrap", cursor: "pointer" }}
             onClick={() => {
               navigate("/");
             }}>
@@ -131,7 +133,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
                 </Typography>
               )}
             </Box>
-          </FlexRowBox>
+          </Stack>
           {drawerContent(false)}
         </>
       </Drawer>

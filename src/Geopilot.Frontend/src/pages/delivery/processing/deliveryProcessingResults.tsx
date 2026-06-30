@@ -1,18 +1,16 @@
 import { SyntheticEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import { Accordion, AccordionDetails, AccordionSummary, Box, Typography } from "@mui/material";
-import i18next from "i18next";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Stack, Typography } from "@mui/material";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { BaseButton } from "../../../components/buttons";
-import { FlexBox, FlexRowBox } from "../../../components/styledComponents";
+import { useLocalized } from "../../../hooks/useLocalized";
 import { DeliveryContext } from "../deliveryContext";
 import { ProcessingStepIcon } from "./processingStepIcon";
+import { VisualizationLoader } from "./visualizations/visualizationLoader";
 
-const localized = (entries?: Record<string, string>) =>
-  entries?.[i18next.resolvedLanguage ?? "en"] ?? entries?.["en"] ?? "";
-
-const stepHasContent = (step: StepResult) => Boolean(step.statusMessage) || step.downloads.length > 0;
+const stepHasContent = (step: StepResult) =>
+  Boolean(step.statusMessage) || step.downloads.length > 0 || (step.visualizations?.length ?? 0) > 0;
 
 const stepIsExpandable = (step: StepResult) => step && step.state !== StepState.Pending && stepHasContent(step);
 
@@ -24,6 +22,7 @@ const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
 ]);
 
 export const DeliveryProcessingResults = () => {
+  const localized = useLocalized();
   const { processingResponse } = useContext(DeliveryContext);
   const [expandedStepIds, setExpandedStepIds] = useState<Set<string>>(new Set());
   const autoExpandedIds = useRef<Set<string>>(new Set());
@@ -94,7 +93,7 @@ export const DeliveryProcessingResults = () => {
   };
 
   return (
-    <FlexBox>
+    <Stack>
       {processingResponse?.deliveryRestrictionMessage && (
         <Typography variant="body1" color="error">
           {localized(processingResponse.deliveryRestrictionMessage)}
@@ -122,12 +121,7 @@ export const DeliveryProcessingResults = () => {
               expanded={isExpanded}
               onChange={isExpandable ? handleAccordionChange(step.id) : undefined}
               slotProps={{ transition: { onEntered: handleStepExpanded(step.id) } }}
-              disableGutters
               sx={{
-                boxShadow: "none",
-                border: 1,
-                borderColor: theme => theme.palette.primary.light,
-                "&:before": { display: "none" },
                 ...(isExpanded
                   ? {
                       borderRadius: "4px",
@@ -143,18 +137,18 @@ export const DeliveryProcessingResults = () => {
               }}
               data-cy={`processing-step-${step.id}`}>
               <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
-                <FlexRowBox sx={{ alignItems: "center", gap: 2 }}>
+                <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
                   <ProcessingStepIcon state={step.state} index={index} />
                   <Typography variant="h5" sx={{ margin: 0 }}>
                     {localized(step.name)}
                   </Typography>
-                </FlexRowBox>
+                </Stack>
               </AccordionSummary>
               <AccordionDetails>
-                <FlexBox>
+                <Stack>
                   {step.statusMessage && <Typography variant="body1">{localized(step.statusMessage)}</Typography>}
                   {step.downloads.length > 0 && (
-                    <FlexRowBox>
+                    <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
                       {step.downloads.map(d => (
                         <BaseButton
                           key={d.originalFileName}
@@ -164,14 +158,15 @@ export const DeliveryProcessingResults = () => {
                           label={d.originalFileName}
                         />
                       ))}
-                    </FlexRowBox>
+                    </Stack>
                   )}
-                </FlexBox>
+                  {isExpanded && step.visualizations?.map(v => <VisualizationLoader key={v.url} url={v.url} />)}
+                </Stack>
               </AccordionDetails>
             </Accordion>
           );
         })}
       </Box>
-    </FlexBox>
+    </Stack>
   );
 };
