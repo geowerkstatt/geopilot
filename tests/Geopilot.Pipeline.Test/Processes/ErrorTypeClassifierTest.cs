@@ -47,6 +47,7 @@ public class ErrorTypeClassifierTest
     [DataRow("Wrong ARC structure, C3 expected", "Invalid ARC structure")]
     [DataRow("invalid number of segments in POLYLINE", "Invalid polyline geometry")]
     [DataRow("invalid number of surfaces in COMPLETE basket", "Invalid surface geometry")]
+    [DataRow("Intersection coord1 (2659030.000, 1245030.000), tids catchmentWohlen, catchmentWohlen", "Geometry intersection")]
     [DataRow("No object found with OID 123.", "Referenced object not found")]
     [DataRow("wrong class A of target object B for role R.", "Wrong target class for reference")]
     [DataRow("Model.Topic.Class should associate A to 2 target objects (instead of 0)", "Wrong association multiplicity")]

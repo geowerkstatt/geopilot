@@ -75,6 +75,7 @@ internal static class ErrorTypeClassifier
         (new Regex(@"^Wrong ARC structure"), Category("Ungültige ARC-Struktur", "Structure ARC non valide", "Struttura ARC non valida", "Invalid ARC structure")),
         (new Regex(@"^invalid number of segments in POLYLINE$"), Category("Ungültige Polyliniengeometrie", "Géométrie de polyligne non valide", "Geometria polilinea non valida", "Invalid polyline geometry")),
         (new Regex(@"^invalid number of surfaces"), Category("Ungültige Flächengeometrie", "Géométrie de surface non valide", "Geometria di superficie non valida", "Invalid surface geometry")),
+        (new Regex(@"^Intersection coord1"), Category("Geometrieüberschneidung", "Intersection de géométrie", "Intersezione di geometria", "Geometry intersection")),
 
         (new Regex(@"^No object found with OID "), Category("Referenziertes Objekt nicht gefunden", "Objet référencé introuvable", "Oggetto referenziato non trovato", "Referenced object not found")),
         (new Regex(@"wrong class .* of target object .* for "), Category("Falsche Zielklasse für Referenz", "Classe cible incorrecte pour la référence", "Classe di destinazione errata per il riferimento", "Wrong target class for reference")),
