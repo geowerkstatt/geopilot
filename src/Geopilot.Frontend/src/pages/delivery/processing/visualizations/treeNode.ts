@@ -134,8 +134,15 @@ const groupItems = (
     ),
   );
 
+  // Items missing this key are shown as leaves directly under a single "ungrouped" group, never recursed into
+  // the remaining keys, so a missing attribute does not produce a chain of virtual "ungrouped" subgroups.
   if (ungrouped.length > 0) {
-    named.push(makeGroup(ungroupedLabel, groupItems(ungrouped, groupBy, level + 1, language, ungroupedLabel)));
+    named.push(
+      makeGroup(
+        ungroupedLabel,
+        ungrouped.map(item => toLeaf(item, language)),
+      ),
+    );
   }
 
   return named;
