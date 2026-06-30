@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The XTF validation error tree groups errors by configurable criteria (by default model, topic and class; the tree-only pipeline groups by INTERLIS class), shows the number of entries per group, and displays the error-category titles in the active language.
+
 ## v3.0.341 - 2026-06-17
 
 ### Added
