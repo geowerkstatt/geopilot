@@ -52,12 +52,20 @@ public class ErrorTypeClassifierTest
     [DataRow("Model.Topic.Class should associate A to 2 target objects (instead of 0)", "Wrong association multiplicity")]
     public void ClassifyReturnsCategoryForKnownMessage(string message, string expectedCategory)
     {
-        Assert.AreEqual(expectedCategory, ErrorTypeClassifier.Classify(message));
+        Assert.AreEqual(expectedCategory, ErrorTypeClassifier.Classify(message)?["en"]);
     }
 
     [TestMethod]
     public void ClassifyReturnsNullForUnknownMessage()
     {
         Assert.IsNull(ErrorTypeClassifier.Classify("basket DMAV.Grundstuecke is mandatory in transfer"));
+    }
+
+    [TestMethod]
+    public void ClassifyReturnsAllSupportedLanguages()
+    {
+        var category = ErrorTypeClassifier.Classify("Attribute Hoehengenauigkeit requires a value");
+        Assert.IsNotNull(category);
+        CollectionAssert.AreEquivalent(new[] { "de", "fr", "it", "en" }, category.Languages.ToList());
     }
 }
