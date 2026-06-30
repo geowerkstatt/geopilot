@@ -1,7 +1,6 @@
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { Typography } from "@mui/material";
-import { FlexRowSpaceBetweenBox } from "../../../components/styledComponents.ts";
+import { Stack, Typography } from "@mui/material";
 import { useLocalized } from "../../../hooks/useLocalized.ts";
 import { DeliveryContext } from "../deliveryContext.tsx";
 
@@ -14,8 +13,8 @@ export const DeliveryProcessingLoading = () => {
   const message = pipelineName ? t("processingIsRunning", { pipeline: pipelineName }) : t("processingIsBeingPrepared");
 
   return (
-    <FlexRowSpaceBetweenBox>
+    <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
       <Typography variant="body1">{message}</Typography>
-    </FlexRowSpaceBetweenBox>
+    </Stack>
   );
 };

@@ -67,7 +67,6 @@ export const DeliveryStepper = () => {
   return (
     <StepperViewport>
       <StepperStack
-        spacing={2}
         direction={{ xs: "row", md: "column" }}
         style={{
           left: isMobile ? `calc(${activeStep} * (-100% - ${theme.spacing(2)}))` : undefined,
@@ -91,8 +90,8 @@ export const DeliveryStepper = () => {
               error={!!step.error}
               isLoading={isLoading || isProcessing}
             />
-            <Stack spacing={1} direction={{ xs: "row", md: "column" }} alignItems="baseline" sx={{ minWidth: "0" }}>
-              <Typography variant="h4" color={isEnabled(index) ? "textPrimary" : "textSecondary"}>
+            <Stack direction={{ xs: "row", md: "column" }} alignItems="baseline" sx={{ minWidth: "0" }}>
+              <Typography variant="h4" color={isEnabled(index) ? "textPrimary" : "textSecondary"} m={0}>
                 {t(step.label)}
               </Typography>
               {step.labelAddition && (

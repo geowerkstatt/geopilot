@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { Button, useMediaQuery, useTheme } from "@mui/material";
+import { Button, Stack, useMediaQuery, useTheme } from "@mui/material";
 import { useControlledNavigate } from "../../components/controlledNavigate";
-import { FlexRowCenterBox } from "../../components/styledComponents.ts";
 
 const Footer = () => {
   const { t } = useTranslation();
@@ -13,11 +12,15 @@ const Footer = () => {
   const marginLeft = isAdminRoute ? "250px" : "0";
 
   return (
-    <FlexRowCenterBox
+    <Stack
+      direction="row"
+      pb={1}
+      px={3}
       sx={{
+        alignItems: "center",
+        justifyContent: "center",
         flexWrap: "wrap",
         marginLeft: { xs: "0", md: marginLeft },
-        padding: "0 20px 10px 20px",
       }}
       className="footer">
       <Button
@@ -52,7 +55,7 @@ const Footer = () => {
         }}>
         {t("about")}
       </Button>
-    </FlexRowCenterBox>
+    </Stack>
   );
 };
 

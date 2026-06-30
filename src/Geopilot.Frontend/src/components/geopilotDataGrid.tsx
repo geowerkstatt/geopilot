@@ -7,7 +7,6 @@ import { styled } from "@mui/system";
 import { DataGrid, DataGridProps, GridColDef, GridRenderCellParams, GridRowSelectionModel } from "@mui/x-data-grid";
 import { GridRowId } from "@mui/x-data-grid/models/gridRows";
 import { BaseButton } from "./buttons.tsx";
-import { FlexBox } from "./styledComponents.ts";
 
 interface GeopilotDataGridProps extends DataGridProps {
   name: string;
@@ -57,9 +56,9 @@ const OverflowTooltipCell: FC<{ text: string }> = ({ text }) => {
 
 const BooleanTooltipCell: FC<{ value: boolean; label: string }> = ({ value, label }) => (
   <Tooltip title={label} disableInteractive>
-    <FlexBox sx={{ alignItems: "center", justifyContent: "center" }}>
+    <Stack sx={{ alignItems: "center", justifyContent: "center" }}>
       {value ? <CheckIcon fontSize="small" aria-label={label} /> : <CloseIcon fontSize="small" aria-label={label} />}
-    </FlexBox>
+    </Stack>
   </Tooltip>
 );
 
@@ -108,7 +107,7 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
   };
 
   return props.addLabel && props.onSelect ? (
-    <Stack sx={{ height: "100%" }} gap={2}>
+    <Stack sx={{ height: "100%" }}>
       <Box sx={{ flex: "0" }}>
         <BaseButton variant="outlined" icon={<AddIcon />} onClick={handleAddClick} label={props.addLabel} />
       </Box>

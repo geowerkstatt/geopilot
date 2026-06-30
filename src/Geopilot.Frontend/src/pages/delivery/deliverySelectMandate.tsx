@@ -27,12 +27,12 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   },
 }));
 
-const StyledToggleButton = styled(ToggleButton)({
+const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
   flexDirection: "column",
   alignItems: "flex-start",
   textAlign: "left",
-  gap: "0.25rem",
-});
+  gap: theme.spacing(0.5),
+}));
 
 interface MandateToggleButtonProps {
   mandate: Mandate;
@@ -49,7 +49,7 @@ const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
       <Typography variant="h5" mt={0}>
         {mandate.name}
       </Typography>
-      <Stack direction="row" spacing={1} sx={{ flex: 1 }}>
+      <Stack direction="row" gap={0.5} sx={{ flex: 1 }}>
         <Typography variant="body1" sx={{ textTransform: "none", lineHeight: 1.25 }}>
           {t("pipelineSteps")}
         </Typography>

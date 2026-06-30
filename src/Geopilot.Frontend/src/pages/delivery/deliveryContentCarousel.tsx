@@ -14,13 +14,12 @@ const CarouselViewport = styled(Box)({
   overflowY: "visible",
 });
 
-const CarouselTrack = styled(Stack)(({ theme }) => ({
+const CarouselTrack = styled(Stack)({
   position: "relative",
   width: "100%",
   alignItems: "flex-start",
   flexDirection: "row",
-  gap: theme.spacing(2),
-}));
+});
 
 const CarouselSlide = styled(Stack)({
   flex: "0 0 100%",

@@ -2,7 +2,6 @@ import { SyntheticEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { useTranslation } from "react-i18next";
 import { Box, Stack, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
-import { FlexBox } from "../../../../components/styledComponents";
 import { MetadataPanel } from "./metadataPanel";
 import { renderTreeItems } from "./renderTreeItems";
 import { collectItemIds, indexNodes, TreeNode } from "./treeNode";
@@ -118,8 +117,8 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
   if (nodes.length === 0 && !filterActive) return null;
 
   return (
-    <FlexBox ref={measureContainer} sx={{ width: "100%" }}>
-      <Stack direction="row" sx={{ gap: 2, alignItems: "flex-start" }}>
+    <Stack ref={measureContainer} sx={{ width: "100%" }}>
+      <Stack direction="row" sx={{ alignItems: "flex-start" }}>
         {nodes.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
             {t("treeVisualizationNoResults")}
@@ -143,6 +142,6 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
           </>
         )}
       </Stack>
-    </FlexBox>
+    </Stack>
   );
 };

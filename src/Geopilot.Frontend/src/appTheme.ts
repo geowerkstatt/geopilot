@@ -340,6 +340,7 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiStack: { defaultProps: { gap: 2 } },
     MuiAccordion: {
       defaultProps: {
         disableGutters: true,

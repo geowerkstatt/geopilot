@@ -1,13 +1,12 @@
 import { FC, useCallback, useContext, useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { Trans } from "react-i18next";
-import { Link } from "@mui/material";
+import { Link, Stack } from "@mui/material";
 import { ProcessingSettings } from "../../api/apiInterfaces.ts";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { BaseButton } from "../../components/buttons.tsx";
 import { FileDropzone } from "../../components/fileDropzone.tsx";
 import { FormCheckbox } from "../../components/form/form.ts";
-import { FlexBox, FlexRowSpaceBetweenBox } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryContinueButton } from "./deliveryButtons.tsx";
 import { DeliveryContent } from "./deliveryContent.tsx";
@@ -69,7 +68,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
       {initialized && (
         <FormProvider {...formMethods}>
           <form onSubmit={formMethods.handleSubmit(submitForm)}>
-            <FlexBox>
+            <Stack>
               <FileDropzone
                 selectedFiles={selectedFiles}
                 addFiles={addFiles}
@@ -84,7 +83,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                 maxTotalFileSizeMB={uploadSettings?.maxJobSizeMB}
                 isUploading={isLoading}
               />
-              <FlexRowSpaceBetweenBox>
+              <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
                 <FormCheckbox
                   fieldName="acceptTermsOfUse"
                   label={
@@ -100,8 +99,8 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                   validation={{ required: true }}
                   sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
                 />
-              </FlexRowSpaceBetweenBox>
-            </FlexBox>
+              </Stack>
+            </Stack>
           </form>
         </FormProvider>
       )}

@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { TextField } from "@mui/material";
-import { FlexRowBox } from "../../../../components/styledComponents";
+import { Stack, TextField } from "@mui/material";
 import { MetadataFilter } from "./metadataFilter";
 import { MetadataAttribute, MetadataFilters } from "./treeNode";
 
@@ -32,7 +31,7 @@ export const FilterBar = ({
         onChange={event => onMessageQueryChange(event.target.value)}
         data-cy="tree-message-search"
       />
-      <FlexRowBox sx={{ width: "100%", gap: 1.5 }}>
+      <Stack direction="row" sx={{ width: "100%", gap: 1.5, alignItems: "center", flexWrap: "wrap" }}>
         {attributes.map(attribute => (
           <MetadataFilter
             key={attribute.key}
@@ -41,7 +40,7 @@ export const FilterBar = ({
             onChange={onMetadataFilterChange}
           />
         ))}
-      </FlexRowBox>
+      </Stack>
     </>
   );
 };

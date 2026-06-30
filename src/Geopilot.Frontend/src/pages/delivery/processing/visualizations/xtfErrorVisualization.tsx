@@ -61,7 +61,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const handleSelectFeature = (errorId: string) => setSelectedNodeId(nodeIdByErrorId.get(errorId) ?? null);
 
   return (
-    <Stack sx={{ gap: 2, width: "100%" }}>
+    <Stack sx={{ width: "100%" }}>
       {config.tree && (
         <FilterBar
           attributes={attributes}

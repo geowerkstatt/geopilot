@@ -15,6 +15,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Stack,
   Toolbar,
   Typography,
 } from "@mui/material";
@@ -22,7 +23,6 @@ import { useGeopilotAuth } from "../../auth";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { BaseButton } from "../buttons.tsx";
 import { useControlledNavigate } from "../controlledNavigate";
-import { FlexRowBox, FlexSpaceBetweenBox } from "../styledComponents.ts";
 import { LanguagePopup } from "./languagePopup";
 
 interface HeaderProps {
@@ -61,20 +61,26 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
         }}>
         <Toolbar
           sx={{
+            height: "60px",
+            minHeight: "auto !important",
             display: "flex",
             flexDirection: "row",
             justifyContent: "space-between",
           }}>
-          <FlexRowBox
+          <Stack
             data-cy="header"
-            sx={{ padding: "5px 0", cursor: "pointer", flexWrap: "nowrap", overflow: "hidden" }}
+            direction="row"
+            sx={{
+              alignItems: "center",
+              cursor: "pointer",
+              overflow: "hidden",
+            }}
             onClick={() => {
               navigateTo("/");
             }}>
-            <Box sx={{ display: { xs: "block", md: "none" }, flex: "0", marginRight: "10px" }}>
+            <Box sx={{ display: { xs: "block", md: "none", maxHeight: "40px" } }}>
               {hasSubMenu ? (
                 <IconButton
-                  sx={{ paddingLeft: "0" }}
                   color="inherit"
                   onClick={e => {
                     e.stopPropagation();
@@ -95,7 +101,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </Box>
             {clientSettings?.application?.logo && (
-              <Box sx={{ display: { xs: "none", md: "block" }, marginRight: "20px" }}>
+              <Box sx={{ display: { xs: "none", md: "block" }, maxHeight: "40px" }}>
                 <img
                   src={clientSettings?.application?.logo}
                   alt={`Logo of ${clientSettings?.application?.name}`}
@@ -125,14 +131,14 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 </Typography>
               )}
             </Box>
-          </FlexRowBox>
-          <FlexRowBox sx={{ flexWrap: "nowrap" }}>
+          </Stack>
+          <Stack direction="row" alignItems="center">
             <LanguagePopup />
             {authLoaded &&
               (user ? (
                 <IconButton
                   sx={{
-                    padding: "0",
+                    p: 0,
                   }}
                   onClick={toggleUserMenu(true)}
                   data-cy="loggedInUser-button">
@@ -143,14 +149,15 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                   <BaseButton variant="text" onClick={login} label="logIn" />
                 </>
               ))}
-          </FlexRowBox>
+          </Stack>
         </Toolbar>
       </AppBar>
       <Drawer anchor={"right"} open={userMenuOpen} onClose={toggleUserMenu(false)} data-cy="tool-navigation">
-        <FlexSpaceBetweenBox
+        <Stack
+          py={2}
           sx={{
+            justifyContent: "space-between",
             height: "100%",
-            padding: "20px 0",
           }}>
           <Box
             sx={{ width: 300 }}
@@ -213,8 +220,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </List>
           </Box>
-          <BaseButton sx={{ margin: "0 20px" }} onClick={logout} label="logOut" />
-        </FlexSpaceBetweenBox>
+          <BaseButton sx={{ mx: 2 }} onClick={logout} label="logOut" />
+        </Stack>
       </Drawer>
     </>
   );

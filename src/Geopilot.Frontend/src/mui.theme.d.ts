@@ -56,6 +56,7 @@ declare module "@mui/material/styles" {
     MuiTooltip: object;
     MuiChip: object;
     MuiToggleButton: object;
+    MuiStack: object;
     MuiAccordion: object;
   }
 
@@ -79,6 +80,7 @@ declare module "@mui/material/styles" {
     MuiTooltip: object;
     MuiChip: object;
     MuiToggleButton: object;
+    MuiStack: object;
     MuiAccordion: object;
   }
 

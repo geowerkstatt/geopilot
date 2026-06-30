@@ -2,13 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import { Tooltip } from "@mui/material";
+import { Stack, Tooltip } from "@mui/material";
 import { GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
 import { AvailablePipelinesResponse, Mandate, Organisation, PipelineSummary } from "../../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/geopilotDataGrid.tsx";
-import { FlexRowBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 import { findPipeline, getLocalisedPipelineName } from "./pipelineDisplay";
 
@@ -72,10 +71,10 @@ const Mandates = () => {
           <Tooltip
             title={t("pipelineNotKnown", { pipelineId })}
             slotProps={{ popper: { modifiers: [{ name: "offset", options: { offset: [-20, -16] } }] } }}>
-            <FlexRowBox sx={{ alignItems: "center", gap: 0.5, color: "error.main" }}>
+            <Stack direction="row" sx={{ flexWrap: "wrap", alignItems: "center", gap: 0.5, color: "error.main" }}>
               <ErrorOutlineIcon fontSize="small" />
               {pipelineId}
-            </FlexRowBox>
+            </Stack>
           </Tooltip>
         );
       },
