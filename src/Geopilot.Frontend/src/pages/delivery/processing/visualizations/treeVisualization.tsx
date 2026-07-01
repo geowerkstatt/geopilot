@@ -15,8 +15,12 @@ interface TreeVisualizationProps {
   selectedId: string | null;
   /** Called with the structural node id when the selection changes (null when cleared). */
   onSelect: (nodeId: string | null) => void;
-  /** Whether a filter is active: expands every node so all matches are visible, and shows the no-results hint. */
+  /** Whether a filter is active: expands every match, shows the no-results hint, and switches the header count. */
   filterActive?: boolean;
+  /** Total number of errors across all items, shown in the header. */
+  totalCount: number;
+  /** Number of errors currently shown (after filtering); equals totalCount when no filter is active. */
+  shownCount: number;
 }
 
 // Once the tree can no longer keep its minimum width next to the detail box, the box is
@@ -36,7 +40,14 @@ const ancestorIds = (id: string): string[] => {
   return ancestors;
 };
 
-export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = false }: TreeVisualizationProps) => {
+export const TreeVisualization = ({
+  nodes,
+  selectedId,
+  onSelect,
+  filterActive = false,
+  totalCount,
+  shownCount,
+}: TreeVisualizationProps) => {
   const { t } = useTranslation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -141,25 +152,25 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
   if (nodes.length === 0 && !filterActive) return null;
 
   return (
-    <Stack ref={measureContainer} sx={{ width: "100%", position: "relative" }}>
-      {nodes.length > 0 && (
-        // Fixed at the detail box's left edge (its reserved width) so it stays put whether or not the box
-        // is currently rendered; falls back to the far right in the narrow (stacked) layout.
-        <Box sx={{ position: "absolute", top: 0, right: sideBySide ? `${PANEL_WIDTH + PANEL_GAP}px` : 0, zIndex: 1 }}>
+    <Stack ref={measureContainer} sx={{ width: "100%" }}>
+      <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", gap: 1, mb: 1 }}>
+        <Typography variant="body2" color="text.secondary" data-cy="tree-error-count">
+          {filterActive
+            ? t("treeErrorCountFiltered", { count: totalCount, shown: shownCount })
+            : t("treeErrorCount", { count: totalCount })}
+        </Typography>
+        {expandableIds.length > 0 && (
           <Tooltip title={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
-            <span>
-              <IconButton
-                size="small"
-                onClick={toggleExpandAll}
-                disabled={expandableIds.length === 0}
-                data-cy="tree-expand-toggle"
-                aria-label={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
-                {allExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
-              </IconButton>
-            </span>
+            <IconButton
+              size="small"
+              onClick={toggleExpandAll}
+              data-cy="tree-expand-toggle"
+              aria-label={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
+              {allExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
+            </IconButton>
           </Tooltip>
-        </Box>
-      )}
+        )}
+      </Stack>
       <Stack direction="row" sx={{ alignItems: "flex-start" }}>
         {nodes.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
