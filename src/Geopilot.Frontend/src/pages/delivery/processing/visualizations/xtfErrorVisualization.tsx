@@ -92,6 +92,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
           selectedId={selectedNodeId}
           onSelect={setSelectedNodeId}
           filterActive={hasActiveFilters}
+          totalCount={items.length}
+          shownCount={filteredItems.length}
         />
       )}
     </Stack>
