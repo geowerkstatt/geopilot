@@ -2,7 +2,7 @@ import { SyntheticEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { useTranslation } from "react-i18next";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
-import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
 import { MetadataPanel } from "./metadataPanel";
 import { renderTreeItems } from "./renderTreeItems";
@@ -135,58 +135,62 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
     treeWrapperRef.current?.querySelector<HTMLElement>(".Mui-selected")?.scrollIntoView({ block: "nearest" });
   }, [selectedId, expanded]);
 
+  const getResultMessage = () => {
+    if (filterActive) {
+      // TODO: Add translation keys using i18n plurals
+      return "Showing 3 out of 18 errors found";
+    } else if (nodes.length === 0) {
+      return t("treeVisualizationNoResults");
+    } else {
+      // TODO: Add translation keys using i18n plurals
+      return "18 errors found";
+    }
+  };
+
   if (nodes.length === 0 && !filterActive) return null;
 
   return (
-    <Stack ref={measureContainer} sx={{ width: "100%", position: "relative" }}>
-      {nodes.length > 0 && (
-        // Fixed at the detail box's left edge (its reserved width) so it stays put whether or not the box
-        // is currently rendered; falls back to the far right in the narrow (stacked) layout.
-        <Box sx={{ position: "absolute", top: 0, right: sideBySide ? `${PANEL_WIDTH + PANEL_GAP}px` : 0, zIndex: 1 }}>
-          <Tooltip title={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
-            <span>
-              <IconButton
-                size="small"
-                onClick={toggleExpandAll}
-                disabled={filterActive || expandableIds.length === 0}
-                data-cy="tree-expand-toggle"
-                aria-label={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
-                {allExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
-      )}
+    <Stack ref={measureContainer} sx={{ width: "100%", position: "relative", gap: 1 }}>
+      <Stack
+        direction="row"
+        sx={{ justifyContent: nodes.length > 0 ? "space-between" : "flex-start", alignItems: "center" }}>
+        <Typography variant="body2" m={0}>
+          {getResultMessage()}
+        </Typography>
+        {nodes.length > 0 && (
+          <Button
+            data-cy="tree-expand-toggle"
+            onClick={toggleExpandAll}
+            disabled={expandableIds.length === 0}
+            variant="text"
+            size="small"
+            endIcon={allExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}>
+            {allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}
+          </Button>
+        )}
+      </Stack>
       <Stack direction="row" sx={{ alignItems: "flex-start" }}>
-        {nodes.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            {t("treeVisualizationNoResults")}
-          </Typography>
-        ) : (
-          <>
-            <Box
-              ref={treeWrapperRef}
-              sx={{
-                flex: "1 1 auto",
-                minWidth: 0,
-                // Reserve the detail box's width so the tree (and its selection highlight) end at the same
-                // boundary whether or not the box is currently rendered.
-                maxWidth: sideBySide ? `calc(100% - ${PANEL_WIDTH + PANEL_GAP}px)` : "100%",
-              }}>
-              <SimpleTreeView
-                selectedItems={selectedId}
-                onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
-                expandedItems={expanded}
-                onExpandedItemsChange={(_: SyntheticEvent, itemIds: string[]) => setExpandedItems(itemIds)}>
-                {items}
-              </SimpleTreeView>
-            </Box>
-            {sideBySide && hasMetadata && (
-              <Box ref={panelRef} sx={{ mt: `${panelTop}px`, flexShrink: 0, transition: "margin-top 0.15s ease" }}>
-                <MetadataPanel node={selectedNode} />
-              </Box>
-            )}
-          </>
+        <Box
+          ref={treeWrapperRef}
+          sx={{
+            flex: "1 1 auto",
+            minWidth: 0,
+            // Reserve the detail box's width so the tree (and its selection highlight) end at the same
+            // boundary whether or not the box is currently rendered.
+            maxWidth: sideBySide ? `calc(100% - ${PANEL_WIDTH + PANEL_GAP}px)` : "100%",
+          }}>
+          <SimpleTreeView
+            selectedItems={selectedId}
+            onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
+            expandedItems={expanded}
+            onExpandedItemsChange={(_: SyntheticEvent, itemIds: string[]) => setExpandedItems(itemIds)}>
+            {items}
+          </SimpleTreeView>
+        </Box>
+        {sideBySide && hasMetadata && (
+          <Box ref={panelRef} sx={{ mt: `${panelTop}px`, flexShrink: 0, transition: "margin-top 0.15s ease" }}>
+            <MetadataPanel node={selectedNode} />
+          </Box>
         )}
       </Stack>
     </Stack>
