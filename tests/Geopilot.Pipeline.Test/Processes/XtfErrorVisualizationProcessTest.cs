@@ -56,7 +56,7 @@ public class XtfErrorVisualizationProcessTest
         Assert.IsTrue(featureIds.All(id => !string.IsNullOrEmpty(id)), "every feature has an errorId");
 
         // Tree: the backend ships a flat item list plus the grouping keys; the frontend builds the hierarchy.
-        CollectionAssert.AreEqual(new[] { "Model", "Topic", "Class" }, config.Tree.GroupBy.ToList(), "default grouping is model, topic, class");
+        Assert.IsEmpty(config.Tree.GroupBy, "no grouping (flat list) unless groupBy is configured");
         Assert.IsEmpty(config.Tree.FilterBy, "no filters are offered unless filterBy is configured");
         Assert.IsNotEmpty(config.Tree.Items);
 
