@@ -1,20 +1,6 @@
-import { KeyboardEvent, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
-import {
-  Checkbox,
-  FormControl,
-  InputLabel,
-  ListItemText,
-  ListSubheader,
-  MenuItem,
-  Select,
-  SelectChangeEvent,
-  TextField,
-} from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Autocomplete, Chip, TextField } from "@mui/material";
 import { MetadataAttribute } from "./treeNode";
-
-/** A metadata dropdown shows an inline option search once it holds more than this many distinct values. */
-const OPTION_SEARCH_THRESHOLD = 5;
 
 interface MetadataFilterProps {
   attribute: MetadataAttribute;
@@ -22,59 +8,37 @@ interface MetadataFilterProps {
   onChange: (key: string, selected: string[]) => void;
 }
 
-export const MetadataFilter = ({ attribute, selected, onChange }: MetadataFilterProps) => {
-  const { t } = useTranslation();
-  const [optionSearch, setOptionSearch] = useState("");
-  const labelId = `metadata-filter-${attribute.key}`;
-  const showOptionSearch = attribute.options.length > OPTION_SEARCH_THRESHOLD;
-
-  const visibleOptions = useMemo(() => {
-    const query = optionSearch.trim().toLowerCase();
-    if (!query) return attribute.options;
-    return attribute.options.filter(option => option.toLowerCase().includes(query));
-  }, [attribute.options, optionSearch]);
-
-  const handleChange = (event: SelectChangeEvent<string[]>) => {
-    const { value } = event.target;
-    onChange(attribute.key, typeof value === "string" ? value.split(",") : value);
-  };
-
-  return (
-    <FormControl size="small" sx={{ minWidth: 200, maxWidth: 280 }}>
-      <InputLabel id={labelId}>{attribute.key}</InputLabel>
-      <Select
-        labelId={labelId}
-        multiple
-        value={selected}
-        label={attribute.key}
-        onChange={handleChange}
-        onClose={() => setOptionSearch("")}
-        renderValue={values => values.join(", ")}
-        MenuProps={{ autoFocus: false, PaperProps: { sx: { maxHeight: 360 } } }}
-        data-cy={`metadata-filter-${attribute.key}`}>
-        {showOptionSearch && (
-          <ListSubheader sx={{ p: 1, lineHeight: "normal" }}>
-            <TextField
-              size="small"
-              fullWidth
-              autoFocus
-              value={optionSearch}
-              placeholder={t("treeVisualizationFilterSearch")}
-              onChange={event => setOptionSearch(event.target.value)}
-              onKeyDown={(event: KeyboardEvent) => {
-                // Keep keystrokes inside the search field instead of triggering the Select type ahead.
-                if (event.key !== "Escape") event.stopPropagation();
-              }}
-            />
-          </ListSubheader>
-        )}
-        {visibleOptions.map(option => (
-          <MenuItem key={option} value={option}>
-            <Checkbox size="small" checked={selected.includes(option)} />
-            <ListItemText primary={option} />
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
-};
+/**
+ * A metadata filter: a multi-select autocomplete matching the app's form autocomplete styling. The
+ * built-in type-ahead and clear control replace a bespoke option search and clear button.
+ */
+export const MetadataFilter = ({ attribute, selected, onChange }: MetadataFilterProps) => (
+  <Autocomplete
+    multiple
+    size="small"
+    disableCloseOnSelect
+    options={attribute.options}
+    value={selected}
+    onChange={(_, value) => onChange(attribute.key, value)}
+    popupIcon={<ExpandMoreIcon />}
+    // Keep the control a single, fixed-height row that never changes with focus.
+    sx={{
+      width: "100%",
+      "& .MuiAutocomplete-inputRoot": { flexWrap: "nowrap", overflow: "hidden" },
+    }}
+    // Always collapse to "first chip + N", even while focused, so the field never grows or jumps while
+    // selecting. MUI's built-in limitTags only collapses on blur, which caused the expand/collapse jump.
+    renderTags={(value, getTagProps) => {
+      const [first, ...rest] = value;
+      const { key, ...firstProps } = getTagProps({ index: 0 });
+      return (
+        <>
+          <Chip key={key} size="small" label={first} sx={{ maxWidth: 180 }} {...firstProps} />
+          {rest.length > 0 && <Chip key="more" size="small" label={`+${rest.length}`} />}
+        </>
+      );
+    }}
+    renderInput={params => <TextField {...params} label={attribute.key} />}
+    data-cy={`metadata-filter-${attribute.key}`}
+  />
+);

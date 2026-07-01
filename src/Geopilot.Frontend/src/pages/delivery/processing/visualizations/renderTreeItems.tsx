@@ -51,9 +51,11 @@ const renderIcon = (node: TreeNode): ReactNode => {
 };
 
 const renderLabel = (node: TreeNode): ReactNode => (
-  <Stack direction="row" sx={{ alignItems: "flex-start", gap: 0.5, py: 0.25 }}>
+  <Stack direction="row" sx={{ alignItems: "flex-start", gap: 0.5, py: 0.25, minWidth: 0 }}>
     {renderIcon(node)}
-    <Typography variant="body2">{node.message}</Typography>
+    <Typography variant="body2" sx={{ wordBreak: "break-word", minWidth: 0 }}>
+      {node.message}
+    </Typography>
     {node.count > 0 && (
       <Typography variant="body2" color="text.secondary">
         ({node.count})
