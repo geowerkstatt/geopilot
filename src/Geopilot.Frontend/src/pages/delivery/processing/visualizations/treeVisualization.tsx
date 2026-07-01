@@ -84,10 +84,13 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
     setExpandedItems(prev => Array.from(new Set([...prev, ...ancestorIds(selectedId)])));
   }, [selectedId]);
 
-  // While a filter is active every match is shown expanded; otherwise expansion is user-controlled.
-  const expanded = filterActive ? allItemIds : expandedItems;
+  // Applying or changing a filter reveals its matches by expanding all nodes. Expansion then stays
+  // user-controlled, so the tree can still be collapsed and expanded while a filter is active.
+  useEffect(() => {
+    if (filterActive) setExpandedItems(allItemIds);
+  }, [filterActive, allItemIds]);
 
-  // Toggle between fully expanded and fully collapsed. Disabled while a filter forces everything open.
+  // Toggle between fully expanded and fully collapsed.
   // Clears the selection so the metadata box does not linger at a stale position when its row is collapsed away.
   const allExpanded = expandableIds.length > 0 && expandableIds.every(id => expandedItems.includes(id));
   const toggleExpandAll = () => {
@@ -127,13 +130,13 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
     const panelHeight = panelRef.current?.offsetHeight ?? 0;
     const maxTop = Math.max(0, wrapper.offsetHeight - panelHeight);
     setPanelTop(Math.min(Math.max(0, offset), maxTop));
-  }, [sideBySide, selectedId, expanded, items, containerWidth]);
+  }, [sideBySide, selectedId, expandedItems, items, containerWidth]);
 
   // Scroll the selected node into view once it (and its now-expanded ancestors) are rendered.
   useEffect(() => {
     if (!selectedId) return;
     treeWrapperRef.current?.querySelector<HTMLElement>(".Mui-selected")?.scrollIntoView({ block: "nearest" });
-  }, [selectedId, expanded]);
+  }, [selectedId, expandedItems]);
 
   if (nodes.length === 0 && !filterActive) return null;
 
@@ -148,7 +151,7 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
               <IconButton
                 size="small"
                 onClick={toggleExpandAll}
-                disabled={filterActive || expandableIds.length === 0}
+                disabled={expandableIds.length === 0}
                 data-cy="tree-expand-toggle"
                 aria-label={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
                 {allExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
@@ -176,7 +179,7 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
               <SimpleTreeView
                 selectedItems={selectedId}
                 onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
-                expandedItems={expanded}
+                expandedItems={expandedItems}
                 onExpandedItemsChange={(_: SyntheticEvent, itemIds: string[]) => setExpandedItems(itemIds)}>
                 {items}
               </SimpleTreeView>
