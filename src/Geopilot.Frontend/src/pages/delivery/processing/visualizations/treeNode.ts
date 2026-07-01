@@ -30,8 +30,8 @@ export interface TreeNode {
   message: string;
   icon?: string;
   color?: string;
-  /** Number of direct children; 0 for a leaf. Shown next to group labels. */
-  childCount: number;
+  /** Number of contained leaf nodes (errors) in this node's subtree; 0 for a leaf. Shown next to group labels. */
+  count: number;
   /** Resolved (single-language) metadata shown when the node is selected. Set on leaves. */
   metadata?: Record<string, string>;
   /** Child nodes nested under this node. */
@@ -65,7 +65,7 @@ const toLeaf = (item: TreeItem, language: string): TreeNode => ({
   message: item.label,
   icon: item.icon,
   color: item.color,
-  childCount: 0,
+  count: 0,
   metadata: resolveMetadata(item.metadata, language),
   errorId: item.id,
 });
@@ -87,7 +87,7 @@ const makeGroup = (message: string, children: TreeNode[]): TreeNode => {
     message,
     color,
     icon: color ? ICON_BY_COLOR[color] : undefined,
-    childCount: children.length,
+    count: children.reduce((sum, child) => sum + leafCount(child), 0),
     values: children,
   };
 };

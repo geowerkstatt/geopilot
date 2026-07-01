@@ -54,9 +54,9 @@ const renderLabel = (node: TreeNode): ReactNode => (
   <Stack direction="row" sx={{ alignItems: "flex-start", gap: 0.5, py: 0.25 }}>
     {renderIcon(node)}
     <Typography variant="body2">{node.message}</Typography>
-    {node.childCount > 0 && (
+    {node.count > 0 && (
       <Typography variant="body2" color="text.secondary">
-        ({node.childCount})
+        ({node.count})
       </Typography>
     )}
   </Stack>
