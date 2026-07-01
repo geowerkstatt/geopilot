@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import { Badge, Box, Button, IconButton, Stack, TextField, Tooltip } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import { Badge, Box, Button, IconButton, InputAdornment, Stack, TextField, Tooltip } from "@mui/material";
 import { MetadataFilter } from "./metadataFilter";
 import { MetadataAttribute, MetadataFilters } from "./treeNode";
 
@@ -27,27 +28,49 @@ export const FilterBar = ({
 
   const activeFilterCount = Object.values(metadataFilters).filter(values => values.length > 0).length;
   const hasActiveFilters = messageQuery.trim().length > 0 || activeFilterCount > 0;
+  // Emphasize the toggle (filled) while the filter panel is open or filters are in effect.
+  const toggleActive = showFilters || activeFilterCount > 0;
 
   return (
     <Stack sx={{ width: "100%", gap: 1.5 }}>
-      <Stack direction="row" sx={{ gap: 1, alignItems: "center" }}>
+      <Stack direction="row" sx={{ gap: 1, alignItems: "stretch" }}>
         <TextField
           size="small"
           variant="outlined"
-          label={t("treeVisualizationMessageSearch")}
+          placeholder={t("treeVisualizationMessageSearch")}
           sx={{ flex: 1 }}
           value={messageQuery}
           onChange={event => onMessageQueryChange(event.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+              </InputAdornment>
+            ),
+          }}
+          inputProps={{ "aria-label": t("treeVisualizationMessageSearch") }}
           data-cy="tree-message-search"
         />
         {attributes.length > 0 && (
           <Tooltip title={t("treeFilterToggle")}>
-            <Badge badgeContent={activeFilterCount} color="primary">
+            <Badge badgeContent={activeFilterCount} color="primary" sx={{ display: "flex", alignItems: "stretch" }}>
               <IconButton
                 onClick={() => setShowFilters(show => !show)}
-                color={showFilters ? "primary" : "default"}
                 aria-label={t("treeFilterToggle")}
-                data-cy="tree-filter-toggle">
+                data-cy="tree-filter-toggle"
+                sx={{
+                  aspectRatio: "1 / 1",
+                  height: "auto",
+                  border: 1,
+                  borderColor: toggleActive ? "primary.main" : "divider",
+                  borderRadius: 1,
+                  color: toggleActive ? "primary.contrastText" : "primary.main",
+                  backgroundColor: toggleActive ? "primary.main" : "transparent",
+                  "&:hover": { backgroundColor: toggleActive ? "primary.dark" : "action.hover" },
+                  "&:focus, &:focus-visible, &:active": {
+                    backgroundColor: toggleActive ? "primary.main" : "transparent",
+                  },
+                }}>
                 <FilterAltIcon />
               </IconButton>
             </Badge>
