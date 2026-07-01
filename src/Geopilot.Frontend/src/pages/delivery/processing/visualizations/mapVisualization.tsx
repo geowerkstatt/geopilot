@@ -420,9 +420,9 @@ export const MapVisualization = ({
           borderRadius: "4px",
           overflow: "hidden",
           border: theme => `1px solid ${theme.palette.primary.light}`,
-          // Move the default zoom (+/-) control to the top-right; the layer switcher and reset-viewport
-          // buttons occupy the top-left corner.
-          "& .ol-zoom": { top: "8px", left: "auto", right: "8px" },
+          // Controls stack at the top-right (fullscreen, zoom, reset); the top slot is left for the fullscreen
+          // button. The layer switcher sits at the bottom-right.
+          "& .ol-zoom": { top: "56px", left: "auto", right: "8px" },
         }}
       />
       <LayerSwitcher map={map} />
@@ -433,9 +433,9 @@ export const MapVisualization = ({
             onClick={resetViewport}
             sx={{
               position: "absolute",
-              // Below the layer switcher button (40px tall at top 8px) with an 8px gap.
-              top: "56px",
-              left: "8px",
+              // Bottom of the top-right control stack: fullscreen (top), zoom, then reset.
+              top: "116px",
+              right: "8px",
               backgroundColor: "background.paper",
               color: "text.secondary",
               boxShadow: 1,

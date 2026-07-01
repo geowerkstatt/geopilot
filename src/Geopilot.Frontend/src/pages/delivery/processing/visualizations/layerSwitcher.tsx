@@ -451,12 +451,12 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
       ref={containerRef}
       sx={{
         position: "absolute",
-        top: 8,
-        left: 8,
+        bottom: 8,
+        right: 8,
         zIndex: 10,
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-start",
+        alignItems: "flex-end",
         gap: 0.5,
       }}>
       {!open && (
