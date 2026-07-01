@@ -1,5 +1,6 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Autocomplete, Chip, TextField } from "@mui/material";
+import { Autocomplete, TextField } from "@mui/material";
+import { OverflowChips } from "./overflowChips";
 import { MetadataAttribute } from "./treeNode";
 
 interface MetadataFilterProps {
@@ -26,18 +27,9 @@ export const MetadataFilter = ({ attribute, selected, onChange }: MetadataFilter
       width: "100%",
       "& .MuiAutocomplete-inputRoot": { flexWrap: "nowrap", overflow: "hidden" },
     }}
-    // Always collapse to "first chip + N", even while focused, so the field never grows or jumps while
-    // selecting. MUI's built-in limitTags only collapses on blur, which caused the expand/collapse jump.
-    renderTags={(value, getTagProps) => {
-      const [first, ...rest] = value;
-      const { key, ...firstProps } = getTagProps({ index: 0 });
-      return (
-        <>
-          <Chip key={key} size="small" label={first} sx={{ maxWidth: 180 }} {...firstProps} />
-          {rest.length > 0 && <Chip key="more" size="small" label={`+${rest.length}`} />}
-        </>
-      );
-    }}
+    // Show as many chips as fit on the row and collapse only the overflow into a "+N" chip (width-measured),
+    // independent of focus so the field never grows or jumps while selecting.
+    renderTags={(value, getTagProps) => <OverflowChips value={value} getTagProps={getTagProps} />}
     renderInput={params => <TextField {...params} label={attribute.key} />}
     data-cy={`metadata-filter-${attribute.key}`}
   />
