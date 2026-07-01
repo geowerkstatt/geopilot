@@ -139,6 +139,8 @@
   "termsOfUseAcceptance": "I accept the <termsLink>terms of use</termsLink>.",
   "treeCollapseAll": "Collapse all",
   "treeExpandAll": "Expand all",
+  "treeFilterReset": "Reset filter",
+  "treeFilterToggle": "Toggle filters",
   "treeVisualizationFilterSearch": "Search options",
   "treeVisualizationMessageSearch": "Search messages",
   "treeVisualizationMetadataTitle": "Details",

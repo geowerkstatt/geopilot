@@ -139,6 +139,8 @@
   "termsOfUseAcceptance": "Accetto i <termsLink>Termini di utilizzo</termsLink>.",
   "treeCollapseAll": "Comprimi tutto",
   "treeExpandAll": "Espandi tutto",
+  "treeFilterReset": "Reimposta filtri",
+  "treeFilterToggle": "Mostra/nascondi filtri",
   "treeVisualizationFilterSearch": "Cerca opzioni",
   "treeVisualizationMessageSearch": "Cerca nei messaggi",
   "treeVisualizationMetadataTitle": "Dettagli",

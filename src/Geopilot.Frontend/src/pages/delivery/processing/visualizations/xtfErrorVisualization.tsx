@@ -70,6 +70,10 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
 
   const handleMetadataFilterChange = (key: string, selected: string[]) =>
     setMetadataFilters(current => ({ ...current, [key]: selected }));
+  const handleClearFilters = () => {
+    setMessageQuery("");
+    setMetadataFilters({});
+  };
   const handleSelectFeature = (errorId: string) => setSelectedNodeId(nodeIdByErrorId.get(errorId) ?? null);
 
   return (
@@ -81,6 +85,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
           onMessageQueryChange={setMessageQuery}
           metadataFilters={metadataFilters}
           onMetadataFilterChange={handleMetadataFilterChange}
+          onClearFilters={handleClearFilters}
         />
       )}
       {config.map && (

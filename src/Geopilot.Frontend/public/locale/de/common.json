@@ -139,6 +139,8 @@
   "termsOfUseAcceptance": "Ich akzeptiere die <termsLink>Nutzungsbestimmungen</termsLink>.",
   "treeCollapseAll": "Alle zuklappen",
   "treeExpandAll": "Alle aufklappen",
+  "treeFilterReset": "Filter zurücksetzen",
+  "treeFilterToggle": "Filter ein-/ausblenden",
   "treeVisualizationFilterSearch": "Optionen suchen",
   "treeVisualizationMessageSearch": "Meldungen durchsuchen",
   "treeVisualizationMetadataTitle": "Details",
