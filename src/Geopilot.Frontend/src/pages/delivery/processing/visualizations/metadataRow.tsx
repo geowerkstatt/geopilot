@@ -29,7 +29,11 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
   };
 
   return (
-    <TableRow sx={{ "&:last-child td": { border: 0 } }}>
+    <TableRow
+      sx={{
+        "&:last-child td": { border: 0 },
+        "&:hover .metadata-copy-button, &:focus-within .metadata-copy-button": { opacity: 1 },
+      }}>
       <TableCell sx={{ width: "35%", verticalAlign: "top", color: "text.secondary", px: 0 }}>
         <Typography variant="body2">{label}</Typography>
       </TableCell>
@@ -43,7 +47,13 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
             color="primary"
             onClick={copyValue}
             data-cy="metadata-copy-button"
-            sx={{ mt: "-5px" }}>
+            className="metadata-copy-button"
+            sx={{
+              mt: "-5px",
+              opacity: copied ? 1 : 0,
+              transition: "opacity 0.15s",
+              "&:focus-visible": { opacity: 1 },
+            }}>
             {copied ? <CheckIcon fontSize="small" color="success" /> : <ContentCopyIcon fontSize="small" />}
           </IconButton>
         </Tooltip>
