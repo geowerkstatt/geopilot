@@ -57,7 +57,7 @@ public class XtfErrorVisualizationProcessTest
 
         // Tree: the backend ships a flat item list plus the grouping keys; the frontend builds the hierarchy.
         CollectionAssert.AreEqual(new[] { "Model", "Topic", "Class" }, config.Tree.GroupBy.ToList(), "default grouping is model, topic, class");
-        CollectionAssert.AreEqual(new[] { "Model", "Topic", "Class", "Error type" }, config.Tree.FilterBy.ToList(), "default filters are model, topic, class, error type");
+        Assert.IsEmpty(config.Tree.FilterBy, "no filters are offered unless filterBy is configured");
         Assert.IsNotEmpty(config.Tree.Items);
 
         // Each feature's errorId also appears on a flat tree item (cross-select correlation).

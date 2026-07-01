@@ -25,7 +25,6 @@ internal class XtfErrorVisualizationProcess
     };
 
     private static readonly string[] DefaultGroupBy = ["Model", "Topic", "Class"];
-    private static readonly string[] DefaultFilterBy = ["Model", "Topic", "Class", "Error type"];
 
     private readonly bool includeMap;
     private readonly bool includeTree;
@@ -39,7 +38,7 @@ internal class XtfErrorVisualizationProcess
     /// <param name="include">Views to produce ("map", "tree"). Null or empty means both.</param>
     /// <param name="baseMapWmtsCapabilitiesUrl">Optional override for the base map WMTS capabilities URL.</param>
     /// <param name="groupBy">Metadata keys the frontend groups the tree items by. Null or empty means model, topic, class.</param>
-    /// <param name="filterBy">Metadata keys the frontend offers as filters, in display order. Null or empty means model, topic, class, error type.</param>
+    /// <param name="filterBy">Metadata keys the frontend offers as filters, in display order. Null means no filters are offered.</param>
     public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<string>? groupBy = null, IReadOnlyList<string>? filterBy = null)
     {
         var selected = include is { Count: > 0 }
@@ -51,7 +50,7 @@ internal class XtfErrorVisualizationProcess
             ? MapVisualizationBuilder.DefaultBaseMapWmtsCapabilitiesUrl
             : baseMapWmtsCapabilitiesUrl;
         this.groupBy = groupBy is { Count: > 0 } ? groupBy : DefaultGroupBy;
-        this.filterBy = filterBy is { Count: > 0 } ? filterBy : DefaultFilterBy;
+        this.filterBy = filterBy ?? [];
     }
 
     /// <summary>

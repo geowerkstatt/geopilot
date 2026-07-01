@@ -166,13 +166,15 @@ export const filterItems = (
 /**
  * Collects the filterable metadata attributes together with their distinct (resolved) values. Only the keys
  * listed in {@link filterBy} are offered, in that display order; keys absent from the items are skipped. An
- * empty {@link filterBy} falls back to every metadata key in first-seen order.
+ * empty {@link filterBy} offers no filters.
  */
 export const collectMetadataAttributes = (
   items: TreeItem[],
   localize: Localize,
   filterBy: string[],
 ): MetadataAttribute[] => {
+  if (filterBy.length === 0) return [];
+
   const valuesByKey = new Map<string, Set<string>>();
 
   for (const item of items) {
@@ -183,12 +185,12 @@ export const collectMetadataAttributes = (
     }
   }
 
-  const keys = filterBy.length > 0 ? filterBy.filter(key => valuesByKey.has(key)) : Array.from(valuesByKey.keys());
-
-  return keys.map(key => ({
-    key,
-    options: Array.from(valuesByKey.get(key) ?? []).sort((a, b) => a.localeCompare(b)),
-  }));
+  return filterBy
+    .filter(key => valuesByKey.has(key))
+    .map(key => ({
+      key,
+      options: Array.from(valuesByKey.get(key) ?? []).sort((a, b) => a.localeCompare(b)),
+    }));
 };
 
 export const nodeId = (prefix: string, index: number): string => `${prefix}-${index}`;
