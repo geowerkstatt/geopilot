@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import { Badge, Button, IconButton, Stack, TextField, Tooltip } from "@mui/material";
+import { Badge, Box, Button, IconButton, Stack, TextField, Tooltip } from "@mui/material";
 import { MetadataFilter } from "./metadataFilter";
 import { MetadataAttribute, MetadataFilters } from "./treeNode";
 
@@ -55,7 +55,7 @@ export const FilterBar = ({
         )}
       </Stack>
       {showFilters && attributes.length > 0 && (
-        <Stack direction="row" sx={{ width: "100%", gap: 1.5, alignItems: "center", flexWrap: "wrap" }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 1.5, width: "100%" }}>
           {attributes.map(attribute => (
             <MetadataFilter
               key={attribute.key}
@@ -64,7 +64,7 @@ export const FilterBar = ({
               onChange={onMetadataFilterChange}
             />
           ))}
-        </Stack>
+        </Box>
       )}
       <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
         <Button
