@@ -137,6 +137,8 @@
   "stepStateRunning": "En cours",
   "stepStateSkipped": "Ignoré",
   "termsOfUseAcceptance": "J'accepte les <termsLink>conditions d'utilisation</termsLink>.",
+  "treeCollapseAll": "Tout replier",
+  "treeExpandAll": "Tout déplier",
   "treeVisualizationFilterSearch": "Rechercher des options",
   "treeVisualizationMessageSearch": "Rechercher dans les messages",
   "treeVisualizationMetadataTitle": "Détails",

@@ -222,6 +222,17 @@ export const collectItemIds = (nodes: TreeNode[], target: string[], prefix = "n"
   });
 };
 
+/** Collects the structural ids of the nodes that have children, i.e. the ones that can be expanded. */
+export const collectExpandableIds = (nodes: TreeNode[], target: string[], prefix = "n"): void => {
+  nodes.forEach((node, index) => {
+    if (node.values && node.values.length > 0) {
+      const id = nodeId(prefix, index);
+      target.push(id);
+      collectExpandableIds(node.values, target, id);
+    }
+  });
+};
+
 /**
  * Walks the tree (with the same structural ids as indexNodes/renderTreeItems) and returns the bidirectional
  * correlation between an error's id and its structural tree-node id, plus, per node id, the set of error ids

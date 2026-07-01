@@ -137,6 +137,8 @@
   "stepStateRunning": "Running",
   "stepStateSkipped": "Skipped",
   "termsOfUseAcceptance": "I accept the <termsLink>terms of use</termsLink>.",
+  "treeCollapseAll": "Collapse all",
+  "treeExpandAll": "Expand all",
   "treeVisualizationFilterSearch": "Search options",
   "treeVisualizationMessageSearch": "Search messages",
   "treeVisualizationMetadataTitle": "Details",

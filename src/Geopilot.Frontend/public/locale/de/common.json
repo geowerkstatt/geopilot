@@ -137,6 +137,8 @@
   "stepStateRunning": "Wird ausgeführt",
   "stepStateSkipped": "Übersprungen",
   "termsOfUseAcceptance": "Ich akzeptiere die <termsLink>Nutzungsbestimmungen</termsLink>.",
+  "treeCollapseAll": "Alle zuklappen",
+  "treeExpandAll": "Alle aufklappen",
   "treeVisualizationFilterSearch": "Optionen suchen",
   "treeVisualizationMessageSearch": "Meldungen durchsuchen",
   "treeVisualizationMetadataTitle": "Details",

@@ -1,10 +1,12 @@
 import { SyntheticEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Stack, Typography } from "@mui/material";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
+import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
 import { MetadataPanel } from "./metadataPanel";
 import { renderTreeItems } from "./renderTreeItems";
-import { collectItemIds, indexNodes, TreeNode } from "./treeNode";
+import { collectExpandableIds, collectItemIds, indexNodes, TreeNode } from "./treeNode";
 
 interface TreeVisualizationProps {
   /** The nodes to render (already filtered by the coordinator). */
@@ -63,6 +65,12 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
     return ids;
   }, [nodes]);
 
+  const expandableIds = useMemo(() => {
+    const ids: string[] = [];
+    collectExpandableIds(nodes, ids);
+    return ids;
+  }, [nodes]);
+
   const nodesById = useMemo(() => {
     const map = new Map<string, TreeNode>();
     indexNodes(nodes, map);
@@ -78,6 +86,14 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
 
   // While a filter is active every match is shown expanded; otherwise expansion is user-controlled.
   const expanded = filterActive ? allItemIds : expandedItems;
+
+  // Toggle between fully expanded and fully collapsed. Disabled while a filter forces everything open.
+  // Clears the selection so the metadata box does not linger at a stale position when its row is collapsed away.
+  const allExpanded = expandableIds.length > 0 && expandableIds.every(id => expandedItems.includes(id));
+  const toggleExpandAll = () => {
+    setExpandedItems(allExpanded ? [] : expandableIds);
+    onSelect(null);
+  };
 
   const selectedNode = selectedId ? (nodesById.get(selectedId) ?? null) : null;
   const hasMetadata = !!selectedNode?.metadata && Object.keys(selectedNode.metadata).length > 0;
@@ -122,7 +138,23 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
   if (nodes.length === 0 && !filterActive) return null;
 
   return (
-    <Stack ref={measureContainer} sx={{ width: "100%" }}>
+    <Stack ref={measureContainer} sx={{ width: "100%", position: "relative" }}>
+      {nodes.length > 0 && (
+        <Box sx={{ position: "absolute", top: 0, right: 0, zIndex: 1 }}>
+          <Tooltip title={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={toggleExpandAll}
+                disabled={filterActive || expandableIds.length === 0}
+                data-cy="tree-expand-toggle"
+                aria-label={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
+                {allExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
+      )}
       <Stack direction="row" sx={{ alignItems: "flex-start" }}>
         {nodes.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
