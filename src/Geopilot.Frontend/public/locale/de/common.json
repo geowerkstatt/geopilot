@@ -143,6 +143,8 @@
   "treeErrorCount_one": "{{count}} Fehler gefunden",
   "treeErrorCount_other": "{{count}} Fehler gefunden",
   "treeExpandAll": "Alle aufklappen",
+  "treeFilterReset": "Filter zurücksetzen",
+  "treeFilterToggle": "Filter ein-/ausblenden",
   "treeVisualizationFilterSearch": "Optionen suchen",
   "treeVisualizationMessageSearch": "Meldungen durchsuchen",
   "treeVisualizationMetadataTitle": "Details",

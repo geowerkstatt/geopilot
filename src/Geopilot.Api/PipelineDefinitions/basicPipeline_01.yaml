@@ -22,6 +22,11 @@ processes:
         - Topic
         - Class
         - Error type
+      filterBy:
+        - Model
+        - Topic
+        - Class
+        - Error type
 pipelines:
   - id: ili_validation
     display_name:

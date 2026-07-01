@@ -33,7 +33,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
 
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
-  const attributes = useMemo(() => collectMetadataAttributes(items, localize), [items, localize]);
+  const filterBy = useMemo(() => config.tree?.filterBy ?? [], [config.tree]);
+  const attributes = useMemo(() => collectMetadataAttributes(items, localize, filterBy), [items, localize, filterBy]);
   const hasActiveFilters =
     messageQuery.trim().length > 0 || Object.values(metadataFilters).some(values => values.length > 0);
   const filteredItems = useMemo(
@@ -64,6 +65,10 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
 
   const handleMetadataFilterChange = (key: string, selected: string[]) =>
     setMetadataFilters(current => ({ ...current, [key]: selected }));
+  const handleClearFilters = () => {
+    setMessageQuery("");
+    setMetadataFilters({});
+  };
   const handleSelectFeature = (errorId: string) => setSelectedNodeId(nodeIdByErrorId.get(errorId) ?? null);
 
   return (
@@ -75,6 +80,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
           onMessageQueryChange={setMessageQuery}
           metadataFilters={metadataFilters}
           onMetadataFilterChange={handleMetadataFilterChange}
+          onClearFilters={handleClearFilters}
         />
       )}
       {config.map && (
