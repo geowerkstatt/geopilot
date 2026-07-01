@@ -41,6 +41,7 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
   const [panelTop, setPanelTop] = useState(0);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const treeWrapperRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const sideBySide = containerWidth === 0 || containerWidth >= SIDE_BY_SIDE_THRESHOLD;
 
@@ -92,7 +93,9 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
     return renderTreeItems(nodes);
   }, [nodes, sideBySide, hasMetadata, selectedId, selectedNode]);
 
-  // Align the box's top with the selected row; recompute when layout-affecting state changes.
+  // Align the box's top with the selected row, but keep it within the tree so a selection far down does not
+  // push the box past the tree and grow the accordion: clamp to the tree's bottom edge. Recompute when
+  // layout-affecting state changes.
   useLayoutEffect(() => {
     if (!sideBySide || !selectedId) {
       setPanelTop(0);
@@ -105,7 +108,9 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
       return;
     }
     const offset = selected.getBoundingClientRect().top - wrapper.getBoundingClientRect().top;
-    setPanelTop(Math.max(0, offset));
+    const panelHeight = panelRef.current?.offsetHeight ?? 0;
+    const maxTop = Math.max(0, wrapper.offsetHeight - panelHeight);
+    setPanelTop(Math.min(Math.max(0, offset), maxTop));
   }, [sideBySide, selectedId, expanded, items, containerWidth]);
 
   // Scroll the selected node into view once it (and its now-expanded ancestors) are rendered.
@@ -135,7 +140,7 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
               </SimpleTreeView>
             </Box>
             {sideBySide && hasMetadata && (
-              <Box sx={{ mt: `${panelTop}px`, flexShrink: 0, transition: "margin-top 0.15s ease" }}>
+              <Box ref={panelRef} sx={{ mt: `${panelTop}px`, flexShrink: 0, transition: "margin-top 0.15s ease" }}>
                 <MetadataPanel node={selectedNode} />
               </Box>
             )}
