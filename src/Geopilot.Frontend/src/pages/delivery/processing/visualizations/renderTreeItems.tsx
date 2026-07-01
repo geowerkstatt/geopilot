@@ -19,7 +19,10 @@ const MUI_ICON_COLORS: IconColor[] = [
   "warning",
 ];
 
-// Crisp SVG icons for the ligatures the backend emits; the Material Icons webfont is not loaded.
+// Crisp SVG icons for the ligatures the backend emits. The Material Icons webfont is served from
+// fonts.gstatic.com, which the Content-Security-Policy blocks (no font-src, so it falls back to
+// default-src 'self'); an <Icon> font ligature would then render as its literal text. Bundled SVG
+// components need no webfont.
 const SVG_ICONS: Record<string, ComponentType<SvgIconProps>> = {
   error_outline: ErrorOutlineIcon,
   warning_amber: WarningAmberIcon,
