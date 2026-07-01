@@ -167,8 +167,6 @@ export interface TreeVisualizationConfig {
   items: TreeItem[];
   /** The metadata keys to group by, outermost first (e.g. ["Model", "Topic", "Class"]). */
   groupBy: string[];
-  /** The metadata keys offered as filters, in display order (e.g. ["Model", "Topic", "Class", "Error type"]). */
-  filterBy: string[];
 }
 
 interface StepVisualization {

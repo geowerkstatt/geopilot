@@ -18,6 +18,8 @@ import { TreeVisualization } from "./treeVisualization";
 export interface XtfErrorVisualizationConfig {
   map?: MapVisualizationConfig;
   tree?: TreeVisualizationConfig;
+  /** Metadata keys offered as filters, in display order; the filter spans map + tree. Absent without a tree. */
+  filterBy?: string[];
 }
 
 interface XtfErrorVisualizationProps {
@@ -33,7 +35,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
 
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
-  const filterBy = useMemo(() => config.tree?.filterBy ?? [], [config.tree]);
+  const filterBy = useMemo(() => config.filterBy ?? [], [config.filterBy]);
   const attributes = useMemo(() => collectMetadataAttributes(items, localize, filterBy), [items, localize, filterBy]);
   const hasActiveFilters =
     messageQuery.trim().length > 0 || Object.values(metadataFilters).some(values => values.length > 0);

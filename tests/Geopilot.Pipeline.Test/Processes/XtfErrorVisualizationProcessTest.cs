@@ -55,9 +55,10 @@ public class XtfErrorVisualizationProcessTest
         var featureIds = features.Select(f => f.ErrorId).ToList();
         Assert.IsTrue(featureIds.All(id => !string.IsNullOrEmpty(id)), "every feature has an errorId");
 
-        // Tree: the backend ships a flat item list plus the grouping keys; the frontend builds the hierarchy.
+        // Tree carries the grouping keys; the composite root carries the filter keys (the filter spans map + tree).
         Assert.IsEmpty(config.Tree.GroupBy, "no grouping (flat list) unless groupBy is configured");
-        Assert.IsEmpty(config.Tree.FilterBy, "no filters are offered unless filterBy is configured");
+        Assert.IsNotNull(config.FilterBy);
+        Assert.IsEmpty(config.FilterBy, "no filters are offered unless filterBy is configured");
         Assert.IsNotEmpty(config.Tree.Items);
 
         // Each feature's errorId also appears on a flat tree item (cross-select correlation).
@@ -131,6 +132,7 @@ public class XtfErrorVisualizationProcessTest
         var visualization = processResult["visualization"] as Visualization<XtfErrorVisualizationConfig>;
         Assert.IsNotNull(visualization);
         Assert.IsNotNull(visualization.Data.Tree);
-        CollectionAssert.AreEqual(new[] { "Class", "Error type" }, visualization.Data.Tree.FilterBy.ToList());
+        Assert.IsNotNull(visualization.Data.FilterBy);
+        CollectionAssert.AreEqual(new[] { "Class", "Error type" }, visualization.Data.FilterBy.ToList());
     }
 }

@@ -67,8 +67,9 @@ internal class XtfErrorVisualizationProcess
         {
             Map = includeMap ? MapVisualizationBuilder.Build(errors, baseMapWmtsCapabilitiesUrl) : null,
             Tree = includeTree
-                ? new TreeVisualizationConfig { Items = LogErrorToTreeItemMapper.Map(errors), GroupBy = groupBy, FilterBy = filterBy }
+                ? new TreeVisualizationConfig { Items = LogErrorToTreeItemMapper.Map(errors), GroupBy = groupBy }
                 : null,
+            FilterBy = includeTree ? filterBy : null,
         };
 
         return Task.FromResult(new Dictionary<string, object?>
