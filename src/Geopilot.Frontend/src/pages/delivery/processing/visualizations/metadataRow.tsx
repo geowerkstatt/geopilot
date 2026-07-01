@@ -32,7 +32,7 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
     <TableRow
       sx={{
         "&:last-child td": { border: 0 },
-        "&:hover .metadata-copy-button, &:focus-within .metadata-copy-button": { opacity: 1 },
+        "&:hover .metadata-copy-button": { opacity: 1 },
       }}>
       <TableCell sx={{ width: "35%", verticalAlign: "top", color: "text.secondary", px: 0 }}>
         <Typography variant="body2">{label}</Typography>
