@@ -62,13 +62,14 @@ export const FilterBar = ({
                   aspectRatio: "1 / 1",
                   height: "auto",
                   border: 1,
-                  borderColor: toggleActive ? "primary.main" : "divider",
+                  borderColor: toggleActive ? "primary.light" : "divider",
                   borderRadius: 1,
-                  color: toggleActive ? "primary.contrastText" : "primary.main",
-                  backgroundColor: toggleActive ? "primary.main" : "transparent",
-                  "&:hover": { backgroundColor: toggleActive ? "primary.dark" : "action.hover" },
+                  // Keep the icon dark on a light selected fill (per design) instead of inverting to white.
+                  color: "primary.main",
+                  backgroundColor: toggleActive ? "primary.selected" : "transparent",
+                  "&:hover": { backgroundColor: toggleActive ? "primary.selected" : "primary.hover" },
                   "&:focus, &:focus-visible, &:active": {
-                    backgroundColor: toggleActive ? "primary.main" : "transparent",
+                    backgroundColor: toggleActive ? "primary.selected" : "transparent",
                   },
                 }}>
                 <FilterAltIcon />
