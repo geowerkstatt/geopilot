@@ -1,6 +1,8 @@
 import { MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import i18next from "i18next";
@@ -225,6 +227,10 @@ interface MapVisualizationProps {
   onSelectFeature: (errorId: string) => void;
   /** Whether to show the info popup on feature click. Suppressed when the tree below already shows the details. */
   showPopup: boolean;
+  /** Whether the visualization is in fullscreen; the map fills its container then. */
+  isFullscreen: boolean;
+  /** Toggles the fullscreen mode of the composite (map + tree). */
+  onToggleFullscreen: () => void;
 }
 
 export const MapVisualization = ({
@@ -233,6 +239,8 @@ export const MapVisualization = ({
   highlightedErrorIds,
   onSelectFeature,
   showPopup,
+  isFullscreen,
+  onToggleFullscreen,
 }: MapVisualizationProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -256,6 +264,15 @@ export const MapVisualization = ({
     const map = mapRef.current;
     if (!map) return;
     map.getView().fit(getFitExtent(featureLayersRef.current), FIT_OPTIONS);
+  }, []);
+
+  // Keep the OpenLayers map sized to its container, e.g. after toggling fullscreen.
+  useEffect(() => {
+    const container = mapContainerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => mapRef.current?.updateSize());
+    observer.observe(container);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -410,7 +427,7 @@ export const MapVisualization = ({
   return (
     // zIndex establishes a stacking context so the layer switcher (zIndex 10) stays contained within the map
     // and is masked by the sticky scroll overlay instead of poking over the container's top border.
-    <Box sx={{ position: "relative", zIndex: 0, width: "100%", height: "400px" }}>
+    <Box sx={{ position: "relative", zIndex: 0, width: "100%", height: isFullscreen ? "100%" : "400px" }}>
       <Box
         ref={mapContainerRef}
         data-cy="map-visualization"
@@ -426,6 +443,24 @@ export const MapVisualization = ({
         }}
       />
       <LayerSwitcher map={map} />
+      <Tooltip title={t(isFullscreen ? "mapFullscreenExit" : "mapFullscreen")}>
+        <IconButton
+          data-cy="map-fullscreen-toggle"
+          onClick={onToggleFullscreen}
+          sx={{
+            position: "absolute",
+            top: "8px",
+            right: "8px",
+            backgroundColor: "background.paper",
+            color: "text.secondary",
+            boxShadow: 1,
+            borderRadius: "4px",
+            "&:hover": { backgroundColor: "background.paper", color: "text.primary" },
+            "&:focus, &:focus-visible, &.Mui-focusVisible, &:active": { backgroundColor: "background.paper" },
+          }}>
+          {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+        </IconButton>
+      </Tooltip>
       {map && (
         <Tooltip title={t("mapResetViewport")}>
           <IconButton

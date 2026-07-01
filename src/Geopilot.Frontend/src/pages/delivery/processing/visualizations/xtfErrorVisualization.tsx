@@ -1,6 +1,6 @@
-import { FC, useMemo, useState } from "react";
+import { FC, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Stack } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import { MapVisualizationConfig, TreeVisualizationConfig } from "../../../../api/apiInterfaces";
 import { useLocalized } from "../../../../hooks/useLocalized";
 import { FilterBar } from "./filterBar";
@@ -32,6 +32,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const [messageQuery, setMessageQuery] = useState("");
   const [metadataFilters, setMetadataFilters] = useState<MetadataFilters>({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
@@ -72,9 +73,33 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
     setMetadataFilters({});
   };
   const handleSelectFeature = (errorId: string) => setSelectedNodeId(nodeIdByErrorId.get(errorId) ?? null);
+  const toggleFullscreen = () => setIsFullscreen(current => !current);
+
+  // Allow Escape to leave the fullscreen overlay.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFullscreen]);
 
   return (
-    <Stack sx={{ width: "100%" }}>
+    <Stack
+      sx={{
+        width: "100%",
+        // In fullscreen the whole visualization becomes a fixed overlay filling the viewport; the map grows.
+        ...(isFullscreen && {
+          position: "fixed",
+          inset: 0,
+          zIndex: "modal",
+          height: "100vh",
+          bgcolor: "background.default",
+          p: 2,
+          overflow: "auto",
+        }),
+      }}>
       {config.tree && (
         <FilterBar
           attributes={attributes}
@@ -86,13 +111,17 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
         />
       )}
       {config.map && (
-        <MapVisualization
-          config={config.map}
-          visibleErrorIds={visibleErrorIds}
-          highlightedErrorIds={highlightedErrorIds}
-          onSelectFeature={handleSelectFeature}
-          showPopup={!config.tree}
-        />
+        <Box sx={{ ...(isFullscreen && { flex: 1, minHeight: 0 }) }}>
+          <MapVisualization
+            config={config.map}
+            visibleErrorIds={visibleErrorIds}
+            highlightedErrorIds={highlightedErrorIds}
+            onSelectFeature={handleSelectFeature}
+            showPopup={!config.tree}
+            isFullscreen={isFullscreen}
+            onToggleFullscreen={toggleFullscreen}
+          />
+        </Box>
       )}
       {config.tree && (
         <TreeVisualization

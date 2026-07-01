@@ -92,6 +92,8 @@
   "mandateSaveError": "Une erreur s'est produite lors de l'enregistrement du mandat: {{error}}",
   "mandates": "Mandats",
   "mandatesLoadingError": "Une erreur s'est produite lors du chargement des mandats: {{error}}",
+  "mapFullscreen": "Plein écran",
+  "mapFullscreenExit": "Quitter le plein écran",
   "mapResetViewport": "Réinitialiser la vue pour afficher tous les éléments",
   "mapVisualizationFeatureLayer": "Entités",
   "maxFileCount_one": "un fichier",
