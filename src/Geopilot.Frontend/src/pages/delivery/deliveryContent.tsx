@@ -35,6 +35,7 @@ const ScrollContentOverlay = styled(Overlay)(({ theme }) => ({
   height: `${desktopTopDistance}px`,
   transform: "translateY(-100%)",
   margin: `0 -${theme.spacing(1)}`,
+  zIndex: 7,
   [theme.breakpoints.down("md")]: {
     height: `${mobileTopDistance}px`,
   },

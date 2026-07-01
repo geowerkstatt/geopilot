@@ -408,7 +408,9 @@ export const MapVisualization = ({
   }, [map, visibleErrorIds, highlightedErrorIds]);
 
   return (
-    <Box sx={{ position: "relative", width: "100%", height: "400px" }}>
+    // zIndex establishes a stacking context so the layer switcher (zIndex 10) stays contained within the map
+    // and is masked by the sticky scroll overlay instead of poking over the container's top border.
+    <Box sx={{ position: "relative", zIndex: 0, width: "100%", height: "400px" }}>
       <Box
         ref={mapContainerRef}
         data-cy="map-visualization"
