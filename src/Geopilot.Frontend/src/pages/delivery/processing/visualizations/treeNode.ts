@@ -1,30 +1,6 @@
-/** A multilingual string keyed by ISO 639 language code, as serialized by the backend LocalizedText. */
-type LocalizedText = Record<string, string>;
+import { LocalizedText, MetadataValue, TreeItem } from "../../../../api/apiInterfaces";
 
-/** A metadata value: a plain data string, or a multilingual label we generated on the backend. */
-type MetadataValue = string | LocalizedText;
-
-/** A flat tree item as shipped by the backend. The frontend derives the hierarchy by grouping items. */
-export interface TreeItem {
-  /** Stable id correlating this item with its map feature for cross-select. Absent on items without a feature. */
-  id?: string;
-  /** The text shown for the item's leaf node. */
-  label: string;
-  icon?: string;
-  color?: string;
-  /** Arbitrary metadata; values are plain strings (data) or LocalizedText (generated labels). */
-  metadata: Record<string, MetadataValue>;
-}
-
-/** The tree-visualization payload produced by the error-tree pipeline step. */
-export interface TreeVisualizationConfig {
-  /** The flat items; the frontend groups them on {@link groupBy} to build the displayed tree. */
-  items: TreeItem[];
-  /** The metadata keys to group by, outermost first (e.g. ["Model", "Topic", "Class"]). */
-  groupBy: string[];
-}
-
-/** A node of the displayed hierarchy, built in the frontend from the flat items. */
+/** A node of the error tree's displayed hierarchy, built in the frontend from the flat items by {@link buildTree}. */
 export interface TreeNode {
   /** The text shown for this node (a group value, or a leaf's label). */
   message: string;
@@ -52,21 +28,22 @@ const ICON_BY_COLOR: Record<string, string> = { error: "error_outline", warning:
 
 const severityRank = (color?: string): number => (color ? (SEVERITY_RANK[color] ?? 0) : 0);
 
-/** Resolves a metadata value to its display string in the active language, with a stable fallback chain. */
-const resolveLocalized = (value: MetadataValue, language: string): string => {
-  if (typeof value === "string") return value;
-  return value[language] ?? value.en ?? value.de ?? Object.values(value)[0] ?? "";
-};
+/** Resolver for a backend multilingual string, from the useLocalized hook. */
+type Localize = (entries?: LocalizedText) => string;
 
-const resolveMetadata = (metadata: Record<string, MetadataValue>, language: string): Record<string, string> =>
-  Object.fromEntries(Object.entries(metadata).map(([key, value]) => [key, resolveLocalized(value, language)]));
+/** Resolves a metadata value: a plain data string as-is, a localized label via the active-language resolver. */
+const resolveValue = (value: MetadataValue, localize: Localize): string =>
+  typeof value === "string" ? value : localize(value);
 
-const toLeaf = (item: TreeItem, language: string): TreeNode => ({
+const resolveMetadata = (metadata: Record<string, MetadataValue>, localize: Localize): Record<string, string> =>
+  Object.fromEntries(Object.entries(metadata).map(([key, value]) => [key, resolveValue(value, localize)]));
+
+const toLeaf = (item: TreeItem, localize: Localize): TreeNode => ({
   message: item.label,
   icon: item.icon,
   color: item.color,
   count: 0,
-  metadata: resolveMetadata(item.metadata, language),
+  metadata: resolveMetadata(item.metadata, localize),
   errorId: item.id,
 });
 
@@ -105,11 +82,11 @@ const groupItems = (
   items: TreeItem[],
   groupBy: string[],
   level: number,
-  language: string,
+  localize: Localize,
   ungroupedLabel: string,
 ): TreeNode[] => {
   if (level >= groupBy.length) {
-    return items.map(item => toLeaf(item, language));
+    return items.map(item => toLeaf(item, localize));
   }
 
   const key = groupBy[level];
@@ -122,7 +99,7 @@ const groupItems = (
       ungrouped.push(item);
       continue;
     }
-    const value = resolveLocalized(raw, language);
+    const value = resolveValue(raw, localize);
     const bucket = groups.get(value);
     if (bucket) bucket.push(item);
     else groups.set(value, [item]);
@@ -130,7 +107,7 @@ const groupItems = (
 
   const named = sortGroups(
     [...groups.entries()].map(([value, bucket]) =>
-      makeGroup(value, groupItems(bucket, groupBy, level + 1, language, ungroupedLabel)),
+      makeGroup(value, groupItems(bucket, groupBy, level + 1, localize, ungroupedLabel)),
     ),
   );
 
@@ -140,7 +117,7 @@ const groupItems = (
     named.push(
       makeGroup(
         ungroupedLabel,
-        ungrouped.map(item => toLeaf(item, language)),
+        ungrouped.map(item => toLeaf(item, localize)),
       ),
     );
   }
@@ -149,19 +126,23 @@ const groupItems = (
 };
 
 /** Builds the displayed hierarchy from the flat items by grouping them on the given metadata keys. */
-export const buildTree = (items: TreeItem[], groupBy: string[], language: string, ungroupedLabel: string): TreeNode[] =>
-  groupItems(items, groupBy, 0, language, ungroupedLabel);
+export const buildTree = (
+  items: TreeItem[],
+  groupBy: string[],
+  localize: Localize,
+  ungroupedLabel: string,
+): TreeNode[] => groupItems(items, groupBy, 0, localize, ungroupedLabel);
 
 const itemMatchesFilters = (
   item: TreeItem,
   messageQuery: string,
   metadataFilters: MetadataFilters,
-  language: string,
+  localize: Localize,
 ): boolean => {
   if (messageQuery) {
     // Match the leaf label and every metadata value, so an error can be found by any of its attributes.
     // messageQuery is already lower-cased.
-    const haystacks = [item.label, ...Object.values(item.metadata).map(value => resolveLocalized(value, language))];
+    const haystacks = [item.label, ...Object.values(item.metadata).map(value => resolveValue(value, localize))];
     if (!haystacks.some(value => value.toLowerCase().includes(messageQuery))) {
       return false;
     }
@@ -170,7 +151,7 @@ const itemMatchesFilters = (
   return Object.entries(metadataFilters).every(([key, selected]) => {
     if (selected.length === 0) return true;
     const value = item.metadata[key];
-    return value !== undefined && selected.includes(resolveLocalized(value, language));
+    return value !== undefined && selected.includes(resolveValue(value, localize));
   });
 };
 
@@ -179,17 +160,17 @@ export const filterItems = (
   items: TreeItem[],
   messageQuery: string,
   metadataFilters: MetadataFilters,
-  language: string,
-): TreeItem[] => items.filter(item => itemMatchesFilters(item, messageQuery, metadataFilters, language));
+  localize: Localize,
+): TreeItem[] => items.filter(item => itemMatchesFilters(item, messageQuery, metadataFilters, localize));
 
 /** Collects every metadata attribute across the items together with its distinct (resolved) values. */
-export const collectMetadataAttributes = (items: TreeItem[], language: string): MetadataAttribute[] => {
+export const collectMetadataAttributes = (items: TreeItem[], localize: Localize): MetadataAttribute[] => {
   const valuesByKey = new Map<string, Set<string>>();
 
   for (const item of items) {
     for (const [key, value] of Object.entries(item.metadata)) {
       const values = valuesByKey.get(key) ?? new Set<string>();
-      values.add(resolveLocalized(value, language));
+      values.add(resolveValue(value, localize));
       valuesByKey.set(key, values);
     }
   }
