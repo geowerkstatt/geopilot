@@ -164,7 +164,15 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
           </Typography>
         ) : (
           <>
-            <Box ref={treeWrapperRef} sx={{ flex: "1 1 auto", minWidth: 0 }}>
+            <Box
+              ref={treeWrapperRef}
+              sx={{
+                flex: "1 1 auto",
+                minWidth: 0,
+                // Reserve the detail box's width so the tree (and its selection highlight) end at the same
+                // boundary whether or not the box is currently rendered.
+                maxWidth: sideBySide ? `calc(100% - ${PANEL_WIDTH + PANEL_GAP}px)` : "100%",
+              }}>
               <SimpleTreeView
                 selectedItems={selectedId}
                 onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
