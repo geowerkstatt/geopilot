@@ -155,8 +155,8 @@ export interface TreeItem {
   id?: string;
   /** The text shown for the item's leaf node. */
   label: string;
-  icon?: string;
-  color?: string;
+  /** Error or warning; drives the leaf's icon and colour. */
+  severity: "error" | "warning";
   /** Arbitrary metadata; values are plain strings (data) or LocalizedText (generated labels), keyed for groupBy. */
   metadata: Record<string, MetadataValue>;
 }

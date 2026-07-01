@@ -68,8 +68,7 @@ public class XtfErrorVisualizationProcessTest
         foreach (var item in config.Tree.Items)
         {
             Assert.IsNotEmpty(item.Label);
-            Assert.IsNotNull(item.Icon);
-            Assert.IsNotNull(item.Color);
+            Assert.IsTrue(item.Severity is "error" or "warning", "item carries an error or warning severity");
             Assert.IsTrue(item.Metadata.ContainsKey("Message"), "item metadata carries the validator message");
         }
 

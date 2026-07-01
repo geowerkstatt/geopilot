@@ -64,8 +64,7 @@ public class LogErrorToTreeItemMapperTest
         var items = LogErrorToTreeItemMapper.Map(entries);
 
         Assert.HasCount(1, items);
-        Assert.AreEqual("warning_amber", items[0].Icon);
-        Assert.AreEqual("warning", items[0].Color);
+        Assert.AreEqual("warning", items[0].Severity);
     }
 
     private static TreeItem MapSingle(LogError error)

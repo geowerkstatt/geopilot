@@ -3,9 +3,9 @@
 namespace Geopilot.Pipeline.Visualization;
 
 /// <summary>
-/// A flat item of a tree visualization. The frontend builds the displayed hierarchy by grouping items on the
-/// metadata keys named in <see cref="TreeVisualizationConfig.GroupBy"/>. The format is generic: it carries no
-/// domain-specific fields, only a display label and arbitrary metadata, so other visualizations can reuse it.
+/// A flat item of the error-tree visualization. The frontend builds the displayed hierarchy by grouping items
+/// on the metadata keys named in <see cref="TreeVisualizationConfig.GroupBy"/> and derives the leaf's icon and
+/// colour from its <see cref="Severity"/>.
 /// </summary>
 internal sealed class TreeItem
 {
@@ -24,18 +24,10 @@ internal sealed class TreeItem
     public required string Label { get; init; }
 
     /// <summary>
-    /// Gets the Material Icons ligature shown next to the leaf (e.g. <c>error_outline</c>), or <see langword="null"/>.
+    /// Gets the item's severity (<c>error</c> or <c>warning</c>); the frontend derives the leaf's icon and colour from it.
     /// </summary>
-    [JsonPropertyName("icon")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Icon { get; init; }
-
-    /// <summary>
-    /// Gets the MUI palette color tinting the icon (e.g. <c>error</c>, <c>warning</c>), or <see langword="null"/>.
-    /// </summary>
-    [JsonPropertyName("color")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Color { get; init; }
+    [JsonPropertyName("severity")]
+    public required string Severity { get; init; }
 
     /// <summary>
     /// Gets the item's metadata. A value is either a plain <see cref="string"/> (data, e.g. a class name) or a

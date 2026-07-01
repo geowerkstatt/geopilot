@@ -4,7 +4,7 @@ import { LocalizedText, MetadataValue, TreeItem } from "../../../../api/apiInter
 export interface TreeNode {
   /** The text shown for this node (a group value, or a leaf's label). */
   message: string;
-  icon?: string;
+  /** Severity ("error"/"warning") of the node's most severe leaf; drives the leaf/group icon and colour. */
   color?: string;
   /** Number of contained leaf nodes (errors) in this node's subtree; 0 for a leaf. Shown next to group labels. */
   count: number;
@@ -24,7 +24,6 @@ export interface MetadataAttribute {
 }
 
 const SEVERITY_RANK: Record<string, number> = { error: 2, warning: 1 };
-const ICON_BY_COLOR: Record<string, string> = { error: "error_outline", warning: "warning_amber" };
 
 const severityRank = (color?: string): number => (color ? (SEVERITY_RANK[color] ?? 0) : 0);
 
@@ -40,8 +39,7 @@ const resolveMetadata = (metadata: Record<string, MetadataValue>, localize: Loca
 
 const toLeaf = (item: TreeItem, localize: Localize): TreeNode => ({
   message: item.label,
-  icon: item.icon,
-  color: item.color,
+  color: item.severity,
   count: 0,
   metadata: resolveMetadata(item.metadata, localize),
   errorId: item.id,
@@ -63,7 +61,6 @@ const makeGroup = (message: string, children: TreeNode[]): TreeNode => {
   return {
     message,
     color,
-    icon: color ? ICON_BY_COLOR[color] : undefined,
     count: children.reduce((sum, child) => sum + leafCount(child), 0),
     values: children,
   };

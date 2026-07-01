@@ -12,11 +12,8 @@ namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 /// </summary>
 internal static class LogErrorToTreeItemMapper
 {
-    private const string IconError = "error_outline";
-    private const string IconWarning = "warning_amber";
-
-    private const string ColorError = "error";
-    private const string ColorWarning = "warning";
+    private const string SeverityError = "error";
+    private const string SeverityWarning = "warning";
 
     // A qualified INTERLIS name with at least three segments (Model.Topic.Class...), used to recover the failing
     // object's class from the message when the entry carries no object tag (e.g. constraint or association errors).
@@ -46,8 +43,7 @@ internal static class LogErrorToTreeItemMapper
             {
                 Id = indexedError.Id,
                 Label = string.IsNullOrEmpty(logEntry.Tid) ? logEntry.Message! : logEntry.Tid!,
-                Icon = isError ? IconError : IconWarning,
-                Color = isError ? ColorError : ColorWarning,
+                Severity = isError ? SeverityError : SeverityWarning,
                 Metadata = BuildMetadata(logEntry),
             });
         }
