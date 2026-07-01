@@ -140,7 +140,9 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
   return (
     <Stack ref={measureContainer} sx={{ width: "100%", position: "relative" }}>
       {nodes.length > 0 && (
-        <Box sx={{ position: "absolute", top: 0, right: 0, zIndex: 1 }}>
+        // Fixed at the detail box's left edge (its reserved width) so it stays put whether or not the box
+        // is currently rendered; falls back to the far right in the narrow (stacked) layout.
+        <Box sx={{ position: "absolute", top: 0, right: sideBySide ? `${PANEL_WIDTH + PANEL_GAP}px` : 0, zIndex: 1 }}>
           <Tooltip title={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
             <span>
               <IconButton
