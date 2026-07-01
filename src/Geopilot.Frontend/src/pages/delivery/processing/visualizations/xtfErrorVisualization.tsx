@@ -1,17 +1,11 @@
 import { FC, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Stack } from "@mui/material";
-import { MapVisualizationConfig } from "../../../../api/apiInterfaces";
+import { MapVisualizationConfig, TreeVisualizationConfig } from "../../../../api/apiInterfaces";
+import { useLocalized } from "../../../../hooks/useLocalized";
 import { FilterBar } from "./filterBar";
 import { MapVisualization } from "./mapVisualization";
-import {
-  buildErrorIdIndex,
-  buildTree,
-  collectMetadataAttributes,
-  filterItems,
-  MetadataFilters,
-  TreeVisualizationConfig,
-} from "./treeNode";
+import { buildErrorIdIndex, buildTree, collectMetadataAttributes, filterItems, MetadataFilters } from "./treeNode";
 import { TreeVisualization } from "./treeVisualization";
 
 /**
@@ -31,27 +25,27 @@ interface XtfErrorVisualizationProps {
 }
 
 export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }) => {
-  const { t, i18n } = useTranslation();
-  const language = i18n.language.split("-")[0];
+  const { t } = useTranslation();
+  const localize = useLocalized();
   const [messageQuery, setMessageQuery] = useState("");
   const [metadataFilters, setMetadataFilters] = useState<MetadataFilters>({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
-  const attributes = useMemo(() => collectMetadataAttributes(items, language), [items, language]);
+  const attributes = useMemo(() => collectMetadataAttributes(items, localize), [items, localize]);
   const hasActiveFilters =
     messageQuery.trim().length > 0 || Object.values(metadataFilters).some(values => values.length > 0);
   const filteredItems = useMemo(
-    () => (hasActiveFilters ? filterItems(items, messageQuery.trim().toLowerCase(), metadataFilters, language) : items),
-    [items, hasActiveFilters, messageQuery, metadataFilters, language],
+    () => (hasActiveFilters ? filterItems(items, messageQuery.trim().toLowerCase(), metadataFilters, localize) : items),
+    [items, hasActiveFilters, messageQuery, metadataFilters, localize],
   );
 
   const ungroupedLabel = t("treeVisualizationUngrouped");
   // The displayed hierarchy, rebuilt from the filtered items so structural ids, counts and selection stay consistent.
   const nodes = useMemo(
-    () => buildTree(filteredItems, groupBy, language, ungroupedLabel),
-    [filteredItems, groupBy, language, ungroupedLabel],
+    () => buildTree(filteredItems, groupBy, localize, ungroupedLabel),
+    [filteredItems, groupBy, localize, ungroupedLabel],
   );
 
   // One index over the SAME nodes the tree renders so structural ids match.

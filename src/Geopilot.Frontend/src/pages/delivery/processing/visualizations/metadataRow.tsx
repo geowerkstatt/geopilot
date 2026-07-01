@@ -54,7 +54,7 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
               transition: "opacity 0.15s",
               "&:focus-visible": { opacity: 1 },
             }}>
-            {copied ? <CheckIcon fontSize="small" color="success" /> : <ContentCopyIcon fontSize="small" />}
+            {copied ? <CheckIcon fontSize="small" color="primary" /> : <ContentCopyIcon fontSize="small" />}
           </IconButton>
         </Tooltip>
       </TableCell>
