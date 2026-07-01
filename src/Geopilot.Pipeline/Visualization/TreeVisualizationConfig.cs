@@ -20,4 +20,11 @@ internal sealed class TreeVisualizationConfig
     /// </summary>
     [JsonPropertyName("groupBy")]
     public required IReadOnlyList<string> GroupBy { get; init; }
+
+    /// <summary>
+    /// The metadata keys offered as filters in the frontend, in display order
+    /// (e.g. <c>["Model", "Topic", "Class", "Error type"]</c>).
+    /// </summary>
+    [JsonPropertyName("filterBy")]
+    public required IReadOnlyList<string> FilterBy { get; init; }
 }

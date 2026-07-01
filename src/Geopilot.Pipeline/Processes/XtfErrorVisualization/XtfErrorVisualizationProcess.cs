@@ -25,11 +25,13 @@ internal class XtfErrorVisualizationProcess
     };
 
     private static readonly string[] DefaultGroupBy = ["Model", "Topic", "Class"];
+    private static readonly string[] DefaultFilterBy = ["Model", "Topic", "Class", "Error type"];
 
     private readonly bool includeMap;
     private readonly bool includeTree;
     private readonly string baseMapWmtsCapabilitiesUrl;
     private readonly IReadOnlyList<string> groupBy;
+    private readonly IReadOnlyList<string> filterBy;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="XtfErrorVisualizationProcess"/> class.
@@ -37,7 +39,8 @@ internal class XtfErrorVisualizationProcess
     /// <param name="include">Views to produce ("map", "tree"). Null or empty means both.</param>
     /// <param name="baseMapWmtsCapabilitiesUrl">Optional override for the base map WMTS capabilities URL.</param>
     /// <param name="groupBy">Metadata keys the frontend groups the tree items by. Null or empty means model, topic, class.</param>
-    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<string>? groupBy = null)
+    /// <param name="filterBy">Metadata keys the frontend offers as filters, in display order. Null or empty means model, topic, class, error type.</param>
+    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<string>? groupBy = null, IReadOnlyList<string>? filterBy = null)
     {
         var selected = include is { Count: > 0 }
             ? new HashSet<string>(include, StringComparer.OrdinalIgnoreCase)
@@ -48,6 +51,7 @@ internal class XtfErrorVisualizationProcess
             ? MapVisualizationBuilder.DefaultBaseMapWmtsCapabilitiesUrl
             : baseMapWmtsCapabilitiesUrl;
         this.groupBy = groupBy is { Count: > 0 } ? groupBy : DefaultGroupBy;
+        this.filterBy = filterBy is { Count: > 0 } ? filterBy : DefaultFilterBy;
     }
 
     /// <summary>
@@ -66,7 +70,7 @@ internal class XtfErrorVisualizationProcess
         {
             Map = includeMap ? MapVisualizationBuilder.Build(errors, baseMapWmtsCapabilitiesUrl) : null,
             Tree = includeTree
-                ? new TreeVisualizationConfig { Items = LogErrorToTreeItemMapper.Map(errors), GroupBy = groupBy }
+                ? new TreeVisualizationConfig { Items = LogErrorToTreeItemMapper.Map(errors), GroupBy = groupBy, FilterBy = filterBy }
                 : null,
         };
 

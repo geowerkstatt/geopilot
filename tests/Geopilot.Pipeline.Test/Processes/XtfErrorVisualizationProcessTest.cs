@@ -57,6 +57,7 @@ public class XtfErrorVisualizationProcessTest
 
         // Tree: the backend ships a flat item list plus the grouping keys; the frontend builds the hierarchy.
         CollectionAssert.AreEqual(new[] { "Model", "Topic", "Class" }, config.Tree.GroupBy.ToList(), "default grouping is model, topic, class");
+        CollectionAssert.AreEqual(new[] { "Model", "Topic", "Class", "Error type" }, config.Tree.FilterBy.ToList(), "default filters are model, topic, class, error type");
         Assert.IsNotEmpty(config.Tree.Items);
 
         // Each feature's errorId also appears on a flat tree item (cross-select correlation).
@@ -118,5 +119,19 @@ public class XtfErrorVisualizationProcessTest
         Assert.IsNotNull(visualization);
         Assert.IsNotNull(visualization.Data.Tree);
         CollectionAssert.AreEqual(new[] { "Class" }, visualization.Data.Tree.GroupBy.ToList());
+    }
+
+    [TestMethod]
+    public async Task TreeUsesConfiguredFilterBy()
+    {
+        var process = new XtfErrorVisualizationProcess(include: ["tree"], filterBy: ["Class", "Error type"]);
+        var xtfLog = new PipelineFile(XtfLogPath, "errorLogWithErrors.xtf");
+
+        var processResult = await process.RunAsync(xtfLog).ConfigureAwait(false);
+
+        var visualization = processResult["visualization"] as Visualization<XtfErrorVisualizationConfig>;
+        Assert.IsNotNull(visualization);
+        Assert.IsNotNull(visualization.Data.Tree);
+        CollectionAssert.AreEqual(new[] { "Class", "Error type" }, visualization.Data.Tree.FilterBy.ToList());
     }
 }
