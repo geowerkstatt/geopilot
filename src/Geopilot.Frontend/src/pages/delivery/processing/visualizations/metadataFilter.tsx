@@ -1,8 +1,10 @@
 import { KeyboardEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import ClearIcon from "@mui/icons-material/Clear";
 import {
   Checkbox,
   FormControl,
+  IconButton,
   InputLabel,
   ListItemText,
   ListSubheader,
@@ -51,6 +53,19 @@ export const MetadataFilter = ({ attribute, selected, onChange }: MetadataFilter
         onClose={() => setOptionSearch("")}
         renderValue={values => values.join(", ")}
         MenuProps={{ autoFocus: false, PaperProps: { sx: { maxHeight: 360 } } }}
+        endAdornment={
+          selected.length > 0 ? (
+            <IconButton
+              size="small"
+              aria-label={t("treeFilterClear")}
+              onClick={() => onChange(attribute.key, [])}
+              onMouseDown={event => event.stopPropagation()}
+              data-cy={`metadata-filter-clear-${attribute.key}`}
+              sx={{ mr: 2 }}>
+              <ClearIcon fontSize="small" />
+            </IconButton>
+          ) : undefined
+        }
         data-cy={`metadata-filter-${attribute.key}`}>
         {showOptionSearch && (
           <ListSubheader sx={{ p: 1, lineHeight: "normal" }}>

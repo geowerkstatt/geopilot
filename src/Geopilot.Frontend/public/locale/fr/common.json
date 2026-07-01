@@ -139,6 +139,7 @@
   "termsOfUseAcceptance": "J'accepte les <termsLink>conditions d'utilisation</termsLink>.",
   "treeCollapseAll": "Tout replier",
   "treeExpandAll": "Tout déplier",
+  "treeFilterClear": "Effacer le filtre",
   "treeFilterReset": "Réinitialiser les filtres",
   "treeFilterToggle": "Afficher/masquer les filtres",
   "treeVisualizationFilterSearch": "Rechercher des options",
