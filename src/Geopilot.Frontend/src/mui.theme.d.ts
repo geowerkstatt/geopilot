@@ -57,6 +57,7 @@ declare module "@mui/material/styles" {
     MuiAvatar: object;
     MuiTextField: object;
     MuiSelect: object;
+    MuiOutlinedInput: object;
     MuiButtonBase: object;
     MuiButton: object;
     MuiIconButton: object;
@@ -74,6 +75,7 @@ declare module "@mui/material/styles" {
     MuiToggleButton: object;
     MuiStack: object;
     MuiAccordion: object;
+    MuiAccordionSummary: object;
   }
 
   interface AppThemeComponentsOptions extends ComponentsOptions {
@@ -81,6 +83,7 @@ declare module "@mui/material/styles" {
     MuiAvatar: object;
     MuiTextField: object;
     MuiSelect: object;
+    MuiOutlinedInput: object;
     MuiButtonBase: object;
     MuiButton: object;
     MuiIconButton: object;
@@ -98,6 +101,7 @@ declare module "@mui/material/styles" {
     MuiToggleButton: object;
     MuiStack: object;
     MuiAccordion: object;
+    MuiAccordionSummary: object;
   }
 
   interface AppTheme extends Theme {

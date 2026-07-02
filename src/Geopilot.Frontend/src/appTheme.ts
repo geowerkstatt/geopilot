@@ -150,8 +150,6 @@ export const geopilotTheme = createTheme({
           borderRadius: themeSpacing(0.5),
           flex: "1",
 
-          "& .MuiInputBase-input": {},
-
           "& .MuiSelect-select": {
             alignContent: "center",
           },
@@ -165,6 +163,21 @@ export const geopilotTheme = createTheme({
     MuiSelect: {
       defaultProps: {
         IconComponent: ExpandMoreIcon,
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        notchedOutline: {
+          borderColor: themePalette.primary.light,
+        },
+        root: {
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: themePalette.primary.main,
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: themePalette.primary.main,
+          },
+        },
       },
     },
     MuiButtonBase: {
@@ -413,6 +426,13 @@ export const geopilotTheme = createTheme({
           "&:before": {
             display: "none",
           },
+        },
+      },
+    },
+    MuiAccordionSummary: {
+      styleOverrides: {
+        expandIconWrapper: {
+          color: themePalette.primary.main,
         },
       },
     },
