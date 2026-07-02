@@ -1,7 +1,7 @@
 import { MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import i18next from "i18next";
 import { containsExtent, createEmpty, extend as extendExtent, getCenter, isEmpty as isExtentEmpty } from "ol/extent";
@@ -22,6 +22,7 @@ import { Circle, Fill, Stroke, Style } from "ol/style";
 import View from "ol/View";
 import proj4 from "proj4";
 import { MapLayer, MapVisualizationConfig } from "../../../../api/apiInterfaces";
+import { IconButton } from "../../../../components/buttons";
 import { LayerSwitcher, LayerSwitcherProperties } from "./layerSwitcher";
 import "ol/ol.css";
 
@@ -427,24 +428,18 @@ export const MapVisualization = ({
       />
       <LayerSwitcher map={map} />
       {map && (
-        <Tooltip title={t("mapResetViewport")}>
-          <IconButton
-            data-cy="map-reset-viewport"
-            onClick={resetViewport}
-            sx={{
-              position: "absolute",
-              // Below the layer switcher button (40px tall at top 8px) with an 8px gap.
-              top: "56px",
-              left: "8px",
-              backgroundColor: "background.paper",
-              color: "text.secondary",
-              boxShadow: 1,
-              borderRadius: "4px",
-              "&:hover": { backgroundColor: "background.paper", color: "text.primary" },
-            }}>
-            <CenterFocusStrongIcon />
-          </IconButton>
-        </Tooltip>
+        <IconButton
+          color={"primaryOutlined"}
+          onClick={resetViewport}
+          label="mapResetViewport"
+          sx={{
+            position: "absolute",
+            // Below the layer switcher button (40px tall at top 8px) with an 8px gap.
+            top: "56px",
+            left: "8px",
+          }}>
+          <CenterFocusStrongIcon />
+        </IconButton>
       )}
     </Box>
   );

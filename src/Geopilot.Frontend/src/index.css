@@ -1,3 +1,15 @@
 body {
   margin: 0;
 }
+
+a {
+  color: #124A4F;
+}
+
+::selection {
+  background-color: #00FF97;
+}
+
+::-moz-selection {
+  background-color: #00FF97;
+}

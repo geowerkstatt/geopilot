@@ -1,7 +1,7 @@
 import { CSSProperties, FC, useCallback, useEffect, useMemo, useState } from "react";
 import { FileRejection, useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
-import { Link, Stack, Typography } from "@mui/material";
+import { Box, Link, Stack, Typography } from "@mui/material";
 import { geopilotTheme } from "../appTheme";
 import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
 import { FileListItem } from "./fileListItem.tsx";
@@ -109,12 +109,12 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       padding: geopilotTheme.spacing(3),
       border: `2px dashed`,
       borderColor: disabled
-        ? geopilotTheme.palette.primary.inactive
+        ? geopilotTheme.palette.primary.states.disabledBackground
         : error
           ? geopilotTheme.palette.error.main
           : geopilotTheme.palette.primary.main,
       borderRadius: "4px",
-      backgroundColor: error ? geopilotTheme.palette.error.hover : geopilotTheme.palette.primary.hover,
+      backgroundColor: error ? geopilotTheme.palette.error.hover : geopilotTheme.palette.primary.states.hover,
       outline: "none",
       transition: "border .24s ease-in-out",
       cursor: disabled ? "default" : "pointer",
@@ -137,12 +137,20 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
           {t("or")} {t("dragAndDrop")}
         </Typography>
         {fileExtensions && fileExtensions.length > 0 && (
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            className={disabled ? "Mui-disabled" : ""}
-            sx={{ display: "flex", gap: 1 }}>
-            <span>{fileCountText}</span> | <span>{maxPerFileText}</span> | <span>{maxTotalSizeText}</span>
+          <Typography variant="caption" color="text.secondary" className={disabled ? "Mui-disabled" : ""}>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              alignItems={"center"}
+              gap={{ xs: 0, sm: 1 }}
+              divider={
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                  |
+                </Box>
+              }>
+              <span>{fileCountText}</span>
+              <span>{maxPerFileText}</span>
+              <span>{maxTotalSizeText}</span>
+            </Stack>
           </Typography>
         )}
       </div>

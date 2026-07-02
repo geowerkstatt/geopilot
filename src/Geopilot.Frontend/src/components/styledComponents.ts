@@ -6,7 +6,7 @@ export const AppBox = styled(Stack)({
 });
 
 export const LayoutBox = styled(Stack)(({ theme }) => ({
-  backgroundColor: theme.palette.primary.background,
+  backgroundColor: theme.palette.background.base,
   paddingTop: "60px",
   flex: "1",
 }));

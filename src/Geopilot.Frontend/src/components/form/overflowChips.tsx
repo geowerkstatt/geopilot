@@ -63,13 +63,21 @@ export const OverflowChips = ({ value, getTagProps }: OverflowChipsProps) => {
         ref={measureRef}
         aria-hidden
         sx={{ position: "absolute", top: 0, left: 0, visibility: "hidden", display: "flex", pointerEvents: "none" }}>
-        {value.map(option => (
-          <Chip key={option} size="small" label={option} sx={{ maxWidth: CHIP_MAX_WIDTH, m: CHIP_MARGIN }} />
+        {value.map((option, index) => (
+          <Chip key={index} size="small" label={option} sx={{ maxWidth: CHIP_MAX_WIDTH, m: CHIP_MARGIN }} />
         ))}
       </Box>
       {value.slice(0, visibleCount).map((option, index) => {
         const { key, ...tagProps } = getTagProps({ index });
-        return <Chip key={key} size="small" label={option} sx={{ maxWidth: CHIP_MAX_WIDTH }} {...tagProps} />;
+        return (
+          <Chip
+            key={key}
+            size="small"
+            label={option}
+            sx={{ maxWidth: CHIP_MAX_WIDTH, "& .MuiChip-deleteIcon": { fontSize: "18px" } }}
+            {...tagProps}
+          />
+        );
       })}
       {hidden > 0 && <Chip size="small" label={`+${hidden}`} />}
     </>

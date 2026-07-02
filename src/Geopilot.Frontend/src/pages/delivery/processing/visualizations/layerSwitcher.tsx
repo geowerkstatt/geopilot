@@ -9,7 +9,7 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import SearchIcon from "@mui/icons-material/Search";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
-import { Box, Checkbox, IconButton, InputBase, Paper, Slider, Tooltip, Typography } from "@mui/material";
+import { Box, Checkbox, InputBase, Paper, Slider, Typography } from "@mui/material";
 import Collection from "ol/Collection";
 import { isEmpty } from "ol/extent";
 import BaseLayer from "ol/layer/Base";
@@ -19,6 +19,7 @@ import OlMap from "ol/Map";
 import { ObjectEvent } from "ol/Object";
 import { unByKey } from "ol/Observable";
 import { getUid } from "ol/util";
+import { IconButton } from "../../../../components/buttons";
 
 // Custom layer properties read/written by the switcher. The map sets at least TITLE on the layers it
 // adds so they have a label here. The others default sensibly when absent, so existing layers work
@@ -164,8 +165,6 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, remove }: LayerRowPro
     return () => unByKey(key);
   }, [layer]);
 
-  const iconButtonSx = { color: "text.secondary", "&:hover": { color: "text.primary" } };
-
   return (
     <Box
       sx={{
@@ -211,11 +210,13 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, remove }: LayerRowPro
           {title}
         </Typography>
         {isGroup && (
-          <Tooltip title={open ? t("collapseLayerGroup") : t("expandLayerGroup")}>
-            <IconButton size="small" data-cy="expand-layers" onClick={() => layer.set(OPEN, !open)} sx={iconButtonSx}>
-              {open ? <RemoveIcon fontSize="small" /> : <AddIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
+          <IconButton
+            size="small"
+            data-cy="expand-layers"
+            label={open ? "collapseLayerGroup" : "expandLayerGroup"}
+            onClick={() => layer.set(OPEN, !open)}>
+            {open ? <RemoveIcon fontSize="small" /> : <AddIcon fontSize="small" />}
+          </IconButton>
         )}
       </Box>
 
@@ -237,31 +238,22 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, remove }: LayerRowPro
         />
         <Box sx={{ flex: 1 }} />
         {layer instanceof BaseVectorLayer && (
-          <Tooltip title={t("zoomToLayerExtent")}>
-            <IconButton
-              size="small"
-              data-cy="zoom-to-extent"
-              sx={iconButtonSx}
-              onClick={() => {
-                const extent = layer.getSource()?.getExtent();
-                if (extent && !isEmpty(extent)) {
-                  map.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 18 });
-                }
-              }}>
-              <ZoomOutMapIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <IconButton
+            size="small"
+            label="zoomToLayerExtent"
+            onClick={() => {
+              const extent = layer.getSource()?.getExtent();
+              if (extent && !isEmpty(extent)) {
+                map.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 18 });
+              }
+            }}>
+            <ZoomOutMapIcon fontSize="small" />
+          </IconButton>
         )}
         {removable && (
-          <Tooltip title={t("removeLayer")}>
-            <IconButton
-              size="small"
-              data-cy="layer-remove"
-              onClick={remove}
-              sx={{ color: "text.secondary", "&:hover": { color: "error.main" } }}>
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          <IconButton size="small" label="removeLayer" onClick={remove} sx={{ "&:hover": { color: "error.main" } }}>
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
         )}
       </Box>
 
@@ -458,22 +450,13 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
         flexDirection: "column",
         alignItems: "flex-start",
         gap: 0.5,
+        border: "1px solid primary.main",
+        borderRadius: 0.5,
       }}>
       {!open && (
-        <Tooltip title={t("layers")}>
-          <IconButton
-            data-cy="layer-switcher-toggle"
-            onClick={() => setOpen(true)}
-            sx={{
-              backgroundColor: "background.paper",
-              color: "text.secondary",
-              boxShadow: 1,
-              borderRadius: "4px",
-              "&:hover": { backgroundColor: "background.paper", color: "text.primary" },
-            }}>
-            <LayersOutlinedIcon />
-          </IconButton>
-        </Tooltip>
+        <IconButton color={"primaryOutlined"} label="layers" onClick={() => setOpen(true)}>
+          <LayersOutlinedIcon />
+        </IconButton>
       )}
 
       {open && (
@@ -513,15 +496,9 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
                 <CloseIcon fontSize="small" />
               </IconButton>
             </Box>
-            <Tooltip title={t("collapseAllLayers")}>
-              <IconButton
-                size="small"
-                data-cy="collapse-all-layers"
-                onClick={() => collapseAll(rootLayers)}
-                sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}>
-                <UnfoldLessIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            <IconButton size="small" label="collapseAllLayers" onClick={() => collapseAll(rootLayers)}>
+              <UnfoldLessIcon fontSize="small" />
+            </IconButton>
           </Box>
           <Box sx={{ overflowY: "auto" }}>
             <LayerCollection

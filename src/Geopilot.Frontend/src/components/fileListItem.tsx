@@ -1,8 +1,9 @@
 import { FC } from "react";
 import ClearIcon from "@mui/icons-material/Clear";
-import { Box, IconButton, LinearProgress, Stack, Typography } from "@mui/material";
+import { Box, LinearProgress, Stack, Typography } from "@mui/material";
 import { geopilotTheme } from "../appTheme";
 import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
+import { IconButton } from "./buttons";
 
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
@@ -51,7 +52,7 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
           )}
         </Stack>
         {!disabled && (
-          <IconButton onClick={() => onRemove(file)} sx={{ color: geopilotTheme.palette.primary.main, padding: "0" }}>
+          <IconButton onClick={() => onRemove(file)} sx={{ padding: "0" }}>
             <ClearIcon />
           </IconButton>
         )}

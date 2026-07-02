@@ -3,23 +3,39 @@ import { Shadows, ThemeOptions } from "@mui/material/styles";
 import { TypographyOptions } from "@mui/material/styles/createTypography";
 import { Spacing } from "@mui/system";
 
+declare module "@mui/material/IconButton" {
+  interface IconButtonPropsColorOverrides {
+    primaryContained: true;
+    primaryOutlined: true;
+  }
+}
+
 declare module "@mui/material/styles" {
   export interface AppThemePalette {
+    text: {
+      primary: string;
+      secondary: string;
+      disabled: string;
+    };
     primary: {
       main: string;
-      active: string;
-      inactive: string;
-      hover: string;
-      selected: string;
-      contrastText: string;
+      dark: string;
       light: string;
-      background: string;
+      contrast: string;
+      states: {
+        hover: string;
+        selected: string;
+        focus: string;
+        focusVisible: string;
+        disabledBackground: string;
+      };
     };
     secondary: {
       main: string;
-      inactive: string;
-      hover: string;
-      contrastText: string;
+    };
+    background: {
+      base: string;
+      content: string;
     };
     success: {
       main: string;
@@ -41,6 +57,7 @@ declare module "@mui/material/styles" {
     MuiAvatar: object;
     MuiTextField: object;
     MuiSelect: object;
+    MuiOutlinedInput: object;
     MuiButtonBase: object;
     MuiButton: object;
     MuiIconButton: object;
@@ -58,6 +75,7 @@ declare module "@mui/material/styles" {
     MuiToggleButton: object;
     MuiStack: object;
     MuiAccordion: object;
+    MuiAccordionSummary: object;
   }
 
   interface AppThemeComponentsOptions extends ComponentsOptions {
@@ -65,6 +83,7 @@ declare module "@mui/material/styles" {
     MuiAvatar: object;
     MuiTextField: object;
     MuiSelect: object;
+    MuiOutlinedInput: object;
     MuiButtonBase: object;
     MuiButton: object;
     MuiIconButton: object;
@@ -82,6 +101,7 @@ declare module "@mui/material/styles" {
     MuiToggleButton: object;
     MuiStack: object;
     MuiAccordion: object;
+    MuiAccordionSummary: object;
   }
 
   interface AppTheme extends Theme {
@@ -101,4 +121,5 @@ declare module "@mui/material/styles" {
   }
 
   export function createTheme(options?: AppThemeOptions): AppTheme;
+  export function createTheme(theme: AppTheme, ...args: object[]): AppTheme;
 }

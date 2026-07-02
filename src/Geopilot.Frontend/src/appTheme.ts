@@ -5,21 +5,30 @@ import { Spacing } from "@mui/system";
 const defaultTheme = createTheme();
 
 const themePalette: AppThemePalette = {
+  text: {
+    primary: "#212121",
+    secondary: "#666666",
+    disabled: "#9E9E9E",
+  },
   primary: {
     main: "#124A4F",
-    light: "#88a4a7",
-    active: "#124A4F14",
-    inactive: "#124A4F99",
-    hover: "#124A4F0D",
-    selected: "#124A4F2E",
-    contrastText: "#ffffff",
-    background: "#f6f8f8",
+    dark: "#0C3337",
+    light: "#89A4A7",
+    contrast: "#ffffff",
+    states: {
+      hover: "#EDF1F1",
+      selected: "#D4DEDF",
+      focus: "#C6D4D5",
+      focusVisible: "#B8C9CA",
+      disabledBackground: "#719295",
+    },
   },
   secondary: {
-    main: "#00ff97",
-    inactive: "#00ff9799",
-    hover: "#00ff970D",
-    contrastText: "#000",
+    main: "#00FF97",
+  },
+  background: {
+    base: "#F6F8F8",
+    content: "#ffffff",
   },
   success: {
     main: "#4caf51",
@@ -115,9 +124,11 @@ export const geopilotTheme = createTheme({
     MuiTypography: {
       styleOverrides: {
         root: {
+          color: themePalette.text.primary,
           "&.Mui-disabled": {
             opacity: "60%",
             cursor: "default",
+            color: themePalette.text.disabled,
           },
         },
       },
@@ -126,7 +137,7 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: themePalette.primary.main,
-          color: themePalette.primary.contrastText,
+          color: themePalette.primary.contrast,
         },
       },
     },
@@ -139,12 +150,7 @@ export const geopilotTheme = createTheme({
           borderRadius: themeSpacing(0.5),
           flex: "1",
 
-          "& .MuiInputBase-input": {
-            height: "32px",
-          },
-
           "& .MuiSelect-select": {
-            minHeight: "32px !important",
             alignContent: "center",
           },
 
@@ -159,49 +165,118 @@ export const geopilotTheme = createTheme({
         IconComponent: ExpandMoreIcon,
       },
     },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        notchedOutline: {
+          borderColor: themePalette.primary.light,
+        },
+        root: {
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: themePalette.primary.main,
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: themePalette.primary.main,
+          },
+        },
+      },
+    },
     MuiButtonBase: {
       defaultProps: {
         disableRipple: true,
       },
     },
     MuiButton: {
+      defaultProps: {
+        color: "primary",
+      },
       styleOverrides: {
         root: {
           textTransform: "none",
           fontWeight: "500",
-          borderRadius: "4px",
+          borderRadius: themeSpacing(0.5),
           boxShadow: "none",
           "&:hover": {
             boxShadow: "none",
           },
           "&.MuiButton-outlined": {
-            backgroundColor: "white",
+            backgroundColor: themePalette.primary.contrast,
           },
           "&.Mui-disabled": {
             "&.MuiButton-text": {
               backgroundColor: "transparent",
-              color: themePalette.primary.inactive,
+              color: themePalette.primary.states.disabledBackground,
             },
             "&.MuiButton-contained": {
-              backgroundColor: themePalette.primary.inactive,
-              color: themePalette.primary.contrastText,
+              backgroundColor: themePalette.primary.states.disabledBackground,
+              color: themePalette.primary.contrast,
             },
             "&.MuiButton-outlined": {
-              color: themePalette.primary.inactive,
-              borderColor: themePalette.primary.inactive,
+              color: themePalette.primary.states.disabledBackground,
+              borderColor: themePalette.primary.states.disabledBackground,
             },
           },
         },
       },
     },
     MuiIconButton: {
+      defaultProps: {
+        color: "primary",
+      },
       styleOverrides: {
         root: {
-          "&:hover, &.Mui-focusVisible, &:active, &:focus, &:focus-visible": {
-            backgroundColor: "rgba(0, 0, 0, 0.0)",
-          },
+          boxShadow: "none",
           "& .MuiTouchRipple-root": {
             display: "none",
+          },
+        },
+        colorPrimary: {
+          color: themePalette.primary.main,
+          "&:hover": {
+            backgroundColor: "transparent",
+            color: themePalette.primary.dark,
+          },
+          "&:focus-visible": {
+            backgroundColor: themePalette.primary.states.focusVisible,
+          },
+          "&:disabled": {
+            color: themePalette.primary.states.disabledBackground,
+          },
+        },
+        colorPrimaryContained: {
+          backgroundColor: themePalette.primary.main,
+          color: themePalette.primary.contrast,
+          borderRadius: themeSpacing(0.5),
+          "&:hover": {
+            backgroundColor: themePalette.primary.dark,
+          },
+          "&:focus-visible": {
+            backgroundColor: themePalette.primary.states.focusVisible,
+          },
+          "&:disabled": {
+            backgroundColor: themePalette.primary.states.disabledBackground,
+          },
+        },
+        colorPrimaryOutlined: {
+          color: themePalette.primary.main,
+          backgroundColor: themePalette.primary.contrast,
+          padding: "7px",
+          border: `1px solid ${themePalette.primary.light}`,
+          borderRadius: themeSpacing(0.5),
+          "&:hover": {
+            border: `1px solid ${themePalette.primary.main}`,
+            backgroundColor: themePalette.primary.contrast,
+          },
+          "&:focus-visible": {
+            backgroundColor: themePalette.primary.states.focusVisible,
+            border: `1px solid ${themePalette.primary.main}`,
+          },
+          "&:disabled": {
+            color: themePalette.primary.states.disabledBackground,
+            backgroundColor: themePalette.primary.contrast,
+            border: `1px solid ${themePalette.primary.states.disabledBackground}`,
+          },
+          "&.active": {
+            backgroundColor: themePalette.primary.states.selected,
           },
         },
       },
@@ -209,8 +284,6 @@ export const geopilotTheme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: "#ffffffd5",
-          color: "#000",
           boxShadow: "none",
         },
       },
@@ -331,11 +404,11 @@ export const geopilotTheme = createTheme({
           borderColor: themePalette.primary.light,
           textTransform: "none",
           "&:hover": {
-            backgroundColor: themePalette.primary.hover,
+            backgroundColor: themePalette.primary.states.hover,
           },
           "&.Mui-selected, &.Mui-selected:hover": {
             color: themePalette.primary.main,
-            backgroundColor: themePalette.primary.selected,
+            backgroundColor: themePalette.primary.states.selected,
           },
         },
       },
@@ -353,6 +426,13 @@ export const geopilotTheme = createTheme({
           "&:before": {
             display: "none",
           },
+        },
+      },
+    },
+    MuiAccordionSummary: {
+      styleOverrides: {
+        expandIconWrapper: {
+          color: themePalette.primary.main,
         },
       },
     },
