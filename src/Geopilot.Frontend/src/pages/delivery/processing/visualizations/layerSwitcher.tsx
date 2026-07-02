@@ -451,12 +451,12 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
       ref={containerRef}
       sx={{
         position: "absolute",
-        top: 8,
-        left: 8,
+        bottom: 8,
+        right: 8,
         zIndex: 10,
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-start",
+        alignItems: "flex-end",
         gap: 0.5,
       }}>
       {!open && (
@@ -470,6 +470,8 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
               boxShadow: 1,
               borderRadius: "4px",
               "&:hover": { backgroundColor: "background.paper", color: "text.primary" },
+              // Keep the fill on focus/active: the theme globally clears the IconButton background on these states.
+              "&:focus, &:focus-visible, &.Mui-focusVisible, &:active": { backgroundColor: "background.paper" },
             }}>
             <LayersOutlinedIcon />
           </IconButton>

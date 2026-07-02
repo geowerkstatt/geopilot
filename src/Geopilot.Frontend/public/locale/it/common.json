@@ -92,6 +92,8 @@
   "mandateSaveError": "Si è verificato un errore durante il salvataggio del mandato: {{error}}",
   "mandates": "Mandati",
   "mandatesLoadingError": "Si è verificato un errore durante il caricamento dei mandati: {{error}}",
+  "mapFullscreen": "Schermo intero",
+  "mapFullscreenExit": "Esci da schermo intero",
   "mapResetViewport": "Reimposta la vista per mostrare tutti gli elementi",
   "mapVisualizationFeatureLayer": "Elementi",
   "maxFileCount_one": "un file",

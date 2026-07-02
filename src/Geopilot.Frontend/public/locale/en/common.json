@@ -92,6 +92,8 @@
   "mandateSaveError": "An error occurred while saving the mandate: {{error}}",
   "mandates": "Mandates",
   "mandatesLoadingError": "An error occurred while loading the mandates: {{error}}",
+  "mapFullscreen": "Fullscreen",
+  "mapFullscreenExit": "Exit fullscreen",
   "mapResetViewport": "Reset view to show all features",
   "mapVisualizationFeatureLayer": "Features",
   "maxFileCount_one": "one file",
