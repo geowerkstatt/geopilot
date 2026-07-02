@@ -203,6 +203,9 @@ export const geopilotTheme = createTheme({
       },
     },
     MuiIconButton: {
+      defaultProps: {
+        color: "primary",
+      },
       styleOverrides: {
         root: {
           boxShadow: "none",
@@ -211,6 +214,19 @@ export const geopilotTheme = createTheme({
           },
         },
         colorPrimary: {
+          color: themePalette.primary.main,
+          "&:hover": {
+            backgroundColor: "transparent",
+            color: themePalette.primary.dark,
+          },
+          "&:focus-visible": {
+            backgroundColor: themePalette.primary.states.focusVisible,
+          },
+          "&:disabled": {
+            color: themePalette.primary.states.disabledBackground,
+          },
+        },
+        colorPrimaryContained: {
           backgroundColor: themePalette.primary.main,
           color: themePalette.primary.contrast,
           borderRadius: themeSpacing(0.5),
@@ -224,7 +240,7 @@ export const geopilotTheme = createTheme({
             backgroundColor: themePalette.primary.states.disabledBackground,
           },
         },
-        colorPrimaryInverse: {
+        colorPrimaryOutlined: {
           color: themePalette.primary.main,
           backgroundColor: themePalette.primary.contrast,
           padding: "7px",
@@ -232,6 +248,7 @@ export const geopilotTheme = createTheme({
           borderRadius: themeSpacing(0.5),
           "&:hover": {
             border: `1px solid ${themePalette.primary.main}`,
+            backgroundColor: themePalette.primary.contrast,
           },
           "&:focus-visible": {
             backgroundColor: themePalette.primary.states.focusVisible,

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import SearchIcon from "@mui/icons-material/Search";
-import { Badge, Box, Button, IconButton, InputAdornment, Stack, TextField, Tooltip } from "@mui/material";
+import { Badge, Box, Button, InputAdornment, Stack, TextField } from "@mui/material";
+import { IconButton } from "../../../../components/buttons";
 import { FormAutocomplete } from "../../../../components/form/formAutocomplete";
 import { MetadataAttribute, MetadataFilters } from "./treeNode";
 
@@ -52,18 +53,15 @@ export const FilterBar = ({
           data-cy="tree-message-search"
         />
         {attributes.length > 0 && (
-          <Tooltip title={t("treeFilterToggle")}>
-            <Badge badgeContent={activeFilterCount} color="secondary" sx={{ display: "flex", alignItems: "stretch" }}>
-              <IconButton
-                color={"primaryInverse"}
-                className={toggleActive ? "active" : undefined}
-                onClick={() => setShowFilters(show => !show)}
-                aria-label={t("treeFilterToggle")}
-                data-cy="tree-filter-toggle">
-                <FilterAltIcon />
-              </IconButton>
-            </Badge>
-          </Tooltip>
+          <Badge badgeContent={activeFilterCount} color="secondary" sx={{ display: "flex", alignItems: "stretch" }}>
+            <IconButton
+              color="primaryOutlined"
+              className={toggleActive ? "active" : undefined}
+              onClick={() => setShowFilters(show => !show)}
+              label="treeFilterToggle">
+              <FilterAltIcon />
+            </IconButton>
+          </Badge>
         )}
       </Stack>
       {showFilters && attributes.length > 0 && (

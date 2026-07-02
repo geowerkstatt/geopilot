@@ -2,8 +2,9 @@ import { SyntheticEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { useTranslation } from "react-i18next";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
-import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
+import { IconButton } from "../../../../components/buttons";
 import { MetadataPanel } from "./metadataPanel";
 import { renderTreeItems } from "./renderTreeItems";
 import { collectExpandableIds, collectItemIds, indexNodes, TreeNode } from "./treeNode";
@@ -160,15 +161,13 @@ export const TreeVisualization = ({
             : t("treeErrorCount", { count: totalCount })}
         </Typography>
         {expandableIds.length > 0 && (
-          <Tooltip title={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
-            <IconButton
-              size="small"
-              onClick={toggleExpandAll}
-              data-cy="tree-expand-toggle"
-              aria-label={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
-              {allExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
+          <IconButton
+            size="small"
+            onClick={toggleExpandAll}
+            data-cy="tree-expand-toggle"
+            label={allExpanded ? "treeCollapseAll" : "treeExpandAll"}>
+            {allExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
+          </IconButton>
         )}
       </Stack>
       <Stack direction="row" sx={{ alignItems: "flex-start" }}>

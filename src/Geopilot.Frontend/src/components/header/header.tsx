@@ -9,7 +9,6 @@ import {
   Box,
   Divider,
   Drawer,
-  IconButton,
   List,
   ListItem,
   ListItemButton,
@@ -21,7 +20,7 @@ import {
 } from "@mui/material";
 import { useGeopilotAuth } from "../../auth";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
-import { BaseButton } from "../buttons.tsx";
+import { BaseButton, IconButton } from "../buttons.tsx";
 import { useControlledNavigate } from "../controlledNavigate";
 import { LanguagePopup } from "./languagePopup";
 
@@ -81,7 +80,6 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             <Box sx={{ display: { xs: "block", md: "none", maxHeight: "40px" } }}>
               {hasSubMenu ? (
                 <IconButton
-                  color="inherit"
                   onClick={e => {
                     e.stopPropagation();
                     openSubMenu();
@@ -136,14 +134,12 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             <LanguagePopup />
             {authLoaded &&
               (user ? (
-                <IconButton
-                  sx={{
-                    p: 0,
-                  }}
+                <Avatar
                   onClick={toggleUserMenu(true)}
-                  data-cy="loggedInUser-button">
-                  <Avatar>{user?.fullName[0].toUpperCase()}</Avatar>
-                </IconButton>
+                  data-cy="loggedInUser-button"
+                  sx={{ cursor: "pointer", "&:hover": { backgroundColor: "primary.dark" } }}>
+                  {user?.fullName[0].toUpperCase()}
+                </Avatar>
               ) : (
                 <>
                   <BaseButton variant="text" onClick={login} label="logIn" />

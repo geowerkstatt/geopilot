@@ -5,7 +5,8 @@ import { Spacing } from "@mui/system";
 
 declare module "@mui/material/IconButton" {
   interface IconButtonPropsColorOverrides {
-    primaryInverse: true;
+    primaryContained: true;
+    primaryOutlined: true;
   }
 }
 
