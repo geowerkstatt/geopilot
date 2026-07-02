@@ -47,17 +47,26 @@ public class ErrorTypeClassifierTest
     [DataRow("Wrong ARC structure, C3 expected", "Invalid ARC structure")]
     [DataRow("invalid number of segments in POLYLINE", "Invalid polyline geometry")]
     [DataRow("invalid number of surfaces in COMPLETE basket", "Invalid surface geometry")]
+    [DataRow("Intersection coord1 (2659030.000, 1245030.000), tids catchmentWohlen, catchmentWohlen", "Geometry intersection")]
     [DataRow("No object found with OID 123.", "Referenced object not found")]
     [DataRow("wrong class A of target object B for role R.", "Wrong target class for reference")]
     [DataRow("Model.Topic.Class should associate A to 2 target objects (instead of 0)", "Wrong association multiplicity")]
     public void ClassifyReturnsCategoryForKnownMessage(string message, string expectedCategory)
     {
-        Assert.AreEqual(expectedCategory, ErrorTypeClassifier.Classify(message));
+        Assert.AreEqual(expectedCategory, ErrorTypeClassifier.Classify(message)?["en"]);
     }
 
     [TestMethod]
     public void ClassifyReturnsNullForUnknownMessage()
     {
         Assert.IsNull(ErrorTypeClassifier.Classify("basket DMAV.Grundstuecke is mandatory in transfer"));
+    }
+
+    [TestMethod]
+    public void ClassifyReturnsAllSupportedLanguages()
+    {
+        var category = ErrorTypeClassifier.Classify("Attribute Hoehengenauigkeit requires a value");
+        Assert.IsNotNull(category);
+        CollectionAssert.AreEquivalent(new[] { "de", "fr", "it", "en" }, category.Languages.ToList());
     }
 }

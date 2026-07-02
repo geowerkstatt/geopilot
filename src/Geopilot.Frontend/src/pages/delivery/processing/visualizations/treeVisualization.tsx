@@ -1,10 +1,12 @@
 import { SyntheticEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Stack, Typography } from "@mui/material";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
+import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
 import { MetadataPanel } from "./metadataPanel";
 import { renderTreeItems } from "./renderTreeItems";
-import { collectItemIds, indexNodes, TreeNode } from "./treeNode";
+import { collectExpandableIds, collectItemIds, indexNodes, TreeNode } from "./treeNode";
 
 interface TreeVisualizationProps {
   /** The nodes to render (already filtered by the coordinator). */
@@ -13,8 +15,12 @@ interface TreeVisualizationProps {
   selectedId: string | null;
   /** Called with the structural node id when the selection changes (null when cleared). */
   onSelect: (nodeId: string | null) => void;
-  /** Whether a filter is active: expands every node so all matches are visible, and shows the no-results hint. */
+  /** Whether a filter is active: expands every match, shows the no-results hint, and switches the header count. */
   filterActive?: boolean;
+  /** Total number of errors across all items, shown in the header. */
+  totalCount: number;
+  /** Number of errors currently shown (after filtering); equals totalCount when no filter is active. */
+  shownCount: number;
 }
 
 // Once the tree can no longer keep its minimum width next to the detail box, the box is
@@ -34,13 +40,21 @@ const ancestorIds = (id: string): string[] => {
   return ancestors;
 };
 
-export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = false }: TreeVisualizationProps) => {
+export const TreeVisualization = ({
+  nodes,
+  selectedId,
+  onSelect,
+  filterActive = false,
+  totalCount,
+  shownCount,
+}: TreeVisualizationProps) => {
   const { t } = useTranslation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [containerWidth, setContainerWidth] = useState(0);
   const [panelTop, setPanelTop] = useState(0);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const treeWrapperRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const sideBySide = containerWidth === 0 || containerWidth >= SIDE_BY_SIDE_THRESHOLD;
 
@@ -62,6 +76,12 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
     return ids;
   }, [nodes]);
 
+  const expandableIds = useMemo(() => {
+    const ids: string[] = [];
+    collectExpandableIds(nodes, ids);
+    return ids;
+  }, [nodes]);
+
   const nodesById = useMemo(() => {
     const map = new Map<string, TreeNode>();
     indexNodes(nodes, map);
@@ -75,8 +95,19 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
     setExpandedItems(prev => Array.from(new Set([...prev, ...ancestorIds(selectedId)])));
   }, [selectedId]);
 
-  // While a filter is active every match is shown expanded; otherwise expansion is user-controlled.
-  const expanded = filterActive ? allItemIds : expandedItems;
+  // Applying or changing a filter reveals its matches by expanding all nodes. Expansion then stays
+  // user-controlled, so the tree can still be collapsed and expanded while a filter is active.
+  useEffect(() => {
+    if (filterActive) setExpandedItems(allItemIds);
+  }, [filterActive, allItemIds]);
+
+  // Toggle between fully expanded and fully collapsed.
+  // Clears the selection so the metadata box does not linger at a stale position when its row is collapsed away.
+  const allExpanded = expandableIds.length > 0 && expandableIds.every(id => expandedItems.includes(id));
+  const toggleExpandAll = () => {
+    setExpandedItems(allExpanded ? [] : expandableIds);
+    onSelect(null);
+  };
 
   const selectedNode = selectedId ? (nodesById.get(selectedId) ?? null) : null;
   const hasMetadata = !!selectedNode?.metadata && Object.keys(selectedNode.metadata).length > 0;
@@ -92,7 +123,9 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
     return renderTreeItems(nodes);
   }, [nodes, sideBySide, hasMetadata, selectedId, selectedNode]);
 
-  // Align the box's top with the selected row; recompute when layout-affecting state changes.
+  // Align the box's top with the selected row, but keep it within the tree so a selection far down does not
+  // push the box past the tree and grow the accordion: clamp to the tree's bottom edge. Recompute when
+  // layout-affecting state changes.
   useLayoutEffect(() => {
     if (!sideBySide || !selectedId) {
       setPanelTop(0);
@@ -105,19 +138,39 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
       return;
     }
     const offset = selected.getBoundingClientRect().top - wrapper.getBoundingClientRect().top;
-    setPanelTop(Math.max(0, offset));
-  }, [sideBySide, selectedId, expanded, items, containerWidth]);
+    const panelHeight = panelRef.current?.offsetHeight ?? 0;
+    const maxTop = Math.max(0, wrapper.offsetHeight - panelHeight);
+    setPanelTop(Math.min(Math.max(0, offset), maxTop));
+  }, [sideBySide, selectedId, expandedItems, items, containerWidth]);
 
   // Scroll the selected node into view once it (and its now-expanded ancestors) are rendered.
   useEffect(() => {
     if (!selectedId) return;
     treeWrapperRef.current?.querySelector<HTMLElement>(".Mui-selected")?.scrollIntoView({ block: "nearest" });
-  }, [selectedId, expanded]);
+  }, [selectedId, expandedItems]);
 
   if (nodes.length === 0 && !filterActive) return null;
 
   return (
     <Stack ref={measureContainer} sx={{ width: "100%" }}>
+      <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", gap: 1, mb: 1 }}>
+        <Typography variant="body2" color="text.secondary" data-cy="tree-error-count">
+          {filterActive
+            ? t("treeErrorCountFiltered", { count: totalCount, shown: shownCount })
+            : t("treeErrorCount", { count: totalCount })}
+        </Typography>
+        {expandableIds.length > 0 && (
+          <Tooltip title={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
+            <IconButton
+              size="small"
+              onClick={toggleExpandAll}
+              data-cy="tree-expand-toggle"
+              aria-label={allExpanded ? t("treeCollapseAll") : t("treeExpandAll")}>
+              {allExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+        )}
+      </Stack>
       <Stack direction="row" sx={{ alignItems: "flex-start" }}>
         {nodes.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
@@ -125,17 +178,25 @@ export const TreeVisualization = ({ nodes, selectedId, onSelect, filterActive = 
           </Typography>
         ) : (
           <>
-            <Box ref={treeWrapperRef} sx={{ flex: "1 1 auto", minWidth: 0 }}>
+            <Box
+              ref={treeWrapperRef}
+              sx={{
+                flex: "1 1 auto",
+                minWidth: 0,
+                // Reserve the detail box's width so the tree (and its selection highlight) end at the same
+                // boundary whether or not the box is currently rendered.
+                maxWidth: sideBySide ? `calc(100% - ${PANEL_WIDTH + PANEL_GAP}px)` : "100%",
+              }}>
               <SimpleTreeView
                 selectedItems={selectedId}
                 onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
-                expandedItems={expanded}
+                expandedItems={expandedItems}
                 onExpandedItemsChange={(_: SyntheticEvent, itemIds: string[]) => setExpandedItems(itemIds)}>
                 {items}
               </SimpleTreeView>
             </Box>
             {sideBySide && hasMetadata && (
-              <Box sx={{ mt: `${panelTop}px`, flexShrink: 0, transition: "margin-top 0.15s ease" }}>
+              <Box ref={panelRef} sx={{ mt: `${panelTop}px`, flexShrink: 0, transition: "margin-top 0.15s ease" }}>
                 <MetadataPanel node={selectedNode} />
               </Box>
             )}

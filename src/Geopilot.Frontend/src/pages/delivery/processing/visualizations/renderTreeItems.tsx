@@ -1,56 +1,35 @@
 import { ComponentType, ReactNode } from "react";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { Box, Icon, Stack, SvgIconProps, Typography } from "@mui/material";
+import { Box, Stack, SvgIconProps, Typography } from "@mui/material";
 import { TreeItem } from "@mui/x-tree-view";
 import { nodeId, TreeNode } from "./treeNode";
 
-type IconColor = "inherit" | "action" | "disabled" | "primary" | "secondary" | "error" | "info" | "success" | "warning";
-
-const MUI_ICON_COLORS: IconColor[] = [
-  "inherit",
-  "action",
-  "disabled",
-  "primary",
-  "secondary",
-  "error",
-  "info",
-  "success",
-  "warning",
-];
-
-// Crisp SVG icons for the ligatures the backend emits; the Material Icons webfont is not loaded.
-const SVG_ICONS: Record<string, ComponentType<SvgIconProps>> = {
-  error_outline: ErrorOutlineIcon,
-  warning_amber: WarningAmberIcon,
+// A node's severity ("error"/"warning") picks both the bundled SVG icon and the MUI palette colour. Bundled
+// SVGs avoid the Material Icons webfont, which the CSP blocks (no font-src, so it falls back to
+// default-src 'self') and which would otherwise render a font ligature as its literal text.
+const SEVERITY_ICON: Record<string, ComponentType<SvgIconProps>> = {
+  error: ErrorOutlineIcon,
+  warning: WarningAmberIcon,
 };
 
-const isMuiColor = (value: string): value is IconColor => (MUI_ICON_COLORS as string[]).includes(value);
-
-const iconColorProps = (node: TreeNode): { color?: IconColor; sx?: { color: string } } =>
-  node.color && !isMuiColor(node.color)
-    ? { sx: { color: node.color } }
-    : { color: (node.color as IconColor) ?? "inherit" };
-
 const renderIcon = (node: TreeNode): ReactNode => {
-  if (!node.icon) return null;
-  const colorProps = iconColorProps(node);
-  const SvgIcon = SVG_ICONS[node.icon];
-  if (SvgIcon) {
-    return <SvgIcon fontSize="small" {...colorProps} />;
-  }
-  // Fall back to the font ligature for icon names without a mapped SVG.
-  return (
-    <Icon fontSize="small" {...colorProps}>
-      {node.icon}
-    </Icon>
-  );
+  const SvgIcon = node.color ? SEVERITY_ICON[node.color] : undefined;
+  if (!SvgIcon) return null;
+  return <SvgIcon fontSize="small" color={node.color === "warning" ? "warning" : "error"} />;
 };
 
 const renderLabel = (node: TreeNode): ReactNode => (
-  <Stack direction="row" sx={{ alignItems: "flex-start", gap: 0.5, py: 0.25 }}>
+  <Stack direction="row" sx={{ alignItems: "flex-start", gap: 0.5, py: 0.25, minWidth: 0 }}>
     {renderIcon(node)}
-    <Typography variant="body2">{node.message}</Typography>
+    <Typography variant="body2" sx={{ wordBreak: "break-word", minWidth: 0 }}>
+      {node.message}
+    </Typography>
+    {node.count > 0 && (
+      <Typography variant="body2" color="text.secondary">
+        ({node.count})
+      </Typography>
+    )}
   </Stack>
 );
 

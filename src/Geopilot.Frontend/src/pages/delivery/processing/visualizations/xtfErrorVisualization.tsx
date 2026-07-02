@@ -1,26 +1,25 @@
 import { FC, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Stack } from "@mui/material";
-import { MapVisualizationConfig } from "../../../../api/apiInterfaces";
+import { MapVisualizationConfig, TreeVisualizationConfig } from "../../../../api/apiInterfaces";
+import { useLocalized } from "../../../../hooks/useLocalized";
 import { FilterBar } from "./filterBar";
 import { MapVisualization } from "./mapVisualization";
-import {
-  buildErrorIdIndex,
-  collectMetadataAttributes,
-  filterNodes,
-  MetadataFilters,
-  TreeVisualizationConfig,
-} from "./treeNode";
+import { buildErrorIdIndex, buildTree, collectMetadataAttributes, filterItems, MetadataFilters } from "./treeNode";
 import { TreeVisualization } from "./treeVisualization";
 
 /**
  * The composite XTF error visualization: an optional map and an optional error tree of the same validation
  * errors. Mirrors the backend XtfErrorVisualizationConfig. This component owns the state the two views
  * share: the filter (which filters both) and the selection (which cross-highlights both), correlated by a
- * shared errorId.
+ * shared errorId. The tree itself is built here from the flat items the backend ships, grouped by the
+ * configured metadata keys.
  */
 export interface XtfErrorVisualizationConfig {
   map?: MapVisualizationConfig;
   tree?: TreeVisualizationConfig;
+  /** Metadata keys offered as filters, in display order; the filter spans map + tree. Absent without a tree. */
+  filterBy?: string[];
 }
 
 interface XtfErrorVisualizationProps {
@@ -28,22 +27,32 @@ interface XtfErrorVisualizationProps {
 }
 
 export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }) => {
+  const { t } = useTranslation();
+  const localize = useLocalized();
   const [messageQuery, setMessageQuery] = useState("");
   const [metadataFilters, setMetadataFilters] = useState<MetadataFilters>({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
-  const treeNodes = useMemo(() => config.tree?.nodes ?? [], [config.tree]);
-  const attributes = useMemo(() => collectMetadataAttributes(treeNodes), [treeNodes]);
+  const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
+  const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
+  const filterBy = useMemo(() => config.filterBy ?? [], [config.filterBy]);
+  const attributes = useMemo(() => collectMetadataAttributes(items, localize, filterBy), [items, localize, filterBy]);
   const hasActiveFilters =
     messageQuery.trim().length > 0 || Object.values(metadataFilters).some(values => values.length > 0);
-  const filteredNodes = useMemo(
-    () => (hasActiveFilters ? filterNodes(treeNodes, messageQuery.trim().toLowerCase(), metadataFilters) : treeNodes),
-    [treeNodes, hasActiveFilters, messageQuery, metadataFilters],
+  const filteredItems = useMemo(
+    () => (hasActiveFilters ? filterItems(items, messageQuery.trim().toLowerCase(), metadataFilters, localize) : items),
+    [items, hasActiveFilters, messageQuery, metadataFilters, localize],
   );
 
-  // One index over the SAME nodes the tree renders (filteredNodes) so structural ids match. When no filter
-  // is active filteredNodes === treeNodes, so this also covers the unfiltered case.
-  const { nodeIdByErrorId, errorIdsByNodeId } = useMemo(() => buildErrorIdIndex(filteredNodes), [filteredNodes]);
+  const ungroupedLabel = t("treeVisualizationUngrouped");
+  // The displayed hierarchy, rebuilt from the filtered items so structural ids, counts and selection stay consistent.
+  const nodes = useMemo(
+    () => buildTree(filteredItems, groupBy, localize, ungroupedLabel),
+    [filteredItems, groupBy, localize, ungroupedLabel],
+  );
+
+  // One index over the SAME nodes the tree renders so structural ids match.
+  const { nodeIdByErrorId, errorIdsByNodeId } = useMemo(() => buildErrorIdIndex(nodes), [nodes]);
 
   // Filter result for the map: the error ids still visible (undefined = no filter = show all).
   const visibleErrorIds = useMemo<ReadonlySet<string> | undefined>(
@@ -58,6 +67,10 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
 
   const handleMetadataFilterChange = (key: string, selected: string[]) =>
     setMetadataFilters(current => ({ ...current, [key]: selected }));
+  const handleClearFilters = () => {
+    setMessageQuery("");
+    setMetadataFilters({});
+  };
   const handleSelectFeature = (errorId: string) => setSelectedNodeId(nodeIdByErrorId.get(errorId) ?? null);
 
   return (
@@ -69,6 +82,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
           onMessageQueryChange={setMessageQuery}
           metadataFilters={metadataFilters}
           onMetadataFilterChange={handleMetadataFilterChange}
+          onClearFilters={handleClearFilters}
         />
       )}
       {config.map && (
@@ -82,10 +96,12 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       )}
       {config.tree && (
         <TreeVisualization
-          nodes={filteredNodes}
+          nodes={nodes}
           selectedId={selectedNodeId}
           onSelect={setSelectedNodeId}
           filterActive={hasActiveFilters}
+          totalCount={items.length}
+          shownCount={filteredItems.length}
         />
       )}
     </Stack>
