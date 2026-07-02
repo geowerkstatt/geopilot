@@ -6,6 +6,11 @@
 
 - The XTF validation error tree groups errors by configurable criteria (by default model, topic and class; the tree-only pipeline groups by INTERLIS class), shows the number of entries per group, and displays the error-category titles in the active language.
 
+### Added
+
+- Validation errors can be explored visually in the delivery view: when a validation step fails, its errors are shown on an interactive map and in an error tree. The two views are cross-linked (selecting an error in one highlights it in the other) and share a filter.
+- `Visualization` output action in the `GeoWerkstatt.Geopilot.Pipeline` runtime: a pipeline step can tag an output as a self-describing visualization config (a `{ type, data }` envelope), which the runtime serves to the frontend to render based on its `type`.
+
 ## v3.0.341 - 2026-06-17
 
 ### Added
