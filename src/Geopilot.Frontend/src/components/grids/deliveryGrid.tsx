@@ -4,10 +4,10 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { Tooltip } from "@mui/material";
 import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { ApiError, Delivery } from "../../api/apiInterfaces";
-import { AlertContext } from "../../components/alert/alertContext";
-import GeopilotDataGrid from "../../components/geopilotDataGrid";
-import { PromptContext } from "../../components/prompt/promptContext";
-import useFetch from "../../hooks/useFetch";
+import useFetch from "../../hooks/useFetch.ts";
+import { AlertContext } from "..//alert/alertContext";
+import { PromptContext } from "..//prompt/promptContext";
+import GeopilotDataGrid from "./geopilotDataGrid.tsx";
 
 interface DeliveryInfo {
   id: number;
