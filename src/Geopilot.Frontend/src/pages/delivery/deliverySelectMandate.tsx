@@ -109,6 +109,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
         <DeliveryContinueButton />
       ) : (
         <BaseButton
+          variant="contained"
           onClick={submitForm}
           label="startProcessing"
           disabled={completed || isLoading || selectedId === null}

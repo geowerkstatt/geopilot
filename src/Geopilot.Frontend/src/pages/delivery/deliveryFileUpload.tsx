@@ -57,6 +57,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
     <DeliveryContinueButton />
   ) : (
     <BaseButton
+      variant="contained"
       disabled={isLoading || !formMethods.formState.isValid || selectedFiles.length === 0}
       onClick={() => formMethods.handleSubmit(submitForm)()}
       label="upload"

@@ -152,7 +152,6 @@ export const DeliveryProcessingResults = () => {
                       {step.downloads.map(d => (
                         <BaseButton
                           key={d.originalFileName}
-                          variant="outlined"
                           onClick={() => download(d.url, d.originalFileName)}
                           icon={<FileDownloadIcon />}
                           label={d.originalFileName}

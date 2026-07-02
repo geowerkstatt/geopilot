@@ -6,15 +6,15 @@ import { DeliveryContext } from "./deliveryContext";
 export const DeliveryBackButton = () => {
   const { activeStep, showCompletedOrNextStep } = useContext(DeliveryContext);
 
-  return (
-    activeStep > 0 && (
-      <BaseButton onClick={() => showCompletedOrNextStep(activeStep - 1)} label="back" variant="outlined" />
-    )
-  );
+  return activeStep > 0 && <BaseButton onClick={() => showCompletedOrNextStep(activeStep - 1)} label="back" />;
 };
 
 export const DeliveryContinueButton: FC<Omit<ButtonProps, "onClick" | "label">> = props => {
   const { activeStep, steps, continueToNextStep } = useContext(DeliveryContext);
 
-  return activeStep < steps.size - 1 && <BaseButton {...props} onClick={continueToNextStep} label="continue" />;
+  return (
+    activeStep < steps.size - 1 && (
+      <BaseButton {...props} onClick={continueToNextStep} label="continue" variant="contained" />
+    )
+  );
 };
