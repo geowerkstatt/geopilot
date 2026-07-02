@@ -69,11 +69,13 @@ export const FilterBar = ({
       {showFilters && attributes.length > 0 && (
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 1.5, width: "100%" }}>
           {attributes.map(attribute => (
-            <MetadataFilter
+            <FormAutocomplete
               key={attribute.key}
-              attribute={attribute}
+              label={attribute.key}
+              values={attribute.options}
               selected={metadataFilters[attribute.key] ?? []}
-              onChange={onMetadataFilterChange}
+              onChange={value => onMetadataFilterChange(attribute.key, value as string[])}
+              dataCy={`metadata-filter-${attribute.key}`}
             />
           ))}
         </Box>

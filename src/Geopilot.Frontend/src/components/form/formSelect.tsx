@@ -5,15 +5,24 @@ import { MenuItem, SxProps, TextField } from "@mui/material";
 import { getFormFieldError } from "./form";
 
 export interface FormSelectProps {
-  fieldName: string;
+  /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
+  fieldName?: string;
   label: string;
   required?: boolean;
   disabled?: boolean;
+  /** The default value in form-context mode, the controlled value when `onChange` is provided. */
   selected?: number | string;
   values?: FormSelectValue[];
   sx?: SxProps;
   onUpdate?: (value: number) => void;
   validate?: (value: number | string) => boolean | string;
+  /**
+   * Controlled mode: providing this callback switches the field to standalone operation (no react-hook-form
+   * context required). It receives the selected value on every change.
+   */
+  onChange?: (value: number | string) => void;
+  /** Controlled mode: error state to display. Ignored in form-context mode, which derives it from the form. */
+  error?: boolean;
 }
 
 export interface FormSelectValue {
@@ -41,9 +50,12 @@ export const FormSelect: FC<FormSelectProps> = ({
   sx,
   onUpdate,
   validate,
+  onChange,
+  error,
 }) => {
   const { t } = useTranslation();
-  const { control } = useFormContext();
+  // Returns null when rendered without a FormProvider; only consumed in form-context mode.
+  const formContext = useFormContext();
 
   const menuItems: FormSelectMenuItem[] = [];
   if (!required) {
@@ -61,9 +73,38 @@ export const FormSelect: FC<FormSelectProps> = ({
     });
   }
 
+  const renderMenuItems = () =>
+    menuItems.map(item => (
+      // Hidden items stay in the tree so the select can still render their label as the current value,
+      // but are removed from the open dropdown so they cannot be picked.
+      <MenuItem key={item.key} value={item.value} sx={item.hidden ? { display: "none" } : undefined}>
+        {item.italic ? <em>{item.label}</em> : item.label}
+      </MenuItem>
+    ));
+
+  if (onChange) {
+    return (
+      <TextField
+        select
+        required={required ?? false}
+        error={error ?? false}
+        sx={{ ...sx }}
+        label={t(label)}
+        value={selected ?? ""}
+        onChange={e => onChange(e.target.value)}
+        disabled={disabled ?? false}
+        data-cy={fieldName ? fieldName + "-formSelect" : undefined}
+        InputLabelProps={{ shrink: true }}>
+        {renderMenuItems()}
+      </TextField>
+    );
+  }
+
+  const { control } = formContext;
+
   return (
     <Controller
-      name={fieldName}
+      name={fieldName!}
       control={control}
       defaultValue={selected ?? ""}
       rules={{
@@ -81,7 +122,7 @@ export const FormSelect: FC<FormSelectProps> = ({
           required={required ?? false}
           error={getFormFieldError(fieldName, formState.errors)}
           helperText={
-            formState.errors[fieldName]?.message ? (formState.errors[fieldName]?.message as string) : undefined
+            formState.errors[fieldName!]?.message ? (formState.errors[fieldName!]?.message as string) : undefined
           }
           sx={{ ...sx }}
           label={t(label)}
@@ -93,13 +134,7 @@ export const FormSelect: FC<FormSelectProps> = ({
           disabled={disabled ?? false}
           data-cy={fieldName + "-formSelect"}
           InputLabelProps={{ shrink: true }}>
-          {menuItems.map(item => (
-            // Hidden items stay in the tree so the select can still render their label as the current value,
-            // but are removed from the open dropdown so they cannot be picked.
-            <MenuItem key={item.key} value={item.value} sx={item.hidden ? { display: "none" } : undefined}>
-              {item.italic ? <em>{item.label}</em> : item.label}
-            </MenuItem>
-          ))}
+          {renderMenuItems()}
         </TextField>
       )}
     />
