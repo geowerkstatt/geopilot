@@ -115,5 +115,6 @@ declare module "@mui/material/styles" {
     components: AppThemeComponentsOptions;
   }
 
+  export function createTheme(options?: AppThemeOptions): AppTheme;
   export function createTheme(theme: AppTheme, ...args: object[]): AppTheme;
 }
