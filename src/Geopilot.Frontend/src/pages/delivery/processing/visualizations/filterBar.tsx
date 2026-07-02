@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import SearchIcon from "@mui/icons-material/Search";
-import { Badge, Box, Button, InputAdornment, Stack, TextField } from "@mui/material";
+import { Badge, Box, Button, Stack } from "@mui/material";
 import { IconButton } from "../../../../components/buttons";
 import { FormAutocomplete } from "../../../../components/form/formAutocomplete";
+import { SearchField } from "../../../../components/searchField";
 import { MetadataAttribute, MetadataFilters } from "./treeNode";
 
 interface FilterBarProps {
@@ -35,22 +35,11 @@ export const FilterBar = ({
   return (
     <Stack sx={{ width: "100%", gap: 1.5 }}>
       <Stack direction="row" sx={{ gap: 1, alignItems: "stretch" }}>
-        <TextField
-          size="small"
-          variant="outlined"
-          placeholder={t("treeVisualizationMessageSearch")}
+        <SearchField
+          placeholder="treeVisualizationMessageSearch"
           sx={{ flex: 1 }}
           value={messageQuery}
-          onChange={event => onMessageQueryChange(event.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              </InputAdornment>
-            ),
-          }}
-          inputProps={{ "aria-label": t("treeVisualizationMessageSearch") }}
-          data-cy="tree-message-search"
+          onChange={onMessageQueryChange}
         />
         {attributes.length > 0 && (
           <Badge badgeContent={activeFilterCount} color="secondary" sx={{ display: "flex", alignItems: "stretch" }}>

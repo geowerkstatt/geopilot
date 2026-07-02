@@ -1,15 +1,13 @@
 import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
-import SearchIcon from "@mui/icons-material/Search";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
-import { Box, Checkbox, InputBase, Paper, Slider, Typography } from "@mui/material";
+import { Box, Checkbox, Slider, Stack, Typography } from "@mui/material";
 import Collection from "ol/Collection";
 import { isEmpty } from "ol/extent";
 import BaseLayer from "ol/layer/Base";
@@ -20,6 +18,7 @@ import { ObjectEvent } from "ol/Object";
 import { unByKey } from "ol/Observable";
 import { getUid } from "ol/util";
 import { IconButton } from "../../../../components/buttons";
+import { SearchField } from "../../../../components/searchField";
 
 // Custom layer properties read/written by the switcher. The map sets at least TITLE on the layers it
 // adds so they have a label here. The others default sensibly when absent, so existing layers work
@@ -330,9 +329,9 @@ const LayerCollection = ({ collection, map, rootLayers, onLayerChange, indent = 
   const array = collection.getArray();
 
   return (
-    <Box
-      // column-reverse so the topmost map layer (last in the collection) appears at the top of the list.
-      sx={{ display: "flex", flexDirection: "column-reverse", ml: indent ? 0.5 : 0 }}
+    <Stack
+      direction="column-reverse" // column-reverse so the topmost map layer (last in the collection) appears at the top of the list.
+      sx={{ ml: indent ? 0.5 : 0, width: "100%", gap: 0 }}
       onDragOver={event => {
         if (draggedLayer && dragOverLayer) {
           event.preventDefault();
@@ -395,7 +394,7 @@ const LayerCollection = ({ collection, map, rootLayers, onLayerChange, indent = 
           </Box>
         );
       })}
-    </Box>
+    </Stack>
   );
 };
 
@@ -411,7 +410,6 @@ interface LayerSwitcherProps {
  * visibility (with group cascade), opacity, zoom-to-extent, remove, search and drag-to-reorder.
  */
 export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
-  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -439,19 +437,14 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
   };
 
   return (
-    <Box
+    <Stack
       ref={containerRef}
+      p={0}
       sx={{
         position: "absolute",
         top: 8,
         left: 8,
         zIndex: 10,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: 0.5,
-        border: "1px solid primary.main",
-        borderRadius: 0.5,
       }}>
       {!open && (
         <IconButton color={"primaryOutlined"} label="layers" onClick={() => setOpen(true)}>
@@ -460,56 +453,32 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
       )}
 
       {open && (
-        <Paper
+        <Stack
           data-cy="layer-switcher"
-          elevation={3}
-          sx={{ width: "20em", maxHeight: 360, display: "flex", flexDirection: "column", p: 0.5 }}>
-          <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", mb: 0.5 }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0.5,
-                flex: 1,
-                px: 0.5,
-                border: theme => `2px solid ${searchValue ? theme.palette.primary.main : theme.palette.action.hover}`,
-                borderRadius: "4px",
-              }}>
-              <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              <InputBase
-                data-cy="layer-search-input"
-                placeholder={t("searchLayers")}
-                value={searchValue}
-                onChange={event => applyFilter(event.target.value)}
-                sx={{ flex: 1, fontSize: "0.875rem" }}
-              />
-              <IconButton
-                size="small"
-                data-cy="layer-search-clear"
-                aria-label={t("clearSearch")}
-                onClick={() => applyFilter("")}
-                sx={{
-                  visibility: searchValue ? "visible" : "hidden",
-                  color: "text.secondary",
-                  "&:hover": { color: "error.main" },
-                }}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Box>
+          sx={{
+            width: "20em",
+            maxHeight: 360,
+            p: 1,
+            backgroundColor: "background.content",
+            alignItems: "flex-start",
+            gap: 0.5,
+            border: theme => `1px solid ${theme.palette.primary.main}`,
+            borderRadius: theme => theme.spacing(0.5),
+          }}>
+          <Stack direction="row" sx={{ gap: 0.5, alignItems: "center", mb: 0.5, width: "100%" }}>
+            <SearchField placeholder="searchLayers" value={searchValue} onChange={applyFilter} sx={{ flex: 1 }} />
             <IconButton size="small" label="collapseAllLayers" onClick={() => collapseAll(rootLayers)}>
               <UnfoldLessIcon fontSize="small" />
             </IconButton>
-          </Box>
-          <Box sx={{ overflowY: "auto" }}>
-            <LayerCollection
-              collection={rootCollection}
-              map={map}
-              rootLayers={rootLayers}
-              onLayerChange={onLayerChange}
-            />
-          </Box>
-        </Paper>
+          </Stack>
+          <LayerCollection
+            collection={rootCollection}
+            map={map}
+            rootLayers={rootLayers}
+            onLayerChange={onLayerChange}
+          />
+        </Stack>
       )}
-    </Box>
+    </Stack>
   );
 };
