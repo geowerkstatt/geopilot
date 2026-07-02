@@ -43,7 +43,7 @@ const renderIcon = (state: StepState, index: number): ReactElement => {
     case StepState.Skipped:
       return (
         <RemoveCircleOutlineIcon
-          sx={{ fontSize: ICON_SIZE, color: geopilotTheme.palette.primary.inactive }}
+          sx={{ fontSize: ICON_SIZE, color: geopilotTheme.palette.primary.states.disabledBackground }}
           data-cy="processing-step-icon-skipped"
         />
       );
@@ -80,12 +80,12 @@ const renderIcon = (state: StepState, index: number): ReactElement => {
             width: ICON_SIZE,
             height: ICON_SIZE,
             borderRadius: "50%",
-            border: `2px solid ${geopilotTheme.palette.primary.inactive}`,
+            border: `2px solid ${geopilotTheme.palette.primary.states.disabledBackground}`,
           }}
           data-cy="processing-step-icon-pending">
           <Typography
             variant="caption"
-            sx={{ color: geopilotTheme.palette.primary.inactive, fontWeight: 600, lineHeight: 1 }}>
+            sx={{ color: geopilotTheme.palette.primary.states.disabledBackground, fontWeight: 600, lineHeight: 1 }}>
             {index + 1}
           </Typography>
         </Stack>

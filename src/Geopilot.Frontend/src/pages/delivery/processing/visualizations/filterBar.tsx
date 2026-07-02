@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import SearchIcon from "@mui/icons-material/Search";
 import { Badge, Box, Button, IconButton, InputAdornment, Stack, TextField, Tooltip } from "@mui/material";
-import { MetadataFilter } from "./metadataFilter";
+import { FormAutocomplete } from "../../../../components/form/formAutocomplete";
 import { MetadataAttribute, MetadataFilters } from "./treeNode";
 
 interface FilterBarProps {
@@ -53,25 +53,13 @@ export const FilterBar = ({
         />
         {attributes.length > 0 && (
           <Tooltip title={t("treeFilterToggle")}>
-            <Badge badgeContent={activeFilterCount} color="primary" sx={{ display: "flex", alignItems: "stretch" }}>
+            <Badge badgeContent={activeFilterCount} color="secondary" sx={{ display: "flex", alignItems: "stretch" }}>
               <IconButton
+                color={"primaryInverse"}
+                className={toggleActive ? "active" : undefined}
                 onClick={() => setShowFilters(show => !show)}
                 aria-label={t("treeFilterToggle")}
-                data-cy="tree-filter-toggle"
-                sx={{
-                  aspectRatio: "1 / 1",
-                  height: "auto",
-                  border: 1,
-                  borderColor: toggleActive ? "primary.light" : "divider",
-                  borderRadius: 1,
-                  // Keep the icon dark on a light selected fill (per design) instead of inverting to white.
-                  color: "primary.main",
-                  backgroundColor: toggleActive ? "primary.selected" : "transparent",
-                  "&:hover": { backgroundColor: toggleActive ? "primary.selected" : "primary.hover" },
-                  "&:focus, &:focus-visible, &:active": {
-                    backgroundColor: toggleActive ? "primary.selected" : "transparent",
-                  },
-                }}>
+                data-cy="tree-filter-toggle">
                 <FilterAltIcon />
               </IconButton>
             </Badge>

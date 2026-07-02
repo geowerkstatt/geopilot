@@ -31,7 +31,7 @@ const Overlay = styled(Box)(({ theme }) => ({
 
 // hide the scrolled content
 const ScrollContentOverlay = styled(Overlay)(({ theme }) => ({
-  background: theme.palette.primary.background,
+  background: theme.palette.background.base,
   height: `${desktopTopDistance}px`,
   transform: "translateY(-100%)",
   margin: `0 -${theme.spacing(1)}`,
@@ -53,8 +53,8 @@ const ContainerTopBorder = styled(Overlay)(({ theme }) => ({
 // hide the border of the scrolled content
 const ContainerTopBorderOverlay = styled(Overlay)(({ theme }) => ({
   height: theme.shape.borderRadius,
-  borderLeft: `1px solid ${theme.palette.primary.background}`,
-  borderRight: `1px solid ${theme.palette.primary.background}`,
+  borderLeft: `1px solid ${theme.palette.background.base}`,
+  borderRight: `1px solid ${theme.palette.background.base}`,
 }));
 
 const DeliveryContentBox = styled(Stack)({

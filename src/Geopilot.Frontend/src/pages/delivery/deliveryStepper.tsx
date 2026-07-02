@@ -37,7 +37,7 @@ const DeliveryStepBox = styled(GeopilotBox, {
   error: boolean;
   enabled: boolean;
 }>(({ open, enabled, error, theme }) => ({
-  backgroundColor: open ? (error ? theme.palette.error.selected : theme.palette.primary.selected) : "white",
+  backgroundColor: open ? (error ? theme.palette.error.selected : theme.palette.primary.states.selected) : "white",
   alignItems: "flex-start",
   cursor: enabled ? "pointer" : "default",
   [theme.breakpoints.down("md")]: {

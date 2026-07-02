@@ -54,7 +54,7 @@ export function LanguagePopup() {
         onClick={handleClick}
         endIcon={anchorEl ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         sx={{
-          ...(anchorEl && { backgroundColor: geopilotTheme.palette.primary.hover }),
+          ...(anchorEl && { backgroundColor: geopilotTheme.palette.primary.states.hover }),
         }}
         data-cy="language-selector">
         {selectedLanguage.toUpperCase()}
@@ -82,7 +82,7 @@ export function LanguagePopup() {
               }}
               sx={{
                 cursor: "pointer",
-                "&:hover": { backgroundColor: geopilotTheme.palette.primary.hover },
+                "&:hover": { backgroundColor: geopilotTheme.palette.primary.states.hover },
               }}>
               {selectedLanguage === language && (
                 <ListItemIcon sx={{ minWidth: "20px" }}>

@@ -43,7 +43,7 @@ export const AppContext = () => {
         gridLng = gridEn;
         break;
     }
-    setTheme(createTheme(geopilotTheme, gridLng, coreLng) as unknown as AppTheme);
+    setTheme(createTheme(geopilotTheme, gridLng, coreLng));
   }, [language]);
 
   useEffect(() => {

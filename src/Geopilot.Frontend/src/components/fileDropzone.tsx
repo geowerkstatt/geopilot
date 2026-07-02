@@ -109,12 +109,12 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       padding: geopilotTheme.spacing(3),
       border: `2px dashed`,
       borderColor: disabled
-        ? geopilotTheme.palette.primary.inactive
+        ? geopilotTheme.palette.primary.states.disabledBackground
         : error
           ? geopilotTheme.palette.error.main
           : geopilotTheme.palette.primary.main,
       borderRadius: "4px",
-      backgroundColor: error ? geopilotTheme.palette.error.hover : geopilotTheme.palette.primary.hover,
+      backgroundColor: error ? geopilotTheme.palette.error.hover : geopilotTheme.palette.primary.states.hover,
       outline: "none",
       transition: "border .24s ease-in-out",
       cursor: disabled ? "default" : "pointer",

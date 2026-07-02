@@ -21,7 +21,7 @@ export const MetadataPanel = ({ node, fullWidth = false }: MetadataPanelProps) =
         maxWidth: "100%",
         flexShrink: 0,
         gap: 1,
-        backgroundColor: geopilotTheme.palette.primary.active,
+        backgroundColor: geopilotTheme.palette.primary.states.selected,
       }}>
       <Typography variant="subtitle2">{t("treeVisualizationMetadataTitle")}</Typography>
       <Table size="small" sx={{ tableLayout: "fixed" }}>

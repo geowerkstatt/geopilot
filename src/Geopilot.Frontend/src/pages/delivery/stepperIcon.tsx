@@ -33,8 +33,10 @@ export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, comple
               height: "24px",
               lineHeight: "24px",
               backgroundColor:
-                enabled || completed ? geopilotTheme.palette.primary.main : geopilotTheme.palette.primary.inactive,
-              color: geopilotTheme.palette.primary.contrastText,
+                enabled || completed
+                  ? geopilotTheme.palette.primary.main
+                  : geopilotTheme.palette.primary.states.disabledBackground,
+              color: geopilotTheme.palette.primary.contrast,
               alignItems: "center",
               fontSize: "12px",
             }}

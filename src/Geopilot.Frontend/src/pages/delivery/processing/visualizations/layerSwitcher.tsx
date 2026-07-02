@@ -458,6 +458,8 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
         flexDirection: "column",
         alignItems: "flex-start",
         gap: 0.5,
+        border: "1px solid primary.main",
+        borderRadius: 0.5,
       }}>
       {!open && (
         <Tooltip title={t("layers")}>
