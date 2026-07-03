@@ -147,7 +147,12 @@ const AdminDetailForm = <T extends { id: number }>({
   return (
     <Stack>
       <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-        <BaseButton variant={"text"} icon={<ChevronLeft />} onClick={() => navigateTo(basePath)} label={backLabel} />
+        <BaseButton
+          variant={"text"}
+          startIcon={<ChevronLeft />}
+          onClick={() => navigateTo(basePath)}
+          label={backLabel}
+        />
         {data && data.id !== 0 && <Typography variant={"body2"}>{t("id") + ": " + data?.id}</Typography>}
       </Stack>
       {!data ? (

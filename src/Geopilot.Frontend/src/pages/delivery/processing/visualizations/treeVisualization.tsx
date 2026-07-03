@@ -4,7 +4,7 @@ import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { Box, Stack, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
-import { IconButton } from "../../../../components/buttons";
+import { BaseButton } from "../../../../components/buttons.tsx";
 import { MetadataPanel } from "./metadataPanel";
 import { renderTreeItems } from "./renderTreeItems";
 import { collectExpandableIds, collectItemIds, indexNodes, TreeNode } from "./treeNode";
@@ -41,6 +41,23 @@ const ancestorIds = (id: string): string[] => {
   return ancestors;
 };
 
+// Tracks an element's width via ResizeObserver. Returns a callback ref to attach to the element and the
+// latest measured width (0 until mounted). A callback ref handles the element mounting only once data loads.
+const useElementWidth = <T extends HTMLElement>(): [(node: T | null) => void, number] => {
+  const [width, setWidth] = useState(0);
+  const observerRef = useRef<ResizeObserver | null>(null);
+
+  const ref = useCallback((node: T | null) => {
+    observerRef.current?.disconnect();
+    if (!node) return;
+    const observer = new ResizeObserver(entries => setWidth(entries[0].contentRect.width));
+    observer.observe(node);
+    observerRef.current = observer;
+  }, []);
+
+  return [ref, width];
+};
+
 export const TreeVisualization = ({
   nodes,
   selectedId,
@@ -51,25 +68,12 @@ export const TreeVisualization = ({
 }: TreeVisualizationProps) => {
   const { t } = useTranslation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  const [containerWidth, setContainerWidth] = useState(0);
   const [panelTop, setPanelTop] = useState(0);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const [measureContainer, containerWidth] = useElementWidth<HTMLDivElement>();
   const treeWrapperRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const sideBySide = containerWidth === 0 || containerWidth >= SIDE_BY_SIDE_THRESHOLD;
-
-  // Callback ref: the container only mounts once data is loaded, so attach the observer
-  // when the element appears rather than on first render (when nothing is rendered yet).
-  const measureContainer = useCallback((node: HTMLDivElement | null) => {
-    resizeObserverRef.current?.disconnect();
-    if (!node) return;
-    const observer = new ResizeObserver(entries => {
-      setContainerWidth(entries[0].contentRect.width);
-    });
-    observer.observe(node);
-    resizeObserverRef.current = observer;
-  }, []);
 
   const allItemIds = useMemo(() => {
     const ids: string[] = [];
@@ -113,12 +117,11 @@ export const TreeVisualization = ({
   const selectedNode = selectedId ? (nodesById.get(selectedId) ?? null) : null;
   const hasMetadata = !!selectedNode?.metadata && Object.keys(selectedNode.metadata).length > 0;
 
-  // In narrow layouts the box is woven into the tree right below the selected item.
   const items = useMemo(() => {
     if (!sideBySide && hasMetadata) {
       return renderTreeItems(nodes, "n", {
         selectedId,
-        inlinePanel: <MetadataPanel node={selectedNode} fullWidth />,
+        inlinePanel: <MetadataPanel node={selectedNode} />,
       });
     }
     return renderTreeItems(nodes);
@@ -153,55 +156,56 @@ export const TreeVisualization = ({
   if (nodes.length === 0 && !filterActive) return null;
 
   return (
-    <Stack ref={measureContainer} sx={{ width: "100%" }}>
-      <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", gap: 1, mb: 1 }}>
-        <Typography variant="body2" color="text.secondary" data-cy="tree-error-count">
+    <Stack ref={measureContainer} sx={{ width: "100%" }} gap={1}>
+      <Stack
+        direction="row"
+        sx={{ alignItems: "center", justifyContent: expandableIds.length > 0 ? "space-between" : "flex-start" }}>
+        <Typography variant="body2" m={0}>
           {filterActive
             ? t("treeErrorCountFiltered", { count: totalCount, shown: shownCount })
             : t("treeErrorCount", { count: totalCount })}
         </Typography>
         {expandableIds.length > 0 && (
-          <IconButton
+          <BaseButton
+            variant="text"
             size="small"
             onClick={toggleExpandAll}
-            data-cy="tree-expand-toggle"
-            label={allExpanded ? "treeCollapseAll" : "treeExpandAll"}>
-            {allExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
-          </IconButton>
+            label={allExpanded ? "treeCollapseAll" : "treeExpandAll"}
+            endIcon={allExpanded ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
+          />
         )}
       </Stack>
-      <Stack direction="row" sx={{ alignItems: "flex-start" }}>
-        {nodes.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
-            {t("treeVisualizationNoResults")}
-          </Typography>
-        ) : (
-          <>
-            <Box
-              ref={treeWrapperRef}
-              sx={{
-                flex: "1 1 auto",
-                minWidth: 0,
-                // Reserve the detail box's width so the tree (and its selection highlight) end at the same
-                // boundary whether or not the box is currently rendered.
-                maxWidth: sideBySide ? `calc(100% - ${PANEL_WIDTH + PANEL_GAP}px)` : "100%",
-              }}>
-              <SimpleTreeView
-                selectedItems={selectedId}
-                onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
-                expandedItems={expandedItems}
-                onExpandedItemsChange={(_: SyntheticEvent, itemIds: string[]) => setExpandedItems(itemIds)}>
-                {items}
-              </SimpleTreeView>
-            </Box>
-            {sideBySide && hasMetadata && (
-              <Box ref={panelRef} sx={{ mt: `${panelTop}px`, flexShrink: 0, transition: "margin-top 0.15s ease" }}>
-                <MetadataPanel node={selectedNode} />
-              </Box>
-            )}
-          </>
-        )}
-      </Stack>
+      {nodes.length > 0 && (
+        <Stack direction="row" sx={{ alignItems: "flex-start" }}>
+          <Box
+            ref={treeWrapperRef}
+            sx={{
+              flex: "1 1 auto",
+              minWidth: 0,
+            }}>
+            <SimpleTreeView
+              selectedItems={selectedId}
+              onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
+              expandedItems={expandedItems}
+              onExpandedItemsChange={(_: SyntheticEvent, itemIds: string[]) => setExpandedItems(itemIds)}
+              sx={{ "& .MuiTreeItem-content": { pl: 0 } }}>
+              {items}
+            </SimpleTreeView>
+          </Box>
+          <Box
+            ref={panelRef}
+            sx={{
+              display: sideBySide ? "block" : "none",
+              mt: `${panelTop}px`,
+              flexShrink: 0,
+              transition: "margin-top 0.15s ease",
+              width: PANEL_WIDTH,
+              maxWidth: "100%",
+            }}>
+            {sideBySide && hasMetadata && <MetadataPanel node={selectedNode} />}
+          </Box>
+        </Stack>
+      )}
     </Stack>
   );
 };

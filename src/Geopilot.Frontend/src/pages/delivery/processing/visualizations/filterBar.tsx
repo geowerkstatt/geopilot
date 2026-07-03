@@ -33,47 +33,44 @@ export const FilterBar = ({
   const toggleActive = showFilters || activeFilterCount > 0;
 
   return (
-    <Stack sx={{ width: "100%", gap: 1.5 }}>
-      <Stack direction="row" sx={{ gap: 1, alignItems: "stretch" }}>
-        <SearchField
-          placeholder="treeVisualizationMessageSearch"
-          sx={{ flex: 1 }}
-          value={messageQuery}
-          onChange={onMessageQueryChange}
-        />
-        {attributes.length > 0 && (
-          <Badge badgeContent={activeFilterCount} color="secondary" sx={{ display: "flex", alignItems: "stretch" }}>
-            <IconButton
-              color="primaryOutlined"
-              className={toggleActive ? "active" : undefined}
-              onClick={() => setShowFilters(show => !show)}
-              label="treeFilterToggle">
-              <FilterAltIcon />
-            </IconButton>
-          </Badge>
+    <Stack sx={{ width: "100%", gap: 1 }}>
+      <Stack>
+        <Stack direction="row" sx={{ alignItems: "stretch" }}>
+          <SearchField
+            placeholder="treeVisualizationMessageSearch"
+            sx={{ flex: 1 }}
+            value={messageQuery}
+            onChange={onMessageQueryChange}
+          />
+          {attributes.length > 0 && (
+            <Badge badgeContent={activeFilterCount} color="secondary" sx={{ display: "flex", alignItems: "stretch" }}>
+              <IconButton
+                color="primaryOutlined"
+                className={toggleActive ? "active" : undefined}
+                onClick={() => setShowFilters(show => !show)}
+                label="treeFilterToggle">
+                <FilterAltIcon />
+              </IconButton>
+            </Badge>
+          )}
+        </Stack>
+        {showFilters && attributes.length > 0 && (
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 2, width: "100%" }}>
+            {attributes.map(attribute => (
+              <FormAutocomplete
+                key={attribute.key}
+                label={attribute.key}
+                values={attribute.options}
+                selected={metadataFilters[attribute.key] ?? []}
+                onChange={value => onMetadataFilterChange(attribute.key, value as string[])}
+                dataCy={`metadata-filter-${attribute.key}`}
+              />
+            ))}
+          </Box>
         )}
       </Stack>
-      {showFilters && attributes.length > 0 && (
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 1.5, width: "100%" }}>
-          {attributes.map(attribute => (
-            <FormAutocomplete
-              key={attribute.key}
-              label={attribute.key}
-              values={attribute.options}
-              selected={metadataFilters[attribute.key] ?? []}
-              onChange={value => onMetadataFilterChange(attribute.key, value as string[])}
-              dataCy={`metadata-filter-${attribute.key}`}
-            />
-          ))}
-        </Box>
-      )}
       <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
-        <Button
-          variant="text"
-          size="small"
-          onClick={onClearFilters}
-          disabled={!hasActiveFilters}
-          data-cy="tree-filter-reset">
+        <Button size="small" onClick={onClearFilters} disabled={!hasActiveFilters}>
           {t("treeFilterReset")}
         </Button>
       </Stack>

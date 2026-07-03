@@ -153,7 +153,7 @@ export const DeliveryProcessingResults = () => {
                         <BaseButton
                           key={d.originalFileName}
                           onClick={() => download(d.url, d.originalFileName)}
-                          icon={<FileDownloadIcon />}
+                          startIcon={<FileDownloadIcon />}
                           label={d.originalFileName}
                         />
                       ))}

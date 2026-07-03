@@ -7,19 +7,16 @@ import { TreeNode } from "./treeNode";
 
 interface MetadataPanelProps {
   node: TreeNode | null;
-  fullWidth?: boolean;
 }
 
-export const MetadataPanel = ({ node, fullWidth = false }: MetadataPanelProps) => {
+export const MetadataPanel = ({ node }: MetadataPanelProps) => {
   const { t } = useTranslation();
   const entries = node?.metadata ? Object.entries(node.metadata) : [];
 
   return (
     <GeopilotBox
       sx={{
-        width: fullWidth ? "100%" : 380,
-        maxWidth: "100%",
-        flexShrink: 0,
+        width: "100%",
         gap: 1,
         backgroundColor: geopilotTheme.palette.primary.states.selected,
       }}>

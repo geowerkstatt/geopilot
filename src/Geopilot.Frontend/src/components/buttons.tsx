@@ -7,7 +7,8 @@ import { IconButtonProps as MuiIconButtonProps } from "@mui/material/IconButton"
 export interface ButtonProps extends MuiButtonProps {
   onClick: () => void;
   label?: string;
-  icon?: ReactNode;
+  startIcon?: ReactNode;
+  endIcon?: ReactNode;
 }
 
 export const BaseButton = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
@@ -18,7 +19,8 @@ export const BaseButton = forwardRef<HTMLButtonElement, ButtonProps>((props, ref
       {...props}
       variant={props.variant ?? "outlined"}
       data-cy={props.label + "-button"}
-      startIcon={props.icon}>
+      startIcon={props.startIcon}
+      endIcon={props.endIcon}>
       {props.label && t(props.label)}
     </Button>
   );

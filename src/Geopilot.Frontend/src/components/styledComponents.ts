@@ -28,6 +28,6 @@ export const CenteredBox = styled(Stack)({
 export const GeopilotBox = styled(Stack)(({ theme }) => ({
   backgroundColor: "white",
   border: `1px solid ${theme.palette.primary.light}`,
-  borderRadius: "4px",
-  padding: "16px",
+  borderRadius: theme.spacing(0.5),
+  padding: theme.spacing(2),
 }));

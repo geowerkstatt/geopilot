@@ -98,7 +98,7 @@ export const Licenses = () => {
           id="backButton"
           variant={"text"}
           color="primary"
-          icon={<ChevronLeft />}
+          startIcon={<ChevronLeft />}
           onClick={() => navigate(-1)}
           label="back"
         />
