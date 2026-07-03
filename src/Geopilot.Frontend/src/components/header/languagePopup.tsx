@@ -2,7 +2,7 @@ import { MouseEvent, useCallback, useEffect, useState } from "react";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { List, ListItem, ListItemIcon, ListItemText, Popover } from "@mui/material";
+import { ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
 import { Language } from "../../appInterfaces";
 import { geopilotTheme } from "../../appTheme.ts";
 import i18n from "../../i18n";
@@ -14,6 +14,7 @@ const languages: string[] = Object.values(Language);
 export function LanguagePopup() {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>(defaultLanguage);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement>();
+  const open = Boolean(anchorEl);
 
   const handleClick = useCallback((event: MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -26,11 +27,7 @@ export function LanguagePopup() {
   useEffect(() => {
     const handleLanguageChange = () => {
       const languageIndex = languages.indexOf(i18n.language);
-      if (languageIndex !== -1) {
-        setSelectedLanguage(languages[languageIndex] as Language);
-      } else {
-        setSelectedLanguage(defaultLanguage);
-      }
+      setSelectedLanguage(languageIndex !== -1 ? (languages[languageIndex] as Language) : defaultLanguage);
     };
     handleLanguageChange();
 
@@ -56,54 +53,35 @@ export function LanguagePopup() {
         label={selectedLanguage.toUpperCase()}
         onClick={handleClick}
         endIcon={anchorEl ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-        sx={{
-          ...(anchorEl && { backgroundColor: geopilotTheme.palette.primary.states.hover }),
-        }}
+        sx={{ ...(open && { backgroundColor: geopilotTheme.palette.primary.states.hover }) }}
         data-cy="language-selector"
       />
-      <Popover
+      <Menu
         anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
+        open={open}
         onClose={handleClose}
         sx={{ mt: 0.5 }}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "right",
-        }}>
-        <List sx={{ padding: 0 }}>
-          {languages.map(language => (
-            <ListItem
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+        MenuListProps={{ sx: { py: 0 } }}>
+        {languages.map(language => {
+          const isSelected = selectedLanguage === language;
+          return (
+            <MenuItem
               key={language}
+              role="menuitemradio"
+              aria-checked={isSelected}
+              onClick={() => onLanguageChanged(language)}
               data-cy={`language-${language}`}
-              onClick={() => {
-                onLanguageChanged(language);
-              }}
-              sx={{
-                cursor: "pointer",
-                "&:hover": { backgroundColor: geopilotTheme.palette.primary.states.hover },
-              }}>
-              {selectedLanguage === language && (
-                <ListItemIcon sx={{ minWidth: "20px" }}>
-                  <CheckIcon fontSize="small" sx={{ mr: 1 }} />
-                </ListItemIcon>
-              )}
-              <ListItemText
-                sx={{
-                  textAlign: "right",
-                  minWidth: "24px",
-                  paddingLeft: "5px",
-                  fontSize: "14px",
-                }}>
+              sx={{ "&:hover": { backgroundColor: geopilotTheme.palette.primary.states.hover } }}>
+              <ListItemIcon sx={{ minWidth: "20px" }}>{isSelected && <CheckIcon fontSize="small" />}</ListItemIcon>
+              <ListItemText primaryTypographyProps={{ variant: "body2" }} sx={{ textAlign: "right" }}>
                 {language.toUpperCase()}
               </ListItemText>
-            </ListItem>
-          ))}
-        </List>
-      </Popover>
+            </MenuItem>
+          );
+        })}
+      </Menu>
     </>
   );
 }
