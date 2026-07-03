@@ -23,8 +23,8 @@ const renderLabel = (node: TreeNode): ReactNode => (
       {node.message}
     </Typography>
     {node.count > 0 && (
-      <Typography variant="body2" color="text.secondary">
-        ({node.count})
+      <Typography variant="body2" color="text.secondary" ml={1}>
+        ( {node.count} )
       </Typography>
     )}
   </Stack>
