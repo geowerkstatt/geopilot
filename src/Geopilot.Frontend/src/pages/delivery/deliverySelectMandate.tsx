@@ -5,7 +5,7 @@ import { toggleButtonClasses } from "@mui/material/ToggleButton";
 import { styled } from "@mui/system";
 import { Mandate } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
-import { BaseButton } from "../../components/buttons";
+import { Button } from "../../components/buttons";
 import useFetch from "../../hooks/useFetch";
 import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons";
 import { DeliveryContent } from "./deliveryContent";
@@ -108,7 +108,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
       {completed ? (
         <DeliveryContinueButton />
       ) : (
-        <BaseButton
+        <Button
           variant="contained"
           onClick={submitForm}
           label="startProcessing"

@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ExpandMore } from "@mui/icons-material";
 import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Stack, Typography } from "@mui/material";
 import { ContentType } from "../../api/apiInterfaces.ts";
-import { BaseButton } from "../../components/buttons.tsx";
+import { Button } from "../../components/buttons.tsx";
 import { CenteredBox } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 
@@ -94,14 +94,7 @@ export const Licenses = () => {
   return (
     <CenteredBox>
       <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-        <BaseButton
-          id="backButton"
-          variant={"text"}
-          color="primary"
-          startIcon={<ChevronLeft />}
-          onClick={() => navigate(-1)}
-          label="back"
-        />
+        <Button id="backButton" variant="text" startIcon={<ChevronLeft />} onClick={() => navigate(-1)} label="back" />
       </Stack>
       {(licenseInfo || licenseInfoCustom) && (
         <Typography variant="h1" id="licenses">

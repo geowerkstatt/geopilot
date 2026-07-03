@@ -4,7 +4,7 @@ import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { Box, Stack, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
-import { BaseButton } from "../../../../components/buttons.tsx";
+import { Button } from "../../../../components/buttons.tsx";
 import { MetadataPanel } from "./metadataPanel";
 import { renderTreeItems } from "./renderTreeItems";
 import { collectExpandableIds, collectItemIds, indexNodes, TreeNode } from "./treeNode";
@@ -166,7 +166,7 @@ export const TreeVisualization = ({
             : t("treeErrorCount", { count: totalCount })}
         </Typography>
         {expandableIds.length > 0 && (
-          <BaseButton
+          <Button
             variant="text"
             size="small"
             onClick={toggleExpandAll}

@@ -4,7 +4,7 @@ import { Trans } from "react-i18next";
 import { Link, Stack } from "@mui/material";
 import { ProcessingSettings } from "../../api/apiInterfaces.ts";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
-import { BaseButton } from "../../components/buttons.tsx";
+import { Button } from "../../components/buttons.tsx";
 import { FileDropzone } from "../../components/fileDropzone.tsx";
 import { FormCheckbox } from "../../components/form/form.ts";
 import useFetch from "../../hooks/useFetch.ts";
@@ -56,7 +56,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   const button = completed ? (
     <DeliveryContinueButton />
   ) : (
-    <BaseButton
+    <Button
       variant="contained"
       disabled={isLoading || !formMethods.formState.isValid || selectedFiles.length === 0}
       onClick={() => formMethods.handleSubmit(submitForm)()}

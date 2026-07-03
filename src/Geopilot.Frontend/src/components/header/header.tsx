@@ -20,7 +20,7 @@ import {
 } from "@mui/material";
 import { useGeopilotAuth } from "../../auth";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
-import { BaseButton, IconButton } from "../buttons.tsx";
+import { Button, IconButton } from "../buttons.tsx";
 import { useControlledNavigate } from "../controlledNavigate";
 import { LanguagePopup } from "./languagePopup";
 
@@ -142,7 +142,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 </Avatar>
               ) : (
                 <>
-                  <BaseButton variant="text" onClick={login} label="logIn" />
+                  <Button variant="text" onClick={login} label="logIn" />
                 </>
               ))}
           </Stack>
@@ -216,7 +216,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </List>
           </Box>
-          <BaseButton sx={{ mx: 2 }} onClick={logout} label="logOut" />
+          <Button sx={{ mx: 2 }} onClick={logout} label="logOut" />
         </Stack>
       </Drawer>
     </>

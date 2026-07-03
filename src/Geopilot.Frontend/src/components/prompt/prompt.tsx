@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText } from "@mui/material";
+import { Dialog, DialogActions, DialogContent, DialogContentText } from "@mui/material";
+import { Button } from "../buttons";
 import { PromptContext } from "./promptContext";
 
 export const Prompt = () => {
@@ -15,17 +16,17 @@ export const Prompt = () => {
         {actions?.map((action, index) => (
           <Button
             key={index}
+            label={action.label}
             onClick={() => {
               !!action.action && action.action();
               closePrompt();
             }}
             startIcon={action.icon}
-            color={action.color ? action.color : "primary"}
-            variant={action.variant ? action.variant : "outlined"}
+            color={action.color}
+            variant={action.variant}
             disabled={action.disabled === true}
-            data-cy={"prompt-button-" + action.label}>
-            {t(action.label)}
-          </Button>
+            data-cy={"prompt-button-" + action.label}
+          />
         ))}
       </DialogActions>
     </Dialog>

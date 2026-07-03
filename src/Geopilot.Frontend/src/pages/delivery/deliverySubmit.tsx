@@ -3,7 +3,7 @@ import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Alert, Stack, Typography } from "@mui/material";
 import { Delivery, FieldEvaluationType } from "../../api/apiInterfaces.ts";
-import { BaseButton } from "../../components/buttons.tsx";
+import { Button } from "../../components/buttons.tsx";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons.tsx";
@@ -40,7 +40,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
       {completed ? (
         <DeliveryContinueButton />
       ) : (
-        <BaseButton
+        <Button
           label="createDelivery"
           disabled={!formMethods.formState.isValid || isLoading}
           onClick={() => formMethods.handleSubmit(submitForm)()}

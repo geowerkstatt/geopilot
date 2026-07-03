@@ -117,7 +117,7 @@ export const DeliveryStepper = () => {
             </Stack>
           </DeliveryStepBox>
         ))}
-        <DeliveryRestartButton sx={{ alignSelf: "flex-end", display: { xs: "none", md: "block" } }} />
+        <DeliveryRestartButton sx={{ alignSelf: "flex-start", display: { xs: "none", md: "block" } }} />
       </StepperStack>
     </StepperViewport>
   );

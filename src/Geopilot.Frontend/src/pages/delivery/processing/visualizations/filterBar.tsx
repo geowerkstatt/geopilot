@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import { Badge, Box, Button, Stack } from "@mui/material";
-import { IconButton } from "../../../../components/buttons";
+import { Badge, Box, Stack } from "@mui/material";
+import { Button, IconButton } from "../../../../components/buttons";
 import { FormAutocomplete } from "../../../../components/form/formAutocomplete";
 import { SearchField } from "../../../../components/searchField";
 import { MetadataAttribute, MetadataFilters } from "./treeNode";
@@ -24,7 +23,6 @@ export const FilterBar = ({
   onMetadataFilterChange,
   onClearFilters,
 }: FilterBarProps) => {
-  const { t } = useTranslation();
   const [showFilters, setShowFilters] = useState(false);
 
   const activeFilterCount = Object.values(metadataFilters).filter(values => values.length > 0).length;
@@ -70,9 +68,13 @@ export const FilterBar = ({
         )}
       </Stack>
       <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
-        <Button size="small" onClick={onClearFilters} disabled={!hasActiveFilters}>
-          {t("treeFilterReset")}
-        </Button>
+        <Button
+          size="small"
+          variant="text"
+          label="treeFilterReset"
+          onClick={onClearFilters}
+          disabled={!hasActiveFilters}
+        />
       </Stack>
     </Stack>
   );

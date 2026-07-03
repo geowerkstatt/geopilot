@@ -2,10 +2,11 @@ import { MouseEvent, useCallback, useEffect, useState } from "react";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Button, List, ListItem, ListItemIcon, ListItemText, Popover } from "@mui/material";
+import { List, ListItem, ListItemIcon, ListItemText, Popover } from "@mui/material";
 import { Language } from "../../appInterfaces";
 import { geopilotTheme } from "../../appTheme.ts";
 import i18n from "../../i18n";
+import { Button } from "../buttons";
 
 const defaultLanguage = Language.DE;
 const languages: string[] = Object.values(Language);
@@ -51,14 +52,15 @@ export function LanguagePopup() {
   return (
     <>
       <Button
+        variant="text"
+        label={selectedLanguage.toUpperCase()}
         onClick={handleClick}
         endIcon={anchorEl ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         sx={{
           ...(anchorEl && { backgroundColor: geopilotTheme.palette.primary.states.hover }),
         }}
-        data-cy="language-selector">
-        {selectedLanguage.toUpperCase()}
-      </Button>
+        data-cy="language-selector"
+      />
       <Popover
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}

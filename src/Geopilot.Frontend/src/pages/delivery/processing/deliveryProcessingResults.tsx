@@ -3,7 +3,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { Accordion, AccordionDetails, AccordionSummary, Box, Stack, Typography } from "@mui/material";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
-import { BaseButton } from "../../../components/buttons";
+import { Button } from "../../../components/buttons";
 import { useLocalized } from "../../../hooks/useLocalized";
 import { DeliveryContext } from "../deliveryContext";
 import { ProcessingStepIcon } from "./processingStepIcon";
@@ -150,7 +150,7 @@ export const DeliveryProcessingResults = () => {
                   {step.downloads.length > 0 && (
                     <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
                       {step.downloads.map(d => (
-                        <BaseButton
+                        <Button
                           key={d.originalFileName}
                           onClick={() => download(d.url, d.originalFileName)}
                           startIcon={<FileDownloadIcon />}

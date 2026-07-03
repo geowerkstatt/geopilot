@@ -188,6 +188,7 @@ export const geopilotTheme = createTheme({
     MuiButton: {
       defaultProps: {
         color: "primary",
+        variant: "outlined",
       },
       styleOverrides: {
         root: {

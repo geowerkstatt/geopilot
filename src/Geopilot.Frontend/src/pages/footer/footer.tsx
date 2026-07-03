@@ -1,9 +1,8 @@
-import { useTranslation } from "react-i18next";
-import { Button, Stack, useMediaQuery, useTheme } from "@mui/material";
+import { Stack, useMediaQuery, useTheme } from "@mui/material";
+import { Button } from "../../components/buttons";
 import { useControlledNavigate } from "../../components/controlledNavigate";
 
 const Footer = () => {
-  const { t } = useTranslation();
   const { navigateTo } = useControlledNavigate();
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
@@ -25,36 +24,32 @@ const Footer = () => {
       className="footer">
       <Button
         size={isXs ? "small" : "medium"}
+        variant="text"
         data-cy="home-nav"
-        onClick={() => {
-          navigateTo("/");
-        }}>
-        geopilot
-      </Button>
+        label="geopilot"
+        onClick={() => navigateTo("/")}
+      />
       <Button
         size={isXs ? "small" : "medium"}
+        variant="text"
         data-cy="privacy-policy-nav"
-        onClick={() => {
-          navigateTo("/privacy-policy");
-        }}>
-        {t("privacyPolicy")}
-      </Button>
+        label="privacyPolicy"
+        onClick={() => navigateTo("/privacy-policy")}
+      />
       <Button
         size={isXs ? "small" : "medium"}
+        variant="text"
         data-cy="imprint-nav"
-        onClick={() => {
-          navigateTo("/imprint");
-        }}>
-        {t("imprint")}
-      </Button>
+        label="imprint"
+        onClick={() => navigateTo("/imprint")}
+      />
       <Button
         size={isXs ? "small" : "medium"}
+        variant="text"
         data-cy="about-nav"
-        onClick={() => {
-          navigateTo("/about");
-        }}>
-        {t("about")}
-      </Button>
+        label="about"
+        onClick={() => navigateTo("/about")}
+      />
     </Stack>
   );
 };

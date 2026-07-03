@@ -1,6 +1,6 @@
 import { FC, useContext } from "react";
 import { ButtonProps } from "@mui/material/Button";
-import { BaseButton } from "../../components/buttons";
+import { Button } from "../../components/buttons";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { PromptAction } from "../../components/prompt/promptInterfaces";
 import { DeliveryContext } from "./deliveryContext";
@@ -21,5 +21,5 @@ export const DeliveryRestartButton: FC<Pick<ButtonProps, "sx">> = ({ sx }) => {
     showPrompt("restartPrompt", promptActions);
   };
 
-  return selectedFiles.length > 0 && <BaseButton label="restart" variant="text" onClick={promptToRestart} sx={sx} />;
+  return selectedFiles.length > 0 && <Button label="restart" variant="text" onClick={promptToRestart} sx={sx} />;
 };

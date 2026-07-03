@@ -1,32 +1,23 @@
-import { forwardRef, ReactNode } from "react";
+import { forwardRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Button, IconButton as MuiIconButton, Tooltip } from "@mui/material";
+import { Button as MuiButton, IconButton as MuiIconButton, Tooltip } from "@mui/material";
 import { ButtonProps as MuiButtonProps } from "@mui/material/Button";
 import { IconButtonProps as MuiIconButtonProps } from "@mui/material/IconButton";
 
 export interface ButtonProps extends MuiButtonProps {
-  onClick: () => void;
   label?: string;
-  startIcon?: ReactNode;
-  endIcon?: ReactNode;
 }
 
-export const BaseButton = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ label, ...props }, ref) => {
   const { t } = useTranslation();
   return (
-    <Button
-      ref={ref}
-      {...props}
-      variant={props.variant ?? "outlined"}
-      data-cy={props.label + "-button"}
-      startIcon={props.startIcon}
-      endIcon={props.endIcon}>
-      {props.label && t(props.label)}
-    </Button>
+    <MuiButton ref={ref} data-cy={label ? `${label}-button` : undefined} {...props}>
+      {label && t(label)}
+    </MuiButton>
   );
 });
 
-BaseButton.displayName = "BaseButton";
+Button.displayName = "Button";
 
 export interface IconButtonProps extends MuiIconButtonProps {
   label?: string;
