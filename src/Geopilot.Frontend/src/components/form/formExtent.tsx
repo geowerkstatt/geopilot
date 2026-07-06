@@ -34,7 +34,6 @@ export const FormExtent: FC<FormExtentProps> = ({
   error,
 }) => {
   const { t } = useTranslation();
-  // Returns null when rendered without a FormProvider; only consumed in form-context mode.
   const formContext = useFormContext();
 
   const updateCoordinate = (
@@ -49,7 +48,6 @@ export const FormExtent: FC<FormExtentProps> = ({
     );
   };
 
-  // Shared presentation so the controlled and form-context modes look and behave identically.
   const renderFields = (
     coords: Coordinate[] | undefined,
     onFieldChange: (index: number, key: "x" | "y", e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void,

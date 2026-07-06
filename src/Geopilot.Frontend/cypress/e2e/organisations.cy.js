@@ -264,8 +264,7 @@ describe("Organisations tests", () => {
           });
       });
 
-    // Add a new user to trigger a change (the helper also closes the dropdown, which would otherwise cover the
-    // reset button).
+    // Add a new user to trigger a change
     setNonFreeSoloAutocomplete("users", "Jaime Pagac");
 
     // Verify reset button is enabled after changes

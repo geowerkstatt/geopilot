@@ -44,7 +44,6 @@ export const FormInput: FC<FormInputProps> = ({
   error,
 }) => {
   const { t } = useTranslation();
-  // Returns null when rendered without a FormProvider; only consumed in form-context mode.
   const formContext = useFormContext();
 
   const getDefaultValue = (value: string | number | undefined) => {
