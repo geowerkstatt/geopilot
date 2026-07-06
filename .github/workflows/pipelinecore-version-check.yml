@@ -1,0 +1,94 @@
+name: PipelineCore version check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/Geopilot.PipelineCore/**"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  version-bump:
+    name: Check PipelineCore version bump
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check PipelineCore version against the last release
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CSPROJ: src/Geopilot.PipelineCore/Geopilot.PipelineCore.csproj
+        run: |
+          # Reads <VersionPrefix> from the csproj at the given git ref, empty if absent.
+          read_version_at() {
+            local content=""
+            content=$(git show "$1:$CSPROJ" 2>/dev/null) || true
+            printf '%s\n' "$content" | grep -oP "(?<=<VersionPrefix>)[^<]+" || true
+          }
+
+          BASE_VERSION=$(read_version_at "$BASE_SHA")
+          HEAD_VERSION=$(read_version_at "$HEAD_SHA")
+          # Real releases tag pipelinecore/v{version}. Pre-releases do not, so they never count here.
+          RELEASE_VERSION=$(git tag -l "pipelinecore/v*" | sed 's#^pipelinecore/v##' | sort -V | tail -n1)
+
+          echo "Last released version: ${RELEASE_VERSION:-<none>}"
+          echo "Base branch version:   ${BASE_VERSION:-<none>}"
+          echo "PR branch version:     ${HEAD_VERSION:-<none>}"
+
+          if [ -z "$HEAD_VERSION" ]; then
+            echo "::error::Could not read <VersionPrefix> from $CSPROJ on the PR branch."
+            exit 1
+          fi
+
+          # The PR must not drop the version below the base branch.
+          HEAD_GE_BASE=false
+          if [ "$(printf '%s\n%s\n' "$HEAD_VERSION" "$BASE_VERSION" | sort -V | tail -n1)" = "$HEAD_VERSION" ]; then
+            HEAD_GE_BASE=true
+          fi
+
+          # The PR version must be strictly ahead of the last released version.
+          HEAD_GT_RELEASE=false
+          if [ "$HEAD_VERSION" != "$RELEASE_VERSION" ] && [ "$(printf '%s\n%s\n' "$HEAD_VERSION" "$RELEASE_VERSION" | sort -V | tail -n1)" = "$HEAD_VERSION" ]; then
+            HEAD_GT_RELEASE=true
+          fi
+
+          if [ "$HEAD_GE_BASE" = true ] && [ "$HEAD_GT_RELEASE" = true ]; then
+            echo "VersionPrefix ($HEAD_VERSION) is ahead of the last release (${RELEASE_VERSION:-<none>}) and not below the base branch."
+            exit 0
+          fi
+
+          if [ "$HEAD_GE_BASE" != true ]; then
+            WARNING="PipelineCore changed but VersionPrefix ($HEAD_VERSION) is below the base branch (${BASE_VERSION:-<none>})."
+            DETAIL="The version on this pull request is below the base branch. Do not lower \`VersionPrefix\`."
+          else
+            WARNING="PipelineCore changed but VersionPrefix ($HEAD_VERSION) is not ahead of the last release (${RELEASE_VERSION:-<none>})."
+            DETAIL="\`VersionPrefix\` must be higher than the last released version so the published \`GeoWerkstatt.Geopilot.PipelineCore\` package reflects the change. Raise it in \`Geopilot.PipelineCore.csproj\` per SemVer."
+          fi
+
+          echo "::warning::$WARNING"
+          {
+            echo "### PipelineCore version not bumped"
+            echo ""
+            echo "Files under \`src/Geopilot.PipelineCore\` changed in this pull request."
+            echo ""
+            echo "- Last release (tag \`pipelinecore/v*\`): \`${RELEASE_VERSION:-<none>}\`"
+            echo "- Base branch: \`${BASE_VERSION:-<none>}\`"
+            echo "- This pull request: \`${HEAD_VERSION}\`"
+            echo ""
+            echo "$DETAIL"
+            echo ""
+            echo "This check is advisory. It does not block merging. If the change does not warrant a release (for example a change to the README only), you can ignore it."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
