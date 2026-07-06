@@ -106,11 +106,9 @@ export const TreeVisualization = ({
     if (filterActive) setExpandedItems(allItemIds);
   }, [filterActive, allItemIds]);
 
-  // Toggle between fully expanded and fully collapsed.
-  // Clears the selection so the metadata box does not linger at a stale position when its row is collapsed away.
-  const allExpanded = expandableIds.length > 0 && expandableIds.every(id => expandedItems.includes(id));
+  const anyExpanded = expandableIds.some(id => expandedItems.includes(id));
   const toggleExpandAll = () => {
-    setExpandedItems(allExpanded ? [] : expandableIds);
+    setExpandedItems(anyExpanded ? [] : expandableIds);
     onSelect(null);
   };
 
@@ -170,8 +168,8 @@ export const TreeVisualization = ({
             variant="text"
             size="small"
             onClick={toggleExpandAll}
-            label={allExpanded ? "treeCollapseAll" : "treeExpandAll"}
-            endIcon={allExpanded ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
+            label={anyExpanded ? "treeCollapseAll" : "treeExpandAll"}
+            endIcon={anyExpanded ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
           />
         )}
       </Stack>
