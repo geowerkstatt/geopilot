@@ -216,7 +216,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </List>
           </Box>
-          <Button sx={{ mx: 2 }} onClick={logout} label="logOut" />
+          <Button variant="contained" sx={{ mx: 2 }} onClick={logout} label="logOut" />
         </Stack>
       </Drawer>
     </>
