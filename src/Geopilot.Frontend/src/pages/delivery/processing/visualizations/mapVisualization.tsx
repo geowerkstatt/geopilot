@@ -1,7 +1,6 @@
 import { MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
-import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
 import { Box, ButtonGroup, Stack } from "@mui/material";
@@ -265,8 +264,8 @@ interface MapVisualizationProps {
   highlightedErrorIds: ReadonlySet<string>;
   /** Called with the error id when a feature is clicked. */
   onSelectFeature: (errorId: string) => void;
-
-  hasTree: boolean;
+  /** Whether to show the metadata popup when a feature is selected. */
+  showMapSelectionPopup: boolean;
 }
 
 export const MapVisualization = ({
@@ -274,7 +273,7 @@ export const MapVisualization = ({
   visibleErrorIds,
   highlightedErrorIds,
   onSelectFeature,
-  hasTree,
+  showMapSelectionPopup,
 }: MapVisualizationProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -291,17 +290,8 @@ export const MapVisualization = ({
   const highlightedIdsRef = useRef<ReadonlySet<string>>(highlightedErrorIds);
   const onSelectRef = useRef(onSelectFeature);
   onSelectRef.current = onSelectFeature;
-  const showPopupRef = useRef(!hasTree);
-  showPopupRef.current = !hasTree;
-
-  const zoomToSelected = useCallback(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const { extent } = getSelectedExtent(featureLayersRef.current, highlightedIdsRef.current);
-    if (!isExtentEmpty(extent)) {
-      map.getView().fit(extent, FIT_OPTIONS);
-    }
-  }, []);
+  const showPopupRef = useRef(showMapSelectionPopup);
+  showPopupRef.current = showMapSelectionPopup;
 
   const zoomToExtent = useCallback(() => {
     const map = mapRef.current;
@@ -494,16 +484,6 @@ export const MapVisualization = ({
                 <RemoveIcon />
               </IconButton>
             </ButtonGroup>
-            {hasTree && (
-              <IconButton
-                color={"primaryOutlined"}
-                label="zoomToSelected"
-                tooltipPlacement="left"
-                disabled={highlightedErrorIds.size === 0}
-                onClick={zoomToSelected}>
-                <CenterFocusStrongIcon />
-              </IconButton>
-            )}
           </Stack>
           <LayerSwitcher map={map} />
         </>

@@ -174,6 +174,5 @@
   "version": "Version",
   "visualizationLoadFailed": "Die Visualisierung konnte nicht geladen werden.",
   "zoomToExtent": "Auf alle Objekte zoomen",
-  "zoomToLayerExtent": "Auf Ebenenausdehnung zoomen",
-  "zoomToSelected": "Auf Auswahl zoomen"
+  "zoomToLayerExtent": "Auf Ebenenausdehnung zoomen"
 }
