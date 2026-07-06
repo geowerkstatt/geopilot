@@ -53,7 +53,13 @@ export const FilterBar = ({
           )}
         </Stack>
         {showFilters && attributes.length > 0 && (
-          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 2, width: "100%" }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+              gap: 2,
+              width: "100%",
+            }}>
             {attributes.map(attribute => (
               <FormAutocomplete
                 key={attribute.key}
