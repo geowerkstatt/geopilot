@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { I18nextProvider } from "react-i18next";
 import { GlobalStyles, ThemeProvider } from "@mui/material";
 import { deDE as coreDe, enUS as coreEn, frFR as coreFr, itIT as coreIt } from "@mui/material/locale";
-import { AppTheme, createTheme } from "@mui/material/styles";
+import { createTheme, Theme } from "@mui/material/styles";
 import { deDE as gridDe } from "@mui/x-data-grid/locales/deDE";
 import { enUS as gridEn } from "@mui/x-data-grid/locales/enUS";
 import { frFR as gridFr } from "@mui/x-data-grid/locales/frFR";
@@ -20,7 +20,7 @@ import i18n from "./i18n";
 
 export const AppContext = () => {
   const [language, setLanguage] = useState<Language>(Language.EN);
-  const [theme, setTheme] = useState<AppTheme>(geopilotTheme);
+  const [theme, setTheme] = useState<Theme>(geopilotTheme);
 
   useEffect(() => {
     let coreLng = coreEn;

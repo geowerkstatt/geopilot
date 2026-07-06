@@ -1,10 +1,10 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { AppThemePalette, createTheme, Shadows } from "@mui/material/styles";
+import { createTheme, PaletteOptions, Shadows } from "@mui/material/styles";
 import { Spacing } from "@mui/system";
 
 const defaultTheme = createTheme();
 
-const themePalette: AppThemePalette = {
+const themePalette = {
   text: {
     primary: "#212121",
     secondary: "#666666",
@@ -18,8 +18,6 @@ const themePalette: AppThemePalette = {
     states: {
       hover: "#EDF1F1",
       selected: "#D4DEDF",
-      focus: "#C6D4D5",
-      focusVisible: "#B8C9CA",
       disabledBackground: "#719295",
     },
   },
@@ -43,7 +41,11 @@ const themePalette: AppThemePalette = {
     selected: "#e538352E",
     hover: "#e538350D",
   },
-};
+  map: {
+    fill: "#e53835",
+    stroke: "#ffffff",
+  },
+} satisfies PaletteOptions;
 const themeShadows: Shadows = [...defaultTheme.shadows];
 const themeSpacing: Spacing = defaultTheme.spacing;
 
@@ -180,11 +182,6 @@ export const geopilotTheme = createTheme({
         },
       },
     },
-    MuiButtonBase: {
-      defaultProps: {
-        disableRipple: true,
-      },
-    },
     MuiButton: {
       defaultProps: {
         color: "primary",
@@ -230,18 +227,12 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           boxShadow: "none",
-          "& .MuiTouchRipple-root": {
-            display: "none",
-          },
         },
         colorPrimary: {
           color: themePalette.primary.main,
           "&:hover": {
             backgroundColor: "transparent",
             color: themePalette.primary.dark,
-          },
-          "&:focus-visible": {
-            backgroundColor: themePalette.primary.states.focusVisible,
           },
           "&:disabled": {
             color: themePalette.primary.states.disabledBackground,
@@ -253,9 +244,6 @@ export const geopilotTheme = createTheme({
           borderRadius: themeSpacing(0.5),
           "&:hover": {
             backgroundColor: themePalette.primary.dark,
-          },
-          "&:focus-visible": {
-            backgroundColor: themePalette.primary.states.focusVisible,
           },
           "&:disabled": {
             backgroundColor: themePalette.primary.states.disabledBackground,
@@ -270,10 +258,6 @@ export const geopilotTheme = createTheme({
           "&:hover": {
             border: `1px solid ${themePalette.primary.main}`,
             backgroundColor: themePalette.primary.states.hover,
-          },
-          "&:focus-visible": {
-            backgroundColor: themePalette.primary.states.focusVisible,
-            border: `1px solid ${themePalette.primary.main}`,
           },
           "&:disabled": {
             color: themePalette.primary.states.disabledBackground,
