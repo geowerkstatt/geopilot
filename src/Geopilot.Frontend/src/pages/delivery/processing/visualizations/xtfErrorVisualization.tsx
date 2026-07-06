@@ -91,7 +91,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
           visibleErrorIds={visibleErrorIds}
           highlightedErrorIds={highlightedErrorIds}
           onSelectFeature={handleSelectFeature}
-          showPopup={!config.tree}
+          hasTree={!!config.tree}
         />
       )}
       {config.tree && (

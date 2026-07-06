@@ -60,6 +60,7 @@ declare module "@mui/material/styles" {
     MuiOutlinedInput: object;
     MuiButtonBase: object;
     MuiButton: object;
+    MuiButtonGroup: object;
     MuiIconButton: object;
     MuiAppBar: object;
     MuiDataGrid: object;
@@ -86,6 +87,7 @@ declare module "@mui/material/styles" {
     MuiOutlinedInput: object;
     MuiButtonBase: object;
     MuiButton: object;
+    MuiButtonGroup: object;
     MuiIconButton: object;
     MuiAppBar: object;
     MuiDataGrid: object;

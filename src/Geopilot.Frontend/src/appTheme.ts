@@ -202,6 +202,10 @@ export const geopilotTheme = createTheme({
           "&.MuiButton-outlined": {
             backgroundColor: themePalette.primary.contrast,
           },
+          "&.MuiButton-outlined:hover": {
+            backgroundColor: themePalette.primary.states.hover,
+            borderColor: themePalette.primary.main,
+          },
           "&.Mui-disabled": {
             "&.MuiButton-text": {
               backgroundColor: "transparent",
@@ -265,7 +269,7 @@ export const geopilotTheme = createTheme({
           borderRadius: themeSpacing(0.5),
           "&:hover": {
             border: `1px solid ${themePalette.primary.main}`,
-            backgroundColor: themePalette.primary.contrast,
+            backgroundColor: themePalette.primary.states.hover,
           },
           "&:focus-visible": {
             backgroundColor: themePalette.primary.states.focusVisible,
@@ -278,6 +282,29 @@ export const geopilotTheme = createTheme({
           },
           "&.active": {
             backgroundColor: themePalette.primary.states.selected,
+          },
+        },
+      },
+    },
+    MuiButtonGroup: {
+      styleOverrides: {
+        root: {
+          "&.MuiButtonGroup-vertical .MuiIconButton-root": {
+            borderRadius: 0,
+            "&:not(:first-of-type)": {
+              marginTop: "-1px",
+            },
+            "&:first-of-type": {
+              borderTopLeftRadius: themeSpacing(0.5),
+              borderTopRightRadius: themeSpacing(0.5),
+            },
+            "&:last-of-type": {
+              borderBottomLeftRadius: themeSpacing(0.5),
+              borderBottomRightRadius: themeSpacing(0.5),
+            },
+            "&:hover": {
+              zIndex: 1,
+            },
           },
         },
       },

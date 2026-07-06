@@ -91,8 +91,9 @@
   "mandateSaveError": "An error occurred while saving the mandate: {{error}}",
   "mandates": "Mandates",
   "mandatesLoadingError": "An error occurred while loading the mandates: {{error}}",
-  "mapResetViewport": "Reset view to show all features",
   "mapVisualizationFeatureLayer": "Features",
+  "mapZoomIn": "Zoom in",
+  "mapZoomOut": "Zoom out",
   "maxFileCount_one": "one file",
   "maxFileCount_other": "up to {{count}} files",
   "maxPerFile": "{{size}} per file",
@@ -172,5 +173,7 @@
   "validatorsLoadingError": "An error occurred while loading the validators: {{error}}",
   "version": "Version",
   "visualizationLoadFailed": "The visualization could not be loaded.",
-  "zoomToLayerExtent": "Zoom to layer extent"
+  "zoomToExtent": "Zoom to all features",
+  "zoomToLayerExtent": "Zoom to layer extent",
+  "zoomToSelected": "Zoom to selection"
 }

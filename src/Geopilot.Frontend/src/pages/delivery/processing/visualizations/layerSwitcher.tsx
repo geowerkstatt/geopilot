@@ -437,17 +437,9 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
   };
 
   return (
-    <Stack
-      ref={containerRef}
-      p={0}
-      sx={{
-        position: "absolute",
-        top: 8,
-        left: 8,
-        zIndex: 10,
-      }}>
+    <Stack ref={containerRef} sx={{ position: "absolute", bottom: 0, right: 0, m: 1, gap: 1 }}>
       {!open && (
-        <IconButton color={"primaryOutlined"} label="layers" onClick={() => setOpen(true)}>
+        <IconButton color={"primaryOutlined"} label="layers" onClick={() => setOpen(true)} tooltipPlacement="left">
           <LayersOutlinedIcon />
         </IconButton>
       )}

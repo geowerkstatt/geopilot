@@ -91,8 +91,9 @@
   "mandateSaveError": "Beim Speichern des Mandats ist ein Fehler aufgetreten: {{error}}",
   "mandates": "Mandate",
   "mandatesLoadingError": "Beim Laden der Mandate ist ein Fehler aufgetreten: {{error}}",
-  "mapResetViewport": "Ansicht zurücksetzen, um alle Features anzuzeigen",
   "mapVisualizationFeatureLayer": "Objekte",
+  "mapZoomIn": "Vergrössern",
+  "mapZoomOut": "Verkleinern",
   "maxFileCount_one": "eine Datei",
   "maxFileCount_other": "bis zu {{count}} Dateien",
   "maxPerFile": "{{size}} pro Datei",
@@ -172,5 +173,7 @@
   "validatorsLoadingError": "Beim Laden der Validatoren ist ein Fehler aufgetreten: {{error}}",
   "version": "Version",
   "visualizationLoadFailed": "Die Visualisierung konnte nicht geladen werden.",
-  "zoomToLayerExtent": "Auf Ebenenausdehnung zoomen"
+  "zoomToExtent": "Auf alle Objekte zoomen",
+  "zoomToLayerExtent": "Auf Ebenenausdehnung zoomen",
+  "zoomToSelected": "Auf Auswahl zoomen"
 }
