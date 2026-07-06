@@ -190,7 +190,7 @@ const buildFeatureLayer = (
     image: new Circle({
       radius: 6,
       fill: new Fill({ color }),
-      stroke: new Stroke({ color: "#ffffff", width: 2 }),
+      stroke: new Stroke({ color: highlightColor, width: 2 }),
     }),
     stroke: new Stroke({ color, width: 2 }),
     fill: new Fill({ color: toTransparent(color) }),
@@ -332,9 +332,9 @@ export const MapVisualization = ({
           .map(layer =>
             buildFeatureLayer(
               layer,
-              layer.color ?? theme.palette.error.main,
+              layer.color ?? theme.palette.map.fill,
               localized(layer.title) || t("mapVisualizationFeatureLayer"),
-              theme.palette.primary.main,
+              theme.palette.map.stroke,
               visibleIdsRef,
               highlightedIdsRef,
             ),
@@ -365,7 +365,7 @@ export const MapVisualization = ({
           backgroundColor: theme.palette.background.paper,
           border: `1px solid ${theme.palette.primary.light}`,
           borderRadius: theme.spacing(0.5),
-          padding: "8px 12px",
+          padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
           maxWidth: "300px",
           fontSize: "0.875rem",
           pointerEvents: "none",

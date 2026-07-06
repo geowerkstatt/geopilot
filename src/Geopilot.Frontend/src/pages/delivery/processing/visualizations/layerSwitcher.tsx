@@ -171,7 +171,7 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, remove }: LayerRowPro
         gridTemplateColumns: "1.5em 1fr",
         gridTemplateAreas: `"sidebar header" "sidebar controls" "sidebar content"`,
         overflow: "hidden",
-        borderTop: theme => `2px solid ${theme.palette.action.hover}`,
+        borderTop: theme => `2px solid ${theme.palette.background.base}`,
       }}>
       <Box
         data-drag-handle
@@ -182,7 +182,7 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, remove }: LayerRowPro
           placeItems: "center",
           cursor: "grab",
           fontSize: "0.8em",
-          backgroundColor: "action.hover",
+          backgroundColor: "background.base",
           color: "text.disabled",
         }}>
         <DragIndicatorIcon fontSize="inherit" titleAccess={t("dragToReorderLayer")} />
