@@ -23,6 +23,8 @@ export interface FormSelectProps {
   onChange?: (value: number | string) => void;
   /** Controlled mode: error state to display. Ignored in form-context mode, which derives it from the form. */
   error?: boolean;
+  /** Overrides the default `data-cy` (`${fieldName}-formSelect`). */
+  dataCy?: string;
 }
 
 export interface FormSelectValue {
@@ -52,6 +54,7 @@ export const FormSelect: FC<FormSelectProps> = ({
   validate,
   onChange,
   error,
+  dataCy,
 }) => {
   const { t } = useTranslation();
   const formContext = useFormContext();
@@ -92,7 +95,7 @@ export const FormSelect: FC<FormSelectProps> = ({
         value={selected ?? ""}
         onChange={e => onChange(e.target.value)}
         disabled={disabled ?? false}
-        data-cy={fieldName ? fieldName + "-formSelect" : undefined}
+        data-cy={dataCy ?? (fieldName ? fieldName + "-formSelect" : undefined)}
         InputLabelProps={{ shrink: true }}>
         {renderMenuItems()}
       </TextField>
@@ -131,7 +134,7 @@ export const FormSelect: FC<FormSelectProps> = ({
           inputRef={field.ref}
           value={field.value ?? ""}
           disabled={disabled ?? false}
-          data-cy={fieldName + "-formSelect"}
+          data-cy={dataCy ?? fieldName + "-formSelect"}
           InputLabelProps={{ shrink: true }}>
           {renderMenuItems()}
         </TextField>

@@ -26,6 +26,8 @@ export interface FormInputProps {
   onChange?: (value: string) => void;
   /** Controlled mode: error state to display. Ignored in form-context mode, which derives it from the form. */
   error?: boolean;
+  /** Overrides the default `data-cy` (`${fieldName}-formInput`). */
+  dataCy?: string;
 }
 
 export const FormInput: FC<FormInputProps> = ({
@@ -42,6 +44,7 @@ export const FormInput: FC<FormInputProps> = ({
   onUpdate,
   onChange,
   error,
+  dataCy,
 }) => {
   const { t } = useTranslation();
   const formContext = useFormContext();
@@ -70,7 +73,7 @@ export const FormInput: FC<FormInputProps> = ({
         value={value ?? ""}
         onChange={e => onChange(e.target.value)}
         disabled={disabled || false}
-        data-cy={fieldName ? fieldName + "-formInput" : undefined}
+        data-cy={dataCy ?? (fieldName ? fieldName + "-formInput" : undefined)}
         InputLabelProps={{ shrink: true }}
         InputProps={{ ...inputProps }}
       />
@@ -110,7 +113,7 @@ export const FormInput: FC<FormInputProps> = ({
       })}
       defaultValue={getDefaultValue(value)}
       disabled={disabled || false}
-      data-cy={fieldName + "-formInput"}
+      data-cy={dataCy ?? fieldName + "-formInput"}
       InputLabelProps={{ shrink: true }}
       InputProps={{ ...inputProps }}
     />

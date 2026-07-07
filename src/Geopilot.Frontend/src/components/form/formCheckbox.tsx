@@ -18,6 +18,8 @@ export interface FormCheckboxProps {
    * context required). It receives the checked state on every change.
    */
   onChange?: (checked: boolean) => void;
+  /** Overrides the default `data-cy` (`${fieldName}-formCheckbox`). */
+  dataCy?: string;
 }
 
 export const FormCheckbox: FC<FormCheckboxProps> = ({
@@ -28,6 +30,7 @@ export const FormCheckbox: FC<FormCheckboxProps> = ({
   sx,
   validation,
   onChange,
+  dataCy,
 }) => {
   const { t } = useTranslation();
   // Returns null when rendered without a FormProvider; only consumed in form-context mode.
@@ -40,7 +43,7 @@ export const FormCheckbox: FC<FormCheckboxProps> = ({
       control={
         onChange ? (
           <Checkbox
-            data-cy={fieldName ? fieldName + "-formCheckbox" : undefined}
+            data-cy={dataCy ?? (fieldName ? fieldName + "-formCheckbox" : undefined)}
             disabled={disabled || false}
             checked={checked}
             onChange={e => onChange(e.target.checked)}
@@ -54,7 +57,7 @@ export const FormCheckbox: FC<FormCheckboxProps> = ({
             render={({ field }) => (
               <Checkbox
                 {...field}
-                data-cy={fieldName + "-formCheckbox"}
+                data-cy={dataCy ?? fieldName + "-formCheckbox"}
                 disabled={disabled || false}
                 checked={field.value}
                 onChange={e => field.onChange(e.target.checked)}
