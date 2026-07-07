@@ -55,7 +55,6 @@ module.exports = {
       files: [
         "src/components/form/**",
         "src/components/searchField.tsx",
-        "src/pages/delivery/processing/visualizations/layerSwitcher.tsx",
       ],
       rules: {"no-restricted-imports": ["warn", {paths: [buttonImportRestriction]}]},
     },

@@ -1,14 +1,16 @@
 import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
-import { Box, Checkbox, Slider, Stack, Typography } from "@mui/material";
+import { Box, Slider, Stack } from "@mui/material";
+import { useTheme } from "@mui/system";
 import Collection from "ol/Collection";
+import { EventsKey } from "ol/events";
 import { isEmpty } from "ol/extent";
 import BaseLayer from "ol/layer/Base";
 import BaseVectorLayer from "ol/layer/BaseVector";
@@ -18,6 +20,7 @@ import { ObjectEvent } from "ol/Object";
 import { unByKey } from "ol/Observable";
 import { getUid } from "ol/util";
 import { IconButton } from "../../../../components/buttons";
+import { FormCheckbox } from "../../../../components/form/formCheckbox";
 import { SearchField } from "../../../../components/searchField";
 
 // Custom layer properties read/written by the switcher. The map sets at least TITLE on the layers it
@@ -25,21 +28,18 @@ import { SearchField } from "../../../../components/searchField";
 // without any extra setup:
 //   TITLE     – display name shown in the list.
 //   DISPLAY   – set to false to hide a layer from the switcher entirely (still rendered on the map).
-//   REMOVABLE – set to true to surface a remove (trash) button for the layer.
 //   OPEN      – expanded/collapsed state of a group; toggled by the expand button.
 //   RESULT    – internal: set by the search filter to mark whether a layer matches the query.
 export const LayerSwitcherProperties = {
   TITLE: "title",
   DISPLAY: "displayInLayerSwitcher",
-  REMOVABLE: "removableInLayerSwitcher",
   OPEN: "openInLayerSwitcher",
   RESULT: "searchResultInLayerSwitcher",
 } as const;
 
-const { TITLE, DISPLAY, REMOVABLE, OPEN, RESULT } = LayerSwitcherProperties;
+const { TITLE, DISPLAY, OPEN, RESULT } = LayerSwitcherProperties;
 
 const getTitle = (layer: BaseLayer): string => layer.get(TITLE) ?? "";
-const getRemovable = (layer: BaseLayer): boolean => layer.get(REMOVABLE) ?? false;
 const getOpen = (layer: BaseLayer): boolean => layer.get(OPEN) ?? false;
 // A layer shows in the switcher when it is not explicitly hidden and (when a search is active) matches it.
 const getDisplayed = (layer: BaseLayer): boolean => (layer.get(DISPLAY) ?? true) && (layer.get(RESULT) ?? true);
@@ -130,21 +130,46 @@ const collapseAll = (layers: BaseLayer[]): void => {
   }
 };
 
+const expandAll = (layers: BaseLayer[]): void => {
+  const stack = [...layers];
+  while (stack.length > 0) {
+    const layer = stack.pop()!;
+    if (layer instanceof LayerGroup) {
+      layer.set(OPEN, true);
+      stack.push(...layer.getLayers().getArray());
+    }
+  }
+};
+
+const containsGroup = (layers: BaseLayer[]): boolean => layers.some(layer => layer instanceof LayerGroup);
+
+const hasOpenGroup = (layers: BaseLayer[]): boolean => {
+  const stack = [...layers];
+  while (stack.length > 0) {
+    const layer = stack.pop()!;
+    if (layer instanceof LayerGroup) {
+      if (getOpen(layer)) return true;
+      stack.push(...layer.getLayers().getArray());
+    }
+  }
+  return false;
+};
+
 interface LayerRowProps {
   layer: BaseLayer;
   map: OlMap;
   rootLayers: BaseLayer[];
   onLayerChange?: () => void;
-  remove: () => void;
+  isFirst?: boolean;
 }
 
-const LayerRow = ({ layer, map, rootLayers, onLayerChange, remove }: LayerRowProps) => {
+const LayerRow = ({ layer, map, rootLayers, onLayerChange, isFirst }: LayerRowProps) => {
   const { t } = useTranslation();
+  const theme = useTheme();
   const isGroup = layer instanceof LayerGroup;
   const [visible, setVisible] = useState(layer.getVisible());
   const [opacity, setOpacity] = useState(layer.getOpacity());
   const [title, setTitle] = useState(getTitle(layer));
-  const [removable, setRemovable] = useState(getRemovable(layer));
   const [open, setOpen] = useState(getOpen(layer));
 
   useEffect(() => {
@@ -152,122 +177,111 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, remove }: LayerRowPro
       if (event.key === "visible") setVisible(layer.getVisible());
       else if (event.key === "opacity") setOpacity(layer.getOpacity());
       else if (event.key === TITLE) setTitle(getTitle(layer));
-      else if (event.key === REMOVABLE) setRemovable(getRemovable(layer));
       else if (event.key === OPEN) setOpen(getOpen(layer));
     });
     // Sync to the current state in case a property changed between render and effect.
     setVisible(layer.getVisible());
     setOpacity(layer.getOpacity());
     setTitle(getTitle(layer));
-    setRemovable(getRemovable(layer));
     setOpen(getOpen(layer));
     return () => unByKey(key);
   }, [layer]);
 
   return (
-    <Box
+    <Stack
+      direction="row"
       sx={{
-        display: "grid",
-        gridTemplateColumns: "1.5em 1fr",
-        gridTemplateAreas: `"sidebar header" "sidebar controls" "sidebar content"`,
-        overflow: "hidden",
-        borderTop: theme => `2px solid ${theme.palette.background.base}`,
+        gap: 0.5,
+        borderTop: `2px solid ${theme.palette.background.base}`,
+        width: "100%",
+        minWidth: 0,
+        mb: isFirst ? 0 : "2px",
       }}>
-      <Box
+      <Stack
         data-drag-handle
         draggable
         sx={{
-          gridArea: "sidebar",
-          display: "grid",
-          placeItems: "center",
+          justifyContent: "center",
+          alignItems: "center",
           cursor: "grab",
           fontSize: "0.8em",
           backgroundColor: "background.base",
           color: "text.disabled",
+          width: "20px",
+          flexShrink: 0,
         }}>
         <DragIndicatorIcon fontSize="inherit" titleAccess={t("dragToReorderLayer")} />
-      </Box>
-
-      <Box sx={{ gridArea: "header", display: "flex", gap: 0.5, px: 0.5, alignItems: "center", overflow: "hidden" }}>
-        <Checkbox
-          size="small"
-          checked={visible}
-          data-cy="layer-visibility"
-          onChange={event => {
-            layer.setVisible(event.target.checked);
-            updateSublayerVisibility(layer);
-            updateParentLayerVisibility(rootLayers, layer);
-            onLayerChange?.();
-          }}
-          sx={{ p: 0.25 }}
-        />
-        <Typography
-          variant="body2"
-          title={title}
-          data-cy="layer-title"
-          sx={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-          {title}
-        </Typography>
-        {isGroup && (
-          <IconButton
+      </Stack>
+      <Stack sx={{ flex: 1, minWidth: 0, gap: 0.25 }}>
+        <Stack direction="row" sx={{ minWidth: 0, ml: 1 }}>
+          <FormCheckbox
             size="small"
-            data-cy="expand-layers"
-            label={open ? "collapseLayerGroup" : "expandLayerGroup"}
-            onClick={() => layer.set(OPEN, !open)}>
-            {open ? <RemoveIcon fontSize="small" /> : <AddIcon fontSize="small" />}
-          </IconButton>
-        )}
-      </Box>
-
-      <Box sx={{ gridArea: "controls", display: "flex", gap: 0.5, px: 0.5, alignItems: "center" }}>
-        <Slider
-          size="small"
-          min={0}
-          max={1}
-          step={0.01}
-          value={opacity}
-          data-cy="opacity-slider"
-          aria-label={t("layerOpacity")}
-          onChange={(_event, value) => {
-            layer.setOpacity(value as number);
-            onLayerChange?.();
-          }}
-          // Fixed width so every row's opacity slider lines up regardless of which action buttons follow.
-          sx={{ width: "75%", flexShrink: 0, mx: 1 }}
-        />
-        <Box sx={{ flex: 1 }} />
-        {layer instanceof BaseVectorLayer && (
-          <IconButton
-            size="small"
-            label="zoomToLayerExtent"
-            onClick={() => {
-              const extent = layer.getSource()?.getExtent();
-              if (extent && !isEmpty(extent)) {
-                map.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 18 });
-              }
-            }}>
-            <ZoomOutMapIcon fontSize="small" />
-          </IconButton>
-        )}
-        {removable && (
-          <IconButton size="small" label="removeLayer" onClick={remove} sx={{ "&:hover": { color: "error.main" } }}>
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        )}
-      </Box>
-
-      {open && isGroup && (
-        <Box sx={{ gridArea: "content" }}>
-          <LayerCollection
-            collection={layer.getLayers()}
-            map={map}
-            rootLayers={rootLayers}
-            onLayerChange={onLayerChange}
-            indent
+            checked={visible}
+            onChange={checked => {
+              layer.setVisible(checked);
+              updateSublayerVisibility(layer);
+              updateParentLayerVisibility(rootLayers, layer);
+              onLayerChange?.();
+            }}
+            label={title}
+            truncateLabel
+            sx={{ flex: 1, minWidth: 0 }}
           />
-        </Box>
-      )}
-    </Box>
+          <Box sx={{ width: "30px", flexShrink: 0 }}>
+            {isGroup && (
+              <IconButton
+                size="small"
+                data-cy="expand-layers"
+                label={open ? "collapseLayerGroup" : "expandLayerGroup"}
+                sx={{ flexShrink: 0 }}
+                onClick={() => layer.set(OPEN, !open)}>
+                {open ? <RemoveIcon fontSize="small" /> : <AddIcon fontSize="small" />}
+              </IconButton>
+            )}
+            {layer instanceof BaseVectorLayer && (
+              <IconButton
+                size="small"
+                label="zoomToLayerExtent"
+                sx={{ flexShrink: 0 }}
+                onClick={() => {
+                  const extent = layer.getSource()?.getExtent();
+                  if (extent && !isEmpty(extent)) {
+                    map.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 18 });
+                  }
+                }}>
+                <ZoomOutMapIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
+        </Stack>
+        <Stack direction="row" sx={{ minWidth: 0, ml: 1 }}>
+          <Slider
+            size="small"
+            min={0}
+            max={1}
+            step={0.01}
+            value={opacity}
+            aria-label={t("layerOpacity")}
+            onChange={(_event, value) => {
+              layer.setOpacity(value as number);
+              onLayerChange?.();
+            }}
+            sx={{ flex: 1, minWidth: 0 }}
+          />
+          <Box sx={{ width: "30px", flexShrink: 0 }} />
+        </Stack>
+        {open && isGroup && (
+          <Box>
+            <LayerCollection
+              collection={layer.getLayers()}
+              map={map}
+              rootLayers={rootLayers}
+              onLayerChange={onLayerChange}
+            />
+          </Box>
+        )}
+      </Stack>
+    </Stack>
   );
 };
 
@@ -276,11 +290,9 @@ interface LayerCollectionProps {
   map: OlMap;
   rootLayers: BaseLayer[];
   onLayerChange?: () => void;
-  /** Indent the list. Used for nested groups; the root list stays flush with the header. */
-  indent?: boolean;
 }
 
-const LayerCollection = ({ collection, map, rootLayers, onLayerChange, indent = false }: LayerCollectionProps) => {
+const LayerCollection = ({ collection, map, rootLayers, onLayerChange }: LayerCollectionProps) => {
   const forceUpdate = useForceUpdate();
   const [draggedLayer, setDraggedLayer] = useState<BaseLayer | null>(null);
   const [dragOverLayer, setDragOverLayer] = useState<BaseLayer | null>(null);
@@ -331,7 +343,7 @@ const LayerCollection = ({ collection, map, rootLayers, onLayerChange, indent = 
   return (
     <Stack
       direction="column-reverse" // column-reverse so the topmost map layer (last in the collection) appears at the top of the list.
-      sx={{ ml: indent ? 0.5 : 0, width: "100%", gap: 0 }}
+      sx={{ width: "100%", gap: 0 }}
       onDragOver={event => {
         if (draggedLayer && dragOverLayer) {
           event.preventDefault();
@@ -346,13 +358,12 @@ const LayerCollection = ({ collection, map, rootLayers, onLayerChange, indent = 
         setDraggedLayer(null);
         setDragOverLayer(null);
       }}>
-      {array.filter(getDisplayed).map(layer => {
+      {array.filter(getDisplayed).map((layer, index) => {
         const isDragOver = dragOverLayer === layer;
         const draggedBelow = draggedLayer != null && array.indexOf(layer) < array.indexOf(draggedLayer);
         return (
           <Box
             key={getUid(layer)}
-            data-cy="layer"
             draggable
             sx={{
               transition: "margin 100ms ease",
@@ -386,10 +397,7 @@ const LayerCollection = ({ collection, map, rootLayers, onLayerChange, indent = 
               map={map}
               rootLayers={rootLayers}
               onLayerChange={onLayerChange}
-              remove={() => {
-                collection.remove(layer);
-                onLayerChange?.();
-              }}
+              isFirst={index === 0}
             />
           </Box>
         );
@@ -410,8 +418,9 @@ interface LayerSwitcherProps {
  * visibility (with group cascade), opacity, zoom-to-extent, remove, search and drag-to-reorder.
  */
 export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [searchValue, setSearchValue] = useState("");
+  const forceUpdate = useForceUpdate();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close the panel when the user clicks anywhere outside it (e.g. on the map).
@@ -426,6 +435,27 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [open]);
 
+  // Re-render when any group's expanded state changes so the header can switch between the expand-all and collapse-all buttons
+  useEffect(() => {
+    if (!map) return;
+    const keys: EventsKey[] = [];
+    const collections: Collection<BaseLayer>[] = [map.getLayers()];
+    while (collections.length > 0) {
+      const collection = collections.pop()!;
+      for (const layer of collection.getArray()) {
+        if (layer instanceof LayerGroup) {
+          keys.push(
+            layer.on("propertychange", (event: ObjectEvent) => {
+              if (event.key === OPEN) forceUpdate();
+            }),
+          );
+          collections.push(layer.getLayers());
+        }
+      }
+    }
+    return () => unByKey(keys);
+  }, [map, forceUpdate]);
+
   if (!map) return null;
 
   const rootCollection = map.getLayers();
@@ -435,6 +465,9 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
     setSearchValue(value);
     filterLayers(value, rootLayers);
   };
+
+  const groupsExist = containsGroup(rootLayers);
+  const anyGroupOpen = hasOpenGroup(rootLayers);
 
   return (
     <Stack ref={containerRef} sx={{ position: "absolute", bottom: 0, right: 0, m: 1, gap: 1 }}>
@@ -446,9 +479,8 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
 
       {open && (
         <Stack
-          data-cy="layer-switcher"
           sx={{
-            width: "20em",
+            width: "360px",
             maxHeight: 360,
             p: 1,
             backgroundColor: "background.content",
@@ -459,9 +491,16 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
           }}>
           <Stack direction="row" sx={{ gap: 0.5, alignItems: "center", mb: 0.5, width: "100%" }}>
             <SearchField placeholder="searchLayers" value={searchValue} onChange={applyFilter} sx={{ flex: 1 }} />
-            <IconButton size="small" label="collapseAllLayers" onClick={() => collapseAll(rootLayers)}>
-              <UnfoldLessIcon fontSize="small" />
-            </IconButton>
+            {groupsExist &&
+              (anyGroupOpen ? (
+                <IconButton size="small" label="collapseAll" onClick={() => collapseAll(rootLayers)}>
+                  <UnfoldLessIcon fontSize="small" />
+                </IconButton>
+              ) : (
+                <IconButton size="small" label="expandAll" onClick={() => expandAll(rootLayers)}>
+                  <UnfoldMoreIcon fontSize="small" />
+                </IconButton>
+              ))}
           </Stack>
           <LayerCollection
             collection={rootCollection}

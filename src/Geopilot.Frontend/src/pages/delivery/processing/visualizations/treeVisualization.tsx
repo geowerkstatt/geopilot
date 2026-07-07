@@ -168,7 +168,7 @@ export const TreeVisualization = ({
             variant="text"
             size="small"
             onClick={toggleExpandAll}
-            label={anyExpanded ? "treeCollapseAll" : "treeExpandAll"}
+            label={anyExpanded ? "collapseAll" : "expandAll"}
             endIcon={anyExpanded ? <UnfoldLessIcon /> : <UnfoldMoreIcon />}
           />
         )}
