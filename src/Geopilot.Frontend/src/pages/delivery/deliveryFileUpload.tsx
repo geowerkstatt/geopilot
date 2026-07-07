@@ -84,23 +84,21 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
                 maxTotalFileSizeMB={uploadSettings?.maxJobSizeMB}
                 isUploading={isLoading}
               />
-              <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-                <FormCheckbox
-                  fieldName="acceptTermsOfUse"
-                  label={
-                    <Trans
-                      i18nKey="termsOfUseAcceptance"
-                      components={{
-                        termsLink: <Link href="/about#termsofuse" target="_blank" />,
-                      }}
-                    />
-                  }
-                  checked={completed || !termsOfUse}
-                  disabled={completed || isLoading}
-                  validation={{ required: true }}
-                  sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
-                />
-              </Stack>
+              <FormCheckbox
+                fieldName="acceptTermsOfUse"
+                label={
+                  <Trans
+                    i18nKey="termsOfUseAcceptance"
+                    components={{
+                      termsLink: <Link href="/about#termsofuse" target="_blank" />,
+                    }}
+                  />
+                }
+                checked={completed || !termsOfUse}
+                disabled={completed || isLoading}
+                validation={{ required: true }}
+                sx={{ visibility: termsOfUse ? "visible" : "hidden" }}
+              />
             </Stack>
           </form>
         </FormProvider>
