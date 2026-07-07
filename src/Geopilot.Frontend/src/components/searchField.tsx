@@ -31,9 +31,7 @@ export const SearchField: FC<SearchFieldProps> = ({ value, onChange, placeholder
         ),
         endAdornment: value ? (
           <InputAdornment position="end">
-            <IconButton size="small" edge="end" label="clear" onClick={() => onChange("")}>
-              <CloseIcon fontSize="small" />
-            </IconButton>
+            <IconButton size="small" edge="end" icon={<CloseIcon />} label="clear" onClick={() => onChange("")} />
           </InputAdornment>
         ) : undefined,
       }}

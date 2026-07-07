@@ -52,9 +52,7 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
           )}
         </Stack>
         {!disabled && (
-          <IconButton onClick={() => onRemove(file)} sx={{ padding: "0" }}>
-            <ClearIcon />
-          </IconButton>
+          <IconButton icon={<ClearIcon />} label="removeFile" onClick={() => onRemove(file)} sx={{ padding: "0" }} />
         )}
       </Stack>
       {status?.state === "uploading" && <LinearProgress variant="indeterminate" />}

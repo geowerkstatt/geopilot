@@ -77,15 +77,22 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             onClick={() => {
               navigateTo("/");
             }}>
-            <Box sx={{ display: { xs: "block", md: "none", maxHeight: "40px" } }}>
+            <Box
+              sx={{
+                display: { xs: "flex", md: "none" },
+                maxHeight: "40px",
+                justifyContent: "center",
+                alignItems: "center",
+              }}>
               {hasSubMenu ? (
                 <IconButton
+                  icon={<MenuIcon fontSize="large" />}
+                  label="menu"
                   onClick={e => {
                     e.stopPropagation();
                     openSubMenu();
-                  }}>
-                  <MenuIcon fontSize="large" />
-                </IconButton>
+                  }}
+                />
               ) : (
                 clientSettings?.application?.logo && (
                   <Box>
@@ -207,8 +214,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                       }}
                       data-cy="stacBrowser-nav">
                       <ListItemText primary={t("stacBrowser")} />
-                      <ListItemIcon>
-                        <OpenInNewIcon fontSize="small" />
+                      <ListItemIcon sx={{ justifyContent: "flex-end" }}>
+                        <OpenInNewIcon fontSize="small" sx={{ color: "primary.main" }} />
                       </ListItemIcon>
                     </ListItemButton>
                   </ListItem>

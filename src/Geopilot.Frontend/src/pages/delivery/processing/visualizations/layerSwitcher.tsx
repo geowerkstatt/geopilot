@@ -232,15 +232,16 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, isFirst }: LayerRowPr
               <IconButton
                 size="small"
                 data-cy="expand-layers"
+                icon={open ? <RemoveIcon /> : <AddIcon />}
                 label={open ? "collapseLayerGroup" : "expandLayerGroup"}
                 sx={{ flexShrink: 0 }}
-                onClick={() => layer.set(OPEN, !open)}>
-                {open ? <RemoveIcon fontSize="small" /> : <AddIcon fontSize="small" />}
-              </IconButton>
+                onClick={() => layer.set(OPEN, !open)}
+              />
             )}
             {layer instanceof BaseVectorLayer && (
               <IconButton
                 size="small"
+                icon={<ZoomOutMapIcon />}
                 label="zoomToLayerExtent"
                 sx={{ flexShrink: 0 }}
                 onClick={() => {
@@ -248,9 +249,8 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, isFirst }: LayerRowPr
                   if (extent && !isEmpty(extent)) {
                     map.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 18 });
                   }
-                }}>
-                <ZoomOutMapIcon fontSize="small" />
-              </IconButton>
+                }}
+              />
             )}
           </Box>
         </Stack>
@@ -472,9 +472,13 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
   return (
     <Stack ref={containerRef} sx={{ position: "absolute", bottom: 0, right: 0, m: 1, gap: 1 }}>
       {!open && (
-        <IconButton color={"primaryOutlined"} label="layers" onClick={() => setOpen(true)} tooltipPlacement="left">
-          <LayersOutlinedIcon />
-        </IconButton>
+        <IconButton
+          color={"primaryOutlined"}
+          icon={<LayersOutlinedIcon />}
+          label="layers"
+          onClick={() => setOpen(true)}
+          tooltipPlacement="left"
+        />
       )}
 
       {open && (
@@ -493,13 +497,19 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
             <SearchField placeholder="searchLayers" value={searchValue} onChange={applyFilter} sx={{ flex: 1 }} />
             {groupsExist &&
               (anyGroupOpen ? (
-                <IconButton size="small" label="collapseAll" onClick={() => collapseAll(rootLayers)}>
-                  <UnfoldLessIcon fontSize="small" />
-                </IconButton>
+                <IconButton
+                  size="small"
+                  icon={<UnfoldLessIcon />}
+                  label="collapseAll"
+                  onClick={() => collapseAll(rootLayers)}
+                />
               ) : (
-                <IconButton size="small" label="expandAll" onClick={() => expandAll(rootLayers)}>
-                  <UnfoldMoreIcon fontSize="small" />
-                </IconButton>
+                <IconButton
+                  size="small"
+                  icon={<UnfoldMoreIcon />}
+                  label="expandAll"
+                  onClick={() => expandAll(rootLayers)}
+                />
               ))}
           </Stack>
           <LayerCollection

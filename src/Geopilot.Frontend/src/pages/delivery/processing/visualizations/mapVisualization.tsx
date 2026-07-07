@@ -474,15 +474,27 @@ export const MapVisualization = ({
         <>
           <Stack sx={{ position: "absolute", top: 0, right: 0, m: 1, gap: 1 }}>
             <ButtonGroup orientation="vertical">
-              <IconButton color="primaryOutlined" label="mapZoomIn" tooltipPlacement="left" onClick={() => zoomBy(1)}>
-                <AddIcon />
-              </IconButton>
-              <IconButton color={"primaryOutlined"} label="zoomToExtent" tooltipPlacement="left" onClick={zoomToExtent}>
-                <ZoomOutMapIcon />
-              </IconButton>
-              <IconButton color="primaryOutlined" label="mapZoomOut" tooltipPlacement="left" onClick={() => zoomBy(-1)}>
-                <RemoveIcon />
-              </IconButton>
+              <IconButton
+                color="primaryOutlined"
+                icon={<AddIcon />}
+                label="mapZoomIn"
+                tooltipPlacement="left"
+                onClick={() => zoomBy(1)}
+              />
+              <IconButton
+                color={"primaryOutlined"}
+                icon={<ZoomOutMapIcon />}
+                label="zoomToExtent"
+                tooltipPlacement="left"
+                onClick={zoomToExtent}
+              />
+              <IconButton
+                color="primaryOutlined"
+                icon={<RemoveIcon />}
+                label="mapZoomOut"
+                tooltipPlacement="left"
+                onClick={() => zoomBy(-1)}
+              />
             </ButtonGroup>
           </Stack>
           <LayerSwitcher map={map} />

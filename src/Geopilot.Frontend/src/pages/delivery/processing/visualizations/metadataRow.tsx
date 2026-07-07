@@ -42,6 +42,7 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
       <TableCell sx={{ width: 40, verticalAlign: "top", px: 0, textAlign: "right" }}>
         <IconButton
           size="small"
+          icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
           label={copied ? "copied" : "copy"}
           onClick={copyValue}
           data-cy="metadata-copy-button"
@@ -51,9 +52,8 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
             opacity: copied ? 1 : 0,
             transition: "opacity 0.15s",
             "&:focus-visible": { opacity: 1 },
-          }}>
-          {copied ? <CheckIcon fontSize="small" /> : <ContentCopyIcon fontSize="small" />}
-        </IconButton>
+          }}
+        />
       </TableCell>
     </TableRow>
   );

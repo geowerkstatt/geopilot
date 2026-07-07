@@ -46,9 +46,9 @@ export const FilterBar = ({
                 color="primaryOutlined"
                 className={toggleActive ? "active" : undefined}
                 onClick={() => setShowFilters(show => !show)}
-                label="treeFilterToggle">
-                <FilterAltIcon />
-              </IconButton>
+                icon={<FilterAltIcon />}
+                label="treeFilterToggle"
+              />
             </Badge>
           )}
         </Stack>
