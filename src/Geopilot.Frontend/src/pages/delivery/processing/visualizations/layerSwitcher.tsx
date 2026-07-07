@@ -418,7 +418,7 @@ interface LayerSwitcherProps {
  * visibility (with group cascade), opacity, zoom-to-extent, remove, search and drag-to-reorder.
  */
 export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const forceUpdate = useForceUpdate();
   const containerRef = useRef<HTMLDivElement>(null);
