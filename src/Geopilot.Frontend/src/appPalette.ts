@@ -1,4 +1,4 @@
-import { PaletteOptions } from "@mui/material/styles";
+import { alpha, PaletteOptions } from "@mui/material/styles";
 
 export const themePalette = {
   text: {
@@ -41,4 +41,5 @@ export const themePalette = {
     fill: "#e53835",
     stroke: "#ffffff",
   },
+  divider: alpha("#124A4F", 0.2),
 } satisfies PaletteOptions;

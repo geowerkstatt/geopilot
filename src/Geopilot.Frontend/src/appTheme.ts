@@ -290,6 +290,15 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          "&:hover": {
+            backgroundColor: alpha(themePalette.primary.main, 0.04),
+          },
+        },
+      },
+    },
     MuiListItemText: {
       styleOverrides: {
         root: {
