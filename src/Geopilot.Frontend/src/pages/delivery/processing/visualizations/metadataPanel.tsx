@@ -20,7 +20,9 @@ export const MetadataPanel = ({ node }: MetadataPanelProps) => {
         gap: 1,
         backgroundColor: geopilotTheme.palette.primary.states.selected,
       }}>
-      <Typography variant="subtitle2">{t("treeVisualizationMetadataTitle")}</Typography>
+      <Typography variant="h6" m={0}>
+        {t("treeVisualizationMetadataTitle")}
+      </Typography>
       <Table size="small" sx={{ tableLayout: "fixed" }}>
         <TableBody>
           {entries.map(([key, value]) => (
