@@ -45,7 +45,6 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
           icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
           label={copied ? "copied" : "copy"}
           onClick={copyValue}
-          data-cy="metadata-copy-button"
           className="metadata-copy-button"
           sx={{
             mt: "-5px",

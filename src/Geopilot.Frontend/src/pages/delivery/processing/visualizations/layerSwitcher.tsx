@@ -231,7 +231,6 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, isFirst }: LayerRowPr
             {isGroup && (
               <IconButton
                 size="small"
-                data-cy="expand-layers"
                 icon={open ? <RemoveIcon /> : <AddIcon />}
                 label={open ? "collapseLayerGroup" : "expandLayerGroup"}
                 sx={{ flexShrink: 0 }}

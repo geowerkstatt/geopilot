@@ -461,7 +461,6 @@ export const MapVisualization = ({
       }}>
       <Box
         ref={mapContainerRef}
-        data-cy="map-visualization"
         sx={{
           position: "absolute",
           width: "100%",

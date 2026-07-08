@@ -40,7 +40,7 @@ export const VisualizationLoader: FC<VisualizationLoaderProps> = ({ url }) => {
 
   if (hasError) {
     return (
-      <Typography variant="body1" color="error" data-cy="visualization-error">
+      <Typography variant="body1" color="error">
         {t("visualizationLoadFailed")}
       </Typography>
     );
@@ -48,7 +48,7 @@ export const VisualizationLoader: FC<VisualizationLoaderProps> = ({ url }) => {
 
   if (!visualization) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", p: 2 }} data-cy="visualization-loading">
+      <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
         <CircularProgress />
       </Box>
     );
