@@ -5,7 +5,7 @@ import { CircularProgress } from "@mui/material";
 import { useGeopilotAuth } from "./auth";
 import { ControlledNavigateProvider } from "./components/controlledNavigate/controlledNavigateProvider.tsx";
 import Header from "./components/header/header";
-import { AppBox, LayoutBox, PageContentBox } from "./components/styledComponents";
+import { FullPageStack, PageContent, ScrollableContent } from "./components/styledComponents";
 import Admin from "./pages/admin/admin";
 import { DeliveryOverview } from "./pages/admin/deliveries/deliveryOverview.tsx";
 import MandateDetail from "./pages/admin/mandates/mandateDetail.tsx";
@@ -28,7 +28,7 @@ const App: FC = () => {
   const { isLoading, isAdmin, user } = useGeopilotAuth();
 
   return (
-    <AppBox>
+    <FullPageStack>
       <BrowserRouter>
         <ControlledNavigateProvider>
           <Header
@@ -36,8 +36,8 @@ const App: FC = () => {
               setIsSubMenuOpen(true);
             }}
           />
-          <LayoutBox>
-            <PageContentBox>
+          <ScrollableContent>
+            <PageContent>
               {isLoading ? (
                 <CircularProgress />
               ) : (
@@ -84,12 +84,12 @@ const App: FC = () => {
                   <Route path="/licenses" element={<Licenses />} />
                 </Routes>
               )}
-            </PageContentBox>
+            </PageContent>
             <Footer />
-          </LayoutBox>
+          </ScrollableContent>
         </ControlledNavigateProvider>
       </BrowserRouter>
-    </AppBox>
+    </FullPageStack>
   );
 };
 

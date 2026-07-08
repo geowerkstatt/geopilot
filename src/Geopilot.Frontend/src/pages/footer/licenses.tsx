@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ExpandMore } from "@mui/icons-material";
-import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Stack, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Typography } from "@mui/material";
 import { ContentType } from "../../api/apiInterfaces.ts";
 import { Button } from "../../components/buttons.tsx";
-import { CenteredBox } from "../../components/styledComponents.ts";
+import { CenteredContent } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 
 interface PackageList {
@@ -92,10 +92,10 @@ export const Licenses = () => {
   }, [hash, licenseInfo, licenseInfoCustom]);
 
   return (
-    <CenteredBox>
-      <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
+    <CenteredContent>
+      <Box sx={{ flex: 0 }}>
         <Button id="backButton" variant="text" startIcon={<ChevronLeft />} onClick={() => navigate(-1)} label="back" />
-      </Stack>
+      </Box>
       {(licenseInfo || licenseInfoCustom) && (
         <Typography variant="h1" id="licenses">
           {t("licenseInformation")}
@@ -138,6 +138,6 @@ export const Licenses = () => {
           </Accordion>
         ))}
       </>
-    </CenteredBox>
+    </CenteredContent>
   );
 };

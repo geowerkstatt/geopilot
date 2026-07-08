@@ -293,6 +293,9 @@ export const geopilotTheme = createTheme({
     MuiListItemButton: {
       styleOverrides: {
         root: {
+          "&.Mui-selected": {
+            backgroundColor: themePalette.primary.states.selected,
+          },
           "&:hover": {
             backgroundColor: alpha(themePalette.primary.main, 0.04),
           },

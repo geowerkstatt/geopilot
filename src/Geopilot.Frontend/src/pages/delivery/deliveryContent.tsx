@@ -64,10 +64,6 @@ const DeliveryContentBox = styled(Stack)({
   flex: 1,
 });
 
-const MainContentBox = styled(GeopilotBox)({
-  overflow: "auto",
-});
-
 export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
   children,
   title,
@@ -79,13 +75,13 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
   return (
     <DeliveryContentGrid>
       <DeliveryContentBox>
-        <MainContentBox>
+        <GeopilotBox sx={{ overflow: "auto" }}>
           <Typography variant="h3" m={0} sx={{ display: { xs: "none", md: "block" } }}>
             {t(title)}
           </Typography>
           {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}
           {children}
-        </MainContentBox>
+        </GeopilotBox>
         <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
           <DeliveryRestartButton sx={{ display: { xs: "block", md: "none" } }} />
           <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", flex: 1, justifyContent: "flex-end" }}>

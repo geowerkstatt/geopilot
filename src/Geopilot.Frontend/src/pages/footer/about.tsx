@@ -4,7 +4,7 @@ import { Link as RouterLink, useLocation } from "react-router-dom";
 import { Link, Typography } from "@mui/material";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { MarkdownContent } from "../../components/markdownContent.tsx";
-import { CenteredBox } from "../../components/styledComponents.ts";
+import { CenteredContent } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 
 export const About = () => {
@@ -38,7 +38,7 @@ export const About = () => {
   }, [hash, info, termsOfUse, version]);
 
   return (
-    <CenteredBox>
+    <CenteredContent>
       {info && <MarkdownContent content={info} routeHash={"info"} />}
       {termsOfUse && <MarkdownContent content={termsOfUse} routeHash={"termsofuse"} />}
       <Typography variant="h1" id="version">
@@ -85,6 +85,6 @@ export const About = () => {
           }}
         />
       </Typography>
-    </CenteredBox>
+    </CenteredContent>
   );
 };

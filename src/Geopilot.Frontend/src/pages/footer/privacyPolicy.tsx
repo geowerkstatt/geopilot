@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Typography } from "@mui/material";
 import { MarkdownContent } from "../../components/markdownContent.tsx";
-import { CenteredBox } from "../../components/styledComponents.ts";
+import { CenteredContent } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 
 export const PrivacyPolicy = () => {
@@ -15,7 +15,7 @@ export const PrivacyPolicy = () => {
   }, [fetchLocalizedMarkdown, i18n.language]);
 
   return (
-    <CenteredBox>
+    <CenteredContent>
       {content ? (
         <MarkdownContent content={content} />
       ) : (
@@ -24,6 +24,6 @@ export const PrivacyPolicy = () => {
           <p>{t("contentNotFound")}</p>
         </>
       )}
-    </CenteredBox>
+    </CenteredContent>
   );
 };
