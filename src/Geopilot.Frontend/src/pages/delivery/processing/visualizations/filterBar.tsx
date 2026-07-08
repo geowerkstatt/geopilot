@@ -73,15 +73,11 @@ export const FilterBar = ({
           </Box>
         )}
       </Stack>
-      <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
-        <Button
-          size="small"
-          variant="text"
-          label="treeFilterReset"
-          onClick={onClearFilters}
-          disabled={!hasActiveFilters}
-        />
-      </Stack>
+      {hasActiveFilters && (
+        <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
+          <Button size="small" variant="text" label="treeFilterReset" onClick={onClearFilters} />
+        </Stack>
+      )}
     </Stack>
   );
 };
