@@ -19,42 +19,54 @@ const DeliveryContentGrid = styled(Box)({
 const desktopTopDistance = 100; // header and spacing
 const mobileTopDistance = desktopTopDistance + 58 + 16; // top distance + stepper + spacing
 
-// place all elements in the same grid cell and add sticky scrolling
-const Overlay = styled(Box)(({ theme }) => ({
+// The mask and the content share this grid cell so the mask can sit over the content
+// while it scrolls behind the sticky stepper.
+const Overlay = styled(Box)({
   gridArea: "1 / 1",
   position: "sticky",
-  top: `${desktopTopDistance}px`,
-  [theme.breakpoints.down("md")]: {
-    top: `${mobileTopDistance}px`,
-  },
-}));
+  top: `${mobileTopDistance}px`,
+});
 
-// hide the scrolled content
+// On mobile the stepper sticks below the page header, so content scrolling up would show
+// beside it. This opaque band masks that content so it disappears behind the stepper. On
+// desktop the stepper sits next to the content, so no mask is needed and the content
+// flows all the way up behind the fixed page header.
 const ScrollContentOverlay = styled(Overlay)(({ theme }) => ({
   background: theme.palette.background.base,
-  height: `${desktopTopDistance}px`,
+  height: `${mobileTopDistance}px`,
   transform: "translateY(-100%)",
   margin: `0 -${theme.spacing(1)}`,
   zIndex: 7,
+  display: "none",
   [theme.breakpoints.down("md")]: {
-    height: `${mobileTopDistance}px`,
+    display: "block",
   },
 }));
 
-// add a fixed top border to the scrolled content
+// Draws the fixed top border the mobile content scrolls against, below the sticky
+// stepper. Hidden on desktop, where the content flows up behind the page header instead.
 const ContainerTopBorder = styled(Overlay)(({ theme }) => ({
   height: theme.shape.borderRadius,
   border: `1px solid ${theme.palette.primary.light}`,
   borderBottom: "none",
   borderTopLeftRadius: theme.shape.borderRadius,
   borderTopRightRadius: theme.shape.borderRadius,
+  display: "none",
+  [theme.breakpoints.down("md")]: {
+    display: "block",
+  },
 }));
 
-// hide the border of the scrolled content
+// Hides the content box's own side borders in the top corners so only the fixed top
+// border above shows. Mobile only, matching the border it complements.
 const ContainerTopBorderOverlay = styled(Overlay)(({ theme }) => ({
   height: theme.shape.borderRadius,
   borderLeft: `1px solid ${theme.palette.background.base}`,
   borderRight: `1px solid ${theme.palette.background.base}`,
+  display: "none",
+  [theme.breakpoints.down("md")]: {
+    display: "block",
+  },
 }));
 
 const DeliveryContentBox = styled(Stack)({

@@ -13,7 +13,7 @@ const StepperViewport = styled(Box)(({ theme }) => ({
   minWidth: 300,
   flex: 0,
   position: "sticky",
-  top: "100px",
+  top: "80px",
   zIndex: 10,
   [theme.breakpoints.down("md")]: {
     overflowX: "hidden",
