@@ -104,16 +104,6 @@ export const DeliveryProcessingResults = () => {
           const isExpandable = stepIsExpandable(step);
           const isExpanded = isExpandable && expandedStepIds.has(step.id);
 
-          const isStepExpanded = (i: number) => {
-            const s = steps[i];
-            return stepIsExpandable(s) && expandedStepIds.has(s.id);
-          };
-
-          const prevExpanded = index > 0 && isStepExpanded(index - 1);
-          const nextExpanded = index < steps.length - 1 && isStepExpanded(index + 1);
-          const isFirstInGroup = index === 0 || prevExpanded;
-          const isLastInGroup = index === steps.length - 1 || nextExpanded;
-
           return (
             <Accordion
               key={step.id}
@@ -121,20 +111,6 @@ export const DeliveryProcessingResults = () => {
               expanded={isExpanded}
               onChange={isExpandable ? handleAccordionChange(step.id) : undefined}
               slotProps={{ transition: { onEntered: handleStepExpanded(step.id) } }}
-              sx={{
-                ...(isExpanded
-                  ? {
-                      borderRadius: "4px",
-                      mt: index > 0 ? 2 : 0,
-                      mb: index < steps.length - 1 ? 2 : 0,
-                    }
-                  : {
-                      borderRadius: 0,
-                      ...(!isFirstInGroup && { borderTop: 0 }),
-                      ...(isFirstInGroup && { borderTopLeftRadius: "4px", borderTopRightRadius: "4px" }),
-                      ...(isLastInGroup && { borderBottomLeftRadius: "4px", borderBottomRightRadius: "4px" }),
-                    }),
-              }}
               data-cy={`processing-step-${step.id}`}>
               <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
                 <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>

@@ -405,9 +405,30 @@ export const geopilotTheme = createTheme({
         root: {
           boxShadow: "none",
           border: `1px solid ${themePalette.primary.light}`,
-          borderRadius: themeSpacing(0.5),
+          borderRadius: 0,
+          borderTop: 0, // collapsed items stack: rely on the item above's bottom border
           "&:before": {
             display: "none",
+          },
+          // First of a collapsed run (list top, or right after an expanded item)
+          "&:first-of-type, .Mui-expanded + &": {
+            borderTop: `1px solid ${themePalette.primary.light}`,
+            borderTopLeftRadius: themeSpacing(0.5),
+            borderTopRightRadius: themeSpacing(0.5),
+          },
+          // Last of a collapsed run (list bottom, or right before an expanded item)
+          "&:last-of-type, &:has(+ .Mui-expanded)": {
+            borderBottomLeftRadius: themeSpacing(0.5),
+            borderBottomRightRadius: themeSpacing(0.5),
+          },
+          // Expanded: detach into its own rounded card with vertical spacing
+          "&.Mui-expanded": {
+            borderTop: `1px solid ${themePalette.primary.light}`,
+            borderRadius: themeSpacing(0.5),
+            marginTop: themeSpacing(2),
+            marginBottom: themeSpacing(2),
+            "&:first-of-type": { marginTop: 0 },
+            "&:last-of-type": { marginBottom: 0 },
           },
         },
       },
