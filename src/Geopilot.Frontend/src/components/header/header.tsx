@@ -56,7 +56,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
           height: "60px",
           flex: "0",
           borderBottom: theme => `1px solid ${theme.palette.primary.light}`,
-          backgroundColor: "white",
+          backgroundColor: theme => theme.palette.background.content,
         }}>
         <Toolbar
           sx={{

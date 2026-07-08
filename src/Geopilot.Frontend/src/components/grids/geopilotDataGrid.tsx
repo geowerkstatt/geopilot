@@ -16,7 +16,7 @@ interface GeopilotDataGridProps extends DataGridProps {
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   height: "100%",
-  backgroundColor: "white",
+  backgroundColor: theme.palette.background.content,
   borderColor: theme.palette.primary.light,
 }));
 
