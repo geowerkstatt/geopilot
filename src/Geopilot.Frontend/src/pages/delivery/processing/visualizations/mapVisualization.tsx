@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
-import { Box, ButtonGroup, Stack } from "@mui/material";
+import { Box, ButtonGroup } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import i18next from "i18next";
 import { defaults as defaultControls } from "ol/control";
@@ -450,8 +450,6 @@ export const MapVisualization = ({
   }, [map, visibleErrorIds, highlightedErrorIds]);
 
   return (
-    // zIndex establishes a stacking context so the layer switcher (zIndex 10) stays contained within the map
-    // and is masked by the sticky scroll overlay instead of poking over the container's top border.
     <Box
       sx={{
         position: "relative",
@@ -472,31 +470,29 @@ export const MapVisualization = ({
       />
       {map && (
         <>
-          <Stack sx={{ position: "absolute", top: 0, right: 0, m: 1, gap: 1 }}>
-            <ButtonGroup orientation="vertical">
-              <IconButton
-                color="primaryOutlined"
-                icon={<AddIcon />}
-                label="mapZoomIn"
-                tooltipPlacement="left"
-                onClick={() => zoomBy(1)}
-              />
-              <IconButton
-                color={"primaryOutlined"}
-                icon={<ZoomOutMapIcon />}
-                label="zoomToExtent"
-                tooltipPlacement="left"
-                onClick={zoomToExtent}
-              />
-              <IconButton
-                color="primaryOutlined"
-                icon={<RemoveIcon />}
-                label="mapZoomOut"
-                tooltipPlacement="left"
-                onClick={() => zoomBy(-1)}
-              />
-            </ButtonGroup>
-          </Stack>
+          <ButtonGroup orientation="vertical" sx={{ position: "absolute", top: 0, right: 0, m: 1 }}>
+            <IconButton
+              color="primaryOutlined"
+              icon={<AddIcon />}
+              label="mapZoomIn"
+              tooltipPlacement="left"
+              onClick={() => zoomBy(1)}
+            />
+            <IconButton
+              color={"primaryOutlined"}
+              icon={<ZoomOutMapIcon />}
+              label="zoomToExtent"
+              tooltipPlacement="left"
+              onClick={zoomToExtent}
+            />
+            <IconButton
+              color="primaryOutlined"
+              icon={<RemoveIcon />}
+              label="mapZoomOut"
+              tooltipPlacement="left"
+              onClick={() => zoomBy(-1)}
+            />
+          </ButtonGroup>
           <LayerSwitcher map={map} />
         </>
       )}

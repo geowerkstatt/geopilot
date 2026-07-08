@@ -470,26 +470,24 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
   const anyGroupOpen = hasOpenGroup(rootLayers);
 
   return (
-    <Stack ref={containerRef} sx={{ position: "absolute", bottom: 0, right: 0, m: 1, gap: 1 }}>
-      {!open && (
-        <IconButton
-          color={"primaryOutlined"}
-          icon={<LayersOutlinedIcon />}
-          label="layers"
-          onClick={() => setOpen(true)}
-          tooltipPlacement="left"
-        />
-      )}
-
-      {open && (
+    <Stack
+      sx={{
+        position: "absolute",
+        bottom: 0,
+        right: 0,
+        m: 1,
+        maxHeight: theme => `calc(100% - ${theme.spacing(2)})`,
+      }}>
+      {open ? (
         <Stack
+          ref={containerRef}
           sx={{
             width: "360px",
-            maxHeight: 360,
             p: 1,
-            backgroundColor: "background.content",
-            alignItems: "flex-start",
+            pb: 0,
             gap: 0.5,
+            overflow: "hidden",
+            backgroundColor: "background.content",
             border: theme => `1px solid ${theme.palette.primary.main}`,
             borderRadius: theme => theme.spacing(0.5),
           }}>
@@ -512,13 +510,23 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
                 />
               ))}
           </Stack>
-          <LayerCollection
-            collection={rootCollection}
-            map={map}
-            rootLayers={rootLayers}
-            onLayerChange={onLayerChange}
-          />
+          <Stack sx={{ pb: 1, overflowY: "auto" }}>
+            <LayerCollection
+              collection={rootCollection}
+              map={map}
+              rootLayers={rootLayers}
+              onLayerChange={onLayerChange}
+            />
+          </Stack>
         </Stack>
+      ) : (
+        <IconButton
+          color={"primaryOutlined"}
+          icon={<LayersOutlinedIcon />}
+          label="layers"
+          onClick={() => setOpen(true)}
+          tooltipPlacement="left"
+        />
       )}
     </Stack>
   );
