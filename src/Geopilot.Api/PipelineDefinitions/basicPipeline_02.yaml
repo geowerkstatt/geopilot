@@ -74,9 +74,7 @@ pipelines:
                   fr: "Exactement un fichier XTF doit être téléchargé."
                   it: "Deve essere caricato esattamente un file XTF."
         input:
-          - from: xtf_matching
-            take: xtf_files
-            as: iliFile
+          iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
           - take: error_log
             as: error_log
@@ -114,9 +112,7 @@ pipelines:
                   fr: "Validation réussie. La visualisation cartographique sera ignorée."
                   it: "Validazione riuscita. La visualizzazione cartografica sarà ignorata."
         input:
-          - from: validation
-            take: xtf_log
-            as: xtfLog
+          xtfLog: "${step_output(validation.xtf_log)}"
         output:
           - take: visualization
             as: map_visualization
@@ -169,9 +165,7 @@ pipelines:
         process_config_overwrites:
           validationProfile: null
         input:
-          - from: xtf_matching
-            take: xtf_files
-            as: iliFile
+          iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
           - take: error_log
             as: error_log
@@ -211,9 +205,7 @@ pipelines:
                   fr: "Validation réussie. L'arbre des erreurs sera ignoré."
                   it: "Validazione riuscita. L'albero degli errori sarà ignorato."
         input:
-          - from: validation
-            take: xtf_log
-            as: xtfLog
+          xtfLog: "${step_output(validation.xtf_log)}"
         output:
           - take: visualization
             as: error_tree
@@ -231,15 +223,7 @@ pipelines:
           fr: Création ZIP
         process_id: zip_packager
         input:
-          - from: xtf_matching
-            take: xtf_files
-            as: input
-          - from: validation
-            take: xtf_log
-            as: input
-          - from: validation
-            take: error_log
-            as: input
+          input: "${step_output(xtf_matching.xtf_files)}"
         output:
           - take: zip_package
             as: archive
@@ -291,9 +275,7 @@ pipelines:
                   fr: "Exactement un fichier XTF doit être téléchargé."
                   it: "Deve essere caricato esattamente un file XTF."
         input:
-          - from: xtf_matching
-            take: xtf_files
-            as: iliFile
+          iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
           - take: error_log
             as: error_log
@@ -328,9 +310,7 @@ pipelines:
                   fr: "Validation réussie. La visualisation des erreurs sera ignorée."
                   it: "Validazione riuscita. La visualizzazione degli errori sarà ignorata."
         input:
-          - from: validation
-            take: xtf_log
-            as: xtfLog
+          xtfLog: "${step_output(validation.xtf_log)}"
         output:
           - take: visualization
             as: error_visualization

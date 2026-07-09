@@ -9,9 +9,7 @@ pipelines:
           en: XTF Validation
         process_id: xtf_validator
         input:
-          - from: upload
-            take: ili_file
-            as: iliFile
+          iliFile: "${step_output(upload.ili_file)}"
         output:
           - take: error_log
             as: error_log

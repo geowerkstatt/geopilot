@@ -82,7 +82,7 @@ public class PipelineFactory : IPipelineFactory
         return PipelineStep.Builder()
             .Id(stepConfig.Id)
             .DisplayName(stepConfig.DisplayName)
-            .InputConfig(stepConfig.Input ?? new List<InputConfig>())
+            .Inputs(InputCompiler.Compile(stepConfig.Input ?? new InputConfig()))
             .OutputConfig(stepConfig.Output ?? new List<OutputConfig>())
             .StepConditions(stepConfig.Conditions)
             .PipelineDirectory(pipelineTempDirectory)

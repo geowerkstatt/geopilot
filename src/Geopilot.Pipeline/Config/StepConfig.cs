@@ -39,10 +39,10 @@ public class StepConfig
     public Parameterization? ProcessConfigOverwrites { get; set; }
 
     /// <summary>
-    /// Configuration for input data handling in this step. Defines how to map data from the input sources to the process.
+    /// Definition of the inputs for a pipeline step.
     /// </summary>
     [YamlMember(Alias = "input")]
-    public List<InputConfig>? Input { get; set; }
+    public InputConfig? Input { get; set; }
 
     /// <summary>
     /// Configuration for output data handling in this step. Defines how to map data from the process to the output destinations.

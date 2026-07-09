@@ -32,9 +32,7 @@ pipelines:
             skip_conditions:
               - expression: "[upload.foo] != null"
         input:
-          - from: xtf_matching
-            take: xtf_files
-            as: iliFile
+          iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
           - take: error_log
             as: error_log

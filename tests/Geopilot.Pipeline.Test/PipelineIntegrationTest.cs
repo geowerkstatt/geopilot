@@ -214,7 +214,7 @@ public class PipelineIntegrationTest
 
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipeline.Run(pipelineFiles, CancellationToken.None));
         Assert.IsNotNull(exception);
-        Assert.AreEqual("<2> values found for parameter <iliFile> of type <Geopilot.PipelineCore.Pipeline.IPipelineFile> in process run method.", exception.Message);
+        Assert.AreEqual("Input for parameter 'iliFile' resolved to 2 values, but a single value is required.", exception.Message);
     }
 
     [TestMethod]

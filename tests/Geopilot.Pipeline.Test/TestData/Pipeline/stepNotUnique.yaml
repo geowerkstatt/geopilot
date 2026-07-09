@@ -16,9 +16,7 @@ pipelines:
         process_id: xtf_validator
         process_config_overwrites:
         input:
-          - from: upload
-            take: ili_file
-            as: iliFile
+          iliFile: "${step_output(upload.ili_file)}"
         output:
           - take: error_log
             as: error_log

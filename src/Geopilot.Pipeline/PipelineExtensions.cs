@@ -38,14 +38,15 @@ internal static class PipelineExtensions
         var properties = obj.GetType().GetProperties();
         foreach (var property in properties)
         {
+            // Types to not validate any deeper
             var isPrimitive = property.PropertyType.IsPrimitive;
             var isDecimal = property.PropertyType == typeof(decimal);
             var isString = property.PropertyType == typeof(string);
             var isParameterization = property.PropertyType == typeof(Parameterization);
-
-            // LocalizedText is a sealed value type; its own properties are not validation targets.
+            var isStepInput = property.PropertyType == typeof(InputConfig);
             var isLocalizedText = property.PropertyType == typeof(LocalizedText);
-            var goRecursive = !isPrimitive && !isDecimal && !isString && !isParameterization && !isLocalizedText;
+
+            var goRecursive = !isPrimitive && !isDecimal && !isString && !isParameterization && !isStepInput && !isLocalizedText;
             if (goRecursive)
             {
                 var value = property.GetValue(obj);

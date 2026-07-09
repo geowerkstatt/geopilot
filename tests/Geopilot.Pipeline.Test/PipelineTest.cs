@@ -35,7 +35,6 @@ public class PipelineTest
     public void ProcessingStateTest(ProcessingState expectedState, IEnumerable<StepState> stepStates)
     {
         var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
-        var inputConfigs = new List<InputConfig>();
         var outputConfigs = new List<OutputConfig>();
 
         var steps = stepStates
@@ -64,7 +63,6 @@ public class PipelineTest
     public void InteruptPipelineIfAStepFails()
     {
         var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
-        var inputConfigs = new List<InputConfig>();
         var outputConfigs = new List<OutputConfig>();
 
         var firstStep = new Mock<IPipelineStep>();
