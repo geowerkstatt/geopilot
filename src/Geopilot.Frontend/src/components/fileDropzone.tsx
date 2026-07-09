@@ -137,19 +137,19 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
           {t("or")} {t("dragAndDrop")}
         </Typography>
         {fileExtensions && fileExtensions.length > 0 && (
-          <Typography variant="caption" color="text.secondary" className={disabled ? "Mui-disabled" : ""}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            component="div"
+            className={disabled ? "Mui-disabled" : ""}>
             <Stack
               direction={{ xs: "column", sm: "row" }}
-              alignItems={"center"}
+              alignItems="center"
               gap={{ xs: 0, sm: 1 }}
-              divider={
-                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                  |
-                </Box>
-              }>
-              <span>{fileCountText}</span>
-              <span>{maxPerFileText}</span>
-              <span>{maxTotalSizeText}</span>
+              divider={<Box sx={{ display: { xs: "none", sm: "block" } }}>|</Box>}>
+              <Box>{fileCountText}</Box>
+              <Box>{maxPerFileText}</Box>
+              <Box>{maxTotalSizeText}</Box>
             </Stack>
           </Typography>
         )}
