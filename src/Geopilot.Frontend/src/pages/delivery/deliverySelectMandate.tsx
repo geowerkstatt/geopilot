@@ -119,7 +119,10 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
   );
 
   return (
-    <DeliveryContent title="mandate" subtitle="selectMandateSubtitle" buttons={buttons}>
+    <DeliveryContent
+      title="mandate"
+      subtitle={(mandates?.length ?? 0) > 1 ? "selectMandateSubtitle" : undefined}
+      buttons={buttons}>
       <Stack>
         {mandates === null ? (
           <CircularProgress sx={{ alignSelf: "center" }} />
