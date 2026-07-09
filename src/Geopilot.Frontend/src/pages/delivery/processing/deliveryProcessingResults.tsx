@@ -1,7 +1,7 @@
 import { SyntheticEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import { Accordion, AccordionDetails, AccordionSummary, Box, Stack, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Stack, Typography } from "@mui/material";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { Button } from "../../../components/buttons";
 import { useLocalized } from "../../../hooks/useLocalized";
@@ -94,11 +94,6 @@ export const DeliveryProcessingResults = () => {
 
   return (
     <Stack>
-      {processingResponse?.deliveryRestrictionMessage && (
-        <Typography variant="body1" color="error">
-          {localized(processingResponse.deliveryRestrictionMessage)}
-        </Typography>
-      )}
       <Box>
         {steps.map((step, index) => {
           const isExpandable = stepIsExpandable(step);
@@ -142,6 +137,9 @@ export const DeliveryProcessingResults = () => {
           );
         })}
       </Box>
+      {processingResponse?.deliveryRestrictionMessage && (
+        <Alert severity="error">{localized(processingResponse.deliveryRestrictionMessage)}</Alert>
+      )}
     </Stack>
   );
 };
