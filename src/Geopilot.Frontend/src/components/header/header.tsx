@@ -20,6 +20,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useGeopilotAuth } from "../../auth";
+import { useApplicationName } from "../../hooks/useApplicationName";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { BaseButton } from "../buttons.tsx";
 import { useControlledNavigate } from "../controlledNavigate";
@@ -30,10 +31,11 @@ interface HeaderProps {
 }
 
 const Header: FC<HeaderProps> = ({ openSubMenu }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { navigateTo } = useControlledNavigate();
   const location = useLocation();
   const { clientSettings } = useAppSettings();
+  const applicationName = useApplicationName();
   const { user, authLoaded, isAdmin, login, logout } = useGeopilotAuth();
 
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
@@ -93,7 +95,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                   <Box>
                     <img
                       src={clientSettings?.application?.logo}
-                      alt={`Logo of ${clientSettings?.application?.name}`}
+                      alt={`Logo of ${applicationName}`}
                       style={{ maxHeight: "40px", cursor: "pointer" }}
                     />
                   </Box>
@@ -104,7 +106,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               <Box sx={{ display: { xs: "none", md: "block" }, maxHeight: "40px" }}>
                 <img
                   src={clientSettings?.application?.logo}
-                  alt={`Logo of ${clientSettings?.application?.name}`}
+                  alt={`Logo of ${applicationName}`}
                   style={{ maxHeight: "40px", cursor: "pointer" }}
                 />
               </Box>
@@ -119,15 +121,16 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               <Typography sx={{ typography: { xs: "h4", md: "h1" }, margin: "0 !important" }}>
                 geopilot&nbsp;
               </Typography>
-              {clientSettings?.application?.name && (
+              {applicationName && (
                 <Typography
                   sx={{
+                    pt: { xs: "2px", md: 0 },
                     typography: { xs: "h6", md: "h1" },
-                    margin: "0 !important",
+                    m: "0 !important",
                     textOverflow: "ellipsis",
                     overflow: "hidden",
                   }}>
-                  {clientSettings?.application?.localName?.[i18n.language] || clientSettings?.application?.name}
+                  {applicationName}
                 </Typography>
               )}
             </Box>

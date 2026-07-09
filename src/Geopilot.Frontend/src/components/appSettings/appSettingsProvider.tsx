@@ -1,6 +1,7 @@
 import { FC, PropsWithChildren, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ContentType } from "../../api/apiInterfaces.ts";
+import { resolveApplicationName } from "../../hooks/useApplicationName.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { AppSettingsContext } from "./appSettingsContext";
 import { ClientSettings } from "./appSettingsInterface";
@@ -52,8 +53,9 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [clientSettings]);
 
   useEffect(() => {
-    document.title = "geopilot " + clientSettings?.application?.name;
-  }, [clientSettings?.application?.name]);
+    const applicationName = resolveApplicationName(clientSettings?.application, i18n.language);
+    document.title = applicationName ? `geopilot ${applicationName}` : "geopilot";
+  }, [clientSettings?.application, i18n.language]);
 
   return (
     <AppSettingsContext.Provider
