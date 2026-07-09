@@ -1,3 +1,5 @@
+import { createElement } from "react";
+import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { AppThemePalette, createTheme, Shadows } from "@mui/material/styles";
 import { Spacing } from "@mui/system";
@@ -341,6 +343,13 @@ export const geopilotTheme = createTheme({
       },
     },
     MuiStack: { defaultProps: { gap: 2 } },
+    MuiAlert: {
+      defaultProps: {
+        iconMapping: {
+          success: createElement(CheckIcon, { fontSize: "inherit" }),
+        },
+      },
+    },
     MuiAccordion: {
       defaultProps: {
         disableGutters: true,
