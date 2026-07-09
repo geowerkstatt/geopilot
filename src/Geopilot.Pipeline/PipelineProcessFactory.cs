@@ -255,7 +255,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
             if (!string.IsNullOrEmpty(parameterInfo.Name) &&
                 processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&
-                Parameterization.TryConvertObject(rawValue, parameterInfo.ParameterType, out _))
+                RawValueConverter.TryConvert(rawValue, parameterInfo.ParameterType, out _))
             {
                 return;
             }
@@ -308,7 +308,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             }
             else if (!string.IsNullOrEmpty(parameterInfo.Name) &&
                      processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&
-                     Parameterization.TryConvertObject(rawValue, parameterInfo.ParameterType, out var convertedValue))
+                     RawValueConverter.TryConvert(rawValue, parameterInfo.ParameterType, out var convertedValue))
             {
                 return convertedValue;
             }
