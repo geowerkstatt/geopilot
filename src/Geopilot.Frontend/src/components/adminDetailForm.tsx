@@ -166,6 +166,7 @@ const AdminDetailForm = <T extends { id: number }>({
                   label={"reset"}
                 />
                 <Button
+                  variant="contained"
                   disabled={
                     isSavingRef.current ||
                     !formMethods.formState.isDirty ||
