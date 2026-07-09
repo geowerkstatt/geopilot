@@ -4,6 +4,7 @@ import { Outlet } from "react-router-dom";
 import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { useControlledNavigate } from "../../components/controlledNavigate";
+import { useApplicationName } from "../../hooks/useApplicationName.ts";
 
 interface AdminProps {
   isSubMenuOpen: boolean;
@@ -14,6 +15,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   const { t } = useTranslation();
   const { navigateTo } = useControlledNavigate();
   const { clientSettings } = useAppSettings();
+  const applicationName = useApplicationName();
 
   const handleDrawerClose = () => {
     setIsSubMenuOpen(false);
@@ -113,7 +115,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
               <Box>
                 <img
                   src={clientSettings?.application?.logo}
-                  alt={`Logo of ${clientSettings?.application?.name}`}
+                  alt={`Logo of ${applicationName}`}
                   style={{ maxHeight: "40px", cursor: "pointer" }}
                 />
               </Box>
@@ -127,9 +129,9 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
               <Typography variant="h4" sx={{ margin: "0 !important" }}>
                 geopilot&nbsp;
               </Typography>
-              {clientSettings?.application?.name && (
+              {applicationName && (
                 <Typography variant="h6" sx={{ margin: "0 !important" }}>
-                  {clientSettings?.application?.name}
+                  {applicationName}
                 </Typography>
               )}
             </Box>
