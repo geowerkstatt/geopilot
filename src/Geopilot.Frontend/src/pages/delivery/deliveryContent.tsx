@@ -1,8 +1,9 @@
-import { FC, PropsWithChildren, ReactNode } from "react";
+import { FC, PropsWithChildren, ReactNode, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Stack, Typography } from "@mui/material";
 import { styled } from "@mui/system";
 import { GeopilotBox } from "../../components/styledComponents";
+import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 
 interface DeliveryContentProps {
@@ -71,7 +72,7 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
   buttons,
 }) => {
   const { t } = useTranslation();
-
+  const { steps, lastCompletedStep } = useContext(DeliveryContext);
   return (
     <DeliveryContentGrid>
       <DeliveryContentBox>
@@ -83,7 +84,10 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
           {children}
         </GeopilotBox>
         <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-          <DeliveryRestartButton sx={{ display: { xs: "block", md: "none" } }} />
+          <DeliveryRestartButton
+            sx={{ display: { xs: "block", md: "none" } }}
+            immediate={lastCompletedStep === steps.size - 1}
+          />
           <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", flex: 1, justifyContent: "flex-end" }}>
             {buttons}
           </Stack>
