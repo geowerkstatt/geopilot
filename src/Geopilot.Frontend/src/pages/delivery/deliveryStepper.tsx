@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useRef, WheelEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
@@ -68,8 +68,24 @@ export const DeliveryStepper = () => {
     }
   };
 
+  const wheelCooldown = useRef(false);
+  const onWheel = (event: WheelEvent<HTMLDivElement>) => {
+    if (!isMobile) return;
+    if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+    if (wheelCooldown.current) return;
+
+    const target = activeStep + (event.deltaX > 0 ? 1 : -1);
+    if (target < 0 || target >= steps.size) return;
+
+    wheelCooldown.current = true;
+    showCompletedOrNextStep(target);
+    window.setTimeout(() => {
+      wheelCooldown.current = false;
+    }, SLIDE_TRANSITION_MS);
+  };
+
   return (
-    <StepperViewport>
+    <StepperViewport onWheel={onWheel}>
       <StepperStack
         direction={{ xs: "row", md: "column" }}
         style={{
