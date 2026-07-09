@@ -1,6 +1,8 @@
 import { FC, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CircularProgress, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import CheckIcon from "@mui/icons-material/Check";
+import ClearIcon from "@mui/icons-material/Clear";
+import { CircularProgress, Divider, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { toggleButtonClasses } from "@mui/material/ToggleButton";
 import { styled } from "@mui/system";
 import { Mandate } from "../../api/apiInterfaces";
@@ -31,7 +33,7 @@ const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
   flexDirection: "column",
   alignItems: "flex-start",
   textAlign: "left",
-  gap: theme.spacing(0.5),
+  gap: theme.spacing(1),
 }));
 
 interface MandateToggleButtonProps {
@@ -46,21 +48,20 @@ const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
 
   return (
     <StyledToggleButton value={mandate.id} data-cy={`mandate-${mandate.id}`}>
-      <Typography variant="h5" mt={0}>
+      <Typography variant="h5" m={0}>
         {mandate.name}
       </Typography>
-      <Stack direction="row" gap={0.5} sx={{ flex: 1 }}>
-        <Typography variant="body1" sx={{ textTransform: "none", lineHeight: 1.25 }}>
-          {t("pipelineSteps")}
-        </Typography>
-        <Typography variant="body1" sx={{ textTransform: "none", lineHeight: 1.25 }}>
-          {steps}
-        </Typography>
-      </Stack>
+      <Typography variant="body2" color="text.secondary" flex={1}>
+        {steps}
+      </Typography>
+      <Divider sx={{ width: "100%" }} />
       {user && (
-        <Typography variant="body1" sx={{ textTransform: "none" }}>
-          {mandate.allowDelivery ? t("deliveryPossible") : t("deliveryNotPossible")}
-        </Typography>
+        <Stack direction="row" gap={1} alignItems="center">
+          {mandate.allowDelivery ? <CheckIcon fontSize="small" /> : <ClearIcon fontSize="small" />}
+          <Typography variant="body2">
+            {mandate.allowDelivery ? t("deliveryPossible") : t("deliveryNotPossible")}
+          </Typography>
+        </Stack>
       )}
     </StyledToggleButton>
   );
