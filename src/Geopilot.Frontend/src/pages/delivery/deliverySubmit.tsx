@@ -41,6 +41,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
         <DeliveryContinueButton />
       ) : (
         <Button
+          variant="contained"
           label="createDelivery"
           disabled={!formMethods.formState.isValid || isLoading}
           onClick={() => formMethods.handleSubmit(submitForm)()}
