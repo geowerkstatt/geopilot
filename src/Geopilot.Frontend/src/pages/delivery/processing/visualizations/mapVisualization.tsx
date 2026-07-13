@@ -1,4 +1,4 @@
-import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MutableRefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -28,6 +28,7 @@ import proj4 from "proj4";
 import { MapLayer, MapVisualizationConfig } from "../../../../api/apiInterfaces";
 import { IconButton } from "../../../../components/buttons";
 import { LayerSwitcher, LayerSwitcherProperties } from "./layerSwitcher";
+import { MapVisualizationContext } from "./mapVisualizationContext";
 import "ol/ol.css";
 
 const localized = (entries?: Record<string, string>) =>
@@ -281,6 +282,8 @@ export const MapVisualization = ({
 }: MapVisualizationProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { captureLayerState, restoreLayerState, captureViewState, restoreViewState } =
+    useContext(MapVisualizationContext);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   // The map instance and feature layers are kept in refs so the reset-viewport button can re-fit the view
   // after the initializing effect has finished.
@@ -396,6 +399,13 @@ export const MapVisualization = ({
         // when there are no features.
         map.getView().fit(getFitExtent(featureLayers), fitOptions);
 
+        restoreLayerState(map);
+        restoreViewState(map);
+
+        map.on("moveend", () => {
+          captureViewState(map!);
+        });
+
         map.on("click", event => {
           const feature = map?.forEachFeatureAtPixel(event.pixel, f => f);
           const info = feature?.get("info") as string | undefined;
@@ -434,7 +444,7 @@ export const MapVisualization = ({
       mapRef.current = undefined;
       featureLayersRef.current = [];
     };
-  }, [config, theme, t, fitOptions]);
+  }, [config, theme, t, fitOptions, restoreLayerState, restoreViewState, captureViewState]);
 
   // Apply filter (hide non-matching) and selection (highlight + center) without rebuilding the map: update
   // the refs the style function reads, restyle the existing layers, and center on the current selection.
@@ -515,7 +525,7 @@ export const MapVisualization = ({
               />
             </ButtonGroup>
           </Stack>
-          <LayerSwitcher map={map} />
+          <LayerSwitcher map={map} onLayerChange={() => captureLayerState(map)} />
         </>
       )}
     </Box>

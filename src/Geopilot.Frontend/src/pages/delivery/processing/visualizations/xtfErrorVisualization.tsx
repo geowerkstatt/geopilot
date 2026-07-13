@@ -8,6 +8,7 @@ import { GeopilotBox } from "../../../../components/styledComponents";
 import { useLocalized } from "../../../../hooks/useLocalized";
 import { FilterBar } from "./filterBar";
 import { MapVisualization } from "./mapVisualization";
+import { MapVisualizationProvider } from "./mapVisualizationProvider";
 import { buildErrorIdIndex, buildTree, collectMetadataAttributes, filterItems, MetadataFilters } from "./treeNode";
 import { TreeVisualization } from "./treeVisualization";
 
@@ -114,7 +115,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   );
 
   return (
-    <>
+    <MapVisualizationProvider>
       {config.map && (
         <IconButton
           size="small"
@@ -151,6 +152,6 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
           {tree}
         </Stack>
       )}
-    </>
+    </MapVisualizationProvider>
   );
 };
