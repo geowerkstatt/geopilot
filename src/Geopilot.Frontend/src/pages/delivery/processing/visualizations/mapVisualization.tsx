@@ -1,9 +1,10 @@
-import { MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
+import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
-import { Box, ButtonGroup } from "@mui/material";
+import { Box, ButtonGroup, Stack } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import i18next from "i18next";
 import { defaults as defaultControls } from "ol/control";
@@ -219,10 +220,6 @@ const buildFeatureLayer = (
   });
 };
 
-// Padding and max zoom used whenever the view is fit to the features, both on initial render and via the
-// reset-viewport button, so the two stay in sync.
-const FIT_OPTIONS = { padding: [40, 40, 40, 40], maxZoom: 12 };
-
 // Returns the extent the view should fit: the combined bounding box of all feature layers, falling back to
 // the whole country when there are no features.
 const getFitExtent = (featureLayers: VectorLayer<VectorSource>[]): number[] => {
@@ -266,6 +263,10 @@ interface MapVisualizationProps {
   onSelectFeature: (errorId: string) => void;
   /** Whether to show the metadata popup when a feature is selected. */
   showMapSelectionPopup: boolean;
+  /** Whether the map should reserve space for filters in fullscreen mode. */
+  reserveSpaceForFilters?: boolean;
+  fullscreen?: boolean;
+  setFullscreen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const MapVisualization = ({
@@ -274,6 +275,9 @@ export const MapVisualization = ({
   highlightedErrorIds,
   onSelectFeature,
   showMapSelectionPopup,
+  reserveSpaceForFilters,
+  fullscreen,
+  setFullscreen,
 }: MapVisualizationProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -293,11 +297,18 @@ export const MapVisualization = ({
   const showPopupRef = useRef(showMapSelectionPopup);
   showPopupRef.current = showMapSelectionPopup;
 
+  // Padding and max zoom used whenever the view is fit to the features, both on initial render and via the
+  // reset-viewport button, so the two stay in sync.
+  const fitOptions = useMemo(
+    () => ({ padding: [40, 40, 40, fullscreen && reserveSpaceForFilters ? 440 : 40], maxZoom: 12 }),
+    [fullscreen, reserveSpaceForFilters],
+  );
+
   const zoomToExtent = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
-    map.getView().fit(getFitExtent(featureLayersRef.current), FIT_OPTIONS);
-  }, []);
+    map.getView().fit(getFitExtent(featureLayersRef.current), fitOptions);
+  }, [fitOptions]);
 
   const zoomBy = useCallback((delta: number) => {
     const view = mapRef.current?.getView();
@@ -383,7 +394,7 @@ export const MapVisualization = ({
 
         // Fit the view to the combined extent of all feature layers, falling back to the whole country
         // when there are no features.
-        map.getView().fit(getFitExtent(featureLayers), FIT_OPTIONS);
+        map.getView().fit(getFitExtent(featureLayers), fitOptions);
 
         map.on("click", event => {
           const feature = map?.forEachFeatureAtPixel(event.pixel, f => f);
@@ -423,7 +434,7 @@ export const MapVisualization = ({
       mapRef.current = undefined;
       featureLayersRef.current = [];
     };
-  }, [config, theme, t]);
+  }, [config, theme, t, fitOptions]);
 
   // Apply filter (hide non-matching) and selection (highlight + center) without rebuilding the map: update
   // the refs the style function reads, restyle the existing layers, and center on the current selection.
@@ -445,19 +456,20 @@ export const MapVisualization = ({
     if (count === 1) {
       map.getView().setCenter(getCenter(extent));
     } else {
-      map.getView().fit(extent, FIT_OPTIONS);
+      map.getView().fit(extent, fitOptions);
     }
-  }, [map, visibleErrorIds, highlightedErrorIds]);
+  }, [map, visibleErrorIds, highlightedErrorIds, fitOptions]);
 
   return (
     <Box
       sx={{
         position: "relative",
         width: "100%",
-        height: "500px",
-        border: theme => `1px solid ${theme.palette.primary.light}`,
+        height: fullscreen ? "100%" : "500px",
+        border: theme => `1px solid ${fullscreen ? theme.palette.primary.main : theme.palette.primary.light}`,
         borderRadius: theme.spacing(0.5),
         overflow: "hidden",
+        backgroundColor: theme.palette.background.default,
       }}>
       <Box
         ref={mapContainerRef}
@@ -469,29 +481,40 @@ export const MapVisualization = ({
       />
       {map && (
         <>
-          <ButtonGroup orientation="vertical" sx={{ position: "absolute", top: 0, right: 0, m: 1 }}>
-            <IconButton
-              color="primaryOutlined"
-              icon={<AddIcon />}
-              label="mapZoomIn"
-              tooltipPlacement="left"
-              onClick={() => zoomBy(1)}
-            />
-            <IconButton
-              color={"primaryOutlined"}
-              icon={<ZoomOutMapIcon />}
-              label="zoomToExtent"
-              tooltipPlacement="left"
-              onClick={zoomToExtent}
-            />
-            <IconButton
-              color="primaryOutlined"
-              icon={<RemoveIcon />}
-              label="mapZoomOut"
-              tooltipPlacement="left"
-              onClick={() => zoomBy(-1)}
-            />
-          </ButtonGroup>
+          <Stack direction="column" sx={{ position: "absolute", top: 0, right: 0, m: 2 }}>
+            {fullscreen && (
+              <IconButton
+                color="primaryOutlined"
+                icon={<CloseIcon />}
+                label="fullscreenExit"
+                tooltipPlacement="left"
+                onClick={() => setFullscreen(false)}
+              />
+            )}
+            <ButtonGroup orientation="vertical">
+              <IconButton
+                color="primaryOutlined"
+                icon={<AddIcon />}
+                label="mapZoomIn"
+                tooltipPlacement="left"
+                onClick={() => zoomBy(1)}
+              />
+              <IconButton
+                color={"primaryOutlined"}
+                icon={<ZoomOutMapIcon />}
+                label="zoomToExtent"
+                tooltipPlacement="left"
+                onClick={zoomToExtent}
+              />
+              <IconButton
+                color="primaryOutlined"
+                icon={<RemoveIcon />}
+                label="mapZoomOut"
+                tooltipPlacement="left"
+                onClick={() => zoomBy(-1)}
+              />
+            </ButtonGroup>
+          </Stack>
           <LayerSwitcher map={map} />
         </>
       )}

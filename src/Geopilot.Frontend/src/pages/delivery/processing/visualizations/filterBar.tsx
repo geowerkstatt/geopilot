@@ -13,6 +13,7 @@ interface FilterBarProps {
   metadataFilters: MetadataFilters;
   onMetadataFilterChange: (key: string, selected: string[]) => void;
   onClearFilters: () => void;
+  forceMobileView?: boolean;
 }
 
 export const FilterBar = ({
@@ -22,6 +23,7 @@ export const FilterBar = ({
   metadataFilters,
   onMetadataFilterChange,
   onClearFilters,
+  forceMobileView,
 }: FilterBarProps) => {
   const [showFilters, setShowFilters] = useState(false);
 
@@ -56,7 +58,7 @@ export const FilterBar = ({
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+              gridTemplateColumns: { xs: "1fr", sm: forceMobileView ? undefined : "repeat(2, minmax(0, 1fr))" },
               gap: 2,
               width: "100%",
             }}>
@@ -68,6 +70,7 @@ export const FilterBar = ({
                 selected={metadataFilters[attribute.key] ?? []}
                 onChange={value => onMetadataFilterChange(attribute.key, value as string[])}
                 dataCy={`metadata-filter-${attribute.key}`}
+                sx={{ minWidth: "0" }}
               />
             ))}
           </Box>

@@ -69,6 +69,8 @@
   "fileDropzoneErrorTooManyFiles": "Le nombre maximum de fichiers a été dépassé",
   "fileTypes": "Formats",
   "files": "Fichiers",
+  "fullscreen": "Afficher en plein écran",
+  "fullscreenExit": "Quitter le plein écran",
   "id": "ID",
   "imprint": "Mentions légales",
   "inactive": "Inactif",
