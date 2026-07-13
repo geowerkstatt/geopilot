@@ -9,7 +9,6 @@ import {
   Box,
   Divider,
   Drawer,
-  IconButton,
   List,
   ListItem,
   ListItemButton,
@@ -22,7 +21,7 @@ import {
 import { useGeopilotAuth } from "../../auth";
 import { useApplicationName } from "../../hooks/useApplicationName";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
-import { BaseButton } from "../buttons.tsx";
+import { Button, IconButton } from "../buttons.tsx";
 import { useControlledNavigate } from "../controlledNavigate";
 import { LanguagePopup } from "./languagePopup";
 
@@ -59,7 +58,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
           height: "60px",
           flex: "0",
           borderBottom: theme => `1px solid ${theme.palette.primary.light}`,
-          backgroundColor: "white",
+          backgroundColor: theme => theme.palette.background.content,
         }}>
         <Toolbar
           sx={{
@@ -80,16 +79,22 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             onClick={() => {
               navigateTo("/");
             }}>
-            <Box sx={{ display: { xs: "block", md: "none", maxHeight: "40px" } }}>
+            <Box
+              sx={{
+                display: { xs: "flex", md: "none" },
+                maxHeight: "40px",
+                justifyContent: "center",
+                alignItems: "center",
+              }}>
               {hasSubMenu ? (
                 <IconButton
-                  color="inherit"
+                  icon={<MenuIcon fontSize="large" />}
+                  label="menu"
                   onClick={e => {
                     e.stopPropagation();
                     openSubMenu();
-                  }}>
-                  <MenuIcon fontSize="large" />
-                </IconButton>
+                  }}
+                />
               ) : (
                 clientSettings?.application?.logo && (
                   <Box>
@@ -139,17 +144,15 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             <LanguagePopup />
             {authLoaded &&
               (user ? (
-                <IconButton
-                  sx={{
-                    p: 0,
-                  }}
+                <Avatar
                   onClick={toggleUserMenu(true)}
-                  data-cy="loggedInUser-button">
-                  <Avatar>{user?.fullName[0].toUpperCase()}</Avatar>
-                </IconButton>
+                  data-cy="loggedInUser-button"
+                  sx={{ cursor: "pointer", "&:hover": { backgroundColor: "primary.dark" } }}>
+                  {user?.fullName[0].toUpperCase()}
+                </Avatar>
               ) : (
                 <>
-                  <BaseButton variant="text" onClick={login} label="logIn" />
+                  <Button variant="text" onClick={login} label="logIn" />
                 </>
               ))}
           </Stack>
@@ -214,8 +217,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                       }}
                       data-cy="stacBrowser-nav">
                       <ListItemText primary={t("stacBrowser")} />
-                      <ListItemIcon>
-                        <OpenInNewIcon fontSize="small" />
+                      <ListItemIcon sx={{ justifyContent: "flex-end" }}>
+                        <OpenInNewIcon fontSize="small" sx={{ color: "primary.main" }} />
                       </ListItemIcon>
                     </ListItemButton>
                   </ListItem>
@@ -223,7 +226,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </List>
           </Box>
-          <BaseButton sx={{ mx: 2 }} onClick={logout} label="logOut" />
+          <Button variant="contained" sx={{ mx: 2 }} onClick={logout} label="logOut" />
         </Stack>
       </Drawer>
     </>

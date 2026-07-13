@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Stack, Typography } from "@mui/material";
 import { styled } from "@mui/system";
-import { CenteredBox } from "../../components/styledComponents.ts";
+import { CenteredContent } from "../../components/styledComponents.ts";
 import { DeliveryContentCarousel } from "./deliveryContentCarousel.tsx";
 import { DeliveryStepper } from "./deliveryStepper.tsx";
 
@@ -17,7 +17,7 @@ const Delivery = () => {
   const { t } = useTranslation();
 
   return (
-    <CenteredBox data-cy="delivery" sx={{ maxWidth: "1400px" }}>
+    <CenteredContent data-cy="delivery" sx={{ maxWidth: "1400px" }}>
       <Typography variant="h1" zIndex={10}>
         {t("deliveryTitle")}
       </Typography>
@@ -25,7 +25,7 @@ const Delivery = () => {
         <DeliveryStepper />
         <DeliveryContentCarousel />
       </DeliveryContainer>
-    </CenteredBox>
+    </CenteredContent>
   );
 };
 

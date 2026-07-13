@@ -6,7 +6,7 @@ import { Box, Stack, Tooltip } from "@mui/material";
 import { styled } from "@mui/system";
 import { DataGrid, DataGridProps, GridColDef, GridRenderCellParams, GridRowSelectionModel } from "@mui/x-data-grid";
 import { GridRowId } from "@mui/x-data-grid/models/gridRows";
-import { BaseButton } from "./buttons.tsx";
+import { Button } from "../buttons.tsx";
 
 interface GeopilotDataGridProps extends DataGridProps {
   name: string;
@@ -16,7 +16,7 @@ interface GeopilotDataGridProps extends DataGridProps {
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   height: "100%",
-  backgroundColor: "white",
+  backgroundColor: theme.palette.background.content,
   borderColor: theme.palette.primary.light,
 }));
 
@@ -109,7 +109,7 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
   return props.addLabel && props.onSelect ? (
     <Stack sx={{ height: "100%" }}>
       <Box sx={{ flex: "0" }}>
-        <BaseButton variant="outlined" icon={<AddIcon />} onClick={handleAddClick} label={props.addLabel} />
+        <Button startIcon={<AddIcon />} onClick={handleAddClick} label={props.addLabel} />
       </Box>
       <StyledDataGrid
         data-cy={`${props.name}-grid`}

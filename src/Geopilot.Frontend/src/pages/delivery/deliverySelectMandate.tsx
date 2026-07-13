@@ -5,7 +5,7 @@ import { toggleButtonClasses } from "@mui/material/ToggleButton";
 import { styled } from "@mui/system";
 import { Mandate } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
-import { BaseButton } from "../../components/buttons";
+import { Button } from "../../components/buttons";
 import useFetch from "../../hooks/useFetch";
 import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons";
 import { DeliveryContent } from "./deliveryContent";
@@ -108,7 +108,8 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
       {completed ? (
         <DeliveryContinueButton />
       ) : (
-        <BaseButton
+        <Button
+          variant="contained"
           onClick={submitForm}
           label="startProcessing"
           disabled={completed || isLoading || selectedId === null}
@@ -118,7 +119,10 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
   );
 
   return (
-    <DeliveryContent title="mandate" subtitle="selectMandateSubtitle" buttons={buttons}>
+    <DeliveryContent
+      title="mandate"
+      subtitle={(mandates?.length ?? 0) > 1 ? "selectMandateSubtitle" : undefined}
+      buttons={buttons}>
       <Stack>
         {mandates === null ? (
           <CircularProgress sx={{ alignSelf: "center" }} />

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import SearchIcon from "@mui/icons-material/Search";
-import { Badge, Box, Button, IconButton, InputAdornment, Stack, TextField, Tooltip } from "@mui/material";
-import { MetadataFilter } from "./metadataFilter";
+import { Badge, Box, Stack } from "@mui/material";
+import { Button, IconButton } from "../../../../components/buttons";
+import { FormAutocomplete } from "../../../../components/form/formAutocomplete";
+import { SearchField } from "../../../../components/searchField";
 import { MetadataAttribute, MetadataFilters } from "./treeNode";
 
 interface FilterBarProps {
@@ -23,7 +23,6 @@ export const FilterBar = ({
   onMetadataFilterChange,
   onClearFilters,
 }: FilterBarProps) => {
-  const { t } = useTranslation();
   const [showFilters, setShowFilters] = useState(false);
 
   const activeFilterCount = Object.values(metadataFilters).filter(values => values.length > 0).length;
@@ -32,74 +31,53 @@ export const FilterBar = ({
   const toggleActive = showFilters || activeFilterCount > 0;
 
   return (
-    <Stack sx={{ width: "100%", gap: 1.5 }}>
-      <Stack direction="row" sx={{ gap: 1, alignItems: "stretch" }}>
-        <TextField
-          size="small"
-          variant="outlined"
-          placeholder={t("treeVisualizationMessageSearch")}
-          sx={{ flex: 1 }}
-          value={messageQuery}
-          onChange={event => onMessageQueryChange(event.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              </InputAdornment>
-            ),
-          }}
-          inputProps={{ "aria-label": t("treeVisualizationMessageSearch") }}
-          data-cy="tree-message-search"
-        />
-        {attributes.length > 0 && (
-          <Tooltip title={t("treeFilterToggle")}>
-            <Badge badgeContent={activeFilterCount} color="primary" sx={{ display: "flex", alignItems: "stretch" }}>
+    <Stack sx={{ width: "100%", gap: 1 }}>
+      <Stack>
+        <Stack direction="row" sx={{ alignItems: "stretch" }}>
+          <SearchField
+            placeholder="treeVisualizationMessageSearch"
+            sx={{ flex: 1 }}
+            value={messageQuery}
+            onChange={onMessageQueryChange}
+          />
+          {attributes.length > 0 && (
+            <Badge badgeContent={activeFilterCount} color="secondary" sx={{ display: "flex", alignItems: "stretch" }}>
               <IconButton
+                color="primaryOutlined"
+                className={toggleActive ? "active" : undefined}
                 onClick={() => setShowFilters(show => !show)}
-                aria-label={t("treeFilterToggle")}
-                data-cy="tree-filter-toggle"
-                sx={{
-                  aspectRatio: "1 / 1",
-                  height: "auto",
-                  border: 1,
-                  borderColor: toggleActive ? "primary.light" : "divider",
-                  borderRadius: 1,
-                  // Keep the icon dark on a light selected fill (per design) instead of inverting to white.
-                  color: "primary.main",
-                  backgroundColor: toggleActive ? "primary.selected" : "transparent",
-                  "&:hover": { backgroundColor: toggleActive ? "primary.selected" : "primary.hover" },
-                  "&:focus, &:focus-visible, &:active": {
-                    backgroundColor: toggleActive ? "primary.selected" : "transparent",
-                  },
-                }}>
-                <FilterAltIcon />
-              </IconButton>
+                icon={<FilterAltIcon />}
+                label="treeFilterToggle"
+              />
             </Badge>
-          </Tooltip>
+          )}
+        </Stack>
+        {showFilters && attributes.length > 0 && (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+              gap: 2,
+              width: "100%",
+            }}>
+            {attributes.map(attribute => (
+              <FormAutocomplete
+                key={attribute.key}
+                label={attribute.key}
+                values={attribute.options}
+                selected={metadataFilters[attribute.key] ?? []}
+                onChange={value => onMetadataFilterChange(attribute.key, value as string[])}
+                dataCy={`metadata-filter-${attribute.key}`}
+              />
+            ))}
+          </Box>
         )}
       </Stack>
-      {showFilters && attributes.length > 0 && (
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 1.5, width: "100%" }}>
-          {attributes.map(attribute => (
-            <MetadataFilter
-              key={attribute.key}
-              attribute={attribute}
-              selected={metadataFilters[attribute.key] ?? []}
-              onChange={onMetadataFilterChange}
-            />
-          ))}
-        </Box>
+      {hasActiveFilters && (
+        <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
+          <Button size="small" variant="text" label="treeFilterReset" onClick={onClearFilters} />
+        </Stack>
       )}
-      <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
-        <Button
-          variant="text"
-          size="small"
-          onClick={onClearFilters}
-          disabled={!hasActiveFilters}
-          data-cy="tree-filter-reset">
-          {t("treeFilterReset")}
-        </Button>
-      </Stack>
     </Stack>
   );
 };

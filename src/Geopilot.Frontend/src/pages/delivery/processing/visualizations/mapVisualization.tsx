@@ -1,9 +1,12 @@
 import { MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
+import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
+import { Box, ButtonGroup } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import i18next from "i18next";
+import { defaults as defaultControls } from "ol/control";
 import { containsExtent, createEmpty, extend as extendExtent, getCenter, isEmpty as isExtentEmpty } from "ol/extent";
 import Feature from "ol/Feature";
 import WKT from "ol/format/WKT";
@@ -22,6 +25,7 @@ import { Circle, Fill, Stroke, Style } from "ol/style";
 import View from "ol/View";
 import proj4 from "proj4";
 import { MapLayer, MapVisualizationConfig } from "../../../../api/apiInterfaces";
+import { IconButton } from "../../../../components/buttons";
 import { LayerSwitcher, LayerSwitcherProperties } from "./layerSwitcher";
 import "ol/ol.css";
 
@@ -141,6 +145,22 @@ const buildWmtsLayer = async (
 // polygon fill so the underlying map stays visible. Other color formats are returned unchanged.
 const toTransparent = (color: string): string => (/^#[0-9a-f]{6}$/i.test(color) ? `${color}33` : color);
 
+const createPopupArrow = (size: number, color: string, top: string): HTMLDivElement => {
+  const arrow = document.createElement("div");
+  Object.assign(arrow.style, {
+    position: "absolute",
+    top,
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "0",
+    height: "0",
+    borderLeft: `${size}px solid transparent`,
+    borderRight: `${size}px solid transparent`,
+    borderTop: `${size}px solid ${color}`,
+  });
+  return arrow;
+};
+
 // Builds a vector layer for one feature layer of the config. Points are drawn as circle markers filled
 // with the layer color; lines and polygon outlines are stroked with it, polygons filled with a
 // transparent variant of it. Each feature keeps its info text so it can be shown in a popup on click.
@@ -169,7 +189,7 @@ const buildFeatureLayer = (
     image: new Circle({
       radius: 6,
       fill: new Fill({ color }),
-      stroke: new Stroke({ color: "#ffffff", width: 2 }),
+      stroke: new Stroke({ color: highlightColor, width: 2 }),
     }),
     stroke: new Stroke({ color, width: 2 }),
     fill: new Fill({ color: toTransparent(color) }),
@@ -214,6 +234,27 @@ const getFitExtent = (featureLayers: VectorLayer<VectorSource>[]): number[] => {
   return isExtentEmpty(featureExtent) ? SWISS_EXTENT : featureExtent;
 };
 
+const getSelectedExtent = (
+  featureLayers: VectorLayer<VectorSource>[],
+  selectedIds: ReadonlySet<string>,
+): { extent: number[]; count: number } => {
+  const extent = createEmpty();
+  let count = 0;
+  for (const featureLayer of featureLayers) {
+    for (const feature of featureLayer.getSource()?.getFeatures() ?? []) {
+      const errorId = feature.get("errorId") as string | undefined;
+      if (errorId !== undefined && selectedIds.has(errorId)) {
+        const geometry = feature.getGeometry();
+        if (geometry) {
+          extendExtent(extent, geometry.getExtent());
+          count += 1;
+        }
+      }
+    }
+  }
+  return { extent, count };
+};
+
 interface MapVisualizationProps {
   /** The map visualization config to render. */
   config: MapVisualizationConfig;
@@ -223,8 +264,8 @@ interface MapVisualizationProps {
   highlightedErrorIds: ReadonlySet<string>;
   /** Called with the error id when a feature is clicked. */
   onSelectFeature: (errorId: string) => void;
-  /** Whether to show the info popup on feature click. Suppressed when the tree below already shows the details. */
-  showPopup: boolean;
+  /** Whether to show the metadata popup when a feature is selected. */
+  showMapSelectionPopup: boolean;
 }
 
 export const MapVisualization = ({
@@ -232,7 +273,7 @@ export const MapVisualization = ({
   visibleErrorIds,
   highlightedErrorIds,
   onSelectFeature,
-  showPopup,
+  showMapSelectionPopup,
 }: MapVisualizationProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -249,13 +290,21 @@ export const MapVisualization = ({
   const highlightedIdsRef = useRef<ReadonlySet<string>>(highlightedErrorIds);
   const onSelectRef = useRef(onSelectFeature);
   onSelectRef.current = onSelectFeature;
-  const showPopupRef = useRef(showPopup);
-  showPopupRef.current = showPopup;
+  const showPopupRef = useRef(showMapSelectionPopup);
+  showPopupRef.current = showMapSelectionPopup;
 
-  const resetViewport = useCallback(() => {
+  const zoomToExtent = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
     map.getView().fit(getFitExtent(featureLayersRef.current), FIT_OPTIONS);
+  }, []);
+
+  const zoomBy = useCallback((delta: number) => {
+    const view = mapRef.current?.getView();
+    const zoom = view?.getZoom();
+    if (view && zoom !== undefined) {
+      view.animate({ zoom: zoom + delta, duration: 200 });
+    }
   }, []);
 
   useEffect(() => {
@@ -273,9 +322,9 @@ export const MapVisualization = ({
           .map(layer =>
             buildFeatureLayer(
               layer,
-              layer.color ?? theme.palette.error.main,
+              layer.color ?? theme.palette.map.fill,
               localized(layer.title) || t("mapVisualizationFeatureLayer"),
-              theme.palette.primary.main,
+              theme.palette.map.stroke,
               visibleIdsRef,
               highlightedIdsRef,
             ),
@@ -302,15 +351,19 @@ export const MapVisualization = ({
         const popupElement = document.createElement("div");
         Object.assign(popupElement.style, {
           display: "none",
+          position: "relative",
           backgroundColor: theme.palette.background.paper,
           border: `1px solid ${theme.palette.primary.light}`,
-          borderRadius: "4px",
-          padding: "8px 12px",
+          borderRadius: theme.spacing(0.5),
+          padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
           maxWidth: "300px",
-          boxShadow: theme.shadows[2],
           fontSize: "0.875rem",
           pointerEvents: "none",
         });
+        const popupContent = document.createElement("div");
+        popupElement.appendChild(popupContent);
+        popupElement.appendChild(createPopupArrow(8, theme.palette.primary.light, "100%"));
+        popupElement.appendChild(createPopupArrow(7, theme.palette.background.paper, "calc(100% - 1px)"));
         const overlay = new Overlay({
           element: popupElement,
           positioning: "bottom-center",
@@ -322,6 +375,7 @@ export const MapVisualization = ({
           target: mapContainerRef.current,
           layers,
           overlays: [overlay],
+          controls: defaultControls({ zoom: false }),
           view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
         });
         mapRef.current = map;
@@ -336,9 +390,10 @@ export const MapVisualization = ({
           const info = feature?.get("info") as string | undefined;
           const errorId = feature?.get("errorId") as string | undefined;
           if (showPopupRef.current && feature && info) {
-            popupElement.textContent = info;
+            popupContent.textContent = info;
             popupElement.style.display = "block";
-            overlay.setPosition(event.coordinate);
+            const geometry = feature.getGeometry();
+            overlay.setPosition(geometry ? getCenter(geometry.getExtent()) : event.coordinate);
           } else {
             popupElement.style.display = "none";
             overlay.setPosition(undefined);
@@ -379,20 +434,7 @@ export const MapVisualization = ({
     featureLayersRef.current.forEach(layer => layer.changed());
 
     if (highlightedErrorIds.size === 0) return;
-    const extent = createEmpty();
-    let count = 0;
-    for (const layer of featureLayersRef.current) {
-      for (const feature of layer.getSource()?.getFeatures() ?? []) {
-        const errorId = feature.get("errorId") as string | undefined;
-        if (errorId !== undefined && highlightedErrorIds.has(errorId)) {
-          const geometry = feature.getGeometry();
-          if (geometry) {
-            extendExtent(extent, geometry.getExtent());
-            count += 1;
-          }
-        }
-      }
-    }
+    const { extent, count } = getSelectedExtent(featureLayersRef.current, highlightedErrorIds);
     if (isExtentEmpty(extent)) return;
     // Only move the map when the selection is not already visible: clicking a feature on the map must not
     // yank it out from under the cursor, and an already-visible selection should stay put. An off-screen
@@ -408,43 +450,50 @@ export const MapVisualization = ({
   }, [map, visibleErrorIds, highlightedErrorIds]);
 
   return (
-    // zIndex establishes a stacking context so the layer switcher (zIndex 10) stays contained within the map
-    // and is masked by the sticky scroll overlay instead of poking over the container's top border.
-    <Box sx={{ position: "relative", zIndex: 0, width: "100%", height: "400px" }}>
+    <Box
+      sx={{
+        position: "relative",
+        width: "100%",
+        height: "500px",
+        border: theme => `1px solid ${theme.palette.primary.light}`,
+        borderRadius: theme.spacing(0.5),
+        overflow: "hidden",
+      }}>
       <Box
         ref={mapContainerRef}
-        data-cy="map-visualization"
         sx={{
+          position: "absolute",
           width: "100%",
           height: "100%",
-          borderRadius: "4px",
-          overflow: "hidden",
-          border: theme => `1px solid ${theme.palette.primary.light}`,
-          // Move the default zoom (+/-) control to the top-right; the layer switcher and reset-viewport
-          // buttons occupy the top-left corner.
-          "& .ol-zoom": { top: "8px", left: "auto", right: "8px" },
         }}
       />
-      <LayerSwitcher map={map} />
       {map && (
-        <Tooltip title={t("mapResetViewport")}>
-          <IconButton
-            data-cy="map-reset-viewport"
-            onClick={resetViewport}
-            sx={{
-              position: "absolute",
-              // Below the layer switcher button (40px tall at top 8px) with an 8px gap.
-              top: "56px",
-              left: "8px",
-              backgroundColor: "background.paper",
-              color: "text.secondary",
-              boxShadow: 1,
-              borderRadius: "4px",
-              "&:hover": { backgroundColor: "background.paper", color: "text.primary" },
-            }}>
-            <CenterFocusStrongIcon />
-          </IconButton>
-        </Tooltip>
+        <>
+          <ButtonGroup orientation="vertical" sx={{ position: "absolute", top: 0, right: 0, m: 1 }}>
+            <IconButton
+              color="primaryOutlined"
+              icon={<AddIcon />}
+              label="mapZoomIn"
+              tooltipPlacement="left"
+              onClick={() => zoomBy(1)}
+            />
+            <IconButton
+              color={"primaryOutlined"}
+              icon={<ZoomOutMapIcon />}
+              label="zoomToExtent"
+              tooltipPlacement="left"
+              onClick={zoomToExtent}
+            />
+            <IconButton
+              color="primaryOutlined"
+              icon={<RemoveIcon />}
+              label="mapZoomOut"
+              tooltipPlacement="left"
+              onClick={() => zoomBy(-1)}
+            />
+          </ButtonGroup>
+          <LayerSwitcher map={map} />
+        </>
       )}
     </Box>
   );

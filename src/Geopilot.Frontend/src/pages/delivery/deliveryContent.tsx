@@ -1,8 +1,9 @@
-import { FC, PropsWithChildren, ReactNode } from "react";
+import { FC, PropsWithChildren, ReactNode, useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Stack, Typography } from "@mui/material";
 import { styled } from "@mui/system";
 import { GeopilotBox } from "../../components/styledComponents";
+import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 
 interface DeliveryContentProps {
@@ -31,7 +32,7 @@ const Overlay = styled(Box)(({ theme }) => ({
 
 // hide the scrolled content
 const ScrollContentOverlay = styled(Overlay)(({ theme }) => ({
-  background: theme.palette.primary.background,
+  background: theme.palette.background.base,
   height: `${desktopTopDistance}px`,
   transform: "translateY(-100%)",
   margin: `0 -${theme.spacing(1)}`,
@@ -53,8 +54,8 @@ const ContainerTopBorder = styled(Overlay)(({ theme }) => ({
 // hide the border of the scrolled content
 const ContainerTopBorderOverlay = styled(Overlay)(({ theme }) => ({
   height: theme.shape.borderRadius,
-  borderLeft: `1px solid ${theme.palette.primary.background}`,
-  borderRight: `1px solid ${theme.palette.primary.background}`,
+  borderLeft: `1px solid ${theme.palette.background.base}`,
+  borderRight: `1px solid ${theme.palette.background.base}`,
 }));
 
 const DeliveryContentBox = styled(Stack)({
@@ -64,10 +65,6 @@ const DeliveryContentBox = styled(Stack)({
   flex: 1,
 });
 
-const MainContentBox = styled(GeopilotBox)({
-  overflow: "auto",
-});
-
 export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
   children,
   title,
@@ -75,19 +72,22 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
   buttons,
 }) => {
   const { t } = useTranslation();
-
+  const { steps, lastCompletedStep } = useContext(DeliveryContext);
   return (
     <DeliveryContentGrid>
       <DeliveryContentBox>
-        <MainContentBox>
+        <GeopilotBox sx={{ overflow: "auto" }}>
           <Typography variant="h3" m={0} sx={{ display: { xs: "none", md: "block" } }}>
             {t(title)}
           </Typography>
           {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}
           {children}
-        </MainContentBox>
+        </GeopilotBox>
         <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-          <DeliveryRestartButton sx={{ display: { xs: "block", md: "none" } }} />
+          <DeliveryRestartButton
+            sx={{ display: { xs: "block", md: "none" } }}
+            immediate={lastCompletedStep === steps.size - 1}
+          />
           <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", flex: 1, justifyContent: "flex-end" }}>
             {buttons}
           </Stack>

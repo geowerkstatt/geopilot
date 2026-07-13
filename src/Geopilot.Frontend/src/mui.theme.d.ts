@@ -1,104 +1,53 @@
-import { Typography } from "@mui/material";
-import { Shadows, ThemeOptions } from "@mui/material/styles";
-import { TypographyOptions } from "@mui/material/styles/createTypography";
-import { Spacing } from "@mui/system";
+import type {} from "@mui/x-data-grid/themeAugmentation";
+
+declare module "@mui/material/IconButton" {
+  interface IconButtonPropsColorOverrides {
+    primaryContained: true;
+    primaryOutlined: true;
+  }
+
+  interface IconButtonClasses {
+    colorPrimaryContained: string;
+    colorPrimaryOutlined: string;
+  }
+}
 
 declare module "@mui/material/styles" {
-  export interface AppThemePalette {
-    primary: {
-      main: string;
-      active: string;
-      inactive: string;
-      hover: string;
-      selected: string;
-      contrastText: string;
-      light: string;
-      background: string;
-    };
-    secondary: {
-      main: string;
-      inactive: string;
-      hover: string;
-      contrastText: string;
-    };
-    success: {
-      main: string;
-      hover: string;
-    };
-    warning: {
-      main: string;
-      hover: string;
-    };
-    error: {
-      main: string;
-      selected: string;
-      hover: string;
-    };
+  interface PaletteColorStates {
+    hover: string;
+    selected: string;
+    disabledBackground: string;
   }
 
-  interface AppThemeComponents extends Components {
-    MuiTypography: object;
-    MuiAvatar: object;
-    MuiTextField: object;
-    MuiSelect: object;
-    MuiButtonBase: object;
-    MuiButton: object;
-    MuiIconButton: object;
-    MuiAppBar: object;
-    MuiDataGrid: object;
-    MuiStepLabel: object;
-    MuiStepContent: object;
-    MuiListItemText: object;
-    MuiDialog: object;
-    MuiDialogTitle: object;
-    MuiDialogContent: object;
-    MuiDialogActions: object;
-    MuiTooltip: object;
-    MuiChip: object;
-    MuiToggleButton: object;
-    MuiStack: object;
-    MuiAccordion: object;
+  interface PaletteMap {
+    fill: string;
+    stroke: string;
   }
 
-  interface AppThemeComponentsOptions extends ComponentsOptions {
-    MuiTypography: object;
-    MuiAvatar: object;
-    MuiTextField: object;
-    MuiSelect: object;
-    MuiButtonBase: object;
-    MuiButton: object;
-    MuiIconButton: object;
-    MuiAppBar: object;
-    MuiDataGrid: object;
-    MuiStepLabel: object;
-    MuiStepContent: object;
-    MuiListItemText: object;
-    MuiDialog: object;
-    MuiDialogTitle: object;
-    MuiDialogContent: object;
-    MuiDialogActions: object;
-    MuiTooltip: object;
-    MuiChip: object;
-    MuiToggleButton: object;
-    MuiStack: object;
-    MuiAccordion: object;
+  interface PaletteColor {
+    contrast: string;
+    states: PaletteColorStates;
+    selected: string;
+    hover: string;
   }
 
-  interface AppTheme extends Theme {
-    spacing: Spacing;
-    shadows: Shadows;
-    palette: AppThemePalette;
-    typography: Typography;
-    components: AppThemeComponents;
+  interface SimplePaletteColorOptions {
+    contrast?: string;
+    states?: PaletteColorStates;
+    selected?: string;
+    hover?: string;
   }
 
-  interface AppThemeOptions extends ThemeOptions {
-    spacing: Spacing;
-    shadows: Shadows;
-    palette: AppThemePalette;
-    typography: TypographyOptions;
-    components: AppThemeComponentsOptions;
+  interface TypeBackground {
+    base: string;
+    content: string;
   }
 
-  export function createTheme(options?: AppThemeOptions): AppTheme;
+  interface Palette {
+    map: PaletteMap;
+  }
+
+  interface PaletteOptions {
+    map?: PaletteMap;
+  }
 }

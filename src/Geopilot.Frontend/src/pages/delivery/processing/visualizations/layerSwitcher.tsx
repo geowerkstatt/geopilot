@@ -1,16 +1,16 @@
 import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import RemoveIcon from "@mui/icons-material/Remove";
-import SearchIcon from "@mui/icons-material/Search";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
-import { Box, Checkbox, IconButton, InputBase, Paper, Slider, Tooltip, Typography } from "@mui/material";
+import { Box, Slider, Stack } from "@mui/material";
+import { useTheme } from "@mui/system";
 import Collection from "ol/Collection";
+import { EventsKey } from "ol/events";
 import { isEmpty } from "ol/extent";
 import BaseLayer from "ol/layer/Base";
 import BaseVectorLayer from "ol/layer/BaseVector";
@@ -19,27 +19,27 @@ import OlMap from "ol/Map";
 import { ObjectEvent } from "ol/Object";
 import { unByKey } from "ol/Observable";
 import { getUid } from "ol/util";
+import { IconButton } from "../../../../components/buttons";
+import { FormCheckbox } from "../../../../components/form/formCheckbox";
+import { SearchField } from "../../../../components/searchField";
 
 // Custom layer properties read/written by the switcher. The map sets at least TITLE on the layers it
 // adds so they have a label here. The others default sensibly when absent, so existing layers work
 // without any extra setup:
 //   TITLE     – display name shown in the list.
 //   DISPLAY   – set to false to hide a layer from the switcher entirely (still rendered on the map).
-//   REMOVABLE – set to true to surface a remove (trash) button for the layer.
 //   OPEN      – expanded/collapsed state of a group; toggled by the expand button.
 //   RESULT    – internal: set by the search filter to mark whether a layer matches the query.
 export const LayerSwitcherProperties = {
   TITLE: "title",
   DISPLAY: "displayInLayerSwitcher",
-  REMOVABLE: "removableInLayerSwitcher",
   OPEN: "openInLayerSwitcher",
   RESULT: "searchResultInLayerSwitcher",
 } as const;
 
-const { TITLE, DISPLAY, REMOVABLE, OPEN, RESULT } = LayerSwitcherProperties;
+const { TITLE, DISPLAY, OPEN, RESULT } = LayerSwitcherProperties;
 
 const getTitle = (layer: BaseLayer): string => layer.get(TITLE) ?? "";
-const getRemovable = (layer: BaseLayer): boolean => layer.get(REMOVABLE) ?? false;
 const getOpen = (layer: BaseLayer): boolean => layer.get(OPEN) ?? false;
 // A layer shows in the switcher when it is not explicitly hidden and (when a search is active) matches it.
 const getDisplayed = (layer: BaseLayer): boolean => (layer.get(DISPLAY) ?? true) && (layer.get(RESULT) ?? true);
@@ -130,21 +130,46 @@ const collapseAll = (layers: BaseLayer[]): void => {
   }
 };
 
+const expandAll = (layers: BaseLayer[]): void => {
+  const stack = [...layers];
+  while (stack.length > 0) {
+    const layer = stack.pop()!;
+    if (layer instanceof LayerGroup) {
+      layer.set(OPEN, true);
+      stack.push(...layer.getLayers().getArray());
+    }
+  }
+};
+
+const containsGroup = (layers: BaseLayer[]): boolean => layers.some(layer => layer instanceof LayerGroup);
+
+const hasOpenGroup = (layers: BaseLayer[]): boolean => {
+  const stack = [...layers];
+  while (stack.length > 0) {
+    const layer = stack.pop()!;
+    if (layer instanceof LayerGroup) {
+      if (getOpen(layer)) return true;
+      stack.push(...layer.getLayers().getArray());
+    }
+  }
+  return false;
+};
+
 interface LayerRowProps {
   layer: BaseLayer;
   map: OlMap;
   rootLayers: BaseLayer[];
   onLayerChange?: () => void;
-  remove: () => void;
+  isFirst?: boolean;
 }
 
-const LayerRow = ({ layer, map, rootLayers, onLayerChange, remove }: LayerRowProps) => {
+const LayerRow = ({ layer, map, rootLayers, onLayerChange, isFirst }: LayerRowProps) => {
   const { t } = useTranslation();
+  const theme = useTheme();
   const isGroup = layer instanceof LayerGroup;
   const [visible, setVisible] = useState(layer.getVisible());
   const [opacity, setOpacity] = useState(layer.getOpacity());
   const [title, setTitle] = useState(getTitle(layer));
-  const [removable, setRemovable] = useState(getRemovable(layer));
   const [open, setOpen] = useState(getOpen(layer));
 
   useEffect(() => {
@@ -152,131 +177,110 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, remove }: LayerRowPro
       if (event.key === "visible") setVisible(layer.getVisible());
       else if (event.key === "opacity") setOpacity(layer.getOpacity());
       else if (event.key === TITLE) setTitle(getTitle(layer));
-      else if (event.key === REMOVABLE) setRemovable(getRemovable(layer));
       else if (event.key === OPEN) setOpen(getOpen(layer));
     });
     // Sync to the current state in case a property changed between render and effect.
     setVisible(layer.getVisible());
     setOpacity(layer.getOpacity());
     setTitle(getTitle(layer));
-    setRemovable(getRemovable(layer));
     setOpen(getOpen(layer));
     return () => unByKey(key);
   }, [layer]);
 
-  const iconButtonSx = { color: "text.secondary", "&:hover": { color: "text.primary" } };
-
   return (
-    <Box
+    <Stack
+      direction="row"
       sx={{
-        display: "grid",
-        gridTemplateColumns: "1.5em 1fr",
-        gridTemplateAreas: `"sidebar header" "sidebar controls" "sidebar content"`,
-        overflow: "hidden",
-        borderTop: theme => `2px solid ${theme.palette.action.hover}`,
+        gap: 0.5,
+        borderTop: `2px solid ${theme.palette.background.base}`,
+        width: "100%",
+        minWidth: 0,
+        mb: isFirst ? 0 : "2px",
       }}>
-      <Box
+      <Stack
         data-drag-handle
         draggable
         sx={{
-          gridArea: "sidebar",
-          display: "grid",
-          placeItems: "center",
+          justifyContent: "center",
+          alignItems: "center",
           cursor: "grab",
           fontSize: "0.8em",
-          backgroundColor: "action.hover",
+          backgroundColor: "background.base",
           color: "text.disabled",
+          width: "20px",
+          flexShrink: 0,
         }}>
         <DragIndicatorIcon fontSize="inherit" titleAccess={t("dragToReorderLayer")} />
-      </Box>
-
-      <Box sx={{ gridArea: "header", display: "flex", gap: 0.5, px: 0.5, alignItems: "center", overflow: "hidden" }}>
-        <Checkbox
-          size="small"
-          checked={visible}
-          data-cy="layer-visibility"
-          onChange={event => {
-            layer.setVisible(event.target.checked);
-            updateSublayerVisibility(layer);
-            updateParentLayerVisibility(rootLayers, layer);
-            onLayerChange?.();
-          }}
-          sx={{ p: 0.25 }}
-        />
-        <Typography
-          variant="body2"
-          title={title}
-          data-cy="layer-title"
-          sx={{ flex: 1, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
-          {title}
-        </Typography>
-        {isGroup && (
-          <Tooltip title={open ? t("collapseLayerGroup") : t("expandLayerGroup")}>
-            <IconButton size="small" data-cy="expand-layers" onClick={() => layer.set(OPEN, !open)} sx={iconButtonSx}>
-              {open ? <RemoveIcon fontSize="small" /> : <AddIcon fontSize="small" />}
-            </IconButton>
-          </Tooltip>
-        )}
-      </Box>
-
-      <Box sx={{ gridArea: "controls", display: "flex", gap: 0.5, px: 0.5, alignItems: "center" }}>
-        <Slider
-          size="small"
-          min={0}
-          max={1}
-          step={0.01}
-          value={opacity}
-          data-cy="opacity-slider"
-          aria-label={t("layerOpacity")}
-          onChange={(_event, value) => {
-            layer.setOpacity(value as number);
-            onLayerChange?.();
-          }}
-          // Fixed width so every row's opacity slider lines up regardless of which action buttons follow.
-          sx={{ width: "75%", flexShrink: 0, mx: 1 }}
-        />
-        <Box sx={{ flex: 1 }} />
-        {layer instanceof BaseVectorLayer && (
-          <Tooltip title={t("zoomToLayerExtent")}>
-            <IconButton
-              size="small"
-              data-cy="zoom-to-extent"
-              sx={iconButtonSx}
-              onClick={() => {
-                const extent = layer.getSource()?.getExtent();
-                if (extent && !isEmpty(extent)) {
-                  map.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 18 });
-                }
-              }}>
-              <ZoomOutMapIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
-        {removable && (
-          <Tooltip title={t("removeLayer")}>
-            <IconButton
-              size="small"
-              data-cy="layer-remove"
-              onClick={remove}
-              sx={{ color: "text.secondary", "&:hover": { color: "error.main" } }}>
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
-      </Box>
-
-      {open && isGroup && (
-        <Box sx={{ gridArea: "content" }}>
-          <LayerCollection
-            collection={layer.getLayers()}
-            map={map}
-            rootLayers={rootLayers}
-            onLayerChange={onLayerChange}
-            indent
+      </Stack>
+      <Stack sx={{ flex: 1, minWidth: 0, gap: 0.25 }}>
+        <Stack direction="row" sx={{ minWidth: 0, ml: 1 }}>
+          <FormCheckbox
+            size="small"
+            checked={visible}
+            onChange={checked => {
+              layer.setVisible(checked);
+              updateSublayerVisibility(layer);
+              updateParentLayerVisibility(rootLayers, layer);
+              onLayerChange?.();
+            }}
+            label={title}
+            truncateLabel
+            sx={{ flex: 1, minWidth: 0 }}
           />
-        </Box>
-      )}
-    </Box>
+          <Box sx={{ width: "30px", flexShrink: 0 }}>
+            {isGroup && (
+              <IconButton
+                size="small"
+                icon={open ? <RemoveIcon /> : <AddIcon />}
+                label={open ? "collapseLayerGroup" : "expandLayerGroup"}
+                sx={{ flexShrink: 0 }}
+                onClick={() => layer.set(OPEN, !open)}
+              />
+            )}
+            {layer instanceof BaseVectorLayer && (
+              <IconButton
+                size="small"
+                icon={<ZoomOutMapIcon />}
+                label="zoomToLayerExtent"
+                sx={{ flexShrink: 0 }}
+                onClick={() => {
+                  const extent = layer.getSource()?.getExtent();
+                  if (extent && !isEmpty(extent)) {
+                    map.getView().fit(extent, { padding: [50, 50, 50, 50], maxZoom: 18 });
+                  }
+                }}
+              />
+            )}
+          </Box>
+        </Stack>
+        <Stack direction="row" sx={{ minWidth: 0, ml: 1 }}>
+          <Slider
+            size="small"
+            min={0}
+            max={1}
+            step={0.01}
+            value={opacity}
+            aria-label={t("layerOpacity")}
+            onChange={(_event, value) => {
+              layer.setOpacity(value as number);
+              onLayerChange?.();
+            }}
+            sx={{ flex: 1, minWidth: 0 }}
+          />
+          <Box sx={{ width: "30px", flexShrink: 0 }} />
+        </Stack>
+        {open && isGroup && (
+          <Box>
+            <LayerCollection
+              collection={layer.getLayers()}
+              map={map}
+              rootLayers={rootLayers}
+              onLayerChange={onLayerChange}
+            />
+          </Box>
+        )}
+      </Stack>
+    </Stack>
   );
 };
 
@@ -285,11 +289,9 @@ interface LayerCollectionProps {
   map: OlMap;
   rootLayers: BaseLayer[];
   onLayerChange?: () => void;
-  /** Indent the list. Used for nested groups; the root list stays flush with the header. */
-  indent?: boolean;
 }
 
-const LayerCollection = ({ collection, map, rootLayers, onLayerChange, indent = false }: LayerCollectionProps) => {
+const LayerCollection = ({ collection, map, rootLayers, onLayerChange }: LayerCollectionProps) => {
   const forceUpdate = useForceUpdate();
   const [draggedLayer, setDraggedLayer] = useState<BaseLayer | null>(null);
   const [dragOverLayer, setDragOverLayer] = useState<BaseLayer | null>(null);
@@ -338,9 +340,9 @@ const LayerCollection = ({ collection, map, rootLayers, onLayerChange, indent = 
   const array = collection.getArray();
 
   return (
-    <Box
-      // column-reverse so the topmost map layer (last in the collection) appears at the top of the list.
-      sx={{ display: "flex", flexDirection: "column-reverse", ml: indent ? 0.5 : 0 }}
+    <Stack
+      direction="column-reverse" // column-reverse so the topmost map layer (last in the collection) appears at the top of the list.
+      sx={{ width: "100%", gap: 0 }}
       onDragOver={event => {
         if (draggedLayer && dragOverLayer) {
           event.preventDefault();
@@ -355,13 +357,12 @@ const LayerCollection = ({ collection, map, rootLayers, onLayerChange, indent = 
         setDraggedLayer(null);
         setDragOverLayer(null);
       }}>
-      {array.filter(getDisplayed).map(layer => {
+      {array.filter(getDisplayed).map((layer, index) => {
         const isDragOver = dragOverLayer === layer;
         const draggedBelow = draggedLayer != null && array.indexOf(layer) < array.indexOf(draggedLayer);
         return (
           <Box
             key={getUid(layer)}
-            data-cy="layer"
             draggable
             sx={{
               transition: "margin 100ms ease",
@@ -395,15 +396,12 @@ const LayerCollection = ({ collection, map, rootLayers, onLayerChange, indent = 
               map={map}
               rootLayers={rootLayers}
               onLayerChange={onLayerChange}
-              remove={() => {
-                collection.remove(layer);
-                onLayerChange?.();
-              }}
+              isFirst={index === 0}
             />
           </Box>
         );
       })}
-    </Box>
+    </Stack>
   );
 };
 
@@ -419,9 +417,9 @@ interface LayerSwitcherProps {
  * visibility (with group cascade), opacity, zoom-to-extent, remove, search and drag-to-reorder.
  */
 export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
-  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const forceUpdate = useForceUpdate();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close the panel when the user clicks anywhere outside it (e.g. on the map).
@@ -436,6 +434,27 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [open]);
 
+  // Re-render when any group's expanded state changes so the header can switch between the expand-all and collapse-all buttons
+  useEffect(() => {
+    if (!map) return;
+    const keys: EventsKey[] = [];
+    const collections: Collection<BaseLayer>[] = [map.getLayers()];
+    while (collections.length > 0) {
+      const collection = collections.pop()!;
+      for (const layer of collection.getArray()) {
+        if (layer instanceof LayerGroup) {
+          keys.push(
+            layer.on("propertychange", (event: ObjectEvent) => {
+              if (event.key === OPEN) forceUpdate();
+            }),
+          );
+          collections.push(layer.getLayers());
+        }
+      }
+    }
+    return () => unByKey(keys);
+  }, [map, forceUpdate]);
+
   if (!map) return null;
 
   const rootCollection = map.getLayers();
@@ -446,93 +465,68 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
     filterLayers(value, rootLayers);
   };
 
+  const groupsExist = containsGroup(rootLayers);
+  const anyGroupOpen = hasOpenGroup(rootLayers);
+
   return (
-    <Box
-      ref={containerRef}
+    <Stack
       sx={{
         position: "absolute",
-        top: 8,
-        left: 8,
-        zIndex: 10,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: 0.5,
+        bottom: 0,
+        right: 0,
+        m: 1,
+        maxHeight: theme => `calc(100% - ${theme.spacing(2)})`,
       }}>
-      {!open && (
-        <Tooltip title={t("layers")}>
-          <IconButton
-            data-cy="layer-switcher-toggle"
-            onClick={() => setOpen(true)}
-            sx={{
-              backgroundColor: "background.paper",
-              color: "text.secondary",
-              boxShadow: 1,
-              borderRadius: "4px",
-              "&:hover": { backgroundColor: "background.paper", color: "text.primary" },
-            }}>
-            <LayersOutlinedIcon />
-          </IconButton>
-        </Tooltip>
-      )}
-
-      {open && (
-        <Paper
-          data-cy="layer-switcher"
-          elevation={3}
-          sx={{ width: "20em", maxHeight: 360, display: "flex", flexDirection: "column", p: 0.5 }}>
-          <Box sx={{ display: "flex", gap: 0.5, alignItems: "center", mb: 0.5 }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 0.5,
-                flex: 1,
-                px: 0.5,
-                border: theme => `2px solid ${searchValue ? theme.palette.primary.main : theme.palette.action.hover}`,
-                borderRadius: "4px",
-              }}>
-              <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-              <InputBase
-                data-cy="layer-search-input"
-                placeholder={t("searchLayers")}
-                value={searchValue}
-                onChange={event => applyFilter(event.target.value)}
-                sx={{ flex: 1, fontSize: "0.875rem" }}
-              />
-              <IconButton
-                size="small"
-                data-cy="layer-search-clear"
-                aria-label={t("clearSearch")}
-                onClick={() => applyFilter("")}
-                sx={{
-                  visibility: searchValue ? "visible" : "hidden",
-                  color: "text.secondary",
-                  "&:hover": { color: "error.main" },
-                }}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Box>
-            <Tooltip title={t("collapseAllLayers")}>
-              <IconButton
-                size="small"
-                data-cy="collapse-all-layers"
-                onClick={() => collapseAll(rootLayers)}
-                sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}>
-                <UnfoldLessIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          <Box sx={{ overflowY: "auto" }}>
+      {open ? (
+        <Stack
+          ref={containerRef}
+          sx={{
+            width: "360px",
+            p: 1,
+            pb: 0,
+            gap: 0.5,
+            overflow: "hidden",
+            backgroundColor: "background.content",
+            border: theme => `1px solid ${theme.palette.primary.main}`,
+            borderRadius: theme => theme.spacing(0.5),
+          }}>
+          <Stack direction="row" sx={{ gap: 0.5, alignItems: "center", mb: 0.5, width: "100%" }}>
+            <SearchField placeholder="searchLayers" value={searchValue} onChange={applyFilter} sx={{ flex: 1 }} />
+            {groupsExist &&
+              (anyGroupOpen ? (
+                <IconButton
+                  size="small"
+                  icon={<UnfoldLessIcon />}
+                  label="collapseAll"
+                  onClick={() => collapseAll(rootLayers)}
+                />
+              ) : (
+                <IconButton
+                  size="small"
+                  icon={<UnfoldMoreIcon />}
+                  label="expandAll"
+                  onClick={() => expandAll(rootLayers)}
+                />
+              ))}
+          </Stack>
+          <Stack sx={{ pb: 1, overflowY: "auto" }}>
             <LayerCollection
               collection={rootCollection}
               map={map}
               rootLayers={rootLayers}
               onLayerChange={onLayerChange}
             />
-          </Box>
-        </Paper>
+          </Stack>
+        </Stack>
+      ) : (
+        <IconButton
+          color={"primaryOutlined"}
+          icon={<LayersOutlinedIcon />}
+          label="layers"
+          onClick={() => setOpen(true)}
+          tooltipPlacement="left"
+        />
       )}
-    </Box>
+    </Stack>
   );
 };

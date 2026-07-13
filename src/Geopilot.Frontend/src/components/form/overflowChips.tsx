@@ -1,12 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { AutocompleteRenderGetTagProps, Box, Chip } from "@mui/material";
 
-// Approximate widths (px) reserved while fitting chips: the trailing "+N" chip and a little room for the input.
-const PLUS_CHIP_WIDTH = 44;
-const INPUT_RESERVE = 32;
-const CHIP_MAX_WIDTH = 180;
-const CHIP_MARGIN = "3px";
-
 interface OverflowChipsProps {
   /** The selected option labels, in order. */
   value: string[];
@@ -34,14 +28,14 @@ export const OverflowChips = ({ value, getTagProps }: OverflowChipsProps) => {
     const recompute = () => {
       const styles = getComputedStyle(inputRoot);
       const padding = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
-      const available = inputRoot.clientWidth - padding - INPUT_RESERVE;
+      const available = inputRoot.clientWidth - padding - 52; // 52px reserves room for text input
       const chips = Array.from(measure.children) as HTMLElement[];
 
       let count = 0;
       for (let i = 0; i < chips.length; i++) {
         const rightEdge = chips[i].offsetLeft + chips[i].offsetWidth;
         // Reserve room for the "+N" chip unless this is the last chip (nothing would overflow then).
-        const reservePlus = i < chips.length - 1 ? PLUS_CHIP_WIDTH : 0;
+        const reservePlus = i < chips.length - 1 ? 44 : 0;
         if (rightEdge + reservePlus <= available) count = i + 1;
         else break;
       }
@@ -56,22 +50,30 @@ export const OverflowChips = ({ value, getTagProps }: OverflowChipsProps) => {
 
   const hidden = value.length - visibleCount;
 
+  const renderChip = (option: string, index: number) => {
+    const { key, ...tagProps } = getTagProps({ index });
+    return (
+      <Chip
+        key={key}
+        size="small"
+        label={option}
+        sx={{ "& .MuiChip-deleteIcon": { fontSize: "18px" } }}
+        {...tagProps}
+      />
+    );
+  };
+
   return (
     <>
-      {/* Hidden measurement row: all chips at natural width, off the visible layout, to size the fit above. */}
+      {value.slice(0, visibleCount).map((option, index) => renderChip(option, index))}
+      {hidden > 0 && <Chip size="small" label={`+${hidden}`} />}
+      {/* Hidden measurement row: the identical chips at natural width, taken off the layout, to size the fit. */}
       <Box
         ref={measureRef}
         aria-hidden
-        sx={{ position: "absolute", top: 0, left: 0, visibility: "hidden", display: "flex", pointerEvents: "none" }}>
-        {value.map(option => (
-          <Chip key={option} size="small" label={option} sx={{ maxWidth: CHIP_MAX_WIDTH, m: CHIP_MARGIN }} />
-        ))}
+        sx={{ position: "absolute", top: 0, left: 0, display: "flex", visibility: "hidden", pointerEvents: "none" }}>
+        {value.map((option, index) => renderChip(option, index))}
       </Box>
-      {value.slice(0, visibleCount).map((option, index) => {
-        const { key, ...tagProps } = getTagProps({ index });
-        return <Chip key={key} size="small" label={option} sx={{ maxWidth: CHIP_MAX_WIDTH }} {...tagProps} />;
-      })}
-      {hidden > 0 && <Chip size="small" label={`+${hidden}`} />}
     </>
   );
 };

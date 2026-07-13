@@ -12,7 +12,7 @@ Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
 ✔️ Docker  
 ✔️ Visual Studio 2026 (Erweiterungen ASP.NET & web dev, Node.js development, Container dev tools)
 
-Für die Formattierung wird ESLint verwendet. Dazu im Visual Studio unter `Options/Text Editor/Javascript/Linting/General` _Enable ESLint_ auf `true` setzen, resp. im VS Code die _ESLint_-Extension installieren.
+Für die Formatierung wird ESLint verwendet. Dazu im Visual Studio unter `Options/Text Editor/Javascript/Linting/General` _Enable ESLint_ auf `true` setzen, resp. im VS Code die _ESLint_-Extension installieren.
 
 ### Starten der Applikation (Lokal) 🚀
 
@@ -73,9 +73,44 @@ Der STAC Browser ist über https://localhost:5173/browser erreichbar und das Coo
 
 ### Debugging 🪲
 
-Das Debugging sollte nun sowohl für das Geopilot.Frontend in JavaScript als auch für Geopilot.Api in C# funtkionieren.
+Das Debugging sollte nun sowohl für das Geopilot.Frontend in JavaScript als auch für Geopilot.Api in C# funktionieren.
 
 PgAdmin kann für eine Analyse der Datenbank verwendet werden und ist unter [localhost:3001](http://localhost:3001/) verfügbar.
+
+## Frontend-Entwicklung (Best Practices)
+
+Beim Arbeiten im [Geopilot.Frontend](./src/Geopilot.Frontend/) gelten folgende Konventionen. Sie sorgen für ein einheitliches Erscheinungsbild und verhindern, dass die CI fehlschlägt.
+
+### Komponenten wiederverwenden
+
+- Zuerst [`src/components`](./src/Geopilot.Frontend/src/components/) prüfen und vorhandene Komponenten wiederverwenden, statt neue zu bauen.
+- MUI Material Komponenten und Icons überall dort einsetzen, wo es in `src/components` keine Alternative gibt.
+- Für Buttons und Formularfelder immer die lokalen Komponenten verwenden:
+  - Buttons: `Button` und `IconButton` aus [`components/buttons.tsx`](./src/Geopilot.Frontend/src/components/buttons.tsx) (nicht das MUI `Button`).
+  - Formularfelder: `FormInput` (Textfield), `FormSelect` (Select), `FormAutocomplete` (Autocomplete) und `FormCheckbox` (Checkbox) aus [`components/form`](./src/Geopilot.Frontend/src/components/form/).
+
+### Layout und Markup
+
+- Wo sinnvoll vordefinierte [`styledComponents`](./src/Geopilot.Frontend/src/components/styledComponents.ts) verwenden.
+- Kein `<Box display="flex" />`, ausser es gibt einen wirklich guten Grund. Stattdessen `<Stack />` verwenden.
+- Keine Standard-HTML-Tags wie `div`, `span`, `button` etc., ausser es gibt einen wirklich guten Grund. Stattdessen MUI-Komponenten wie `Box`, `Stack`, `Typography` oder die eigenen Buttons `Button` bzw. `IconButton` verwenden.
+- Margins, Paddings und BorderRadius aus `theme.spacing` ableiten.
+
+### Farben
+
+- Ausschliesslich Farben aus der Theme-Palette verwenden (`theme.palette`), keine Hex-Werte im Code.
+- Fehlt eine benötigte Farbe, einen neuen Eintrag in [`appPalette.ts`](./src/Geopilot.Frontend/src/appPalette.ts) ergänzen und diesen verwenden.
+
+### Vor dem Commit
+
+Die CI schlägt bei Typ- oder Lint-Warnungen fehl sowie bei ungenutztem Code oder ungenutzten Exports. Diese Probleme idealerweise vor dem Commit beheben:
+
+```bash
+cd src/Geopilot.Frontend
+npm run build   # muss ohne Fehler durchlaufen
+npm run lint    # muss ohne Warnungen durchlaufen (--max-warnings 0)
+npm run knip    # muss ohne Findings durchlaufen
+```
 
 ## Cypress Tests
 
@@ -97,7 +132,7 @@ docker inspect --format='{{json .State.Health.Status}}' container_name
 
 ## Neue Version erstellen
 
-Ein neuer GitHub _Pre-release_ wird bei jeder Änderung auf [main](https://github.com/GeoWerkstatt/geopilot) [automatisch](./.github/workflows/pre-release.yml) erstellt. In diesem Kontext wird auch ein neues Docker Image mit dem Tag _:edge_ erstellt und in die [GitHub Container Registry (ghcr.io)](https://github.com/geowerkstatt/geopilot/pkgs/container/geopilot) gepusht. Der definitve Release erfolgt, indem die Checkbox _Set as the latest release_ eines beliebigen Pre-releases gesetzt wird. In der Folge wird das entsprechende Docker Image in der ghcr.io Registry mit den Tags (bspw.: _:v1.2.3_ und _:latest_) [ergänzt](./.github/workflows/release.yml).
+Ein neuer GitHub _Pre-release_ wird bei jeder Änderung auf [main](https://github.com/GeoWerkstatt/geopilot) [automatisch](./.github/workflows/pre-release.yml) erstellt. In diesem Kontext wird auch ein neues Docker Image mit dem Tag _:edge_ erstellt und in die [GitHub Container Registry (ghcr.io)](https://github.com/geowerkstatt/geopilot/pkgs/container/geopilot) gepusht. Der definitive Release erfolgt, indem die Checkbox _Set as the latest release_ eines beliebigen Pre-releases gesetzt wird. In der Folge wird das entsprechende Docker Image in der ghcr.io Registry mit den Tags (bspw.: _:v1.2.3_ und _:latest_) [ergänzt](./.github/workflows/release.yml).
 
 ## Authentifizierung
 
@@ -119,8 +154,8 @@ _([Entwicklungsumgebung](./config/realms/keycloak-geopilot.json): `https://local
 ### Swagger UI
 
 Abhängig vom Identity Provider wird die Audience (`aud` Claim) im Access-Token automatisch gesetzt, sofern ein passender Scope verwendet wird.
-Der benötigte Scope kann in den Appsettings under `ApiServerScope` gesetzt werden, um diesen im Swagger UI zur Auswahl anzuzeigen.
-Ohne diesem Scope wird das Access-Token möglicherweise ohne oder für eine andere Audience ausgestellt.
+Der benötigte Scope kann in den Appsettings unter `ApiServerScope` gesetzt werden, um diesen im Swagger UI zur Auswahl anzuzeigen.
+Ohne diesen Scope wird das Access-Token möglicherweise ohne oder für eine andere Audience ausgestellt.
 
 In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) wird die Audience stattdessen mit einem Keycloak Protocol Mapper festgelegt.
 
@@ -154,7 +189,7 @@ Beide Features sind standardmässig deaktiviert. Ohne Konfiguration wird ausschl
 
 ### Entwicklung
 
-Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1–2 Minuten für Virendefinitionen.
+Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.
 
 ```bash
 docker compose up -d azurite clamav

@@ -37,7 +37,11 @@ const DeliveryStepBox = styled(GeopilotBox, {
   error: boolean;
   enabled: boolean;
 }>(({ open, enabled, error, theme }) => ({
-  backgroundColor: open ? (error ? theme.palette.error.selected : theme.palette.primary.selected) : "white",
+  backgroundColor: open
+    ? error
+      ? theme.palette.error.selected
+      : theme.palette.primary.states.selected
+    : theme.palette.background.content,
   alignItems: "flex-start",
   cursor: enabled ? "pointer" : "default",
   [theme.breakpoints.down("md")]: {
@@ -117,7 +121,10 @@ export const DeliveryStepper = () => {
             </Stack>
           </DeliveryStepBox>
         ))}
-        <DeliveryRestartButton sx={{ alignSelf: "flex-end", display: { xs: "none", md: "block" } }} />
+        <DeliveryRestartButton
+          sx={{ alignSelf: "flex-start", display: { xs: "none", md: "block" } }}
+          immediate={lastCompletedStep === steps.size - 1}
+        />
       </StepperStack>
     </StepperViewport>
   );

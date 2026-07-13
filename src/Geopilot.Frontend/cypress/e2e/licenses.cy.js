@@ -87,32 +87,35 @@ describe("Licenses Component", () => {
     // Wait for API response
     cy.wait(["@getLicenses", "@getCustomLicenses"]);
 
-    // Check that packages are grouped properly
-    // For this test, we need to ensure at least one package has a publisher property
-    // or that packages with same namespace are grouped together
-    cy.get(".MuiAccordion-root").each($accordion => {
-      // Get group name
-      const groupName = $accordion.find("h2").text();
+    // Check that packages are grouped properly: every package in a group must belong to
+    // that group's publisher/namespace. Re-query each accordion by index instead of
+    // caching a jQuery element, because expanding a group reflows the list (margins and
+    // borders change on expand) and would detach a cached reference mid-chain.
+    cy.get(".MuiAccordion-root")
+      .its("length")
+      .then(groupCount => {
+        for (let index = 0; index < groupCount; index++) {
+          cy.get(".MuiAccordion-root").eq(index).as("group");
 
-      // Expand accordion
-      cy.wrap($accordion).find(".MuiAccordionSummary-root").click();
+          cy.get("@group")
+            .find("h4")
+            .invoke("text")
+            .then(groupName => {
+              cy.get("@group").find(".MuiAccordionSummary-root").click();
 
-      // Check that all packages in this group belong to this publisher/namespace
-      cy.wrap($accordion)
-        .find("h3")
-        .each($pkgName => {
-          // If groupName matches publisher, we're good
-          // Otherwise, check if package name starts with groupName
-          const packageFullName = $pkgName.text().split(" ")[0]; // Get name without version
-          cy.wrap($pkgName).then(() => {
-            expect(
-              packageFullName.startsWith(groupName) ||
-                groupName === "projectA" || // Handling our fixture specifically
-                groupName === "projectB",
-            ).to.be.true;
-          });
-        });
-    });
+              cy.get("@group")
+                .find("h5")
+                .each($pkgName => {
+                  const packageFullName = $pkgName.text().split(" ")[0]; // name without version
+                  expect(
+                    packageFullName.startsWith(groupName) ||
+                      groupName === "projectA" || // fixture-specific groups
+                      groupName === "projectB",
+                  ).to.be.true;
+                });
+            });
+        }
+      });
   });
 
   it("should navigate back when back button is clicked", () => {

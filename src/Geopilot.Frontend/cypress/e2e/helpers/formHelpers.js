@@ -181,6 +181,17 @@ export const isCheckboxDisabled = (fieldName, isDisabled = true, parent) => {
 };
 
 /**
+ * Closes an open autocomplete dropdown. The dropdown stays open after selecting a value
+ * (disableCloseOnSelect), so it must be dismissed explicitly or it covers elements clicked next.
+ * @param {string} fieldName The name of the autocomplete field.
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const closeAutocomplete = (fieldName, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
+  cy.get(selector).find("input").first().type("{esc}");
+};
+
+/**
  * Sets the value for an autocomplete form element, that is not free solo. Meaning the user must select from the provided dropdown.
  * For free solo autocomplete, use setFreeSoloAutocomplete instead.
  * @param {string} fieldName The name of the autocomplete field.
@@ -196,6 +207,7 @@ export const setNonFreeSoloAutocomplete = (fieldName, value, parent) => {
         delay: 10,
       });
       cy.get('.MuiPaper-elevation [role="listbox"]').find('[role="option"]').first().click();
+      closeAutocomplete(fieldName, parent);
     });
 };
 
@@ -216,6 +228,7 @@ export const setFreeSoloAutocomplete = (fieldName, value, parent) => {
           delay: 10,
         });
       }
+      closeAutocomplete(fieldName, parent);
     });
 };
 
@@ -227,7 +240,7 @@ export const setFreeSoloAutocomplete = (fieldName, value, parent) => {
  */
 export const removeAutocompleteValue = (fieldName, value, parent) => {
   const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
-  cy.get(selector).contains(value).parent().find(".MuiChip-deleteIcon").click();
+  cy.get(selector).contains(".MuiChip-root:visible", value).find(".MuiChip-deleteIcon").click();
 };
 
 /**
@@ -238,9 +251,12 @@ export const removeAutocompleteValue = (fieldName, value, parent) => {
 export const evaluateAutocomplete = (fieldName, expectedValues, parent) => {
   const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
   cy.get(selector).within(() => {
-    cy.get(".MuiChip-root").should("have.length", expectedValues.length);
+    // The visible row collapses overflowing chips into a "+N" chip, so not every selected value is shown there.
+    // Assert against the hidden (visibility: hidden) measurement row instead: it always renders exactly one chip
+    // per selected value, so the count and the values stay correct regardless of how many chips currently fit.
+    cy.get(".MuiChip-root:hidden").should("have.length", expectedValues.length);
     expectedValues.forEach(value => {
-      cy.get(".MuiChip-root span").contains(value);
+      cy.get(".MuiChip-root:hidden span").contains(value);
     });
   });
 };

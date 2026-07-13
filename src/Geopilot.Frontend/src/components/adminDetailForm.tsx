@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "@mui/icons-material";
 import { CircularProgress, Stack, Typography } from "@mui/material";
 import useFetch from "../hooks/useFetch.ts";
-import { BaseButton } from "./buttons.tsx";
+import { Button } from "./buttons.tsx";
 import { useControlledNavigate } from "./controlledNavigate";
 import { PromptContext } from "./prompt/promptContext.tsx";
 import { PromptAction } from "./prompt/promptInterfaces.ts";
@@ -147,7 +147,7 @@ const AdminDetailForm = <T extends { id: number }>({
   return (
     <Stack>
       <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-        <BaseButton variant={"text"} icon={<ChevronLeft />} onClick={() => navigateTo(basePath)} label={backLabel} />
+        <Button variant="text" startIcon={<ChevronLeft />} onClick={() => navigateTo(basePath)} label={backLabel} />
         {data && data.id !== 0 && <Typography variant={"body2"}>{t("id") + ": " + data?.id}</Typography>}
       </Stack>
       {!data ? (
@@ -160,13 +160,13 @@ const AdminDetailForm = <T extends { id: number }>({
             <Stack>
               {children}
               <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                <BaseButton
-                  variant={"outlined"}
+                <Button
                   disabled={!formMethods.formState.isDirty}
                   onClick={() => formMethods.reset(data)}
                   label={"reset"}
                 />
-                <BaseButton
+                <Button
+                  variant="contained"
                   disabled={
                     isSavingRef.current ||
                     !formMethods.formState.isDirty ||

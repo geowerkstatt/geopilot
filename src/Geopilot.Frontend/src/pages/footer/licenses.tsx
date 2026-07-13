@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ExpandMore } from "@mui/icons-material";
-import { Accordion, AccordionDetails, AccordionSummary, Box, Grid, Link, Stack, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Link, Stack, Typography } from "@mui/material";
 import { ContentType } from "../../api/apiInterfaces.ts";
-import { BaseButton } from "../../components/buttons.tsx";
-import { CenteredBox } from "../../components/styledComponents.ts";
+import { Button } from "../../components/buttons.tsx";
+import { CenteredContent } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 
 interface PackageList {
@@ -92,59 +92,46 @@ export const Licenses = () => {
   }, [hash, licenseInfo, licenseInfoCustom]);
 
   return (
-    <CenteredBox>
-      <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
-        <BaseButton
-          id="backButton"
-          variant={"text"}
-          color="primary"
-          icon={<ChevronLeft />}
-          onClick={() => navigate(-1)}
-          label="back"
-        />
-      </Stack>
+    <CenteredContent>
+      <Box sx={{ flex: 0 }}>
+        <Button id="backButton" variant="text" startIcon={<ChevronLeft />} onClick={() => navigate(-1)} label="back" />
+      </Box>
       {(licenseInfo || licenseInfoCustom) && (
         <Typography variant="h1" id="licenses">
           {t("licenseInformation")}
         </Typography>
       )}
-      <>
-        {licenseGroups.map(group => (
-          <Accordion key={group.groupName} slotProps={{ transition: { timeout: 200 } }}>
+      <Stack gap={0}>
+        {licenseGroups.map((group, index) => (
+          <Accordion key={group.groupName + index} slotProps={{ transition: { timeout: 200 } }}>
             <AccordionSummary expandIcon={<ExpandMore />}>
-              <Grid container spacing={1}>
-                <Grid item xs={12}>
-                  <Typography variant="h2">{group.groupName}</Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography>
-                    {group.packages.length > 1 ? `${group.packages.length} ${t("licenses")}` : ""}
-                  </Typography>
-                </Grid>
-              </Grid>
+              <Stack direction="row" sx={{ alignItems: "center" }}>
+                <Typography variant="h4" m={0}>
+                  {group.groupName}
+                </Typography>
+                <Typography>{group.packages.length > 1 ? `${group.packages.length} ${t("licenses")}` : ""}</Typography>
+              </Stack>
             </AccordionSummary>
             <AccordionDetails>
               {group.packages.map(pkg => (
-                <Box key={pkg.name} sx={{ py: 4 }}>
-                  <Typography variant="h3">
+                <Stack key={pkg.name + pkg.version} gap={1}>
+                  <Typography variant="h5">
                     {pkg.name}
-                    {pkg.version && ` (${t("version")} ${pkg.version})`}{" "}
+                    {pkg.version && ` (${t("version")} ${pkg.version})`}
                   </Typography>
-                  <p>
-                    <Link href={pkg.repository}>{pkg.repository}</Link>
-                  </p>
-                  <p>{pkg.description}</p>
-                  <p>{pkg.copyright}</p>
-                  <p>
+                  <Link href={pkg.repository}>{pkg.repository}</Link>
+                  <Typography>{pkg.description}</Typography>
+                  <Typography>{pkg.copyright}</Typography>
+                  <Typography>
                     {t("licenses")}: {pkg.licenses}
-                  </p>
-                  <p>{pkg.licenseText}</p>
-                </Box>
+                  </Typography>
+                  <Typography>{pkg.licenseText}</Typography>
+                </Stack>
               ))}
             </AccordionDetails>
           </Accordion>
         ))}
-      </>
-    </CenteredBox>
+      </Stack>
+    </CenteredContent>
   );
 };

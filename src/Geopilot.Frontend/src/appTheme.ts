@@ -1,40 +1,12 @@
+import { createElement } from "react";
+import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { AppThemePalette, createTheme, Shadows } from "@mui/material/styles";
+import { alpha, createTheme, Shadows } from "@mui/material/styles";
 import { Spacing } from "@mui/system";
+import { themePalette } from "./appPalette";
 
 const defaultTheme = createTheme();
 
-const themePalette: AppThemePalette = {
-  primary: {
-    main: "#124A4F",
-    light: "#88a4a7",
-    active: "#124A4F14",
-    inactive: "#124A4F99",
-    hover: "#124A4F0D",
-    selected: "#124A4F2E",
-    contrastText: "#ffffff",
-    background: "#f6f8f8",
-  },
-  secondary: {
-    main: "#00ff97",
-    inactive: "#00ff9799",
-    hover: "#00ff970D",
-    contrastText: "#000",
-  },
-  success: {
-    main: "#4caf51",
-    hover: "#4caf510D",
-  },
-  warning: {
-    main: "#fd9903",
-    hover: "#fd99030D",
-  },
-  error: {
-    main: "#e53835",
-    selected: "#e538352E",
-    hover: "#e538350D",
-  },
-};
 const themeShadows: Shadows = [...defaultTheme.shadows];
 const themeSpacing: Spacing = defaultTheme.spacing;
 
@@ -115,9 +87,11 @@ export const geopilotTheme = createTheme({
     MuiTypography: {
       styleOverrides: {
         root: {
+          color: themePalette.text.primary,
           "&.Mui-disabled": {
             opacity: "60%",
             cursor: "default",
+            color: themePalette.text.disabled,
           },
         },
       },
@@ -126,7 +100,7 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           backgroundColor: themePalette.primary.main,
-          color: themePalette.primary.contrastText,
+          color: themePalette.primary.contrast,
         },
       },
     },
@@ -139,12 +113,7 @@ export const geopilotTheme = createTheme({
           borderRadius: themeSpacing(0.5),
           flex: "1",
 
-          "& .MuiInputBase-input": {
-            height: "32px",
-          },
-
           "& .MuiSelect-select": {
-            minHeight: "32px !important",
             alignContent: "center",
           },
 
@@ -159,49 +128,128 @@ export const geopilotTheme = createTheme({
         IconComponent: ExpandMoreIcon,
       },
     },
-    MuiButtonBase: {
-      defaultProps: {
-        disableRipple: true,
+    MuiOutlinedInput: {
+      styleOverrides: {
+        notchedOutline: {
+          borderColor: themePalette.primary.light,
+        },
+        root: {
+          "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: themePalette.primary.main,
+          },
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: themePalette.primary.main,
+          },
+        },
       },
     },
     MuiButton: {
+      defaultProps: {
+        color: "primary",
+        variant: "outlined",
+      },
       styleOverrides: {
         root: {
           textTransform: "none",
           fontWeight: "500",
-          borderRadius: "4px",
+          borderRadius: themeSpacing(0.5),
           boxShadow: "none",
           "&:hover": {
             boxShadow: "none",
           },
           "&.MuiButton-outlined": {
-            backgroundColor: "white",
+            backgroundColor: themePalette.primary.contrast,
+          },
+          "&.MuiButton-outlined:hover": {
+            backgroundColor: themePalette.primary.states.hover,
+            borderColor: themePalette.primary.main,
           },
           "&.Mui-disabled": {
             "&.MuiButton-text": {
               backgroundColor: "transparent",
-              color: themePalette.primary.inactive,
+              color: themePalette.primary.states.disabledBackground,
             },
             "&.MuiButton-contained": {
-              backgroundColor: themePalette.primary.inactive,
-              color: themePalette.primary.contrastText,
+              backgroundColor: themePalette.primary.states.disabledBackground,
+              color: themePalette.primary.contrast,
             },
             "&.MuiButton-outlined": {
-              color: themePalette.primary.inactive,
-              borderColor: themePalette.primary.inactive,
+              color: themePalette.primary.states.disabledBackground,
+              borderColor: themePalette.primary.states.disabledBackground,
             },
           },
         },
       },
     },
     MuiIconButton: {
+      defaultProps: {
+        color: "primary",
+      },
       styleOverrides: {
         root: {
-          "&:hover, &.Mui-focusVisible, &:active, &:focus, &:focus-visible": {
-            backgroundColor: "rgba(0, 0, 0, 0.0)",
+          boxShadow: "none",
+        },
+        colorPrimary: {
+          color: themePalette.primary.main,
+          "&:hover": {
+            backgroundColor: "transparent",
+            color: themePalette.primary.dark,
           },
-          "& .MuiTouchRipple-root": {
-            display: "none",
+          "&:disabled": {
+            color: themePalette.primary.states.disabledBackground,
+          },
+        },
+        colorPrimaryContained: {
+          backgroundColor: themePalette.primary.main,
+          color: themePalette.primary.contrast,
+          borderRadius: themeSpacing(0.5),
+          "&:hover": {
+            backgroundColor: themePalette.primary.dark,
+          },
+          "&:disabled": {
+            backgroundColor: themePalette.primary.states.disabledBackground,
+          },
+        },
+        colorPrimaryOutlined: {
+          color: themePalette.primary.main,
+          backgroundColor: themePalette.primary.contrast,
+          padding: "7px",
+          border: `1px solid ${themePalette.primary.light}`,
+          borderRadius: themeSpacing(0.5),
+          "&:hover": {
+            border: `1px solid ${themePalette.primary.main}`,
+            backgroundColor: themePalette.primary.states.hover,
+          },
+          "&:disabled": {
+            color: themePalette.primary.states.disabledBackground,
+            backgroundColor: themePalette.primary.contrast,
+            border: `1px solid ${themePalette.primary.states.disabledBackground}`,
+          },
+          "&.active": {
+            backgroundColor: themePalette.primary.states.selected,
+          },
+        },
+      },
+    },
+    MuiButtonGroup: {
+      styleOverrides: {
+        root: {
+          "&.MuiButtonGroup-vertical .MuiIconButton-root": {
+            borderRadius: 0,
+            "&:not(:first-of-type)": {
+              marginTop: "-1px",
+            },
+            "&:first-of-type": {
+              borderTopLeftRadius: themeSpacing(0.5),
+              borderTopRightRadius: themeSpacing(0.5),
+            },
+            "&:last-of-type": {
+              borderBottomLeftRadius: themeSpacing(0.5),
+              borderBottomRightRadius: themeSpacing(0.5),
+            },
+            "&:hover": {
+              zIndex: 1,
+            },
           },
         },
       },
@@ -209,8 +257,6 @@ export const geopilotTheme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: "#ffffffd5",
-          color: "#000",
           boxShadow: "none",
         },
       },
@@ -243,6 +289,18 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           padding: "24px 0 0 40px",
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          "&.Mui-selected": {
+            backgroundColor: themePalette.primary.states.selected,
+          },
+          "&:hover": {
+            backgroundColor: alpha(themePalette.primary.main, 0.04),
+          },
         },
       },
     },
@@ -300,25 +358,25 @@ export const geopilotTheme = createTheme({
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: "#616161",
-          color: "#ffffff",
+          backgroundColor: defaultTheme.palette.grey[700],
+          color: themePalette.primary.contrast,
           borderRadius: themeSpacing(0.5),
         },
         arrow: {
-          color: "#616161",
+          color: defaultTheme.palette.grey[700],
         },
       },
     },
     MuiChip: {
       styleOverrides: {
         root: {
-          backgroundColor: "#124A4F33",
+          backgroundColor: alpha(themePalette.primary.main, 0.2),
 
           "& .MuiChip-deleteIcon": {
-            color: "#124A4F66",
+            color: alpha(themePalette.primary.main, 0.4),
 
             "&:hover": {
-              color: "#124A4F99",
+              color: alpha(themePalette.primary.main, 0.6),
             },
           },
         },
@@ -331,16 +389,23 @@ export const geopilotTheme = createTheme({
           borderColor: themePalette.primary.light,
           textTransform: "none",
           "&:hover": {
-            backgroundColor: themePalette.primary.hover,
+            backgroundColor: themePalette.primary.states.hover,
           },
           "&.Mui-selected, &.Mui-selected:hover": {
             color: themePalette.primary.main,
-            backgroundColor: themePalette.primary.selected,
+            backgroundColor: themePalette.primary.states.selected,
           },
         },
       },
     },
     MuiStack: { defaultProps: { gap: 2 } },
+    MuiAlert: {
+      defaultProps: {
+        iconMapping: {
+          success: createElement(CheckIcon, { fontSize: "inherit" }),
+        },
+      },
+    },
     MuiAccordion: {
       defaultProps: {
         disableGutters: true,
@@ -349,10 +414,38 @@ export const geopilotTheme = createTheme({
         root: {
           boxShadow: "none",
           border: `1px solid ${themePalette.primary.light}`,
-          borderRadius: themeSpacing(0.5),
+          borderRadius: 0,
+          borderTop: 0, // collapsed items stack: rely on the item above's bottom border
           "&:before": {
             display: "none",
           },
+          // First of a collapsed run (list top, or right after an expanded item)
+          "&:first-of-type, .Mui-expanded + &": {
+            borderTop: `1px solid ${themePalette.primary.light}`,
+            borderTopLeftRadius: themeSpacing(0.5),
+            borderTopRightRadius: themeSpacing(0.5),
+          },
+          // Last of a collapsed run (list bottom, or right before an expanded item)
+          "&:last-of-type, &:has(+ .Mui-expanded)": {
+            borderBottomLeftRadius: themeSpacing(0.5),
+            borderBottomRightRadius: themeSpacing(0.5),
+          },
+          // Expanded: detach into its own rounded card with vertical spacing
+          "&.Mui-expanded": {
+            borderTop: `1px solid ${themePalette.primary.light}`,
+            borderRadius: themeSpacing(0.5),
+            marginTop: themeSpacing(2),
+            marginBottom: themeSpacing(2),
+            "&:first-of-type": { marginTop: 0 },
+            "&:last-of-type": { marginBottom: 0 },
+          },
+        },
+      },
+    },
+    MuiAccordionSummary: {
+      styleOverrides: {
+        expandIconWrapper: {
+          color: themePalette.primary.main,
         },
       },
     },

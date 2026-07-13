@@ -265,11 +265,7 @@ describe("Organisations tests", () => {
       });
 
     // Add a new user to trigger a change
-    cy.dataCy("users-formAutocomplete").click();
-    cy.get(".MuiAutocomplete-popper").should("be.visible");
-
-    // Find and click on "Jaime Pagac" user in dropdown
-    cy.get(".MuiAutocomplete-option").contains("Jaime Pagac").click();
+    setNonFreeSoloAutocomplete("users", "Jaime Pagac");
 
     // Verify reset button is enabled after changes
     cy.dataCy("reset-button").should("be.enabled");

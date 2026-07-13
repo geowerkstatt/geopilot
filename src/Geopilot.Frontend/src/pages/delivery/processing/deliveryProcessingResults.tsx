@@ -1,9 +1,9 @@
 import { SyntheticEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import { Accordion, AccordionDetails, AccordionSummary, Box, Stack, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Stack, Typography } from "@mui/material";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
-import { BaseButton } from "../../../components/buttons";
+import { Button } from "../../../components/buttons";
 import { useLocalized } from "../../../hooks/useLocalized";
 import { DeliveryContext } from "../deliveryContext";
 import { ProcessingStepIcon } from "./processingStepIcon";
@@ -94,25 +94,10 @@ export const DeliveryProcessingResults = () => {
 
   return (
     <Stack>
-      {processingResponse?.deliveryRestrictionMessage && (
-        <Typography variant="body1" color="error">
-          {localized(processingResponse.deliveryRestrictionMessage)}
-        </Typography>
-      )}
       <Box>
         {steps.map((step, index) => {
           const isExpandable = stepIsExpandable(step);
           const isExpanded = isExpandable && expandedStepIds.has(step.id);
-
-          const isStepExpanded = (i: number) => {
-            const s = steps[i];
-            return stepIsExpandable(s) && expandedStepIds.has(s.id);
-          };
-
-          const prevExpanded = index > 0 && isStepExpanded(index - 1);
-          const nextExpanded = index < steps.length - 1 && isStepExpanded(index + 1);
-          const isFirstInGroup = index === 0 || prevExpanded;
-          const isLastInGroup = index === steps.length - 1 || nextExpanded;
 
           return (
             <Accordion
@@ -121,20 +106,6 @@ export const DeliveryProcessingResults = () => {
               expanded={isExpanded}
               onChange={isExpandable ? handleAccordionChange(step.id) : undefined}
               slotProps={{ transition: { onEntered: handleStepExpanded(step.id) } }}
-              sx={{
-                ...(isExpanded
-                  ? {
-                      borderRadius: "4px",
-                      mt: index > 0 ? 2 : 0,
-                      mb: index < steps.length - 1 ? 2 : 0,
-                    }
-                  : {
-                      borderRadius: 0,
-                      ...(!isFirstInGroup && { borderTop: 0 }),
-                      ...(isFirstInGroup && { borderTopLeftRadius: "4px", borderTopRightRadius: "4px" }),
-                      ...(isLastInGroup && { borderBottomLeftRadius: "4px", borderBottomRightRadius: "4px" }),
-                    }),
-              }}
               data-cy={`processing-step-${step.id}`}>
               <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
                 <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
@@ -150,11 +121,10 @@ export const DeliveryProcessingResults = () => {
                   {step.downloads.length > 0 && (
                     <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
                       {step.downloads.map(d => (
-                        <BaseButton
+                        <Button
                           key={d.originalFileName}
-                          variant="outlined"
                           onClick={() => download(d.url, d.originalFileName)}
-                          icon={<FileDownloadIcon />}
+                          startIcon={<FileDownloadIcon />}
                           label={d.originalFileName}
                         />
                       ))}
@@ -167,6 +137,9 @@ export const DeliveryProcessingResults = () => {
           );
         })}
       </Box>
+      {processingResponse?.deliveryRestrictionMessage && (
+        <Alert severity="error">{localized(processingResponse.deliveryRestrictionMessage)}</Alert>
+      )}
     </Stack>
   );
 };

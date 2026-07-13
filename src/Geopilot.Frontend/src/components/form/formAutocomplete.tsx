@@ -2,16 +2,19 @@ import { SyntheticEvent, useMemo, useState } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Autocomplete, Chip, SxProps, TextField } from "@mui/material";
+import { Autocomplete, SxProps, TextField } from "@mui/material";
 import { getFormFieldError } from "./form";
+import { OverflowChips } from "./overflowChips";
 
 export interface FormAutocompleteProps<T> {
-  fieldName: string;
+  /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
+  fieldName?: string;
   label: string;
   placeholder?: string;
   freeSolo?: boolean;
   required?: boolean;
   disabled?: boolean;
+  /** Selected values: the default value in form-context mode, the controlled value when `onChange` is provided. */
   selected?: T[];
   values?: T[];
   /**
@@ -38,6 +41,21 @@ export interface FormAutocompleteProps<T> {
    * Error message key/text when the validation fails.
    */
   errorMessage?: string;
+
+  /**
+   * Controlled mode: providing this callback switches the field to standalone operation (no react-hook-form
+   * context required). It receives the full selection on every change.
+   */
+  onChange?: (value: (T | string)[]) => void;
+
+  /** Controlled mode: error state to display. Ignored in form-context mode, which derives it from the form. */
+  error?: boolean;
+
+  /** Overrides the default `data-cy` (`${fieldName}-formAutocomplete`). */
+  dataCy?: string;
+
+  /** Keep the dropdown open while selecting multiple values. Defaults to true. */
+  disableCloseOnSelect?: boolean;
 }
 
 export interface FormAutocompleteValue {
@@ -67,9 +85,13 @@ export const FormAutocomplete = <T,>({
   sx,
   validator,
   errorMessage,
+  onChange,
+  error,
+  dataCy,
+  disableCloseOnSelect,
 }: FormAutocompleteProps<T>) => {
   const { t } = useTranslation();
-  const { control, setValue, setError, clearErrors } = useFormContext();
+  const formContext = useFormContext();
 
   const [inputValue, setInputValue] = useState("");
 
@@ -90,7 +112,76 @@ export const FormAutocomplete = <T,>({
     [fieldName, valueFormatter],
   );
 
-  const onChange = (event: SyntheticEvent, newValue: (T | string)[]) => {
+  const toChipLabel = (option: T | string): string =>
+    typeof option === "string" ? option : safeValueFormatter(option as T).primaryText;
+
+  const renderAutocomplete = (
+    value: (T | string)[],
+    handleChange: (event: SyntheticEvent, value: (T | string)[]) => void,
+    showError: boolean,
+    helperText?: string,
+    inputControl?: {
+      inputValue: string;
+      onInputChange: (event: SyntheticEvent, value: string) => void;
+    },
+  ) => (
+    <Autocomplete
+      sx={{
+        width: "100%",
+        // Keep the chips on a single row (OverflowChips collapses the rest into "+N"); no overflow clip here, or
+        // the outlined fieldset's top border gets cut off and the focus border can't render all the way around.
+        "& .MuiAutocomplete-inputRoot": { flexWrap: "nowrap" },
+        ...sx,
+      }}
+      fullWidth
+      size="small"
+      disableCloseOnSelect={disableCloseOnSelect ?? true}
+      popupIcon={<ExpandMoreIcon />}
+      forcePopupIcon={(values?.length ?? 0) > 0 ? "auto" : true}
+      multiple
+      freeSolo={freeSolo ?? false}
+      disabled={disabled ?? false}
+      value={value}
+      {...inputControl}
+      onChange={handleChange}
+      renderTags={(tagValue, getTagProps) => (
+        <OverflowChips value={tagValue.map(toChipLabel)} getTagProps={getTagProps} />
+      )}
+      renderInput={params => (
+        <TextField
+          {...params}
+          label={t(label)}
+          placeholder={placeholder ? t(placeholder) : undefined}
+          required={required ?? false}
+          error={showError}
+          helperText={helperText}
+        />
+      )}
+      options={values || []}
+      getOptionKey={(option: T | string) =>
+        typeof option === "string" ? `${fieldName}-${option}` : `${fieldName}-${(values as T[]).indexOf(option)}`
+      }
+      getOptionLabel={(option: T | string) =>
+        typeof option === "string"
+          ? option
+          : safeValueFormatter(option as T).detailText || safeValueFormatter(option as T).primaryText
+      }
+      isOptionEqualToValue={(option, value) =>
+        typeof option === "string"
+          ? (option as string) === (value as string)
+          : safeValueFormatter(option as T).id === safeValueFormatter(value as T).id
+      }
+      data-cy={dataCy ?? (fieldName ? `${fieldName}-formAutocomplete` : undefined)}
+    />
+  );
+
+  if (onChange) {
+    return renderAutocomplete(selected ?? [], (_, newValue) => onChange(newValue), error ?? false);
+  }
+
+  const { control, setValue, setError, clearErrors } = formContext;
+
+  const handleFormChange = (event: SyntheticEvent, newValue: (T | string)[]) => {
     const last = newValue[newValue.length - 1];
 
     if (freeSolo && typeof last === "string" && validator) {
@@ -102,13 +193,13 @@ export const FormAutocomplete = <T,>({
 
         setInputValue(last);
 
-        setValue(fieldName, filtered, {
+        setValue(fieldName!, filtered, {
           shouldValidate: false,
           shouldDirty: true,
           shouldTouch: true,
         });
 
-        setError(fieldName, {
+        setError(fieldName!, {
           type: "validate",
           message: errorMessage || "",
         });
@@ -117,11 +208,11 @@ export const FormAutocomplete = <T,>({
       }
 
       // Accepted: clear error and clear input
-      clearErrors(fieldName);
+      clearErrors(fieldName!);
       setInputValue("");
     }
 
-    setValue(fieldName, newValue, {
+    setValue(fieldName!, newValue, {
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
@@ -130,70 +221,29 @@ export const FormAutocomplete = <T,>({
 
   return (
     <Controller
-      name={fieldName}
+      name={fieldName!}
       control={control}
       defaultValue={selected ?? []}
       rules={{
         required: required ?? false,
       }}
-      render={({ field, formState }) => (
-        <Autocomplete
-          sx={{ ...sx }}
-          fullWidth={true}
-          popupIcon={<ExpandMoreIcon />}
-          multiple
-          freeSolo={freeSolo ?? false}
-          disabled={disabled ?? false}
-          value={field.value}
-          inputValue={inputValue}
-          onInputChange={(_, newInputValue) => {
-            setInputValue(newInputValue);
-            if (!newInputValue) {
-              clearErrors(fieldName);
-            }
-          }}
-          onChange={onChange}
-          renderTags={(value, getTagProps) =>
-            value.map((option, index) => {
-              const isStr = typeof option === "string";
-              return (
-                <Chip
-                  {...getTagProps({ index: index })}
-                  key={isStr ? option : safeValueFormatter(option as T).id}
-                  label={isStr ? option : safeValueFormatter(option as T).primaryText}
-                />
-              );
-            })
-          }
-          renderInput={params => (
-            <TextField
-              {...params}
-              label={t(label)}
-              placeholder={placeholder ? t(placeholder) : undefined}
-              required={required ?? false}
-              error={getFormFieldError(fieldName, formState.errors)}
-              helperText={
-                formState.errors[fieldName]?.message ? t(formState.errors[fieldName]?.message as string) : undefined
+      render={({ field, formState }) =>
+        renderAutocomplete(
+          field.value,
+          handleFormChange,
+          getFormFieldError(fieldName, formState.errors),
+          formState.errors[fieldName!]?.message ? t(formState.errors[fieldName!]?.message as string) : undefined,
+          {
+            inputValue,
+            onInputChange: (_, newInputValue) => {
+              setInputValue(newInputValue);
+              if (!newInputValue) {
+                clearErrors(fieldName!);
               }
-            />
-          )}
-          options={values || []}
-          getOptionKey={(option: T | string) =>
-            typeof option === "string" ? `${fieldName}-${option}` : `${fieldName}-${(values as T[]).indexOf(option)}`
-          }
-          getOptionLabel={(option: T | string) =>
-            typeof option === "string"
-              ? option
-              : safeValueFormatter(option as T).detailText || safeValueFormatter(option as T).primaryText
-          }
-          isOptionEqualToValue={(option, value) =>
-            typeof option === "string"
-              ? (option as string) === (value as string)
-              : safeValueFormatter(option as T).id === safeValueFormatter(value as T).id
-          }
-          data-cy={fieldName + "-formAutocomplete"}
-        />
-      )}
+            },
+          },
+        )
+      }
     />
   );
 };

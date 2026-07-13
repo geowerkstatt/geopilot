@@ -5,9 +5,6 @@ import { Box, Stack, SvgIconProps, Typography } from "@mui/material";
 import { TreeItem } from "@mui/x-tree-view";
 import { nodeId, TreeNode } from "./treeNode";
 
-// A node's severity ("error"/"warning") picks both the bundled SVG icon and the MUI palette colour. Bundled
-// SVGs avoid the Material Icons webfont, which the CSP blocks (no font-src, so it falls back to
-// default-src 'self') and which would otherwise render a font ligature as its literal text.
 const SEVERITY_ICON: Record<string, ComponentType<SvgIconProps>> = {
   error: ErrorOutlineIcon,
   warning: WarningAmberIcon,
@@ -20,21 +17,20 @@ const renderIcon = (node: TreeNode): ReactNode => {
 };
 
 const renderLabel = (node: TreeNode): ReactNode => (
-  <Stack direction="row" sx={{ alignItems: "flex-start", gap: 0.5, py: 0.25, minWidth: 0 }}>
+  <Stack direction="row" sx={{ alignItems: "flex-start", gap: 0.5, minWidth: 0 }}>
     {renderIcon(node)}
     <Typography variant="body2" sx={{ wordBreak: "break-word", minWidth: 0 }}>
       {node.message}
     </Typography>
     {node.count > 0 && (
-      <Typography variant="body2" color="text.secondary">
-        ({node.count})
+      <Typography variant="body2" color="text.secondary" ml={1}>
+        ( {node.count} )
       </Typography>
     )}
   </Stack>
 );
 
 interface RenderTreeOptions {
-  // When set, the panel is rendered directly below the matching item, indented to its level.
   selectedId?: string | null;
   inlinePanel?: ReactNode;
 }

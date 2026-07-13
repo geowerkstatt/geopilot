@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
 import CheckIcon from "@mui/icons-material/Check";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { IconButton, TableCell, TableRow, Tooltip, Typography } from "@mui/material";
+import { TableCell, TableRow, Typography } from "@mui/material";
+import { IconButton } from "../../../../components/buttons";
 
 interface MetadataRowProps {
   label: string;
@@ -10,7 +10,6 @@ interface MetadataRowProps {
 }
 
 export const MetadataRow = ({ label, value }: MetadataRowProps) => {
-  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -41,22 +40,19 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
         <Typography variant="body2">{value}</Typography>
       </TableCell>
       <TableCell sx={{ width: 40, verticalAlign: "top", px: 0, textAlign: "right" }}>
-        <Tooltip title={copied ? t("copied") : t("copy")}>
-          <IconButton
-            size="small"
-            color="primary"
-            onClick={copyValue}
-            data-cy="metadata-copy-button"
-            className="metadata-copy-button"
-            sx={{
-              mt: "-5px",
-              opacity: copied ? 1 : 0,
-              transition: "opacity 0.15s",
-              "&:focus-visible": { opacity: 1 },
-            }}>
-            {copied ? <CheckIcon fontSize="small" color="primary" /> : <ContentCopyIcon fontSize="small" />}
-          </IconButton>
-        </Tooltip>
+        <IconButton
+          size="small"
+          icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
+          label={copied ? "copied" : "copy"}
+          onClick={copyValue}
+          className="metadata-copy-button"
+          sx={{
+            mt: "-5px",
+            opacity: copied ? 1 : 0,
+            transition: "opacity 0.15s",
+            "&:focus-visible": { opacity: 1 },
+          }}
+        />
       </TableCell>
     </TableRow>
   );

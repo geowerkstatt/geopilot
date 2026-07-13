@@ -6,17 +6,28 @@ import { isValid } from "date-fns";
 import { FormValueType, getFormFieldError } from "./form";
 
 export interface FormInputProps {
-  fieldName: string;
+  /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
+  fieldName?: string;
   label: string;
   required?: boolean;
   disabled?: boolean;
   type?: FormValueType;
   multiline?: boolean;
   rows?: number;
+  /** The default value in form-context mode, the controlled value when `onChange` is provided. */
   value?: string | number;
   sx?: SxProps;
   inputProps?: InputProps;
   onUpdate?: (value: string) => void;
+  /**
+   * Controlled mode: providing this callback switches the field to standalone operation (no react-hook-form
+   * context required). It receives the current value on every change.
+   */
+  onChange?: (value: string) => void;
+  /** Controlled mode: error state to display. Ignored in form-context mode, which derives it from the form. */
+  error?: boolean;
+  /** Overrides the default `data-cy` (`${fieldName}-formInput`). */
+  dataCy?: string;
 }
 
 export const FormInput: FC<FormInputProps> = ({
@@ -31,9 +42,12 @@ export const FormInput: FC<FormInputProps> = ({
   sx,
   inputProps,
   onUpdate,
+  onChange,
+  error,
+  dataCy,
 }) => {
   const { t } = useTranslation();
-  const { formState, register, setValue } = useFormContext();
+  const formContext = useFormContext();
 
   const getDefaultValue = (value: string | number | undefined) => {
     if (value == undefined) {
@@ -46,6 +60,28 @@ export const FormInput: FC<FormInputProps> = ({
     }
   };
 
+  if (onChange) {
+    return (
+      <TextField
+        required={required || false}
+        error={error || false}
+        sx={{ ...sx }}
+        type={type || FormValueType.Text}
+        multiline={multiline || false}
+        rows={rows}
+        label={t(label)}
+        value={value ?? ""}
+        onChange={e => onChange(e.target.value)}
+        disabled={disabled || false}
+        data-cy={dataCy ?? (fieldName ? fieldName + "-formInput" : undefined)}
+        InputLabelProps={{ shrink: true }}
+        InputProps={{ ...inputProps }}
+      />
+    );
+  }
+
+  const { formState, register, setValue } = formContext;
+
   return (
     <TextField
       required={required || false}
@@ -55,7 +91,7 @@ export const FormInput: FC<FormInputProps> = ({
       multiline={multiline || false}
       rows={rows}
       label={t(label)}
-      {...register(fieldName, {
+      {...register(fieldName!, {
         required: required || false,
         valueAsNumber: type === FormValueType.Number,
         validate: value => {
@@ -69,7 +105,7 @@ export const FormInput: FC<FormInputProps> = ({
           return true;
         },
         onChange: e => {
-          setValue(fieldName, e.target.value, { shouldValidate: true });
+          setValue(fieldName!, e.target.value, { shouldValidate: true });
           if (onUpdate) {
             onUpdate(e.target.value);
           }
@@ -77,7 +113,7 @@ export const FormInput: FC<FormInputProps> = ({
       })}
       defaultValue={getDefaultValue(value)}
       disabled={disabled || false}
-      data-cy={fieldName + "-formInput"}
+      data-cy={dataCy ?? fieldName + "-formInput"}
       InputLabelProps={{ shrink: true }}
       InputProps={{ ...inputProps }}
     />

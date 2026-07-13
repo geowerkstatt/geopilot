@@ -6,7 +6,7 @@ import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { Mandate, Organisation, User } from "../../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
-import GeopilotDataGrid from "../../../components/geopilotDataGrid.tsx";
+import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 
 const Organisations = () => {

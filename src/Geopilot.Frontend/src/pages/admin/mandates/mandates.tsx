@@ -7,7 +7,7 @@ import { GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from
 import { AvailablePipelinesResponse, Mandate, Organisation, PipelineSummary } from "../../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
-import GeopilotDataGrid from "../../../components/geopilotDataGrid.tsx";
+import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
 import { findPipeline, getLocalisedPipelineName } from "./pipelineDisplay";
 
