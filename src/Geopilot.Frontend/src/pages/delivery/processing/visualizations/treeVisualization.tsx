@@ -22,6 +22,8 @@ interface TreeVisualizationProps {
   totalCount: number;
   /** Number of errors currently shown (after filtering); equals totalCount when no filter is active. */
   shownCount: number;
+  /** Whether the tree is shown in a fullscreen map or inline. */
+  fullscreen?: boolean;
 }
 
 // Once the tree can no longer keep its minimum width next to the detail box, the box is
@@ -65,6 +67,7 @@ export const TreeVisualization = ({
   filterActive = false,
   totalCount,
   shownCount,
+  fullscreen,
 }: TreeVisualizationProps) => {
   const { t } = useTranslation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -73,7 +76,7 @@ export const TreeVisualization = ({
   const treeWrapperRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const sideBySide = containerWidth === 0 || containerWidth >= SIDE_BY_SIDE_THRESHOLD;
+  const sideBySide = !fullscreen && (containerWidth === 0 || containerWidth >= SIDE_BY_SIDE_THRESHOLD);
 
   const allItemIds = useMemo(() => {
     const ids: string[] = [];
@@ -154,7 +157,7 @@ export const TreeVisualization = ({
   if (nodes.length === 0 && !filterActive) return null;
 
   return (
-    <Stack ref={measureContainer} sx={{ width: "100%" }} gap={1}>
+    <Stack ref={measureContainer} sx={{ width: "100%", minHeight: 0 }} gap={1}>
       <Stack
         direction="row"
         sx={{ alignItems: "center", justifyContent: expandableIds.length > 0 ? "space-between" : "flex-start" }}>
@@ -174,7 +177,7 @@ export const TreeVisualization = ({
         )}
       </Stack>
       {nodes.length > 0 && (
-        <Stack direction="row" sx={{ alignItems: "flex-start" }}>
+        <Stack direction="row" sx={{ alignItems: "flex-start", overflowY: fullscreen ? "auto" : undefined }}>
           <Box
             ref={treeWrapperRef}
             sx={{
