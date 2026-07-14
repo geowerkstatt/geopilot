@@ -69,6 +69,8 @@
   "fileDropzoneErrorTooManyFiles": "Das Mamximum an Dateien wurde überschritten",
   "fileTypes": "Formate",
   "files": "Dateien",
+  "fullscreen": "In Vollbild anzeigen",
+  "fullscreenExit": "Vollbild verlassen",
   "id": "ID",
   "imprint": "Impressum",
   "inactive": "Inaktiv",

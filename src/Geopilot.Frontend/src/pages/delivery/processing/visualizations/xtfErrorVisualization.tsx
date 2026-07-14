@@ -1,10 +1,14 @@
 import { FC, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Stack } from "@mui/material";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import { Box, Modal, Stack, useTheme } from "@mui/material";
 import { MapVisualizationConfig, TreeVisualizationConfig } from "../../../../api/apiInterfaces";
+import { IconButton } from "../../../../components/buttons";
+import { GeopilotBox } from "../../../../components/styledComponents";
 import { useLocalized } from "../../../../hooks/useLocalized";
 import { FilterBar } from "./filterBar";
 import { MapVisualization } from "./mapVisualization";
+import { MapVisualizationProvider } from "./mapVisualizationProvider";
 import { buildErrorIdIndex, buildTree, collectMetadataAttributes, filterItems, MetadataFilters } from "./treeNode";
 import { TreeVisualization } from "./treeVisualization";
 
@@ -29,9 +33,11 @@ interface XtfErrorVisualizationProps {
 export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }) => {
   const { t } = useTranslation();
   const localize = useLocalized();
+  const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
   const [metadataFilters, setMetadataFilters] = useState<MetadataFilters>({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
@@ -73,37 +79,79 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   };
   const handleSelectFeature = (errorId: string) => setSelectedNodeId(nodeIdByErrorId.get(errorId) ?? null);
 
+  const filter = config.tree && (
+    <FilterBar
+      attributes={attributes}
+      messageQuery={messageQuery}
+      onMessageQueryChange={setMessageQuery}
+      metadataFilters={metadataFilters}
+      onMetadataFilterChange={handleMetadataFilterChange}
+      onClearFilters={handleClearFilters}
+      forceMobileView={fullscreen}
+    />
+  );
+  const map = config.map && (
+    <MapVisualization
+      config={config.map}
+      visibleErrorIds={visibleErrorIds}
+      highlightedErrorIds={highlightedErrorIds}
+      onSelectFeature={handleSelectFeature}
+      showMapSelectionPopup={!config.tree}
+      reserveSpaceForFilters={!!config.tree}
+      fullscreen={fullscreen}
+      setFullscreen={setFullscreen}
+    />
+  );
+  const tree = config.tree && (
+    <TreeVisualization
+      nodes={nodes}
+      selectedId={selectedNodeId}
+      onSelect={setSelectedNodeId}
+      filterActive={hasActiveFilters}
+      totalCount={items.length}
+      shownCount={filteredItems.length}
+      fullscreen={fullscreen}
+    />
+  );
+
   return (
-    <Stack sx={{ width: "100%" }}>
-      {config.tree && (
-        <FilterBar
-          attributes={attributes}
-          messageQuery={messageQuery}
-          onMessageQueryChange={setMessageQuery}
-          metadataFilters={metadataFilters}
-          onMetadataFilterChange={handleMetadataFilterChange}
-          onClearFilters={handleClearFilters}
-        />
-      )}
+    <MapVisualizationProvider>
       {config.map && (
-        <MapVisualization
-          config={config.map}
-          visibleErrorIds={visibleErrorIds}
-          highlightedErrorIds={highlightedErrorIds}
-          onSelectFeature={handleSelectFeature}
-          showMapSelectionPopup={!config.tree}
+        <IconButton
+          size="small"
+          label="fullscreen"
+          icon={<OpenInFullIcon />}
+          sx={{ position: "absolute", top: 0, right: theme.spacing(6), padding: theme.spacing(2) }}
+          onClick={() => setFullscreen(prev => !prev)}
         />
       )}
-      {config.tree && (
-        <TreeVisualization
-          nodes={nodes}
-          selectedId={selectedNodeId}
-          onSelect={setSelectedNodeId}
-          filterActive={hasActiveFilters}
-          totalCount={items.length}
-          shownCount={filteredItems.length}
-        />
+      {config.map && fullscreen ? (
+        <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
+          <Box sx={{ width: "100%", height: "100%", position: "relative" }}>
+            {map}
+            {config.tree && (
+              <GeopilotBox
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  m: 2,
+                  width: "400px",
+                  maxHeight: `calc(100% - ${theme.spacing(4)})`,
+                }}>
+                {filter}
+                {tree}
+              </GeopilotBox>
+            )}
+          </Box>
+        </Modal>
+      ) : (
+        <Stack sx={{ width: "100%" }}>
+          {filter}
+          {map}
+          {tree}
+        </Stack>
       )}
-    </Stack>
+    </MapVisualizationProvider>
   );
 };

@@ -106,6 +106,7 @@ export const DeliveryProcessingResults = () => {
               expanded={isExpanded}
               onChange={isExpandable ? handleAccordionChange(step.id) : undefined}
               slotProps={{ transition: { onEntered: handleStepExpanded(step.id) } }}
+              sx={{ position: "relative" }}
               data-cy={`processing-step-${step.id}`}>
               <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
                 <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>

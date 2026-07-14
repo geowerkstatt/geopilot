@@ -23,7 +23,7 @@ const renderLabel = (node: TreeNode): ReactNode => (
       {node.message}
     </Typography>
     {node.count > 0 && (
-      <Typography variant="body2" color="text.secondary" ml={1}>
+      <Typography variant="body2" color="text.secondary" ml={1} sx={{ flexShrink: 0, whiteSpace: "nowrap" }}>
         ( {node.count} )
       </Typography>
     )}
