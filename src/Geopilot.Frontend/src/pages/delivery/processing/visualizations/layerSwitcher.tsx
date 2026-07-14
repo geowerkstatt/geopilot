@@ -475,7 +475,7 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
         bottom: 0,
         right: 0,
         m: 2,
-        maxHeight: theme => `calc(100% - ${theme.spacing(2)})`,
+        maxHeight: theme => `calc(100% - ${theme.spacing(4)})`,
       }}>
       {open ? (
         <Stack

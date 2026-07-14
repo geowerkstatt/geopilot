@@ -267,7 +267,7 @@ interface MapVisualizationProps {
   /** Whether the map should reserve space for filters in fullscreen mode. */
   reserveSpaceForFilters?: boolean;
   fullscreen?: boolean;
-  setFullscreen: React.Dispatch<React.SetStateAction<boolean>>;
+  setFullscreen: (fullscreen: boolean) => void;
 }
 
 export const MapVisualization = ({
