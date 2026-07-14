@@ -23,6 +23,6 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   submitDelivery: () => {},
   resetDelivery: () => {},
   continueToNextStep: () => {},
-  showCompletedOrNextStep: () => {},
+  showCompletedOrNextStep: () => false,
   submittedData: undefined,
 });

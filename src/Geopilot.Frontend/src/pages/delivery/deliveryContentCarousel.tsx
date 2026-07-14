@@ -1,6 +1,7 @@
 import { FC, TransitionEvent, useContext, useEffect, useState } from "react";
 import { Box, Stack } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
+import { useStepSwipe } from "../../hooks/useStepSwipe.ts";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStep } from "./deliveryInterfaces.tsx";
 
@@ -29,8 +30,16 @@ const CarouselSlide = styled(Stack)({
 export const DeliveryContentCarousel: FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const { steps, activeStep, lastCompletedStep } = useContext(DeliveryContext);
+  const { steps, activeStep, lastCompletedStep, showCompletedOrNextStep } = useContext(DeliveryContext);
   const stepEntries = Array.from(steps.entries());
+
+  const swipeHandlers = useStepSwipe({
+    activeStep,
+    stepCount: steps.size,
+    isMobile,
+    cooldownMs: SLIDE_TRANSITION_MS,
+    onNavigate: showCompletedOrNextStep,
+  });
 
   const renderContent = (step: DeliveryStep, index: number) => step.content(lastCompletedStep >= index);
 
@@ -63,7 +72,14 @@ export const DeliveryContentCarousel: FC = () => {
   // the active step and drops the carousel-specific layout (translate, clipping) so it lays
   // out exactly as a single static panel.
   return (
-    <CarouselViewport data-cy="delivery-content-carousel" sx={{ overflowX: isMobile ? "clip" : "visible" }}>
+    <CarouselViewport
+      data-cy="delivery-content-carousel"
+      {...swipeHandlers}
+      sx={{
+        overflowX: isMobile ? "clip" : "visible",
+        touchAction: isMobile ? "pan-y" : undefined,
+        overscrollBehaviorX: isMobile ? "contain" : undefined,
+      }}>
       <CarouselTrack
         onTransitionEnd={handleTransitionEnd}
         style={{

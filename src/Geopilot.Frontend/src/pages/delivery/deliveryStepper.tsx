@@ -1,9 +1,10 @@
-import { useContext, useRef, WheelEvent } from "react";
+import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { MiddleTruncate } from "../../components/middleTruncate";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
+import { useStepSwipe } from "../../hooks/useStepSwipe";
 import { SLIDE_TRANSITION_MS } from "./deliveryContentCarousel";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
@@ -19,6 +20,8 @@ const StepperViewport = styled(Box)(({ theme }) => ({
     overflowX: "hidden",
     scrollSnapType: "x",
     scrollbarWidth: "none",
+    touchAction: "pan-y",
+    overscrollBehaviorX: "contain",
     flex: "0 0 58px",
     alignItems: "flex-start",
     margin: `0 -${pageContentPadding} !important`,
@@ -68,24 +71,16 @@ export const DeliveryStepper = () => {
     }
   };
 
-  const wheelCooldown = useRef(false);
-  const onWheel = (event: WheelEvent<HTMLDivElement>) => {
-    if (!isMobile) return;
-    if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
-    if (wheelCooldown.current) return;
-
-    const target = activeStep + (event.deltaX > 0 ? 1 : -1);
-    if (target < 0 || target >= steps.size) return;
-
-    wheelCooldown.current = true;
-    showCompletedOrNextStep(target);
-    window.setTimeout(() => {
-      wheelCooldown.current = false;
-    }, SLIDE_TRANSITION_MS);
-  };
+  const swipeHandlers = useStepSwipe({
+    activeStep,
+    stepCount: steps.size,
+    isMobile,
+    cooldownMs: SLIDE_TRANSITION_MS,
+    onNavigate: showCompletedOrNextStep,
+  });
 
   return (
-    <StepperViewport onWheel={onWheel}>
+    <StepperViewport {...swipeHandlers}>
       <StepperStack
         direction={{ xs: "row", md: "column" }}
         style={{
