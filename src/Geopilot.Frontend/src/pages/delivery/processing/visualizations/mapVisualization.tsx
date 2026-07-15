@@ -236,16 +236,16 @@ const getFitExtent = (featureLayers: VectorLayer<VectorSource>[]): number[] => {
   return isExtentEmpty(featureExtent) ? SWISS_EXTENT : featureExtent;
 };
 
-const getExtentForErrorIds = (
+const getExtentForFeatureIds = (
   featureLayers: VectorLayer<VectorSource>[],
-  errorIds: ReadonlySet<string>,
+  featureIds: ReadonlySet<string>,
 ): { extent: number[]; count: number } => {
   const extent = createEmpty();
   let count = 0;
   for (const featureLayer of featureLayers) {
     for (const feature of featureLayer.getSource()?.getFeatures() ?? []) {
-      const errorId = feature.get("errorId") as string | undefined;
-      if (errorId !== undefined && errorIds.has(errorId)) {
+      const featureId = feature.get("errorId") as string | undefined;
+      if (featureId !== undefined && featureIds.has(featureId)) {
         const geometry = feature.getGeometry();
         if (geometry) {
           extendExtent(extent, geometry.getExtent());
@@ -258,11 +258,11 @@ const getExtentForErrorIds = (
 };
 
 /**
- * A request to zoom the map to a set of errors (the errors of a tree node's subtree). The token makes each
+ * A request to zoom the map to a set of features (those of a tree node's subtree). The token makes each
  * request distinct, so zooming to the same node again re-triggers the zoom.
  */
 export interface MapZoomRequest {
-  errorIds: string[];
+  featureIds: string[];
   token: number;
 }
 
@@ -472,13 +472,13 @@ export const MapVisualization = ({
     featureLayersRef.current.forEach(layer => layer.changed());
   }, [map, visibleErrorIds, highlightedErrorIds]);
 
-  // Zoom to the features of an explicit zoom request (a tree node's errors: one for a leaf, many for a
+  // Zoom to the features of an explicit zoom request (a tree node's features: one for a leaf, many for a
   // group). Guarded by the request token, persisted in the shared context so the unmount/remount of a
   // fullscreen toggle restores the previous view instead of re-running the last zoom.
   useEffect(() => {
     if (!map || !zoomRequest || zoomRequest.token === lastZoomTokenRef.current) return;
     lastZoomTokenRef.current = zoomRequest.token;
-    const { extent } = getExtentForErrorIds(featureLayersRef.current, new Set(zoomRequest.errorIds));
+    const { extent } = getExtentForFeatureIds(featureLayersRef.current, new Set(zoomRequest.featureIds));
     if (isExtentEmpty(extent)) return;
     map.getView().fit(extent, {
       padding: fitOptions.padding,

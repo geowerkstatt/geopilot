@@ -97,8 +97,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const handleZoomToNode = useCallback(
     (nodeId: string) => {
       setSelectedNodeId(nodeId);
-      const errorIds = errorIdsByNodeId.get(nodeId) ?? [];
-      setZoomRequest(prev => ({ errorIds, token: (prev?.token ?? 0) + 1 }));
+      const featureIds = errorIdsByNodeId.get(nodeId) ?? [];
+      setZoomRequest(prev => ({ featureIds, token: (prev?.token ?? 0) + 1 }));
     },
     [errorIdsByNodeId],
   );
