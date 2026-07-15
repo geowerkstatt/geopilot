@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./app.css";
 import { CircularProgress } from "@mui/material";
@@ -6,6 +6,7 @@ import { useGeopilotAuth } from "./auth";
 import { ControlledNavigateProvider } from "./components/controlledNavigate/controlledNavigateProvider.tsx";
 import Header from "./components/header/header";
 import { FullPageStack, PageContent, ScrollableContent } from "./components/styledComponents";
+import { StepSwipeHandlers } from "./hooks/useStepSwipe";
 import Admin from "./pages/admin/admin";
 import { DeliveryOverview } from "./pages/admin/deliveries/deliveryOverview.tsx";
 import MandateDetail from "./pages/admin/mandates/mandateDetail.tsx";
@@ -26,6 +27,7 @@ import { UserDeliveryOverview } from "./pages/user/deliveries/userDeliveryOvervi
 const App: FC = () => {
   const [isSubMenuOpen, setIsSubMenuOpen] = useState(false);
   const { isLoading, isAdmin, user } = useGeopilotAuth();
+  const stepSwipeRef = useRef<StepSwipeHandlers | null>(null);
 
   return (
     <FullPageStack>
@@ -36,7 +38,10 @@ const App: FC = () => {
               setIsSubMenuOpen(true);
             }}
           />
-          <ScrollableContent>
+          <ScrollableContent
+            onTouchStart={event => stepSwipeRef.current?.onTouchStart(event)}
+            onTouchEnd={event => stepSwipeRef.current?.onTouchEnd(event)}
+            onWheel={event => stepSwipeRef.current?.onWheel(event)}>
             <PageContent>
               {isLoading ? (
                 <CircularProgress />
@@ -46,7 +51,7 @@ const App: FC = () => {
                     path="/"
                     element={
                       <DeliveryProvider>
-                        <Delivery />
+                        <Delivery stepSwipeRef={stepSwipeRef} />
                       </DeliveryProvider>
                     }
                   />

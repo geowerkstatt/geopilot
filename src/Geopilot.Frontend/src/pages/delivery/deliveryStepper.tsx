@@ -4,7 +4,6 @@ import { Box, Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { MiddleTruncate } from "../../components/middleTruncate";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
-import { useStepSwipe } from "../../hooks/useStepSwipe";
 import { SLIDE_TRANSITION_MS } from "./deliveryContentCarousel";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
@@ -71,16 +70,8 @@ export const DeliveryStepper = () => {
     }
   };
 
-  const swipeHandlers = useStepSwipe({
-    activeStep,
-    stepCount: steps.size,
-    isMobile,
-    cooldownMs: SLIDE_TRANSITION_MS,
-    onNavigate: showCompletedOrNextStep,
-  });
-
   return (
-    <StepperViewport {...swipeHandlers}>
+    <StepperViewport>
       <StepperStack
         direction={{ xs: "row", md: "column" }}
         style={{

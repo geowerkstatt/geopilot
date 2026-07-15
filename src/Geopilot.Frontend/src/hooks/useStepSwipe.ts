@@ -1,4 +1,5 @@
 import { TouchEvent, useEffect, useRef, WheelEvent } from "react";
+import { useMediaQuery, useTheme } from "@mui/system";
 
 // Horizontal finger travel (px) required before a touch gesture counts as a step swipe.
 const SWIPE_THRESHOLD_PX = 50;
@@ -6,22 +7,20 @@ const SWIPE_THRESHOLD_PX = 50;
 interface UseStepSwipeArgs {
   activeStep: number;
   stepCount: number;
-  isMobile: boolean;
   cooldownMs: number;
   onNavigate: (target: number) => boolean;
 }
 
-interface StepSwipeHandlers {
+export interface StepSwipeHandlers {
   onWheel: (event: WheelEvent<HTMLDivElement>) => void;
   onTouchStart: (event: TouchEvent<HTMLDivElement>) => void;
   onTouchEnd: (event: TouchEvent<HTMLDivElement>) => void;
 }
 
 /**
- * Turns horizontal wheel/trackpad scrolls and touch swipes into discrete step navigation.
- * Both the mobile stepper and the content carousel slide the same distance per step, so they
- * share this behavior to stay in sync. Gestures are ignored on desktop (isMobile === false)
- * and at the track boundaries.
+ * Turns horizontal wheel/trackpad scrolls and touch swipes into discrete step navigation. Navigation
+ * updates the active step, which both the stepper and the content carousel slide to, keeping them in
+ * sync. Gestures are ignored on desktop and at the track boundaries.
  *
  * The cooldown keeps one gesture to one step. It is armed only when onNavigate reports an
  * accepted move, so a swipe toward a locked step does not silently swallow input. Callers pass
@@ -32,10 +31,11 @@ interface StepSwipeHandlers {
 export const useStepSwipe = ({
   activeStep,
   stepCount,
-  isMobile,
   cooldownMs,
   onNavigate,
 }: UseStepSwipeArgs): StepSwipeHandlers => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const cooldown = useRef(false);
   const cooldownTimer = useRef<number | undefined>(undefined);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
