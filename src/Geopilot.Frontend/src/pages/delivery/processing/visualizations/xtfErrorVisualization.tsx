@@ -1,4 +1,4 @@
-import { FC, useMemo, useState } from "react";
+import { FC, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, useTheme } from "@mui/material";
@@ -8,7 +8,7 @@ import { GeopilotBox } from "../../../../components/styledComponents";
 import { useLocalized } from "../../../../hooks/useLocalized";
 import { stopStepSwipePropagation } from "../../../../hooks/useStepSwipe";
 import { FilterBar } from "./filterBar";
-import { MapVisualization } from "./mapVisualization";
+import { MapVisualization, MapZoomRequest } from "./mapVisualization";
 import { MapVisualizationProvider } from "./mapVisualizationProvider";
 import { buildErrorIdIndex, buildTree, collectMetadataAttributes, filterItems, MetadataFilters } from "./treeNode";
 import { TreeVisualization } from "./treeVisualization";
@@ -39,6 +39,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const [metadataFilters, setMetadataFilters] = useState<MetadataFilters>({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [zoomRequest, setZoomRequest] = useState<MapZoomRequest | null>(null);
 
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
@@ -72,6 +73,20 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
     [selectedNodeId, errorIdsByNodeId],
   );
 
+  // Error ids that actually have a feature on the map; a tree node is zoomable only when its subtree holds
+  // at least one of them. Without a map (tree-only visualization) nothing is zoomable.
+  const mappableErrorIds = useMemo(
+    () => new Set((config.map?.layers ?? []).flatMap(layer => layer.features?.map(feature => feature.errorId) ?? [])),
+    [config.map],
+  );
+  const zoomableNodeIds = useMemo(() => {
+    const zoomable = new Set<string>();
+    for (const [id, errorIds] of errorIdsByNodeId) {
+      if (errorIds.some(errorId => mappableErrorIds.has(errorId))) zoomable.add(id);
+    }
+    return zoomable;
+  }, [errorIdsByNodeId, mappableErrorIds]);
+
   const handleMetadataFilterChange = (key: string, selected: string[]) =>
     setMetadataFilters(current => ({ ...current, [key]: selected }));
   const handleClearFilters = () => {
@@ -79,6 +94,14 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
     setMetadataFilters({});
   };
   const handleSelectFeature = (errorId: string) => setSelectedNodeId(nodeIdByErrorId.get(errorId) ?? null);
+  const handleZoomToNode = useCallback(
+    (nodeId: string) => {
+      setSelectedNodeId(nodeId);
+      const featureIds = errorIdsByNodeId.get(nodeId) ?? [];
+      setZoomRequest(prev => ({ featureIds, token: (prev?.token ?? 0) + 1 }));
+    },
+    [errorIdsByNodeId],
+  );
 
   const filter = config.tree && (
     <FilterBar
@@ -96,6 +119,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       config={config.map}
       visibleErrorIds={visibleErrorIds}
       highlightedErrorIds={highlightedErrorIds}
+      zoomRequest={zoomRequest}
       onSelectFeature={handleSelectFeature}
       showMapSelectionPopup={!config.tree}
       reserveSpaceForFilters={!!config.tree}
@@ -108,6 +132,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       nodes={nodes}
       selectedId={selectedNodeId}
       onSelect={setSelectedNodeId}
+      onZoom={handleZoomToNode}
+      zoomableNodeIds={zoomableNodeIds}
       filterActive={hasActiveFilters}
       totalCount={items.length}
       shownCount={filteredItems.length}

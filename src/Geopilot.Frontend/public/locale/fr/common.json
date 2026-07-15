@@ -176,6 +176,7 @@
   "validatorsLoadingError": "Une erreur s'est produite lors du chargement des validateurs: {{error}}",
   "version": "Version",
   "visualizationLoadFailed": "La visualisation n'a pas pu être chargée.",
+  "zoomToError": "Zoomer sur l'erreur",
   "zoomToExtent": "Zoom sur toutes les entités",
   "zoomToLayerExtent": "Zoomer sur l'étendue de la couche"
 }

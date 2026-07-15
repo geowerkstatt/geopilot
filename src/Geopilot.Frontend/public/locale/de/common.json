@@ -176,6 +176,7 @@
   "validatorsLoadingError": "Beim Laden der Validatoren ist ein Fehler aufgetreten: {{error}}",
   "version": "Version",
   "visualizationLoadFailed": "Die Visualisierung konnte nicht geladen werden.",
+  "zoomToError": "Auf Fehler zoomen",
   "zoomToExtent": "Auf alle Objekte zoomen",
   "zoomToLayerExtent": "Auf Ebenenausdehnung zoomen"
 }

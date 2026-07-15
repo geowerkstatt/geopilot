@@ -15,6 +15,7 @@ export interface MapLayerState {
 export interface MapVisualizationContextInterface {
   viewStateRef: MutableRefObject<MapViewState | undefined>;
   layerStateRef: MutableRefObject<Map<string, MapLayerState>>;
+  lastZoomTokenRef: MutableRefObject<number | undefined>;
   captureLayerState: (map: OlMap) => void;
   restoreLayerState: (map: OlMap) => void;
   captureViewState: (map: OlMap) => void;
@@ -28,6 +29,7 @@ export interface MapVisualizationContextInterface {
 export const MapVisualizationContext = createContext<MapVisualizationContextInterface>({
   viewStateRef: { current: undefined },
   layerStateRef: { current: new Map() },
+  lastZoomTokenRef: { current: undefined },
   captureLayerState: () => {},
   restoreLayerState: () => {},
   captureViewState: () => {},
