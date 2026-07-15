@@ -12,17 +12,23 @@ groupmod -o -g ${PGID:-1654} app && \
 # Change owner for our uploads folder
 echo -n "Fix permissions for mounted volumes ..." && \
   chown -R app:app $Storage__UploadDirectory && \
+  chown -R app:app $Storage__DownloadDirectory && \
   chown -R app:app $Storage__AssetsDirectory && \
+  chown -R app:app $Storage__PipelineDirectory && \
   chown -R app:app $Storage__ResourcesDirectory && \
-  chown -R app:app $PublicAssetsOverride && \
   chown -R app:app $Storage__SharedDirectory && \
+  chown -R app:app $Storage__VisualizationDirectory && \
+  chown -R app:app $PublicAssetsOverride && \
 
   # Sets group permission and sticky bit at the end, which makes all children inherit group ownership
   chmod -R g+rwXs $Storage__UploadDirectory && \
+  chmod -R g+rwXs $Storage__DownloadDirectory && \
   chmod -R g+rwXs $Storage__AssetsDirectory && \
+  chmod -R g+rwXs $Storage__PipelineDirectory && \
   chmod -R g+rwXs $Storage__ResourcesDirectory && \
-  chmod -R g+rwXs $PublicAssetsOverride && \
   chmod -R g+rwXs $Storage__SharedDirectory && \
+  chmod -R g+rwXs $Storage__VisualizationDirectory && \
+  chmod -R g+rwXs $PublicAssetsOverride && \
   echo "done!"
 
 # Trust additional CA certificates if present (for Azurite HTTPS in development).
