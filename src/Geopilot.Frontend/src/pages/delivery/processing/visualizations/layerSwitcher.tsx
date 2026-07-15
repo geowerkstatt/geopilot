@@ -191,11 +191,11 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, isFirst }: LayerRowPr
     <Stack
       direction="row"
       sx={{
-        gap: 0.5,
+        gap: 1,
         borderTop: `2px solid ${theme.palette.background.base}`,
         width: "100%",
         minWidth: 0,
-        mb: isFirst ? 0 : "2px",
+        mb: isFirst ? 0 : theme.spacing(0.5),
       }}>
       <Stack
         data-drag-handle
@@ -212,8 +212,8 @@ const LayerRow = ({ layer, map, rootLayers, onLayerChange, isFirst }: LayerRowPr
         }}>
         <DragIndicatorIcon fontSize="inherit" titleAccess={t("dragToReorderLayer")} />
       </Stack>
-      <Stack sx={{ flex: 1, minWidth: 0, gap: 0.25 }}>
-        <Stack direction="row" sx={{ minWidth: 0, ml: 1 }}>
+      <Stack sx={{ flex: 1, minWidth: 0, gap: 0.5 }}>
+        <Stack direction="row" sx={{ minWidth: 0, ml: 1, alignItems: "center" }}>
           <FormCheckbox
             size="small"
             checked={visible}
@@ -342,7 +342,7 @@ const LayerCollection = ({ collection, map, rootLayers, onLayerChange }: LayerCo
   return (
     <Stack
       direction="column-reverse" // column-reverse so the topmost map layer (last in the collection) appears at the top of the list.
-      sx={{ width: "100%", gap: 0 }}
+      sx={{ width: "100%", gap: 0.25 }}
       onDragOver={event => {
         if (draggedLayer && dragOverLayer) {
           event.preventDefault();
@@ -482,15 +482,15 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
           ref={containerRef}
           sx={{
             width: "360px",
-            p: 1,
+            p: 2,
             pb: 0,
-            gap: 0.5,
+            gap: 1,
             overflow: "hidden",
             backgroundColor: "background.content",
             border: theme => `1px solid ${theme.palette.primary.main}`,
             borderRadius: theme => theme.spacing(0.5),
           }}>
-          <Stack direction="row" sx={{ gap: 0.5, alignItems: "center", mb: 0.5, width: "100%" }}>
+          <Stack direction="row" sx={{ gap: 1, alignItems: "center", mb: 1, width: "100%" }}>
             <SearchField placeholder="searchLayers" value={searchValue} onChange={applyFilter} sx={{ flex: 1 }} />
             {groupsExist &&
               (anyGroupOpen ? (
@@ -509,7 +509,7 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
                 />
               ))}
           </Stack>
-          <Stack sx={{ pb: 1, overflowY: "auto" }}>
+          <Stack sx={{ pb: 2, overflowY: "auto" }}>
             <LayerCollection
               collection={rootCollection}
               map={map}
