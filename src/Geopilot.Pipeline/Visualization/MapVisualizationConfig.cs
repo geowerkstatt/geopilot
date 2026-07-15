@@ -56,6 +56,23 @@ internal class MapLayer
     public string? Color { get; set; }
 
     /// <summary>
+    /// Attribution / data-owner credit for the layer (for example <c>swisstopo</c>), shown as a copyright
+    /// credit on the map; the client adds a localized "©" prefix. Typically set on the base map layer.
+    /// Optional.
+    /// </summary>
+    [JsonPropertyName("attribution")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Attribution { get; set; }
+
+    /// <summary>
+    /// Optional URL the attribution links to (for example the map owner's terms of use). When set, the
+    /// client renders <see cref="Attribution"/> as a link.
+    /// </summary>
+    [JsonPropertyName("attributionUrl")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AttributionUrl { get; set; }
+
+    /// <summary>
     /// Features rendered directly from the JSON. Set for feature layers; otherwise <see langword="null"/>.
     /// </summary>
     [JsonPropertyName("features")]

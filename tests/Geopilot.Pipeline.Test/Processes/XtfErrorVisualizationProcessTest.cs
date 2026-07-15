@@ -34,6 +34,10 @@ public class XtfErrorVisualizationProcessTest
         Assert.HasCount(2, config.Map.Layers);
         var baseMapLayer = config.Map.Layers[0];
         Assert.AreEqual(SwisstopoBaseMapWmtsCapabilitiesUrl, baseMapLayer.Wmts);
+        Assert.AreEqual("swisstopo", baseMapLayer.Attribution);
+        Assert.AreEqual(
+            "https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste",
+            baseMapLayer.AttributionUrl);
         Assert.IsNull(baseMapLayer.Features);
         Assert.IsNotNull(baseMapLayer.LayerIds);
         Assert.HasCount(2, baseMapLayer.LayerIds);

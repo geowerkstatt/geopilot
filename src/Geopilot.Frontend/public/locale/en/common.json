@@ -94,6 +94,7 @@
   "mandateSaveError": "An error occurred while saving the mandate: {{error}}",
   "mandates": "Mandates",
   "mandatesLoadingError": "An error occurred while loading the mandates: {{error}}",
+  "mapCopyrightPrefix": "© Data:",
   "mapVisualizationFeatureLayer": "Features",
   "mapZoomIn": "Zoom in",
   "mapZoomOut": "Zoom out",

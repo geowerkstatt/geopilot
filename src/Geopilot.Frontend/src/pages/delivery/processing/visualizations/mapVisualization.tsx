@@ -4,8 +4,8 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
-import { Box, ButtonGroup, Stack } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { Box, ButtonGroup, Link, Stack, Typography } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 import i18next from "i18next";
 import { defaults as defaultControls } from "ol/control";
 import { containsExtent, createEmpty, extend as extendExtent, getCenter, isEmpty as isExtentEmpty } from "ol/extent";
@@ -390,7 +390,9 @@ export const MapVisualization = ({
           target: mapContainerRef.current,
           layers,
           overlays: [overlay],
-          controls: defaultControls({ zoom: false }),
+          // Attribution control disabled: the copyright is rendered as a themed React overlay instead
+          // (OpenLayers' control renders attributions via innerHTML, which the app's Trusted Types CSP blocks).
+          controls: defaultControls({ zoom: false, attribution: false }),
           view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
         });
         mapRef.current = map;
@@ -471,6 +473,12 @@ export const MapVisualization = ({
     }
   }, [map, visibleErrorIds, highlightedErrorIds, fitOptions]);
 
+  // Copyright/attribution credits declared by the config's layers (typically the base map). Shown as an
+  // overlay in the bottom-right corner; rendered as a link when the layer provides a URL.
+  const attributions = config.layers.flatMap(layer =>
+    layer.attribution ? [{ text: layer.attribution, url: layer.attributionUrl }] : [],
+  );
+
   return (
     <Box
       {...stopStepSwipePropagation}
@@ -529,6 +537,40 @@ export const MapVisualization = ({
           </Stack>
           <LayerSwitcher map={map} onLayerChange={() => captureLayerState(map)} />
         </>
+      )}
+      {attributions.length > 0 && (
+        <Stack
+          direction="row"
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            px: 0.75,
+            py: 0.25,
+            gap: 1,
+            maxWidth: "100%",
+            backgroundColor: alpha(theme.palette.background.paper, 0.8),
+            borderTopRightRadius: theme.spacing(0.5),
+          }}>
+          {attributions.map(attribution => (
+            <Typography key={attribution.text} variant="caption" color="text.secondary">
+              {t("mapCopyrightPrefix")}{" "}
+              {attribution.url ? (
+                <Link
+                  href={attribution.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="inherit"
+                  color="inherit"
+                  underline="always">
+                  {attribution.text}
+                </Link>
+              ) : (
+                attribution.text
+              )}
+            </Typography>
+          ))}
+        </Stack>
       )}
     </Box>
   );

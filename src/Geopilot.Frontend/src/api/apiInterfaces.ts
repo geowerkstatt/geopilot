@@ -136,6 +136,10 @@ export interface MapLayer {
    * transparent variant, the fill color for polygons. Only meaningful for feature layers.
    */
   color?: string;
+  /** Attribution / data-owner credit for the layer (e.g. "swisstopo"); shown as a copyright credit, the client prepends a localized "©" label. */
+  attribution?: string;
+  /** Optional URL the attribution links to; when set, the credit is rendered as a link. */
+  attributionUrl?: string;
   /** Features rendered directly from the config. Set for feature layers. */
   features?: MapFeature[];
 }

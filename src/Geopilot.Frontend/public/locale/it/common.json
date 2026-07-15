@@ -94,6 +94,7 @@
   "mandateSaveError": "Si è verificato un errore durante il salvataggio del mandato: {{error}}",
   "mandates": "Mandati",
   "mandatesLoadingError": "Si è verificato un errore durante il caricamento dei mandati: {{error}}",
+  "mapCopyrightPrefix": "© Dati:",
   "mapVisualizationFeatureLayer": "Elementi",
   "mapZoomIn": "Ingrandisci",
   "mapZoomOut": "Riduci",

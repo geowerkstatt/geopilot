@@ -27,6 +27,8 @@ internal class XtfErrorVisualizationProcess
     private readonly bool includeMap;
     private readonly bool includeTree;
     private readonly string baseMapWmtsCapabilitiesUrl;
+    private readonly string baseMapAttribution;
+    private readonly string baseMapAttributionUrl;
     private readonly IReadOnlyList<string> groupBy;
     private readonly IReadOnlyList<string> filterBy;
 
@@ -37,7 +39,9 @@ internal class XtfErrorVisualizationProcess
     /// <param name="baseMapWmtsCapabilitiesUrl">Optional override for the base map WMTS capabilities URL.</param>
     /// <param name="groupBy">Metadata keys the frontend groups the tree items by. Null means no grouping (a flat list).</param>
     /// <param name="filterBy">Metadata keys the frontend offers as filters, in display order. Null means no filters are offered.</param>
-    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<string>? groupBy = null, IReadOnlyList<string>? filterBy = null)
+    /// <param name="baseMapAttribution">Optional override for the base map copyright/attribution text.</param>
+    /// <param name="baseMapAttributionUrl">Optional override for the URL the base map attribution links to.</param>
+    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<string>? groupBy = null, IReadOnlyList<string>? filterBy = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null)
     {
         var selected = include is { Count: > 0 }
             ? new HashSet<string>(include, StringComparer.OrdinalIgnoreCase)
@@ -47,6 +51,12 @@ internal class XtfErrorVisualizationProcess
         this.baseMapWmtsCapabilitiesUrl = string.IsNullOrWhiteSpace(baseMapWmtsCapabilitiesUrl)
             ? MapVisualizationBuilder.DefaultBaseMapWmtsCapabilitiesUrl
             : baseMapWmtsCapabilitiesUrl;
+        this.baseMapAttribution = string.IsNullOrWhiteSpace(baseMapAttribution)
+            ? MapVisualizationBuilder.DefaultBaseMapAttribution
+            : baseMapAttribution;
+        this.baseMapAttributionUrl = string.IsNullOrWhiteSpace(baseMapAttributionUrl)
+            ? MapVisualizationBuilder.DefaultBaseMapAttributionUrl
+            : baseMapAttributionUrl;
         this.groupBy = groupBy ?? [];
         this.filterBy = filterBy ?? [];
     }
@@ -65,7 +75,7 @@ internal class XtfErrorVisualizationProcess
 
         var config = new XtfErrorVisualizationConfig
         {
-            Map = includeMap ? MapVisualizationBuilder.Build(errors, baseMapWmtsCapabilitiesUrl) : null,
+            Map = includeMap ? MapVisualizationBuilder.Build(errors, baseMapWmtsCapabilitiesUrl, baseMapAttribution, baseMapAttributionUrl) : null,
             Tree = includeTree
                 ? new TreeVisualizationConfig { Items = LogErrorToTreeItemMapper.Map(errors), GroupBy = groupBy }
                 : null,

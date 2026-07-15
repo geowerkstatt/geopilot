@@ -94,6 +94,7 @@
   "mandateSaveError": "Beim Speichern des Mandats ist ein Fehler aufgetreten: {{error}}",
   "mandates": "Mandate",
   "mandatesLoadingError": "Beim Laden der Mandate ist ein Fehler aufgetreten: {{error}}",
+  "mapCopyrightPrefix": "© Daten:",
   "mapVisualizationFeatureLayer": "Objekte",
   "mapZoomIn": "Vergrössern",
   "mapZoomOut": "Verkleinern",
