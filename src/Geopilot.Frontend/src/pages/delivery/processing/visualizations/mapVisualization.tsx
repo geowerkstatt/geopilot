@@ -405,8 +405,6 @@ export const MapVisualization = ({
           target: mapContainerRef.current,
           layers,
           overlays: [overlay],
-          // Attribution control disabled: the copyright is rendered as a themed React overlay instead
-          // (OpenLayers' control renders attributions via innerHTML, which the app's Trusted Types CSP blocks).
           controls: defaultControls({ zoom: false, attribution: false }),
           view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
         });
