@@ -1,4 +1,4 @@
-import { MutableRefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, MutableRefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -539,38 +539,38 @@ export const MapVisualization = ({
         </>
       )}
       {attributions.length > 0 && (
-        <Stack
-          direction="row"
+        <Typography
+          variant="caption"
           sx={{
             position: "absolute",
             bottom: 0,
             left: 0,
             px: 0.75,
             py: 0.25,
-            gap: 1,
             maxWidth: "100%",
-            backgroundColor: alpha(theme.palette.background.paper, 0.8),
+            backgroundColor: alpha(theme.palette.background.paper, 0.7),
             borderTopRightRadius: theme.spacing(0.5),
+            lineHeight: 1.2,
           }}>
-          {attributions.map(attribution => (
-            <Typography key={attribution.text} variant="caption" color="text.secondary">
-              {t("mapCopyrightPrefix")}{" "}
+          {t("mapCopyrightPrefix")}{" "}
+          {attributions.map((attribution, index) => (
+            <Fragment key={attribution.text}>
+              {index > 0 && ", "}
               {attribution.url ? (
                 <Link
                   href={attribution.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   variant="inherit"
-                  color="inherit"
-                  underline="always">
+                  color="inherit">
                   {attribution.text}
                 </Link>
               ) : (
                 attribution.text
               )}
-            </Typography>
+            </Fragment>
           ))}
-        </Stack>
+        </Typography>
       )}
     </Box>
   );
