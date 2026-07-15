@@ -8,7 +8,7 @@ import { Box, ButtonGroup, Stack } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import i18next from "i18next";
 import { defaults as defaultControls } from "ol/control";
-import { containsExtent, createEmpty, extend as extendExtent, getCenter, isEmpty as isExtentEmpty } from "ol/extent";
+import { createEmpty, extend as extendExtent, getCenter, isEmpty as isExtentEmpty } from "ol/extent";
 import Feature from "ol/Feature";
 import WKT from "ol/format/WKT";
 import WMTSCapabilities from "ol/format/WMTSCapabilities";
@@ -41,6 +41,9 @@ const localized = (entries?: Record<string, string>) =>
 const SWISS_PROJECTION = "EPSG:2056";
 // Bounding extent of Switzerland in LV95, used as the WMTS tile grid extent and default map view extent.
 const SWISS_EXTENT: [number, number, number, number] = [2420000, 1030000, 2900000, 1350000];
+
+const ZOOM_TO_NODE_MAX_ZOOM = 13;
+const ZOOM_TO_NODE_DURATION = 400;
 
 let projectionRegistered = false;
 const registerSwissProjection = () => {
@@ -233,16 +236,16 @@ const getFitExtent = (featureLayers: VectorLayer<VectorSource>[]): number[] => {
   return isExtentEmpty(featureExtent) ? SWISS_EXTENT : featureExtent;
 };
 
-const getSelectedExtent = (
+const getExtentForErrorIds = (
   featureLayers: VectorLayer<VectorSource>[],
-  selectedIds: ReadonlySet<string>,
+  errorIds: ReadonlySet<string>,
 ): { extent: number[]; count: number } => {
   const extent = createEmpty();
   let count = 0;
   for (const featureLayer of featureLayers) {
     for (const feature of featureLayer.getSource()?.getFeatures() ?? []) {
       const errorId = feature.get("errorId") as string | undefined;
-      if (errorId !== undefined && selectedIds.has(errorId)) {
+      if (errorId !== undefined && errorIds.has(errorId)) {
         const geometry = feature.getGeometry();
         if (geometry) {
           extendExtent(extent, geometry.getExtent());
@@ -254,6 +257,15 @@ const getSelectedExtent = (
   return { extent, count };
 };
 
+/**
+ * A request to zoom the map to a set of errors (the errors of a tree node's subtree). The token makes each
+ * request distinct, so zooming to the same node again re-triggers the zoom.
+ */
+export interface MapZoomRequest {
+  errorIds: string[];
+  token: number;
+}
+
 interface MapVisualizationProps {
   /** The map visualization config to render. */
   config: MapVisualizationConfig;
@@ -261,6 +273,8 @@ interface MapVisualizationProps {
   visibleErrorIds?: ReadonlySet<string>;
   /** Error ids to highlight (current selection); empty set means none. */
   highlightedErrorIds: ReadonlySet<string>;
+  /** Latest explicit zoom-to-node request, or null. Selection no longer moves the map; this does. */
+  zoomRequest?: MapZoomRequest | null;
   /** Called with the error id when a feature is clicked. */
   onSelectFeature: (errorId: string) => void;
   /** Whether to show the metadata popup when a feature is selected. */
@@ -275,6 +289,7 @@ export const MapVisualization = ({
   config,
   visibleErrorIds,
   highlightedErrorIds,
+  zoomRequest,
   onSelectFeature,
   showMapSelectionPopup,
   reserveSpaceForFilters,
@@ -283,7 +298,7 @@ export const MapVisualization = ({
 }: MapVisualizationProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { captureLayerState, restoreLayerState, captureViewState, restoreViewState } =
+  const { captureLayerState, restoreLayerState, captureViewState, restoreViewState, lastZoomTokenRef } =
     useContext(MapVisualizationContext);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   // The map instance and feature layers are kept in refs so the reset-viewport button can re-fit the view
@@ -447,29 +462,30 @@ export const MapVisualization = ({
     };
   }, [config, theme, t, fitOptions, restoreLayerState, restoreViewState, captureViewState]);
 
-  // Apply filter (hide non-matching) and selection (highlight + center) without rebuilding the map: update
-  // the refs the style function reads, restyle the existing layers, and center on the current selection.
+  // Apply filter (hide non-matching) and selection (highlight) without rebuilding the map and without moving
+  // the view: update the refs the style function reads and restyle the existing layers. Moving the map is
+  // the job of the explicit zoom request below, not of selection.
   useEffect(() => {
     visibleIdsRef.current = visibleErrorIds;
     highlightedIdsRef.current = highlightedErrorIds;
     if (!map) return;
     featureLayersRef.current.forEach(layer => layer.changed());
+  }, [map, visibleErrorIds, highlightedErrorIds]);
 
-    if (highlightedErrorIds.size === 0) return;
-    const { extent, count } = getSelectedExtent(featureLayersRef.current, highlightedErrorIds);
+  // Zoom to the features of an explicit zoom request (a tree node's errors: one for a leaf, many for a
+  // group). Guarded by the request token, persisted in the shared context so the unmount/remount of a
+  // fullscreen toggle restores the previous view instead of re-running the last zoom.
+  useEffect(() => {
+    if (!map || !zoomRequest || zoomRequest.token === lastZoomTokenRef.current) return;
+    lastZoomTokenRef.current = zoomRequest.token;
+    const { extent } = getExtentForErrorIds(featureLayersRef.current, new Set(zoomRequest.errorIds));
     if (isExtentEmpty(extent)) return;
-    // Only move the map when the selection is not already visible: clicking a feature on the map must not
-    // yank it out from under the cursor, and an already-visible selection should stay put. An off-screen
-    // single error gently centers (keeps zoom); an off-screen group fits to show all its points.
-    const size = map.getSize();
-    const viewExtent = size ? map.getView().calculateExtent(size) : undefined;
-    if (viewExtent && containsExtent(viewExtent, extent)) return;
-    if (count === 1) {
-      map.getView().setCenter(getCenter(extent));
-    } else {
-      map.getView().fit(extent, fitOptions);
-    }
-  }, [map, visibleErrorIds, highlightedErrorIds, fitOptions]);
+    map.getView().fit(extent, {
+      padding: fitOptions.padding,
+      maxZoom: ZOOM_TO_NODE_MAX_ZOOM,
+      duration: ZOOM_TO_NODE_DURATION,
+    });
+  }, [map, zoomRequest, fitOptions, lastZoomTokenRef]);
 
   return (
     <Box

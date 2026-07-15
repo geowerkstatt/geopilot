@@ -24,6 +24,10 @@ interface TreeVisualizationProps {
   shownCount: number;
   /** Whether the tree is shown in a fullscreen map or inline. */
   fullscreen?: boolean;
+  /** Called with the structural node id to zoom the map to that node's errors (leaf or group). */
+  onZoom?: (nodeId: string) => void;
+  /** Structural ids of nodes whose subtree has at least one error present on the map (i.e. zoomable). */
+  zoomableNodeIds?: ReadonlySet<string>;
 }
 
 // Once the tree can no longer keep its minimum width next to the detail box, the box is
@@ -68,6 +72,8 @@ export const TreeVisualization = ({
   totalCount,
   shownCount,
   fullscreen,
+  onZoom,
+  zoomableNodeIds,
 }: TreeVisualizationProps) => {
   const { t } = useTranslation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -119,14 +125,16 @@ export const TreeVisualization = ({
   const hasMetadata = !!selectedNode?.metadata && Object.keys(selectedNode.metadata).length > 0;
 
   const items = useMemo(() => {
+    const zoomOptions = { onZoom, zoomableNodeIds };
     if (!sideBySide && hasMetadata) {
       return renderTreeItems(nodes, "n", {
+        ...zoomOptions,
         selectedId,
         inlinePanel: <MetadataPanel node={selectedNode} />,
       });
     }
-    return renderTreeItems(nodes);
-  }, [nodes, sideBySide, hasMetadata, selectedId, selectedNode]);
+    return renderTreeItems(nodes, "n", zoomOptions);
+  }, [nodes, sideBySide, hasMetadata, selectedId, selectedNode, onZoom, zoomableNodeIds]);
 
   // Align the box's top with the selected row, but keep it within the tree so a selection far down does not
   // push the box past the tree and grow the accordion: clamp to the tree's bottom edge. Recompute when
@@ -189,7 +197,15 @@ export const TreeVisualization = ({
               onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
               expandedItems={expandedItems}
               onExpandedItemsChange={(_: SyntheticEvent, itemIds: string[]) => setExpandedItems(itemIds)}
-              sx={{ "& .MuiTreeItem-content": { pl: 0 } }}>
+              sx={{
+                "& .MuiTreeItem-content": { pl: 0 },
+                "& .tree-zoom-button": { opacity: 0, transition: "opacity 0.1s ease" },
+                "& .MuiTreeItem-content:hover .tree-zoom-button": { opacity: 1 },
+                // Keyboard focus of the button and touch devices (no hover) still reveal it; selection alone
+                // does not, so a selected row shows the control only while hovered.
+                "& .tree-zoom-button:focus-visible": { opacity: 1 },
+                "@media (hover: none)": { "& .tree-zoom-button": { opacity: 1 } },
+              }}>
               {items}
             </SimpleTreeView>
           </Box>
