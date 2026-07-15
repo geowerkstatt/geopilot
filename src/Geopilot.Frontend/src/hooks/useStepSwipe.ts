@@ -98,3 +98,15 @@ export const useStepSwipe = ({
 
   return { onWheel, onTouchStart, onTouchEnd };
 };
+
+/**
+ * Companion handlers that keep touch/wheel gestures inside an interactive child (e.g. a pannable
+ * map or the fullscreen map overlay) from reaching a useStepSwipe container and switching the step.
+ * They stop propagation of exactly the events the hook listens to, so the two stay in sync. Spread
+ * onto the element whose gestures must not navigate; the child's own native listeners are unaffected.
+ */
+export const stopStepSwipePropagation = {
+  onTouchStart: (event: TouchEvent<HTMLDivElement>) => event.stopPropagation(),
+  onTouchEnd: (event: TouchEvent<HTMLDivElement>) => event.stopPropagation(),
+  onWheel: (event: WheelEvent<HTMLDivElement>) => event.stopPropagation(),
+};

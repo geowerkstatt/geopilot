@@ -3,6 +3,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Autocomplete, SxProps, TextField } from "@mui/material";
+import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { getFormFieldError } from "./form";
 import { OverflowChips } from "./overflowChips";
 
@@ -135,6 +136,7 @@ export const FormAutocomplete = <T,>({
       }}
       fullWidth
       size="small"
+      slotProps={{ paper: stopStepSwipePropagation }}
       disableCloseOnSelect={disableCloseOnSelect ?? true}
       popupIcon={<ExpandMoreIcon />}
       forcePopupIcon={(values?.length ?? 0) > 0 ? "auto" : true}

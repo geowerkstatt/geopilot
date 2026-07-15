@@ -2,7 +2,10 @@ import { FC } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { MenuItem, SxProps, TextField } from "@mui/material";
+import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { getFormFieldError } from "./form";
+
+const swipeSafeMenuProps = { slotProps: { paper: stopStepSwipePropagation } };
 
 export interface FormSelectProps {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
@@ -96,7 +99,8 @@ export const FormSelect: FC<FormSelectProps> = ({
         onChange={e => onChange(e.target.value)}
         disabled={disabled ?? false}
         data-cy={dataCy ?? (fieldName ? fieldName + "-formSelect" : undefined)}
-        InputLabelProps={{ shrink: true }}>
+        InputLabelProps={{ shrink: true }}
+        SelectProps={{ MenuProps: swipeSafeMenuProps }}>
         {renderMenuItems()}
       </TextField>
     );
@@ -135,7 +139,8 @@ export const FormSelect: FC<FormSelectProps> = ({
           value={field.value ?? ""}
           disabled={disabled ?? false}
           data-cy={dataCy ?? fieldName + "-formSelect"}
-          InputLabelProps={{ shrink: true }}>
+          InputLabelProps={{ shrink: true }}
+          SelectProps={{ MenuProps: swipeSafeMenuProps }}>
           {renderMenuItems()}
         </TextField>
       )}
