@@ -179,7 +179,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     (index: number) => {
       if (index >= 0 && index <= lastCompletedStep + 1) {
         setActiveStep(index);
+        return true;
       }
+      return false;
     },
     [lastCompletedStep],
   );

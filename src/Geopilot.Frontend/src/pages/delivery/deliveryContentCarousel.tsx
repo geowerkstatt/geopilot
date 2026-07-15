@@ -63,7 +63,13 @@ export const DeliveryContentCarousel: FC = () => {
   // the active step and drops the carousel-specific layout (translate, clipping) so it lays
   // out exactly as a single static panel.
   return (
-    <CarouselViewport data-cy="delivery-content-carousel" sx={{ overflowX: isMobile ? "clip" : "visible" }}>
+    <CarouselViewport
+      data-cy="delivery-content-carousel"
+      sx={{
+        overflowX: isMobile ? "clip" : "visible",
+        touchAction: isMobile ? "pan-y" : undefined,
+        overscrollBehaviorX: isMobile ? "contain" : undefined,
+      }}>
       <CarouselTrack
         onTransitionEnd={handleTransitionEnd}
         style={{

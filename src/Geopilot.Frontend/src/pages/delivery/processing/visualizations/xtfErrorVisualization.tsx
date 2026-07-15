@@ -6,6 +6,7 @@ import { MapVisualizationConfig, TreeVisualizationConfig } from "../../../../api
 import { IconButton } from "../../../../components/buttons";
 import { GeopilotBox } from "../../../../components/styledComponents";
 import { useLocalized } from "../../../../hooks/useLocalized";
+import { stopStepSwipePropagation } from "../../../../hooks/useStepSwipe";
 import { FilterBar } from "./filterBar";
 import { MapVisualization } from "./mapVisualization";
 import { MapVisualizationProvider } from "./mapVisualizationProvider";
@@ -127,7 +128,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       )}
       {config.map && fullscreen ? (
         <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
-          <Box sx={{ width: "100%", height: "100%", position: "relative" }}>
+          <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
             {map}
             {config.tree && (
               <GeopilotBox

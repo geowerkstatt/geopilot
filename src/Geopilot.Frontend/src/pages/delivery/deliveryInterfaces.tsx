@@ -58,6 +58,6 @@ export interface DeliveryContextInterface {
   submitDelivery: (data: DeliverySubmitData) => void;
   resetDelivery: () => void;
   continueToNextStep: () => void;
-  showCompletedOrNextStep: (index: number) => void;
+  showCompletedOrNextStep: (index: number) => boolean;
   submittedData?: DeliverySubmitData;
 }

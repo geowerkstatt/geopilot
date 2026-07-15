@@ -19,6 +19,8 @@ const StepperViewport = styled(Box)(({ theme }) => ({
     overflowX: "hidden",
     scrollSnapType: "x",
     scrollbarWidth: "none",
+    touchAction: "pan-y",
+    overscrollBehaviorX: "contain",
     flex: "0 0 58px",
     alignItems: "flex-start",
     margin: `0 -${pageContentPadding} !important`,
