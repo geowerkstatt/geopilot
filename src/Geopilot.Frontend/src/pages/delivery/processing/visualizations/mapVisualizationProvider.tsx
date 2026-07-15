@@ -19,6 +19,7 @@ const visitLayers = (layers: BaseLayer[], parentPath: string, visit: (layer: Bas
 export const MapVisualizationProvider: FC<PropsWithChildren> = ({ children }) => {
   const viewStateRef = useRef<MapViewState | undefined>(undefined);
   const layerStateRef = useRef(new Map<string, MapLayerState>());
+  const lastZoomTokenRef = useRef<number | undefined>(undefined);
 
   const captureLayerState = useCallback((map: OlMap) => {
     const layerState = layerStateRef.current;
@@ -62,6 +63,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren> = ({ children }) =>
       value={{
         viewStateRef,
         layerStateRef,
+        lastZoomTokenRef,
         captureLayerState,
         restoreLayerState,
         captureViewState,

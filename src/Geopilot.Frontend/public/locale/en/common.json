@@ -177,6 +177,7 @@
   "validatorsLoadingError": "An error occurred while loading the validators: {{error}}",
   "version": "Version",
   "visualizationLoadFailed": "The visualization could not be loaded.",
+  "zoomToError": "Zoom to error",
   "zoomToExtent": "Zoom to all features",
   "zoomToLayerExtent": "Zoom to layer extent"
 }
