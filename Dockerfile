@@ -60,8 +60,9 @@ ENV Storage__DownloadDirectory=/downloads
 ENV Storage__AssetsDirectory=/assets
 ENV Storage__PipelineDirectory=/pipeline
 ENV Storage__ResourcesDirectory=/resources
-ENV PublicAssetsOverride=/public
 ENV Storage__SharedDirectory=/shared
+ENV Storage__VisualizationDirectory=/visualizations
+ENV PublicAssetsOverride=/public
 WORKDIR ${HOME}
 
 # Install missing packages
@@ -80,6 +81,7 @@ RUN \
  mkdir -p $Storage__PipelineDirectory && \
  mkdir -p $Storage__ResourcesDirectory && \
  mkdir -p $Storage__SharedDirectory && \
+ mkdir -p $Storage__VisualizationDirectory && \
  mkdir -p $PublicAssetsOverride
 
 EXPOSE 8080
@@ -89,12 +91,13 @@ VOLUME $Storage__AssetsDirectory
 VOLUME $Storage__PipelineDirectory
 VOLUME $Storage__ResourcesDirectory
 VOLUME $Storage__SharedDirectory
+VOLUME $Storage__VisualizationDirectory
 
 # Set default locale
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-# Copy gosu binaries to the image
+# Copy app binaries to the image
 COPY --from=build /app/publish $HOME
 COPY docker-entrypoint.sh /entrypoint.sh
 
