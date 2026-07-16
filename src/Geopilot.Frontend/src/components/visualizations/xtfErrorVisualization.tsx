@@ -2,16 +2,16 @@ import { FC, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, useTheme } from "@mui/material";
-import { MapVisualizationConfig, TreeVisualizationConfig } from "../../../../api/apiInterfaces";
-import { IconButton } from "../../../../components/buttons";
-import { GeopilotBox } from "../../../../components/styledComponents";
-import { useLocalized } from "../../../../hooks/useLocalized";
-import { stopStepSwipePropagation } from "../../../../hooks/useStepSwipe";
+import { MapVisualizationConfig, TreeVisualizationConfig } from "../../api/apiInterfaces";
+import { IconButton } from "../../components/buttons";
+import { GeopilotBox } from "../../components/styledComponents";
+import { useLocalized } from "../../hooks/useLocalized";
+import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { FilterBar } from "./filterBar";
-import { MapVisualization, MapZoomRequest } from "./mapVisualization";
-import { MapVisualizationProvider } from "./mapVisualizationProvider";
-import { buildErrorIdIndex, buildTree, collectMetadataAttributes, filterItems, MetadataFilters } from "./treeNode";
-import { TreeVisualization } from "./treeVisualization";
+import { MapVisualization, MapZoomRequest } from "./map/mapVisualization";
+import { MapVisualizationProvider } from "./map/mapVisualizationProvider";
+import { buildErrorIdIndex, buildTree, collectMetadataAttributes, filterItems, MetadataFilters } from "./tree/treeNode";
+import { TreeVisualization } from "./tree/treeVisualization";
 
 /**
  * The composite XTF error visualization: an optional map and an optional error tree of the same validation

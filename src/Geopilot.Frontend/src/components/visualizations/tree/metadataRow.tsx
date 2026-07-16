@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import CheckIcon from "@mui/icons-material/Check";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { TableCell, TableRow, Typography } from "@mui/material";
-import { IconButton } from "../../../../components/buttons";
+import { IconButton } from "../../buttons";
 
 interface MetadataRowProps {
   label: string;

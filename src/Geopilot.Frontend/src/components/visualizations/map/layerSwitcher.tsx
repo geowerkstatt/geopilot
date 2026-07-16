@@ -19,9 +19,9 @@ import OlMap from "ol/Map";
 import { ObjectEvent } from "ol/Object";
 import { unByKey } from "ol/Observable";
 import { getUid } from "ol/util";
-import { IconButton } from "../../../../components/buttons";
-import { FormCheckbox } from "../../../../components/form/formCheckbox";
-import { SearchField } from "../../../../components/searchField";
+import { IconButton } from "../../buttons";
+import { FormCheckbox } from "../../form/formCheckbox";
+import { SearchField } from "../../searchField";
 
 // Custom layer properties read/written by the switcher. The map sets at least TITLE on the layers it
 // adds so they have a label here. The others default sensibly when absent, so existing layers work

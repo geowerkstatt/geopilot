@@ -4,7 +4,7 @@ import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { Box, Stack, SvgIconProps, Typography } from "@mui/material";
 import { TreeItem } from "@mui/x-tree-view";
-import { IconButton } from "../../../../components/buttons";
+import { IconButton } from "../../../components/buttons";
 import { nodeId, TreeNode } from "./treeNode";
 
 const SEVERITY_ICON: Record<string, ComponentType<SvgIconProps>> = {
