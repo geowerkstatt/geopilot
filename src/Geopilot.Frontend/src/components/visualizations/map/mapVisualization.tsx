@@ -26,9 +26,10 @@ import { Circle, Fill, Stroke, Style } from "ol/style";
 import View from "ol/View";
 import proj4 from "proj4";
 import { MapLayer, MapVisualizationConfig } from "../../../api/apiInterfaces";
-import { IconButton } from "../../../components/buttons";
 import { stopStepSwipePropagation } from "../../../hooks/useStepSwipe";
-import { LayerSwitcher, LayerSwitcherProperties } from "./layerSwitcher";
+import { IconButton } from "../../buttons";
+import { LayerSwitcher } from "./layerSwitcher";
+import { LayerSwitcherProperties } from "./layerSwitcherProps";
 import { MapVisualizationContext } from "./mapVisualizationContext";
 import "ol/ol.css";
 
@@ -389,7 +390,7 @@ export const MapVisualization = ({
           maxWidth: "300px",
           fontSize: "0.875rem",
           pointerEvents: "none",
-        });
+        } satisfies Partial<CSSStyleDeclaration>);
         const popupContent = document.createElement("div");
         popupElement.appendChild(popupContent);
         popupElement.appendChild(createPopupArrow(8, theme.palette.primary.light, "100%"));

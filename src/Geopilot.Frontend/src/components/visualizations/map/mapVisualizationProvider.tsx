@@ -2,12 +2,12 @@ import { FC, PropsWithChildren, useCallback, useRef } from "react";
 import BaseLayer from "ol/layer/Base";
 import LayerGroup from "ol/layer/Group";
 import OlMap from "ol/Map";
-import { LayerSwitcherProperties } from "./layerSwitcher";
+import { getTitle } from "./layerSwitcherProps";
 import { MapLayerState, MapViewState, MapVisualizationContext } from "./mapVisualizationContext";
 
 const visitLayers = (layers: BaseLayer[], parentPath: string, visit: (layer: BaseLayer, key: string) => void) => {
   for (const layer of layers) {
-    const title = (layer.get(LayerSwitcherProperties.TITLE) as string | undefined) ?? "";
+    const title = getTitle(layer);
     const key = `${parentPath}/${title}`;
     visit(layer, key);
     if (layer instanceof LayerGroup) {
