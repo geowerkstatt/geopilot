@@ -1,11 +1,11 @@
-import { MutableRefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, MutableRefObject, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ZoomOutMapIcon from "@mui/icons-material/ZoomOutMap";
-import { Box, ButtonGroup, Stack } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
+import { Box, ButtonGroup, Link, Stack, Typography } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 import i18next from "i18next";
 import { defaults as defaultControls } from "ol/control";
 import { createEmpty, extend as extendExtent, getCenter, isEmpty as isExtentEmpty } from "ol/extent";
@@ -405,7 +405,7 @@ export const MapVisualization = ({
           target: mapContainerRef.current,
           layers,
           overlays: [overlay],
-          controls: defaultControls({ zoom: false }),
+          controls: defaultControls({ zoom: false, attribution: false }),
           view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
         });
         mapRef.current = map;
@@ -487,6 +487,12 @@ export const MapVisualization = ({
     });
   }, [map, zoomRequest, fitOptions, lastZoomTokenRef]);
 
+  // Copyright/attribution credits declared by the config's layers (typically the base map). Shown as an
+  // overlay in the bottom-right corner; rendered as a link when the layer provides a URL.
+  const attributions = config.layers.flatMap(layer =>
+    layer.attribution ? [{ text: layer.attribution, url: layer.attributionUrl }] : [],
+  );
+
   return (
     <Box
       {...stopStepSwipePropagation}
@@ -545,6 +551,40 @@ export const MapVisualization = ({
           </Stack>
           <LayerSwitcher map={map} onLayerChange={() => captureLayerState(map)} />
         </>
+      )}
+      {attributions.length > 0 && (
+        <Typography
+          variant="caption"
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            px: 0.75,
+            py: 0.25,
+            maxWidth: "100%",
+            backgroundColor: alpha(theme.palette.background.paper, 0.7),
+            borderTopRightRadius: theme.spacing(0.5),
+            lineHeight: 1.2,
+          }}>
+          {t("mapCopyrightPrefix")}{" "}
+          {attributions.map((attribution, index) => (
+            <Fragment key={attribution.text}>
+              {index > 0 && ", "}
+              {attribution.url ? (
+                <Link
+                  href={attribution.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="inherit"
+                  color="inherit">
+                  {attribution.text}
+                </Link>
+              ) : (
+                attribution.text
+              )}
+            </Fragment>
+          ))}
+        </Typography>
       )}
     </Box>
   );

@@ -18,6 +18,17 @@ internal static class MapVisualizationBuilder
     public const string DefaultBaseMapWmtsCapabilitiesUrl = "https://wmts.geo.admin.ch/EPSG/2056/1.0.0/WMTSCapabilities.xml";
 
     /// <summary>
+    /// Default data-owner credit shown for the swisstopo base map.
+    /// </summary>
+    public const string DefaultBaseMapAttribution = "swisstopo";
+
+    /// <summary>
+    /// Default target the base map attribution links to: the swisstopo terms of use for free geodata and
+    /// geoservices.
+    /// </summary>
+    public const string DefaultBaseMapAttributionUrl = "https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste";
+
+    /// <summary>
     /// Identifier of the swisstopo colored national map: the default base map. Without it the client would
     /// add every layer the WMTS service advertises.
     /// </summary>
@@ -58,8 +69,10 @@ internal static class MapVisualizationBuilder
     /// </summary>
     /// <param name="errors">The parsed validator errors.</param>
     /// <param name="baseMapWmtsCapabilitiesUrl">The base map WMTS capabilities URL to use.</param>
+    /// <param name="baseMapAttribution">The base map copyright/attribution text.</param>
+    /// <param name="baseMapAttributionUrl">The URL the base map attribution links to.</param>
     /// <returns>The map visualization config.</returns>
-    public static MapVisualizationConfig Build(IReadOnlyList<IndexedError> errors, string baseMapWmtsCapabilitiesUrl)
+    public static MapVisualizationConfig Build(IReadOnlyList<IndexedError> errors, string baseMapWmtsCapabilitiesUrl, string baseMapAttribution, string baseMapAttributionUrl)
     {
         var errorFeatures = errors
             .Where(error => error.Error.Geometry?.Coord != null)
@@ -80,6 +93,8 @@ internal static class MapVisualizationBuilder
                     Title = BaseMapLayerTitle,
                     Wmts = baseMapWmtsCapabilitiesUrl,
                     LayerIds = [GrayBaseMapLayerId, DefaultBaseMapLayerId],
+                    Attribution = baseMapAttribution,
+                    AttributionUrl = baseMapAttributionUrl,
                 },
                 new MapLayer { Title = ErrorLayerTitle, Color = ErrorLayerColor, Features = errorFeatures },
             ],

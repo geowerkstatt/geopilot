@@ -94,6 +94,7 @@
   "mandateSaveError": "Une erreur s'est produite lors de l'enregistrement du mandat: {{error}}",
   "mandates": "Mandats",
   "mandatesLoadingError": "Une erreur s'est produite lors du chargement des mandats: {{error}}",
+  "mapCopyrightPrefix": "© Données:",
   "mapVisualizationFeatureLayer": "Entités",
   "mapZoomIn": "Zoom avant",
   "mapZoomOut": "Zoom arrière",
