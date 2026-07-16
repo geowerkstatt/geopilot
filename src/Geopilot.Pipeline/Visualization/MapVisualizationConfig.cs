@@ -27,14 +27,12 @@ internal class MapLayer
     /// layer switcher. Optional; the client falls back to a generic title.
     /// </summary>
     [JsonPropertyName("title")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IDictionary<string, string>? Title { get; set; }
 
     /// <summary>
     /// The capabilities URL of a WMTS map service. Set for WMTS layers; otherwise <see langword="null"/>.
     /// </summary>
     [JsonPropertyName("wmts")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Wmts { get; set; }
 
     /// <summary>
@@ -43,7 +41,6 @@ internal class MapLayer
     /// group layer if there is more than one). Only meaningful for WMTS layers.
     /// </summary>
     [JsonPropertyName("layerIds")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IList<string>? LayerIds { get; set; }
 
     /// <summary>
@@ -52,7 +49,6 @@ internal class MapLayer
     /// feature layers. Optional; the client falls back to its theme color.
     /// </summary>
     [JsonPropertyName("color")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Color { get; set; }
 
     /// <summary>
@@ -61,7 +57,6 @@ internal class MapLayer
     /// Optional.
     /// </summary>
     [JsonPropertyName("attribution")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Attribution { get; set; }
 
     /// <summary>
@@ -69,14 +64,12 @@ internal class MapLayer
     /// client renders <see cref="Attribution"/> as a link.
     /// </summary>
     [JsonPropertyName("attributionUrl")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? AttributionUrl { get; set; }
 
     /// <summary>
     /// Features rendered directly from the JSON. Set for feature layers; otherwise <see langword="null"/>.
     /// </summary>
     [JsonPropertyName("features")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IList<MapFeature>? Features { get; set; }
 }
 
