@@ -1,37 +1,29 @@
-import { createContext, MutableRefObject } from "react";
-import { Coordinate } from "ol/coordinate";
+import { createContext, useContext } from "react";
 import OlMap from "ol/Map";
-
-export interface MapViewState {
-  center?: Coordinate;
-  resolution?: number;
-}
-
-export interface MapLayerState {
-  visible: boolean;
-  opacity: number;
-}
-
-export interface MapVisualizationContextInterface {
-  viewStateRef: MutableRefObject<MapViewState | undefined>;
-  layerStateRef: MutableRefObject<Map<string, MapLayerState>>;
-  lastZoomTokenRef: MutableRefObject<number | undefined>;
-  captureLayerState: (map: OlMap) => void;
-  restoreLayerState: (map: OlMap) => void;
-  captureViewState: (map: OlMap) => void;
-  restoreViewState: (map: OlMap) => void;
-}
+import { FitOptions } from "ol/View";
 
 /**
- * The MapVisualizationContext can be used to persist the view and layer state of the map visualization between
- * unmounts and remounts such as when switching into and out of fullscreen mode.
+ * Access to the OpenLayers map owned by the MapVisualizationProvider. The provider builds and holds the
+ * map so it survives the view component unmounting and remounting (e.g. toggling fullscreen); consumers
+ * read the live map together with the operations and derived data around it.
  */
+export interface MapVisualizationContextInterface {
+  /** The OpenLayers map, or null while it is still being built or when there is no map to show. */
+  map: OlMap | null;
+  /** Fit the view to the combined extent of all feature layers, falling back to the whole country. */
+  zoomToExtent: () => void;
+  /** Animate the zoom level by the given delta (positive zooms in). */
+  zoomBy: (delta: number) => void;
+  /** Set options for fitting the view. */
+  setFitOptions: (options: FitOptions) => void;
+}
+
 export const MapVisualizationContext = createContext<MapVisualizationContextInterface>({
-  viewStateRef: { current: undefined },
-  layerStateRef: { current: new Map() },
-  lastZoomTokenRef: { current: undefined },
-  captureLayerState: () => {},
-  restoreLayerState: () => {},
-  captureViewState: () => {},
-  restoreViewState: () => {},
+  map: null,
+  zoomToExtent: () => {},
+  zoomBy: () => {},
+  setFitOptions: () => {},
 });
+
+/** Read the map, zoom operations and attributions provided by the enclosing MapVisualizationProvider. */
+export const useMapVisualization = (): MapVisualizationContextInterface => useContext(MapVisualizationContext);

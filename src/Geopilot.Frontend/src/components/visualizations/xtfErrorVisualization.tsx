@@ -8,8 +8,8 @@ import { GeopilotBox } from "../../components/styledComponents";
 import { useLocalized } from "../../hooks/useLocalized";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { FilterBar } from "./filterBar";
-import { MapVisualization, MapZoomRequest } from "./map/mapVisualization";
-import { MapVisualizationProvider } from "./map/mapVisualizationProvider";
+import { MapVisualization } from "./map/mapVisualization";
+import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
 import { buildErrorIdIndex, buildTree, collectMetadataAttributes, filterItems, MetadataFilters } from "./tree/treeNode";
 import { TreeVisualization } from "./tree/treeVisualization";
 
@@ -117,11 +117,6 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const map = config.map && (
     <MapVisualization
       config={config.map}
-      visibleErrorIds={visibleErrorIds}
-      highlightedErrorIds={highlightedErrorIds}
-      zoomRequest={zoomRequest}
-      onSelectFeature={handleSelectFeature}
-      showMapSelectionPopup={!config.tree}
       reserveSpaceForFilters={!!config.tree}
       fullscreen={fullscreen}
       setFullscreen={setFullscreen}
@@ -142,7 +137,13 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   );
 
   return (
-    <MapVisualizationProvider>
+    <MapVisualizationProvider
+      config={config.map}
+      visibleErrorIds={visibleErrorIds}
+      highlightedErrorIds={highlightedErrorIds}
+      zoomRequest={zoomRequest}
+      onSelectFeature={handleSelectFeature}
+      showMapSelectionPopup={!config.tree}>
       {config.map && (
         <IconButton
           size="small"

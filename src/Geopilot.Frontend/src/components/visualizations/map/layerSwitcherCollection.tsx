@@ -14,10 +14,9 @@ interface LayerCollectionProps {
   collection: Collection<BaseLayer>;
   map: OlMap;
   rootLayers: BaseLayer[];
-  onLayerChange?: () => void;
 }
 
-export const LayerSwitcherCollection = ({ collection, map, rootLayers, onLayerChange }: LayerCollectionProps) => {
+export const LayerSwitcherCollection = ({ collection, map, rootLayers }: LayerCollectionProps) => {
   const forceUpdate = useForceUpdate();
   const [draggedLayer, setDraggedLayer] = useState<BaseLayer | null>(null);
   const [dragOverLayer, setDragOverLayer] = useState<BaseLayer | null>(null);
@@ -60,7 +59,6 @@ export const LayerSwitcherCollection = ({ collection, map, rootLayers, onLayerCh
     if (fromIndex === -1 || toIndex === -1) return;
     collection.removeAt(fromIndex);
     collection.insertAt(toIndex, draggedLayer);
-    onLayerChange?.();
   };
 
   const array = collection.getArray();
@@ -117,13 +115,7 @@ export const LayerSwitcherCollection = ({ collection, map, rootLayers, onLayerCh
                 setDragOverLayer(layer);
               }
             }}>
-            <LayerSwitcherRow
-              layer={layer}
-              map={map}
-              rootLayers={rootLayers}
-              onLayerChange={onLayerChange}
-              isFirst={index === 0}
-            />
+            <LayerSwitcherRow layer={layer} map={map} rootLayers={rootLayers} isFirst={index === 0} />
           </Box>
         );
       })}

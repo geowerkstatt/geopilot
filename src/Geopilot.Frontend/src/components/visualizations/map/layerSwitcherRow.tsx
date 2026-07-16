@@ -66,11 +66,10 @@ interface LayerRowProps {
   layer: BaseLayer;
   map: OlMap;
   rootLayers: BaseLayer[];
-  onLayerChange?: () => void;
   isFirst?: boolean;
 }
 
-export const LayerSwitcherRow = ({ layer, map, rootLayers, onLayerChange, isFirst }: LayerRowProps) => {
+export const LayerSwitcherRow = ({ layer, map, rootLayers, isFirst }: LayerRowProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const isGroup = layer instanceof LayerGroup;
@@ -128,7 +127,6 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, onLayerChange, isFirs
               layer.setVisible(checked);
               updateSublayerVisibility(layer);
               updateParentLayerVisibility(rootLayers, layer);
-              onLayerChange?.();
             }}
             label={title}
             truncateLabel
@@ -170,7 +168,6 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, onLayerChange, isFirs
             aria-label={t("layerOpacity")}
             onChange={(_event, value) => {
               layer.setOpacity(value as number);
-              onLayerChange?.();
             }}
             sx={{ flex: 1, minWidth: 0 }}
           />
@@ -178,12 +175,7 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, onLayerChange, isFirs
         </Stack>
         {open && isGroup && (
           <Box>
-            <LayerSwitcherCollection
-              collection={layer.getLayers()}
-              map={map}
-              rootLayers={rootLayers}
-              onLayerChange={onLayerChange}
-            />
+            <LayerSwitcherCollection collection={layer.getLayers()} map={map} rootLayers={rootLayers} />
           </Box>
         )}
       </Stack>

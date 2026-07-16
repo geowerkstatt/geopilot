@@ -83,15 +83,13 @@ const hasOpenGroup = (layers: BaseLayer[]): boolean => {
 interface LayerSwitcherProps {
   /** The OpenLayers map whose layer tree is managed. Null while the map is still initializing. */
   map: OlMap | null;
-  /** Called after any user-driven change (visibility, opacity, order, removal) so callers can persist state. */
-  onLayerChange?: () => void;
 }
 
 /**
  * A layer switcher overlay for the OpenLayers map. Shows the full layer tree with expand/collapse,
  * visibility (with group cascade), opacity, zoom-to-extent, search and drag-to-reorder.
  */
-export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
+export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const forceUpdate = useForceUpdate();
@@ -185,12 +183,7 @@ export const LayerSwitcher = ({ map, onLayerChange }: LayerSwitcherProps) => {
               ))}
           </Stack>
           <Stack sx={{ pb: 2, overflowY: "auto" }}>
-            <LayerSwitcherCollection
-              collection={rootCollection}
-              map={map}
-              rootLayers={rootLayers}
-              onLayerChange={onLayerChange}
-            />
+            <LayerSwitcherCollection collection={rootCollection} map={map} rootLayers={rootLayers} />
           </Stack>
         </Stack>
       ) : (
