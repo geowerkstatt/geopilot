@@ -38,6 +38,18 @@ public class InputCompilerTest
     }
 
     [TestMethod]
+    [DataRow("${step_output(validation.log)}")]
+    [DataRow("  ${step_output(validation.log)}  ")]
+    [DataRow("${ step_output(validation.log) }")]
+    [DataRow("${step_output( validation . log )}")]
+    public void CompilesStepOutputReferenceToleratingWhitespace(string value)
+    {
+        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["reference"] = value });
+
+        Assert.AreEqual(new InputValue.StepOutputReference("validation", "log"), compiled["reference"]);
+    }
+
+    [TestMethod]
     [DataRow("prefix ${step_output(a.b)}")]
     [DataRow("${step_output(a.b)} suffix")]
     public void RejectsReferenceMarkerEmbeddedInText(string value)

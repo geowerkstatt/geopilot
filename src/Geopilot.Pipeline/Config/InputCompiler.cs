@@ -1,13 +1,27 @@
-﻿namespace Geopilot.Pipeline.Config;
+﻿using System.Text.RegularExpressions;
+
+namespace Geopilot.Pipeline.Config;
 
 /// <summary>
 /// Compiles the raw YAML input map of a pipeline step into a typed <see cref="InputValue"/> for
 /// each process parameter.
 /// </summary>
-internal static class InputCompiler
+internal static partial class InputCompiler
 {
-    private const string StepOutputFunction = "step_output";
-    private const string ReferenceMarker = "${";
+    // Matches a value that is entirely a ${...} reference and captures the content between the braces.
+    // It requires both the opening "${" and the closing "}"; a marker embedded in surrounding text or
+    // a missing closing brace does not match.
+    [GeneratedRegex(@"^\$\{(.+)\}$")]
+    private static partial Regex ReferencePattern();
+
+    // Matches a step_output(...) call and captures the argument between the parentheses.
+    [GeneratedRegex(@"^\s*step_output\s*\(\s*(.*?)\s*\)\s*$")]
+    private static partial Regex StepOutputCallPattern();
+
+    // Matches a stepId.outputName argument and captures both identifiers (no whitespace, dots or
+    // parentheses in either).
+    [GeneratedRegex(@"^\s*([^.()\s]+)\s*\.\s*([^.()\s]+)\s*$")]
+    private static partial Regex StepOutputArgumentPattern();
 
     /// <summary>
     /// Compiles every entry of <paramref name="rawInput"/> into a typed <see cref="InputValue"/>. Each
@@ -74,39 +88,47 @@ internal static class InputCompiler
 
     private static InputValue CompileScalar(string text)
     {
-        // The marker "${" introduces a reference. A reference must be the whole value; a marker
-        // embedded in surrounding text is rejected rather than kept as a literal.
-        if (!text.Contains(ReferenceMarker, StringComparison.Ordinal))
+        // A value without the "${" marker is a plain literal.
+        if (!text.Contains("${", StringComparison.Ordinal))
             return new InputValue.Literal(text);
 
-        return ParseReference(text);
-    }
-
-    private static InputValue.StepOutputReference ParseReference(string text)
-    {
-        if (!text.StartsWith(ReferenceMarker, StringComparison.Ordinal) || text[^1] != '}')
+        // A reference must be the whole value, ${...} with both braces (surrounding whitespace is
+        // tolerated). A marker embedded in other text (or a missing closing brace) is rejected rather
+        // than kept as a literal.
+        var match = ReferencePattern().Match(text.Trim());
+        if (!match.Success)
         {
             throw new InputCompilationException(
                 $"Input '{text}' embeds a '${{...}}' reference marker in surrounding text. A reference must be the whole value, written as ${{step_output(stepId.outputName)}}.");
         }
 
-        // Inside the braces a reference reads as a function call: name(argument).
-        var body = text[2..^1];
-        var open = body.IndexOf('(', StringComparison.Ordinal);
-        if (open < 0 || body[^1] != ')' || body[..open] != StepOutputFunction)
+        return ParseReference(match.Groups[1].Value);
+    }
+
+    /// <summary>
+    /// Parses the content of a <c>${...}</c> reference, that is the text between the braces already
+    /// unwrapped by <see cref="CompileScalar"/>, into a <see cref="InputValue.StepOutputReference"/>.
+    /// The content reads as a function call <c>step_output(stepId.outputName)</c>.
+    /// </summary>
+    private static InputValue.StepOutputReference ParseReference(string reference)
+    {
+        // Error messages echo the value in the ${...} form the author wrote.
+        var display = "${" + reference + "}";
+
+        var call = StepOutputCallPattern().Match(reference);
+        if (!call.Success)
         {
             throw new InputCompilationException(
-                $"Reference '{text}' is not supported. Use ${{step_output(stepId.outputName)}}.");
+                $"Reference '{display}' is not supported. Use ${{step_output(stepId.outputName)}}.");
         }
 
-        var argument = body[(open + 1)..^1];
-        var parts = argument.Split('.');
-        if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0)
+        var argument = StepOutputArgumentPattern().Match(call.Groups[1].Value);
+        if (!argument.Success)
         {
             throw new InputCompilationException(
-                $"Reference '{text}' must be of the form ${{step_output(stepId.outputName)}}.");
+                $"Reference '{display}' must be of the form ${{step_output(stepId.outputName)}}.");
         }
 
-        return new InputValue.StepOutputReference(parts[0], parts[1]);
+        return new InputValue.StepOutputReference(argument.Groups[1].Value, argument.Groups[2].Value);
     }
 }
