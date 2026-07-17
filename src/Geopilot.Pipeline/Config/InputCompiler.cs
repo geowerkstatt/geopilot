@@ -10,10 +10,15 @@ internal static class InputCompiler
     private const string ReferenceMarker = "${";
 
     /// <summary>
-    /// Compiles every entry of <paramref name="rawInput"/>. Each key is the target parameter name
-    /// and each value is the raw YAML node produced by the deserializer.
+    /// Compiles every entry of <paramref name="rawInput"/> into a typed <see cref="InputValue"/>. Each
+    /// key is the name of the process run method parameter the value is bound to; each value is the raw
+    /// YAML node the deserializer produced for it.
     /// </summary>
-    /// <param name="rawInput">The raw input map of a step, as deserialized from YAML.</param>
+    /// <param name="rawInput">
+    /// The raw input map of a step as deserialized from YAML, keyed by the name of the process run
+    /// method parameter each value is bound to. Each value is the raw YAML node for that parameter: a
+    /// scalar (a literal or a <c>${step_output(stepId.outputName)}</c> reference) or a sequence of those.
+    /// </param>
     /// <returns>A compiled input value per parameter name.</returns>
     /// <exception cref="InputCompilationException">A value is not a supported input shape.</exception>
     internal static IReadOnlyDictionary<string, InputValue> Compile(IReadOnlyDictionary<string, object?> rawInput)
