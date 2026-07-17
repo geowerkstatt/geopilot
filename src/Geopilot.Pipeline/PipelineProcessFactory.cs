@@ -201,10 +201,18 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// <inheritdoc />
         public void Validate()
         {
-            var (_, constructor, processParameterization) = PrepareProcessDescriptor();
+            ArgumentNullException.ThrowIfNull(stepConfig);
+
+            var (objectType, constructor, processParameterization) = PrepareProcessDescriptor();
             foreach (var parameterInfo in constructor.GetParameters())
             {
                 ValidateParameter(parameterInfo, processParameterization);
+            }
+
+            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input);
+            if (inputErrors.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, inputErrors));
             }
         }
 
