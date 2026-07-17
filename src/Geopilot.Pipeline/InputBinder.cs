@@ -84,6 +84,9 @@ internal static class InputBinder
             return UnwrapToSingleValue(target, sequence.Items.Select(item => Resolve(item, resolveStepOutput)).ToList());
 
         var resolved = Resolve(input, resolveStepOutput);
+        if (resolved is not null && target.Type.IsInstanceOfType(resolved))
+            return resolved;
+
         return TryAsCollection(resolved, out var items) ? UnwrapToSingleValue(target, items) : resolved;
     }
 
@@ -101,8 +104,9 @@ internal static class InputBinder
 
     /// <summary>
     /// Binds to a list parameter (an array or <see cref="IEnumerable{T}"/>). A written sequence
-    /// contributes each of its items; any other input contributes its single resolved value. A null
-    /// value means there is no list at all and is accepted only when the parameter is nullable.
+    /// contributes each of its items, and a missing (unwired) input yields an empty list. Any other
+    /// input contributes its single resolved value; a resolved null means there is no list and is
+    /// accepted only when the parameter is nullable.
     /// </summary>
     private static Array? BindToList(BindingTarget target, Type elementType, InputValue? input, StepOutputResolver resolveStepOutput)
     {
@@ -115,6 +119,9 @@ internal static class InputBinder
 
             return CreateArray(elementType, elements);
         }
+
+        if (input is null)
+            return CreateArray(elementType, elements);
 
         var resolved = Resolve(input, resolveStepOutput);
         if (resolved is null)

@@ -46,15 +46,24 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
         var errorMessages = new List<string>();
         foreach (var (parameterName, inputValue) in compiledInput)
         {
-            if (inputValue is InputValue.StepOutputReference reference &&
-                !HasEarlierOutput(reference, stepToValidate.Id, allSteps))
+            foreach (var reference in StepOutputReferencesOf(inputValue))
             {
-                errorMessages.Add($"Step '{stepToValidate.Id}' input '{parameterName}' references '{reference.StepId}.{reference.OutputName}', which is not an output of an earlier step.");
+                if (!HasEarlierOutput(reference, stepToValidate.Id, allSteps))
+                {
+                    errorMessages.Add($"Step '{stepToValidate.Id}' input '{parameterName}' references '{reference.StepId}.{reference.OutputName}', which is not an output of an earlier step.");
+                }
             }
         }
 
         return errorMessages;
     }
+
+    private static IEnumerable<InputValue.StepOutputReference> StepOutputReferencesOf(InputValue value) => value switch
+    {
+        InputValue.StepOutputReference reference => new[] { reference },
+        InputValue.Sequence sequence => sequence.Items.OfType<InputValue.StepOutputReference>(),
+        _ => Enumerable.Empty<InputValue.StepOutputReference>(),
+    };
 
     private static bool HasEarlierOutput(InputValue.StepOutputReference reference, string currentStepId, List<StepConfig> allSteps)
     {

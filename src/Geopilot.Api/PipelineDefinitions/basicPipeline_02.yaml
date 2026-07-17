@@ -223,7 +223,10 @@ pipelines:
           fr: Création ZIP
         process_id: zip_packager
         input:
-          input: "${step_output(xtf_matching.xtf_files)}"
+          input:
+            - "${step_output(xtf_matching.xtf_files)}"
+            - "${step_output(validation.xtf_log)}"
+            - "${step_output(validation.error_log)}"
         output:
           - take: zip_package
             as: archive

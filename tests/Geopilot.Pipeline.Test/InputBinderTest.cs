@@ -316,6 +316,34 @@ public class InputBinderTest
     }
 
     [TestMethod]
+    public void PassesCollectionValuedResultThroughToMatchingParameter()
+    {
+        var dictionary = new Dictionary<string, string> { ["de"] = "Hallo" };
+
+        var result = InputBinder.Bind(Single(typeof(Dictionary<string, string>)), new InputValue.StepOutputReference("s", "o"), ResolverReturning(dictionary));
+
+        Assert.AreSame(dictionary, result);
+    }
+
+    [TestMethod]
+    public void PassesMultiEntryCollectionValuedResultThroughToMatchingParameter()
+    {
+        var dictionary = new Dictionary<string, string> { ["de"] = "Hallo", ["en"] = "Hello" };
+
+        var result = InputBinder.Bind(Single(typeof(Dictionary<string, string>)), new InputValue.StepOutputReference("s", "o"), ResolverReturning(dictionary));
+
+        Assert.AreSame(dictionary, result);
+    }
+
+    [TestMethod]
+    public void MissingInputForArrayParameterBindsEmptyArray()
+    {
+        var result = InputBinder.Bind(ArrayTarget(typeof(string[])), null, EmptyResolver);
+
+        Assert.HasCount(0, (string[])result!);
+    }
+
+    [TestMethod]
     public void FromParameterReadsNullability()
     {
         var parameters = typeof(InputBinderTest)

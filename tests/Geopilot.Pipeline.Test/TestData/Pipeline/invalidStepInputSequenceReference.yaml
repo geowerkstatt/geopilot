@@ -1,13 +1,8 @@
 processes:
   - id: xtf_validator
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
-    default_config:
-      profile:
-      poll_interval: 500
   - id: zip_package_process
     implementation: Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess
-    default_config:
-      archive_file_name: myPersonalZipArchive
   - id: xtf_matcher
     implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
     default_config:
@@ -31,10 +26,6 @@ pipelines:
         display_name:
           en: XTF Validation
         process_id: xtf_validator
-        conditions:
-          pre:
-            fail_conditions:
-              - expression: "[zip_package_process.archive] != null"
         input:
           iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
@@ -45,19 +36,16 @@ pipelines:
             as: xtf_log
             action:
               - DOWNLOAD
-          - take: validation_successful
-            as: successful
       - id: zip_package
         display_name:
           en: Zip Package
         process_id: zip_package_process
         input:
           input:
-            - "${step_output(validation.error_log)}"
             - "${step_output(validation.xtf_log)}"
-            - "${step_output(xtf_matching.xtf_files)}"
+            - "${step_output(validation.invalid_reference)}"
         output:
           - take: zip_package
-            as: archive
+            as: zip_package
             action:
               - DOWNLOAD
