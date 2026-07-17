@@ -32,11 +32,40 @@ internal static class InputCompiler
         null => new InputValue.Literal(null),
         string text => CompileScalar(text),
 
-        // A YAML sequence (List<object>) or mapping (Dictionary<object, object>) lands here.
-        // Neither is supported yet: only literals and ${step_output(...)} references are.
+        // A YAML mapping (Dictionary<object, object>) would describe a complex object.
+        // The definition of such objects in the pipeline YAML is not supported.
+        System.Collections.IDictionary => throw new InputCompilationException(
+            $"Input '{parameterName}': a complex object cannot be built in the definition. Fill it from a step output instead."),
+
+        // A YAML sequence (List<object>) becomes a list value.
+        System.Collections.IEnumerable sequence => CompileSequence(parameterName, sequence),
+
         _ => throw new InputCompilationException(
-            $"Input '{parameterName}': only a literal or a ${{step_output(stepId.outputName)}} reference is supported here."),
+            $"Input '{parameterName}': only a literal, a ${{step_output(stepId.outputName)}} reference, or a list of those is supported here."),
     };
+
+    /// <summary>
+    /// Compiles a YAML sequence into a <see cref="InputValue.Sequence"/> by compiling each item on
+    /// its own. A list may not contain another list, so an item that is itself a sequence is
+    /// rejected rather than compiled.
+    /// </summary>
+    private static InputValue.Sequence CompileSequence(string parameterName, System.Collections.IEnumerable sequence)
+    {
+        var items = new List<InputValue>();
+        foreach (var element in sequence)
+        {
+            var compiledElement = CompileValue(parameterName, element);
+            if (compiledElement is InputValue.Sequence)
+            {
+                throw new InputCompilationException(
+                    $"Input '{parameterName}': a list must not contain another list. Nested lists are not supported.");
+            }
+
+            items.Add(compiledElement);
+        }
+
+        return new InputValue.Sequence(items);
+    }
 
     private static InputValue CompileScalar(string text)
     {

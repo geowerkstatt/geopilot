@@ -71,12 +71,52 @@ public class InputCompilerTest
     }
 
     [TestMethod]
-    public void RejectsSequenceValueAsUnsupportedShape()
+    public void CompilesSequenceOfLiterals()
     {
-        var sequence = new List<object?> { "a", "b" };
+        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["tags"] = new List<object?> { "xtf", "ili" } });
+
+        var sequence = (InputValue.Sequence)compiled["tags"];
+        CollectionAssert.AreEqual(
+            new InputValue[] { new InputValue.Literal("xtf"), new InputValue.Literal("ili") },
+            sequence.Items.ToList());
+    }
+
+    [TestMethod]
+    public void CompilesSequenceMixingLiteralsAndReferences()
+    {
+        var rawSequence = new List<object?> { "start", "${step_output(validation.log)}", "done" };
+
+        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["allMessages"] = rawSequence });
+
+        var sequence = (InputValue.Sequence)compiled["allMessages"];
+        CollectionAssert.AreEqual(
+            new InputValue[]
+            {
+                new InputValue.Literal("start"),
+                new InputValue.StepOutputReference("validation", "log"),
+                new InputValue.Literal("done"),
+            },
+            sequence.Items.ToList());
+    }
+
+    [TestMethod]
+    public void RejectsNestedSequence()
+    {
+        var nested = new List<object?> { new List<object?> { "a", "b" } };
+
+        var exception = Assert.Throws<InputCompilationException>(
+            () => InputCompiler.Compile(new Dictionary<string, object?> { ["presetMatrix"] = nested }));
+
+        Assert.Contains("Nested lists are not supported", exception.Message);
+    }
+
+    [TestMethod]
+    public void RejectsMappingInsideSequence()
+    {
+        var sequenceWithMapping = new List<object?> { "ok", new Dictionary<object, object?> { ["count"] = "5" } };
 
         Assert.Throws<InputCompilationException>(
-            () => InputCompiler.Compile(new Dictionary<string, object?> { ["tags"] = sequence }));
+            () => InputCompiler.Compile(new Dictionary<string, object?> { ["mixed"] = sequenceWithMapping }));
     }
 
     [TestMethod]

@@ -183,6 +183,53 @@ public class PipelineStepTest
     }
 
     [TestMethod]
+    public async Task SuccessfullStepRunWithSequenceInputSpreadingAReferencedList()
+    {
+        var inputs = new Dictionary<string, InputValue>
+        {
+            ["data"] = new InputValue.Sequence(
+            [
+                new InputValue.Literal("first"),
+                new InputValue.StepOutputReference("step_01", "data"),
+                new InputValue.Literal("last"),
+            ]),
+        };
+        var outputConfigs = new List<OutputConfig>
+        {
+            new OutputConfig
+            {
+                Take = "error_log",
+                As = "my_output",
+                Action = new HashSet<OutputAction>(),
+            },
+        };
+        var pipelineContext = ContextWith(("step_01", "data", new string[] { "middle_a", "middle_b" }));
+        var processData = new Dictionary<string, object>()
+        {
+            { "error_log", "some_data" },
+        };
+
+        // Two literals plus the two elements of the referenced list, spread one level.
+        var processMock = new MockPipelineProcessArrayInput(processData, 4);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(inputs)
+            .OutputConfig(outputConfigs)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+        Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+    }
+
+    [TestMethod]
     public async Task StepRunFailsWhenInputReferencesUnknownStep()
     {
         var inputs = new Dictionary<string, InputValue>

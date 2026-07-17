@@ -18,10 +18,16 @@ internal sealed record BindingTarget(string Name, Type Type, bool IsNullable, bo
     internal static BindingTarget FromParameter(ParameterInfo parameter)
     {
         var nullability = new NullabilityInfoContext().Create(parameter);
+
+        // Element nullability lives in different places depending on the parameter shape: an array
+        // exposes it through ElementType, a generic list such as IEnumerable<T> through its first
+        // generic argument.
+        var elementNullability = nullability.ElementType ?? nullability.GenericTypeArguments.FirstOrDefault();
+
         return new BindingTarget(
             parameter.Name ?? string.Empty,
             parameter.ParameterType,
             nullability.WriteState is NullabilityState.Nullable,
-            nullability.ElementType?.WriteState is NullabilityState.Nullable);
+            elementNullability?.WriteState is NullabilityState.Nullable);
     }
 }

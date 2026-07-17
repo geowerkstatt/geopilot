@@ -20,4 +20,11 @@ public abstract record InputValue
     /// <c>${step_output(stepId.outputName)}</c>.
     /// </summary>
     public sealed record StepOutputReference(string StepId, string OutputName) : InputValue;
+
+    /// <summary>
+    /// A list written as a YAML sequence in the definition. Each item is a single value, either a
+    /// literal or a step output reference. Because nested lists are not supported, an item is never
+    /// itself a <see cref="Sequence"/>.
+    /// </summary>
+    public sealed record Sequence(IReadOnlyList<InputValue> Items) : InputValue;
 }
