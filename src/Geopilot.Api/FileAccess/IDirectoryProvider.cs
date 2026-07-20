@@ -39,6 +39,12 @@ public interface IDirectoryProvider
     string SharedDirectory { get; }
 
     /// <summary>
+    /// Gets the root directory for read-only resource files that pipeline definitions reference via
+    /// <c>${file(path)}</c>. Provided by the deployment; not created by the application.
+    /// </summary>
+    string ResourcesDirectory { get; }
+
+    /// <summary>
     /// Gets the per-job upload directory for the specified <paramref name="jobId"/>.
     /// </summary>
     string GetUploadDirectoryPath(Guid jobId);

@@ -27,9 +27,7 @@ pipelines:
           en: XTF Validation
         process_id: xtf_validator
         input:
-          - from: xtf_matching
-            take: xtf_files
-            as: iliFile
+          iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
           - take: error_log
             as: error_log
@@ -43,12 +41,7 @@ pipelines:
           en: Zip Package
         process_id: zip_package_process
         input:
-          - from: validation
-            take: invalid_reference
-            as: input
-          - from: validation
-            take: xtf_log
-            as: input
+          input: "${step_output(validation.invalid_reference)}"
         output:
           - take: zip_package
             as: zip_package

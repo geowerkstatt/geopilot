@@ -14,11 +14,6 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
         }
 
         var allSteps = pipeline.Steps ?? new List<StepConfig>();
-        if (allSteps == null || allSteps.Count == 0)
-        {
-            return ValidationResult.Success;
-        }
-
         var errorMessages = allSteps.SelectMany(s => GetErrorMessages(s, allSteps)).ToList();
 
         if (errorMessages.Count > 0)
@@ -31,41 +26,62 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
         }
     }
 
-    private List<string> GetErrorMessages(StepConfig stepToValidate, List<StepConfig> allSteps)
+    private static List<string> GetErrorMessages(StepConfig stepToValidate, List<StepConfig> allSteps)
     {
         if (stepToValidate.Input == null)
         {
             return new List<string>();
         }
 
-        var errorMessages = new List<string>();
-        foreach (var input in stepToValidate.Input)
+        IReadOnlyDictionary<string, InputValue> compiledInput;
+        try
         {
-            var hasReferenceFromAStep = HasStep(input.From, input.Take, stepToValidate.Id, allSteps);
-            if (!hasReferenceFromAStep)
+            compiledInput = InputCompiler.Compile(stepToValidate.Input);
+        }
+        catch (InputCompilationException ex)
+        {
+            return new List<string> { $"Step '{stepToValidate.Id}': {ex.Message}" };
+        }
+
+        var errorMessages = new List<string>();
+        foreach (var (parameterName, inputValue) in compiledInput)
+        {
+            foreach (var reference in StepOutputReferencesOf(inputValue))
             {
-                errorMessages.Add($"Step '{stepToValidate.Id}' has an input reference to '{input.From}' with attribute '{input.Take}' that cannot be found in previous steps.");
+                if (!HasEarlierOutput(reference, stepToValidate.Id, allSteps))
+                {
+                    errorMessages.Add($"Step '{stepToValidate.Id}' input '{parameterName}' references '{reference.StepId}.{reference.OutputName}', which is not an output of an earlier step.");
+                }
             }
         }
 
         return errorMessages;
     }
 
-    private bool HasStep(string stepId, string take, string currentStepId, List<StepConfig> allSteps)
+    private static IEnumerable<InputValue.StepOutputReference> StepOutputReferencesOf(InputValue value) => value switch
     {
-        return allSteps.TakeWhile(s => s.Id != currentStepId).Any(s => s.Id == stepId && HasOutput(s.Output, take));
+        InputValue.StepOutputReference reference => new[] { reference },
+        InputValue.Sequence sequence => sequence.Items.OfType<InputValue.StepOutputReference>(),
+        _ => Enumerable.Empty<InputValue.StepOutputReference>(),
+    };
+
+    private static bool HasEarlierOutput(InputValue.StepOutputReference reference, string currentStepId, List<StepConfig> allSteps)
+    {
+        return allSteps
+            .TakeWhile(s => s.Id != currentStepId)
+            .Any(s => s.Id == reference.StepId && HasOutput(s.Output, reference.OutputName));
     }
 
-    private bool HasOutput(List<OutputConfig>? outputConfig, string take)
+    private static bool HasOutput(List<OutputConfig>? outputConfig, string outputName)
     {
         if (outputConfig != null)
         {
-            return outputConfig.Any(o => o.As == take);
+            return outputConfig.Any(o => o.As == outputName);
         }
         else
         {
-            // we return true as the step has a required annotation on the output
-            // and we don't want to fail twice on the same issue (missing output reference)
+            // The step declares no output. It has a Required annotation on its output, so we do not
+            // report the missing reference here to avoid failing twice on the same issue.
             return true;
         }
     }

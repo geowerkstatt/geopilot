@@ -1,0 +1,1 @@
+resource file provided via a file reference

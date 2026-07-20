@@ -5,11 +5,14 @@
 ### Changed
 
 - The XTF validation error tree groups errors by configurable criteria (by default model, topic and class; the tree-only pipeline groups by INTERLIS class), shows the number of entries per group, and displays the error-category titles in the active language.
+- Pipeline step `input` is now a map from process parameter name to value, replacing the previous list of `from`, `take` and `as` entries. A value is a literal, a `${step_output(stepId.outputName)}` reference, or a YAML list of those. Existing pipeline definitions must be updated to the new form.
 
 ### Added
 
 - Validation errors can be explored visually in the delivery view: when a validation step fails, its errors are shown on an interactive map and in an error tree. The two views are cross-linked (selecting an error in one highlights it in the other) and share a filter.
 - `Visualization` output action in the `GeoWerkstatt.Geopilot.Pipeline` runtime: a pipeline step can tag an output as a self-describing visualization config (a `{ type, data }` envelope), which the runtime serves to the frontend to render based on its `type`.
+- A pipeline step `input` value can reference a file shipped with the deployment via `${file(path)}` (relative to the configured `Storage:ResourcesDirectory`), injecting a constant resource such as a template or lookup table into a process without a preceding step.
+- A pipeline step `input` value can reference the uploaded delivery files with `${upload()}`, so a pipeline definition can wire the upload to a process parameter explicitly.
 
 ## v3.0.341 - 2026-06-17
 

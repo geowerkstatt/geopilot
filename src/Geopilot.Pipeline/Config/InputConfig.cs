@@ -1,31 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
-using YamlDotNet.Serialization;
-
-namespace Geopilot.Pipeline.Config;
+﻿namespace Geopilot.Pipeline.Config;
 
 /// <summary>
-/// Configuration for input data handling in a pipeline step.
+/// Definition of the inputs for a pipeline step.
+/// Each key is the name of an input parameter and each value is the raw YAML node from the pipeline defintion.
 /// </summary>
-public class InputConfig
+/// <remarks>
+/// The raw YAML nodes are compiled into <see cref="InputValue"/>s by <see cref="InputCompiler"/> when the pipeline is built.
+/// </remarks>
+public class InputConfig : Dictionary<string, object?>
 {
-    /// <summary>
-    /// The name of the step from which to take the data from.
-    /// </summary>
-    [Required(AllowEmptyStrings = false, ErrorMessage = "Input from is required.")]
-    [YamlMember(Alias = "from")]
-    public required string From { get; set; }
-
-    /// <summary>
-    /// The name of the attribute from which to take the data.
-    /// </summary>
-    [Required(AllowEmptyStrings = false, ErrorMessage = "Input take is required.")]
-    [YamlMember(Alias = "take")]
-    public required string Take { get; set; }
-
-    /// <summary>
-    /// The attribute name to map the input data to.
-    /// </summary>
-    [Required(AllowEmptyStrings = false, ErrorMessage = "Input as is required.")]
-    [YamlMember(Alias = "as")]
-    public required string As { get; set; }
 }

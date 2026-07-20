@@ -199,12 +199,20 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
 
         /// <inheritdoc />
-        public void Validate()
+        public void Validate(string? resourcesRoot = null)
         {
-            var (_, constructor, processParameterization) = PrepareProcessDescriptor();
+            ArgumentNullException.ThrowIfNull(stepConfig);
+
+            var (objectType, constructor, processParameterization) = PrepareProcessDescriptor();
             foreach (var parameterInfo in constructor.GetParameters())
             {
                 ValidateParameter(parameterInfo, processParameterization);
+            }
+
+            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot);
+            if (inputErrors.Count > 0)
+            {
+                throw new InvalidOperationException(string.Join(Environment.NewLine, inputErrors));
             }
         }
 
@@ -255,7 +263,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
             if (!string.IsNullOrEmpty(parameterInfo.Name) &&
                 processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&
-                Parameterization.TryConvertObject(rawValue, parameterInfo.ParameterType, out _))
+                RawValueConverter.TryConvert(rawValue, parameterInfo.ParameterType, out _))
             {
                 return;
             }
@@ -308,7 +316,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             }
             else if (!string.IsNullOrEmpty(parameterInfo.Name) &&
                      processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&
-                     Parameterization.TryConvertObject(rawValue, parameterInfo.ParameterType, out var convertedValue))
+                     RawValueConverter.TryConvert(rawValue, parameterInfo.ParameterType, out var convertedValue))
             {
                 return convertedValue;
             }
