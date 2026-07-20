@@ -259,7 +259,57 @@ public class PipelineIntegrationTest
         Assert.HasCount(2, xtfFiles);
     }
 
-    private PipelineFactory CreatePipelineFactory(string filename)
+    [TestMethod]
+    public async Task RunPipelineWithFileReference()
+    {
+        var resourcesDirectory = Path.Combine("TestData", "Resources");
+
+        PipelineFactory factory = CreatePipelineFactory("fileReferencePipeline", resourcesDirectory);
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
+
+        using var pipeline = factory.CreatePipeline("file_reference", Guid.NewGuid());
+
+        var context = await pipeline.Run(new PipelineFileList(new List<IPipelineFile>()), CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+
+        var archiveOutput = context.StepResults["zip_package"].Outputs["archive"];
+        var zipFile = archiveOutput.Data as IPipelineFile;
+        Assert.IsNotNull(zipFile, "No ZIP file in output");
+
+        using var zipStream = zipFile.OpenReadFileStream();
+        using var zipArchive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Read);
+        Assert.HasCount(1, zipArchive.Entries, "ZIP should contain the referenced resource file");
+        Assert.AreEqual("sample.txt", zipArchive.Entries[0].Name);
+    }
+
+    [TestMethod]
+    public async Task RunPipelineWithUploadReference()
+    {
+        PipelineFactory factory = CreatePipelineFactory("uploadReferencePipeline");
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
+
+        var pipelineFiles = new PipelineFileList(new List<IPipelineFile>
+        {
+            new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf"),
+        });
+        using var pipeline = factory.CreatePipeline("upload_reference", Guid.NewGuid());
+
+        var context = await pipeline.Run(pipelineFiles, CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+
+        var matched = context.StepResults["matcher"].Outputs["xtf_files"].Data as IPipelineFile[];
+        Assert.IsNotNull(matched, "matcher did not output xtf_files");
+        Assert.HasCount(1, matched);
+        Assert.AreEqual("RoadsExdm2ien.xtf", matched[0].OriginalFileName);
+    }
+
+    private PipelineFactory CreatePipelineFactory(string filename, string? resourcesDirectory = null)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");
         string pipelineDirectory = Path.Combine(Path.GetTempPath(), "Pipeline");
@@ -270,6 +320,7 @@ public class PipelineIntegrationTest
             .PipelineProcessFactory(this.pipelineProcessFactory)
             .LoggerFactory(this.loggerFactoryMock.Object)
             .PipelineTempDirectory(pipelineDirectory)
+            .ResourcesDirectory(resourcesDirectory)
             .Build();
     }
 }

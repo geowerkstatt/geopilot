@@ -199,7 +199,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
 
         /// <inheritdoc />
-        public void Validate()
+        public void Validate(string? resourcesRoot = null)
         {
             ArgumentNullException.ThrowIfNull(stepConfig);
 
@@ -209,7 +209,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 ValidateParameter(parameterInfo, processParameterization);
             }
 
-            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input);
+            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot);
             if (inputErrors.Count > 0)
             {
                 throw new InvalidOperationException(string.Join(Environment.NewLine, inputErrors));

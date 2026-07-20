@@ -1,0 +1,21 @@
+processes:
+  - id: zip_package_process
+    implementation: Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess
+    default_config:
+      archiveFileName: resourceArchive
+pipelines:
+  - id: file_reference
+    display_name:
+      en: file reference pipeline
+    steps:
+      - id: zip_package
+        display_name:
+          en: Zip Package
+        process_id: zip_package_process
+        input:
+          input: "${file(sample.txt)}"
+        output:
+          - take: zip_package
+            as: archive
+            action:
+              - DOWNLOAD

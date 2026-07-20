@@ -50,6 +50,58 @@ public class InputCompilerTest
     }
 
     [TestMethod]
+    public void CompilesFileReference()
+    {
+        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["template"] = "${file(templates/header.xtf)}" });
+
+        Assert.AreEqual(new InputValue.FileReference("templates/header.xtf"), compiled["template"]);
+    }
+
+    [TestMethod]
+    [DataRow("${file(templates/header.xtf)}")]
+    [DataRow("  ${file(templates/header.xtf)}  ")]
+    [DataRow("${ file(templates/header.xtf) }")]
+    [DataRow("${file( templates/header.xtf )}")]
+    public void CompilesFileReferenceToleratingWhitespace(string value)
+    {
+        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["reference"] = value });
+
+        Assert.AreEqual(new InputValue.FileReference("templates/header.xtf"), compiled["reference"]);
+    }
+
+    [TestMethod]
+    public void CompilesUploadReference()
+    {
+        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["uploadFiles"] = "${upload()}" });
+
+        Assert.AreEqual(new InputValue.UploadReference(), compiled["uploadFiles"]);
+    }
+
+    [TestMethod]
+    [DataRow("${upload()}")]
+    [DataRow("  ${upload()}  ")]
+    [DataRow("${ upload() }")]
+    [DataRow("${upload( )}")]
+    public void CompilesUploadReferenceToleratingWhitespace(string value)
+    {
+        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["reference"] = value });
+
+        Assert.AreEqual(new InputValue.UploadReference(), compiled["reference"]);
+    }
+
+    [TestMethod]
+    [DataRow("${file(/templates/header.xtf)}")]
+    [DataRow("${file(../secret.txt)}")]
+    [DataRow("${file(a/../b.txt)}")]
+    [DataRow("${file(.)}")]
+    [DataRow("${file()}")]
+    public void RejectsRootedOrTraversingFilePath(string reference)
+    {
+        Assert.Throws<InputCompilationException>(
+            () => InputCompiler.Compile(new Dictionary<string, object?> { ["x"] = reference }));
+    }
+
+    [TestMethod]
     [DataRow("prefix ${step_output(a.b)}")]
     [DataRow("${step_output(a.b)} suffix")]
     public void RejectsReferenceMarkerEmbeddedInText(string value)
@@ -62,7 +114,8 @@ public class InputCompilerTest
     [DataRow("${unsupported}")]
     [DataRow("${unsupported:value}")]
     [DataRow("${uploads}")]
-    [DataRow("${file(/templates/header.xtf)}")]
+    [DataRow("${upload}")]
+    [DataRow("${upload(extra)}")]
     public void RejectsUnsupportedReferenceKind(string reference)
     {
         var exception = Assert.Throws<InputCompilationException>(

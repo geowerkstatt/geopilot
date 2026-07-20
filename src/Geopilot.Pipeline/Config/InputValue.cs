@@ -27,4 +27,17 @@ public abstract record InputValue
     /// itself a <see cref="Sequence"/>.
     /// </summary>
     public sealed record Sequence(IReadOnlyList<InputValue> Items) : InputValue;
+
+    /// <summary>
+    /// A reference to a file provided from the configured resources directory, written in the
+    /// definition as <c>${file(relativePath)}</c>. The path is relative to the resources root and is
+    /// resolved to an IPipelineFile when the step runs.
+    /// </summary>
+    public sealed record FileReference(string RelativePath) : InputValue;
+
+    /// <summary>
+    /// A reference to the files uploaded for the delivery, written in the definition as
+    /// <c>${upload()}</c>. Resolved to the upload's IPipelineFileList when the step runs.
+    /// </summary>
+    public sealed record UploadReference : InputValue;
 }
