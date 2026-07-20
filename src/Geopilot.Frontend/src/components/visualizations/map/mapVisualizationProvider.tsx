@@ -1,8 +1,7 @@
-import { FC, MutableRefObject, PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
+import { FC, MutableRefObject, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Theme, useTheme } from "@mui/material/styles";
 import { defaults as defaultControls } from "ol/control";
-import { Coordinate } from "ol/coordinate";
 import { createEmpty, extend as extendExtent, getCenter, isEmpty as isExtentEmpty } from "ol/extent";
 import Feature from "ol/Feature";
 import WKT from "ol/format/WKT";
@@ -12,6 +11,7 @@ import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import OlMap from "ol/Map";
+import { unByKey } from "ol/Observable";
 import Overlay from "ol/Overlay";
 import { get as getProjection } from "ol/proj";
 import { register } from "ol/proj/proj4";
@@ -20,9 +20,9 @@ import WMTS, { optionsFromCapabilities } from "ol/source/WMTS";
 import { Circle, Fill, Stroke, Style } from "ol/style";
 import View, { FitOptions } from "ol/View";
 import proj4 from "proj4";
-import { MapLayer, MapVisualizationConfig } from "../../../api/apiInterfaces";
+import { LocalizedText, MapLayer, MapVisualizationConfig } from "../../../api/apiInterfaces";
 import { useLocalized } from "../../../hooks/useLocalized";
-import { getTitle, LayerSwitcherProperties } from "./layerSwitcherProps";
+import { LayerSwitcherProperties } from "./layerSwitcherProps";
 import { MapVisualizationContext } from "./mapVisualizationContext";
 import "ol/ol.css";
 
@@ -36,19 +36,16 @@ const SWISS_EXTENT: [number, number, number, number] = [2420000, 1030000, 290000
 const ZOOM_TO_NODE_MAX_ZOOM = 13;
 const ZOOM_TO_NODE_DURATION = 400;
 
-let projectionRegistered = false;
-const registerSwissProjection = () => {
-  if (projectionRegistered) return;
-  proj4.defs(
-    SWISS_PROJECTION,
-    "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 " +
-      "+x_0=2600000 +y_0=1200000 +ellps=bessel " +
-      "+towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs",
-  );
-  register(proj4);
-  getProjection(SWISS_PROJECTION)?.setExtent(SWISS_EXTENT);
-  projectionRegistered = true;
-};
+const LOCALIZABLE_TITLE_PROPERTY = "localizableTitle";
+
+proj4.defs(
+  SWISS_PROJECTION,
+  "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 " +
+    "+x_0=2600000 +y_0=1200000 +ellps=bessel " +
+    "+towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs",
+);
+register(proj4);
+getProjection(SWISS_PROJECTION)?.setExtent(SWISS_EXTENT);
 
 const wktFormat = new WKT();
 
@@ -84,7 +81,7 @@ const fetchCapabilitiesDocument = (url: string): Promise<Document> =>
 const buildWmtsLayer = async (
   capabilitiesUrl: string,
   layerIds?: string[],
-  title?: string,
+  title?: LocalizedText,
 ): Promise<BaseLayer | null> => {
   try {
     const capabilitiesDocument = await fetchCapabilitiesDocument(capabilitiesUrl);
@@ -122,14 +119,15 @@ const buildWmtsLayer = async (
     if (tileLayers.length === 0) return null;
 
     if (tileLayers.length === 1) {
-      if (title) tileLayers[0].set(LayerSwitcherProperties.TITLE, title);
+      if (title) tileLayers[0].set(LOCALIZABLE_TITLE_PROPERTY, title);
       return tileLayers[0];
     }
 
     const serviceTitle = capabilities?.ServiceIdentification?.Title;
-    const groupTitle =
-      title || (typeof serviceTitle === "string" && serviceTitle.trim()) || new URL(capabilitiesUrl).host;
-    return new LayerGroup({ layers: tileLayers, properties: { title: groupTitle } });
+    const groupProperties = title
+      ? { [LOCALIZABLE_TITLE_PROPERTY]: title }
+      : { title: (typeof serviceTitle === "string" && serviceTitle.trim()) || new URL(capabilitiesUrl).host };
+    return new LayerGroup({ layers: tileLayers, properties: groupProperties });
   } catch (error) {
     // Don't fail the whole map if the base map is unavailable (e.g. the map service is unreachable or
     // its host is not allow-listed by the Content-Security-Policy). The feature layer still renders.
@@ -138,62 +136,13 @@ const buildWmtsLayer = async (
   }
 };
 
-// Returns a transparent variant of a hex color (#rrggbb) by appending a 20% alpha channel, used as the
-// polygon fill so the underlying map stays visible. Other color formats are returned unchanged.
-const toTransparent = (color: string): string => (/^#[0-9a-f]{6}$/i.test(color) ? `${color}33` : color);
-
-const createPopupArrow = (size: number, color: string, top: string): HTMLDivElement => {
-  const arrow = document.createElement("div");
-  Object.assign(arrow.style, {
-    position: "absolute",
-    top,
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "0",
-    height: "0",
-    borderLeft: `${size}px solid transparent`,
-    borderRight: `${size}px solid transparent`,
-    borderTop: `${size}px solid ${color}`,
-  });
-  return arrow;
-};
-
-const createPopupElement = (theme: Theme): [HTMLDivElement, (text: string) => void] => {
-  // The popup element is created imperatively rather than rendered by React, because OpenLayers'
-  // Overlay moves the element out of its original parent into the map's overlay container. A
-  // React-rendered node handed to OL would no longer be where React expects it, and the next sibling
-  // insert/remove would throw "insertBefore … not a child of this node".
-  const popupElement = document.createElement("div");
-  Object.assign(popupElement.style, {
-    display: "none",
-    position: "relative",
-    backgroundColor: theme.palette.background.paper,
-    border: `1px solid ${theme.palette.primary.light}`,
-    borderRadius: theme.spacing(0.5),
-    padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
-    maxWidth: "300px",
-    fontSize: "0.875rem",
-    pointerEvents: "none",
-  } satisfies Partial<CSSStyleDeclaration>);
-  const popupContent = document.createElement("div");
-  popupElement.appendChild(popupContent);
-  popupElement.appendChild(createPopupArrow(8, theme.palette.primary.light, "100%"));
-  popupElement.appendChild(createPopupArrow(7, theme.palette.background.paper, "calc(100% - 1px)"));
-  return [
-    popupElement,
-    (text: string) => {
-      popupContent.textContent = text;
-    },
-  ];
-};
-
 // Builds a vector layer for one feature layer of the config. Points are drawn as circle markers filled
 // with the layer color; lines and polygon outlines are stroked with it, polygons filled with a
 // transparent variant of it. Each feature keeps its info text so it can be shown in a popup on click.
 const buildFeatureLayer = (
   layer: MapLayer,
   color: string,
-  title: string,
+  title: LocalizedText | undefined,
   highlightColor: string,
   visibleIdsRef: MutableRefObject<ReadonlySet<string> | undefined>,
   highlightedIdsRef: MutableRefObject<ReadonlySet<string>>,
@@ -232,7 +181,7 @@ const buildFeatureLayer = (
 
   return new VectorLayer({
     source,
-    properties: { [LayerSwitcherProperties.TITLE]: title },
+    properties: { [LOCALIZABLE_TITLE_PROPERTY]: title },
     // A style function (not a static style): filtering hides non-matching features and selection emphasizes
     // highlighted ones. It reads the current sets from refs, which the map's update effect keeps in sync,
     // so changing filter/selection only restyles the existing layer instead of rebuilding the map.
@@ -245,24 +194,88 @@ const buildFeatureLayer = (
   });
 };
 
+// Returns a transparent variant of a hex color (#rrggbb) by appending a 20% alpha channel, used as the
+// polygon fill so the underlying map stays visible. Other color formats are returned unchanged.
+const toTransparent = (color: string): string => (/^#[0-9a-f]{6}$/i.test(color) ? `${color}33` : color);
+
+const createPopupArrow = (size: number, color: string, top: string): HTMLDivElement => {
+  const arrow = document.createElement("div");
+  Object.assign(arrow.style, {
+    position: "absolute",
+    top,
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "0",
+    height: "0",
+    borderLeft: `${size}px solid transparent`,
+    borderRight: `${size}px solid transparent`,
+    borderTop: `${size}px solid ${color}`,
+  });
+  return arrow;
+};
+
+const createSelectionOverlay = (theme: Theme): [Overlay, (text: string) => void] => {
+  // The popup element is created imperatively rather than rendered by React, because OpenLayers'
+  // Overlay moves the element out of its original parent into the map's overlay container. A
+  // React-rendered node handed to OL would no longer be where React expects it, and the next sibling
+  // insert/remove would throw "insertBefore … not a child of this node".
+  const popupElement = document.createElement("div");
+  Object.assign(popupElement.style, {
+    position: "relative",
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.primary.light}`,
+    borderRadius: theme.spacing(0.5),
+    padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
+    maxWidth: "300px",
+    fontSize: "0.875rem",
+    pointerEvents: "none",
+  } satisfies Partial<CSSStyleDeclaration>);
+  const popupContent = document.createElement("div");
+  popupElement.appendChild(popupContent);
+  popupElement.appendChild(createPopupArrow(8, theme.palette.primary.light, "100%"));
+  popupElement.appendChild(createPopupArrow(7, theme.palette.background.paper, "calc(100% - 1px)"));
+  const overlay = new Overlay({
+    element: popupElement,
+    positioning: "bottom-center",
+    offset: [0, -12],
+    stopEvent: false,
+  });
+  return [
+    overlay,
+    (text: string) => {
+      popupContent.textContent = text;
+    },
+  ];
+};
+
 // Returns the extent the view should fit: the combined bounding box of all feature layers, falling back to
 // the whole country when there are no features.
-const getFitExtent = (featureLayers: VectorLayer<VectorSource>[]): number[] => {
+const getFitExtent = (featureLayers: BaseLayer[]): number[] => {
   const featureExtent = createEmpty();
   for (const featureLayer of featureLayers) {
-    const extent = featureLayer.getSource()?.getExtent();
-    if (extent) extendExtent(featureExtent, extent);
+    if (featureLayer instanceof VectorLayer) {
+      const extent = featureLayer.getSource()?.getExtent();
+      if (extent) extendExtent(featureExtent, extent);
+    }
   }
   return isExtentEmpty(featureExtent) ? SWISS_EXTENT : featureExtent;
 };
 
+const fitToLayers = (map: OlMap, options: FitOptions) => {
+  if (map.getSize()) {
+    map.getView().fit(getFitExtent(map.getLayers().getArray()), options);
+  }
+};
+
 const getExtentForFeatureIds = (
-  featureLayers: VectorLayer<VectorSource>[],
+  featureLayers: BaseLayer[],
   featureIds: ReadonlySet<string>,
 ): { extent: number[]; count: number } => {
   const extent = createEmpty();
   let count = 0;
   for (const featureLayer of featureLayers) {
+    if (!(featureLayer instanceof VectorLayer)) continue;
+
     for (const feature of featureLayer.getSource()?.getFeatures() ?? []) {
       const featureId = feature.get("errorId") as string | undefined;
       if (featureId !== undefined && featureIds.has(featureId)) {
@@ -275,56 +288,6 @@ const getExtentForFeatureIds = (
     }
   }
   return { extent, count };
-};
-
-interface MapViewState {
-  center?: Coordinate;
-  resolution?: number;
-}
-
-interface MapLayerState {
-  visible: boolean;
-  opacity: number;
-}
-
-const visitLayers = (layers: BaseLayer[], parentPath: string, visit: (layer: BaseLayer, key: string) => void) => {
-  for (const layer of layers) {
-    const title = getTitle(layer);
-    const key = `${parentPath}/${title}`;
-    visit(layer, key);
-    if (layer instanceof LayerGroup) {
-      visitLayers(layer.getLayers().getArray(), key, visit);
-    }
-  }
-};
-
-const captureViewState = (map: OlMap): MapViewState => {
-  const view = map.getView();
-  return { center: view.getCenter(), resolution: view.getResolution() };
-};
-
-const restoreViewState = (map: OlMap, saved?: MapViewState) => {
-  if (!saved) return;
-  const view = map.getView();
-  if (saved.center) view.setCenter(saved.center);
-  if (saved.resolution) view.setResolution(saved.resolution);
-};
-
-const captureLayerState = (map: OlMap, into: Map<string, MapLayerState>) => {
-  visitLayers(map.getLayers().getArray(), "", (layer, key) => {
-    into.set(key, { visible: layer.getVisible(), opacity: layer.getOpacity() });
-  });
-};
-
-const restoreLayerState = (map: OlMap, saved: Map<string, MapLayerState>) => {
-  if (saved.size === 0) return;
-  visitLayers(map.getLayers().getArray(), "", (layer, key) => {
-    const state = saved.get(key);
-    if (state) {
-      layer.setVisible(state.visible);
-      layer.setOpacity(state.opacity);
-    }
-  });
 };
 
 /**
@@ -372,164 +335,132 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   const theme = useTheme();
 
   const [map, setMap] = useState<OlMap | null>(null);
-  // The map and feature layers are also kept in refs so the zoom operations can act on the current map
-  // without depending on the map state (which would recreate the callbacks on every rebuild).
-  const mapRef = useRef<OlMap | undefined>(undefined);
-  const featureLayersRef = useRef<VectorLayer<VectorSource>[]>([]);
+  const [featureLayers, setFeatureLayers] = useState<BaseLayer[]>([]);
 
   // The feature style function and the map's event handlers read the current filter/selection/callbacks
   // from refs, so changing them only restyles the existing layers (cheap) instead of rebuilding the map
   // (which would re-fetch the WMTS base map).
   const visibleIdsRef = useRef<ReadonlySet<string> | undefined>(visibleErrorIds);
   const highlightedIdsRef = useRef<ReadonlySet<string>>(highlightedErrorIds);
-  const onSelectRef = useRef(onSelectFeature);
-  onSelectRef.current = onSelectFeature;
-  const showPopupRef = useRef(showMapSelectionPopup);
-  showPopupRef.current = showMapSelectionPopup;
-
-  // View and layer state captured before a rebuild (triggered by a theme or language change) and restored
-  // afterwards, so those rebuilds keep the user's pan/zoom and layer visibility. The config is stable for a
-  // provider's lifetime, so this never restores stale state onto a different visualization.
-  const viewStateRef = useRef<MapViewState | undefined>(undefined);
-  const layerStateRef = useRef(new Map<string, MapLayerState>());
   const lastZoomTokenRef = useRef<number | undefined>(undefined);
 
   // Padding and max zoom used whenever the view is fit to features, on the initial fit and via the
   // reset-viewport button and zoom requests, so they stay in sync.
-  const [fitOptions, setFitOptions] = useState<FitOptions>({ padding: [40, 40, 40, 40], maxZoom: 12 });
-
-  const zoomToExtent = useCallback(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    map.getView().fit(getFitExtent(featureLayersRef.current), fitOptions);
-  }, [fitOptions]);
-
-  const zoomBy = useCallback((delta: number) => {
-    const view = mapRef.current?.getView();
-    const zoom = view?.getZoom();
-    if (view && zoom !== undefined) {
-      view.animate({ zoom: zoom + delta, duration: 200 });
-    }
+  // Used as a ref so it does not trigger a re-render.
+  const fitOptions = useRef<FitOptions>({ padding: [40, 40, 40, 40], maxZoom: 12 });
+  const setFitOptions = useCallback((options: FitOptions) => {
+    fitOptions.current = options;
   }, []);
 
+  const [selectionOverlay, setSelectionOverlayText] = useMemo(() => createSelectionOverlay(theme), [theme]);
+
+  const zoomToExtent = useCallback(() => {
+    if (!map) return;
+    fitToLayers(map, fitOptions.current);
+  }, [map]);
+
+  const zoomBy = useCallback(
+    (delta: number) => {
+      const view = map?.getView();
+      const zoom = view?.getZoom();
+      if (view && zoom !== undefined) {
+        view.animate({ zoom: zoom + delta, duration: 200 });
+      }
+    },
+    [map],
+  );
+
+  // translate layer titles
+  useEffect(() => {
+    for (const layer of featureLayers) {
+      const localizableTitle = layer.get(LOCALIZABLE_TITLE_PROPERTY) as LocalizedText | undefined;
+      let title = localized(localizableTitle);
+      if (!title && layer instanceof VectorLayer) {
+        title = t("mapVisualizationFeatureLayer");
+      }
+      layer.set(LayerSwitcherProperties.TITLE, title);
+      layer.changed();
+    }
+  }, [featureLayers, localized, map, t]);
+
+  // initialize map
   useEffect(() => {
     if (!config) return;
+
+    const map = new OlMap({
+      overlays: [selectionOverlay],
+      controls: defaultControls({ zoom: false, attribution: false }),
+      view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
+    });
+
+    // Defer until the map is mounted in the DOM
+    map.once("change:size", () => {
+      fitToLayers(map, fitOptions.current);
+    });
+
+    map.on("pointermove", event => {
+      const hit = map?.hasFeatureAtPixel(event.pixel) ?? false;
+      map!.getTargetElement().style.cursor = hit ? "pointer" : "";
+    });
+
     let cancelled = false;
-    let map: OlMap | undefined;
-    // The persisted layer state map is stable for the provider's lifetime; capture it here so the cleanup
-    // can write to the same instance without reading the ref during teardown.
-    const layerState = layerStateRef.current;
-    setMap(null);
 
-    const initialize = async () => {
-      try {
-        registerSwissProjection();
+    const initializeLayersFromConfig = async () => {
+      const layers: BaseLayer[] = config.layers
+        .filter(layer => layer.features)
+        .map(layer =>
+          buildFeatureLayer(
+            layer,
+            layer.color ?? theme.palette.map.fill,
+            layer.title,
+            theme.palette.map.stroke,
+            visibleIdsRef,
+            highlightedIdsRef,
+          ),
+        );
 
-        const featureLayers = config.layers
-          .filter(layer => layer.features)
-          .map(layer =>
-            buildFeatureLayer(
-              layer,
-              layer.color ?? theme.palette.map.fill,
-              localized(layer.title) || t("mapVisualizationFeatureLayer"),
-              theme.palette.map.stroke,
-              visibleIdsRef,
-              highlightedIdsRef,
-            ),
-          );
-        const layers: BaseLayer[] = [...featureLayers];
-
-        const wmtsLayerConfig = config.layers.find(layer => layer.wmts);
-        if (wmtsLayerConfig?.wmts) {
-          const wmtsLayer = await buildWmtsLayer(
-            wmtsLayerConfig.wmts,
-            wmtsLayerConfig.layerIds,
-            localized(wmtsLayerConfig.title),
-          );
-          if (cancelled) return;
-          // Base map is drawn below the features.
-          if (wmtsLayer) layers.unshift(wmtsLayer);
-        }
-        if (cancelled) return;
-
-        const [popupElement, setPopupText] = createPopupElement(theme);
-        const overlay = new Overlay({
-          element: popupElement,
-          positioning: "bottom-center",
-          offset: [0, -12],
-          stopEvent: false,
-        });
-
-        map = new OlMap({
-          layers,
-          overlays: [overlay],
-          controls: defaultControls({ zoom: false, attribution: false }),
-          view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
-        });
-        mapRef.current = map;
-        featureLayersRef.current = featureLayers;
-
-        restoreLayerState(map, layerState);
-        if (viewStateRef.current) {
-          restoreViewState(map, viewStateRef.current);
-        } else {
-          // The map is created without a target; the view component attaches one on mount. Fitting needs the
-          // map's size, so defer the initial fit until the view is sized (once, and only when there is no
-          // saved view to restore from a previous build).
-          const featureLayersForFit = featureLayers;
-          map.once("change:size", () => {
-            const current = mapRef.current;
-            if (current && current.getSize()) {
-              current.getView().fit(getFitExtent(featureLayersForFit), fitOptions);
-            }
-          });
-        }
-
-        map.on("click", event => {
-          const feature = map?.forEachFeatureAtPixel(event.pixel, f => f);
-          const info = feature?.get("info") as string | undefined;
-          const errorId = feature?.get("errorId") as string | undefined;
-          if (showPopupRef.current && feature && info) {
-            setPopupText(info);
-            popupElement.style.display = "block";
-            const geometry = feature.getGeometry();
-            overlay.setPosition(geometry ? getCenter(geometry.getExtent()) : event.coordinate);
-          } else {
-            popupElement.style.display = "none";
-            overlay.setPosition(undefined);
-          }
-          if (errorId) onSelectRef.current?.(errorId);
-        });
-
-        map.on("pointermove", event => {
-          const hit = map?.hasFeatureAtPixel(event.pixel) ?? false;
-          map!.getTargetElement().style.cursor = hit ? "pointer" : "";
-        });
-
-        if (!cancelled) {
-          setMap(map);
-        }
-      } catch (error) {
-        console.error("Failed to render map visualization.", error);
+      const wmtsLayerConfig = config.layers.find(layer => layer.wmts);
+      if (wmtsLayerConfig?.wmts) {
+        const wmtsLayer = await buildWmtsLayer(wmtsLayerConfig.wmts, wmtsLayerConfig.layerIds, wmtsLayerConfig.title);
+        // Base map is drawn below the features.
+        if (wmtsLayer) layers.unshift(wmtsLayer);
       }
+      if (cancelled) return;
+      map.setLayers(layers);
+      setFeatureLayers(layers);
+      setMap(map);
+      fitToLayers(map, fitOptions.current);
     };
-
-    initialize();
+    initializeLayersFromConfig();
 
     return () => {
       cancelled = true;
-      if (map) {
-        // Capture the live view and layer state so a rebuild (theme/language change) can restore it, then
-        // detach the map from its container.
-        captureLayerState(map, layerState);
-        viewStateRef.current = captureViewState(map);
-        map.setTarget(undefined);
-      }
-      setMap(null);
-      mapRef.current = undefined;
-      featureLayersRef.current = [];
+      map.setTarget(undefined);
     };
-  }, [config, theme, t, localized, fitOptions]);
+  }, [config, selectionOverlay, theme]);
+
+  // map event handlers with dependencies to component props
+  useEffect(() => {
+    if (!map) return;
+
+    const handler = map.on("click", event => {
+      const feature = map?.forEachFeatureAtPixel(event.pixel, f => f);
+      const info = feature?.get("info") as string | undefined;
+      const errorId = feature?.get("errorId") as string | undefined;
+      if (showMapSelectionPopup && feature && info) {
+        setSelectionOverlayText(info);
+        const geometry = feature.getGeometry();
+        selectionOverlay.setPosition(geometry ? getCenter(geometry.getExtent()) : event.coordinate);
+      } else {
+        selectionOverlay.setPosition(undefined);
+      }
+      if (errorId) onSelectFeature?.(errorId);
+    });
+
+    return () => {
+      unByKey(handler);
+    };
+  }, [map, onSelectFeature, selectionOverlay, setSelectionOverlayText, showMapSelectionPopup]);
 
   // Apply filter (hide non-matching) and selection (highlight) without rebuilding the map and without moving
   // the view: update the refs the style function reads and restyle the existing layers. Moving the map is
@@ -538,22 +469,22 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     visibleIdsRef.current = visibleErrorIds;
     highlightedIdsRef.current = highlightedErrorIds;
     if (!map) return;
-    featureLayersRef.current.forEach(layer => layer.changed());
-  }, [map, visibleErrorIds, highlightedErrorIds]);
+    featureLayers.forEach(layer => layer.changed());
+  }, [map, visibleErrorIds, highlightedErrorIds, featureLayers]);
 
   // Zoom to the features of an explicit zoom request (a tree node's features: one for a leaf, many for a
   // group). Guarded by the request token so a re-render does not re-run the last zoom.
   useEffect(() => {
     if (!map || !zoomRequest || zoomRequest.token === lastZoomTokenRef.current) return;
     lastZoomTokenRef.current = zoomRequest.token;
-    const { extent } = getExtentForFeatureIds(featureLayersRef.current, new Set(zoomRequest.featureIds));
+    const { extent } = getExtentForFeatureIds(map.getLayers().getArray(), new Set(zoomRequest.featureIds));
     if (isExtentEmpty(extent)) return;
     map.getView().fit(extent, {
-      padding: fitOptions.padding,
+      padding: fitOptions.current.padding,
       maxZoom: ZOOM_TO_NODE_MAX_ZOOM,
       duration: ZOOM_TO_NODE_DURATION,
     });
-  }, [fitOptions.padding, map, zoomRequest]);
+  }, [map, zoomRequest]);
 
   return (
     <MapVisualizationContext.Provider value={{ map, zoomToExtent, zoomBy, setFitOptions }}>
