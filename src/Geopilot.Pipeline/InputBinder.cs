@@ -205,6 +205,7 @@ internal static class InputBinder
         InputValue.Literal literal => literal.Raw,
         InputValue.StepOutputReference reference => ResolveReference(reference, resolve),
         InputValue.FileReference reference => ResolveReference(reference, resolve),
+        InputValue.UploadReference reference => ResolveReference(reference, resolve),
         _ => throw new PipelineRunException($"Unsupported input value kind <{input.GetType().Name}>."),
     };
 
@@ -226,6 +227,8 @@ internal static class InputBinder
             $"Input references '{stepOutput.StepId}.{stepOutput.OutputName}', which is not an output of an earlier step.",
         InputValue.FileReference file =>
             $"Input references file '{file.RelativePath}', which could not be resolved.",
+        InputValue.UploadReference =>
+            "Input references the upload, which is not available.",
         _ => $"Input reference <{reference.GetType().Name}> could not be resolved.",
     };
 

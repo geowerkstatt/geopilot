@@ -285,6 +285,30 @@ public class PipelineIntegrationTest
         Assert.AreEqual("sample.txt", zipArchive.Entries[0].Name);
     }
 
+    [TestMethod]
+    public async Task RunPipelineWithUploadReference()
+    {
+        PipelineFactory factory = CreatePipelineFactory("uploadReferencePipeline");
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+        Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
+
+        var pipelineFiles = new PipelineFileList(new List<IPipelineFile>
+        {
+            new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf"),
+        });
+        using var pipeline = factory.CreatePipeline("upload_reference", Guid.NewGuid());
+
+        var context = await pipeline.Run(pipelineFiles, CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+
+        var matched = context.StepResults["matcher"].Outputs["xtf_files"].Data as IPipelineFile[];
+        Assert.IsNotNull(matched, "matcher did not output xtf_files");
+        Assert.HasCount(1, matched);
+        Assert.AreEqual("RoadsExdm2ien.xtf", matched[0].OriginalFileName);
+    }
+
     private PipelineFactory CreatePipelineFactory(string filename, string? resourcesDirectory = null)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");

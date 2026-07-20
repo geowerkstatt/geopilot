@@ -42,7 +42,6 @@ internal static class InputBindingValidator
 
         var bindableParameters = runMethod.GetParameters()
             .Where(p => p.Name is not null)
-            .Where(p => p.GetCustomAttribute<UploadFilesAttribute>() is null)
             .Where(p => p.ParameterType != typeof(CancellationToken))
             .ToDictionary(p => p.Name!, StringComparer.Ordinal);
 
@@ -69,9 +68,9 @@ internal static class InputBindingValidator
             if (ReferencesEarlierStep(compiled))
                 continue;
 
-            if (ContainsFileReference(compiled))
+            if (ContainsFileReference(compiled) || ContainsUploadReference(compiled))
             {
-                ValidateFileReference(parameterName, parameter, compiled, resourcesRoot, errors);
+                ValidateResolvableReference(parameterName, parameter, compiled, resourcesRoot, errors);
                 continue;
             }
 
@@ -112,6 +111,13 @@ internal static class InputBindingValidator
         _ => false,
     };
 
+    private static bool ContainsUploadReference(InputValue value) => value switch
+    {
+        InputValue.UploadReference => true,
+        InputValue.Sequence sequence => sequence.Items.Any(item => item is InputValue.UploadReference),
+        _ => false,
+    };
+
     private static IEnumerable<string> FilePathsOf(InputValue value) => value switch
     {
         InputValue.FileReference file => new[] { file.RelativePath },
@@ -119,31 +125,32 @@ internal static class InputBindingValidator
         _ => Enumerable.Empty<string>(),
     };
 
-    // A stand-in IPipelineFile used only to type check a file reference against the target parameter;
-    // the binder inspects the value's type and never reads the file.
+    // Stand-in values used only to type check a file or upload reference against the target parameter;
+    // the binder inspects the value's type and never reads them.
     private static readonly IPipelineFile SentinelFile = new PipelineFile("sentinel", "sentinel");
+    private static readonly IPipelineFileList SentinelFileList = new PipelineFileList(new List<IPipelineFile> { SentinelFile });
 
-    private static readonly ReferenceResolver ResolvesToSentinelFile = (InputValue reference, out object? value) =>
+    private static readonly ReferenceResolver ResolvesToSentinel = (InputValue reference, out object? value) =>
     {
-        if (reference is InputValue.FileReference)
+        value = reference switch
         {
-            value = SentinelFile;
-            return true;
-        }
-
-        value = null;
-        return false;
+            InputValue.FileReference => SentinelFile,
+            InputValue.UploadReference => SentinelFileList,
+            _ => null,
+        };
+        return value is not null;
     };
 
     /// <summary>
-    /// Validates a file reference: its type against the target parameter (through the real binder with
-    /// a sentinel file) and, when the resources root is known, the existence of each referenced file.
+    /// Validates a file or upload reference: its type against the target parameter (through the real
+    /// binder with a sentinel value) and, for file references when the resources root is known, the
+    /// existence of each referenced file.
     /// </summary>
-    private static void ValidateFileReference(string parameterName, ParameterInfo parameter, InputValue compiled, string? resourcesRoot, List<string> errors)
+    private static void ValidateResolvableReference(string parameterName, ParameterInfo parameter, InputValue compiled, string? resourcesRoot, List<string> errors)
     {
         try
         {
-            InputBinder.Bind(BindingTarget.FromParameter(parameter), compiled, ResolvesToSentinelFile);
+            InputBinder.Bind(BindingTarget.FromParameter(parameter), compiled, ResolvesToSentinel);
         }
         catch (PipelineRunException ex)
         {

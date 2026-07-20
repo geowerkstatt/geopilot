@@ -34,4 +34,10 @@ public abstract record InputValue
     /// resolved to an IPipelineFile when the step runs.
     /// </summary>
     public sealed record FileReference(string RelativePath) : InputValue;
+
+    /// <summary>
+    /// A reference to the files uploaded for the delivery, written in the definition as
+    /// <c>${upload()}</c>. Resolved to the upload's IPipelineFileList when the step runs.
+    /// </summary>
+    public sealed record UploadReference : InputValue;
 }

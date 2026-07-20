@@ -27,6 +27,10 @@ internal static partial class InputCompiler
     [GeneratedRegex(@"^\s*file\s*\(\s*(.*?)\s*\)\s*$")]
     private static partial Regex FileCallPattern();
 
+    // Matches a parameterless upload() call.
+    [GeneratedRegex(@"^\s*upload\s*\(\s*\)\s*$")]
+    private static partial Regex UploadCallPattern();
+
     /// <summary>
     /// Compiles every entry of <paramref name="rawInput"/> into a typed <see cref="InputValue"/>. Each
     /// key is the name of the process run method parameter the value is bound to; each value is the raw
@@ -35,8 +39,8 @@ internal static partial class InputCompiler
     /// <param name="rawInput">
     /// The raw input map of a step as deserialized from YAML, keyed by the name of the process run
     /// method parameter each value is bound to. Each value is the raw YAML node for that parameter: a
-    /// scalar (a literal, a <c>${step_output(stepId.outputName)}</c> reference or a <c>${file(path)}</c>
-    /// reference) or a sequence of those.
+    /// scalar (a literal, or a <c>${step_output(stepId.outputName)}</c>, <c>${file(path)}</c> or
+    /// <c>${upload()}</c> reference) or a sequence of those.
     /// </param>
     /// <returns>A compiled input value per parameter name.</returns>
     /// <exception cref="InputCompilationException">A value is not a supported input shape.</exception>
@@ -113,7 +117,7 @@ internal static partial class InputCompiler
     /// <summary>
     /// Parses the content of a <c>${...}</c> reference, that is the text between the braces already
     /// unwrapped by <see cref="CompileScalar"/>, into a typed <see cref="InputValue"/>. The content
-    /// reads as a function call, either <c>step_output(stepId.outputName)</c> or <c>file(path)</c>.
+    /// reads as a function call: <c>step_output(stepId.outputName)</c>, <c>file(path)</c> or <c>upload()</c>.
     /// </summary>
     private static InputValue ParseReference(string reference)
     {
@@ -128,8 +132,11 @@ internal static partial class InputCompiler
         if (fileCall.Success)
             return ParseFileReference(fileCall.Groups[1].Value, display);
 
+        if (UploadCallPattern().IsMatch(reference))
+            return new InputValue.UploadReference();
+
         throw new InputCompilationException(
-            $"Reference '{display}' is not supported. Use ${{step_output(stepId.outputName)}} or ${{file(path)}}.");
+            $"Reference '{display}' is not supported. Use ${{step_output(stepId.outputName)}}, ${{file(path)}} or ${{upload()}}.");
     }
 
     private static InputValue.StepOutputReference ParseStepOutputReference(string argument, string display)

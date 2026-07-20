@@ -70,6 +70,26 @@ public class InputCompilerTest
     }
 
     [TestMethod]
+    public void CompilesUploadReference()
+    {
+        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["uploadFiles"] = "${upload()}" });
+
+        Assert.AreEqual(new InputValue.UploadReference(), compiled["uploadFiles"]);
+    }
+
+    [TestMethod]
+    [DataRow("${upload()}")]
+    [DataRow("  ${upload()}  ")]
+    [DataRow("${ upload() }")]
+    [DataRow("${upload( )}")]
+    public void CompilesUploadReferenceToleratingWhitespace(string value)
+    {
+        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["reference"] = value });
+
+        Assert.AreEqual(new InputValue.UploadReference(), compiled["reference"]);
+    }
+
+    [TestMethod]
     [DataRow("${file(/templates/header.xtf)}")]
     [DataRow("${file(../secret.txt)}")]
     [DataRow("${file(a/../b.txt)}")]
@@ -94,6 +114,8 @@ public class InputCompilerTest
     [DataRow("${unsupported}")]
     [DataRow("${unsupported:value}")]
     [DataRow("${uploads}")]
+    [DataRow("${upload}")]
+    [DataRow("${upload(extra)}")]
     public void RejectsUnsupportedReferenceKind(string reference)
     {
         var exception = Assert.Throws<InputCompilationException>(

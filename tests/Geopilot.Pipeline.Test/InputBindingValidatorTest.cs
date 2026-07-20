@@ -33,12 +33,11 @@ public class InputBindingValidatorTest
     }
 
     [TestMethod]
-    public void RejectsInputKeyTargetingUploadFilesParameter()
+    public void AcceptsUploadReferenceOnUploadFilesParameter()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("files", "${step_output(matcher.files)}")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("files", "${upload()}")));
 
-        Assert.HasCount(1, errors);
-        Assert.Contains("files", errors[0]);
+        Assert.HasCount(0, errors);
     }
 
     [TestMethod]
@@ -121,6 +120,23 @@ public class InputBindingValidatorTest
         }
     }
 
+    [TestMethod]
+    public void AcceptsUploadReferenceForFileListParameter()
+    {
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("uploadFiles", "${upload()}")));
+
+        Assert.HasCount(0, errors);
+    }
+
+    [TestMethod]
+    public void RejectsUploadReferenceForNonFileListParameter()
+    {
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("title", "${upload()}")));
+
+        Assert.HasCount(1, errors);
+        Assert.Contains("title", errors[0]);
+    }
+
     private static InputConfig Input(params (string Key, object? Value)[] entries)
     {
         var input = new InputConfig();
@@ -136,6 +152,7 @@ public class InputBindingValidatorTest
             string title,
             int maxErrors,
             IPipelineFile template,
+            IPipelineFileList uploadFiles,
             [UploadFiles] IPipelineFileList? files,
             CancellationToken cancellationToken)
         {

@@ -366,12 +366,14 @@ public sealed class PipelineStep : IPipelineStep
         if (parameterInfo.ParameterType.IsAssignableFrom(cancellationToken.GetType()))
             return cancellationToken;
 
-        // Uploaded files are injected through the [UploadFiles] attribute, not through the input map.
-        if (parameterInfo.GetCustomAttribute<UploadFilesAttribute>() != null)
+        var input = parameterInfo.Name != null ? Inputs.GetValueOrDefault(parameterInfo.Name) : null;
+
+        // Uploaded files are injected through the [UploadFiles] attribute, unless the step explicitly
+        // wires the parameter (for example with ${upload()}), which then takes precedence.
+        if (input is null && parameterInfo.GetCustomAttribute<UploadFilesAttribute>() != null)
             return GenerateUploadParameter(parameterInfo, context);
 
         var target = BindingTarget.FromParameter(parameterInfo);
-        var input = parameterInfo.Name != null ? Inputs.GetValueOrDefault(parameterInfo.Name) : null;
         return InputBinder.Bind(
             target,
             input,
@@ -391,6 +393,9 @@ public sealed class PipelineStep : IPipelineStep
                 return TryResolveStepOutput(context, stepOutput.StepId, stepOutput.OutputName, out value);
             case InputValue.FileReference file:
                 return TryResolveFileReference(file.RelativePath, out value);
+            case InputValue.UploadReference:
+                value = this.WrapInput(context.Upload);
+                return true;
             default:
                 value = null;
                 return false;

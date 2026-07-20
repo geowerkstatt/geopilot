@@ -416,6 +416,16 @@ public class InputBinderTest
             () => InputBinder.Bind(Single(typeof(IPipelineFile)), new InputValue.FileReference("templates/header.xtf"), EmptyResolver));
     }
 
+    [TestMethod]
+    public void BindsUploadReferenceToFileListParameter()
+    {
+        var files = new Mock<IPipelineFileList>().Object;
+
+        var result = InputBinder.Bind(Single(typeof(IPipelineFileList)), new InputValue.UploadReference(), ResolverReturning(files));
+
+        Assert.AreSame(files, result);
+    }
+
     private static BindingTarget Single(Type type, bool nullable = false) => new("param", type, nullable, false);
 
     private static BindingTarget ArrayTarget(Type type, bool elementNullable = false) => new("param", type, false, elementNullable);
