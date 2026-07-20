@@ -262,7 +262,7 @@ public class PipelineIntegrationTest
     [TestMethod]
     public async Task RunPipelineWithFileReference()
     {
-        var resourcesDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "TestData", "Resources");
+        var resourcesDirectory = Path.Combine("TestData", "Resources");
 
         PipelineFactory factory = CreatePipelineFactory("fileReferencePipeline", resourcesDirectory);
 
