@@ -22,10 +22,10 @@ export const LayerSwitcherCollection = ({ collection, map, rootLayers }: LayerCo
   const [dragOverLayer, setDragOverLayer] = useState<BaseLayer | null>(null);
 
   useEffect(() => {
-    // Re-render when a layer's switcher visibility (DISPLAY/RESULT, e.g. via search) changes, or when
+    // Re-render when a layer's switcher visibility (RESULT, set by the search filter) changes, or when
     // layers are added to / removed from this collection.
     const onPropertyChange = (event: ObjectEvent) => {
-      if (event.key === LayerSwitcherProperties.DISPLAY || event.key === LayerSwitcherProperties.RESULT) forceUpdate();
+      if (event.key === LayerSwitcherProperties.RESULT) forceUpdate();
     };
     const layerKeys = new Map(
       collection.getArray().map(layer => [layer, layer.on("propertychange", onPropertyChange)]),
