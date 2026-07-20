@@ -74,6 +74,53 @@ public class InputBindingValidatorTest
         Assert.HasCount(0, errors);
     }
 
+    [TestMethod]
+    public void AcceptsFileReferenceForFileParameterWithoutRoot()
+    {
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${file(templates/header.xtf)}")));
+
+        Assert.HasCount(0, errors);
+    }
+
+    [TestMethod]
+    public void RejectsFileReferenceForNonFileParameter()
+    {
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("title", "${file(templates/header.xtf)}")));
+
+        Assert.HasCount(1, errors);
+        Assert.Contains("title", errors[0]);
+    }
+
+    [TestMethod]
+    public void RejectsFileReferenceToMissingFileUnderRoot()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "geopilot-missing-resources");
+
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${file(missing.xtf)}")), root);
+
+        Assert.HasCount(1, errors);
+        Assert.Contains("does not exist", errors[0]);
+    }
+
+    [TestMethod]
+    public void AcceptsFileReferenceToExistingFileUnderRoot()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "geopilot-resources-" + Guid.NewGuid());
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "template.xtf"), "content");
+
+            var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${file(template.xtf)}")), root);
+
+            Assert.HasCount(0, errors);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
     private static InputConfig Input(params (string Key, object? Value)[] entries)
     {
         var input = new InputConfig();
@@ -88,6 +135,7 @@ public class InputBindingValidatorTest
         public Task<Dictionary<string, object>> RunAsync(
             string title,
             int maxErrors,
+            IPipelineFile template,
             [UploadFiles] IPipelineFileList? files,
             CancellationToken cancellationToken)
         {

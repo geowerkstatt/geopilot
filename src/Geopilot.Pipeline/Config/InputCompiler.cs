@@ -23,6 +23,10 @@ internal static partial class InputCompiler
     [GeneratedRegex(@"^\s*([^.()\s]+)\s*\.\s*([^.()\s]+)\s*$")]
     private static partial Regex StepOutputArgumentPattern();
 
+    // Matches a file(...) call and captures the path between the parentheses.
+    [GeneratedRegex(@"^\s*file\s*\(\s*(.*?)\s*\)\s*$")]
+    private static partial Regex FileCallPattern();
+
     /// <summary>
     /// Compiles every entry of <paramref name="rawInput"/> into a typed <see cref="InputValue"/>. Each
     /// key is the name of the process run method parameter the value is bound to; each value is the raw
@@ -31,7 +35,8 @@ internal static partial class InputCompiler
     /// <param name="rawInput">
     /// The raw input map of a step as deserialized from YAML, keyed by the name of the process run
     /// method parameter each value is bound to. Each value is the raw YAML node for that parameter: a
-    /// scalar (a literal or a <c>${step_output(stepId.outputName)}</c> reference) or a sequence of those.
+    /// scalar (a literal, a <c>${step_output(stepId.outputName)}</c> reference or a <c>${file(path)}</c>
+    /// reference) or a sequence of those.
     /// </param>
     /// <returns>A compiled input value per parameter name.</returns>
     /// <exception cref="InputCompilationException">A value is not a supported input shape.</exception>
@@ -107,28 +112,62 @@ internal static partial class InputCompiler
 
     /// <summary>
     /// Parses the content of a <c>${...}</c> reference, that is the text between the braces already
-    /// unwrapped by <see cref="CompileScalar"/>, into a <see cref="InputValue.StepOutputReference"/>.
-    /// The content reads as a function call <c>step_output(stepId.outputName)</c>.
+    /// unwrapped by <see cref="CompileScalar"/>, into a typed <see cref="InputValue"/>. The content
+    /// reads as a function call, either <c>step_output(stepId.outputName)</c> or <c>file(path)</c>.
     /// </summary>
-    private static InputValue.StepOutputReference ParseReference(string reference)
+    private static InputValue ParseReference(string reference)
     {
         // Error messages echo the value in the ${...} form the author wrote.
         var display = "${" + reference + "}";
 
-        var call = StepOutputCallPattern().Match(reference);
-        if (!call.Success)
-        {
-            throw new InputCompilationException(
-                $"Reference '{display}' is not supported. Use ${{step_output(stepId.outputName)}}.");
-        }
+        var stepOutputCall = StepOutputCallPattern().Match(reference);
+        if (stepOutputCall.Success)
+            return ParseStepOutputReference(stepOutputCall.Groups[1].Value, display);
 
-        var argument = StepOutputArgumentPattern().Match(call.Groups[1].Value);
-        if (!argument.Success)
+        var fileCall = FileCallPattern().Match(reference);
+        if (fileCall.Success)
+            return ParseFileReference(fileCall.Groups[1].Value, display);
+
+        throw new InputCompilationException(
+            $"Reference '{display}' is not supported. Use ${{step_output(stepId.outputName)}} or ${{file(path)}}.");
+    }
+
+    private static InputValue.StepOutputReference ParseStepOutputReference(string argument, string display)
+    {
+        var parts = StepOutputArgumentPattern().Match(argument);
+        if (!parts.Success)
         {
             throw new InputCompilationException(
                 $"Reference '{display}' must be of the form ${{step_output(stepId.outputName)}}.");
         }
 
-        return new InputValue.StepOutputReference(argument.Groups[1].Value, argument.Groups[2].Value);
+        return new InputValue.StepOutputReference(parts.Groups[1].Value, parts.Groups[2].Value);
+    }
+
+    /// <summary>
+    /// Parses the path of a <c>${file(path)}</c> reference. The path is confined to the resources
+    /// root: it must be relative and must not contain <c>.</c> or <c>..</c> segments, so the
+    /// definition can never escape the configured directory.
+    /// </summary>
+    private static InputValue.FileReference ParseFileReference(string path, string display)
+    {
+        if (path.Length == 0 || System.IO.Path.IsPathRooted(path) || HasTraversalSegment(path))
+        {
+            throw new InputCompilationException(
+                $"Reference '{display}' must be of the form ${{file(path)}} with a relative path that does not contain '.' or '..' segments.");
+        }
+
+        return new InputValue.FileReference(path);
+    }
+
+    private static bool HasTraversalSegment(string path)
+    {
+        foreach (var segment in path.Split('/', '\\'))
+        {
+            if (segment is "." or "..")
+                return true;
+        }
+
+        return false;
     }
 }

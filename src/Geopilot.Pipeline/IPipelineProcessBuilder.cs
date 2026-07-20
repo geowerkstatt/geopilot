@@ -79,8 +79,11 @@ public interface IPipelineProcessBuilder
     /// <see cref="PipelineDirectory(string)"/> and <see cref="JobId(Guid)"/> are not consulted
     /// by this method, so callers validating at startup do not need to supply them.
     /// </remarks>
+    /// <param name="resourcesRoot">The resources root that <c>${file(path)}</c> references resolve against; when null, file existence is not checked.</param>
     /// <exception cref="InvalidOperationException">Thrown for any condition that would also cause
     /// <see cref="Build"/> to throw (missing config, unknown process type, multiple public
-    /// constructors, conflicting parameterization, unsatisfiable non-nullable parameter).</exception>
-    void Validate();
+    /// constructors, conflicting parameterization, unsatisfiable non-nullable parameter). A file
+    /// reference that does not match its parameter type, or that does not exist under a supplied
+    /// resources root, also throws.</exception>
+    void Validate(string? resourcesRoot = null);
 }

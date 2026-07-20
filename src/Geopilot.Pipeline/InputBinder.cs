@@ -4,8 +4,8 @@ namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Resolves a compiled <see cref="InputValue"/> to a concrete value and coerces it to the type of
-/// the process run method parameter it feeds. Step output references are resolved against the
-/// outputs of earlier steps through the supplied <see cref="StepOutputResolver"/>.
+/// the process run method parameter it feeds. References (step outputs and files) are resolved
+/// through the supplied <see cref="ReferenceResolver"/>.
 /// </summary>
 internal static class InputBinder
 {
@@ -17,15 +17,15 @@ internal static class InputBinder
     /// </summary>
     /// <param name="target">The parameter the value is bound to.</param>
     /// <param name="input">The compiled input value, or <see langword="null"/> when none is configured.</param>
-    /// <param name="resolveStepOutput">Resolves the value of an earlier step's output.</param>
+    /// <param name="resolve">Resolves a reference (a step output or a file) to its runtime value.</param>
     /// <returns>The value to pass to the process run method parameter.</returns>
     /// <exception cref="PipelineRunException">The input cannot be resolved or does not fit the target.</exception>
-    internal static object? Bind(BindingTarget target, InputValue? input, StepOutputResolver resolveStepOutput)
+    internal static object? Bind(BindingTarget target, InputValue? input, ReferenceResolver resolve)
     {
         if (TryGetListElementType(target.Type, out var elementType))
-            return BindToList(target, elementType, input, resolveStepOutput);
+            return BindToList(target, elementType, input, resolve);
 
-        return BindToSingleValue(target, input, resolveStepOutput);
+        return BindToSingleValue(target, input, resolve);
     }
 
     /// <summary>
@@ -55,9 +55,9 @@ internal static class InputBinder
     /// Binds to a single valued parameter. A resolved list contributes its only element; an empty
     /// list or a null value becomes null, which is accepted only when the parameter is nullable.
     /// </summary>
-    private static object? BindToSingleValue(BindingTarget target, InputValue? input, StepOutputResolver resolveStepOutput)
+    private static object? BindToSingleValue(BindingTarget target, InputValue? input, ReferenceResolver resolve)
     {
-        var value = ResolveToSingleValue(target, input, resolveStepOutput);
+        var value = ResolveToSingleValue(target, input, resolve);
         if (value is null)
         {
             if (target.IsNullable)
@@ -78,12 +78,12 @@ internal static class InputBinder
     /// from a resolved reference or a written sequence, is unwrapped: no element becomes null, one
     /// element is that value, and more than one is rejected.
     /// </summary>
-    private static object? ResolveToSingleValue(BindingTarget target, InputValue? input, StepOutputResolver resolveStepOutput)
+    private static object? ResolveToSingleValue(BindingTarget target, InputValue? input, ReferenceResolver resolve)
     {
         if (input is InputValue.Sequence sequence)
-            return UnwrapToSingleValue(target, sequence.Items.Select(item => Resolve(item, resolveStepOutput)).ToList());
+            return UnwrapToSingleValue(target, sequence.Items.Select(item => Resolve(item, resolve)).ToList());
 
-        var resolved = Resolve(input, resolveStepOutput);
+        var resolved = Resolve(input, resolve);
         if (resolved is not null && target.Type.IsInstanceOfType(resolved))
             return resolved;
 
@@ -108,14 +108,14 @@ internal static class InputBinder
     /// input contributes its single resolved value; a resolved null means there is no list and is
     /// accepted only when the parameter is nullable.
     /// </summary>
-    private static Array? BindToList(BindingTarget target, Type elementType, InputValue? input, StepOutputResolver resolveStepOutput)
+    private static Array? BindToList(BindingTarget target, Type elementType, InputValue? input, ReferenceResolver resolve)
     {
         var elements = new List<object?>();
 
         if (input is InputValue.Sequence sequence)
         {
             foreach (var item in sequence.Items)
-                AppendToList(target, elementType, elements, Resolve(item, resolveStepOutput));
+                AppendToList(target, elementType, elements, Resolve(item, resolve));
 
             return CreateArray(elementType, elements);
         }
@@ -123,7 +123,7 @@ internal static class InputBinder
         if (input is null)
             return CreateArray(elementType, elements);
 
-        var resolved = Resolve(input, resolveStepOutput);
+        var resolved = Resolve(input, resolve);
         if (resolved is null)
         {
             if (target.IsNullable)
@@ -196,29 +196,38 @@ internal static class InputBinder
     }
 
     /// <summary>
-    /// Resolves an input to its runtime value: a literal yields its raw text, a reference yields the
-    /// earlier step output it points at, and a missing input yields null.
+    /// Resolves an input to its runtime value: a literal yields its raw text, a reference (step output
+    /// or file) is resolved through <paramref name="resolve"/>, and a missing input yields null.
     /// </summary>
-    private static object? Resolve(InputValue? input, StepOutputResolver resolveStepOutput) => input switch
+    private static object? Resolve(InputValue? input, ReferenceResolver resolve) => input switch
     {
         null => null,
         InputValue.Literal literal => literal.Raw,
-        InputValue.StepOutputReference reference => ResolveReference(reference, resolveStepOutput),
+        InputValue.StepOutputReference reference => ResolveReference(reference, resolve),
+        InputValue.FileReference reference => ResolveReference(reference, resolve),
         _ => throw new PipelineRunException($"Unsupported input value kind <{input.GetType().Name}>."),
     };
 
     /// <summary>
-    /// Resolves a step output reference to the value the earlier step published, or throws when no
-    /// such output exists.
+    /// Resolves a reference (a step output or a file) through <paramref name="resolve"/>, or throws a
+    /// message describing the reference when it cannot be resolved in the current context.
     /// </summary>
-    private static object? ResolveReference(InputValue.StepOutputReference reference, StepOutputResolver resolveStepOutput)
+    private static object? ResolveReference(InputValue reference, ReferenceResolver resolve)
     {
-        if (resolveStepOutput(reference.StepId, reference.OutputName, out var value))
+        if (resolve(reference, out var value))
             return value;
 
-        throw new PipelineRunException(
-            $"Input references '{reference.StepId}.{reference.OutputName}', which is not an output of an earlier step.");
+        throw new PipelineRunException(UnresolvedReferenceMessage(reference));
     }
+
+    private static string UnresolvedReferenceMessage(InputValue reference) => reference switch
+    {
+        InputValue.StepOutputReference stepOutput =>
+            $"Input references '{stepOutput.StepId}.{stepOutput.OutputName}', which is not an output of an earlier step.",
+        InputValue.FileReference file =>
+            $"Input references file '{file.RelativePath}', which could not be resolved.",
+        _ => $"Input reference <{reference.GetType().Name}> could not be resolved.",
+    };
 
     /// <summary>
     /// Views a value as a list of items, treating any enumerable other than a string as a collection.
@@ -239,11 +248,12 @@ internal static class InputBinder
 }
 
 /// <summary>
-/// Resolves the value an earlier step published under the given output name. Returns
-/// <see langword="true"/> and the value when the output exists, otherwise <see langword="false"/>.
+/// Resolves an input reference (a <c>${step_output(...)}</c> or a <c>${file(...)}</c>) to its runtime
+/// value. Returns <see langword="true"/> and the value when the reference resolves in the current
+/// context, otherwise <see langword="false"/>, in which case the binder throws a message describing
+/// the reference. May throw a <see cref="PipelineRunException"/> for a more specific failure.
 /// </summary>
-/// <param name="stepId">The id of the earlier step.</param>
-/// <param name="outputName">The name of the output on that step.</param>
-/// <param name="value">The resolved value when the output exists.</param>
-/// <returns><see langword="true"/> when the output exists.</returns>
-internal delegate bool StepOutputResolver(string stepId, string outputName, out object? value);
+/// <param name="reference">The reference to resolve.</param>
+/// <param name="value">The resolved value when the reference resolves.</param>
+/// <returns><see langword="true"/> when the reference was resolved.</returns>
+internal delegate bool ReferenceResolver(InputValue reference, out object? value);

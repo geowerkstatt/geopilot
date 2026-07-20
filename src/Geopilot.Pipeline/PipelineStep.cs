@@ -81,6 +81,8 @@ public sealed class PipelineStep : IPipelineStep
 
     private readonly string? pipelineDirectory;
 
+    private readonly string? resourcesDirectory;
+
     private ILogger logger;
 
     /// <summary>
@@ -93,6 +95,7 @@ public sealed class PipelineStep : IPipelineStep
     /// <param name="stepConditions">The step conditions for the step.</param>
     /// <param name="process">The process associated with the step.</param>
     /// <param name="pipelineDirectory">The pipeline working directory used to isolate input files copied into this step. When null (only when a step is constructed outside a job, for example in unit tests), input files are passed through without isolation.</param>
+    /// <param name="resourcesDirectory">The resources directory that <c>${file(path)}</c> references resolve against. When null, a step that uses a file reference fails at run time.</param>
     /// <param name="logger">The logger to use for logging.</param>
     private PipelineStep(
         string id,
@@ -102,6 +105,7 @@ public sealed class PipelineStep : IPipelineStep
         PipelineStepConditionsConfig? stepConditions,
         object process,
         string? pipelineDirectory,
+        string? resourcesDirectory,
         ILogger logger)
     {
         this.Id = id;
@@ -111,6 +115,7 @@ public sealed class PipelineStep : IPipelineStep
         this.StepConditions = stepConditions;
         this.Process = process;
         this.pipelineDirectory = pipelineDirectory;
+        this.resourcesDirectory = resourcesDirectory;
         this.logger = logger;
         this.conditionEvaluator = new ConditionEvaluator(logger);
         this.State = StepState.Pending;
@@ -370,7 +375,26 @@ public sealed class PipelineStep : IPipelineStep
         return InputBinder.Bind(
             target,
             input,
-            (string stepId, string outputName, out object? value) => TryResolveStepOutput(context, stepId, outputName, out value));
+            (InputValue reference, out object? value) => TryResolveReference(context, reference, out value));
+    }
+
+    /// <summary>
+    /// Resolves an input reference to its runtime value: an earlier step's output or a
+    /// <c>${file(...)}</c> resource. Input files are isolated per step via <see cref="CopyOnWriteFile"/>
+    /// in the underlying resolvers.
+    /// </summary>
+    private bool TryResolveReference(PipelineContext context, InputValue reference, out object? value)
+    {
+        switch (reference)
+        {
+            case InputValue.StepOutputReference stepOutput:
+                return TryResolveStepOutput(context, stepOutput.StepId, stepOutput.OutputName, out value);
+            case InputValue.FileReference file:
+                return TryResolveFileReference(file.RelativePath, out value);
+            default:
+                value = null;
+                return false;
+        }
     }
 
     private object? GenerateUploadParameter(ParameterInfo parameterInfo, PipelineContext context)
@@ -397,6 +421,24 @@ public sealed class PipelineStep : IPipelineStep
 
         value = null;
         return false;
+    }
+
+    /// <summary>
+    /// Resolves a <c>${file(path)}</c> reference to the file under the resources directory, isolating
+    /// it per step via <see cref="CopyOnWriteFile"/>. Throws when the resources directory is not
+    /// configured or the file does not exist.
+    /// </summary>
+    private bool TryResolveFileReference(string relativePath, out object? value)
+    {
+        if (this.resourcesDirectory is null)
+            throw new PipelineRunException($"Input references file '{relativePath}', but no resources directory is configured.");
+
+        var fullPath = ResourceFileResolver.ResolveFullPath(this.resourcesDirectory, relativePath);
+        if (!File.Exists(fullPath))
+            throw new PipelineRunException($"Input references file '{relativePath}', which does not exist under the resources directory.");
+
+        value = this.WrapInput(new PipelineFile(fullPath, Path.GetFileName(relativePath)));
+        return true;
     }
 
     /// <summary>
@@ -477,6 +519,7 @@ public sealed class PipelineStep : IPipelineStep
         private PipelineStepConditionsConfig? stepConditions;
         private object? process;
         private string? pipelineDirectory;
+        private string? resourcesDirectory;
         private ILogger? logger;
 
         /// <summary>
@@ -546,6 +589,15 @@ public sealed class PipelineStep : IPipelineStep
         }
 
         /// <summary>
+        /// Sets the resources directory that <c>${file(path)}</c> references resolve against for the <see cref="PipelineStep"/> that will be created by this builder.
+        /// </summary>
+        public PipelineStepBuilder ResourcesDirectory(string? resourcesDirectory)
+        {
+            this.resourcesDirectory = resourcesDirectory;
+            return this;
+        }
+
+        /// <summary>
         /// Sets the logger to be used by the <see cref="PipelineStep"/> that will be created by this builder.
         /// </summary>
         public PipelineStepBuilder Logger(ILogger logger)
@@ -573,7 +625,7 @@ public sealed class PipelineStep : IPipelineStep
             if (logger == null)
                 throw new InvalidOperationException("logger is required to build a PipelineStep.");
 
-            return new PipelineStep(id, displayName, inputs, outputConfig, stepConditions, process, pipelineDirectory, logger);
+            return new PipelineStep(id, displayName, inputs, outputConfig, stepConditions, process, pipelineDirectory, resourcesDirectory, logger);
         }
     }
 }

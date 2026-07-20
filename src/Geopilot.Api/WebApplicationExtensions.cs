@@ -31,6 +31,7 @@ public static class WebApplicationExtensions
         }
 
         var pipelineProcessFactory = app.Services.GetRequiredService<IPipelineProcessFactory>();
+        var resourcesDirectory = app.Services.GetRequiredService<Geopilot.Api.FileAccess.IDirectoryProvider>().ResourcesDirectory;
 
         var invalidProcessesErrors = new HashSet<string>();
         foreach (var pipeline in pipelineFactory.PipelineProcessConfig.Pipelines)
@@ -47,7 +48,7 @@ public static class WebApplicationExtensions
                         .Builder()
                         .StepConfig(step)
                         .Processes(pipelineFactory.PipelineProcessConfig.Processes)
-                        .Validate();
+                        .Validate(resourcesDirectory);
                 }
                 catch (Exception ex)
                 {

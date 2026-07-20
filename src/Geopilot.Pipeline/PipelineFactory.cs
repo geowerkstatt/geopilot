@@ -15,6 +15,7 @@ public class PipelineFactory : IPipelineFactory
     private readonly ILogger logger;
     private readonly ILoggerFactory loggerFactory;
     private readonly string pipelineTempDirectory;
+    private readonly string? resourcesDirectory;
 
     /// <summary>
     /// The pipeline process configuration used to create pipelines.
@@ -27,11 +28,13 @@ public class PipelineFactory : IPipelineFactory
         PipelineProcessConfig? pipelineProcessConfig,
         IPipelineProcessFactory pipelineProcessFactory,
         string pipelineTempDirectory,
+        string? resourcesDirectory,
         ILoggerFactory loggerFactory)
     {
         this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pipeline process configuration.");
         this.pipelineProcessFactory = pipelineProcessFactory;
         this.pipelineTempDirectory = pipelineTempDirectory;
+        this.resourcesDirectory = resourcesDirectory;
 
         this.loggerFactory = loggerFactory;
         this.logger = loggerFactory.CreateLogger<PipelineFactory>();
@@ -86,6 +89,7 @@ public class PipelineFactory : IPipelineFactory
             .OutputConfig(stepConfig.Output ?? new List<OutputConfig>())
             .StepConditions(stepConfig.Conditions)
             .PipelineDirectory(pipelineTempDirectory)
+            .ResourcesDirectory(resourcesDirectory)
             .Process(pipelineProcessFactory.Builder()
                 .PipelineId(pipelineId)
                 .StepConfig(stepConfig)
@@ -110,6 +114,7 @@ public class PipelineFactory : IPipelineFactory
         private PipelineProcessConfig? pipelineProcessConfig;
         private IPipelineProcessFactory? pipelineProcessFactory;
         private string? pipelineTempDirectory;
+        private string? resourcesDirectory;
         private ILoggerFactory? loggerFactory;
 
         public PipelineFactoryBuilder Yaml(string processDefinition)
@@ -146,6 +151,12 @@ public class PipelineFactory : IPipelineFactory
             return this;
         }
 
+        public PipelineFactoryBuilder ResourcesDirectory(string? resourcesDirectory)
+        {
+            this.resourcesDirectory = resourcesDirectory;
+            return this;
+        }
+
         public PipelineFactory Build()
         {
             if (this.pipelineProcessFactory == null)
@@ -155,7 +166,7 @@ public class PipelineFactory : IPipelineFactory
             if (this.pipelineTempDirectory == null)
                 throw new InvalidOperationException("Pipeline temp directory is required but was not provided.");
 
-            return new PipelineFactory(pipelineProcessConfig, pipelineProcessFactory, pipelineTempDirectory, loggerFactory);
+            return new PipelineFactory(pipelineProcessConfig, pipelineProcessFactory, pipelineTempDirectory, resourcesDirectory, loggerFactory);
         }
     }
 }

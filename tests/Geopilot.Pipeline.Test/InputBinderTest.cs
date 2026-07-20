@@ -1,4 +1,6 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.PipelineCore.Pipeline;
+using Moq;
 using System.Reflection;
 
 namespace Geopilot.Pipeline.Test;
@@ -6,7 +8,7 @@ namespace Geopilot.Pipeline.Test;
 [TestClass]
 public class InputBinderTest
 {
-    private static readonly StepOutputResolver EmptyResolver = (string stepId, string outputName, out object? value) =>
+    private static readonly ReferenceResolver EmptyResolver = (InputValue reference, out object? value) =>
     {
         value = null;
         return false;
@@ -223,8 +225,9 @@ public class InputBinderTest
     public void CombinesRowsAddingAListAndSpreadingAListOfLists()
     {
         // Mirrors the spec "combinedRows": codes is added as one row, tables is spread into rows.
-        StepOutputResolver resolver = (string stepId, string outputName, out object? value) =>
+        ReferenceResolver resolver = (InputValue reference, out object? value) =>
         {
+            var outputName = ((InputValue.StepOutputReference)reference).OutputName;
             value = outputName == "codes"
                 ? new[] { "a", "b" }
                 : new[] { new[] { "x" }, new[] { "y", "z" } };
@@ -377,14 +380,50 @@ public class InputBinderTest
         Assert.IsTrue(nullableEnumerable.IsNullable);
     }
 
+    [TestMethod]
+    public void BindsFileReferenceToPipelineFileParameter()
+    {
+        var file = new Mock<IPipelineFile>().Object;
+
+        var result = InputBinder.Bind(Single(typeof(IPipelineFile)), new InputValue.FileReference("templates/header.xtf"), ResolverReturning(file));
+
+        Assert.AreSame(file, result);
+    }
+
+    [TestMethod]
+    public void BindsSequenceOfFileReferencesToFileArray()
+    {
+        var first = new Mock<IPipelineFile>().Object;
+        var second = new Mock<IPipelineFile>().Object;
+        var files = new object?[] { first, second };
+        var index = 0;
+        ReferenceResolver resolver = (InputValue reference, out object? value) =>
+        {
+            value = files[index++];
+            return true;
+        };
+        var sequence = new InputValue.Sequence([new InputValue.FileReference("a.xtf"), new InputValue.FileReference("b.xtf")]);
+
+        var result = InputBinder.Bind(ArrayTarget(typeof(IPipelineFile[])), sequence, resolver);
+
+        CollectionAssert.AreEqual(new[] { first, second }, (IPipelineFile[])result!);
+    }
+
+    [TestMethod]
+    public void ThrowsWhenFileReferenceCannotBeResolved()
+    {
+        Assert.Throws<PipelineRunException>(
+            () => InputBinder.Bind(Single(typeof(IPipelineFile)), new InputValue.FileReference("templates/header.xtf"), EmptyResolver));
+    }
+
     private static BindingTarget Single(Type type, bool nullable = false) => new("param", type, nullable, false);
 
     private static BindingTarget ArrayTarget(Type type, bool elementNullable = false) => new("param", type, false, elementNullable);
 
     private static BindingTarget ListTarget(Type type, bool elementNullable = false, bool nullable = false) => new("param", type, nullable, elementNullable);
 
-    private static StepOutputResolver ResolverReturning(object? value) =>
-        (string stepId, string outputName, out object? resolved) =>
+    private static ReferenceResolver ResolverReturning(object? value) =>
+        (InputValue reference, out object? resolved) =>
         {
             resolved = value;
             return true;

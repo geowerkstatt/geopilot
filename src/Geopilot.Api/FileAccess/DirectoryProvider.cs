@@ -23,6 +23,9 @@ public class DirectoryProvider : IDirectoryProvider
     /// <inheritdoc/>
     public string SharedDirectory { get; }
 
+    /// <inheritdoc/>
+    public string ResourcesDirectory { get; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DirectoryProvider"/> class.
     /// </summary>
@@ -39,6 +42,7 @@ public class DirectoryProvider : IDirectoryProvider
         AssetDirectory = fileAccess.AssetsDirectory;
         PipelineDirectory = fileAccess.PipelineDirectory;
         SharedDirectory = fileAccess.SharedDirectory;
+        ResourcesDirectory = fileAccess.ResourcesDirectory;
     }
 
     /// <inheritdoc/>
