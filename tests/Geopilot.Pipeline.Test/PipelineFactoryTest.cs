@@ -63,7 +63,7 @@ public class PipelineFactoryTest
         Assert.HasCount(2, pipeline.Steps);
         var matcherStep = pipeline.Steps[0];
         Assert.AreEqual("xtf_matching", matcherStep.Id, "matcher step name not as expected");
-        Assert.HasCount(0, matcherStep.InputConfig);
+        Assert.HasCount(0, ((PipelineStep)matcherStep).Inputs);
         Assert.HasCount(1, matcherStep.OutputConfigs);
         Assert.HasCount(1, matcherStep.OutputConfigs);
         var matcherOutputConfig_0 = matcherStep.OutputConfigs.ElementAt(0);
@@ -101,15 +101,9 @@ public class PipelineFactoryTest
 
         var validationStep = pipeline.Steps[1];
         Assert.AreEqual("validation", validationStep.Id, "validation step name not as expected");
-        Assert.HasCount(1, validationStep.InputConfig);
-        var inputConfig_0 = validationStep.InputConfig.ElementAt(0);
-        InputConfig expectedInputConfig_0 = new InputConfig()
-        {
-            From = "xtf_matching",
-            Take = "xtf_files",
-            As = "iliFile",
-        };
-        AssertInputConfig(expectedInputConfig_0, inputConfig_0);
+        var validationInputs = ((PipelineStep)validationStep).Inputs;
+        Assert.HasCount(1, validationInputs);
+        Assert.AreEqual(new InputValue.StepOutputReference("xtf_matching", "xtf_files"), validationInputs["iliFile"]);
         Assert.HasCount(2, validationStep.OutputConfigs);
         var validationOutputConfig_0 = validationStep.OutputConfigs.ElementAt(0);
         var validationOutputConfig_1 = validationStep.OutputConfigs.ElementAt(1);
@@ -175,24 +169,6 @@ public class PipelineFactoryTest
         else if (expectedConfig == null && actualConfig != null)
         {
             Assert.Fail("Expected OutputConfig is not defined bug actual OutputConfig is defined");
-        }
-    }
-
-    private static void AssertInputConfig(InputConfig expectedConfig, InputConfig actualConfig)
-    {
-        if (expectedConfig != null && actualConfig != null)
-        {
-            Assert.AreEqual(expectedConfig.From, actualConfig.From, "Output config 'From' not as expected");
-            Assert.AreEqual(expectedConfig.Take, actualConfig.Take, "Output config 'Take' not as expected");
-            Assert.AreEqual(expectedConfig.As, actualConfig.As, "Output config 'As' not as expected");
-        }
-        else if (expectedConfig != null && actualConfig == null)
-        {
-            Assert.Fail("Expected InputConfig is defined but actual InputConfig is not defined");
-        }
-        else if (expectedConfig == null && actualConfig != null)
-        {
-            Assert.Fail("Expected InputConfig is not defined but actual InputConfig is defined");
         }
     }
 }

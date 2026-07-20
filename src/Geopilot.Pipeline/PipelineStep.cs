@@ -34,7 +34,7 @@ public sealed class PipelineStep : IPipelineStep
     public LocalizedText DisplayName { get; }
 
     /// <inheritdoc/>
-    public List<InputConfig> InputConfig { get; }
+    public IReadOnlyDictionary<string, InputValue> Inputs { get; }
 
     /// <inheritdoc/>
     public List<OutputConfig> OutputConfigs { get; }
@@ -88,7 +88,7 @@ public sealed class PipelineStep : IPipelineStep
     /// </summary>
     /// <param name="id">The unique identifier for the step.</param>
     /// <param name="displayName">The display name for the step.</param>
-    /// <param name="inputConfig">The input configuration for the step.</param>
+    /// <param name="inputs">The compiled input values for the step.</param>
     /// <param name="outputConfig">The output configuration for the step.</param>
     /// <param name="stepConditions">The step conditions for the step.</param>
     /// <param name="process">The process associated with the step.</param>
@@ -97,7 +97,7 @@ public sealed class PipelineStep : IPipelineStep
     private PipelineStep(
         string id,
         LocalizedText displayName,
-        List<InputConfig> inputConfig,
+        IReadOnlyDictionary<string, InputValue> inputs,
         List<OutputConfig> outputConfig,
         PipelineStepConditionsConfig? stepConditions,
         object process,
@@ -106,7 +106,7 @@ public sealed class PipelineStep : IPipelineStep
     {
         this.Id = id;
         this.DisplayName = displayName;
-        this.InputConfig = inputConfig;
+        this.Inputs = inputs;
         this.OutputConfigs = outputConfig;
         this.StepConditions = stepConditions;
         this.Process = process;
@@ -357,61 +357,52 @@ public sealed class PipelineStep : IPipelineStep
 
     private object? GenerateParameter(ParameterInfo parameterInfo, PipelineContext context, CancellationToken cancellationToken)
     {
-        // if the parameter is a cancellation token, inject the pipeline's cancellation token
+        // The pipeline's cancellation token is injected directly, never bound from step input.
         if (parameterInfo.ParameterType.IsAssignableFrom(cancellationToken.GetType()))
             return cancellationToken;
 
-        var uploadFilesAttribute = parameterInfo.GetCustomAttribute<UploadFilesAttribute>();
-        if (uploadFilesAttribute != null)
-        {
-            if (parameterInfo.ParameterType.IsAssignableFrom(context.Upload.GetType()))
-                return this.WrapInput(context.Upload);
-            else if (IsArrayElementNullable(parameterInfo))
-                return null;
-            throw new PipelineRunException($"The parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> was marked with the UploadFilesAttribute, but was not assignable from the injected upload files collection of type <{context.Upload.GetType().FullName}>.");
-        }
+        // Uploaded files are injected through the [UploadFiles] attribute, not through the input map.
+        if (parameterInfo.GetCustomAttribute<UploadFilesAttribute>() != null)
+            return GenerateUploadParameter(parameterInfo, context);
 
-        // get all mapped values for the parameter based on the step's input config and the pipeline context
-        var mappedValues = CollectMappedValues(parameterInfo, context);
-
-        if (parameterInfo.ParameterType.IsArray)
-            return GenerateArrayParameter(parameterInfo, mappedValues);
-
-        if (mappedValues.Count == 1)
-            return GenerateSingleParameter(parameterInfo, mappedValues[0]);
-        else if (IsParameterNullable(parameterInfo) && mappedValues.Count == 0)
-            return null;
-        else
-            throw new PipelineRunException($"<{mappedValues.Count}> values found for parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> in process run method.");
+        var target = BindingTarget.FromParameter(parameterInfo);
+        var input = parameterInfo.Name != null ? Inputs.GetValueOrDefault(parameterInfo.Name) : null;
+        return InputBinder.Bind(
+            target,
+            input,
+            (string stepId, string outputName, out object? value) => TryResolveStepOutput(context, stepId, outputName, out value));
     }
 
-    private List<object?> CollectMappedValues(ParameterInfo parameterInfo, PipelineContext context)
+    private object? GenerateUploadParameter(ParameterInfo parameterInfo, PipelineContext context)
     {
-        var mappedValues = new List<object?>();
-        foreach (var inputConfig in this.InputConfig)
+        if (parameterInfo.ParameterType.IsAssignableFrom(context.Upload.GetType()))
+            return this.WrapInput(context.Upload);
+
+        throw new PipelineRunException($"The parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> was marked with the UploadFilesAttribute, but was not assignable from the injected upload files collection of type <{context.Upload.GetType().FullName}>.");
+    }
+
+    /// <summary>
+    /// Resolves the value an earlier step published under <paramref name="outputName"/>, isolating
+    /// any input files per step via <see cref="CopyOnWriteFile"/>. Returns <see langword="false"/>
+    /// when no such output exists.
+    /// </summary>
+    private bool TryResolveStepOutput(PipelineContext context, string stepId, string outputName, out object? value)
+    {
+        if (context.StepResults.TryGetValue(stepId, out var stepResult) &&
+            stepResult.Outputs.TryGetValue(outputName, out var stepOutput))
         {
-            if (context.StepResults.TryGetValue(inputConfig.From, out var stepResult))
-            {
-                if (stepResult.Outputs.TryGetValue(inputConfig.Take, out var stepOutput))
-                {
-                    if (parameterInfo.Name == inputConfig.As)
-                    {
-                        if (stepOutput.Data is IEnumerable<object?> collection)
-                            mappedValues.AddRange(collection.Select(this.WrapInput));
-                        else
-                            mappedValues.Add(this.WrapInput(stepOutput.Data));
-                    }
-                }
-            }
+            value = this.WrapInput(stepOutput.Data);
+            return true;
         }
 
-        return mappedValues;
+        value = null;
+        return false;
     }
 
     /// <summary>
     /// Wraps a value that is about to be injected into the process run method so that input files
-    /// (single files and file lists) are isolated per step via <see cref="CopyOnWriteFile"/>.
-    /// Non-file values are passed through unchanged.
+    /// (single files, file lists and sequences of files) are isolated per step via
+    /// <see cref="CopyOnWriteFile"/>. Non-file values are passed through unchanged.
     /// </summary>
     private object? WrapInput(object? value)
     {
@@ -421,6 +412,7 @@ public sealed class PipelineStep : IPipelineStep
         return value switch
         {
             IPipelineFileList list => new PipelineFileList(list.Files.Select(this.WrapFile).ToList()),
+            IEnumerable<IPipelineFile> files => files.Select(this.WrapFile).ToArray(),
             IPipelineFile file => this.WrapFile(file),
             _ => value,
         };
@@ -430,64 +422,6 @@ public sealed class PipelineStep : IPipelineStep
     {
         var directory = this.pipelineDirectory;
         return directory is null ? file : new CopyOnWriteFile(file, directory, this.Id);
-    }
-
-    private Array GenerateArrayParameter(ParameterInfo parameterInfo, List<object?> mappedValues)
-    {
-        var elementType = parameterInfo.ParameterType.GetElementType()
-            ?? throw new InvalidOperationException("Could not get type of element.");
-
-        var isElementNullable = IsArrayElementNullable(parameterInfo);
-        var hasNullValues = mappedValues.Any(p => p == null);
-
-        if (!isElementNullable && hasNullValues)
-        {
-            var errorMessage = $"Parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> is a non-nullable array, but at least one input was null.";
-            throw new PipelineRunException(errorMessage);
-        }
-
-        var mappedValuesArray = mappedValues
-            .SelectMany(p => p is IEnumerable<object?> enumerable ? enumerable : new List<object?> { p })
-            .ToArray();
-
-        var hasAnyNonAssignableValues = mappedValuesArray.Any(p => p != null && !elementType.IsAssignableFrom(p.GetType()));
-
-        if (hasAnyNonAssignableValues)
-        {
-            var errorMessage = $"At least one of the mapped input values was not assignable to the element type <{elementType.Name}> of parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}>.";
-            throw new PipelineRunException(errorMessage);
-        }
-
-        var arrayOfCorrectTypeToInject = Array.CreateInstance(elementType, mappedValuesArray.Length);
-        for (int i = 0; i < mappedValuesArray.Length; i++)
-        {
-            arrayOfCorrectTypeToInject.SetValue(mappedValuesArray[i], i);
-        }
-
-        if (!parameterInfo.ParameterType.IsAssignableFrom(arrayOfCorrectTypeToInject.GetType()))
-        {
-            var errorMessage = $"The generated array of type <{arrayOfCorrectTypeToInject.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
-            throw new PipelineRunException(errorMessage);
-        }
-
-        return arrayOfCorrectTypeToInject;
-    }
-
-    private object? GenerateSingleParameter(ParameterInfo parameterInfo, object? mappedValue)
-    {
-        if (mappedValue == null && !IsParameterNullable(parameterInfo))
-        {
-            var errorMessage = $"The parameter <{parameterInfo.Name}> is non-nullable, but the mapped input value was null.";
-            throw new PipelineRunException(errorMessage);
-        }
-
-        if (mappedValue != null && !parameterInfo.ParameterType.IsAssignableFrom(mappedValue.GetType()))
-        {
-            var errorMessage = $"The mapped input value of type <{mappedValue.GetType()}> was not assignable to parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType}>.";
-            throw new PipelineRunException(errorMessage);
-        }
-
-        return mappedValue;
     }
 
     private StepResult CreateStepResult(Dictionary<string, object> outputProcessData)
@@ -523,17 +457,6 @@ public sealed class PipelineStep : IPipelineStep
         return stepResult;
     }
 
-    private static bool IsParameterNullable(ParameterInfo parameterInfo)
-    {
-        return new NullabilityInfoContext().Create(parameterInfo).WriteState is NullabilityState.Nullable;
-    }
-
-    private static bool IsArrayElementNullable(ParameterInfo arrayParameterInfo)
-    {
-        var nullabilityInfo = new NullabilityInfoContext().Create(arrayParameterInfo);
-        return nullabilityInfo.ElementType?.WriteState is NullabilityState.Nullable;
-    }
-
     /// <summary>
     /// Returns a new builder to create instances of a <see cref="PipelineStep"/>.
     /// </summary>
@@ -549,7 +472,7 @@ public sealed class PipelineStep : IPipelineStep
     {
         private string? id;
         private LocalizedText? displayName;
-        private List<InputConfig>? inputConfig;
+        private IReadOnlyDictionary<string, InputValue>? inputs;
         private List<OutputConfig>? outputConfig;
         private PipelineStepConditionsConfig? stepConditions;
         private object? process;
@@ -575,11 +498,11 @@ public sealed class PipelineStep : IPipelineStep
         }
 
         /// <summary>
-        /// Sets the input config of the <see cref="PipelineStep"/> that will be created by this builder.
+        /// Sets the compiled input values of the <see cref="PipelineStep"/> that will be created by this builder.
         /// </summary>
-        public PipelineStepBuilder InputConfig(List<InputConfig> inputConfig)
+        public PipelineStepBuilder Inputs(IReadOnlyDictionary<string, InputValue> inputs)
         {
-            this.inputConfig = inputConfig;
+            this.inputs = inputs;
             return this;
         }
 
@@ -641,8 +564,8 @@ public sealed class PipelineStep : IPipelineStep
                 throw new InvalidOperationException("id is required to build a PipelineStep.");
             if (displayName == null)
                 throw new InvalidOperationException("displayName is required to build a PipelineStep.");
-            if (inputConfig == null)
-                throw new InvalidOperationException("inputConfig is required to build a PipelineStep.");
+            if (inputs == null)
+                throw new InvalidOperationException("inputs is required to build a PipelineStep.");
             if (outputConfig == null)
                 throw new InvalidOperationException("outputConfig is required to build a PipelineStep.");
             if (process == null)
@@ -650,7 +573,7 @@ public sealed class PipelineStep : IPipelineStep
             if (logger == null)
                 throw new InvalidOperationException("logger is required to build a PipelineStep.");
 
-            return new PipelineStep(id, displayName, inputConfig, outputConfig, stepConditions, process, pipelineDirectory, logger);
+            return new PipelineStep(id, displayName, inputs, outputConfig, stepConditions, process, pipelineDirectory, logger);
         }
     }
 }

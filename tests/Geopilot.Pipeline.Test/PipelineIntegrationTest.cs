@@ -190,6 +190,13 @@ public class PipelineIntegrationTest
         Assert.IsNotNull(zipFile, "No ZIP file in output");
         Assert.AreEqual("myPersonalZipArchive.zip", zipFile.OriginalFileName, "ZIP file has not the expected name");
 
+        // The zip step aggregates three prior outputs (the matched XTF file and both validation logs)
+        // into its single array parameter. Asserting the entry count guards against a regression where
+        // only the first source is packaged.
+        using var zipStream = zipFile.OpenReadFileStream();
+        using var zipArchive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Read);
+        Assert.HasCount(3, zipArchive.Entries, "ZIP should contain the matched XTF file plus both validation logs");
+
         interlisValidatorMessageHandlerMock.Verify();
         pipelineOptionsMock.Verify();
     }
@@ -214,7 +221,7 @@ public class PipelineIntegrationTest
 
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipeline.Run(pipelineFiles, CancellationToken.None));
         Assert.IsNotNull(exception);
-        Assert.AreEqual("<2> values found for parameter <iliFile> of type <Geopilot.PipelineCore.Pipeline.IPipelineFile> in process run method.", exception.Message);
+        Assert.AreEqual("Input for parameter 'iliFile' resolved to 2 values, but a single value is required.", exception.Message);
     }
 
     [TestMethod]

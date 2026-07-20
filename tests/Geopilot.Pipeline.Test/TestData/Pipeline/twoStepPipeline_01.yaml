@@ -40,9 +40,7 @@ pipelines:
             skip_conditions:
               - expression: "Length([matcher.xtfFiles]) != 1"
         input:
-          - from: matcher
-            take: xtfFiles
-            as: iliFile
+          iliFile: "${step_output(matcher.xtfFiles)}"
         output:
           - take: error_log
             as: errorlog
@@ -62,15 +60,10 @@ pipelines:
             skip_conditions:
               - expression: "Length([matcher.xtfFiles]) != 1"
         input:
-          - from: validation
-            take: errorlog
-            as: input
-          - from: validation
-            take: xtflog
-            as: input
-          - from: matcher
-            take: xtfFiles
-            as: input
+          input:
+            - "${step_output(validation.errorlog)}"
+            - "${step_output(validation.xtflog)}"
+            - "${step_output(matcher.xtfFiles)}"
         output:
           - take: zip_package
             as: archive
@@ -97,9 +90,7 @@ pipelines:
           en: XTF Validation
         process_id: xtf_validator
         input:
-          - from: matcher
-            take: xtfFiles
-            as: iliFile
+          iliFile: "${step_output(matcher.xtfFiles)}"
         output:
           - take: error_log
             as: errorlog
@@ -125,15 +116,10 @@ pipelines:
             fail_conditions:
               - expression: "[zip_package.archive] == null"
         input:
-          - from: validation
-            take: errorlog
-            as: input
-          - from: validation
-            take: xtflog
-            as: input
-          - from: matcher
-            take: xtfFiles
-            as: input
+          input:
+            - "${step_output(validation.errorlog)}"
+            - "${step_output(validation.xtflog)}"
+            - "${step_output(matcher.xtfFiles)}"
         output:
           - take: zip_package
             as: archive

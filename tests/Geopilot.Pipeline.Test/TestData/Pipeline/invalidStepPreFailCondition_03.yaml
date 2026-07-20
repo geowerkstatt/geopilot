@@ -36,9 +36,7 @@ pipelines:
             fail_conditions:
               - expression: "[zip_package_process.archive] != null"
         input:
-          - from: xtf_matching
-            take: xtf_files
-            as: iliFile
+          iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
           - take: error_log
             as: error_log
@@ -54,15 +52,10 @@ pipelines:
           en: Zip Package
         process_id: zip_package_process
         input:
-          - from: validation
-            take: error_log
-            as: input
-          - from: validation
-            take: xtf_log
-            as: input
-          - from: xtf_matching
-            take: xtf_files
-            as: input
+          input:
+            - "${step_output(validation.error_log)}"
+            - "${step_output(validation.xtf_log)}"
+            - "${step_output(xtf_matching.xtf_files)}"
         output:
           - take: zip_package
             as: archive

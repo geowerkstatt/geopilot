@@ -5,6 +5,7 @@
 ### Changed
 
 - The XTF validation error tree groups errors by configurable criteria (by default model, topic and class; the tree-only pipeline groups by INTERLIS class), shows the number of entries per group, and displays the error-category titles in the active language.
+- Pipeline step `input` is now a map from process parameter name to value, replacing the previous list of `from`, `take` and `as` entries. A value is a literal, a `${step_output(stepId.outputName)}` reference, or a YAML list of those. Existing pipeline definitions must be updated to the new form.
 
 ### Added
 
