@@ -131,11 +131,6 @@ export interface MapLayer {
    * Only meaningful for WMTS layers.
    */
   layerIds?: string[];
-  /**
-   * Color of the layer's features as a hex color (e.g. "#e53835"): used as the stroke color and, as a
-   * transparent variant, the fill color for polygons. Only meaningful for feature layers.
-   */
-  color?: string;
   /** Attribution / data-owner credit for the layer (e.g. "swisstopo"); shown as a copyright credit, the client prepends a localized "©" label. */
   attribution?: string;
   /** Optional URL the attribution links to; when set, the credit is rendered as a link. */

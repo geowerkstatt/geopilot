@@ -411,7 +411,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
         .map(layer =>
           buildFeatureLayer(
             layer,
-            layer.color ?? theme.palette.map.fill,
+            theme.palette.map.fill,
             layer.title,
             theme.palette.map.stroke,
             visibleIdsRef,
