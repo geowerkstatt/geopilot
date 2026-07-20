@@ -11,8 +11,6 @@ namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 /// </summary>
 internal class XtfErrorVisualizationProcess
 {
-    private const string OutputMappingVisualization = "visualization";
-    private const string OutputMappingStatusMessage = "status_message";
     private const string IncludeMap = "map";
     private const string IncludeTree = "tree";
 
@@ -67,7 +65,7 @@ internal class XtfErrorVisualizationProcess
     /// <param name="xtfLog">The error-log XTF produced by the validation.</param>
     /// <returns>The output map with the composite visualization envelope and a status message.</returns>
     [PipelineProcessRun]
-    public Task<Dictionary<string, object?>> RunAsync(IPipelineFile xtfLog)
+    public Task<XtfErrorVisualizationResult> RunAsync(IPipelineFile xtfLog)
     {
         var errors = XtfLogParser.Parse(xtfLog)
             .Select((error, index) => new IndexedError($"e{index}", error))
@@ -82,10 +80,11 @@ internal class XtfErrorVisualizationProcess
             FilterBy = includeTree ? filterBy : null,
         };
 
-        return Task.FromResult(new Dictionary<string, object?>
+        return Task.FromResult(result: new XtfErrorVisualizationResult
         {
-            { OutputMappingVisualization, VisualizationFactory.XtfError(config) },
-            { OutputMappingStatusMessage, SuccessfulStatusMessage },
+            Visualization = VisualizationFactory.XtfError(config),
+
+            StatusMessage = SuccessfulStatusMessage,
         });
     }
 }

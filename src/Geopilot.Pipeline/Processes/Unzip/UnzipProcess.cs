@@ -15,9 +15,6 @@ namespace Geopilot.Pipeline.Processes.Unzip;
 /// </summary>
 internal class UnzipProcess
 {
-    private const string OutputMappingExtractedFiles = "extracted_files";
-    private const string OutputMappingStatusMessage = "status_message";
-
     private static readonly LocalizedText SuccessfulStatusMessageFormat = new Dictionary<string, string>
     {
         { "de", "{0} Datei(en) aus dem ZIP Archiv entpackt." },
@@ -55,9 +52,9 @@ internal class UnzipProcess
     /// downstream consumers that need a flat view simply ignore that property.
     /// </summary>
     /// <param name="zipFile">The ZIP archive to extract. Cannot be null.</param>
-    /// <returns>A dictionary containing the extracted files and a localized status message.</returns>
+    /// <returns>An <see cref="UnzipResult"/> with the extracted files and a localized status message.</returns>
     [PipelineProcessRun]
-    public async Task<Dictionary<string, object?>> RunAsync(IPipelineFile zipFile)
+    public async Task<UnzipResult> RunAsync(IPipelineFile zipFile)
     {
         var extracted = new List<IPipelineFile>();
 
@@ -101,10 +98,10 @@ internal class UnzipProcess
             logger.LogInformation("UnzipProcess: extracted {Count} file(s) from '{Archive}'.", extracted.Count, zipFile.OriginalFileName);
         }
 
-        return new Dictionary<string, object?>
+        return new UnzipResult
         {
-            { OutputMappingExtractedFiles, extracted.ToArray() },
-            { OutputMappingStatusMessage, statusMessage },
+            ExtractedFiles = extracted.ToArray(),
+            StatusMessage = statusMessage,
         };
     }
 }

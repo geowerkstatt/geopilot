@@ -53,7 +53,7 @@ internal class XtfMatcherProcess
     }
 
     [PipelineProcessRun]
-    public Task<Dictionary<string, object?>> RunAsync([UploadFiles] IPipelineFileList uploadFiles)
+    public Task<XtfMatcherResult> RunAsync([UploadFiles] IPipelineFileList uploadFiles)
     {
         var filtered = uploadFiles;
 
@@ -77,10 +77,10 @@ internal class XtfMatcherProcess
             ? NoMatchStatusMessage
             : StatusMessageFormat.Map(msg => string.Format(CultureInfo.InvariantCulture, msg, matchedFiles.Length, totalCount));
 
-        return Task.FromResult(new Dictionary<string, object?>
+        return Task.FromResult(result: new XtfMatcherResult
         {
-            { "xtf_files", matchedFiles },
-            { "status_message", statusMessage },
+            XtfFiles = matchedFiles,
+            StatusMessage = statusMessage,
         });
     }
 
