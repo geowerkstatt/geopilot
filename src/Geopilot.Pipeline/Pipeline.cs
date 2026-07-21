@@ -123,7 +123,7 @@ public sealed class Pipeline : IPipeline
     }
 
     /// <inheritdoc/>
-    public async Task<PipelineContext> Run(IPipelineFileList files, CancellationToken cancellationToken)
+    public async Task<PipelineContext> Run(IReadOnlyList<IPipelineFile> files, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(files);
 

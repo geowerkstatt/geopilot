@@ -71,11 +71,11 @@ public class PipelineIntegrationTest
         var validationErrors = factory.PipelineProcessConfig.Validate();
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
-        var pipelineFiles = new PipelineFileList(new List<IPipelineFile>
+        var pipelineFiles = new List<IPipelineFile>
             {
                 new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf"),
                 new PipelineFile("TestData/UploadFiles/iseltwald_gwp_be13_1.xtf", "iseltwald_gwp_be13_1.xtf"),
-            });
+            };
         using var pipeline = factory.CreatePipeline("two_steps_roadsexdm2ien", Guid.NewGuid());
 
         using HttpResponseMessage uploadMockResponse = new()
@@ -209,11 +209,11 @@ public class PipelineIntegrationTest
         var validationErrors = factory.PipelineProcessConfig.Validate();
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
-        var pipelineFiles = new PipelineFileList(new List<IPipelineFile>
+        var pipelineFiles = new List<IPipelineFile>
             {
                 new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien1.xtf"),
                 new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien2.xtf"),
-            });
+            };
         using var pipeline = factory.CreatePipeline("two_steps_roadsexdm2ien", Guid.NewGuid());
 
         Assert.IsNotNull(pipeline, "pipeline not created");
@@ -232,11 +232,11 @@ public class PipelineIntegrationTest
         var validationErrors = factory.PipelineProcessConfig.Validate();
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
-        var pipelineFiles = new PipelineFileList(new List<IPipelineFile>
+        var pipelineFiles = new List<IPipelineFile>
             {
                 new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien1.xtf"),
                 new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien2.xtf"),
-            });
+            };
         using var pipeline = factory.CreatePipeline("two_steps_skip_validation", Guid.NewGuid());
 
         Assert.IsNotNull(pipeline, "pipeline not created");
@@ -271,7 +271,7 @@ public class PipelineIntegrationTest
 
         using var pipeline = factory.CreatePipeline("file_reference", Guid.NewGuid());
 
-        var context = await pipeline.Run(new PipelineFileList(new List<IPipelineFile>()), CancellationToken.None);
+        var context = await pipeline.Run(new List<IPipelineFile>(), CancellationToken.None);
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
 
@@ -293,10 +293,10 @@ public class PipelineIntegrationTest
         var validationErrors = factory.PipelineProcessConfig.Validate();
         Assert.HasCount(0, validationErrors, $"validation errors on Pipeline {validationErrors.ErrorMessage}");
 
-        var pipelineFiles = new PipelineFileList(new List<IPipelineFile>
+        var pipelineFiles = new List<IPipelineFile>
         {
             new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf"),
-        });
+        };
         using var pipeline = factory.CreatePipeline("upload_reference", Guid.NewGuid());
 
         var context = await pipeline.Run(pipelineFiles, CancellationToken.None);

@@ -445,7 +445,6 @@ public sealed class PipelineStep : IPipelineStep
 
         return value switch
         {
-            IPipelineFileList list => new PipelineFileList(list.Files.Select(this.WrapFile).ToList()),
             IEnumerable<IPipelineFile> files => files.Select(this.WrapFile).ToArray(),
             IPipelineFile file => this.WrapFile(file),
             _ => value,

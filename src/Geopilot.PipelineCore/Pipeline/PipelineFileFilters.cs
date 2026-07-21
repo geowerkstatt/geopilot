@@ -4,7 +4,7 @@ namespace Geopilot.PipelineCore.Pipeline;
 
 /// <summary>
 /// Filtering helpers for a sequence of <see cref="IPipelineFile"/>. They work on any file collection
-/// (an array, an <see cref="IPipelineFileList"/> or any <see cref="IEnumerable{T}"/> of
+/// (an array or any <see cref="IEnumerable{T}"/> of
 /// <see cref="IPipelineFile"/>), so a process can filter its files regardless of how they were wired
 /// into its run method parameter.
 /// </summary>

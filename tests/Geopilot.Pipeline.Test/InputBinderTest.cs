@@ -417,21 +417,11 @@ public class InputBinderTest
     }
 
     [TestMethod]
-    public void BindsUploadReferenceToFileListParameter()
-    {
-        var files = new Mock<IPipelineFileList>().Object;
-
-        var result = InputBinder.Bind(Single(typeof(IPipelineFileList)), new InputValue.UploadReference(), ResolverReturning(files));
-
-        Assert.AreSame(files, result);
-    }
-
-    [TestMethod]
     public void SpreadsUploadReferenceIntoFileArrayParameter()
     {
         var first = new Mock<IPipelineFile>().Object;
         var second = new Mock<IPipelineFile>().Object;
-        var uploadList = new PipelineFileList(new List<IPipelineFile> { first, second });
+        var uploadList = new List<IPipelineFile> { first, second };
 
         var result = InputBinder.Bind(ArrayTarget(typeof(IPipelineFile[])), new InputValue.UploadReference(), ResolverReturning(uploadList));
 

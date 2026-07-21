@@ -83,7 +83,7 @@ public class PreflightBackgroundService : BackgroundService
                 .Cast<IPipelineFile>()
                 .ToList();
 
-            jobStore.EnqueueForProcessing(request.JobId, new PipelineFileList(pipelineFiles));
+            jobStore.EnqueueForProcessing(request.JobId, pipelineFiles);
 
             logger.LogInformation("Preflight complete for job <{JobId}>. Pipeline queued.", request.JobId);
         }

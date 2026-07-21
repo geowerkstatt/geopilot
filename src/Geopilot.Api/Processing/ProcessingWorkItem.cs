@@ -7,4 +7,4 @@ namespace Geopilot.Api.Processing;
 /// A pipeline ready to run together with the staged upload files it should process. Written to the
 /// processing queue once a job's files have been staged, and consumed by the processing runner.
 /// </summary>
-public sealed record ProcessingWorkItem(IPipeline Pipeline, IPipelineFileList Files);
+public sealed record ProcessingWorkItem(IPipeline Pipeline, IReadOnlyList<IPipelineFile> Files);

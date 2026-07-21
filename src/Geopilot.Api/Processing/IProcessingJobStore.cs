@@ -70,7 +70,7 @@ public interface IProcessingJobStore
     /// </summary>
     /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found, or <paramref name="files"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">If no pipeline is attached or the job is no longer pending.</exception>
-    ProcessingJob EnqueueForProcessing(Guid jobId, IPipelineFileList files);
+    ProcessingJob EnqueueForProcessing(Guid jobId, IReadOnlyList<IPipelineFile> files);
 
     /// <summary>
     /// Removes the job from the store and disposes its pipeline (if any).

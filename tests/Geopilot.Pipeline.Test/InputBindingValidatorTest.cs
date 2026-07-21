@@ -144,7 +144,7 @@ public class InputBindingValidatorTest
             string title,
             int maxErrors,
             IPipelineFile template,
-            IPipelineFileList uploadFiles,
+            IPipelineFile[] uploadFiles,
             CancellationToken cancellationToken)
         {
             return Task.FromResult(new Dictionary<string, object>());

@@ -12,7 +12,7 @@ public class PipelineContext
     /// </summary>
     /// <remarks>This property allows the user to specify multiple files for upload. Ensure that the list is
     /// not empty before initiating the upload process.</remarks>
-    public required IPipelineFileList Upload { get; set; }
+    public required IReadOnlyList<IPipelineFile> Upload { get; set; }
 
     /// <summary>
     /// The results of each step in the pipeline.

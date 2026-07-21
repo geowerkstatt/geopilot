@@ -74,14 +74,14 @@ public class PreflightBackgroundServiceTest
         uploadFileStoreMock.Setup(x => x.Exists(jobId, "random.xtf")).Returns(true);
         uploadFileStoreMock.Setup(x => x.GetPath(jobId, "random.xtf")).Returns("path/to/random.xtf");
         jobStoreMock
-            .Setup(x => x.EnqueueForProcessing(jobId, It.Is<IPipelineFileList>(files => files.Files.Any(f => f.OriginalFileName == "test.xtf"))))
+            .Setup(x => x.EnqueueForProcessing(jobId, It.Is<IReadOnlyList<IPipelineFile>>(files => files.Any(f => f.OriginalFileName == "test.xtf"))))
             .Returns(stagedJob with { State = ProcessingState.Running });
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
         cloudOrchestrationServiceMock.Verify(x => x.RunPreflightChecksAsync(uploadId), Times.Once);
         cloudOrchestrationServiceMock.Verify(x => x.StageFilesLocallyAsync(uploadId, jobId), Times.Once);
-        jobStoreMock.Verify(x => x.EnqueueForProcessing(jobId, It.Is<IPipelineFileList>(files => files.Files.Any(f => f.OriginalFileName == "test.xtf"))), Times.Once);
+        jobStoreMock.Verify(x => x.EnqueueForProcessing(jobId, It.Is<IReadOnlyList<IPipelineFile>>(files => files.Any(f => f.OriginalFileName == "test.xtf"))), Times.Once);
     }
 
     [TestMethod]
@@ -189,7 +189,7 @@ public class PreflightBackgroundServiceTest
         cloudStorageServiceMock.Verify(x => x.DeletePrefixAsync($"uploads/{uploadId}/"), Times.Once);
         uploadStoreMock.Verify(x => x.RemoveUpload(uploadId), Times.Once);
         jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
-        jobStoreMock.Verify(x => x.EnqueueForProcessing(It.IsAny<Guid>(), It.IsAny<IPipelineFileList>()), Times.Never);
+        jobStoreMock.Verify(x => x.EnqueueForProcessing(It.IsAny<Guid>(), It.IsAny<IReadOnlyList<IPipelineFile>>()), Times.Never);
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
 

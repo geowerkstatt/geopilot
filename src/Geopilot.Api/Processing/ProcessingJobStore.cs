@@ -110,7 +110,7 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
-    public ProcessingJob EnqueueForProcessing(Guid jobId, IPipelineFileList files)
+    public ProcessingJob EnqueueForProcessing(Guid jobId, IReadOnlyList<IPipelineFile> files)
     {
         ArgumentNullException.ThrowIfNull(files);
 

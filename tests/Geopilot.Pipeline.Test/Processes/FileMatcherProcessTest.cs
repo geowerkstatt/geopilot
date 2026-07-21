@@ -6,12 +6,12 @@ namespace Geopilot.Pipeline.Test.Processes;
 [TestClass]
 public class FileMatcherProcessTest
 {
-    private static PipelineFileList FileList(params string[] fileNames) =>
-        new PipelineFileList(fileNames.Select(n => (IPipelineFile)new PipelineFile("dummy", n)).ToList());
+    private static IPipelineFile[] FileList(params string[] fileNames) =>
+        fileNames.Select(n => (IPipelineFile)new PipelineFile("dummy", n)).ToArray();
 
-    private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(FileMatcherProcess process, PipelineFileList files)
+    private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(FileMatcherProcess process, IPipelineFile[] files)
     {
-        var result = await process.RunAsync(files.Files.ToArray());
+        var result = await process.RunAsync(files);
         result.TryGetValue("matched_files", out var matchedFiles);
         result.TryGetValue("status_message", out var statusMessage);
         return ((IPipelineFile[])matchedFiles!, (LocalizedText)statusMessage!);

@@ -80,7 +80,7 @@ public class ProcessingJobStoreTest
         var job = store.CreateJob();
         store.AddFileToJob(job.Id, "a", "b");
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, new PipelineFileList());
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 
         Assert.ThrowsExactly<InvalidOperationException>(() => store.AddFileToJob(job.Id, "a2", "b2"));
     }
@@ -137,7 +137,7 @@ public class ProcessingJobStoreTest
         var pipeline = new Mock<IPipeline>().Object;
         store.AttachPipeline(job.Id, pipeline, 1);
 
-        var files = new PipelineFileList();
+        var files = Array.Empty<IPipelineFile>();
         store.EnqueueForProcessing(job.Id, files);
 
         // The work item should be queued exactly once and carry the attached pipeline and the staged files.
@@ -157,7 +157,7 @@ public class ProcessingJobStoreTest
         var job = store.CreateJob();
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
 
-        var updated = store.EnqueueForProcessing(job.Id, new PipelineFileList());
+        var updated = store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 
         Assert.AreEqual(ProcessingState.Running, updated.State);
     }
@@ -167,7 +167,7 @@ public class ProcessingJobStoreTest
     {
         var job = store.CreateJob();
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.EnqueueForProcessing(job.Id, new PipelineFileList()));
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>()));
     }
 
     [TestMethod]
@@ -175,9 +175,9 @@ public class ProcessingJobStoreTest
     {
         var job = store.CreateJob();
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, new PipelineFileList());
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.EnqueueForProcessing(job.Id, new PipelineFileList()));
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>()));
     }
 
     [TestMethod]
@@ -188,7 +188,7 @@ public class ProcessingJobStoreTest
     {
         var job = store.CreateJob();
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, new PipelineFileList());
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
         var updated = store.PipelineFinished(job.Id, pipelineState);
 
         Assert.AreEqual(pipelineState, updated.State);
@@ -209,7 +209,7 @@ public class ProcessingJobStoreTest
     {
         var job = store.CreateJob();
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, new PipelineFileList());
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => store.PipelineFinished(job.Id, pipelineState));
     }
@@ -228,7 +228,7 @@ public class ProcessingJobStoreTest
     {
         var job = store.CreateJob();
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, new PipelineFileList());
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
         store.PipelineFinished(job.Id, ProcessingState.Success);
 
         Assert.ThrowsExactly<InvalidOperationException>(() => store.MarkAsFailed(job.Id));

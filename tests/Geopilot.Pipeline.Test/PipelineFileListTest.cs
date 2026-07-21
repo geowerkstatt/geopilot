@@ -11,7 +11,7 @@ public class PipelineFileListTest
     [TestMethod]
     public async Task FileExtensionFilter()
     {
-        PipelineFileList pipelineFiles = new PipelineFileList(new List<IPipelineFile> { roadsExdm2ienXtfFile, helloWorldPdfFile });
+        IPipelineFile[] pipelineFiles = new IPipelineFile[] { roadsExdm2ienXtfFile, helloWorldPdfFile };
         var filteredFiles = pipelineFiles.WithExtensions(new HashSet<string> { "XTF" }).ToList();
         Assert.HasCount(1, filteredFiles);
         Assert.AreEqual("RoadsExdm2ien.xtf", filteredFiles.First().OriginalFileName);
@@ -22,7 +22,7 @@ public class PipelineFileListTest
     [DataRow(@"^\w{1,11}\.[^.]+$", 1)]
     public async Task NameFilter(string pattern, int expectedNumber)
     {
-        PipelineFileList pipelineFiles = new PipelineFileList(new List<IPipelineFile> { roadsExdm2ienXtfFile, helloWorldPdfFile });
+        IPipelineFile[] pipelineFiles = new IPipelineFile[] { roadsExdm2ienXtfFile, helloWorldPdfFile };
         var filteredFiles = pipelineFiles.WithMatchingName(pattern).ToList();
         Assert.HasCount(expectedNumber, filteredFiles);
     }
