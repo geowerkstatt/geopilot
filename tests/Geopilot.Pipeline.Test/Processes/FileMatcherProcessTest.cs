@@ -9,9 +9,9 @@ public class FileMatcherProcessTest
     private static PipelineFileList FileList(params string[] fileNames) =>
         new PipelineFileList(fileNames.Select(n => (IPipelineFile)new PipelineFile("dummy", n)).ToList());
 
-    private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(FileMatcherProcess process, IPipelineFileList files)
+    private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(FileMatcherProcess process, PipelineFileList files)
     {
-        var result = await process.RunAsync(files);
+        var result = await process.RunAsync(files.Files.ToArray());
         result.TryGetValue("matched_files", out var matchedFiles);
         result.TryGetValue("status_message", out var statusMessage);
         return ((IPipelineFile[])matchedFiles!, (LocalizedText)statusMessage!);

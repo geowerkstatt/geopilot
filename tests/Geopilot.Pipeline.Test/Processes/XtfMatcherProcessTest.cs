@@ -19,9 +19,9 @@ public class XtfMatcherProcessTest
     private static PipelineFileList FileListWithPath(params (string Path, string Name)[] files) =>
         new PipelineFileList(files.Select(f => (IPipelineFile)new PipelineFile(f.Path, f.Name)).ToList());
 
-    private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(XtfMatcherProcess process, IPipelineFileList files)
+    private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(XtfMatcherProcess process, PipelineFileList files)
     {
-        var result = await process.RunAsync(files);
+        var result = await process.RunAsync(files.Files.ToArray());
         result.TryGetValue("xtf_files", out var matchedFiles);
         result.TryGetValue("status_message", out var statusMessage);
         return ((IPipelineFile[])matchedFiles!, (LocalizedText)statusMessage!);

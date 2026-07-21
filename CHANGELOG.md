@@ -6,6 +6,7 @@
 
 - The XTF validation error tree groups errors by configurable criteria (by default model, topic and class; the tree-only pipeline groups by INTERLIS class), shows the number of entries per group, and displays the error-category titles in the active language.
 - Pipeline step `input` is now a map from process parameter name to value, replacing the previous list of `from`, `take` and `as` entries. A value is a literal, a `${step_output(stepId.outputName)}` reference, or a YAML list of those. Existing pipeline definitions must be updated to the new form.
+- A process run method receives a file collection as `IPipelineFile[]`, which can be wired from any input source (`${upload()}`, a step output, `${file(...)}`, or a combination). `IPipelineFileList` now implements `IEnumerable<IPipelineFile>`, and the file filters (`WithExtensions`, `WithMatchingName`, `Matches`) are extension methods on `IEnumerable<IPipelineFile>` in `GeoWerkstatt.Geopilot.PipelineCore` instead of instance methods on `IPipelineFileList`.
 
 ### Added
 

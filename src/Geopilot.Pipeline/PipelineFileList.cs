@@ -1,5 +1,5 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
-using System.Text.RegularExpressions;
+using System.Collections;
 
 namespace Geopilot.Pipeline;
 
@@ -27,20 +27,7 @@ public class PipelineFileList : IPipelineFileList
     public ICollection<IPipelineFile> Files { get; }
 
     /// <inheritdoc />
-    public IPipelineFileList Matches(Func<IPipelineFile, bool> predicate)
-    {
-        return new PipelineFileList(this.Files.Where(predicate).ToList());
-    }
+    public IEnumerator<IPipelineFile> GetEnumerator() => this.Files.GetEnumerator();
 
-    /// <inheritdoc />
-    public IPipelineFileList WithExtensions(HashSet<string> extensions)
-    {
-        return Matches(file => extensions.Select(e => e.ToLowerInvariant()).Contains(file.FileExtension.ToLowerInvariant()));
-    }
-
-    /// <inheritdoc />
-    public IPipelineFileList WithMatchingName(string namePattern)
-    {
-        return Matches(file => Regex.IsMatch(file.OriginalFileName, namePattern));
-    }
+    IEnumerator IEnumerable.GetEnumerator() => this.Files.GetEnumerator();
 }
