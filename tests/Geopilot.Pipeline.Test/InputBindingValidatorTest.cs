@@ -148,7 +148,7 @@ public class InputBindingValidatorTest
     private sealed class SampleProcess
     {
         [PipelineProcessRun]
-        public Task<Dictionary<string, object>> RunAsync(
+        public Task<SampleResult> RunAsync(
             string title,
             int maxErrors,
             IPipelineFile template,
@@ -156,7 +156,11 @@ public class InputBindingValidatorTest
             [UploadFiles] IPipelineFileList? files,
             CancellationToken cancellationToken)
         {
-            return Task.FromResult(new Dictionary<string, object>());
+            return Task.FromResult(new SampleResult());
         }
+    }
+
+    private sealed class SampleResult
+    {
     }
 }

@@ -61,20 +61,23 @@ public class ProcessingRunnerTest
 
     private sealed class FileEmittingProcess
     {
-        private readonly string outputKey;
         private readonly string filePath;
         private readonly string originalFileName;
 
-        public FileEmittingProcess(string outputKey, string filePath, string originalFileName)
+        public FileEmittingProcess(string filePath, string originalFileName)
         {
-            this.outputKey = outputKey;
             this.filePath = filePath;
             this.originalFileName = originalFileName;
         }
 
         [PipelineProcessRun]
-        public Task<Dictionary<string, object>> RunAsync(CancellationToken cancellationToken)
-            => Task.FromResult(new Dictionary<string, object> { { outputKey, new PipelineFile(filePath, originalFileName) } });
+        public Task<FileEmittingProcessResult> RunAsync(CancellationToken cancellationToken)
+            => Task.FromResult(new FileEmittingProcessResult { Result = new PipelineFile(filePath, originalFileName) });
+    }
+
+    private sealed class FileEmittingProcessResult
+    {
+        public required IPipelineFile Result { get; set; }
     }
 
     private sealed class BlockingProcess
@@ -84,18 +87,22 @@ public class ProcessingRunnerTest
         public BlockingProcess(Task gate) => this.gate = gate;
 
         [PipelineProcessRun]
-        public async Task<Dictionary<string, object>> RunAsync(CancellationToken cancellationToken)
+        public async Task<EmptyResult> RunAsync(CancellationToken cancellationToken)
         {
             await gate.WaitAsync(cancellationToken);
-            return new Dictionary<string, object>();
+            return new EmptyResult();
         }
     }
 
     private sealed class ThrowingProcess
     {
         [PipelineProcessRun]
-        public Task<Dictionary<string, object>> RunAsync(CancellationToken cancellationToken)
-            => Task.FromException<Dictionary<string, object>>(new InvalidOperationException("step failed"));
+        public Task<EmptyResult> RunAsync(CancellationToken cancellationToken)
+            => Task.FromException<EmptyResult>(new InvalidOperationException("step failed"));
+    }
+
+    private sealed class EmptyResult
+    {
     }
 
     [TestMethod]
@@ -424,8 +431,8 @@ public class ProcessingRunnerTest
             .Id(id)
             .DisplayName(LocalizedText.Empty)
             .Inputs(new Dictionary<string, InputValue>())
-            .OutputConfig([new OutputConfig { Take = outputKey, As = outputKey, Action = new HashSet<OutputAction>(actions) }])
-            .Process(new FileEmittingProcess(outputKey, WriteTempFile(content), originalFileName))
+            .OutputConfig([new OutputConfig { Take = "Result", As = outputKey, Action = new HashSet<OutputAction>(actions) }])
+            .Process(new FileEmittingProcess(WriteTempFile(content), originalFileName))
             .Logger(pipelineLogger)
             .Build();
 
