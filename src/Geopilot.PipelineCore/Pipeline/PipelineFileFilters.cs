@@ -29,12 +29,4 @@ public static class PipelineFileFilters
     {
         return files.Where(file => Regex.IsMatch(file.OriginalFileName, namePattern));
     }
-
-    /// <summary>
-    /// Filters the files to those satisfying <paramref name="predicate"/>.
-    /// </summary>
-    public static IEnumerable<IPipelineFile> Matches(this IEnumerable<IPipelineFile> files, Func<IPipelineFile, bool> predicate)
-    {
-        return files.Where(predicate);
-    }
 }

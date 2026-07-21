@@ -69,7 +69,7 @@ internal class XtfMatcherProcess
         // Keep only files that declare at least one of the configured ILI models in their XTF header.
         // Files that cannot be parsed as XTF are excluded.
         if (iliModels.Count > 0)
-            filtered = filtered.Matches(file => iliModels.Overlaps(ExtractIliModels(file)));
+            filtered = filtered.Where(file => iliModels.Overlaps(ExtractIliModels(file)));
 
         var matchedFiles = filtered.ToArray();
         var totalCount = files.Length;
