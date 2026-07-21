@@ -45,7 +45,7 @@ internal class FileMatcherProcess
     }
 
     [PipelineProcessRun]
-    public Task<Dictionary<string, object?>> RunAsync([UploadFiles] IPipelineFileList uploadFiles)
+    public Task<Dictionary<string, object?>> RunAsync(IPipelineFileList uploadFiles)
     {
         var filtered = uploadFiles;
 

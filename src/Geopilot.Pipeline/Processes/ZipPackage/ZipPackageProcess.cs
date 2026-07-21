@@ -68,7 +68,7 @@ internal class ZipPackageProcess
     /// PipelineTransferFile instance, or null if no valid input files were provided.</returns>
     /// <exception cref="ArgumentException">Thrown if no input files are provided.</exception>
     [PipelineProcessRun]
-    public async Task<Dictionary<string, object?>> RunAsync([UploadFiles] IPipelineFileList? uploadFiles, params IPipelineFile?[] input)
+    public async Task<Dictionary<string, object?>> RunAsync(IPipelineFileList? uploadFiles, params IPipelineFile?[] input)
     {
         var allFiles = includeUploadFiles && uploadFiles != null
             ? uploadFiles.Files.Cast<IPipelineFile?>().Concat(input).ToArray()

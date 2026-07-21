@@ -14,6 +14,10 @@
 - A pipeline step `input` value can reference a file shipped with the deployment via `${file(path)}` (relative to the configured `Storage:ResourcesDirectory`), injecting a constant resource such as a template or lookup table into a process without a preceding step.
 - A pipeline step `input` value can reference the uploaded delivery files with `${upload()}`, so a pipeline definition can wire the upload to a process parameter explicitly.
 
+### Removed
+
+- The `[UploadFiles]` attribute has been removed from the `GeoWerkstatt.Geopilot.PipelineCore` API. A process parameter that receives the uploaded delivery files must now be wired explicitly with `${upload()}` in the pipeline definition (see Added). Pipeline definitions and plugins that relied on the attribute must be updated.
+
 ## v3.0.341 - 2026-06-17
 
 ### Added

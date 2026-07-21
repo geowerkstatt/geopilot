@@ -33,14 +33,6 @@ public class InputBindingValidatorTest
     }
 
     [TestMethod]
-    public void AcceptsUploadReferenceOnUploadFilesParameter()
-    {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("files", "${upload()}")));
-
-        Assert.HasCount(0, errors);
-    }
-
-    [TestMethod]
     public void RejectsInputKeyTargetingCancellationToken()
     {
         var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("cancellationToken", "x")));
@@ -153,7 +145,6 @@ public class InputBindingValidatorTest
             int maxErrors,
             IPipelineFile template,
             IPipelineFileList uploadFiles,
-            [UploadFiles] IPipelineFileList? files,
             CancellationToken cancellationToken)
         {
             return Task.FromResult(new Dictionary<string, object>());

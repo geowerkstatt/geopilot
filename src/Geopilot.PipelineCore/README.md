@@ -34,8 +34,9 @@ using Geopilot.PipelineCore.Pipeline;
 public class MyCustomProcess
 {
     [PipelineProcessRun]
-    public Task<Dictionary<string, object?>> RunAsync([UploadFiles] IPipelineFileList uploadFiles)
+    public Task<Dictionary<string, object?>> RunAsync(IPipelineFileList uploadFiles)
     {
+        // The pipeline definition wires this parameter, e.g. uploadFiles: "${upload()}"
         // ... your logic
         return Task.FromResult(new Dictionary<string, object?>
         {
