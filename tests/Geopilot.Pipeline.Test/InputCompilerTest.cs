@@ -72,9 +72,9 @@ public class InputCompilerTest
     [TestMethod]
     public void CompilesUploadReference()
     {
-        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["uploadFiles"] = "${upload()}" });
+        var compiled = InputCompiler.Compile(new Dictionary<string, object?> { ["files"] = "${upload()}" });
 
-        Assert.AreEqual(new InputValue.UploadReference(), compiled["uploadFiles"]);
+        Assert.AreEqual(new InputValue.UploadReference(), compiled["files"]);
     }
 
     [TestMethod]

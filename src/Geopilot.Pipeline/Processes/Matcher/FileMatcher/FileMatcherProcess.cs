@@ -45,9 +45,9 @@ internal class FileMatcherProcess
     }
 
     [PipelineProcessRun]
-    public Task<Dictionary<string, object?>> RunAsync(IPipelineFile[] uploadFiles)
+    public Task<Dictionary<string, object?>> RunAsync(IPipelineFile[] files)
     {
-        IEnumerable<IPipelineFile> filtered = uploadFiles;
+        IEnumerable<IPipelineFile> filtered = files;
 
         // Keep only files whose extension matches any of the configured extensions.
         if (fileExtensions.Count > 0)
@@ -59,7 +59,7 @@ internal class FileMatcherProcess
             filtered = filtered.WithMatchingName(string.Join("|", fileNamePatterns.Select(p => $"({p})")));
 
         var matchedFiles = filtered.ToArray();
-        var totalCount = uploadFiles.Length;
+        var totalCount = files.Length;
         LocalizedText statusMessage = matchedFiles.Length == 0
             ? NoMatchStatusMessage
             : StatusMessageFormat.Map(msg => string.Format(CultureInfo.InvariantCulture, msg, matchedFiles.Length, totalCount));

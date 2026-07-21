@@ -29,7 +29,7 @@ pipelines:
           iliModels:
             - RoadsExdm2ien
         input:
-          uploadFiles: "${upload()}"
+          files: "${upload()}"
         output:
           - take: xtf_files
             as: xtfFiles
@@ -85,7 +85,7 @@ pipelines:
           iliModels:
             - RoadsExdm2ien
         input:
-          uploadFiles: "${upload()}"
+          files: "${upload()}"
         output:
           - take: xtf_files
             as: xtfFiles

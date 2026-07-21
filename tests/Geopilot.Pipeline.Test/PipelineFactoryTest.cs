@@ -65,7 +65,7 @@ public class PipelineFactoryTest
         Assert.AreEqual("xtf_matching", matcherStep.Id, "matcher step name not as expected");
         var matcherInputs = ((PipelineStep)matcherStep).Inputs;
         Assert.HasCount(1, matcherInputs);
-        Assert.AreEqual(new InputValue.UploadReference(), matcherInputs["uploadFiles"]);
+        Assert.AreEqual(new InputValue.UploadReference(), matcherInputs["files"]);
         Assert.HasCount(1, matcherStep.OutputConfigs);
         Assert.HasCount(1, matcherStep.OutputConfigs);
         var matcherOutputConfig_0 = matcherStep.OutputConfigs.ElementAt(0);

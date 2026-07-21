@@ -55,7 +55,7 @@ pipelines:
           it: XTF Corrispondenza
         process_id: xtf_matcher
         input:
-          uploadFiles: "${upload()}"
+          files: "${upload()}"
         output:
           - take: xtf_files
             as: xtf_files
@@ -146,7 +146,7 @@ pipelines:
           fr: Correspondance XTF
         process_id: xtf_matcher
         input:
-          uploadFiles: "${upload()}"
+          files: "${upload()}"
         output:
           - take: xtf_files
             as: xtf_files
@@ -263,7 +263,7 @@ pipelines:
           fr: Analyse des fichiers téléversés
         process_id: xtf_matcher
         input:
-          uploadFiles: "${upload()}"
+          files: "${upload()}"
         output:
           - take: xtf_files
             as: xtf_files

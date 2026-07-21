@@ -115,7 +115,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void AcceptsUploadReferenceForFileListParameter()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("uploadFiles", "${upload()}")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("files", "${upload()}")));
 
         Assert.HasCount(0, errors);
     }
@@ -144,7 +144,7 @@ public class InputBindingValidatorTest
             string title,
             int maxErrors,
             IPipelineFile template,
-            IPipelineFile[] uploadFiles,
+            IPipelineFile[] files,
             CancellationToken cancellationToken)
         {
             return Task.FromResult(new Dictionary<string, object>());

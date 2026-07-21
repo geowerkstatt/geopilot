@@ -22,7 +22,7 @@ pipelines:
           en: XTF Matching
         process_id: xtf_matcher
         input:
-          uploadFiles: "${upload()}"
+          files: "${upload()}"
         output:
           - take: xtf_files
             as: xtf_files
