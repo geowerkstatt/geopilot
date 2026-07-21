@@ -55,7 +55,7 @@ pipelines:
           it: XTF Corrispondenza
         process_id: xtf_matcher
         output:
-          - take: xtf_files
+          - take: XtfFiles
             as: xtf_files
       - id: validation
         display_name:
@@ -76,21 +76,21 @@ pipelines:
         input:
           iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
-          - take: error_log
+          - take: ErrorLog
             as: error_log
             action:
               - Download
               - Delivery
-          - take: xtf_log
+          - take: XtfLog
             as: xtf_log
             action:
               - Download
               - Delivery
-          - take: status_message
+          - take: StatusMessage
             as: status_message
             action:
               - StatusMessage
-          - take: validation_successful
+          - take: ValidationSuccessful
             as: successful
       - id: map_visualization
         display_name:
@@ -114,11 +114,11 @@ pipelines:
         input:
           xtfLog: "${step_output(validation.xtf_log)}"
         output:
-          - take: visualization
+          - take: Visualization
             as: map_visualization
             action:
               - Visualization
-          - take: status_message
+          - take: StatusMessage
             as: status_message
             action:
               - StatusMessage
@@ -144,7 +144,7 @@ pipelines:
           fr: Correspondance XTF
         process_id: xtf_matcher
         output:
-          - take: xtf_files
+          - take: XtfFiles
             as: xtf_files
       - id: validation
         display_name:
@@ -167,21 +167,21 @@ pipelines:
         input:
           iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
-          - take: error_log
+          - take: ErrorLog
             as: error_log
             action:
               - Download
               - Delivery
-          - take: xtf_log
+          - take: XtfLog
             as: xtf_log
             action:
               - Download
               - Delivery
-          - take: status_message
+          - take: StatusMessage
             as: status_message
             action:
               - StatusMessage
-          - take: validation_successful
+          - take: ValidationSuccessful
             as: successful
       - id: error_tree
         display_name:
@@ -207,11 +207,11 @@ pipelines:
         input:
           xtfLog: "${step_output(validation.xtf_log)}"
         output:
-          - take: visualization
+          - take: Visualization
             as: error_tree
             action:
               - Visualization
-          - take: status_message
+          - take: StatusMessage
             as: status_message
             action:
               - StatusMessage
@@ -228,12 +228,12 @@ pipelines:
             - "${step_output(validation.xtf_log)}"
             - "${step_output(validation.error_log)}"
         output:
-          - take: zip_package
+          - take: ZipPackage
             as: archive
             action:
               - Download
               - Delivery
-          - take: status_message
+          - take: StatusMessage
             as: status_message
             action:
               - StatusMessage
@@ -259,7 +259,7 @@ pipelines:
           fr: Analyse des fichiers téléversés
         process_id: xtf_matcher
         output:
-          - take: xtf_files
+          - take: XtfFiles
             as: xtf_files
       - id: validation
         display_name:
@@ -280,21 +280,21 @@ pipelines:
         input:
           iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
-          - take: error_log
+          - take: ErrorLog
             as: error_log
             action:
               - Download
               - Delivery
-          - take: xtf_log
+          - take: XtfLog
             as: xtf_log
             action:
               - Download
               - Delivery
-          - take: status_message
+          - take: StatusMessage
             as: status_message
             action:
               - StatusMessage
-          - take: validation_successful
+          - take: ValidationSuccessful
             as: successful
       - id: error_visualization
         display_name:
@@ -315,11 +315,11 @@ pipelines:
         input:
           xtfLog: "${step_output(validation.xtf_log)}"
         output:
-          - take: visualization
+          - take: Visualization
             as: error_visualization
             action:
               - Visualization
-          - take: status_message
+          - take: StatusMessage
             as: status_message
             action:
               - StatusMessage
