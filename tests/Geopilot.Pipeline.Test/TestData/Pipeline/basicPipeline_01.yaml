@@ -22,7 +22,7 @@ pipelines:
           en: XTF Matching
         process_id: xtf_matcher
         output:
-          - take: xtf_files
+          - take: XtfFiles
             as: xtf_files
       - id: validation
         display_name:
@@ -33,10 +33,10 @@ pipelines:
         input:
           iliFile: "${step_output(xtf_matching.xtf_files)}"
         output:
-          - take: error_log
+          - take: ErrorLog
             as: error_log
             action:
-          - take: xtf_log
+          - take: XtfLog
             as: xtf_log
             action:
               - DOWNLOAD

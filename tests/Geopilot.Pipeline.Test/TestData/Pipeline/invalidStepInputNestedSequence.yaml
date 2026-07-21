@@ -14,6 +14,6 @@ pipelines:
           iliFile:
             - ["a", "b"]
         output:
-          - take: error_log
+          - take: ErrorLog
             as: error_log
             action:

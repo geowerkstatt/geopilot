@@ -22,9 +22,9 @@ public class XtfMatcherProcessTest
     private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(XtfMatcherProcess process, IPipelineFileList files)
     {
         var result = await process.RunAsync(files);
-        result.TryGetValue("xtf_files", out var matchedFiles);
-        result.TryGetValue("status_message", out var statusMessage);
-        return ((IPipelineFile[])matchedFiles!, (LocalizedText)statusMessage!);
+        var xtfFiles = result.XtfFiles;
+        var statusMessage = result.StatusMessage;
+        return (xtfFiles, statusMessage);
     }
 
     [TestMethod]

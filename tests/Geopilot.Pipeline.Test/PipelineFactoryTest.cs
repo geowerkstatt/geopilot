@@ -69,7 +69,7 @@ public class PipelineFactoryTest
         var matcherOutputConfig_0 = matcherStep.OutputConfigs.ElementAt(0);
         OutputConfig matcherExpectedOutputConfig_0 = new OutputConfig()
         {
-            Take = "xtf_files",
+            Take = "XtfFiles",
             As = "xtf_files",
         };
         AssertOutputConfig(matcherExpectedOutputConfig_0, matcherOutputConfig_0);
@@ -109,12 +109,12 @@ public class PipelineFactoryTest
         var validationOutputConfig_1 = validationStep.OutputConfigs.ElementAt(1);
         OutputConfig validationExpectedOutputConfig_0 = new OutputConfig()
         {
-            Take = "error_log",
+            Take = "ErrorLog",
             As = "error_log",
         };
         OutputConfig validationExpectedOutputConfig_1 = new OutputConfig()
         {
-            Take = "xtf_log",
+            Take = "XtfLog",
             As = "xtf_log",
             Action = new HashSet<OutputAction>() { OutputAction.Download },
         };

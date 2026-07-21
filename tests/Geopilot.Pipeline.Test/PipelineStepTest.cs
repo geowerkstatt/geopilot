@@ -23,17 +23,17 @@ public class PipelineStepTest
 
     private class MockPipelineProcessSingleInput
     {
-        public MockPipelineProcessSingleInput(Dictionary<string, object> outputData)
+        public MockPipelineProcessSingleInput(MockPipelineProcessSingleInputResult outputData)
         {
             this.outputData = outputData;
         }
 
-        private Dictionary<string, object> outputData;
+        private MockPipelineProcessSingleInputResult outputData;
 
         public int NumberOfRunInvoced { get; set; }
 
         [PipelineProcessRun]
-        public async Task<Dictionary<string, object>> RunAsync(string data, CancellationToken cancellationToken)
+        public async Task<MockPipelineProcessSingleInputResult> RunAsync(string data, CancellationToken cancellationToken)
         {
             Assert.IsNotNull(data);
             Assert.IsNotNull(cancellationToken);
@@ -42,21 +42,26 @@ public class PipelineStepTest
         }
     }
 
+    private class MockPipelineProcessSingleInputResult
+    {
+        public object? OutputData { get; init; }
+    }
+
     private class MockPipelineProcessArrayInput
     {
-        public MockPipelineProcessArrayInput(Dictionary<string, object> outputData, int expectedNumberOfInputData)
+        public MockPipelineProcessArrayInput(MockPipelineProcessArrayInputResult outputData, int expectedNumberOfInputData)
         {
             this.outputData = outputData;
             this.expectedNumberOfInputData = expectedNumberOfInputData;
         }
 
-        private Dictionary<string, object> outputData;
+        private MockPipelineProcessArrayInputResult outputData;
         private int expectedNumberOfInputData;
 
         public int NumberOfRunInvoced { get; set; }
 
         [PipelineProcessRun]
-        public async Task<Dictionary<string, object>> RunAsync(string[] data, CancellationToken cancellationToken)
+        public async Task<MockPipelineProcessArrayInputResult> RunAsync(string[] data, CancellationToken cancellationToken)
         {
             Assert.IsNotNull(data);
             Assert.HasCount(expectedNumberOfInputData, data, "not matching expected count for input data");
@@ -64,6 +69,11 @@ public class PipelineStepTest
             NumberOfRunInvoced++;
             return this.outputData;
         }
+    }
+
+    private class MockPipelineProcessArrayInputResult
+    {
+        public object OutputData { get; set; }
     }
 
     private class MockPipelineProcessOptionalSingleInput
@@ -104,16 +114,13 @@ public class PipelineStepTest
         {
             new OutputConfig
             {
-                Take = "error_log",
+                Take = "OutputData",
                 As = "my_output",
                 Action = new HashSet<OutputAction>(),
             },
         };
         var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
-        var processData = new Dictionary<string, object>()
-        {
-            { "error_log", "some_data" },
-        };
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
@@ -152,16 +159,13 @@ public class PipelineStepTest
         {
             new OutputConfig
             {
-                Take = "error_log",
+                Take = "OutputData",
                 As = "my_output",
                 Action = new HashSet<OutputAction>(),
             },
         };
         var pipelineContext = ContextWith(("step_01", "data", new string[] { "data 01", "data 02" }));
-        var processData = new Dictionary<string, object>()
-        {
-            { "error_log", "some_data" },
-        };
+        var processData = new MockPipelineProcessArrayInputResult { OutputData = "some_data" };
 
         var processMock = new MockPipelineProcessArrayInput(processData, 2);
 
@@ -198,16 +202,13 @@ public class PipelineStepTest
         {
             new OutputConfig
             {
-                Take = "error_log",
+                Take = "OutputData",
                 As = "my_output",
                 Action = new HashSet<OutputAction>(),
             },
         };
         var pipelineContext = ContextWith(("step_01", "data", new string[] { "middle_a", "middle_b" }));
-        var processData = new Dictionary<string, object>()
-        {
-            { "error_log", "some_data" },
-        };
+        var processData = new MockPipelineProcessArrayInputResult { OutputData = "some_data" };
 
         // Two literals plus the two elements of the referenced list, spread one level.
         var processMock = new MockPipelineProcessArrayInput(processData, 4);
@@ -238,7 +239,7 @@ public class PipelineStepTest
         };
         var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
 
-        var processMock = new MockPipelineProcessSingleInput(new Dictionary<string, object>());
+        var processMock = new MockPipelineProcessSingleInput(new MockPipelineProcessSingleInputResult());
 
         using var pipelineStep = PipelineStep
             .Builder()
@@ -266,7 +267,7 @@ public class PipelineStepTest
         };
         var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
 
-        var processMock = new MockPipelineProcessSingleInput(new Dictionary<string, object>());
+        var processMock = new MockPipelineProcessSingleInput(new MockPipelineProcessSingleInputResult());
 
         using var pipelineStep = PipelineStep
             .Builder()
@@ -369,10 +370,7 @@ public class PipelineStepTest
             },
         };
         var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
-        var processData = new Dictionary<string, object>()
-        {
-            { "error_log", "some_data" },
-        };
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
@@ -404,16 +402,13 @@ public class PipelineStepTest
         {
             new OutputConfig
             {
-                Take = "viz",
+                Take = "OutputData",
                 As = "my_viz",
                 Action = new HashSet<OutputAction> { OutputAction.Visualization },
             },
         };
         var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
-        var processData = new Dictionary<string, object>()
-        {
-            { "viz", "not an envelope" },
-        };
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
 
         var processMock = new MockPipelineProcessSingleInput(processData);
 
@@ -441,7 +436,7 @@ public class PipelineStepTest
         var pipelineContext = ContextWith(
             ("upload", "xtf_file", "some_data"),
             ("aPreviousStep", "some_random_data", 123));
-        var processData = new Dictionary<string, object>() { { "error_log", "some_data" } };
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
         var stepConditions = new PipelineStepConditionsConfig
         {
             Pre = new PipelineStepPreConditionConfig()
@@ -501,7 +496,7 @@ public class PipelineStepTest
         var pipelineContext = ContextWith(
             ("upload", "xtf_file", "some_data"),
             ("aPreviousStep", "some_random_data", 123));
-        var processData = new Dictionary<string, object>() { { "error_log", "some_data" } };
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
         var stepConditions = new PipelineStepConditionsConfig
         {
             Pre = new PipelineStepPreConditionConfig()
@@ -558,7 +553,7 @@ public class PipelineStepTest
         var pipelineContext = ContextWith(
             ("upload", "xtf_file", "some_data"),
             ("aPreviousStep", "some_random_data", 123));
-        var processData = new Dictionary<string, object>() { { "error_log", "some_data" } };
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
         var stepConditions = new PipelineStepConditionsConfig
         {
             Pre = new PipelineStepPreConditionConfig()
@@ -625,7 +620,7 @@ public class PipelineStepTest
             ("upload", "xtf_file", "some_data"),
             ("aPreviousStep", "some_random_data", 123),
             ("aPreviousStep", "another_value", "abc"));
-        var processData = new Dictionary<string, object>() { { "error_log", "some_data" } };
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
         var stepConditions = new PipelineStepConditionsConfig
         {
             Pre = new PipelineStepPreConditionConfig()
@@ -786,7 +781,7 @@ public class PipelineStepTest
         {
             new OutputConfig
             {
-                Take = "error_log",
+                Take = "OutputData",
                 As = "my_output",
                 Action = new HashSet<OutputAction>(),
             },

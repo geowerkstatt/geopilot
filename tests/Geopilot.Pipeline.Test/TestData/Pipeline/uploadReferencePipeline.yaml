@@ -18,5 +18,5 @@ pipelines:
         input:
           uploadFiles: "${upload()}"
         output:
-          - take: xtf_files
+          - take: XtfFiles
             as: xtf_files
