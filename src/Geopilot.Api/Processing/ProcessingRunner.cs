@@ -190,8 +190,7 @@ public class ProcessingRunner : BackgroundService
 
     private static IEnumerable<IPipelineFile> ResolveFiles(object? data) => data switch
     {
-        IPipelineFileList fileList => fileList.Files,
-        IPipelineFile[] fileArray => fileArray,
+        IEnumerable<IPipelineFile> files => files,
         IPipelineFile singleFile => [singleFile],
         _ => [],
     };

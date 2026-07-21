@@ -28,6 +28,8 @@ pipelines:
         process_config_overwrites:
           iliModels:
             - RoadsExdm2ien
+        input:
+          files: "${upload()}"
         output:
           - take: xtf_files
             as: xtfFiles
@@ -82,6 +84,8 @@ pipelines:
         process_config_overwrites:
           iliModels:
             - RoadsExdm2ien
+        input:
+          files: "${upload()}"
         output:
           - take: xtf_files
             as: xtfFiles

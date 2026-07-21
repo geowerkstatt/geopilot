@@ -53,9 +53,9 @@ internal class XtfMatcherProcess
     }
 
     [PipelineProcessRun]
-    public Task<Dictionary<string, object?>> RunAsync([UploadFiles] IPipelineFileList uploadFiles)
+    public Task<Dictionary<string, object?>> RunAsync(IPipelineFile[] files)
     {
-        var filtered = uploadFiles;
+        IEnumerable<IPipelineFile> filtered = files;
 
         // Keep only files whose extension matches any of the configured extensions.
         if (fileExtensions.Count > 0)
@@ -69,10 +69,10 @@ internal class XtfMatcherProcess
         // Keep only files that declare at least one of the configured ILI models in their XTF header.
         // Files that cannot be parsed as XTF are excluded.
         if (iliModels.Count > 0)
-            filtered = filtered.Matches(file => iliModels.Overlaps(ExtractIliModels(file)));
+            filtered = filtered.Where(file => iliModels.Overlaps(ExtractIliModels(file)));
 
-        var matchedFiles = filtered.Files.ToArray();
-        var totalCount = uploadFiles.Files.Count;
+        var matchedFiles = filtered.ToArray();
+        var totalCount = files.Length;
         LocalizedText statusMessage = matchedFiles.Length == 0
             ? NoMatchStatusMessage
             : StatusMessageFormat.Map(msg => string.Format(CultureInfo.InvariantCulture, msg, matchedFiles.Length, totalCount));
