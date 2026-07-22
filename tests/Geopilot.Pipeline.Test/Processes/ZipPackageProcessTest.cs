@@ -1,4 +1,4 @@
-using Geopilot.Pipeline.Processes.ZipPackage;
+﻿using Geopilot.Pipeline.Processes.ZipPackage;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Moq;
