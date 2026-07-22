@@ -358,7 +358,7 @@ public class ProcessingRunnerTest
     private static PipelineContext ContextWith(PipelineStep step, StepResult stepResult) =>
         new PipelineContext
         {
-            Upload = new PipelineFileList(),
+            Upload = Array.Empty<IPipelineFile>(),
             StepResults = new Dictionary<string, StepResult> { { step.Id, stepResult } },
         };
 
@@ -379,7 +379,7 @@ public class ProcessingRunnerTest
     private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null)
     {
         var channel = Channel.CreateUnbounded<ProcessingWorkItem>();
-        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, Mock.Of<IPipelineFileList>()));
+        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, Array.Empty<IPipelineFile>()));
         channel.Writer.Complete();
 
         var store = new Mock<IProcessingJobStore>();

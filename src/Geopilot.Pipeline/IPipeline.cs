@@ -60,5 +60,5 @@ public interface IPipeline : IDisposable
     /// <returns>The context containing the results of the pipeline execution.</returns>
     /// <exception cref="PipelineRunException">The pipeline run failed due to a misconfigured pipeline or an misbehaving process.</exception>
     /// <exception cref="OperationCanceledException">The pipeline run was cancelled.</exception>
-    Task<PipelineContext> Run(IPipelineFileList files, CancellationToken cancellationToken);
+    Task<PipelineContext> Run(IReadOnlyList<IPipelineFile> files, CancellationToken cancellationToken);
 }

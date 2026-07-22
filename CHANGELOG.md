@@ -6,6 +6,7 @@
 
 - The XTF validation error tree groups errors by configurable criteria (by default model, topic and class; the tree-only pipeline groups by INTERLIS class), shows the number of entries per group, and displays the error-category titles in the active language.
 - Pipeline step `input` is now a map from process parameter name to value, replacing the previous list of `from`, `take` and `as` entries. A value is a literal, a `${step_output(stepId.outputName)}` reference, or a YAML list of those. Existing pipeline definitions must be updated to the new form.
+- A process run method receives a file collection as `IPipelineFile[]`, which can be wired from any input source (`${upload()}`, a step output, `${file(...)}`, or a combination). The `IPipelineFileList` type has been removed from `GeoWerkstatt.Geopilot.PipelineCore`; file collections are plain `IPipelineFile[]` (or `IReadOnlyList<IPipelineFile>`), and the file filters (`WithExtensions`, `WithMatchingName`) are extension methods on `IEnumerable<IPipelineFile>`.
 
 ### Added
 
@@ -13,6 +14,11 @@
 - `Visualization` output action in the `GeoWerkstatt.Geopilot.Pipeline` runtime: a pipeline step can tag an output as a self-describing visualization config (a `{ type, data }` envelope), which the runtime serves to the frontend to render based on its `type`.
 - A pipeline step `input` value can reference a file shipped with the deployment via `${file(path)}` (relative to the configured `Storage:ResourcesDirectory`), injecting a constant resource such as a template or lookup table into a process without a preceding step.
 - A pipeline step `input` value can reference the uploaded delivery files with `${upload()}`, so a pipeline definition can wire the upload to a process parameter explicitly.
+
+### Removed
+
+- The `[UploadFiles]` attribute has been removed from the `GeoWerkstatt.Geopilot.PipelineCore` API. A process parameter that receives the uploaded delivery files must now be wired explicitly with `${upload()}` in the pipeline definition (see Added). Pipeline definitions and plugins that relied on the attribute must be updated.
+- The built-in ZIP packaging process no longer has a separate uploaded-files parameter or the `includeUploadFiles` configuration; the files to archive are passed through its single `input` parameter.
 
 ## v3.0.341 - 2026-06-17
 

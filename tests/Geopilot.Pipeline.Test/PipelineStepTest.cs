@@ -803,7 +803,7 @@ public class PipelineStepTest
 
         return new PipelineContext
         {
-            Upload = new PipelineFileList(),
+            Upload = Array.Empty<IPipelineFile>(),
             StepResults = stepResults,
         };
     }

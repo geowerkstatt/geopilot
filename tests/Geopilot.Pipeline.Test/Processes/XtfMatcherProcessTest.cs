@@ -13,13 +13,13 @@ public class XtfMatcherProcessTest
     private const string RoadsExdm2ienModel = "roadsexdm2ien";
     private const string IseltwaldGwpBe13Model = "gwp_bern_13_1";
 
-    private static PipelineFileList FileList(params string[] fileNames) =>
-        new PipelineFileList(fileNames.Select(n => (IPipelineFile)new PipelineFile("dummy", n)).ToList());
+    private static IPipelineFile[] FileList(params string[] fileNames) =>
+        fileNames.Select(n => (IPipelineFile)new PipelineFile("dummy", n)).ToArray();
 
-    private static PipelineFileList FileListWithPath(params (string Path, string Name)[] files) =>
-        new PipelineFileList(files.Select(f => (IPipelineFile)new PipelineFile(f.Path, f.Name)).ToList());
+    private static IPipelineFile[] FileListWithPath(params (string Path, string Name)[] files) =>
+        files.Select(f => (IPipelineFile)new PipelineFile(f.Path, f.Name)).ToArray();
 
-    private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(XtfMatcherProcess process, IPipelineFileList files)
+    private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(XtfMatcherProcess process, IPipelineFile[] files)
     {
         var result = await process.RunAsync(files);
         var xtfFiles = result.XtfFiles;

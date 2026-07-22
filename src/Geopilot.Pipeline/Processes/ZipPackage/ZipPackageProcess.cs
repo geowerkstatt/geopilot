@@ -35,24 +35,21 @@ internal class ZipPackageProcess
     private ILogger logger;
 
     private string archiveFileName;
-    private bool includeUploadFiles;
     private IPipelineFileManager pipelineFileManager;
 
     /// <summary>
     /// Creates a new instance of the <see cref="ZipPackageProcess"/> class with the specified configuration settings.
     /// </summary>
     /// <param name="archiveFileName">The ZIP file name to use for the output archive without file extension. If null, the default name 'archive' will be used.</param>
-    /// <param name="includeUploadFiles">When true, the uploaded files from the pipeline context are included in the ZIP archive. Defaults to false.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the ZIP packaging process.</param>
     /// <param name="logger">Logger instance for logging messages during the initialization process.</param>
-    public ZipPackageProcess(string? archiveFileName, bool? includeUploadFiles, IPipelineFileManager pipelineFileManager, ILogger logger)
+    public ZipPackageProcess(string? archiveFileName, IPipelineFileManager pipelineFileManager, ILogger logger)
     {
         this.logger = logger;
         if (!string.IsNullOrEmpty(archiveFileName))
             this.archiveFileName = archiveFileName;
         else
             this.archiveFileName = DefaultArchiveFileName;
-        this.includeUploadFiles = includeUploadFiles ?? false;
         this.pipelineFileManager = pipelineFileManager;
     }
 
@@ -60,19 +57,14 @@ internal class ZipPackageProcess
     /// Creates a ZIP archive containing the specified input files and returns it as a
     /// <see cref="ZipPackageResult"/>.
     /// </summary>
-    /// <param name="uploadFiles">Optional uploaded files to include in the ZIP archive. Injected from the pipeline context when the parameter is bound.</param>
     /// <param name="input">An array of input files to include in the ZIP archive. Each file must implement the IPipelineFile interface.</param>
     /// <returns>A <see cref="ZipPackageResult"/> whose <see cref="ZipPackageResult.ZipPackage"/> is the generated ZIP file,
     /// or null if no valid input files were provided.</returns>
     /// <exception cref="ArgumentException">Thrown if no input files are provided.</exception>
     [PipelineProcessRun]
-    public async Task<ZipPackageResult> RunAsync([UploadFiles] IPipelineFileList? uploadFiles, params IPipelineFile?[] input)
+    public async Task<ZipPackageResult> RunAsync(params IPipelineFile?[] input)
     {
-        var allFiles = includeUploadFiles && uploadFiles != null
-            ? uploadFiles.Files.Cast<IPipelineFile?>().Concat(input).ToArray()
-            : input;
-
-        if (allFiles.Length == 0)
+        if (input.Length == 0)
         {
             var errorMessage = $"ZipPackageProcess: No input files provided.";
             logger.LogError(errorMessage);
@@ -80,7 +72,7 @@ internal class ZipPackageProcess
         }
 
         // Filter out null values, by casting to non-nullable IPipelineFile
-        var validFiles = allFiles.OfType<IPipelineFile>().ToArray();
+        var validFiles = input.OfType<IPipelineFile>().ToArray();
         IPipelineFile? zipTransferFile = null;
 
         LocalizedText statusMessage;

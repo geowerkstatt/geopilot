@@ -370,11 +370,6 @@ public sealed class PipelineStep : IPipelineStep
 
         var input = parameterInfo.Name != null ? Inputs.GetValueOrDefault(parameterInfo.Name) : null;
 
-        // Uploaded files are injected through the [UploadFiles] attribute, unless the step explicitly
-        // wires the parameter (for example with ${upload()}), which then takes precedence.
-        if (input is null && parameterInfo.GetCustomAttribute<UploadFilesAttribute>() != null)
-            return GenerateUploadParameter(parameterInfo, context);
-
         var target = BindingTarget.FromParameter(parameterInfo);
         return InputBinder.Bind(
             target,
@@ -402,14 +397,6 @@ public sealed class PipelineStep : IPipelineStep
                 value = null;
                 return false;
         }
-    }
-
-    private object? GenerateUploadParameter(ParameterInfo parameterInfo, PipelineContext context)
-    {
-        if (parameterInfo.ParameterType.IsAssignableFrom(context.Upload.GetType()))
-            return this.WrapInput(context.Upload);
-
-        throw new PipelineRunException($"The parameter <{parameterInfo.Name}> of type <{parameterInfo.ParameterType.FullName}> was marked with the UploadFilesAttribute, but was not assignable from the injected upload files collection of type <{context.Upload.GetType().FullName}>.");
     }
 
     /// <summary>
@@ -460,7 +447,6 @@ public sealed class PipelineStep : IPipelineStep
 
         return value switch
         {
-            IPipelineFileList list => new PipelineFileList(list.Files.Select(this.WrapFile).ToList()),
             IEnumerable<IPipelineFile> files => files.Select(this.WrapFile).ToArray(),
             IPipelineFile file => this.WrapFile(file),
             _ => value,

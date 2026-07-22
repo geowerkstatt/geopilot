@@ -49,6 +49,8 @@ pipelines:
           it: Corrispondenza XTF
           fr: Correspondance XTF
         process_id: xtf_matcher
+        input:
+          files: "${upload()}"
         output:
           - take: XtfFiles
             as: xtf_files

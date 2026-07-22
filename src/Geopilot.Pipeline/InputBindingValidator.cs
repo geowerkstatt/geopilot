@@ -127,14 +127,14 @@ internal static class InputBindingValidator
     // Stand-in values used only to type check a file or upload reference against the target parameter;
     // the binder inspects the value's type and never reads them.
     private static readonly IPipelineFile SentinelFile = new PipelineFile("sentinel", "sentinel");
-    private static readonly IPipelineFileList SentinelFileList = new PipelineFileList(new List<IPipelineFile> { SentinelFile });
+    private static readonly IPipelineFile[] SentinelFiles = new IPipelineFile[] { SentinelFile };
 
     private static readonly ReferenceResolver ResolvesToSentinel = (InputValue reference, out object? value) =>
     {
         value = reference switch
         {
             InputValue.FileReference => SentinelFile,
-            InputValue.UploadReference => SentinelFileList,
+            InputValue.UploadReference => SentinelFiles,
             _ => null,
         };
         return value is not null;

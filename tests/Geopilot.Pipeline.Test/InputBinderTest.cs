@@ -417,13 +417,15 @@ public class InputBinderTest
     }
 
     [TestMethod]
-    public void BindsUploadReferenceToFileListParameter()
+    public void SpreadsUploadReferenceIntoFileArrayParameter()
     {
-        var files = new Mock<IPipelineFileList>().Object;
+        var first = new Mock<IPipelineFile>().Object;
+        var second = new Mock<IPipelineFile>().Object;
+        var uploadList = new List<IPipelineFile> { first, second };
 
-        var result = InputBinder.Bind(Single(typeof(IPipelineFileList)), new InputValue.UploadReference(), ResolverReturning(files));
+        var result = InputBinder.Bind(ArrayTarget(typeof(IPipelineFile[])), new InputValue.UploadReference(), ResolverReturning(uploadList));
 
-        Assert.AreSame(files, result);
+        CollectionAssert.AreEqual(new[] { first, second }, (IPipelineFile[])result!);
     }
 
     private static BindingTarget Single(Type type, bool nullable = false) => new("param", type, nullable, false);

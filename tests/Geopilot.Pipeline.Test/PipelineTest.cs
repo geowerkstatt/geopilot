@@ -8,7 +8,7 @@ namespace Geopilot.Pipeline.Test;
 [TestClass]
 public class PipelineTest
 {
-    private readonly IPipelineFileList uploadFiles = Mock.Of<IPipelineFileList>();
+    private readonly IReadOnlyList<IPipelineFile> uploadFiles = Array.Empty<IPipelineFile>();
     private Mock<ILoggerFactory> loggerFactory;
     private Mock<ILogger<Geopilot.Pipeline.Pipeline>> loggerMock;
 
@@ -76,7 +76,7 @@ public class PipelineTest
         var steps = new List<IPipelineStep> { firstStep.Object, secondStep.Object };
 
         var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-        var uploadFiles = new PipelineFileList(new List<IPipelineFile> { uploadFile });
+        var uploadFiles = new List<IPipelineFile> { uploadFile };
 
         using var pipeline = Geopilot.Pipeline.Pipeline
             .Builder()
@@ -139,7 +139,7 @@ public class PipelineTest
             },
         };
 
-        var uploadFiles = new PipelineFileList(new List<IPipelineFile> { uploadFile });
+        var uploadFiles = new List<IPipelineFile> { uploadFile };
 
         using var pipeline = Geopilot.Pipeline.Pipeline
             .Builder()
@@ -219,7 +219,7 @@ public class PipelineTest
             },
         };
 
-        var uploadFiles = new PipelineFileList(new List<IPipelineFile> { uploadFile });
+        var uploadFiles = new List<IPipelineFile> { uploadFile };
 
         using var pipeline = Geopilot.Pipeline.Pipeline
             .Builder()

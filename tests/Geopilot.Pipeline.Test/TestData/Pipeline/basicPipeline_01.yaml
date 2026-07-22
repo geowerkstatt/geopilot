@@ -21,6 +21,8 @@ pipelines:
         display_name:
           en: XTF Matching
         process_id: xtf_matcher
+        input:
+          files: "${upload()}"
         output:
           - take: XtfFiles
             as: xtf_files
