@@ -43,7 +43,6 @@ public class XtfErrorVisualizationProcessTest
         Assert.HasCount(2, baseMapLayer.LayerIds);
         var featureLayer = config.Map.Layers[1];
         Assert.IsNull(featureLayer.Wmts);
-        Assert.AreEqual("#e53835", featureLayer.Color);
         var features = featureLayer.Features;
         Assert.IsNotNull(features);
 

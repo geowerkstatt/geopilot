@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Table, TableBody, Typography } from "@mui/material";
-import { geopilotTheme } from "../../../../appTheme";
-import { GeopilotBox } from "../../../../components/styledComponents";
+import { geopilotTheme } from "../../../appTheme";
+import { GeopilotBox } from "../../styledComponents";
 import { MetadataRow } from "./metadataRow";
 import { TreeNode } from "./treeNode";
 

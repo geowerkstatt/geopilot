@@ -40,12 +40,6 @@ internal static class MapVisualizationBuilder
     /// </summary>
     private const string GrayBaseMapLayerId = "ch.swisstopo.pixelkarte-grau";
 
-    /// <summary>
-    /// Color of the error features: stroke color, with a transparent variant as polygon fill on the
-    /// client. Matches the client theme's error color.
-    /// </summary>
-    private const string ErrorLayerColor = "#e53835";
-
     private static readonly Dictionary<string, string> BaseMapLayerTitle = new()
     {
         { "de", "Hintergrundkarte" },
@@ -96,7 +90,7 @@ internal static class MapVisualizationBuilder
                     Attribution = baseMapAttribution,
                     AttributionUrl = baseMapAttributionUrl,
                 },
-                new MapLayer { Title = ErrorLayerTitle, Color = ErrorLayerColor, Features = errorFeatures },
+                new MapLayer { Title = ErrorLayerTitle, Features = errorFeatures },
             ],
         };
     }

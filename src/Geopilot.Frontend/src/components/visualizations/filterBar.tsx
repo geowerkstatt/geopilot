@@ -1,10 +1,10 @@
 import { useState } from "react";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { Badge, Box, Stack } from "@mui/material";
-import { Button, IconButton } from "../../../../components/buttons";
-import { FormAutocomplete } from "../../../../components/form/formAutocomplete";
-import { SearchField } from "../../../../components/searchField";
-import { MetadataAttribute, MetadataFilters } from "./treeNode";
+import { Button, IconButton } from "../buttons";
+import { FormAutocomplete } from "../form/formAutocomplete";
+import { SearchField } from "../searchField";
+import { MetadataAttribute, MetadataFilters } from "./tree/treeNode";
 
 interface FilterBarProps {
   attributes: MetadataAttribute[];

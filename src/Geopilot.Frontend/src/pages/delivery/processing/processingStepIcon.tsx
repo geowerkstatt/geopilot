@@ -79,7 +79,7 @@ const renderIcon = (state: StepState, index: number): ReactElement => {
             justifyContent: "center",
             width: ICON_SIZE,
             height: ICON_SIZE,
-            borderRadius: "50%",
+            borderRadius: geopilotTheme.radius.full,
             border: `2px solid ${geopilotTheme.palette.primary.states.disabledBackground}`,
           }}
           data-cy="processing-step-icon-pending">

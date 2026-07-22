@@ -1,4 +1,4 @@
-import { LocalizedText, MetadataValue, TreeItem } from "../../../../api/apiInterfaces";
+import { LocalizedText, MetadataValue, TreeItem } from "../../../api/apiInterfaces";
 
 /** A node of the error tree's displayed hierarchy, built in the frontend from the flat items by {@link buildTree}. */
 export interface TreeNode {

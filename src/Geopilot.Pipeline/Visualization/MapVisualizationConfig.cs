@@ -38,13 +38,6 @@ internal class MapLayer
     public IList<string>? LayerIds { get; set; }
 
     /// <summary>
-    /// Color of the layer's features as a hex color (e.g. <c>#e53835</c>). The client uses it as the
-    /// stroke color and a transparent variant of it as the fill color for polygons. Only meaningful for
-    /// feature layers. Optional; the client falls back to its theme color.
-    /// </summary>
-    public string? Color { get; set; }
-
-    /// <summary>
     /// Attribution / data-owner credit for the layer (for example <c>swisstopo</c>), shown as a copyright
     /// credit on the map; the client adds a localized "©" prefix. Typically set on the base map layer.
     /// Optional.

@@ -1,8 +1,7 @@
 import { FC, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CircularProgress, Stack, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { CircularProgress, Stack, styled, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { toggleButtonClasses } from "@mui/material/ToggleButton";
-import { styled } from "@mui/system";
 import { Mandate } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { Button } from "../../components/buttons";
@@ -19,7 +18,7 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
     flex: `0 0 calc(50% - ${theme.spacing(2)} / 2)`,
     maxWidth: `calc(50% - ${theme.spacing(2)} / 2)`,
     minWidth: 0,
-    borderRadius: theme.shape.borderRadius,
+    borderRadius: theme.radius.default,
     borderLeft: `1px solid ${theme.palette.primary.light}`,
     [`&.${toggleButtonClasses.disabled}`]: {
       borderLeftColor: theme.palette.action.disabledBackground,
