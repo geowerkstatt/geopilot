@@ -139,8 +139,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   return (
     <MapVisualizationProvider
       config={config.map}
-      visibleErrorIds={visibleErrorIds}
-      highlightedErrorIds={highlightedErrorIds}
+      visibleFeatureIds={visibleErrorIds}
+      highlightedFeatureIds={highlightedErrorIds}
       zoomRequest={zoomRequest}
       onSelectFeature={handleSelectFeature}
       showMapSelectionPopup={!config.tree}>

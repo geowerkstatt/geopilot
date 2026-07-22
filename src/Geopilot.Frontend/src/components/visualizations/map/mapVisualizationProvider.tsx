@@ -94,14 +94,14 @@ export interface MapZoomRequest {
 interface MapVisualizationProviderProps {
   /** The map visualization config to render; when absent no map is built. */
   config?: MapVisualizationConfig;
-  /** Error ids currently visible (filter result); undefined means no filter (show all). */
-  visibleErrorIds?: ReadonlySet<string>;
-  /** Error ids to highlight (current selection); empty set means none. */
-  highlightedErrorIds: ReadonlySet<string>;
+  /** Feature ids currently visible (filter result); undefined means no filter (show all). */
+  visibleFeatureIds?: ReadonlySet<string>;
+  /** Feature ids to highlight (current selection); empty set means none. */
+  highlightedFeatureIds: ReadonlySet<string>;
   /** Latest explicit zoom-to-node request, or null. Selection no longer moves the map; this does. */
   zoomRequest?: MapZoomRequest | null;
-  /** Called with the error id when a feature is clicked. */
-  onSelectFeature?: (errorId: string) => void;
+  /** Called with the feature id when a feature is clicked. */
+  onSelectFeature?: (featureId: string) => void;
   /** Whether to show the metadata popup when a feature is selected. */
   showMapSelectionPopup?: boolean;
 }
@@ -113,8 +113,8 @@ interface MapVisualizationProviderProps {
  */
 export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProviderProps>> = ({
   config,
-  visibleErrorIds,
-  highlightedErrorIds,
+  visibleFeatureIds,
+  highlightedFeatureIds,
   zoomRequest,
   onSelectFeature,
   showMapSelectionPopup = false,
@@ -130,8 +130,8 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   // The feature style function and the map's event handlers read the current filter/selection/callbacks
   // from refs, so changing them only restyles the existing layers (cheap) instead of rebuilding the map
   // (which would re-fetch the WMTS base map).
-  const visibleIdsRef = useRef<ReadonlySet<string> | undefined>(visibleErrorIds);
-  const highlightedIdsRef = useRef<ReadonlySet<string>>(highlightedErrorIds);
+  const visibleIdsRef = useRef<ReadonlySet<string> | undefined>(visibleFeatureIds);
+  const highlightedIdsRef = useRef<ReadonlySet<string>>(highlightedFeatureIds);
   const lastZoomTokenRef = useRef<number | undefined>(undefined);
 
   // Padding and max zoom used whenever the view is fit to features.
@@ -237,7 +237,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     const handler = map.on("click", event => {
       const feature = map?.forEachFeatureAtPixel(event.pixel, f => f);
       const info = feature?.get("info") as string | undefined;
-      const errorId = feature?.get("errorId") as string | undefined;
+      const featureId = feature?.getId()?.toString();
       if (showMapSelectionPopup && feature && info) {
         setSelectionOverlayText(info);
         const geometry = feature.getGeometry();
@@ -245,7 +245,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       } else {
         selectionOverlay.setPosition(undefined);
       }
-      if (errorId) onSelectFeature?.(errorId);
+      if (featureId) onSelectFeature?.(featureId);
     });
 
     return () => {
@@ -254,11 +254,11 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   }, [map, onSelectFeature, selectionOverlay, setSelectionOverlayText, showMapSelectionPopup]);
 
   useEffect(() => {
-    visibleIdsRef.current = visibleErrorIds;
-    highlightedIdsRef.current = highlightedErrorIds;
+    visibleIdsRef.current = visibleFeatureIds;
+    highlightedIdsRef.current = highlightedFeatureIds;
     // Trigger a re-render of the style function
     featureLayers.forEach(layer => layer.changed());
-  }, [visibleErrorIds, highlightedErrorIds, featureLayers]);
+  }, [visibleFeatureIds, highlightedFeatureIds, featureLayers]);
 
   useEffect(() => {
     if (!map || !zoomRequest || zoomRequest.token === lastZoomTokenRef.current) return;

@@ -104,9 +104,11 @@ export const buildFeatureLayer = (
   for (const mapFeature of layer.features ?? []) {
     try {
       const geometry = wktFormat.readGeometry(mapFeature.geom, { dataProjection: projection });
-      const feature = new Feature({ geometry });
-      feature.set("info", mapFeature.info);
-      feature.set("errorId", mapFeature.errorId);
+      const feature = new Feature({
+        geometry,
+        info: mapFeature.info,
+      });
+      feature.setId(mapFeature.errorId);
       source.addFeature(feature);
     } catch {
       // Skip features with unparseable geometry rather than failing the whole map.
@@ -139,10 +141,10 @@ export const buildFeatureLayer = (
     // highlighted ones. It reads the current sets from refs, which the map's update effect keeps in sync,
     // so changing filter/selection only restyles the existing layer instead of rebuilding the map.
     style: feature => {
-      const errorId = feature.get("errorId") as string | undefined;
+      const id = feature.getId()?.toString();
       const visible = visibleIdsRef.current;
-      if (errorId !== undefined && visible !== undefined && !visible.has(errorId)) return undefined;
-      return errorId !== undefined && highlightedIdsRef.current.has(errorId) ? highlightStyle : defaultStyle;
+      if (id !== undefined && visible !== undefined && !visible.has(id)) return undefined;
+      return id !== undefined && highlightedIdsRef.current.has(id) ? highlightStyle : defaultStyle;
     },
   });
 };
@@ -171,8 +173,8 @@ const getExtentForFeatureIds = (featureLayers: BaseLayer[], featureIds: Readonly
     if (!(featureLayer instanceof VectorLayer)) continue;
 
     for (const feature of featureLayer.getSource()?.getFeatures() ?? []) {
-      const featureId = feature.get("errorId") as string | undefined;
-      if (featureId !== undefined && featureIds.has(featureId)) {
+      const id = feature.getId()?.toString();
+      if (id !== undefined && featureIds.has(id)) {
         const geometry = feature.getGeometry();
         if (geometry) {
           extendExtent(extent, geometry.getExtent());
