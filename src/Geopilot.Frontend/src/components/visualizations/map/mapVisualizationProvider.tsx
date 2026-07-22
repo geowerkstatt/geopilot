@@ -223,7 +223,9 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       setMap(map);
       fitToLayers(map, fitOptions.current, SWISS_EXTENT);
     };
-    initializeLayersFromConfig();
+    initializeLayersFromConfig().catch(error => {
+      console.error("Failed to render map visualization.", error);
+    });
 
     return () => {
       cancelled = true;
