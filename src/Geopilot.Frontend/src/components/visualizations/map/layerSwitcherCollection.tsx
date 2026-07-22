@@ -1,13 +1,10 @@
-import { DragEvent, useEffect, useState } from "react";
+import { DragEvent, useState } from "react";
 import { Box, Stack } from "@mui/material";
 import Collection from "ol/Collection";
 import BaseLayer from "ol/layer/Base";
 import OlMap from "ol/Map";
-import { ObjectEvent } from "ol/Object";
-import { unByKey } from "ol/Observable";
 import { getUid } from "ol/util";
-import { useForceUpdate } from "../../../hooks/useForceUpdate";
-import { getDisplayed, LayerSwitcherProperties } from "./layerSwitcherProps";
+import { getDisplayed } from "./layerSwitcherProps";
 import { LayerSwitcherRow } from "./layerSwitcherRow";
 
 interface LayerCollectionProps {
@@ -17,36 +14,8 @@ interface LayerCollectionProps {
 }
 
 export const LayerSwitcherCollection = ({ collection, map, rootLayers }: LayerCollectionProps) => {
-  const forceUpdate = useForceUpdate();
   const [draggedLayer, setDraggedLayer] = useState<BaseLayer | null>(null);
   const [dragOverLayer, setDragOverLayer] = useState<BaseLayer | null>(null);
-
-  useEffect(() => {
-    // Re-render when a layer's switcher visibility (RESULT, set by the search filter) changes, or when
-    // layers are added to / removed from this collection.
-    const onPropertyChange = (event: ObjectEvent) => {
-      if (event.key === LayerSwitcherProperties.RESULT) forceUpdate();
-    };
-    const layerKeys = new Map(
-      collection.getArray().map(layer => [layer, layer.on("propertychange", onPropertyChange)]),
-    );
-    const collectionKeys = [
-      collection.on("add", event => {
-        forceUpdate();
-        const layer = event.element as BaseLayer;
-        layerKeys.set(layer, layer.on("propertychange", onPropertyChange));
-      }),
-      collection.on("remove", event => {
-        forceUpdate();
-        const layer = event.element as BaseLayer;
-        const key = layerKeys.get(layer);
-        if (key) unByKey(key);
-        layerKeys.delete(layer);
-      }),
-    ];
-    forceUpdate();
-    return () => unByKey([...layerKeys.values(), ...collectionKeys]);
-  }, [collection, forceUpdate]);
 
   const handleDrop = (event: DragEvent) => {
     event.preventDefault();
