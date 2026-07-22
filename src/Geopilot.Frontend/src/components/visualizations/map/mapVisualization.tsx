@@ -44,8 +44,6 @@ export const MapVisualization = ({
     setFitOptions({ padding: [40, 40, 40, hasLeftPadding ? 440 : 40], maxZoom: 12 });
   }, [hasLeftPadding, setFitOptions]);
 
-  // Copyright/attribution credits declared by the config's layers (typically the base map). Shown as an
-  // overlay in the bottom-right corner; rendered as a link when the layer provides a URL.
   const attributions = config.layers.flatMap(layer =>
     layer.attribution ? [{ text: layer.attribution, url: layer.attributionUrl }] : [],
   );

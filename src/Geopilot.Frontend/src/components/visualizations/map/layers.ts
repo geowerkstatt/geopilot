@@ -1,4 +1,5 @@
 import { MutableRefObject } from "react";
+import { alpha } from "@mui/material";
 import { createEmpty, extend as extendExtent, Extent, isEmpty as isExtentEmpty } from "ol/extent";
 import Feature from "ol/Feature";
 import WKT from "ol/format/WKT";
@@ -18,11 +19,8 @@ const LOCALIZABLE_TITLE_PROPERTY = "localizableTitle";
 
 const wktFormat = new WKT();
 
-// Loads the capabilities as an XML Document via XMLHttpRequest. We intentionally do not fetch the text
-// and hand it to WMTSCapabilities.read(string): that path uses DOMParser.parseFromString internally,
-// which is a Trusted Types sink and is blocked by the app's "require-trusted-types-for 'script'" CSP.
-// XMLHttpRequest's responseType "document" lets the browser parse the XML response (not a Trusted Types
-// sink), and WMTSCapabilities.read() accepts a Document directly.
+// Loads the capabilities as an XML Document via XMLHttpRequest instead of fetch to conform to the
+// "require-trusted-types-for 'script'" CSP.
 const fetchCapabilitiesDocument = (url: string): Promise<Document> =>
   new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
@@ -40,13 +38,6 @@ const fetchCapabilitiesDocument = (url: string): Promise<Document> =>
     request.send();
   });
 
-// Builds the base map from a WMTS service. The layers to show are taken from layerIds (in the given
-// order); when layerIds is omitted/empty, all layers the service advertises are used. A single resulting
-// layer is returned directly and titled with the config's localized title (falling back to the layer
-// identifier); multiple layers are wrapped in a group layer titled with the config's localized title
-// (falling back to the service's advertised title, then the capabilities host) so the layer switcher can
-// label it. Returns null when the capabilities cannot be fetched/parsed (e.g. the map service is
-// unreachable) so the map still renders the feature layer.
 export const buildWmtsLayer = async (
   capabilitiesUrl: string,
   projection: string,
@@ -78,11 +69,7 @@ export const buildWmtsLayer = async (
         const options = optionsFromCapabilities(capabilities, { layer: id, projection });
         if (!options) return null;
         // crossOrigin "anonymous" is required for the cross-origin base map host: without it the tile
-        // images taint OpenLayers' tile canvas, and the renderer's read-back during compositing then
-        // throws a SecurityError, so the base map silently fails to render (while the feature layer still
-        // shows). Requesting the tiles with CORS keeps the canvas clean; the host sends
-        // Access-Control-Allow-Origin and is allow-listed by the Content-Security-Policy (img-src / connect-src).
-        // The layer identifier is used as the title so the layer switcher can label it.
+        // images taint OpenLayers' tile canvas and the base map silently fails to render.
         return new TileLayer({ source: new WMTS({ ...options, crossOrigin: "anonymous" }), properties: { title: id } });
       })
       .filter((layer): layer is TileLayer<WMTS> => layer !== null);
@@ -99,16 +86,11 @@ export const buildWmtsLayer = async (
       : { title: (typeof serviceTitle === "string" && serviceTitle.trim()) || new URL(capabilitiesUrl).host };
     return new LayerGroup({ layers: tileLayers, properties: groupProperties });
   } catch (error) {
-    // Don't fail the whole map if the base map is unavailable (e.g. the map service is unreachable or
-    // its host is not allow-listed by the Content-Security-Policy). The feature layer still renders.
     console.warn("Failed to load WMTS base map; rendering features only.", error);
     return null;
   }
 };
 
-// Builds a vector layer for one feature layer of the config. Points are drawn as circle markers filled
-// with the layer color; lines and polygon outlines are stroked with it, polygons filled with a
-// transparent variant of it. Each feature keeps its info text so it can be shown in a popup on click.
 export const buildFeatureLayer = (
   layer: MapLayer,
   color: string,
@@ -138,7 +120,7 @@ export const buildFeatureLayer = (
       stroke: new Stroke({ color: highlightColor, width: 2 }),
     }),
     stroke: new Stroke({ color, width: 2 }),
-    fill: new Fill({ color: toTransparent(color) }),
+    fill: new Fill({ color: alpha(color, 0.2) }),
   });
   const highlightStyle = new Style({
     image: new Circle({
@@ -147,7 +129,7 @@ export const buildFeatureLayer = (
       stroke: new Stroke({ color: highlightColor, width: 3 }),
     }),
     stroke: new Stroke({ color: highlightColor, width: 3 }),
-    fill: new Fill({ color: toTransparent(color) }),
+    fill: new Fill({ color: alpha(color, 0.2) }),
   });
 
   return new VectorLayer({
@@ -164,10 +146,6 @@ export const buildFeatureLayer = (
     },
   });
 };
-
-// Returns a transparent variant of a hex color (#rrggbb) by appending a 20% alpha channel, used as the
-// polygon fill so the underlying map stays visible. Other color formats are returned unchanged.
-const toTransparent = (color: string): string => (/^#[0-9a-f]{6}$/i.test(color) ? `${color}33` : color);
 
 const getFitExtent = (featureLayers: BaseLayer[], fallback: Extent): Extent => {
   const featureExtent = createEmpty();

@@ -2,7 +2,7 @@ import { FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useStat
 import { useTranslation } from "react-i18next";
 import { Theme, useTheme } from "@mui/material/styles";
 import { defaults as defaultControls } from "ol/control";
-import { getCenter } from "ol/extent";
+import { Extent, getCenter } from "ol/extent";
 import BaseLayer from "ol/layer/Base";
 import VectorLayer from "ol/layer/Vector";
 import Map from "ol/Map";
@@ -16,20 +16,16 @@ import { LocalizedText, MapVisualizationConfig } from "../../../api/apiInterface
 import { useLocalized } from "../../../hooks/useLocalized";
 import { buildFeatureLayer, buildWmtsLayer, fitToFeatures, fitToLayers } from "./layers";
 import { LayerSwitcherProperties } from "./layerSwitcherProps";
-import { MapVisualizationContext } from "./mapVisualizationContext";
+import { MapVisualizationContext, MapVisualizationContextInterface } from "./mapVisualizationContext";
 import "ol/ol.css";
-
-// The map visualization config uses Swiss LV95 (EPSG:2056) coordinates, matching the swisstopo base
-// map and the coordinate reference system of INTERLIS error coordinates. OpenLayers only ships EPSG:4326
-// and EPSG:3857 out of the box, so EPSG:2056 has to be registered with proj4 once.
-const SWISS_PROJECTION = "EPSG:2056";
-// Bounding extent of Switzerland in LV95, used as the WMTS tile grid extent and default map view extent.
-const SWISS_EXTENT: [number, number, number, number] = [2420000, 1030000, 2900000, 1350000];
 
 const ZOOM_TO_NODE_MAX_ZOOM = 13;
 const ZOOM_TO_NODE_DURATION = 400;
 
 const LOCALIZABLE_TITLE_PROPERTY = "localizableTitle";
+
+const SWISS_PROJECTION = "EPSG:2056";
+const SWISS_EXTENT: Extent = [2420000, 1030000, 2900000, 1350000];
 
 proj4.defs(
   SWISS_PROJECTION,
@@ -57,10 +53,6 @@ const createPopupArrow = (size: number, color: string, top: string): HTMLDivElem
 };
 
 const createSelectionOverlay = (theme: Theme): [Overlay, (text: string) => void] => {
-  // The popup element is created imperatively rather than rendered by React, because OpenLayers'
-  // Overlay moves the element out of its original parent into the map's overlay container. A
-  // React-rendered node handed to OL would no longer be where React expects it, and the next sibling
-  // insert/remove would throw "insertBefore … not a child of this node".
   const popupElement = document.createElement("div");
   Object.assign(popupElement.style, {
     position: "relative",
@@ -100,7 +92,7 @@ export interface MapZoomRequest {
 }
 
 interface MapVisualizationProviderProps {
-  /** The map visualization config to render; when absent no map is built (e.g. a tree-only visualization). */
+  /** The map visualization config to render; when absent no map is built. */
   config?: MapVisualizationConfig;
   /** Error ids currently visible (filter result); undefined means no filter (show all). */
   visibleErrorIds?: ReadonlySet<string>;
@@ -115,11 +107,9 @@ interface MapVisualizationProviderProps {
 }
 
 /**
- * Owns the OpenLayers map for the XTF error visualization: it builds the map from the config (feature and
- * WMTS base layers, selection popup, event handlers), keeps it reactive to filter/selection/zoom inputs,
- * and exposes it through MapVisualizationContext. Because the provider outlives the view component, the map
- * survives the view unmounting and remounting (e.g. toggling fullscreen), so the user's pan/zoom and layer
- * state persist without any external state capture.
+ * Owns the OpenLayers map: it builds the map from the config (feature and WMTS base layers, selection
+ * popup, event handlers), keeps it reactive to filter/selection/zoom inputs, and exposes it through
+ * MapVisualizationContext.
  */
 export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProviderProps>> = ({
   config,
@@ -144,9 +134,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   const highlightedIdsRef = useRef<ReadonlySet<string>>(highlightedErrorIds);
   const lastZoomTokenRef = useRef<number | undefined>(undefined);
 
-  // Padding and max zoom used whenever the view is fit to features, on the initial fit and via the
-  // reset-viewport button and zoom requests, so they stay in sync.
-  // Used as a ref so it does not trigger a re-render.
+  // Padding and max zoom used whenever the view is fit to features.
   const fitOptions = useRef<FitOptions>({ padding: [40, 40, 40, 40], maxZoom: 12 });
   const setFitOptions = useCallback((options: FitOptions) => {
     fitOptions.current = options;
@@ -170,7 +158,6 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     [map],
   );
 
-  // translate layer titles
   useEffect(() => {
     for (const layer of featureLayers) {
       const localizableTitle = layer.get(LOCALIZABLE_TITLE_PROPERTY) as LocalizedText | undefined;
@@ -183,7 +170,6 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     }
   }, [featureLayers, localized, map, t]);
 
-  // initialize map
   useEffect(() => {
     if (!config) return;
 
@@ -245,7 +231,6 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     };
   }, [config, selectionOverlay, theme]);
 
-  // map event handlers with dependencies to component props
   useEffect(() => {
     if (!map) return;
 
@@ -268,18 +253,13 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     };
   }, [map, onSelectFeature, selectionOverlay, setSelectionOverlayText, showMapSelectionPopup]);
 
-  // Apply filter (hide non-matching) and selection (highlight) without rebuilding the map and without moving
-  // the view: update the refs the style function reads and restyle the existing layers. Moving the map is
-  // the job of the explicit zoom request below, not of selection.
   useEffect(() => {
     visibleIdsRef.current = visibleErrorIds;
     highlightedIdsRef.current = highlightedErrorIds;
-    if (!map) return;
+    // Trigger a re-render of the style function
     featureLayers.forEach(layer => layer.changed());
-  }, [map, visibleErrorIds, highlightedErrorIds, featureLayers]);
+  }, [visibleErrorIds, highlightedErrorIds, featureLayers]);
 
-  // Zoom to the features of an explicit zoom request (a tree node's features: one for a leaf, many for a
-  // group). Guarded by the request token so a re-render does not re-run the last zoom.
   useEffect(() => {
     if (!map || !zoomRequest || zoomRequest.token === lastZoomTokenRef.current) return;
     lastZoomTokenRef.current = zoomRequest.token;
@@ -290,9 +270,9 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     });
   }, [map, zoomRequest]);
 
-  return (
-    <MapVisualizationContext.Provider value={{ map, zoomToExtent, zoomBy, setFitOptions }}>
-      {children}
-    </MapVisualizationContext.Provider>
+  const contextValue = useMemo<MapVisualizationContextInterface>(
+    () => ({ map, zoomToExtent, zoomBy, setFitOptions }),
+    [map, zoomToExtent, zoomBy, setFitOptions],
   );
+  return <MapVisualizationContext.Provider value={contextValue}>{children}</MapVisualizationContext.Provider>;
 };

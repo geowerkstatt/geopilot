@@ -4,8 +4,7 @@ import { FitOptions } from "ol/View";
 
 /**
  * Access to the OpenLayers map owned by the MapVisualizationProvider. The provider builds and holds the
- * map so it survives the view component unmounting and remounting (e.g. toggling fullscreen); consumers
- * read the live map together with the operations and derived data around it.
+ * map so it survives the view component unmounting and remounting (e.g. toggling fullscreen).
  */
 export interface MapVisualizationContextInterface {
   /** The OpenLayers map, or null while it is still being built or when there is no map to show. */
@@ -25,5 +24,4 @@ export const MapVisualizationContext = createContext<MapVisualizationContextInte
   setFitOptions: () => {},
 });
 
-/** Read the map, zoom operations and attributions provided by the enclosing MapVisualizationProvider. */
 export const useMapVisualization = (): MapVisualizationContextInterface => useContext(MapVisualizationContext);
