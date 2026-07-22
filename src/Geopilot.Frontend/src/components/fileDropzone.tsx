@@ -113,7 +113,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
         : error
           ? geopilotTheme.palette.error.main
           : geopilotTheme.palette.primary.main,
-      borderRadius: "4px",
+      borderRadius: geopilotTheme.radius.default,
       backgroundColor: error ? geopilotTheme.palette.error.hover : geopilotTheme.palette.primary.states.hover,
       outline: "none",
       transition: "border .24s ease-in-out",

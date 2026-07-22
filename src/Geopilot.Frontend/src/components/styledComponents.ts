@@ -1,5 +1,4 @@
-import { Stack } from "@mui/material";
-import { styled } from "@mui/system";
+import { Stack, styled } from "@mui/material";
 
 export const FullPageStack = styled(Stack)({
   height: "100vh", // fallback for older browsers
@@ -31,6 +30,6 @@ export const CenteredContent = styled(Stack)({
 export const GeopilotBox = styled(Stack)(({ theme }) => ({
   backgroundColor: theme.palette.background.content,
   border: `1px solid ${theme.palette.primary.light}`,
-  borderRadius: theme.spacing(0.5),
+  borderRadius: theme.radius.default,
   padding: theme.spacing(2),
 }));

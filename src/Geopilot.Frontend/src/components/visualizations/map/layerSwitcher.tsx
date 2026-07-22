@@ -161,7 +161,7 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
             overflow: "hidden",
             backgroundColor: "background.content",
             border: theme => `1px solid ${theme.palette.primary.main}`,
-            borderRadius: theme => theme.spacing(0.5),
+            borderRadius: theme => theme.radius.default,
           }}>
           <Stack direction="row" sx={{ gap: 1, alignItems: "center", mb: 1, width: "100%" }}>
             <SearchField placeholder="searchLayers" value={searchValue} onChange={applyFilter} sx={{ flex: 1 }} />

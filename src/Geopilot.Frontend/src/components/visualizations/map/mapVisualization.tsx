@@ -58,7 +58,7 @@ export const MapVisualization = ({
         width: "100%",
         height: fullscreen ? "100%" : "500px",
         border: theme => `1px solid ${fullscreen ? theme.palette.primary.main : theme.palette.primary.light}`,
-        borderRadius: theme.spacing(0.5),
+        borderRadius: theme.radius.default,
         overflow: "hidden",
         backgroundColor: theme.palette.background.default,
       }}>
@@ -120,7 +120,7 @@ export const MapVisualization = ({
             py: 0.25,
             maxWidth: "100%",
             backgroundColor: alpha(theme.palette.background.paper, 0.7),
-            borderTopRightRadius: theme.spacing(0.5),
+            borderTopRightRadius: theme.radius.default,
             lineHeight: 1.2,
           }}>
           {t("mapCopyrightPrefix")}{" "}

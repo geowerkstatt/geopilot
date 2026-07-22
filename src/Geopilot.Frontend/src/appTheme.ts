@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { alpha, createTheme, Shadows } from "@mui/material/styles";
+import { alpha, createTheme, Shadows, ThemeOptions } from "@mui/material/styles";
 import { Spacing } from "@mui/system";
 import { themePalette } from "./appPalette";
 
@@ -10,10 +10,20 @@ const defaultTheme = createTheme();
 const themeShadows: Shadows = [...defaultTheme.shadows];
 const themeSpacing: Spacing = defaultTheme.spacing;
 
+const DEFAULT_BORDER_RADIUS = 4;
+
+const themeRadius: ThemeOptions["radius"] = {
+  none: "0px",
+  default: `${DEFAULT_BORDER_RADIUS}px`,
+  full: "50%",
+};
+
 export const geopilotTheme = createTheme({
   palette: themePalette,
   shadows: themeShadows,
   spacing: themeSpacing,
+  shape: { borderRadius: DEFAULT_BORDER_RADIUS },
+  radius: themeRadius,
   breakpoints: {
     values: {
       xs: 0,
@@ -110,7 +120,7 @@ export const geopilotTheme = createTheme({
       },
       styleOverrides: {
         root: {
-          borderRadius: themeSpacing(0.5),
+          borderRadius: themeRadius.default,
           flex: "1",
 
           "& .MuiSelect-select": {
@@ -152,7 +162,7 @@ export const geopilotTheme = createTheme({
         root: {
           textTransform: "none",
           fontWeight: "500",
-          borderRadius: themeSpacing(0.5),
+          borderRadius: themeRadius.default,
           boxShadow: "none",
           "&:hover": {
             boxShadow: "none",
@@ -202,7 +212,7 @@ export const geopilotTheme = createTheme({
         colorPrimaryContained: {
           backgroundColor: themePalette.primary.main,
           color: themePalette.primary.contrast,
-          borderRadius: themeSpacing(0.5),
+          borderRadius: themeRadius.default,
           "&:hover": {
             backgroundColor: themePalette.primary.dark,
           },
@@ -215,7 +225,7 @@ export const geopilotTheme = createTheme({
           backgroundColor: themePalette.primary.contrast,
           padding: "7px",
           border: `1px solid ${themePalette.primary.light}`,
-          borderRadius: themeSpacing(0.5),
+          borderRadius: themeRadius.default,
           "&:hover": {
             border: `1px solid ${themePalette.primary.main}`,
             backgroundColor: themePalette.primary.states.hover,
@@ -235,17 +245,17 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           "&.MuiButtonGroup-vertical .MuiIconButton-root": {
-            borderRadius: 0,
+            borderRadius: themeRadius.none,
             "&:not(:first-of-type)": {
               marginTop: "-1px",
             },
             "&:first-of-type": {
-              borderTopLeftRadius: themeSpacing(0.5),
-              borderTopRightRadius: themeSpacing(0.5),
+              borderTopLeftRadius: themeRadius.default,
+              borderTopRightRadius: themeRadius.default,
             },
             "&:last-of-type": {
-              borderBottomLeftRadius: themeSpacing(0.5),
-              borderBottomRightRadius: themeSpacing(0.5),
+              borderBottomLeftRadius: themeRadius.default,
+              borderBottomRightRadius: themeRadius.default,
             },
             "&:hover": {
               zIndex: 1,
@@ -360,7 +370,7 @@ export const geopilotTheme = createTheme({
         tooltip: {
           backgroundColor: defaultTheme.palette.grey[700],
           color: themePalette.primary.contrast,
-          borderRadius: themeSpacing(0.5),
+          borderRadius: themeRadius.default,
         },
         arrow: {
           color: defaultTheme.palette.grey[700],
@@ -414,7 +424,7 @@ export const geopilotTheme = createTheme({
         root: {
           boxShadow: "none",
           border: `1px solid ${themePalette.primary.light}`,
-          borderRadius: 0,
+          borderRadius: themeRadius.none,
           borderTop: 0, // collapsed items stack: rely on the item above's bottom border
           "&:before": {
             display: "none",
@@ -422,18 +432,18 @@ export const geopilotTheme = createTheme({
           // First of a collapsed run (list top, or right after an expanded item)
           "&:first-of-type, .Mui-expanded + &": {
             borderTop: `1px solid ${themePalette.primary.light}`,
-            borderTopLeftRadius: themeSpacing(0.5),
-            borderTopRightRadius: themeSpacing(0.5),
+            borderTopLeftRadius: themeRadius.default,
+            borderTopRightRadius: themeRadius.default,
           },
           // Last of a collapsed run (list bottom, or right before an expanded item)
           "&:last-of-type, &:has(+ .Mui-expanded)": {
-            borderBottomLeftRadius: themeSpacing(0.5),
-            borderBottomRightRadius: themeSpacing(0.5),
+            borderBottomLeftRadius: themeRadius.default,
+            borderBottomRightRadius: themeRadius.default,
           },
           // Expanded: detach into its own rounded card with vertical spacing
           "&.Mui-expanded": {
             borderTop: `1px solid ${themePalette.primary.light}`,
-            borderRadius: themeSpacing(0.5),
+            borderRadius: themeRadius.default,
             marginTop: themeSpacing(2),
             marginBottom: themeSpacing(2),
             "&:first-of-type": { marginTop: 0 },

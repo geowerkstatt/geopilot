@@ -66,7 +66,7 @@ const createSelectionOverlay = (theme: Theme): [Overlay, (text: string) => void]
     position: "relative",
     backgroundColor: theme.palette.background.paper,
     border: `1px solid ${theme.palette.primary.light}`,
-    borderRadius: theme.spacing(0.5),
+    borderRadius: theme.radius.default,
     padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
     maxWidth: "300px",
     fontSize: "0.875rem",
