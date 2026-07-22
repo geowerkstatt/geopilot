@@ -12,10 +12,10 @@ pipelines:
         process_id: xtf_validator
         input:
         output:
-          - take: error_log
+          - take: ErrorLog
             as: error
             action:
-          - take: xtf_log
+          - take: XtfLog
             as: error
             action:
               - DOWNLOAD

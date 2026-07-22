@@ -91,7 +91,6 @@ internal static class InputBindingValidator
     {
         var runMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessRunAttribute)))
-            .Where(m => m.ReturnType == typeof(Task<Dictionary<string, object>>))
             .ToList();
 
         return runMethods.Count == 1 ? runMethods[0] : null;

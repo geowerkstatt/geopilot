@@ -45,7 +45,7 @@ internal class FileMatcherProcess
     }
 
     [PipelineProcessRun]
-    public Task<Dictionary<string, object?>> RunAsync(IPipelineFile[] files)
+    public Task<FileMatcherResult> RunAsync(IPipelineFile[] files)
     {
         IEnumerable<IPipelineFile> filtered = files;
 
@@ -64,10 +64,10 @@ internal class FileMatcherProcess
             ? NoMatchStatusMessage
             : StatusMessageFormat.Map(msg => string.Format(CultureInfo.InvariantCulture, msg, matchedFiles.Length, totalCount));
 
-        return Task.FromResult(new Dictionary<string, object?>
+        return Task.FromResult(result: new FileMatcherResult
         {
-            { "matched_files", matchedFiles },
-            { "status_message", statusMessage },
+            MatchedFiles = matchedFiles,
+            StatusMessage = statusMessage,
         });
     }
 }

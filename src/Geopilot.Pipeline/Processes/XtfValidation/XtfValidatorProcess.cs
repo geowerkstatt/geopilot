@@ -21,10 +21,6 @@ internal class XtfValidatorProcess : IDisposable
         ErrorLog,
     }
 
-    private const string OutputMappingErrorLog = "error_log";
-    private const string OutputMappingXtfLog = "xtf_log";
-    private const string OutputMappingValidationSuccessful = "validation_successful";
-    private const string OutputMappingStatusMessage = "status_message";
     private const string UploadUrl = "/api/v1/upload";
 
     private static readonly JsonSerializerOptions JsonOptions;
@@ -90,7 +86,7 @@ internal class XtfValidatorProcess : IDisposable
     /// <returns>A ProcessData instance containing the results of the validation process.</returns>
     /// <exception cref="ArgumentException">Thrown if the input ILI file is invalid.</exception>
     [PipelineProcessRun]
-    public async Task<Dictionary<string, object?>> RunAsync(IPipelineFile iliFile, CancellationToken cancellationToken)
+    public async Task<XtfValidatorResult> RunAsync(IPipelineFile iliFile, CancellationToken cancellationToken)
     {
         logger.LogInformation($"Validating transfer file <{iliFile.OriginalFileName}>...");
         var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.OriginalFileName, this.validationProfile, cancellationToken);
@@ -105,15 +101,13 @@ internal class XtfValidatorProcess : IDisposable
             { "en", statusResponse.StatusMessage ?? string.Empty },
         };
 
-        var outputs = new Dictionary<string, object?>
+        return new XtfValidatorResult
         {
-            { OutputMappingValidationSuccessful, statusResponse.Status == InterlisStatusResponseStatus.Completed },
-            { OutputMappingStatusMessage, statusMessage },
-            { OutputMappingErrorLog, logFiles.GetValueOrDefault(LogType.ErrorLog) },
-            { OutputMappingXtfLog, logFiles.GetValueOrDefault(LogType.XtfLog) },
+            ValidationSuccessful = statusResponse.Status == InterlisStatusResponseStatus.Completed,
+            StatusMessage = statusMessage,
+            ErrorLog = logFiles.GetValueOrDefault(LogType.ErrorLog),
+            XtfLog = logFiles.GetValueOrDefault(LogType.XtfLog),
         };
-
-        return outputs;
     }
 
     private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)

@@ -12,10 +12,10 @@ pipelines:
         input:
           iliFile: "${step_output(upload.ili_file)}"
         output:
-          - take: error_log
+          - take: ErrorLog
             as: error_log
             action:
-          - take: xtf_log
+          - take: XtfLog
             as: xtf_log
             action:
               - DOWNLOAD

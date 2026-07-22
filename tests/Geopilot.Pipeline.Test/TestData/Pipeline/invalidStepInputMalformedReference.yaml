@@ -13,6 +13,6 @@ pipelines:
         input:
           iliFile: "${step_output(bad)}"
         output:
-          - take: error_log
+          - take: ErrorLog
             as: error_log
             action:
