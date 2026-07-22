@@ -5,7 +5,7 @@ namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 internal class XtfErrorVisualizationResult
 {
-    public required Visualization<XtfErrorVisualizationConfig> Visualization { get; set; }
+    public required Visualization<XtfErrorVisualizationConfig> Visualization { get; init; }
 
-    public required LocalizedText StatusMessage { get; set; }
+    public required LocalizedText StatusMessage { get; init; }
 }

@@ -77,7 +77,7 @@ public class ProcessingRunnerTest
 
     private sealed class FileEmittingProcessResult
     {
-        public required IPipelineFile Result { get; set; }
+        public required IPipelineFile Result { get; init; }
     }
 
     private sealed class BlockingProcess

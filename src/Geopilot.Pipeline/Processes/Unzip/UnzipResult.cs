@@ -4,7 +4,7 @@ namespace Geopilot.Pipeline.Processes.Unzip;
 
 internal class UnzipResult
 {
-    public required IPipelineFile[] ExtractedFiles { get; set; }
+    public required IPipelineFile[] ExtractedFiles { get; init; }
 
-    public required LocalizedText StatusMessage { get; set; }
+    public required LocalizedText StatusMessage { get; init; }
 }

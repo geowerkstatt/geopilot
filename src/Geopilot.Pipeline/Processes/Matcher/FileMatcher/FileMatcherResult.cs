@@ -4,8 +4,8 @@ namespace Geopilot.Pipeline.Processes.Matcher.FileMatcher
 {
     internal class FileMatcherResult
     {
-        public required IPipelineFile[] MatchedFiles { get; set; }
+        public required IPipelineFile[] MatchedFiles { get; init; }
 
-        public required LocalizedText StatusMessage { get; set; }
+        public required LocalizedText StatusMessage { get; init; }
     }
 }

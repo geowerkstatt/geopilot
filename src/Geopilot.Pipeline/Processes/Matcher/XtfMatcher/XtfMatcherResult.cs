@@ -4,7 +4,7 @@ namespace Geopilot.Pipeline.Processes.Matcher.XtfMatcher;
 
 internal class XtfMatcherResult
 {
-    public required IPipelineFile[] XtfFiles { get; set; }
+    public required IPipelineFile[] XtfFiles { get; init; }
 
-    public required LocalizedText StatusMessage { get; set; }
+    public required LocalizedText StatusMessage { get; init; }
 }

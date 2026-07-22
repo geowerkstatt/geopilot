@@ -73,7 +73,7 @@ public class PipelineStepTest
 
     private class MockPipelineProcessArrayInputResult
     {
-        public object OutputData { get; set; }
+        public object OutputData { get; init; }
     }
 
     private class MockPipelineProcessOptionalSingleInput
