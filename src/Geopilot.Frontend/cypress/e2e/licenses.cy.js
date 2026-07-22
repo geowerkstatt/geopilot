@@ -31,6 +31,9 @@ describe("Licenses Component", () => {
     // Verify project groups are displayed
     cy.get(".MuiAccordion-root").should("have.length.at.least", 2);
 
+    // Verify custom licenses are rendered before interaction
+    cy.contains(".MuiAccordion-root", "project1").should("be.visible");
+
     // Check specific project information
     cy.contains(".MuiAccordion-root", "projectA").within(() => {
       cy.get(".MuiAccordionSummary-root").click();
@@ -49,6 +52,9 @@ describe("Licenses Component", () => {
     // Wait for API response
     cy.wait("@getLicenses").as("licenses");
     cy.wait("@getCustomLicenses");
+
+    // Verify custom licenses are rendered before interaction
+    cy.contains(".MuiAccordion-root", "project1").should("be.visible");
 
     // Get data from the fixture
     cy.get("@licenses")

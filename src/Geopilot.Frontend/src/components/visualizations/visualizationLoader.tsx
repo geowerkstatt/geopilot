@@ -1,8 +1,8 @@
 import { FC, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { ContentType } from "../../../../api/apiInterfaces";
-import useFetch from "../../../../hooks/useFetch";
+import { ContentType } from "../../api/apiInterfaces";
+import useFetch from "../../hooks/useFetch";
 import { renderVisualization, Visualization } from "./visualizationRegistry";
 
 interface VisualizationLoaderProps {

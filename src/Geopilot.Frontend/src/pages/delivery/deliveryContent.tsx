@@ -1,7 +1,6 @@
 import { FC, PropsWithChildren, ReactNode, useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Stack, Typography } from "@mui/material";
-import { styled } from "@mui/system";
+import { Box, Stack, styled, Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
@@ -44,16 +43,16 @@ const ScrollContentOverlay = styled(Overlay)(({ theme }) => ({
 
 // add a fixed top border to the scrolled content
 const ContainerTopBorder = styled(Overlay)(({ theme }) => ({
-  height: theme.shape.borderRadius,
+  height: theme.radius.default,
   border: `1px solid ${theme.palette.primary.light}`,
   borderBottom: "none",
-  borderTopLeftRadius: theme.shape.borderRadius,
-  borderTopRightRadius: theme.shape.borderRadius,
+  borderTopLeftRadius: theme.radius.default,
+  borderTopRightRadius: theme.radius.default,
 }));
 
 // hide the border of the scrolled content
 const ContainerTopBorderOverlay = styled(Overlay)(({ theme }) => ({
-  height: theme.shape.borderRadius,
+  height: theme.radius.default,
   borderLeft: `1px solid ${theme.palette.background.base}`,
   borderRight: `1px solid ${theme.palette.background.base}`,
 }));

@@ -1,8 +1,7 @@
 import { FC } from "react";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningIcon from "@mui/icons-material/Warning";
-import { CircularProgress, Stack } from "@mui/material";
-import { geopilotTheme } from "../../appTheme.ts";
+import { CircularProgress, Stack, useTheme } from "@mui/material";
 
 interface StepperIconProps {
   index: number;
@@ -14,6 +13,8 @@ interface StepperIconProps {
 }
 
 export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, completed, error, isLoading }) => {
+  const theme = useTheme();
+
   return (
     <Stack
       direction="row"
@@ -28,15 +29,13 @@ export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, comple
             sx={{
               flexWrap: "wrap",
               justifyContent: "center",
-              borderRadius: "50%",
+              borderRadius: theme.radius.full,
               width: "24px",
               height: "24px",
               lineHeight: "24px",
               backgroundColor:
-                enabled || completed
-                  ? geopilotTheme.palette.primary.main
-                  : geopilotTheme.palette.primary.states.disabledBackground,
-              color: geopilotTheme.palette.primary.contrast,
+                enabled || completed ? theme.palette.primary.main : theme.palette.primary.states.disabledBackground,
+              color: theme.palette.primary.contrast,
               alignItems: "center",
               fontSize: "12px",
             }}

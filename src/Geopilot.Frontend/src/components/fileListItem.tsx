@@ -24,7 +24,7 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
     <Box
       sx={{
         border: `1px solid ${geopilotTheme.palette.primary.light}`,
-        borderRadius: "4px",
+        borderRadius: geopilotTheme.radius.default,
         overflow: "hidden",
       }}
       data-cy="file-list-item">

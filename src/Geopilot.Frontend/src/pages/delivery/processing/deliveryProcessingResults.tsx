@@ -4,10 +4,10 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Stack, Typography } from "@mui/material";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { Button } from "../../../components/buttons";
+import { VisualizationLoader } from "../../../components/visualizations/visualizationLoader";
 import { useLocalized } from "../../../hooks/useLocalized";
 import { DeliveryContext } from "../deliveryContext";
 import { ProcessingStepIcon } from "./processingStepIcon";
-import { VisualizationLoader } from "./visualizations/visualizationLoader";
 
 const stepHasContent = (step: StepResult) =>
   Boolean(step.statusMessage) || step.downloads.length > 0 || (step.visualizations?.length ?? 0) > 0;

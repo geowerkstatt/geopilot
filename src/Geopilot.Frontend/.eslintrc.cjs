@@ -40,12 +40,17 @@ module.exports = {
     "react/prop-types": "off",
     "react/display-name": "off",
     "local-rules/no-hardcoded-colors": "warn",
+    "local-rules/require-theme-radius": "warn",
     "no-restricted-imports": ["warn", {paths: [muiWrapperImportRestriction]}],
   },
   overrides: [
     {
       files: ["src/appPalette.ts", "cypress/**"],
       rules: {"local-rules/no-hardcoded-colors": "off"},
+    },
+    {
+      files: ["src/appTheme.ts", "cypress/**"],
+      rules: {"local-rules/require-theme-radius": "off"},
     },
     {
       files: ["src/components/buttons.tsx"],

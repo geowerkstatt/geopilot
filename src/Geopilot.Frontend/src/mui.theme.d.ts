@@ -50,4 +50,12 @@ declare module "@mui/material/styles" {
   interface PaletteOptions {
     map?: PaletteMap;
   }
+
+  interface Theme {
+    radius: { none: string; default: string; full: string };
+  }
+
+  interface ThemeOptions {
+    radius?: { none: string; default: string; full: string };
+  }
 }
