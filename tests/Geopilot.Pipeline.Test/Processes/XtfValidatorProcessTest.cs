@@ -61,23 +61,22 @@ public class XtfValidatorProcessTest
 
         var processResult = Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult();
         Assert.IsNotNull(processResult);
-        Assert.HasCount(4, processResult);
-        processResult.TryGetValue("error_log", out var appLogData);
+        var appLogData = processResult.ErrorLog;
         Assert.IsNotNull(appLogData);
-        var appLog = appLogData as IPipelineFile;
+        var appLog = appLogData;
         Assert.IsNotNull(appLog);
         Assert.AreEqual("errorLog.log", appLog.OriginalFileName);
-        processResult.TryGetValue("xtf_log", out var xtfLogData);
+        var xtfLogData = processResult.XtfLog;
         Assert.IsNotNull(xtfLogData);
-        var xtfLog = xtfLogData as IPipelineFile;
+        var xtfLog = xtfLogData;
         Assert.IsNotNull(xtfLog);
         Assert.AreEqual("xtfLog.xtf", xtfLog.OriginalFileName);
-        processResult.TryGetValue("status_message", out var statusMessageData);
-        var statusMessage = statusMessageData as LocalizedText;
+        var statusMessageData = processResult.StatusMessage;
+        var statusMessage = statusMessageData;
         Assert.IsNotNull(statusMessage);
         LocalizedText expectedStatusMessage = new Dictionary<string, string>() { { "de", "Validation successful" }, { "fr", "Validation successful" }, { "it", "Validation successful" }, { "en", "Validation successful" } };
         Assert.AreEqual(expectedStatusMessage, statusMessage);
-        processResult.TryGetValue("validation_successful", out var validationSuccessfulData);
+        var validationSuccessfulData = processResult.ValidationSuccessful;
         var validationSuccessful = validationSuccessfulData as bool?;
         Assert.IsTrue(validationSuccessful);
     }

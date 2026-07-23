@@ -12,8 +12,8 @@ public class FileMatcherProcessTest
     private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(FileMatcherProcess process, IPipelineFile[] files)
     {
         var result = await process.RunAsync(files);
-        result.TryGetValue("matched_files", out var matchedFiles);
-        result.TryGetValue("status_message", out var statusMessage);
+        var matchedFiles = result.MatchedFiles;
+        var statusMessage = result.StatusMessage;
         return ((IPipelineFile[])matchedFiles!, (LocalizedText)statusMessage!);
     }
 

@@ -11,12 +11,10 @@ namespace Geopilot.Pipeline.Processes.ZipPackage;
 /// </summary>
 /// <remarks>This class is intended for use within a data processing pipeline where ZIP package handling of <see cref="IPipelineFile"/> is required.
 /// All non-null <see cref="IPipelineFile"/> provided in the input will be included in the created ZIP archive. The resulting ZIP file is then made available as an output of the process.
-/// The ZIP archive is provided under the key 'zip_package' in the output. If no valid input files are provided, null is returned.</remarks>
+/// The ZIP archive is returned as the <see cref="ZipPackageResult.ZipPackage"/> output. If no valid input files are provided, null is returned.</remarks>
 internal class ZipPackageProcess
 {
-    private const string OutputMappingZipPackage = "zip_package";
     private const string DefaultArchiveFileName = "archive";
-    private const string OutputMappingStatusMessage = "status_message";
 
     private static readonly LocalizedText SuccessfulStatusMessageFormat = new Dictionary<string, string>
         {
@@ -56,15 +54,15 @@ internal class ZipPackageProcess
     }
 
     /// <summary>
-    /// Creates a ZIP archive containing the specified input files and returns a dictionary mapping the output key to
-    /// the resulting ZIP file.
+    /// Creates a ZIP archive containing the specified input files and returns it as a
+    /// <see cref="ZipPackageResult"/>.
     /// </summary>
     /// <param name="input">An array of input files to include in the ZIP archive. Each file must implement the IPipelineFile interface.</param>
-    /// <returns>A dictionary containing a single entry that maps the output key to the generated ZIP file as a
-    /// PipelineTransferFile instance, or null if no valid input files were provided.</returns>
+    /// <returns>A <see cref="ZipPackageResult"/> whose <see cref="ZipPackageResult.ZipPackage"/> is the generated ZIP file,
+    /// or null if no valid input files were provided.</returns>
     /// <exception cref="ArgumentException">Thrown if no input files are provided.</exception>
     [PipelineProcessRun]
-    public async Task<Dictionary<string, object?>> RunAsync(params IPipelineFile?[] input)
+    public async Task<ZipPackageResult> RunAsync(params IPipelineFile?[] input)
     {
         if (input.Length == 0)
         {
@@ -119,10 +117,10 @@ internal class ZipPackageProcess
                 .Map(msg => string.Format(CultureInfo.InvariantCulture, msg, validFiles.Length));
         }
 
-        return new Dictionary<string, object?>()
+        return new ZipPackageResult
         {
-            { OutputMappingZipPackage, zipTransferFile },
-            { OutputMappingStatusMessage, statusMessage },
+            StatusMessage = statusMessage,
+            ZipPackage = zipTransferFile,
         };
     }
 }

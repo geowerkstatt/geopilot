@@ -12,5 +12,5 @@ pipelines:
         process_id: xtf_validator
         input:
         output:
-          - take: error_log
+          - take: ErrorLog
             action:

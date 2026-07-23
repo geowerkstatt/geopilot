@@ -31,7 +31,7 @@ pipelines:
         input:
           files: "${upload()}"
         output:
-          - take: xtf_files
+          - take: XtfFiles
             as: xtfFiles
       - id: validation
         display_name:
@@ -44,14 +44,14 @@ pipelines:
         input:
           iliFile: "${step_output(matcher.xtfFiles)}"
         output:
-          - take: error_log
+          - take: ErrorLog
             as: errorlog
             action:
-          - take: xtf_log
+          - take: XtfLog
             as: xtflog
             action:
               - DOWNLOAD
-          - take: validation_successful
+          - take: ValidationSuccessful
             as: successful
       - id: zip_package
         display_name:
@@ -67,7 +67,7 @@ pipelines:
             - "${step_output(validation.xtflog)}"
             - "${step_output(matcher.xtfFiles)}"
         output:
-          - take: zip_package
+          - take: ZipPackage
             as: archive
             action:
               - DOWNLOAD
@@ -87,7 +87,7 @@ pipelines:
         input:
           files: "${upload()}"
         output:
-          - take: xtf_files
+          - take: XtfFiles
             as: xtfFiles
       - id: validation
         display_name:
@@ -96,14 +96,14 @@ pipelines:
         input:
           iliFile: "${step_output(matcher.xtfFiles)}"
         output:
-          - take: error_log
+          - take: ErrorLog
             as: errorlog
             action:
-          - take: xtf_log
+          - take: XtfLog
             as: xtflog
             action:
               - DOWNLOAD
-          - take: validation_successful
+          - take: ValidationSuccessful
             as: successful
       - id: zip_package
         display_name:
@@ -125,7 +125,7 @@ pipelines:
             - "${step_output(validation.xtflog)}"
             - "${step_output(matcher.xtfFiles)}"
         output:
-          - take: zip_package
+          - take: ZipPackage
             as: archive
             action:
               - DOWNLOAD

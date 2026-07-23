@@ -15,7 +15,7 @@ pipelines:
         input:
           input: "${file(sample.txt)}"
         output:
-          - take: zip_package
+          - take: ZipPackage
             as: archive
             action:
               - DOWNLOAD

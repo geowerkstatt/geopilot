@@ -13,6 +13,6 @@ pipelines:
         input:
           iliFile: "${file(/templates/header.xtf)}"
         output:
-          - take: error_log
+          - take: ErrorLog
             as: error_log
             action:

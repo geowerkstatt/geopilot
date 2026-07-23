@@ -199,7 +199,7 @@ public sealed class PipelineStep : IPipelineStep
     {
         var runMethod = GetProcessRunMethod();
         var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
-        var resultTask = runMethod.Invoke(Process, runParams) as Task<Dictionary<string, object>>;
+        var resultTask = runMethod.Invoke(Process, runParams) as Task;
 
         if (resultTask == null)
         {
@@ -222,7 +222,10 @@ public sealed class PipelineStep : IPipelineStep
             throw new PipelineRunException($"The process <{Process.GetType().Name}> threw an exception.", ex);
         }
 
-        return CreateStepResult(resultTask.Result);
+        PropertyInfo? prop = resultTask.GetType().GetProperty(nameof(Task<object>.Result));
+        var result = prop?.GetValue(resultTask)
+            ?? throw new PipelineRunException($"The process <{Process.GetType().Name}> did not return a result.");
+        return CreateStepResult(result);
     }
 
     private async Task<List<ConditionConfig>> FindMatchingSkipConditions(PipelineStepPreConditionConfig? condition, PipelineContext context)
@@ -336,8 +339,7 @@ public sealed class PipelineStep : IPipelineStep
     private MethodInfo GetProcessRunMethod()
     {
         var processRunMethods = Process.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessRunAttribute)))
-                    .Where(m => m.ReturnType == typeof(Task<Dictionary<string, object>>));
+                    .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessRunAttribute)));
 
         if (processRunMethods.Count() > 1)
         {
@@ -457,13 +459,16 @@ public sealed class PipelineStep : IPipelineStep
         return directory is null ? file : new CopyOnWriteFile(file, directory, this.Id);
     }
 
-    private StepResult CreateStepResult(Dictionary<string, object> outputProcessData)
+    private StepResult CreateStepResult(object outputProcessData)
     {
         var stepResult = new StepResult();
+
         foreach (var outputConfig in OutputConfigs)
         {
-            if (outputConfig.Take != null && outputConfig.As != null && outputProcessData.TryGetValue(outputConfig.Take, out var processDataPart))
+            PropertyInfo? prop = outputProcessData.GetType().GetProperty(outputConfig.Take);
+            if (outputConfig.Take != null && outputConfig.As != null && prop?.CanRead == true)
             {
+                var processDataPart = prop?.GetValue(outputProcessData);
                 var action = outputConfig.Action ?? new HashSet<OutputAction>();
                 if (action.Contains(OutputAction.Visualization) && processDataPart is not IVisualization)
                 {

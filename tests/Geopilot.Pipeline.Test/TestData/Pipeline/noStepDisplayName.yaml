@@ -9,5 +9,5 @@ pipelines:
       - id: xtf_matching
         process_id: xtf_matcher
         output:
-          - take: xtf_files
+          - take: XtfFiles
             as: xtf_files

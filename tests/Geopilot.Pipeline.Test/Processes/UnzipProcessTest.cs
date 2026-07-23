@@ -39,9 +39,10 @@ public class UnzipProcessTest
         var result = await process.RunAsync(zipFile);
 
         Assert.IsNotNull(result);
-        Assert.HasCount(2, result);
+        Assert.IsNotNull(result.StatusMessage);
+        Assert.IsNotNull(result.ExtractedFiles);
 
-        var extracted = result["extracted_files"] as IPipelineFile[];
+        var extracted = result.ExtractedFiles;
         Assert.IsNotNull(extracted);
         Assert.HasCount(2, extracted);
         CollectionAssert.AreEquivalent(
@@ -54,7 +55,7 @@ public class UnzipProcessTest
             Assert.AreEqual("hello", reader.ReadToEnd());
         }
 
-        var statusMessage = result["status_message"] as LocalizedText;
+        var statusMessage = result.StatusMessage;
         Assert.IsNotNull(statusMessage);
         LocalizedText expected = new Dictionary<string, string>
         {
@@ -74,11 +75,11 @@ public class UnzipProcessTest
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
         var result = await process.RunAsync(zipFile);
 
-        var extracted = result["extracted_files"] as IPipelineFile[];
+        var extracted = result.ExtractedFiles;
         Assert.IsNotNull(extracted);
         Assert.HasCount(0, extracted);
 
-        var statusMessage = result["status_message"] as LocalizedText;
+        var statusMessage = result.StatusMessage;
         Assert.IsNotNull(statusMessage);
         LocalizedText expected = new Dictionary<string, string>
         {
@@ -109,7 +110,7 @@ public class UnzipProcessTest
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
         var result = await process.RunAsync(zipFile);
 
-        var extracted = result["extracted_files"] as IPipelineFile[];
+        var extracted = result.ExtractedFiles;
         Assert.IsNotNull(extracted);
         Assert.HasCount(1, extracted);
         Assert.AreEqual("file.txt", extracted[0].OriginalFileName);
@@ -126,7 +127,7 @@ public class UnzipProcessTest
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
         var result = await process.RunAsync(zipFile);
 
-        var extracted = result["extracted_files"] as IPipelineFile[];
+        var extracted = result.ExtractedFiles;
         Assert.IsNotNull(extracted);
         Assert.HasCount(1, extracted);
         Assert.AreEqual("README.", extracted[0].OriginalFileName);
@@ -145,7 +146,7 @@ public class UnzipProcessTest
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
         var result = await process.RunAsync(zipFile);
 
-        var extracted = result["extracted_files"] as IPipelineFile[];
+        var extracted = result.ExtractedFiles;
         Assert.IsNotNull(extracted);
         Assert.HasCount(3, extracted);
 
