@@ -120,6 +120,7 @@ services:
       Delivery__UploaderDeleteEnabled: true
       Delivery__DeleteDuration: ""
       Delivery__DeleteRestrictInterval: ""
+      Ilitools__IlitoolsWrapperAddress: http://ilitools-wrapper:5555
       PUID: 1000
       PGID: 1000
     volumes:

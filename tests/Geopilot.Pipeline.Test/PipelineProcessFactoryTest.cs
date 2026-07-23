@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.XtfValidation;
 using Geopilot.Pipeline.Test.Processes;
@@ -67,7 +68,8 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
+        var ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
+        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
         var stepConfig = new StepConfig()
@@ -246,7 +248,8 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
+        var ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
+        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
         var stepConfig = new StepConfig()
@@ -395,7 +398,8 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
+        var ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
+        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
         var stepConfig = new StepConfig()

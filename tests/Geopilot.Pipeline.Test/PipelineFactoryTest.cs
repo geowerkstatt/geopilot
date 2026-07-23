@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.Matcher.XtfMatcher;
 using Geopilot.Pipeline.Processes.XtfValidation;
@@ -40,7 +41,8 @@ public class PipelineFactoryTest
         var loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
         loggerFactory = new Mock<ILoggerFactory>();
         loggerFactory.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
-        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactory.Object);
+        var ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
+        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactory.Object);
     }
 
     [TestMethod(DisplayName = "Create Pipeline By Id But Pipeline Not Defined")]

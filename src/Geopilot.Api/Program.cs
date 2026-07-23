@@ -7,6 +7,7 @@ using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -170,6 +171,7 @@ builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
 builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
+builder.Services.Configure<IlitoolsOptions>(builder.Configuration.GetSection("Ilitools"));
 builder.Services.AddOptions<FileAccessOptions>()
     .BindConfiguration(FileAccessOptions.SectionName)
     .ValidateDataAnnotations()

@@ -18,11 +18,11 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     private readonly Ili2gpkgService.Ili2gpkgServiceClient client;
     private readonly ILogger<Ili2GpkgClient> logger;
 
-    internal Ili2GpkgClient(ILogger<Ili2GpkgClient> logger)
+    internal Ili2GpkgClient(IlitoolsOptions ilitoolsOptions, ILogger<Ili2GpkgClient> logger)
     {
         this.logger = logger;
 
-        var channel = GrpcChannel.ForAddress("http://localhost:5555");
+        var channel = GrpcChannel.ForAddress(ilitoolsOptions.IlitoolsWrapperAddress);
         client = new Ili2gpkgService.Ili2gpkgServiceClient(channel);
     }
 
