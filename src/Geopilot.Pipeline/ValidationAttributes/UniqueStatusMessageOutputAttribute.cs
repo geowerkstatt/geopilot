@@ -19,7 +19,7 @@ internal sealed class UniqueStatusMessageOutputAttribute : ValidationAttribute
             return ValidationResult.Success;
         }
 
-        var statusMessageCount = outputs.Count(o => o.Action?.Contains(OutputAction.StatusMessage) == true);
+        var statusMessageCount = outputs.Count(o => o.Actions?.Contains(OutputAction.StatusMessage) == true);
         if (statusMessageCount > 1)
         {
             return new ValidationResult(

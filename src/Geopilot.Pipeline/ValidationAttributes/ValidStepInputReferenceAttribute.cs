@@ -48,9 +48,9 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
         {
             foreach (var reference in StepOutputReferencesOf(inputValue))
             {
-                if (!HasEarlierOutput(reference, stepToValidate.Id, allSteps))
+                if (!HasEarlierStep(reference, stepToValidate.Id, allSteps))
                 {
-                    errorMessages.Add($"Step '{stepToValidate.Id}' input '{parameterName}' references '{reference.StepId}.{reference.OutputName}', which is not an output of an earlier step.");
+                    errorMessages.Add($"Step '{stepToValidate.Id}' input '{parameterName}' references '{reference.StepId}.{reference.OutputName}', but '{reference.StepId}' is not an earlier step.");
                 }
             }
         }
@@ -65,24 +65,14 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
         _ => Enumerable.Empty<InputValue.StepOutputReference>(),
     };
 
-    private static bool HasEarlierOutput(InputValue.StepOutputReference reference, string currentStepId, List<StepConfig> allSteps)
+    private static bool HasEarlierStep(InputValue.StepOutputReference reference, string currentStepId, List<StepConfig> allSteps)
     {
+        // Outputs are implicit now (every public result property is available), so we only
+        // validate that the referenced step exists and runs before the current one. Whether
+        // the referenced property actually exists on the process result type is checked closer
+        // to where the process type is resolved.
         return allSteps
             .TakeWhile(s => s.Id != currentStepId)
-            .Any(s => s.Id == reference.StepId && HasOutput(s.Output, reference.OutputName));
-    }
-
-    private static bool HasOutput(List<OutputConfig>? outputConfig, string outputName)
-    {
-        if (outputConfig != null)
-        {
-            return outputConfig.Any(o => o.As == outputName);
-        }
-        else
-        {
-            // The step declares no output. It has a Required annotation on its output, so we do not
-            // report the missing reference here to avoid failing twice on the same issue.
-            return true;
-        }
+            .Any(s => s.Id == reference.StepId);
     }
 }

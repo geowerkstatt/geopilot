@@ -35,7 +35,7 @@ pipelines:
       it: Validazione XTF
       fr: Validation XTF
     delivery_restrictions:
-      - expression: "!([validation.successful])"
+      - expression: "!([validation.ValidationSuccessful])"
         message:
           de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
           en: "Validation was not successful. Delivery is not possible."
@@ -51,9 +51,6 @@ pipelines:
         process_id: xtf_matcher
         input:
           files: "${upload()}"
-        output:
-          - take: XtfFiles
-            as: xtf_files
       - id: validation
         display_name:
           en: XTF Validation
@@ -64,7 +61,7 @@ pipelines:
         conditions:
           pre:
             fail_conditions:
-              - expression: "Length([xtf_matching.xtf_files]) != 1"
+              - expression: "Length([xtf_matching.XtfFiles]) != 1"
                 message:
                   de: "Es muss genau eine XTF-Datei hochgeladen werden."
                   en: "Exactly one XTF file must be uploaded."
@@ -72,24 +69,19 @@ pipelines:
                   it: "Deve essere caricato esattamente un file XTF."
         process_config_overwrites:
         input:
-          iliFile: "${step_output(xtf_matching.xtf_files)}"
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
+          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+        output_actions:
+          - property: ErrorLog
+            actions:
               - Download
               - Delivery
-          - take: XtfLog
-            as: xtf_log
-            action:
+          - property: XtfLog
+            actions:
               - Download
               - Delivery
-          - take: StatusMessage
-            as: status_message
-            action:
+          - property: StatusMessage
+            actions:
               - StatusMessage
-          - take: ValidationSuccessful
-            as: successful
       - id: map_visualization
         display_name:
           en: Map Visualization
@@ -103,20 +95,18 @@ pipelines:
         conditions:
           pre:
             skip_conditions:
-              - expression: "[validation.successful]"
+              - expression: "[validation.ValidationSuccessful]"
                 message:
                   de: "Validierung erfolgreich. Kartenvisualisierung wird übersprungen."
                   en: "Validation successful. Map visualization will be skipped."
                   fr: "Validation réussie. La visualisation cartographique sera ignorée."
                   it: "Validazione riuscita. La visualizzazione cartografica sarà ignorata."
         input:
-          xtfLog: "${step_output(validation.xtf_log)}"
-        output:
-          - take: Visualization
-            as: map_visualization
-            action:
+          xtfLog: "${step_output(validation.XtfLog)}"
+        output_actions:
+          - property: Visualization
+            actions:
               - Visualization
-          - take: StatusMessage
-            as: status_message
-            action:
+          - property: StatusMessage
+            actions:
               - StatusMessage

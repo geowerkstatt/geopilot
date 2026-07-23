@@ -47,11 +47,9 @@ public class StepConfig
     /// <summary>
     /// Configuration for output data handling in this step. Defines how to map data from the process to the output destinations.
     /// </summary>
-    [YamlMember(Alias = "output")]
-    [Required(AllowEmptyStrings = false, ErrorMessage = "Step Output is required.")]
-    [MinLength(1, ErrorMessage = "At least one Step Output is required.")]
-    [NoDuplicates(PropertyName = "As")]
-    public List<OutputConfig>? Output { get; set; }
+    [YamlMember(Alias = "output_actions")]
+    [NoDuplicates(PropertyName = "Property")]
+    public List<OutputActionConfig>? Output { get; set; }
 
     /// <summary>
     /// Gets or sets the conditions that determine whether the pipeline step should execute or fail.
