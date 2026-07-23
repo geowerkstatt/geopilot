@@ -24,8 +24,15 @@ jobs:
         with:
           dotnet-version: '10.0'
 
+      - name: Authenticate to GitHub Packages
+        run: dotnet nuget update source github-geowerkstatt --username "$USERNAME" --password "%GITHUB_TOKEN%" --store-password-in-clear-text
+        env:
+          USERNAME: ${{ github.actor }}
+
       - name: Install dependencies
         run: dotnet restore Geopilot.slnx
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: NuGet component detection
         uses: advanced-security/component-detection-dependency-submission-action@v0.1.4

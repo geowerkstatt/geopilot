@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
@@ -47,7 +48,8 @@ public class PipelineProcessFactoryValidateTest
         var loggerFactory = new Mock<ILoggerFactory>();
         loggerFactory.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(new Mock<ILogger>().Object);
 
-        return new PipelineProcessFactory(options.Object, loggerFactory.Object);
+        var ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
+        return new PipelineProcessFactory(options.Object, ilitoolsOptionsMock.Object, loggerFactory.Object);
     }
 
     private static StepConfig ZipStep(InputConfig input) => new()

@@ -5,6 +5,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 ARG APP_VERSION=0.0.1
 ARG REVISION=0000000
+ARG GITHUB_ACTOR
 
 # Set default shell
 SHELL ["/bin/bash", "-c"]
@@ -20,14 +21,23 @@ RUN apt-get update && \
   apt-get install nodejs -y && \
   rm -rf /var/lib/apt/lists/*
 
-COPY src/Geopilot.Frontend/nuget.config Geopilot.Frontend/
 COPY src/Geopilot.Frontend/package* Geopilot.Frontend/
 RUN npm install -C Geopilot.Frontend
 
 # Restore dependencies and tools
+COPY nuget.config ./
 COPY src/Geopilot.Api/Geopilot.Api.csproj Geopilot.Api/
+COPY src/Geopilot.Pipeline/Geopilot.Pipeline.csproj Geopilot.Pipeline/
+COPY src/Geopilot.PipelineCore/Geopilot.PipelineCore.csproj Geopilot.PipelineCore/
 COPY src/Geopilot.Frontend/Geopilot.Frontend.esproj Geopilot.Frontend/
-RUN dotnet restore "Geopilot.Api/Geopilot.Api.csproj"
+
+RUN dotnet nuget update source github-geowerkstatt \
+    --username "${GITHUB_ACTOR}" \
+    --password "%GITHUB_TOKEN%" \
+    --store-password-in-clear-text \
+    --configfile nuget.config
+RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
+  dotnet restore "Geopilot.Api/Geopilot.Api.csproj"
 
 # Set environment variables
 ENV PUBLISH_DIR=/app/publish
@@ -36,6 +46,7 @@ ENV GENERATE_SOURCEMAP=false
 # Create optimized production build
 COPY src/ .
 RUN dotnet publish "Geopilot.Api/Geopilot.Api.csproj" \
+  --no-restore \
   -c Release \
   -p:VersionPrefix=${APP_VERSION} \
   -p:SourceRevisionId=${REVISION} \

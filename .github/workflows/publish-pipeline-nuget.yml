@@ -43,8 +43,18 @@ jobs:
         with:
           dotnet-version: "10.0"
 
+      - name: Authenticate to GitHub Packages
+        run: dotnet nuget update source github-geowerkstatt --username "$USERNAME" --password "%GITHUB_TOKEN%" --store-password-in-clear-text
+        env:
+          USERNAME: ${{ github.actor }}
+
+      - name: Install dependencies
+        run: dotnet restore Geopilot.slnx
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Pack NuGet package
-        run: dotnet pack src/Geopilot.Pipeline/Geopilot.Pipeline.csproj -c Release -p:Version=${{ env.PIPELINE_VERSION }} -o nuget-artifacts
+        run: dotnet pack src/Geopilot.Pipeline/Geopilot.Pipeline.csproj --no-restore -c Release -p:Version=${{ env.PIPELINE_VERSION }} -o nuget-artifacts
 
       - name: Push NuGet package to GitHub Packages
         run: dotnet nuget push "nuget-artifacts/*.nupkg" --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate

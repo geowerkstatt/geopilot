@@ -1,4 +1,6 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Ilitools;
+using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -21,6 +23,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PipelineProcessFactory> logger;
     private readonly PipelineOptions pipelineOptions;
+    private readonly IlitoolsOptions ilitoolsOptions;
 
     private HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
     private HashSet<AssemblyLoadContext> processorPluginLoadContexts = new HashSet<AssemblyLoadContext>();
@@ -64,13 +67,16 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// configuration. Assemblies are loaded into a dedicated context, allowing for isolation and dynamic plugin
     /// management. If no plugins are configured, the factory will operate without any loaded assemblies.</remarks>
     /// <param name="pipelinePluginOptions">Pipeline plugin options containing configuration settings. Cannot be null.</param>
+    /// <param name="ilitoolsOptions">Ilitools options containing configuration settings. Cannot be null.</param>
     /// <param name="loggerFactory">Logger factory for creating loggers for process instances. Cannot be null.</param>
-    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, ILoggerFactory loggerFactory)
+    public PipelineProcessFactory(IOptions<PipelineOptions> pipelinePluginOptions, IOptions<IlitoolsOptions> ilitoolsOptions, ILoggerFactory loggerFactory)
     {
         ArgumentNullException.ThrowIfNull(pipelinePluginOptions);
+        ArgumentNullException.ThrowIfNull(ilitoolsOptions);
 
         this.loggerFactory = loggerFactory;
         this.pipelineOptions = pipelinePluginOptions.Value;
+        this.ilitoolsOptions = ilitoolsOptions.Value;
         this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
 
         LoadPlugins();
@@ -108,7 +114,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// <inheritdoc />
     public IPipelineProcessBuilder Builder()
     {
-        return new PipelineProcessBuilder(processorPluginAssemblies, loggerFactory, pipelineOptions);
+        return new PipelineProcessBuilder(processorPluginAssemblies, loggerFactory, pipelineOptions, ilitoolsOptions);
     }
 
     internal class PipelineProcessBuilder : IPipelineProcessBuilder
@@ -118,6 +124,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         private readonly HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
         private readonly PipelineOptions pipelineOptions;
+        private readonly IlitoolsOptions ilitoolsOptions;
 
         private string? pipelineId;
         private StepConfig? stepConfig;
@@ -135,15 +142,18 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// <param name="processorPluginAssemblies">A set of assemblies that contain processor plugins to be included in the pipeline.</param>
         /// <param name="loggerFactory">The factory used to create loggers for pipeline processing operations.</param>
         /// <param name="pipelineOptions">The options that configure the behavior and execution parameters of the pipeline.</param>
+        /// <param name="ilitoolsOptions">The options that configure the Ilitools integration.</param>
         public PipelineProcessBuilder(
             HashSet<Assembly> processorPluginAssemblies,
             ILoggerFactory loggerFactory,
-            PipelineOptions pipelineOptions)
+            PipelineOptions pipelineOptions,
+            IlitoolsOptions ilitoolsOptions)
         {
             this.processorPluginAssemblies = processorPluginAssemblies;
             this.loggerFactory = loggerFactory;
             this.logger = loggerFactory.CreateLogger<PipelineProcessBuilder>();
             this.pipelineOptions = pipelineOptions;
+            this.ilitoolsOptions = ilitoolsOptions;
         }
 
         /// <inheritdoc />
@@ -256,7 +266,8 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             // manager, optional container runner). Skipping them here is how we avoid invoking
             // their constructors at startup.
             if (parameterInfo.ParameterType == typeof(ILogger) ||
-                parameterInfo.ParameterType == typeof(IPipelineFileManager))
+                parameterInfo.ParameterType == typeof(IPipelineFileManager) ||
+                parameterInfo.ParameterType == typeof(IIli2GpkgClient))
             {
                 return;
             }
@@ -313,6 +324,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             else if (parameterInfo.ParameterType == typeof(IPipelineFileManager))
             {
                 return new PipelineFileManager(pipelineDirectory, this.stepConfig?.Id ?? throw new InvalidOperationException("Step Id must be provided."));
+            }
+            else if (parameterInfo.ParameterType == typeof(IIli2GpkgClient))
+            {
+                return new Ili2GpkgClient(ilitoolsOptions, loggerFactory.CreateLogger<Ili2GpkgClient>());
             }
             else if (!string.IsNullOrEmpty(parameterInfo.Name) &&
                      processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&

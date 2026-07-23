@@ -87,6 +87,10 @@ services:
   geopilot:
     build:
       context: .
+      args:
+        GITHUB_ACTOR: ${GITHUB_ACTOR}
+      secrets:
+        - github_token
     restart: unless-stopped
     ports:
       - 5173:8443
@@ -120,6 +124,7 @@ services:
       Delivery__UploaderDeleteEnabled: true
       Delivery__DeleteDuration: ""
       Delivery__DeleteRestrictInterval: ""
+      Ilitools__IlitoolsWrapperAddress: http://ilitools-wrapper:5555
       PUID: 1000
       PGID: 1000
     volumes:
@@ -149,5 +154,15 @@ services:
       - "4011:8080"
     command: start-dev --import-realm
 
+  ilitools-wrapper:
+    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.0.2
+    restart: unless-stopped
+    ports:
+      - 5555:5555
+
 volumes:
   geopilot-db:
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN

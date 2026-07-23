@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   build:
@@ -21,14 +22,22 @@ jobs:
         with:
           dotnet-version: "10.0"
 
+      - name: Authenticate to GitHub Packages
+        run: dotnet nuget update source github-geowerkstatt --username "$USERNAME" --password "%GITHUB_TOKEN%" --store-password-in-clear-text
+        env:
+          USERNAME: ${{ github.actor }}
+
       - name: Restore dotnet tools
         run: dotnet tool restore
 
       - name: Install dependencies
         run: dotnet restore Geopilot.slnx
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build dotnet
         run: dotnet build Geopilot.slnx -c Release --no-restore /warnaserror
+
       - name: Run frontend ci install
         working-directory: ./src/Geopilot.Frontend
         run: npm ci
@@ -57,7 +66,7 @@ jobs:
         uses: ./.github/actions/setup-dev-certs
 
       - name: Start test environment
-        run: docker compose up -d --wait --wait-timeout 120 db azurite clamav
+        run: docker compose up -d --wait --wait-timeout 120 db azurite clamav ilitools-wrapper
 
       - name: Test
         run: dotnet test Geopilot.slnx -c Release --no-build --verbosity normal

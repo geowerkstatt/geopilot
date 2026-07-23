@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.XtfValidation;
 using Geopilot.PipelineCore.Pipeline;
@@ -49,7 +50,8 @@ public class PipelineIntegrationTest
         loggerMock = new Mock<ILogger>();
         loggerFactoryMock = new Mock<ILoggerFactory>();
         loggerFactoryMock.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
-        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
+        var ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
+        this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
     }
 
     [TestCleanup]
