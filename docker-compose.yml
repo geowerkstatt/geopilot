@@ -149,5 +149,11 @@ services:
       - "4011:8080"
     command: start-dev --import-realm
 
+  ilitools-wrapper:
+    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.0.2
+    restart: unless-stopped
+    ports:
+      - 5555:5555
+
 volumes:
   geopilot-db:

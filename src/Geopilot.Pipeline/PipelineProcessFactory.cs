@@ -1,4 +1,6 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Ilitools;
+using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -256,7 +258,8 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             // manager, optional container runner). Skipping them here is how we avoid invoking
             // their constructors at startup.
             if (parameterInfo.ParameterType == typeof(ILogger) ||
-                parameterInfo.ParameterType == typeof(IPipelineFileManager))
+                parameterInfo.ParameterType == typeof(IPipelineFileManager) ||
+                parameterInfo.ParameterType == typeof(IIli2GpkgClient))
             {
                 return;
             }
@@ -313,6 +316,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             else if (parameterInfo.ParameterType == typeof(IPipelineFileManager))
             {
                 return new PipelineFileManager(pipelineDirectory, this.stepConfig?.Id ?? throw new InvalidOperationException("Step Id must be provided."));
+            }
+            else if (parameterInfo.ParameterType == typeof(IIli2GpkgClient))
+            {
+                return new Ili2GpkgClient(loggerFactory.CreateLogger<Ili2GpkgClient>());
             }
             else if (!string.IsNullOrEmpty(parameterInfo.Name) &&
                      processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&
