@@ -2,7 +2,6 @@
 using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.Matcher.XtfMatcher;
 using Geopilot.Pipeline.Processes.XtfValidation;
-using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -66,15 +65,7 @@ public class PipelineFactoryTest
         var matcherInputs = ((PipelineStep)matcherStep).Inputs;
         Assert.HasCount(1, matcherInputs);
         Assert.AreEqual(new InputValue.UploadReference(), matcherInputs["files"]);
-        Assert.HasCount(1, matcherStep.OutputConfigs);
-        Assert.HasCount(1, matcherStep.OutputConfigs);
-        var matcherOutputConfig_0 = matcherStep.OutputConfigs.ElementAt(0);
-        OutputConfig matcherExpectedOutputConfig_0 = new OutputConfig()
-        {
-            Take = "XtfFiles",
-            As = "xtf_files",
-        };
-        AssertOutputConfig(matcherExpectedOutputConfig_0, matcherOutputConfig_0);
+        Assert.HasCount(0, matcherStep.OutputActions);
         object matcherProcess = matcherStep.Process;
         Assert.IsNotNull(matcherProcess, "matcher step process not created");
         var configuratedFileExtensions = typeof(XtfMatcherProcess)
@@ -105,23 +96,15 @@ public class PipelineFactoryTest
         Assert.AreEqual("validation", validationStep.Id, "validation step name not as expected");
         var validationInputs = ((PipelineStep)validationStep).Inputs;
         Assert.HasCount(1, validationInputs);
-        Assert.AreEqual(new InputValue.StepOutputReference("xtf_matching", "xtf_files"), validationInputs["iliFile"]);
-        Assert.HasCount(2, validationStep.OutputConfigs);
-        var validationOutputConfig_0 = validationStep.OutputConfigs.ElementAt(0);
-        var validationOutputConfig_1 = validationStep.OutputConfigs.ElementAt(1);
-        OutputConfig validationExpectedOutputConfig_0 = new OutputConfig()
+        Assert.AreEqual(new InputValue.StepOutputReference("xtf_matching", "XtfFiles"), validationInputs["iliFile"]);
+        Assert.HasCount(1, validationStep.OutputActions);
+        var validationOutputAction_0 = validationStep.OutputActions.ElementAt(0);
+        OutputActionConfig validationExpectedOutputAction_0 = new OutputActionConfig()
         {
-            Take = "ErrorLog",
-            As = "error_log",
+            Property = "XtfLog",
+            Actions = new HashSet<OutputAction>() { OutputAction.Download },
         };
-        OutputConfig validationExpectedOutputConfig_1 = new OutputConfig()
-        {
-            Take = "XtfLog",
-            As = "xtf_log",
-            Action = new HashSet<OutputAction>() { OutputAction.Download },
-        };
-        AssertOutputConfig(validationExpectedOutputConfig_0, validationOutputConfig_0);
-        AssertOutputConfig(validationExpectedOutputConfig_1, validationOutputConfig_1);
+        AssertOutputAction(validationExpectedOutputAction_0, validationOutputAction_0);
         object validationProcess = validationStep.Process;
         Assert.IsNotNull(validationProcess, "validation step process not created");
         var configuratedValidationProfile = typeof(XtfValidatorProcess)
@@ -153,24 +136,12 @@ public class PipelineFactoryTest
             .Build();
     }
 
-    private static void AssertOutputConfig(OutputConfig expectedConfig, OutputConfig actualConfig)
+    private static void AssertOutputAction(OutputActionConfig expected, OutputActionConfig actual)
     {
-        if (expectedConfig != null && actualConfig != null)
-        {
-            Assert.AreEqual(expectedConfig.Take, actualConfig.Take, "Output config 'Take' not as expected");
-            Assert.AreEqual(expectedConfig.As, actualConfig.As, "Output config 'As' not as expected");
-            if (expectedConfig.Action != null)
-                CollectionAssert.AreEquivalent(expectedConfig.Action.ToArray(), actualConfig.Action.ToArray(), "Output config 'Action' not as expected");
-            else
-                Assert.IsNull(actualConfig.Action, "Output config 'Action' not as expected");
-        }
-        else if (expectedConfig != null && actualConfig == null)
-        {
-            Assert.Fail("Expected OutputConfig is defined bug actual OutputConfig is not defined");
-        }
-        else if (expectedConfig == null && actualConfig != null)
-        {
-            Assert.Fail("Expected OutputConfig is not defined bug actual OutputConfig is defined");
-        }
+        Assert.IsNotNull(actual, "Output action not defined");
+        Assert.AreEqual(expected.Property, actual.Property, "Output action 'Property' not as expected");
+        Assert.IsTrue(
+            actual.Actions.SetEquals(expected.Actions),
+            "Output action 'Actions' not as expected");
     }
 }

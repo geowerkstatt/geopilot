@@ -35,7 +35,6 @@ public class PipelineTest
     public void ProcessingStateTest(ProcessingState expectedState, IEnumerable<StepState> stepStates)
     {
         var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
-        var outputConfigs = new List<OutputConfig>();
 
         var steps = stepStates
             .Select(s =>
@@ -63,7 +62,6 @@ public class PipelineTest
     public void InteruptPipelineIfAStepFails()
     {
         var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
-        var outputConfigs = new List<OutputConfig>();
 
         var firstStep = new Mock<IPipelineStep>();
         firstStep.SetupSequence(s => s.State)
@@ -114,10 +112,7 @@ public class PipelineTest
         step.SetupGet(s => s.Id).Returns("step_id");
         StepResult stepResult = new StepResult()
         {
-            Outputs = new Dictionary<string, StepOutput>()
-            {
-                { "output1", new StepOutput() { Data = "my_step_data", Action = new HashSet<OutputAction>(), } },
-            },
+            Result = new DeliveryRestrictionResult { Output1 = "my_step_data" },
         };
         step.Setup(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(stepResult));
@@ -130,7 +125,7 @@ public class PipelineTest
         {
             new ConditionConfig
             {
-                Expression = "[step_id.output1] == 'my_step_data'",
+                Expression = "[step_id.Output1] == 'my_step_data'",
                 Message = new Dictionary<string, string>
                 {
                     { "de", "Datenlieferung nicht möglich." },
@@ -174,11 +169,7 @@ public class PipelineTest
         step.SetupGet(s => s.Id).Returns("step_id");
         StepResult stepResult = new StepResult()
         {
-            Outputs = new Dictionary<string, StepOutput>()
-            {
-                { "output1", new StepOutput() { Data = "my_step_data", Action = new HashSet<OutputAction>(), } },
-                { "output2", new StepOutput() { Data = 42, Action = new HashSet<OutputAction>(), } },
-            },
+            Result = new DeliveryRestrictionResult { Output1 = "my_step_data", Output2 = 42 },
         };
         step.Setup(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(stepResult));
@@ -191,7 +182,7 @@ public class PipelineTest
         {
             new ConditionConfig
             {
-                Expression = "[step_id.output1] == 'my_step_data'",
+                Expression = "[step_id.Output1] == 'my_step_data'",
                 Message = new Dictionary<string, string>
                 {
                     { "de", "Erste Einschränkung" },
@@ -200,7 +191,7 @@ public class PipelineTest
             },
             new ConditionConfig
             {
-                Expression = "[step_id.output2] == 42",
+                Expression = "[step_id.Output2] == 42",
                 Message = new Dictionary<string, string>
                 {
                     { "de", "Zweite Einschränkung" },
@@ -210,7 +201,7 @@ public class PipelineTest
             },
             new ConditionConfig
             {
-                Expression = "[step_id.output1] == 'no_match'",
+                Expression = "[step_id.Output1] == 'no_match'",
                 Message = new Dictionary<string, string>
                 {
                     { "de", "Dritte Einschränkung" },
@@ -355,6 +346,13 @@ public class PipelineTest
 
         step1.Verify(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()), Times.Once);
         step2.Verify(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private sealed class DeliveryRestrictionResult
+    {
+        public string? Output1 { get; init; }
+
+        public int Output2 { get; init; }
     }
 
     private static Mock<IPipelineStep> NewMockStep(string id, StepResult result, Action? onRun = null)

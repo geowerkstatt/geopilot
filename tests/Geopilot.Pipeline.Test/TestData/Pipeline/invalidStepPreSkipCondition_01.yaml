@@ -20,9 +20,6 @@ pipelines:
         display_name:
           en: XTF Matching
         process_id: xtf_matcher
-        output:
-          - take: XtfFiles
-            as: xtf_files
       - id: validation
         display_name:
           en: XTF Validation
@@ -33,11 +30,3 @@ pipelines:
               - expression: "[upload.foo] != null"
         input:
           iliFile: "${step_output(xtf_matching.xtf_files)}"
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
-          - take: XtfLog
-            as: xtf_log
-            action:
-              - DOWNLOAD

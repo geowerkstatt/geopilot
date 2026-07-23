@@ -11,11 +11,3 @@ pipelines:
         process_id: xtf_validator
         input:
           iliFile: "${step_output(upload.ili_file)}"
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
-          - take: XtfLog
-            as: xtf_log
-            action:
-              - DOWNLOAD

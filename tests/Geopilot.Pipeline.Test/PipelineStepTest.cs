@@ -103,23 +103,50 @@ public class PipelineStepTest
         }
     }
 
+    // Result stand-in for a previous step referenced by condition expressions. Its public
+    // properties are the implicit outputs that expressions like [aPreviousStep.SomeRandomData] read.
+    private sealed class ConditionStepResult
+    {
+        public int SomeRandomData { get; init; }
+
+        public string? AnotherValue { get; init; }
+    }
+
+    private sealed class MockMultiOutputResult
+    {
+        public object? FirstFile { get; init; }
+
+        public object? SecondFile { get; init; }
+
+        public LocalizedText? Status { get; init; }
+    }
+
+    private sealed class MockMultiOutputProcess
+    {
+        private readonly MockMultiOutputResult result;
+
+        public MockMultiOutputProcess(MockMultiOutputResult result) => this.result = result;
+
+        [PipelineProcessRun]
+        public Task<MockMultiOutputResult> RunAsync() => Task.FromResult(this.result);
+    }
+
     [TestMethod]
     public async Task SuccessfullStepRunWithSingleInput()
     {
         var inputs = new Dictionary<string, InputValue>
         {
-            ["data"] = new InputValue.StepOutputReference("upload", "xtf_file"),
+            ["data"] = new InputValue.StepOutputReference("upload", "OutputData"),
         };
-        var outputConfigs = new List<OutputConfig>
+        var outputActions = new List<OutputActionConfig>
         {
-            new OutputConfig
+            new OutputActionConfig
             {
-                Take = "OutputData",
-                As = "my_output",
-                Action = new HashSet<OutputAction>(),
+                Property = "OutputData",
+                Actions = new HashSet<OutputAction> { OutputAction.Download, OutputAction.Delivery },
             },
         };
-        var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessArrayInputResult { OutputData = "input_from_upload" }));
         var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
 
         var processMock = new MockPipelineProcessSingleInput(processData);
@@ -129,7 +156,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
             .Inputs(inputs)
-            .OutputConfig(outputConfigs)
+            .OutputActions(outputActions)
             .Process(processMock)
             .Logger(loggerMock.Object)
             .Build();
@@ -143,9 +170,9 @@ public class PipelineStepTest
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
 
         Assert.HasCount(1, stepResult.Outputs);
-        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_output"));
-        Assert.IsEmpty(stepResult.Outputs["my_output"].Action);
-        Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("OutputData"));
+        Assert.IsTrue(stepResult.Outputs["OutputData"].Action.SetEquals(new HashSet<OutputAction> { OutputAction.Download, OutputAction.Delivery }));
+        Assert.AreEqual("some_data", stepResult.Outputs["OutputData"].Data);
     }
 
     [TestMethod]
@@ -153,19 +180,10 @@ public class PipelineStepTest
     {
         var inputs = new Dictionary<string, InputValue>
         {
-            ["data"] = new InputValue.StepOutputReference("step_01", "data"),
+            ["data"] = new InputValue.StepOutputReference("step_01", "OutputData"),
         };
-        var outputConfigs = new List<OutputConfig>
-        {
-            new OutputConfig
-            {
-                Take = "OutputData",
-                As = "my_output",
-                Action = new HashSet<OutputAction>(),
-            },
-        };
-        var pipelineContext = ContextWith(("step_01", "data", new string[] { "data 01", "data 02" }));
-        var processData = new MockPipelineProcessArrayInputResult { OutputData = "some_data" };
+        var pipelineContext = ContextWith(("step_01", new MockPipelineProcessArrayInputResult { OutputData = new string[] { "data 01", "data 02" } }));
+        var processData = new MockPipelineProcessArrayInputResult { OutputData = "produced_output" };
 
         var processMock = new MockPipelineProcessArrayInput(processData, 2);
 
@@ -174,7 +192,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
             .Inputs(inputs)
-            .OutputConfig(outputConfigs)
+            .OutputActions([])
             .Process(processMock)
             .Logger(loggerMock.Object)
             .Build();
@@ -183,7 +201,10 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Success, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
-        Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+
+        Assert.IsEmpty(stepResult.Outputs);
+        Assert.IsTrue(stepResult.TryGetOutput("OutputData", out var outputData));
+        Assert.AreEqual("produced_output", outputData);
     }
 
     [TestMethod]
@@ -194,20 +215,11 @@ public class PipelineStepTest
             ["data"] = new InputValue.Sequence(
             [
                 new InputValue.Literal("first"),
-                new InputValue.StepOutputReference("step_01", "data"),
+                new InputValue.StepOutputReference("step_01", "OutputData"),
                 new InputValue.Literal("last"),
             ]),
         };
-        var outputConfigs = new List<OutputConfig>
-        {
-            new OutputConfig
-            {
-                Take = "OutputData",
-                As = "my_output",
-                Action = new HashSet<OutputAction>(),
-            },
-        };
-        var pipelineContext = ContextWith(("step_01", "data", new string[] { "middle_a", "middle_b" }));
+        var pipelineContext = ContextWith(("step_01", new MockPipelineProcessArrayInputResult { OutputData = new string[] { "middle_a", "middle_b" } }));
         var processData = new MockPipelineProcessArrayInputResult { OutputData = "some_data" };
 
         // Two literals plus the two elements of the referenced list, spread one level.
@@ -218,7 +230,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(LocalizedText.Empty)
             .Inputs(inputs)
-            .OutputConfig(outputConfigs)
+            .OutputActions([])
             .Process(processMock)
             .Logger(loggerMock.Object)
             .Build();
@@ -227,7 +239,8 @@ public class PipelineStepTest
 
         Assert.AreEqual(StepState.Success, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
-        Assert.AreEqual("some_data", stepResult.Outputs["my_output"].Data);
+        Assert.IsTrue(stepResult.TryGetOutput("OutputData", out var outputData));
+        Assert.AreEqual("some_data", outputData);
     }
 
     [TestMethod]
@@ -235,9 +248,9 @@ public class PipelineStepTest
     {
         var inputs = new Dictionary<string, InputValue>
         {
-            ["data"] = new InputValue.StepOutputReference("invalid_upload_reference", "xtf_file"),
+            ["data"] = new InputValue.StepOutputReference("invalid_upload_reference", "some_data"),
         };
-        var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessArrayInputResult { OutputData = "some_data" }));
 
         var processMock = new MockPipelineProcessSingleInput(new MockPipelineProcessSingleInputResult());
 
@@ -246,7 +259,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
             .Inputs(inputs)
-            .OutputConfig([])
+            .OutputActions([])
             .Process(processMock)
             .Logger(loggerMock.Object)
             .Build();
@@ -265,7 +278,7 @@ public class PipelineStepTest
         {
             ["data"] = new InputValue.StepOutputReference("upload", "xtf_file_wrong_reference"),
         };
-        var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessArrayInputResult { OutputData = "some_data" }));
 
         var processMock = new MockPipelineProcessSingleInput(new MockPipelineProcessSingleInputResult());
 
@@ -274,7 +287,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
             .Inputs(inputs)
-            .OutputConfig([])
+            .OutputActions([])
             .Process(processMock)
             .Logger(loggerMock.Object)
             .Build();
@@ -291,9 +304,10 @@ public class PipelineStepTest
     {
         var inputs = new Dictionary<string, InputValue>
         {
-            ["nullableData"] = new InputValue.StepOutputReference("step_01", "data"),
+            ["nullableData"] = new InputValue.StepOutputReference("step_01", "OutputData"),
         };
-        var pipelineContext = ContextWith(("step_01", "data", Array.Empty<string>()));
+
+        var pipelineContext = ContextWith(("step_01", new MockPipelineProcessArrayInputResult { OutputData = Array.Empty<string>() }));
 
         var processMock = new MockPipelineProcessOptionalSingleInput();
 
@@ -302,7 +316,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(LocalizedText.Empty)
             .Inputs(inputs)
-            .OutputConfig([])
+            .OutputActions([])
             .Process(processMock)
             .Logger(loggerMock.Object)
             .Build();
@@ -319,18 +333,9 @@ public class PipelineStepTest
     {
         var inputs = new Dictionary<string, InputValue>
         {
-            ["data"] = new InputValue.StepOutputReference("upload", "xtf_file"),
+            ["data"] = new InputValue.StepOutputReference("upload", "OutputData"),
         };
-        var outputConfigs = new List<OutputConfig>
-        {
-            new OutputConfig
-            {
-                Take = "error_log",
-                As = "my_output",
-                Action = new HashSet<OutputAction>(),
-            },
-        };
-        var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
 
         var processMock = new MockPipelineProcessException();
 
@@ -339,7 +344,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
             .Inputs(inputs)
-            .OutputConfig(outputConfigs)
+            .OutputActions([])
             .Process(processMock)
             .Logger(loggerMock.Object)
             .Build();
@@ -358,18 +363,17 @@ public class PipelineStepTest
     {
         var inputs = new Dictionary<string, InputValue>
         {
-            ["data"] = new InputValue.StepOutputReference("upload", "xtf_file"),
+            ["data"] = new InputValue.StepOutputReference("upload", "OutputData"),
         };
-        var outputConfigs = new List<OutputConfig>
+        var outputActions = new List<OutputActionConfig>
         {
-            new OutputConfig
+            new OutputActionConfig
             {
-                Take = "error_log_wrong_reference",
-                As = "my_output",
-                Action = new HashSet<OutputAction>(),
+                Property = "DoesNotExistOnResult",
+                Actions = new HashSet<OutputAction> { OutputAction.Download },
             },
         };
-        var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
         var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
 
         var processMock = new MockPipelineProcessSingleInput(processData);
@@ -379,14 +383,14 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
             .Inputs(inputs)
-            .OutputConfig(outputConfigs)
+            .OutputActions(outputActions)
             .Process(processMock)
             .Logger(loggerMock.Object)
             .Build();
 
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
 
-        Assert.AreEqual("Output config is missing 'take' or 'as', or the process output (referenced by 'take') was not found in the output of the process. This error should not occur. Please consolidate the pipeline validation logic.", exception.Message);
+        Assert.Contains("is not a readable property of the result", exception.Message);
         Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
     }
@@ -396,18 +400,17 @@ public class PipelineStepTest
     {
         var inputs = new Dictionary<string, InputValue>
         {
-            ["data"] = new InputValue.StepOutputReference("upload", "xtf_file"),
+            ["data"] = new InputValue.StepOutputReference("upload", "OutputData"),
         };
-        var outputConfigs = new List<OutputConfig>
+        var outputActions = new List<OutputActionConfig>
         {
-            new OutputConfig
+            new OutputActionConfig
             {
-                Take = "OutputData",
-                As = "my_viz",
-                Action = new HashSet<OutputAction> { OutputAction.Visualization },
+                Property = "OutputData",
+                Actions = new HashSet<OutputAction> { OutputAction.Visualization },
             },
         };
-        var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
         var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
 
         var processMock = new MockPipelineProcessSingleInput(processData);
@@ -417,7 +420,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(LocalizedText.Empty)
             .Inputs(inputs)
-            .OutputConfig(outputConfigs)
+            .OutputActions(outputActions)
             .Process(processMock)
             .Logger(loggerMock.Object)
             .Build();
@@ -432,10 +435,8 @@ public class PipelineStepTest
     public async Task StepShouldFailBecauseOfPreCondition()
     {
         var inputs = SingleUploadInput();
-        var outputConfigs = SingleOutputConfig();
         var pipelineContext = ContextWith(
-            ("upload", "xtf_file", "some_data"),
-            ("aPreviousStep", "some_random_data", 123));
+            ("aPreviousStep", new ConditionStepResult { SomeRandomData = 123 }));
         var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
         var stepConditions = new PipelineStepConditionsConfig
         {
@@ -443,13 +444,13 @@ public class PipelineStepTest
             {
                 SkipConditions = new List<ConditionConfig>
                 {
-                    new ConditionConfig { Expression = "[aPreviousStep.some_random_data] == 123" },
+                    new ConditionConfig { Expression = "[aPreviousStep.SomeRandomData] == 123" },
                 },
                 FailConditions = new List<ConditionConfig>
                 {
                     new ConditionConfig
                     {
-                        Expression = "[aPreviousStep.some_random_data] == 123",
+                        Expression = "[aPreviousStep.SomeRandomData] == 123",
                         Message = new Dictionary<string, string>
                         {
                             { "de", "Schritt fehlgeschlagen." },
@@ -468,7 +469,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
             .Inputs(inputs)
-            .OutputConfig(outputConfigs)
+            .OutputActions([])
             .StepConditions(stepConditions)
             .Process(processMock)
             .Logger(loggerMock.Object)
@@ -492,10 +493,8 @@ public class PipelineStepTest
     public async Task StepShouldBeSkipedBecauseOfPreCondition()
     {
         var inputs = SingleUploadInput();
-        var outputConfigs = SingleOutputConfig();
         var pipelineContext = ContextWith(
-            ("upload", "xtf_file", "some_data"),
-            ("aPreviousStep", "some_random_data", 123));
+            ("aPreviousStep", new ConditionStepResult { SomeRandomData = 123 }));
         var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
         var stepConditions = new PipelineStepConditionsConfig
         {
@@ -505,7 +504,7 @@ public class PipelineStepTest
                 {
                     new ConditionConfig
                     {
-                        Expression = "[aPreviousStep.some_random_data] == 123",
+                        Expression = "[aPreviousStep.SomeRandomData] == 123",
                         Message = new Dictionary<string, string>
                         {
                             { "de", "Schritt übersprungen." },
@@ -525,7 +524,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
             .Inputs(inputs)
-            .OutputConfig(outputConfigs)
+            .OutputActions([])
             .StepConditions(stepConditions)
             .Process(processMock)
             .Logger(loggerMock.Object)
@@ -549,10 +548,9 @@ public class PipelineStepTest
     public async Task StepShouldFailBecauseOfPostCondition()
     {
         var inputs = SingleUploadInput();
-        var outputConfigs = SingleOutputConfig();
         var pipelineContext = ContextWith(
-            ("upload", "xtf_file", "some_data"),
-            ("aPreviousStep", "some_random_data", 123));
+            ("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }),
+            ("aPreviousStep", new ConditionStepResult { SomeRandomData = 123 }));
         var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
         var stepConditions = new PipelineStepConditionsConfig
         {
@@ -560,11 +558,11 @@ public class PipelineStepTest
             {
                 SkipConditions = new List<ConditionConfig>
                 {
-                    new ConditionConfig { Expression = "[aPreviousStep.some_random_data] == 124" },
+                    new ConditionConfig { Expression = "[aPreviousStep.SomeRandomData] == 124" },
                 },
                 FailConditions = new List<ConditionConfig>
                 {
-                    new ConditionConfig { Expression = "[aPreviousStep.some_random_data] == 124" },
+                    new ConditionConfig { Expression = "[aPreviousStep.SomeRandomData] == 124" },
                 },
             },
             Post = new PipelineStepPostConditionConfig()
@@ -573,7 +571,7 @@ public class PipelineStepTest
                 {
                     new ConditionConfig
                     {
-                        Expression = "[my_step.my_output] == 'some_data'",
+                        Expression = "[my_step.OutputData] == 'some_data'",
                         Message = new Dictionary<string, string>
                         {
                             { "de", "Post-Bedingung fehlgeschlagen." },
@@ -591,7 +589,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
             .Inputs(inputs)
-            .OutputConfig(outputConfigs)
+            .OutputActions([])
             .StepConditions(stepConditions)
             .Process(processMock)
             .Logger(loggerMock.Object)
@@ -615,11 +613,8 @@ public class PipelineStepTest
     public async Task StepShouldFailWithMultiplePreFailConditionsAndConcatenatedMessages()
     {
         var inputs = SingleUploadInput();
-        var outputConfigs = SingleOutputConfig();
         var pipelineContext = ContextWith(
-            ("upload", "xtf_file", "some_data"),
-            ("aPreviousStep", "some_random_data", 123),
-            ("aPreviousStep", "another_value", "abc"));
+            ("aPreviousStep", new ConditionStepResult { SomeRandomData = 123, AnotherValue = "abc" }));
         var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
         var stepConditions = new PipelineStepConditionsConfig
         {
@@ -630,7 +625,7 @@ public class PipelineStepTest
                 {
                     new ConditionConfig
                     {
-                        Expression = "[aPreviousStep.some_random_data] == 123",
+                        Expression = "[aPreviousStep.SomeRandomData] == 123",
                         Message = new Dictionary<string, string>
                         {
                             { "de", "Erste Bedingung fehlgeschlagen" },
@@ -639,7 +634,7 @@ public class PipelineStepTest
                     },
                     new ConditionConfig
                     {
-                        Expression = "[aPreviousStep.another_value] == 'abc'",
+                        Expression = "[aPreviousStep.AnotherValue] == 'abc'",
                         Message = new Dictionary<string, string>
                         {
                             { "de", "Zweite Bedingung fehlgeschlagen" },
@@ -649,7 +644,7 @@ public class PipelineStepTest
                     },
                     new ConditionConfig
                     {
-                        Expression = "[aPreviousStep.some_random_data] == 999",
+                        Expression = "[aPreviousStep.SomeRandomData] == 999",
                         Message = new Dictionary<string, string>
                         {
                             { "de", "Dritte Bedingung fehlgeschlagen" },
@@ -668,7 +663,7 @@ public class PipelineStepTest
             .Id("my_step")
             .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
             .Inputs(inputs)
-            .OutputConfig(outputConfigs)
+            .OutputActions([])
             .StepConditions(stepConditions)
             .Process(processMock)
             .Logger(loggerMock.Object)
@@ -762,49 +757,98 @@ public class PipelineStepTest
         Assert.HasCount(count, step.Downloads);
     }
 
+    [TestMethod]
+    public async Task StepRunAppliesActionsToMultipleOutputs()
+    {
+        var result = new MockMultiOutputResult
+        {
+            FirstFile = "first",
+            SecondFile = "second",
+            Status = new Dictionary<string, string> { ["en"] = "done" },
+        };
+        var outputActions = new List<OutputActionConfig>
+        {
+            new OutputActionConfig { Property = "FirstFile", Actions = new HashSet<OutputAction> { OutputAction.Download } },
+            new OutputActionConfig { Property = "SecondFile", Actions = new HashSet<OutputAction> { OutputAction.Download, OutputAction.Delivery } },
+            new OutputActionConfig { Property = "Status", Actions = new HashSet<OutputAction> { OutputAction.StatusMessage } },
+        };
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions(outputActions)
+            .Process(new MockMultiOutputProcess(result))
+            .Logger(loggerMock.Object)
+            .Build();
+
+        var stepResult = await pipelineStep.Run(ContextWith(), CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+        Assert.HasCount(3, stepResult.Outputs);
+
+        Assert.AreEqual("first", stepResult.Outputs["FirstFile"].Data);
+        Assert.IsTrue(stepResult.Outputs["FirstFile"].Action.SetEquals(new HashSet<OutputAction> { OutputAction.Download }));
+
+        Assert.AreEqual("second", stepResult.Outputs["SecondFile"].Data);
+        Assert.IsTrue(stepResult.Outputs["SecondFile"].Action.SetEquals(new HashSet<OutputAction> { OutputAction.Download, OutputAction.Delivery }));
+
+        Assert.IsTrue(stepResult.Outputs["Status"].Action.SetEquals(new HashSet<OutputAction> { OutputAction.StatusMessage }));
+    }
+
+    [TestMethod]
+    public async Task StepStatusMessageIsExtractedFromOutputTaggedStatusMessage()
+    {
+        var result = new MockMultiOutputResult
+        {
+            Status = new Dictionary<string, string> { ["de"] = "Fertig.", ["en"] = "Done." },
+        };
+        var outputActions = new List<OutputActionConfig>
+        {
+            new OutputActionConfig { Property = "Status", Actions = new HashSet<OutputAction> { OutputAction.StatusMessage } },
+        };
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions(outputActions)
+            .Process(new MockMultiOutputProcess(result))
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(ContextWith(), CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+
+        var message = pipelineStep.StatusMessage;
+        Assert.IsNotNull(message);
+        Assert.AreEqual("Done.", message["en"]);
+        Assert.AreEqual("Fertig.", message["de"]);
+    }
+
     private PipelineStep BuildBareStep() =>
         PipelineStep
             .Builder()
             .Id("my_step")
             .DisplayName(LocalizedText.Empty)
             .Inputs(new Dictionary<string, InputValue>())
-            .OutputConfig([])
+            .OutputActions([])
             .Process(new MockPipelineProcessOptionalSingleInput())
             .Logger(loggerMock.Object)
             .Build();
 
     private static Dictionary<string, InputValue> SingleUploadInput() =>
-        new() { ["data"] = new InputValue.StepOutputReference("upload", "xtf_file") };
+        new() { ["data"] = new InputValue.StepOutputReference("upload", "OutputData") };
 
-    private static List<OutputConfig> SingleOutputConfig() =>
-        new()
-        {
-            new OutputConfig
-            {
-                Take = "OutputData",
-                As = "my_output",
-                Action = new HashSet<OutputAction>(),
-            },
-        };
-
-    private static PipelineContext ContextWith(params (string StepId, string OutputName, object? Data)[] outputs)
+    private static PipelineContext ContextWith(params (string StepId, object Result)[] steps)
     {
         var stepResults = new Dictionary<string, StepResult>();
-        foreach (var (stepId, outputName, data) in outputs)
-        {
-            if (!stepResults.TryGetValue(stepId, out var stepResult))
-            {
-                stepResult = new StepResult();
-                stepResults[stepId] = stepResult;
-            }
+        foreach (var (stepId, result) in steps)
+            stepResults[stepId] = new StepResult { Result = result };
 
-            stepResult.Outputs[outputName] = new StepOutput { Action = new HashSet<OutputAction>(), Data = data };
-        }
-
-        return new PipelineContext
-        {
-            Upload = Array.Empty<IPipelineFile>(),
-            StepResults = stepResults,
-        };
+        return new PipelineContext { Upload = Array.Empty<IPipelineFile>(), StepResults = stepResults };
     }
 }

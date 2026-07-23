@@ -12,12 +12,10 @@ pipelines:
         display_name:
           en: XTF Validation
         process_id: xtf_validator
-        output:
-          - take: status
-            as: status
-            action:
+        output_actions:
+          - property: PrimaryStatus
+            actions:
               - StatusMessage
-          - take: another_status
-            as: another_status
-            action:
+          - property: SecondaryStatus
+            actions:
               - StatusMessage

@@ -13,14 +13,6 @@ pipelines:
           en: XTF Validation
         process_id: xtf_validator
         input:
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
-          - take: XtfLog
-            as: xtf_log
-            action:
-              - DOWNLOAD
   - id: ili_validation
     display_name:
       en: XTF Validation 2
@@ -30,11 +22,3 @@ pipelines:
           en: XTF Validation
         process_id: xtf_validator
         input:
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
-          - take: XtfLog
-            as: xtf_log
-            action:
-              - DOWNLOAD

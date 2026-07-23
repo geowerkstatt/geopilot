@@ -19,7 +19,7 @@ pipelines:
     display_name:
       en: two steps pipeline with skip condition
     delivery_restrictions:
-      - expression: "Length([matcher.xtfFiles]) == 1"
+      - expression: "Length([matcher.XtfFiles]) == 1"
     steps:
       - id: matcher
         display_name:
@@ -30,9 +30,6 @@ pipelines:
             - RoadsExdm2ien
         input:
           files: "${upload()}"
-        output:
-          - take: XtfFiles
-            as: xtfFiles
       - id: validation
         display_name:
           en: XTF Validation
@@ -40,19 +37,13 @@ pipelines:
         conditions:
           pre:
             skip_conditions:
-              - expression: "Length([matcher.xtfFiles]) != 1"
+              - expression: "Length([matcher.XtfFiles]) != 1"
         input:
-          iliFile: "${step_output(matcher.xtfFiles)}"
-        output:
-          - take: ErrorLog
-            as: errorlog
-            action:
-          - take: XtfLog
-            as: xtflog
-            action:
-              - DOWNLOAD
-          - take: ValidationSuccessful
-            as: successful
+          iliFile: "${step_output(matcher.XtfFiles)}"
+        output_actions:
+          - property: XtfLog
+            actions:
+              - Download
       - id: zip_package
         display_name:
           en: Zip Package
@@ -60,22 +51,21 @@ pipelines:
         conditions:
           pre:
             skip_conditions:
-              - expression: "Length([matcher.xtfFiles]) != 1"
+              - expression: "Length([matcher.XtfFiles]) != 1"
         input:
           input:
-            - "${step_output(validation.errorlog)}"
-            - "${step_output(validation.xtflog)}"
-            - "${step_output(matcher.xtfFiles)}"
-        output:
-          - take: ZipPackage
-            as: archive
-            action:
-              - DOWNLOAD
+            - "${step_output(validation.ErrorLog)}"
+            - "${step_output(validation.XtfLog)}"
+            - "${step_output(matcher.XtfFiles)}"
+        output_actions:
+          - property: ZipPackage
+            actions:
+              - Download
   - id: two_steps_roadsexdm2ien
     display_name:
       en: two steps pipeline
     delivery_restrictions:
-      - expression: "!([validation.successful])"
+      - expression: "!([validation.ValidationSuccessful])"
     steps:
       - id: matcher
         display_name:
@@ -86,25 +76,16 @@ pipelines:
             - RoadsExdm2ien
         input:
           files: "${upload()}"
-        output:
-          - take: XtfFiles
-            as: xtfFiles
       - id: validation
         display_name:
           en: XTF Validation
         process_id: xtf_validator
         input:
-          iliFile: "${step_output(matcher.xtfFiles)}"
-        output:
-          - take: ErrorLog
-            as: errorlog
-            action:
-          - take: XtfLog
-            as: xtflog
-            action:
-              - DOWNLOAD
-          - take: ValidationSuccessful
-            as: successful
+          iliFile: "${step_output(matcher.XtfFiles)}"
+        output_actions:
+          - property: XtfLog
+            actions:
+              - Download
       - id: zip_package
         display_name:
           en: Zip Package
@@ -113,19 +94,18 @@ pipelines:
         conditions:
           pre:
             skip_conditions:
-              - expression: "[validation.errorlog] == null && [validation.xtflog] == null"
+              - expression: "[validation.ErrorLog] == null && [validation.XtfLog] == null"
             fail_conditions:
-              - expression: "[validation.errorlog] == null && [validation.xtflog] == null"
+              - expression: "[validation.ErrorLog] == null && [validation.XtfLog] == null"
           post:
             fail_conditions:
-              - expression: "[zip_package.archive] == null"
+              - expression: "[zip_package.ZipPackage] == null"
         input:
           input:
-            - "${step_output(validation.errorlog)}"
-            - "${step_output(validation.xtflog)}"
-            - "${step_output(matcher.xtfFiles)}"
-        output:
-          - take: ZipPackage
-            as: archive
-            action:
-              - DOWNLOAD
+            - "${step_output(validation.ErrorLog)}"
+            - "${step_output(validation.XtfLog)}"
+            - "${step_output(matcher.XtfFiles)}"
+        output_actions:
+          - property: ZipPackage
+            actions:
+              - Download
