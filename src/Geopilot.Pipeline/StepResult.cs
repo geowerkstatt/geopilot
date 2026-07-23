@@ -27,15 +27,5 @@ public class StepResult
     /// <param name="name">The PascalCase name of the result property.</param>
     /// <param name="value">The resolved value when found; otherwise <see langword="null"/>.</param>
     public bool TryGetOutput(string name, out object? value)
-    {
-        var property = Result?.GetType().GetProperty(name);
-        if (property?.CanRead == true)
-        {
-            value = property.GetValue(Result);
-            return true;
-        }
-
-        value = null;
-        return false;
-    }
+        => ProcessResultReflection.ReadProperties(Result).TryGetValue(name, out value);
 }

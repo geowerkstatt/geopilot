@@ -112,14 +112,9 @@ internal static class PipelineExtensions
         StepResult stepResult)
     {
         var cpy = new Dictionary<string, object?>(src);
-        var result = stepResult.Result;
-        if (result != null)
+        foreach (var (name, value) in ProcessResultReflection.ReadProperties(stepResult.Result))
         {
-            foreach (var property in result.GetType().GetProperties())
-            {
-                if (property.CanRead)
-                    cpy[ToParameterKey(stepId, property.Name)] = property.GetValue(result);
-            }
+            cpy[ToParameterKey(stepId, name)] = value;
         }
 
         return cpy;

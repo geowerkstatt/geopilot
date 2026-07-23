@@ -462,18 +462,17 @@ public sealed class PipelineStep : IPipelineStep
     private StepResult CreateStepResult(object outputProcessData)
     {
         var stepResult = new StepResult { Result = outputProcessData };
+        var properties = ProcessResultReflection.ReadProperties(outputProcessData);
 
         foreach (var outputAction in OutputActions)
         {
-            PropertyInfo? prop = outputProcessData.GetType().GetProperty(outputAction.Property);
-            if (prop?.CanRead != true)
+            if (!properties.TryGetValue(outputAction.Property, out var processDataPart))
             {
                 var errorMessage = $"Output action references property <{outputAction.Property}>, which is not a readable property of the result of process <{Process.GetType().Name}>. This error should not occur. Please consolidate the pipeline validation logic.";
                 logger.LogError(errorMessage);
                 throw new PipelineRunException(errorMessage);
             }
 
-            var processDataPart = prop.GetValue(outputProcessData);
             if (outputAction.Actions.Contains(OutputAction.Visualization) && processDataPart is not IVisualization)
             {
                 var visualizationError = $"Output <{outputAction.Property}> of process <{Process.GetType().Name}> is tagged as a visualization, but its value is <{processDataPart?.GetType().Name ?? "null"}> and not a Visualization<T> envelope. Build it with VisualizationFactory.";
