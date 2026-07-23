@@ -87,6 +87,10 @@ services:
   geopilot:
     build:
       context: .
+      args:
+        GITHUB_ACTOR: ${GITHUB_ACTOR}
+      secrets:
+        - github_token
     restart: unless-stopped
     ports:
       - 5173:8443
@@ -158,3 +162,7 @@ services:
 
 volumes:
   geopilot-db:
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN
