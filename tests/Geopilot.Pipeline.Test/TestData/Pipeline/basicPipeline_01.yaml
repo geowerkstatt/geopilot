@@ -23,9 +23,6 @@ pipelines:
         process_id: xtf_matcher
         input:
           files: "${upload()}"
-        output:
-          - take: XtfFiles
-            as: xtf_files
       - id: validation
         display_name:
           en: XTF Validation
@@ -33,12 +30,8 @@ pipelines:
         process_config_overwrites:
           validationProfile: PROFILE-A
         input:
-          iliFile: "${step_output(xtf_matching.xtf_files)}"
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
-          - take: XtfLog
-            as: xtf_log
-            action:
-              - DOWNLOAD
+          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+        output_actions:
+          - property: XtfLog
+            actions:
+              - Download

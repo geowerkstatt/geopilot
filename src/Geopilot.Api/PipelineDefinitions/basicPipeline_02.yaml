@@ -40,7 +40,7 @@ pipelines:
       fr: XTF Validation
       it: XTF Validazione
     delivery_restrictions:
-      - expression: "!([validation.successful])"
+      - expression: "!([validation.ValidationSuccessful])"
         message:
           de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
           en: "Validation was not successful. Delivery is not possible."
@@ -56,9 +56,6 @@ pipelines:
         process_id: xtf_matcher
         input:
           files: "${upload()}"
-        output:
-          - take: XtfFiles
-            as: xtf_files
       - id: validation
         display_name:
           en: XTF Validation
@@ -69,31 +66,26 @@ pipelines:
         conditions:
           pre:
             fail_conditions:
-              - expression: "Length([xtf_matching.xtf_files]) != 1"
+              - expression: "Length([xtf_matching.XtfFiles]) != 1"
                 message:
                   de: "Es muss genau eine XTF-Datei hochgeladen werden."
                   en: "Exactly one XTF file must be uploaded."
                   fr: "Exactement un fichier XTF doit être téléchargé."
                   it: "Deve essere caricato esattamente un file XTF."
         input:
-          iliFile: "${step_output(xtf_matching.xtf_files)}"
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
+          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+        output_actions:
+          - property: ErrorLog
+            actions:
               - Download
               - Delivery
-          - take: XtfLog
-            as: xtf_log
-            action:
+          - property: XtfLog
+            actions:
               - Download
               - Delivery
-          - take: StatusMessage
-            as: status_message
-            action:
+          - property: StatusMessage
+            actions:
               - StatusMessage
-          - take: ValidationSuccessful
-            as: successful
       - id: map_visualization
         display_name:
           en: Map Visualization
@@ -107,22 +99,20 @@ pipelines:
         conditions:
           pre:
             skip_conditions:
-              - expression: "[validation.successful]"
+              - expression: "[validation.ValidationSuccessful]"
                 message:
                   de: "Validierung erfolgreich. Kartenvisualisierung wird übersprungen."
                   en: "Validation successful. Map visualization will be skipped."
                   fr: "Validation réussie. La visualisation cartographique sera ignorée."
                   it: "Validazione riuscita. La visualizzazione cartografica sarà ignorata."
         input:
-          xtfLog: "${step_output(validation.xtf_log)}"
-        output:
-          - take: Visualization
-            as: map_visualization
-            action:
+          xtfLog: "${step_output(validation.XtfLog)}"
+        output_actions:
+          - property: Visualization
+            actions:
               - Visualization
-          - take: StatusMessage
-            as: status_message
-            action:
+          - property: StatusMessage
+            actions:
               - StatusMessage
   - id: ili_validation_with_error_tree
     display_name:
@@ -131,7 +121,7 @@ pipelines:
       it: Validazione XTF con albero degli errori
       fr: Validation XTF avec arbre des erreurs
     delivery_restrictions:
-      - expression: "!([validation.successful])"
+      - expression: "!([validation.ValidationSuccessful])"
         message:
           de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
           en: "Validation was not successful. Delivery is not possible."
@@ -147,9 +137,6 @@ pipelines:
         process_id: xtf_matcher
         input:
           files: "${upload()}"
-        output:
-          - take: XtfFiles
-            as: xtf_files
       - id: validation
         display_name:
           en: XTF Validation
@@ -160,7 +147,7 @@ pipelines:
         conditions:
           pre:
             fail_conditions:
-              - expression: "Length([xtf_matching.xtf_files]) != 1"
+              - expression: "Length([xtf_matching.XtfFiles]) != 1"
                 message:
                   de: "Es muss genau eine XTF-Datei hochgeladen werden."
                   en: "Exactly one XTF file must be uploaded."
@@ -169,24 +156,19 @@ pipelines:
         process_config_overwrites:
           validationProfile: null
         input:
-          iliFile: "${step_output(xtf_matching.xtf_files)}"
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
+          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+        output_actions:
+          - property: ErrorLog
+            actions:
               - Download
               - Delivery
-          - take: XtfLog
-            as: xtf_log
-            action:
+          - property: XtfLog
+            actions:
               - Download
               - Delivery
-          - take: StatusMessage
-            as: status_message
-            action:
+          - property: StatusMessage
+            actions:
               - StatusMessage
-          - take: ValidationSuccessful
-            as: successful
       - id: error_tree
         display_name:
           en: Error Tree
@@ -202,22 +184,20 @@ pipelines:
         conditions:
           pre:
             skip_conditions:
-              - expression: "[validation.successful]"
+              - expression: "[validation.ValidationSuccessful]"
                 message:
                   de: "Validierung erfolgreich. Error Tree wird übersprungen."
                   en: "Validation successful. Error Tree will be skipped."
                   fr: "Validation réussie. L'arbre des erreurs sera ignoré."
                   it: "Validazione riuscita. L'albero degli errori sarà ignorato."
         input:
-          xtfLog: "${step_output(validation.xtf_log)}"
-        output:
-          - take: Visualization
-            as: error_tree
-            action:
+          xtfLog: "${step_output(validation.XtfLog)}"
+        output_actions:
+          - property: Visualization
+            actions:
               - Visualization
-          - take: StatusMessage
-            as: status_message
-            action:
+          - property: StatusMessage
+            actions:
               - StatusMessage
       - id: zip_packaging
         display_name:
@@ -228,18 +208,16 @@ pipelines:
         process_id: zip_packager
         input:
           input:
-            - "${step_output(xtf_matching.xtf_files)}"
-            - "${step_output(validation.xtf_log)}"
-            - "${step_output(validation.error_log)}"
-        output:
-          - take: ZipPackage
-            as: archive
-            action:
+            - "${step_output(xtf_matching.XtfFiles)}"
+            - "${step_output(validation.XtfLog)}"
+            - "${step_output(validation.ErrorLog)}"
+        output_actions:
+          - property: ZipPackage
+            actions:
               - Download
               - Delivery
-          - take: StatusMessage
-            as: status_message
-            action:
+          - property: StatusMessage
+            actions:
               - StatusMessage
   - id: ili_validation_with_map_and_error_tree
     display_name:
@@ -248,7 +226,7 @@ pipelines:
       it: Validazione XTF con mappa e albero degli errori
       fr: Validation XTF avec carte et arbre des erreurs
     delivery_restrictions:
-      - expression: "!([validation.successful])"
+      - expression: "!([validation.ValidationSuccessful])"
         message:
           de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
           en: "Validation was not successful. Delivery is not possible."
@@ -264,9 +242,6 @@ pipelines:
         process_id: xtf_matcher
         input:
           files: "${upload()}"
-        output:
-          - take: XtfFiles
-            as: xtf_files
       - id: validation
         display_name:
           en: Validating XTF file
@@ -277,31 +252,26 @@ pipelines:
         conditions:
           pre:
             fail_conditions:
-              - expression: "Length([xtf_matching.xtf_files]) != 1"
+              - expression: "Length([xtf_matching.XtfFiles]) != 1"
                 message:
                   de: "Es muss genau eine XTF-Datei hochgeladen werden."
                   en: "Exactly one XTF file must be uploaded."
                   fr: "Exactement un fichier XTF doit être téléchargé."
                   it: "Deve essere caricato esattamente un file XTF."
         input:
-          iliFile: "${step_output(xtf_matching.xtf_files)}"
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
+          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+        output_actions:
+          - property: ErrorLog
+            actions:
               - Download
               - Delivery
-          - take: XtfLog
-            as: xtf_log
-            action:
+          - property: XtfLog
+            actions:
               - Download
               - Delivery
-          - take: StatusMessage
-            as: status_message
-            action:
+          - property: StatusMessage
+            actions:
               - StatusMessage
-          - take: ValidationSuccessful
-            as: successful
       - id: error_visualization
         display_name:
           en: Error Visualization
@@ -312,20 +282,18 @@ pipelines:
         conditions:
           pre:
             skip_conditions:
-              - expression: "[validation.successful]"
+              - expression: "[validation.ValidationSuccessful]"
                 message:
                   de: "Validierung erfolgreich. Fehlervisualisierung wird übersprungen."
                   en: "Validation successful. Error visualization will be skipped."
                   fr: "Validation réussie. La visualisation des erreurs sera ignorée."
                   it: "Validazione riuscita. La visualizzazione degli errori sarà ignorata."
         input:
-          xtfLog: "${step_output(validation.xtf_log)}"
-        output:
-          - take: Visualization
-            as: error_visualization
-            action:
+          xtfLog: "${step_output(validation.XtfLog)}"
+        output_actions:
+          - property: Visualization
+            actions:
               - Visualization
-          - take: StatusMessage
-            as: status_message
-            action:
+          - property: StatusMessage
+            actions:
               - StatusMessage

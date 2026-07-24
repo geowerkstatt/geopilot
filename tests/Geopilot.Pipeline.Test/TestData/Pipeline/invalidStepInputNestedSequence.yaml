@@ -13,7 +13,3 @@ pipelines:
         input:
           iliFile:
             - ["a", "b"]
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:

@@ -24,9 +24,9 @@ public interface IPipelineStep : IDisposable
     public IReadOnlyDictionary<string, InputValue> Inputs { get; }
 
     /// <summary>
-    /// The output configuration for this step.
+    /// The output actions for this step: which result properties are tagged with which actions.
     /// </summary>
-    List<OutputConfig> OutputConfigs { get; }
+    List<OutputActionConfig> OutputActions { get; }
 
     /// <summary>
     /// Gets the configuration settings that define the conditions under which the pipeline step is executed, skiped or failed.

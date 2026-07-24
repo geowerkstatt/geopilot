@@ -12,7 +12,3 @@ pipelines:
         process_id: xtf_validator
         input:
           iliFile: "${uploads}"
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:

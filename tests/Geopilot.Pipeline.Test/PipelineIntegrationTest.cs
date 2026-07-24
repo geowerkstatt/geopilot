@@ -64,7 +64,7 @@ public class PipelineIntegrationTest
         var matcherStepId = "matcher";
         var validationStepId = "validation";
         var zipPackageStepId = "zip_package";
-        var xtfFileAttribute = "xtfFiles";
+        var xtfFileAttribute = "XtfFiles";
 
         PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
 
@@ -168,10 +168,10 @@ public class PipelineIntegrationTest
         // Assert if uploaded file was correctly added to PipelineContext
         var stepResults = context.StepResults;
         var matcherStepResult = stepResults[matcherStepId];
-        var xtfFileStepOutput = matcherStepResult.Outputs[xtfFileAttribute];
+        Assert.IsTrue(matcherStepResult.TryGetOutput(xtfFileAttribute, out var xtfFileData));
 
-        Assert.IsNotNull(xtfFileStepOutput.Data);
-        var xtfFiles = xtfFileStepOutput.Data as IPipelineFile[];
+        Assert.IsNotNull(xtfFileData);
+        var xtfFiles = xtfFileData as IPipelineFile[];
         Assert.HasCount(1, xtfFiles);
         Assert.AreEqual("RoadsExdm2ien.xtf", xtfFiles[0].OriginalFileName);
 
@@ -179,12 +179,12 @@ public class PipelineIntegrationTest
         Assert.HasCount(3, stepResults);
         Assert.IsTrue(stepResults.ContainsKey(validationStepId));
         var validationSetpResult = stepResults[validationStepId];
-        Assert.HasCount(3, validationSetpResult.Outputs, "validation step has not the expected number of data");
+        Assert.HasCount(1, validationSetpResult.ActionOutputs, "validation step should expose exactly one action-tagged output (XtfLog with Download)");
 
         Assert.IsTrue(stepResults.ContainsKey(zipPackageStepId));
         var zipPackageStepResult = stepResults[zipPackageStepId];
-        Assert.HasCount(1, zipPackageStepResult.Outputs, "ZIP package step has not the expected number of data");
-        zipPackageStepResult.Outputs.TryGetValue("archive", out StepOutput? zipFileStepOutput);
+        Assert.HasCount(1, zipPackageStepResult.ActionOutputs, "ZIP package step has not the expected number of data");
+        zipPackageStepResult.ActionOutputs.TryGetValue("ZipPackage", out StepOutput? zipFileStepOutput);
         Assert.IsNotNull(zipFileStepOutput, "No ZIP package in output");
         var zipFile = zipFileStepOutput.Data as IPipelineFile;
         Assert.IsNotNull(zipFile, "No ZIP file in output");
@@ -253,9 +253,9 @@ public class PipelineIntegrationTest
         // Assert matcher step produced 2 matched files
         var stepResults = context.StepResults;
         var matcherStepResult = stepResults["matcher"];
-        var xtfFileStepOutput = matcherStepResult.Outputs["xtfFiles"];
-        Assert.IsNotNull(xtfFileStepOutput.Data);
-        var xtfFiles = xtfFileStepOutput.Data as IPipelineFile[];
+        Assert.IsTrue(matcherStepResult.TryGetOutput("XtfFiles", out var xtfFileData));
+        Assert.IsNotNull(xtfFileData);
+        var xtfFiles = xtfFileData as IPipelineFile[];
         Assert.HasCount(2, xtfFiles);
     }
 
@@ -275,7 +275,7 @@ public class PipelineIntegrationTest
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
 
-        var archiveOutput = context.StepResults["zip_package"].Outputs["archive"];
+        var archiveOutput = context.StepResults["zip_package"].ActionOutputs["ZipPackage"];
         var zipFile = archiveOutput.Data as IPipelineFile;
         Assert.IsNotNull(zipFile, "No ZIP file in output");
 
@@ -303,8 +303,9 @@ public class PipelineIntegrationTest
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
 
-        var matched = context.StepResults["matcher"].Outputs["xtf_files"].Data as IPipelineFile[];
-        Assert.IsNotNull(matched, "matcher did not output xtf_files");
+        context.StepResults["matcher"].TryGetOutput("XtfFiles", out var matchedData);
+        var matched = matchedData as IPipelineFile[];
+        Assert.IsNotNull(matched, "matcher did not output XtfFiles");
         Assert.HasCount(1, matched);
         Assert.AreEqual("RoadsExdm2ien.xtf", matched[0].OriginalFileName);
     }
