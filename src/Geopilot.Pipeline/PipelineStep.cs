@@ -289,8 +289,8 @@ public sealed class PipelineStep : IPipelineStep
     /// </summary>
     private static LocalizedText? ExtractStatusMessage(StepResult stepResult)
     {
-        var messages = stepResult.Outputs
-            .Where(o => o.Value.Action.Contains(OutputAction.StatusMessage))
+        var messages = stepResult.ActionOutputs
+            .Where(o => o.Value.Actions.Contains(OutputAction.StatusMessage))
             .Select(o => NormalizeStatusMessage(o.Value.Data))
             .Where(m => m is not null)
             .Cast<LocalizedText>()
@@ -323,9 +323,9 @@ public sealed class PipelineStep : IPipelineStep
         var mergedMessages = MergeConditionMessages(conditions);
         if (mergedMessages.Count > 0)
         {
-            stepResult.Outputs[stepOutputKey] = new StepOutput
+            stepResult.ActionOutputs[stepOutputKey] = new StepOutput
             {
-                Action = new HashSet<OutputAction> { OutputAction.StatusMessage },
+                Actions = new HashSet<OutputAction> { OutputAction.StatusMessage },
                 Data = mergedMessages,
             };
         }
@@ -480,10 +480,10 @@ public sealed class PipelineStep : IPipelineStep
                 throw new PipelineRunException(visualizationError);
             }
 
-            stepResult.Outputs[outputAction.Property] = new StepOutput
+            stepResult.ActionOutputs[outputAction.Property] = new StepOutput
             {
                 Data = processDataPart,
-                Action = outputAction.Actions,
+                Actions = outputAction.Actions,
             };
         }
 

@@ -179,12 +179,12 @@ public class PipelineIntegrationTest
         Assert.HasCount(3, stepResults);
         Assert.IsTrue(stepResults.ContainsKey(validationStepId));
         var validationSetpResult = stepResults[validationStepId];
-        Assert.HasCount(1, validationSetpResult.Outputs, "validation step should expose exactly one action-tagged output (XtfLog with Download)");
+        Assert.HasCount(1, validationSetpResult.ActionOutputs, "validation step should expose exactly one action-tagged output (XtfLog with Download)");
 
         Assert.IsTrue(stepResults.ContainsKey(zipPackageStepId));
         var zipPackageStepResult = stepResults[zipPackageStepId];
-        Assert.HasCount(1, zipPackageStepResult.Outputs, "ZIP package step has not the expected number of data");
-        zipPackageStepResult.Outputs.TryGetValue("ZipPackage", out StepOutput? zipFileStepOutput);
+        Assert.HasCount(1, zipPackageStepResult.ActionOutputs, "ZIP package step has not the expected number of data");
+        zipPackageStepResult.ActionOutputs.TryGetValue("ZipPackage", out StepOutput? zipFileStepOutput);
         Assert.IsNotNull(zipFileStepOutput, "No ZIP package in output");
         var zipFile = zipFileStepOutput.Data as IPipelineFile;
         Assert.IsNotNull(zipFile, "No ZIP file in output");
@@ -275,7 +275,7 @@ public class PipelineIntegrationTest
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
 
-        var archiveOutput = context.StepResults["zip_package"].Outputs["ZipPackage"];
+        var archiveOutput = context.StepResults["zip_package"].ActionOutputs["ZipPackage"];
         var zipFile = archiveOutput.Data as IPipelineFile;
         Assert.IsNotNull(zipFile, "No ZIP file in output");
 

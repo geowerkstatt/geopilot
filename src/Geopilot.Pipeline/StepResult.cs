@@ -18,7 +18,7 @@ public class StepResult
     /// action (via <c>output_actions</c>) plus any synthesized status messages, keyed by the
     /// result property name.
     /// </summary>
-    public Dictionary<string, StepOutput> Outputs { get; set; } = new Dictionary<string, StepOutput>();
+    public Dictionary<string, StepOutput> ActionOutputs { get; set; } = new Dictionary<string, StepOutput>();
 
     /// <summary>
     /// Resolves an implicit output by its result property name, reading it from <see cref="Result"/>

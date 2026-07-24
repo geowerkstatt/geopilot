@@ -399,18 +399,18 @@ public class ProcessingRunnerTest
     private StepResult FileStepResult(string outputKey, string originalFileName, string content, params OutputAction[] actions) =>
         new StepResult
         {
-            Outputs = new Dictionary<string, StepOutput>
+            ActionOutputs = new Dictionary<string, StepOutput>
             {
-                { outputKey, new StepOutput { Action = new HashSet<OutputAction>(actions), Data = new PipelineFile(WriteTempFile(content), originalFileName) } },
+                { outputKey, new StepOutput { Actions = new HashSet<OutputAction>(actions), Data = new PipelineFile(WriteTempFile(content), originalFileName) } },
             },
         };
 
     private static StepResult ObjectStepResult(string outputKey, object data, params OutputAction[] actions) =>
         new StepResult
         {
-            Outputs = new Dictionary<string, StepOutput>
+            ActionOutputs = new Dictionary<string, StepOutput>
             {
-                { outputKey, new StepOutput { Action = new HashSet<OutputAction>(actions), Data = data } },
+                { outputKey, new StepOutput { Actions = new HashSet<OutputAction>(actions), Data = data } },
             },
         };
 

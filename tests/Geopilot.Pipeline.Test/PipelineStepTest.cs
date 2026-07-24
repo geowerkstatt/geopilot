@@ -169,10 +169,10 @@ public class PipelineStepTest
         Assert.AreEqual(StepState.Success, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
 
-        Assert.HasCount(1, stepResult.Outputs);
-        Assert.IsTrue(stepResult.Outputs.ContainsKey("OutputData"));
-        Assert.IsTrue(stepResult.Outputs["OutputData"].Action.SetEquals(new HashSet<OutputAction> { OutputAction.Download, OutputAction.Delivery }));
-        Assert.AreEqual("some_data", stepResult.Outputs["OutputData"].Data);
+        Assert.HasCount(1, stepResult.ActionOutputs);
+        Assert.IsTrue(stepResult.ActionOutputs.ContainsKey("OutputData"));
+        Assert.IsTrue(stepResult.ActionOutputs["OutputData"].Actions.SetEquals(new HashSet<OutputAction> { OutputAction.Download, OutputAction.Delivery }));
+        Assert.AreEqual("some_data", stepResult.ActionOutputs["OutputData"].Data);
     }
 
     [TestMethod]
@@ -202,7 +202,7 @@ public class PipelineStepTest
         Assert.AreEqual(StepState.Success, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
 
-        Assert.IsEmpty(stepResult.Outputs);
+        Assert.IsEmpty(stepResult.ActionOutputs);
         Assert.IsTrue(stepResult.TryGetOutput("OutputData", out var outputData));
         Assert.AreEqual("produced_output", outputData);
     }
@@ -480,9 +480,9 @@ public class PipelineStepTest
         Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
 
-        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_pre_fail_condition"), "StepResult should contain a status_message output.");
-        var statusOutput = stepResult.Outputs["my_step_status_message_pre_fail_condition"];
-        Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
+        Assert.IsTrue(stepResult.ActionOutputs.ContainsKey("my_step_status_message_pre_fail_condition"), "StepResult should contain a status_message output.");
+        var statusOutput = stepResult.ActionOutputs["my_step_status_message_pre_fail_condition"];
+        Assert.IsTrue(statusOutput.Actions != null && statusOutput.Actions.Contains(OutputAction.StatusMessage));
         var message = statusOutput.Data as LocalizedText;
         Assert.IsNotNull(message);
         Assert.AreEqual("Step failed.", message["en"]);
@@ -535,9 +535,9 @@ public class PipelineStepTest
         Assert.AreEqual(StepState.Skipped, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
 
-        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_pre_skip_condition"), "StepResult should contain a status_message output.");
-        var statusOutput = stepResult.Outputs["my_step_status_message_pre_skip_condition"];
-        Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
+        Assert.IsTrue(stepResult.ActionOutputs.ContainsKey("my_step_status_message_pre_skip_condition"), "StepResult should contain a status_message output.");
+        var statusOutput = stepResult.ActionOutputs["my_step_status_message_pre_skip_condition"];
+        Assert.IsTrue(statusOutput.Actions != null && statusOutput.Actions.Contains(OutputAction.StatusMessage));
         var message = statusOutput.Data as LocalizedText;
         Assert.IsNotNull(message);
         Assert.AreEqual("Step skipped.", message["en"]);
@@ -600,9 +600,9 @@ public class PipelineStepTest
         Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
 
-        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_post_fail_condition"), "StepResult should contain a status_message output.");
-        var statusOutput = stepResult.Outputs["my_step_status_message_post_fail_condition"];
-        Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
+        Assert.IsTrue(stepResult.ActionOutputs.ContainsKey("my_step_status_message_post_fail_condition"), "StepResult should contain a status_message output.");
+        var statusOutput = stepResult.ActionOutputs["my_step_status_message_post_fail_condition"];
+        Assert.IsTrue(statusOutput.Actions != null && statusOutput.Actions.Contains(OutputAction.StatusMessage));
         var message = statusOutput.Data as LocalizedText;
         Assert.IsNotNull(message);
         Assert.AreEqual("Post-condition failed.", message["en"]);
@@ -674,9 +674,9 @@ public class PipelineStepTest
         Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
 
-        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_pre_fail_condition"), "StepResult should contain a status_message output.");
-        var statusOutput = stepResult.Outputs["my_step_status_message_pre_fail_condition"];
-        Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
+        Assert.IsTrue(stepResult.ActionOutputs.ContainsKey("my_step_status_message_pre_fail_condition"), "StepResult should contain a status_message output.");
+        var statusOutput = stepResult.ActionOutputs["my_step_status_message_pre_fail_condition"];
+        Assert.IsTrue(statusOutput.Actions != null && statusOutput.Actions.Contains(OutputAction.StatusMessage));
         var message = statusOutput.Data as LocalizedText;
         Assert.IsNotNull(message);
 
@@ -786,15 +786,15 @@ public class PipelineStepTest
         var stepResult = await pipelineStep.Run(ContextWith(), CancellationToken.None).ConfigureAwait(false);
 
         Assert.AreEqual(StepState.Success, pipelineStep.State);
-        Assert.HasCount(3, stepResult.Outputs);
+        Assert.HasCount(3, stepResult.ActionOutputs);
 
-        Assert.AreEqual("first", stepResult.Outputs["FirstFile"].Data);
-        Assert.IsTrue(stepResult.Outputs["FirstFile"].Action.SetEquals(new HashSet<OutputAction> { OutputAction.Download }));
+        Assert.AreEqual("first", stepResult.ActionOutputs["FirstFile"].Data);
+        Assert.IsTrue(stepResult.ActionOutputs["FirstFile"].Actions.SetEquals(new HashSet<OutputAction> { OutputAction.Download }));
 
-        Assert.AreEqual("second", stepResult.Outputs["SecondFile"].Data);
-        Assert.IsTrue(stepResult.Outputs["SecondFile"].Action.SetEquals(new HashSet<OutputAction> { OutputAction.Download, OutputAction.Delivery }));
+        Assert.AreEqual("second", stepResult.ActionOutputs["SecondFile"].Data);
+        Assert.IsTrue(stepResult.ActionOutputs["SecondFile"].Actions.SetEquals(new HashSet<OutputAction> { OutputAction.Download, OutputAction.Delivery }));
 
-        Assert.IsTrue(stepResult.Outputs["Status"].Action.SetEquals(new HashSet<OutputAction> { OutputAction.StatusMessage }));
+        Assert.IsTrue(stepResult.ActionOutputs["Status"].Actions.SetEquals(new HashSet<OutputAction> { OutputAction.StatusMessage }));
     }
 
     [TestMethod]

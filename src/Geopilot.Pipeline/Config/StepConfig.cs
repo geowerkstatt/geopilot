@@ -49,7 +49,7 @@ public class StepConfig
     /// </summary>
     [YamlMember(Alias = "output_actions")]
     [NoDuplicates(PropertyName = "Property")]
-    public List<OutputActionConfig>? Output { get; set; }
+    public List<OutputActionConfig>? OutputActions { get; set; }
 
     /// <summary>
     /// Gets or sets the conditions that determine whether the pipeline step should execute or fail.

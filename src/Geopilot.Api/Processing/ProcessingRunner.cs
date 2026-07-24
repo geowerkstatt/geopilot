@@ -127,9 +127,9 @@ public class ProcessingRunner : BackgroundService
         var usedDownloadNames = new HashSet<string>(StringComparer.Ordinal);
         var usedVisualizationNames = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var (outputName, output) in stepResult.Outputs)
+        foreach (var (outputName, output) in stepResult.ActionOutputs)
         {
-            if (output.Action.Contains(OutputAction.Download))
+            if (output.Actions.Contains(OutputAction.Download))
             {
                 foreach (var transferFile in ResolveFiles(output.Data))
                 {
@@ -139,7 +139,7 @@ public class ProcessingRunner : BackgroundService
                 }
             }
 
-            if (output.Action.Contains(OutputAction.Visualization))
+            if (output.Actions.Contains(OutputAction.Visualization))
             {
                 // The visualization output value is the config object itself (not a file): serialize it to JSON
                 // in the dedicated visualization store. The frontend fetches it and renders the component the
@@ -173,9 +173,9 @@ public class ProcessingRunner : BackgroundService
             var stepIdPrefix = step.Id.SanitizeFileName();
             var usedNames = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var output in stepResult.Outputs.Values)
+            foreach (var output in stepResult.ActionOutputs.Values)
             {
-                if (!output.Action.Contains(OutputAction.Delivery))
+                if (!output.Actions.Contains(OutputAction.Delivery))
                     continue;
 
                 foreach (var transferFile in ResolveFiles(output.Data))

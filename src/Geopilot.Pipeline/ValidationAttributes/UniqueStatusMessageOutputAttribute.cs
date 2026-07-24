@@ -13,7 +13,7 @@ internal sealed class UniqueStatusMessageOutputAttribute : ValidationAttribute
             return new ValidationResult("Validation object is not of type StepConfig.");
         }
 
-        var outputs = step.Output;
+        var outputs = step.OutputActions;
         if (outputs is null || outputs.Count == 0)
         {
             return ValidationResult.Success;
