@@ -20,6 +20,11 @@ Für die Formatierung wird ESLint verwendet. Dazu im Visual Studio unter `Option
 
 - Damit die Applikation mit HTTPS funktioniert, muss ein lokales dev-cert erstellt werden. Dieses wird durch das npm Script `predev` vor dem Start automatisch erstellt. Sollte dies nicht funktionieren, kann mit folgendem Befehl ein Zertifikat manuell erstellt und vertraut werden: `dotnet dev-certs https --trust`. HTTPS muss verwendet werden, damit die STAC-Urls korrekt funktionieren und so der STAC-Browser wie in einer produktiven Umgebung verwendet werden kann.
 
+- Für Abhängigkeiten aus der GitHub NuGet Registry wird ein GitHub Account und ein [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) mit `packages:read`-Berechtigung benötigt. Dies kann mit folgendem Befehl konfiguriert werden:
+  ```bash
+  dotnet nuget update source github-geowerkstatt --username "<GitHub Benutzername>" --password "<GitHub PAT mit packages:read Berechtigung>" --store-password-in-clear-text
+  ```
+
 - Das Projekt kann mit dem Launch Profile "Development" gestartet werden.
   
   ℹ️ Beim Start hält Visual Studio im Frontend wegen Fetch-Errors, während die API selbst noch am starten ist. Das kann in Visual Studio über `Debug → Windows → Exception Settings → JavaScript Exceptions → Uncaught Exceptions` deaktiviert werden.
@@ -27,6 +32,9 @@ Für die Formatierung wird ESLint verwendet. Dazu im Visual Studio unter `Option
 ### Starten der Applikation (Docker Compose) 🐳
 
 Das Projekt unterstützt das Starten der Applikation mit Docker Compose, um einer produktiven Umgebung möglichst nahe zu kommen. Um HTTPS zu unterstützen, benötigt es ein vertrautes dev-cert sowie ein Export dessen im PEM-Format. Diese werden im [docker-compose.yml](./docker-compose.yml) korrekt geladen. Setup ist nachfolgend beschrieben. Die Applikation ist danach unter [https://localhost:5173](https://localhost:5173) erreichbar.
+
+Zum Erstellen des geopilot-Images werden Zugangsdaten benötigt, um Abhängigkeiten aus der GitHub NuGet Registry herunterzuladen.
+Dazu muss der GitHub Benutzername als `GITHUB_ACTOR` und ein [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) mit `packages:read`-Berechtigung als `GITHUB_TOKEN` über die Umgebungsvariablen oder einer `.env`-Datei konfiguriert werden, wie in der [Beispiel-Datei](.env.example) gezeigt.
 
 ```bash
 dotnet dev-certs https --trust
