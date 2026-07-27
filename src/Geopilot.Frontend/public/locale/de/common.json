@@ -120,8 +120,6 @@
   "precursor": "Vorgänger",
   "privacyPolicy": "Datenschutz",
   "processing": "Verarbeitung",
-  "processingIsBeingPrepared": "Die Verarbeitung wird vorbereitet...",
-  "processingIsRunning": "Die Datei wird gerade mit {{pipeline}} verarbeitet...",
   "public": "Öffentlich",
   "removeFile": "Datei entfernen",
   "removeLayer": "Ebene entfernen",

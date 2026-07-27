@@ -221,8 +221,9 @@ public class ProcessingRunnerTest
             var response = job.ToResponse(
                 (id, file) => new Uri($"https://localhost/api/v2/processing/{id}/files/{file}"),
                 (id, file) => new Uri($"https://localhost/api/v2/processing/{id}/visualizations/{file}"));
-            Assert.HasCount(1, response.Steps[0].Downloads);
-            Assert.AreEqual("first.log", response.Steps[0].Downloads[0].OriginalFileName);
+            var step1Response = response.Steps.Single(s => s.Id == "step_1");
+            Assert.HasCount(1, step1Response.Downloads);
+            Assert.AreEqual("first.log", step1Response.Downloads[0].OriginalFileName);
 
             gate.SetResult();
             await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
