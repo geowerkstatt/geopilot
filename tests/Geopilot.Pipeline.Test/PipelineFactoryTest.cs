@@ -42,6 +42,7 @@ public class PipelineFactoryTest
         loggerFactory = new Mock<ILoggerFactory>();
         loggerFactory.Setup(f => f.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
         var ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
+        ilitoolsOptionsMock.SetupGet(o => o.Value).Returns(new IlitoolsOptions { IlitoolsWrapperAddress = "http://localhost:5555" });
         this.pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactory.Object);
     }
 

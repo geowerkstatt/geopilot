@@ -1,26 +1,35 @@
 ﻿using Geopilot.Pipeline.Ilitools;
 using Geopilot.PipelineCore.Ilitools;
 using Grpc.Core;
+using Grpc.Net.Client;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Xml.Linq;
 
 namespace Geopilot.Pipeline.Test.Ilitools;
 
+/// <summary>
+/// Integration tests for the <see cref="Ili2GpkgClient"/> class, testing against an ilitools-wrapper service running locally.
+/// </summary>
 [TestClass]
+[TestCategory("Integration")]
 public class Ili2GpkgClientIntegrationTest
 {
     public TestContext TestContext { get; set; }
 
+    private GrpcChannel grpcChannel;
     private Ili2GpkgClient ili2GpkgClient;
 
     [TestInitialize]
     public void SetUp()
     {
-        var options = new IlitoolsOptions
-        {
-            IlitoolsWrapperAddress = "http://localhost:5555",
-        };
-        ili2GpkgClient = new Ili2GpkgClient(options, NullLogger<Ili2GpkgClient>.Instance);
+        grpcChannel = GrpcChannel.ForAddress("http://localhost:5555");
+        ili2GpkgClient = new Ili2GpkgClient(grpcChannel, NullLogger<Ili2GpkgClient>.Instance);
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        grpcChannel?.Dispose();
     }
 
     [TestMethod]

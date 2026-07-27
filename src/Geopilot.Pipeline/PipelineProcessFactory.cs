@@ -2,6 +2,7 @@
 using Geopilot.Pipeline.Ilitools;
 using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
+using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reflection;
@@ -23,7 +24,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     private readonly ILoggerFactory loggerFactory;
     private readonly ILogger<PipelineProcessFactory> logger;
     private readonly PipelineOptions pipelineOptions;
-    private readonly IlitoolsOptions ilitoolsOptions;
+    private readonly GrpcChannel ilitoolsWrapperChannel;
 
     private HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
     private HashSet<AssemblyLoadContext> processorPluginLoadContexts = new HashSet<AssemblyLoadContext>();
@@ -54,6 +55,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
                 processorPluginLoadContexts.Clear();
                 processorPluginAssemblies.Clear();
+                ilitoolsWrapperChannel.Dispose();
             }
 
             disposed = true;
@@ -76,9 +78,9 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         this.loggerFactory = loggerFactory;
         this.pipelineOptions = pipelinePluginOptions.Value;
-        this.ilitoolsOptions = ilitoolsOptions.Value;
         this.logger = loggerFactory.CreateLogger<PipelineProcessFactory>();
 
+        ilitoolsWrapperChannel = GrpcChannel.ForAddress(ilitoolsOptions.Value.IlitoolsWrapperAddress);
         LoadPlugins();
     }
 
@@ -114,7 +116,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// <inheritdoc />
     public IPipelineProcessBuilder Builder()
     {
-        return new PipelineProcessBuilder(processorPluginAssemblies, loggerFactory, pipelineOptions, ilitoolsOptions);
+        return new PipelineProcessBuilder(processorPluginAssemblies, loggerFactory, pipelineOptions, ilitoolsWrapperChannel);
     }
 
     internal class PipelineProcessBuilder : IPipelineProcessBuilder
@@ -124,7 +126,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
         private readonly HashSet<Assembly> processorPluginAssemblies = new HashSet<Assembly>();
         private readonly PipelineOptions pipelineOptions;
-        private readonly IlitoolsOptions ilitoolsOptions;
+        private readonly GrpcChannel ilitoolsWrapperChannel;
 
         private string? pipelineId;
         private StepConfig? stepConfig;
@@ -142,18 +144,18 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// <param name="processorPluginAssemblies">A set of assemblies that contain processor plugins to be included in the pipeline.</param>
         /// <param name="loggerFactory">The factory used to create loggers for pipeline processing operations.</param>
         /// <param name="pipelineOptions">The options that configure the behavior and execution parameters of the pipeline.</param>
-        /// <param name="ilitoolsOptions">The options that configure the Ilitools integration.</param>
+        /// <param name="ilitoolsWrapperChannel">The gRPC channel used for communication with the ilitools-wrapper service.</param>
         public PipelineProcessBuilder(
             HashSet<Assembly> processorPluginAssemblies,
             ILoggerFactory loggerFactory,
             PipelineOptions pipelineOptions,
-            IlitoolsOptions ilitoolsOptions)
+            GrpcChannel ilitoolsWrapperChannel)
         {
             this.processorPluginAssemblies = processorPluginAssemblies;
             this.loggerFactory = loggerFactory;
             this.logger = loggerFactory.CreateLogger<PipelineProcessBuilder>();
             this.pipelineOptions = pipelineOptions;
-            this.ilitoolsOptions = ilitoolsOptions;
+            this.ilitoolsWrapperChannel = ilitoolsWrapperChannel;
         }
 
         /// <inheritdoc />
@@ -327,7 +329,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             }
             else if (parameterInfo.ParameterType == typeof(IIli2GpkgClient))
             {
-                return new Ili2GpkgClient(ilitoolsOptions, loggerFactory.CreateLogger<Ili2GpkgClient>());
+                return new Ili2GpkgClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<Ili2GpkgClient>());
             }
             else if (!string.IsNullOrEmpty(parameterInfo.Name) &&
                      processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&

@@ -15,6 +15,7 @@ public class PipelineProcessFactoryTest
 {
     private Mock<ILogger<PipelineProcessFactory>> loggerMock;
     private Mock<ILoggerFactory> loggerFactoryMock;
+    private Mock<IOptions<IlitoolsOptions>> ilitoolsOptionsMock;
 
     [TestInitialize]
     public void Initialize()
@@ -22,6 +23,8 @@ public class PipelineProcessFactoryTest
         loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
         loggerFactoryMock = new Mock<ILoggerFactory>();
         loggerFactoryMock.Setup(lf => lf.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+        ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
+        ilitoolsOptionsMock.SetupGet(o => o.Value).Returns(new IlitoolsOptions { IlitoolsWrapperAddress = "http://localhost:5555" });
     }
 
     [TestMethod(DisplayName = "Create Process With List Config")]
@@ -68,7 +71,6 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        var ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
         using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
@@ -248,7 +250,6 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        var ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
         using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
@@ -398,7 +399,6 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        var ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
         using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig

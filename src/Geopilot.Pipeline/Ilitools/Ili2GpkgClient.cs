@@ -18,12 +18,11 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     private readonly Ili2gpkgService.Ili2gpkgServiceClient client;
     private readonly ILogger<Ili2GpkgClient> logger;
 
-    internal Ili2GpkgClient(IlitoolsOptions ilitoolsOptions, ILogger<Ili2GpkgClient> logger)
+    internal Ili2GpkgClient(GrpcChannel grpcChannel, ILogger<Ili2GpkgClient> logger)
     {
         this.logger = logger;
 
-        var channel = GrpcChannel.ForAddress(ilitoolsOptions.IlitoolsWrapperAddress);
-        client = new Ili2gpkgService.Ili2gpkgServiceClient(channel);
+        client = new Ili2gpkgService.Ili2gpkgServiceClient(grpcChannel);
     }
 
     /// <inheritdoc />
@@ -31,7 +30,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     {
         logger.LogInformation("Starting Ili2Gpkg schema import operation.");
 
-        var call = client.Convert(cancellationToken: cancellationToken);
+        using var call = client.Convert(cancellationToken: cancellationToken);
 
         await call.RequestStream.WriteAsync(CreateConvertRequest(ConvertOperation.OperationSchemaImport, args), cancellationToken);
         await SendFileAsync(call.RequestStream, Ili2gpkgFileType.ModelFile, modelFile, cancellationToken);
@@ -45,7 +44,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     {
         logger.LogInformation("Starting Ili2Gpkg import operation for {Count} transfer file(s).", transferFiles.Count);
 
-        var call = client.Convert(cancellationToken: cancellationToken);
+        using var call = client.Convert(cancellationToken: cancellationToken);
 
         await call.RequestStream.WriteAsync(CreateConvertRequest(ConvertOperation.OperationImport, args), cancellationToken);
         await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, inputFile, cancellationToken);
@@ -64,7 +63,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     {
         logger.LogInformation("Starting Ili2Gpkg export operation.");
 
-        var call = client.Convert(cancellationToken: cancellationToken);
+        using var call = client.Convert(cancellationToken: cancellationToken);
 
         await call.RequestStream.WriteAsync(CreateConvertRequest(ConvertOperation.OperationExport, args), cancellationToken);
         await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, gpkgFile, cancellationToken);
