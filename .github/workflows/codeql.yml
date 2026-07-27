@@ -34,9 +34,7 @@ jobs:
 
     - name: Authenticate to GitHub Packages
       if: matrix.language == 'csharp'
-      run: dotnet nuget update source github-geowerkstatt --username "$USERNAME" --password "%GITHUB_TOKEN%" --store-password-in-clear-text
-      env:
-        USERNAME: ${{ github.actor }}
+      uses: ./.github/actions/github-nuget-login
 
     - name: Autobuild
       uses: github/codeql-action/autobuild@v4
