@@ -171,7 +171,10 @@ builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
 builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
-builder.Services.Configure<IlitoolsOptions>(builder.Configuration.GetSection("Ilitools"));
+builder.Services.AddOptions<IlitoolsOptions>()
+    .BindConfiguration(IlitoolsOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 builder.Services.AddOptions<FileAccessOptions>()
     .BindConfiguration(FileAccessOptions.SectionName)
     .ValidateDataAnnotations()
