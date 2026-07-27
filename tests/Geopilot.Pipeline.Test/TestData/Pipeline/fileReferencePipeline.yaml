@@ -14,8 +14,7 @@ pipelines:
         process_id: zip_package_process
         input:
           input: "${file(sample.txt)}"
-        output:
-          - take: ZipPackage
-            as: archive
-            action:
-              - DOWNLOAD
+        output_actions:
+          - property: ZipPackage
+            actions:
+              - Download

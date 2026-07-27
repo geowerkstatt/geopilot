@@ -64,7 +64,7 @@ public class PipelineIntegrationTest
         var matcherStepId = "matcher";
         var validationStepId = "validation";
         var zipPackageStepId = "zip_package";
-        var xtfFileAttribute = "xtfFiles";
+        var xtfFileAttribute = "XtfFiles";
 
         PipelineFactory factory = CreatePipelineFactory("twoStepPipeline_01");
 
@@ -168,25 +168,23 @@ public class PipelineIntegrationTest
         // Assert if uploaded file was correctly added to PipelineContext
         var stepResults = context.StepResults;
         var matcherStepResult = stepResults[matcherStepId];
-        var xtfFileStepOutput = matcherStepResult.Outputs[xtfFileAttribute];
+        var xtfFileData = matcherStepResult.ExtractProperty(xtfFileAttribute);
 
-        Assert.IsNotNull(xtfFileStepOutput.Data);
-        var xtfFiles = xtfFileStepOutput.Data as IPipelineFile[];
+        Assert.IsNotNull(xtfFileData);
+        var xtfFiles = xtfFileData as IPipelineFile[];
         Assert.HasCount(1, xtfFiles);
         Assert.AreEqual("RoadsExdm2ien.xtf", xtfFiles[0].OriginalFileName);
 
         // Assert if StepResults from executed PipelineSteps are in the PipelineContext
         Assert.HasCount(3, stepResults);
+
         Assert.IsTrue(stepResults.ContainsKey(validationStepId));
         var validationSetpResult = stepResults[validationStepId];
-        Assert.HasCount(3, validationSetpResult.Outputs, "validation step has not the expected number of data");
+        Assert.IsNotNull(validationSetpResult.ExtractProperty("XtfLog"), "validation should produce an XtfLog");
 
         Assert.IsTrue(stepResults.ContainsKey(zipPackageStepId));
         var zipPackageStepResult = stepResults[zipPackageStepId];
-        Assert.HasCount(1, zipPackageStepResult.Outputs, "ZIP package step has not the expected number of data");
-        zipPackageStepResult.Outputs.TryGetValue("archive", out StepOutput? zipFileStepOutput);
-        Assert.IsNotNull(zipFileStepOutput, "No ZIP package in output");
-        var zipFile = zipFileStepOutput.Data as IPipelineFile;
+        var zipFile = zipPackageStepResult.ExtractProperty("ZipPackage") as IPipelineFile;
         Assert.IsNotNull(zipFile, "No ZIP file in output");
         Assert.AreEqual("myPersonalZipArchive.zip", zipFile.OriginalFileName, "ZIP file has not the expected name");
 
@@ -253,9 +251,9 @@ public class PipelineIntegrationTest
         // Assert matcher step produced 2 matched files
         var stepResults = context.StepResults;
         var matcherStepResult = stepResults["matcher"];
-        var xtfFileStepOutput = matcherStepResult.Outputs["xtfFiles"];
-        Assert.IsNotNull(xtfFileStepOutput.Data);
-        var xtfFiles = xtfFileStepOutput.Data as IPipelineFile[];
+        var xtfFileData = matcherStepResult.ExtractProperty("XtfFiles");
+        Assert.IsNotNull(xtfFileData);
+        var xtfFiles = xtfFileData as IPipelineFile[];
         Assert.HasCount(2, xtfFiles);
     }
 
@@ -275,8 +273,7 @@ public class PipelineIntegrationTest
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
 
-        var archiveOutput = context.StepResults["zip_package"].Outputs["archive"];
-        var zipFile = archiveOutput.Data as IPipelineFile;
+        var zipFile = context.StepResults["zip_package"].ExtractProperty("ZipPackage") as IPipelineFile;
         Assert.IsNotNull(zipFile, "No ZIP file in output");
 
         using var zipStream = zipFile.OpenReadFileStream();
@@ -303,8 +300,9 @@ public class PipelineIntegrationTest
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
 
-        var matched = context.StepResults["matcher"].Outputs["xtf_files"].Data as IPipelineFile[];
-        Assert.IsNotNull(matched, "matcher did not output xtf_files");
+        var matchedData = context.StepResults["matcher"].ExtractProperty("XtfFiles");
+        var matched = matchedData as IPipelineFile[];
+        Assert.IsNotNull(matched, "matcher did not output XtfFiles");
         Assert.HasCount(1, matched);
         Assert.AreEqual("RoadsExdm2ien.xtf", matched[0].OriginalFileName);
     }

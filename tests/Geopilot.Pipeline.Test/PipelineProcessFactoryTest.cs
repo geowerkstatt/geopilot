@@ -76,10 +76,6 @@ public class PipelineProcessFactoryTest
             DisplayName = new Dictionary<string, string> { { "en", "Test Step" } },
             ProcessId = "test_process",
             ProcessConfigOverwrites = overwrites,
-            Output = new List<OutputConfig>
-            {
-                new OutputConfig { Take = "result", As = "result" },
-            },
         };
 
         var processConfig = new ProcessConfig()
@@ -255,10 +251,6 @@ public class PipelineProcessFactoryTest
             DisplayName = new Dictionary<string, string> { { "en", "Test Step" } },
             ProcessId = "test_process",
             ProcessConfigOverwrites = overwrites,
-            Output = new List<OutputConfig>
-            {
-                new OutputConfig { Take = "result", As = "result" },
-            },
         };
 
         var processConfig = new ProcessConfig()
@@ -404,10 +396,6 @@ public class PipelineProcessFactoryTest
             DisplayName = new Dictionary<string, string> { { "en", "Test Step" } },
             ProcessId = "test_process",
             ProcessConfigOverwrites = overwrites,
-            Output = new List<OutputConfig>
-            {
-                new OutputConfig { Take = "result", As = "result" },
-            },
         };
 
         var processConfig = new ProcessConfig()

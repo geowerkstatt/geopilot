@@ -56,7 +56,6 @@ public class PipelineProcessFactoryValidateTest
         DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "Zip" }),
         ProcessId = "zip_package_process",
         Input = input,
-        Output = new List<OutputConfig> { new() { Take = "zip_package", As = "archive" } },
     };
 
     private static List<ProcessConfig> ZipProcesses() => new()

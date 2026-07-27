@@ -8,6 +8,3 @@ pipelines:
     steps:
       - id: xtf_matching
         process_id: xtf_matcher
-        output:
-          - take: XtfFiles
-            as: xtf_files

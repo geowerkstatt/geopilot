@@ -105,13 +105,20 @@ public class ProcessingRunnerTest
     {
     }
 
+    // Backs the FileStepResult / ObjectStepResult helpers: a result type exposing a single output under
+    // the property name "Output". The paired step tags that same property via BuildBareStep.
+    private sealed class SingleOutputResult
+    {
+        public object? Output { get; init; }
+    }
+
     [TestMethod]
     public void ExtractStepDownloadsWritesDownloadFileToDownloadStoreOnly()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
-        var step = BuildBareStep("step_1");
-        var stepResult = FileStepResult("log", "result.log", "log-content", OutputAction.Download);
+        var step = BuildBareStep("step_1", OutputAction.Download);
+        var stepResult = FileStepResult("result.log", "log-content");
 
         runner.ExtractStepDownloads(jobId, step, stepResult);
 
@@ -129,16 +136,16 @@ public class ProcessingRunnerTest
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
-        var step = BuildBareStep("step_1");
+        var step = BuildBareStep("step_1", OutputAction.Visualization);
         var config = new { type = "map", layers = Array.Empty<object>() };
-        var stepResult = ObjectStepResult("viz", config, OutputAction.Visualization);
+        var stepResult = ObjectStepResult(config);
 
         runner.ExtractStepDownloads(jobId, step, stepResult);
 
         Assert.HasCount(1, step.Visualizations);
         var persisted = step.Visualizations[0];
-        Assert.AreEqual("viz.json", persisted.OriginalFileName);
-        Assert.AreEqual("step_1_viz.json", persisted.PersistedFileName);
+        Assert.AreEqual("Output.json", persisted.OriginalFileName);
+        Assert.AreEqual("step_1_Output.json", persisted.PersistedFileName);
         Assert.IsTrue(visualizationStore.Exists(jobId, persisted.PersistedFileName));
         Assert.IsFalse(downloadStore.Exists(jobId, persisted.PersistedFileName), "Visualizations must not be written to the download store.");
         Assert.IsEmpty(step.Downloads);
@@ -152,8 +159,8 @@ public class ProcessingRunnerTest
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
-        var step = BuildBareStep("step_1");
-        var stepResult = FileStepResult("payload", "data.xtf", "delivery-content", OutputAction.Delivery);
+        var step = BuildBareStep("step_1", OutputAction.Delivery);
+        var stepResult = FileStepResult("data.xtf", "delivery-content");
         using var pipeline = BuildPipeline(jobId, step);
         var context = ContextWith(step, stepResult);
 
@@ -173,8 +180,8 @@ public class ProcessingRunnerTest
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
-        var step = BuildBareStep("step_1");
-        var stepResult = FileStepResult("out", "report.pdf", "report-content", OutputAction.Download, OutputAction.Delivery);
+        var step = BuildBareStep("step_1", OutputAction.Download, OutputAction.Delivery);
+        var stepResult = FileStepResult("report.pdf", "report-content");
         using var pipeline = BuildPipeline(jobId, step);
         var context = ContextWith(step, stepResult);
 
@@ -396,31 +403,24 @@ public class ProcessingRunnerTest
         return path;
     }
 
-    private StepResult FileStepResult(string outputKey, string originalFileName, string content, params OutputAction[] actions) =>
-        new StepResult
-        {
-            Outputs = new Dictionary<string, StepOutput>
-            {
-                { outputKey, new StepOutput { Action = new HashSet<OutputAction>(actions), Data = new PipelineFile(WriteTempFile(content), originalFileName) } },
-            },
-        };
+    // The tagging (which action applies) now lives on the step's OutputActions; the step result carries
+    // only the raw process result. Both agree on the property name "Output": the step tags it, the result
+    // exposes it under that name, and the runner resolves the data via StepResult.ExtractProperty.
+    private StepResult FileStepResult(string originalFileName, string content) =>
+        new StepResult { Result = new SingleOutputResult { Output = new PipelineFile(WriteTempFile(content), originalFileName) } };
 
-    private static StepResult ObjectStepResult(string outputKey, object data, params OutputAction[] actions) =>
-        new StepResult
-        {
-            Outputs = new Dictionary<string, StepOutput>
-            {
-                { outputKey, new StepOutput { Action = new HashSet<OutputAction>(actions), Data = data } },
-            },
-        };
+    private static StepResult ObjectStepResult(object data) =>
+        new StepResult { Result = new SingleOutputResult { Output = data } };
 
-    private PipelineStep BuildBareStep(string id) =>
+    private PipelineStep BuildBareStep(string id, params OutputAction[] actions) =>
         PipelineStep
             .Builder()
             .Id(id)
             .DisplayName(LocalizedText.Empty)
             .Inputs(new Dictionary<string, InputValue>())
-            .OutputConfig([])
+            .OutputActions(actions.Length == 0
+                ? []
+                : [new OutputActionConfig { Property = "Output", Actions = new HashSet<OutputAction>(actions) }])
             .Process(new object())
             .Logger(pipelineLogger)
             .Build();
@@ -431,7 +431,7 @@ public class ProcessingRunnerTest
             .Id(id)
             .DisplayName(LocalizedText.Empty)
             .Inputs(new Dictionary<string, InputValue>())
-            .OutputConfig([new OutputConfig { Take = "Result", As = outputKey, Action = new HashSet<OutputAction>(actions) }])
+            .OutputActions([new OutputActionConfig { Property = "Result", Actions = new HashSet<OutputAction>(actions) }])
             .Process(new FileEmittingProcess(WriteTempFile(content), originalFileName))
             .Logger(pipelineLogger)
             .Build();
@@ -442,7 +442,7 @@ public class ProcessingRunnerTest
             .Id(id)
             .DisplayName(LocalizedText.Empty)
             .Inputs(new Dictionary<string, InputValue>())
-            .OutputConfig([])
+            .OutputActions([])
             .Process(new BlockingProcess(gate))
             .Logger(pipelineLogger)
             .Build();
@@ -453,7 +453,7 @@ public class ProcessingRunnerTest
             .Id(id)
             .DisplayName(LocalizedText.Empty)
             .Inputs(new Dictionary<string, InputValue>())
-            .OutputConfig([])
+            .OutputActions([])
             .Process(new ThrowingProcess())
             .Logger(pipelineLogger)
             .Build();
@@ -464,7 +464,7 @@ public class ProcessingRunnerTest
             .Id(id)
             .DisplayName(LocalizedText.Empty)
             .Inputs(new Dictionary<string, InputValue>())
-            .OutputConfig([])
+            .OutputActions([])
             .StepConditions(new PipelineStepConditionsConfig
             {
                 Pre = new PipelineStepPreConditionConfig
