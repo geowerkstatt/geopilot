@@ -37,7 +37,7 @@ public sealed class PipelineStep : IPipelineStep
     public IReadOnlyDictionary<string, InputValue> Inputs { get; }
 
     /// <inheritdoc/>
-    public List<OutputConfig> OutputConfigs { get; }
+    public List<OutputActionConfig> OutputActions { get; }
 
     /// <inheritdoc/>
     public PipelineStepConditionsConfig? StepConditions { get; }
@@ -91,7 +91,7 @@ public sealed class PipelineStep : IPipelineStep
     /// <param name="id">The unique identifier for the step.</param>
     /// <param name="displayName">The display name for the step.</param>
     /// <param name="inputs">The compiled input values for the step.</param>
-    /// <param name="outputConfig">The output configuration for the step.</param>
+    /// <param name="outputActions">The output actions for the step.</param>
     /// <param name="stepConditions">The step conditions for the step.</param>
     /// <param name="process">The process associated with the step.</param>
     /// <param name="pipelineDirectory">The pipeline working directory used to isolate input files copied into this step. When null (only when a step is constructed outside a job, for example in unit tests), input files are passed through without isolation.</param>
@@ -101,7 +101,7 @@ public sealed class PipelineStep : IPipelineStep
         string id,
         LocalizedText displayName,
         IReadOnlyDictionary<string, InputValue> inputs,
-        List<OutputConfig> outputConfig,
+        List<OutputActionConfig> outputActions,
         PipelineStepConditionsConfig? stepConditions,
         object process,
         string? pipelineDirectory,
@@ -111,7 +111,7 @@ public sealed class PipelineStep : IPipelineStep
         this.Id = id;
         this.DisplayName = displayName;
         this.Inputs = inputs;
-        this.OutputConfigs = outputConfig;
+        this.OutputActions = outputActions;
         this.StepConditions = stepConditions;
         this.Process = process;
         this.pipelineDirectory = pipelineDirectory;
@@ -134,9 +134,8 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"step failed due to pre-condition.");
-                    var preFailResult = CreateConditionStepResult(this.Id + "_status_message_pre_fail_condition", failConditions);
-                    this.StatusMessage = ExtractStatusMessage(preFailResult);
-                    return preFailResult;
+                    this.StatusMessage = MergeConditionMessages(failConditions);
+                    return new StepResult();
                 }
 
                 var skipConditions = await this.FindMatchingSkipConditions(this.StepConditions.Pre, context);
@@ -144,16 +143,15 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Skipped;
                     logger.LogInformation($"step skipped due to pre-condition.");
-                    var preSkipResult = CreateConditionStepResult(this.Id + "_status_message_pre_skip_condition", skipConditions);
-                    this.StatusMessage = ExtractStatusMessage(preSkipResult);
-                    return preSkipResult;
+                    this.StatusMessage = MergeConditionMessages(skipConditions);
+                    return new StepResult();
                 }
             }
 
             this.State = StepState.Running;
 
             var stepResult = await ExecuteProcess(context, cancellationToken);
-
+            var statusMessage = ExtractStatusMessage(stepResult);
             if (this.StepConditions != null)
             {
                 var postFailConditions = await this.FindMatchingFailConditions(this.StepConditions.Post, context, stepResult);
@@ -161,7 +159,7 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"failed due to post-condition.");
-                    AddConditionMessages(this.Id + "_status_message_post_fail_condition", stepResult, postFailConditions);
+                    statusMessage = MergeConditionMessages(postFailConditions);
                 }
                 else
                 {
@@ -175,7 +173,7 @@ public sealed class PipelineStep : IPipelineStep
                 logger.LogInformation($"run successfull.");
             }
 
-            this.StatusMessage = ExtractStatusMessage(stepResult);
+            this.StatusMessage = statusMessage;
             return stepResult;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -276,25 +274,23 @@ public sealed class PipelineStep : IPipelineStep
         return matched;
     }
 
-    private static StepResult CreateConditionStepResult(string stepOutputKey, List<ConditionConfig> conditions)
+    private LocalizedText? ExtractStatusMessage(StepResult stepResult)
     {
-        var stepResult = new StepResult();
-        AddConditionMessages(stepOutputKey, stepResult, conditions);
-        return stepResult;
-    }
+        var messages = new List<LocalizedText>();
 
-    /// <summary>
-    /// Merges all <see cref="OutputAction.StatusMessage"/> outputs from the step result into a
-    /// single localized text. Multiple messages for the same language are joined with " - ".
-    /// </summary>
-    private static LocalizedText? ExtractStatusMessage(StepResult stepResult)
-    {
-        var messages = stepResult.Outputs
-            .Where(o => o.Value.Action.Contains(OutputAction.StatusMessage))
-            .Select(o => NormalizeStatusMessage(o.Value.Data))
-            .Where(m => m is not null)
-            .Cast<LocalizedText>()
-            .ToList();
+        foreach (var outputAction in OutputActions)
+        {
+            if (!outputAction.Actions.Contains(OutputAction.StatusMessage))
+                continue;
+
+            var prop = stepResult.Result?.GetType().GetProperty(outputAction.Property);
+            if (prop is null || !prop.CanRead)
+                continue;
+
+            var message = NormalizeStatusMessage(prop.GetValue(stepResult.Result));
+            if (message is not null)
+                messages.Add(message);
+        }
 
         if (messages.Count == 0)
             return null;
@@ -317,19 +313,6 @@ public sealed class PipelineStep : IPipelineStep
         IDictionary<string, string> dictionary => new LocalizedText(new Dictionary<string, string>(dictionary)),
         _ => null,
     };
-
-    private static void AddConditionMessages(string stepOutputKey, StepResult stepResult, List<ConditionConfig> conditions)
-    {
-        var mergedMessages = MergeConditionMessages(conditions);
-        if (mergedMessages.Count > 0)
-        {
-            stepResult.Outputs[stepOutputKey] = new StepOutput
-            {
-                Action = new HashSet<OutputAction> { OutputAction.StatusMessage },
-                Data = mergedMessages,
-            };
-        }
-    }
 
     private static LocalizedText MergeConditionMessages(List<ConditionConfig> conditions) =>
         LocalizedText.Merge(
@@ -406,11 +389,15 @@ public sealed class PipelineStep : IPipelineStep
     /// </summary>
     private bool TryResolveStepOutput(PipelineContext context, string stepId, string outputName, out object? value)
     {
-        if (context.StepResults.TryGetValue(stepId, out var stepResult) &&
-            stepResult.Outputs.TryGetValue(outputName, out var stepOutput))
+        if (context.StepResults.TryGetValue(stepId, out var stepResult))
         {
-            value = this.WrapInput(stepOutput.Data);
-            return true;
+            var prop = stepResult.Result?.GetType().GetProperty(outputName);
+            if (prop?.CanRead == true)
+            {
+                var data = prop.GetValue(stepResult.Result);
+                value = this.WrapInput(data);
+                return true;
+            }
         }
 
         value = null;
@@ -461,38 +448,27 @@ public sealed class PipelineStep : IPipelineStep
 
     private StepResult CreateStepResult(object outputProcessData)
     {
-        var stepResult = new StepResult();
-
-        foreach (var outputConfig in OutputConfigs)
+        var resultType = outputProcessData.GetType();
+        foreach (var outputAction in OutputActions)
         {
-            PropertyInfo? prop = outputProcessData.GetType().GetProperty(outputConfig.Take);
-            if (outputConfig.Take != null && outputConfig.As != null && prop?.CanRead == true)
+            var prop = resultType.GetProperty(outputAction.Property);
+            if (prop is null || !prop.CanRead)
             {
-                var processDataPart = prop?.GetValue(outputProcessData);
-                var action = outputConfig.Action ?? new HashSet<OutputAction>();
-                if (action.Contains(OutputAction.Visualization) && processDataPart is not IVisualization)
-                {
-                    var visualizationError = $"Output <{outputConfig.As}> of process <{Process.GetType().Name}> is tagged as a visualization, but its value is <{processDataPart?.GetType().Name ?? "null"}> and not a Visualization<T> envelope. Build it with VisualizationFactory.";
-                    logger.LogError(visualizationError);
-                    throw new PipelineRunException(visualizationError);
-                }
-
-                var stepOutput = new StepOutput
-                {
-                    Data = processDataPart,
-                    Action = action,
-                };
-                stepResult.Outputs[outputConfig.As] = stepOutput;
-            }
-            else
-            {
-                var errorMessage = $"Output config is missing 'take' or 'as', or the process output (referenced by 'take') was not found in the output of the process. This error should not occur. Please consolidate the pipeline validation logic.";
+                var errorMessage = $"Output action references property <{outputAction.Property}>, which is not a readable property of the result of process <{Process.GetType().Name}>. This error should not occur. Please consolidate the pipeline validation logic.";
                 logger.LogError(errorMessage);
                 throw new PipelineRunException(errorMessage);
             }
+
+            var processDataPart = prop.GetValue(outputProcessData);
+            if (outputAction.Actions.Contains(OutputAction.Visualization) && processDataPart is not IVisualization)
+            {
+                var visualizationError = $"Output <{outputAction.Property}> of process <{Process.GetType().Name}> is tagged as a visualization, but its value is <{processDataPart?.GetType().Name ?? "null"}> and not a Visualization<T> envelope. Build it with VisualizationFactory.";
+                logger.LogError(visualizationError);
+                throw new PipelineRunException(visualizationError);
+            }
         }
 
-        return stepResult;
+        return new StepResult { Result = outputProcessData };
     }
 
     /// <summary>
@@ -511,7 +487,7 @@ public sealed class PipelineStep : IPipelineStep
         private string? id;
         private LocalizedText? displayName;
         private IReadOnlyDictionary<string, InputValue>? inputs;
-        private List<OutputConfig>? outputConfig;
+        private List<OutputActionConfig>? outputActions;
         private PipelineStepConditionsConfig? stepConditions;
         private object? process;
         private string? pipelineDirectory;
@@ -546,11 +522,11 @@ public sealed class PipelineStep : IPipelineStep
         }
 
         /// <summary>
-        /// Sets the output of the <see cref="PipelineStep"/> that will be created by this builder.
+        /// Sets the output actions of the <see cref="PipelineStep"/> that will be created by this builder.
         /// </summary>
-        public PipelineStepBuilder OutputConfig(List<OutputConfig> outputConfig)
+        public PipelineStepBuilder OutputActions(List<OutputActionConfig> outputActions)
         {
-            this.outputConfig = outputConfig;
+            this.outputActions = outputActions;
             return this;
         }
 
@@ -614,14 +590,14 @@ public sealed class PipelineStep : IPipelineStep
                 throw new InvalidOperationException("displayName is required to build a PipelineStep.");
             if (inputs == null)
                 throw new InvalidOperationException("inputs is required to build a PipelineStep.");
-            if (outputConfig == null)
-                throw new InvalidOperationException("outputConfig is required to build a PipelineStep.");
+            if (outputActions == null)
+                throw new InvalidOperationException("outputActions is required to build a PipelineStep.");
             if (process == null)
                 throw new InvalidOperationException("process is required to build a PipelineStep.");
             if (logger == null)
                 throw new InvalidOperationException("logger is required to build a PipelineStep.");
 
-            return new PipelineStep(id, displayName, inputs, outputConfig, stepConditions, process, pipelineDirectory, resourcesDirectory, logger);
+            return new PipelineStep(id, displayName, inputs, outputActions, stepConditions, process, pipelineDirectory, resourcesDirectory, logger);
         }
     }
 }

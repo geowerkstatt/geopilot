@@ -127,11 +127,13 @@ public class ProcessingRunner : BackgroundService
         var usedDownloadNames = new HashSet<string>(StringComparer.Ordinal);
         var usedVisualizationNames = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var (outputName, output) in stepResult.Outputs)
+        foreach (var outputAction in step.OutputActions)
         {
-            if (output.Action.Contains(OutputAction.Download))
+            var data = stepResult.ExtractProperty(outputAction.Property);
+
+            if (outputAction.Actions.Contains(OutputAction.Download))
             {
-                foreach (var transferFile in ResolveFiles(output.Data))
+                foreach (var transferFile in ResolveFiles(data))
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedDownloadNames);
                     CopyTo(downloadFileStore, jobId, fileName, transferFile);
@@ -139,14 +141,14 @@ public class ProcessingRunner : BackgroundService
                 }
             }
 
-            if (output.Action.Contains(OutputAction.Visualization))
+            if (outputAction.Actions.Contains(OutputAction.Visualization))
             {
                 // The visualization output value is the config object itself (not a file): serialize it to JSON
                 // in the dedicated visualization store. The frontend fetches it and renders the component the
                 // config's own type discriminator selects.
-                var originalFileName = $"{outputName}.json";
+                var originalFileName = $"{outputAction.Property}.json";
                 var fileName = MakeUniqueStepFileName(stepIdPrefix, originalFileName, usedVisualizationNames);
-                SerializeVisualization(visualizationFileStore, jobId, fileName, output.Data);
+                SerializeVisualization(visualizationFileStore, jobId, fileName, data);
                 step.AddVisualization(new StepVisualization(originalFileName, fileName));
             }
         }
@@ -173,12 +175,14 @@ public class ProcessingRunner : BackgroundService
             var stepIdPrefix = step.Id.SanitizeFileName();
             var usedNames = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var output in stepResult.Outputs.Values)
+            foreach (var outputAction in step.OutputActions)
             {
-                if (!output.Action.Contains(OutputAction.Delivery))
+                if (!outputAction.Actions.Contains(OutputAction.Delivery))
                     continue;
 
-                foreach (var transferFile in ResolveFiles(output.Data))
+                var data = stepResult.ExtractProperty(outputAction.Property);
+
+                foreach (var transferFile in ResolveFiles(data))
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
                     CopyTo(assetFileStore, pipeline.JobId, fileName, transferFile);
