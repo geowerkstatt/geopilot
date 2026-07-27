@@ -1,6 +1,7 @@
-﻿using System.Text.RegularExpressions;
+﻿using Geopilot.PipelineCore.Pipeline;
+using System.Text.RegularExpressions;
 
-namespace Geopilot.PipelineCore.Pipeline;
+namespace Geopilot.Pipeline;
 
 /// <summary>
 /// Filtering helpers for a sequence of <see cref="IPipelineFile"/>. They work on any file collection
@@ -8,7 +9,7 @@ namespace Geopilot.PipelineCore.Pipeline;
 /// <see cref="IPipelineFile"/>), so a process can filter its files regardless of how they were wired
 /// into its run method parameter.
 /// </summary>
-public static class PipelineFileFilters
+internal static class PipelineFileFilters
 {
     /// <summary>
     /// Filters the files to those whose extension matches one of <paramref name="extensions"/>.
