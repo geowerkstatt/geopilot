@@ -63,6 +63,7 @@ const MandateDetail = () => {
       setMandate({
         id: 0,
         name: "",
+        description: {},
         isPublic: false,
         allowDelivery: false,
         organisations: [],
@@ -104,6 +105,15 @@ const MandateDetail = () => {
         </Typography>
         <FormContainer>
           <FormInput fieldName={"name"} label={"name"} value={mandate?.name} required={true} />
+        </FormContainer>
+        <FormContainer>
+          <FormInput
+            fieldName={"description.de"}
+            label={"descriptionText"}
+            value={mandate?.description?.de}
+            multiline={true}
+            rows={3}
+          />
         </FormContainer>
         <FormContainer>
           <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
