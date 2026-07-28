@@ -16,6 +16,8 @@ MODEL SimpleModel
 
     CLASS ClassA =
       Name: MANDATORY TEXT*8;
+
+      MANDATORY CONSTRAINT NameMinLength: INTERLIS.len(Name) > 2;
     END ClassA;
 
     CLASS Point =

@@ -3,6 +3,7 @@ using Geopilot.PipelineCore.Ilitools;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace Geopilot.Pipeline.Test.Ilitools;
@@ -12,8 +13,16 @@ namespace Geopilot.Pipeline.Test.Ilitools;
 /// </summary>
 [TestClass]
 [TestCategory("Integration")]
-public class Ili2GpkgClientIntegrationTest
+public partial class Ili2GpkgClientIntegrationTest
 {
+    private const string DatasetName = "TestDataset";
+
+    private enum InterlisVersion
+    {
+        Ili2_3,
+        Ili2_4,
+    }
+
     public TestContext TestContext { get; set; }
 
     private GrpcChannel grpcChannel;
@@ -40,7 +49,10 @@ public class Ili2GpkgClientIntegrationTest
         var gpkgFile = GetTestPipelineFile("schema_import.gpkg");
         DeleteIfExists(gpkgFile);
 
-        var args = new Ili2GpkgArgs();
+        var args = new Ili2GpkgArgs
+        {
+            CreateBasketCol = true, // required for update
+        };
         var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, gpkgFile, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
@@ -80,7 +92,10 @@ public class Ili2GpkgClientIntegrationTest
         var transferFile = GetTestPipelineFile("transfer.xtf");
         DeleteIfExists(outputFile);
 
-        var args = new Ili2GpkgArgs();
+        var args = new Ili2GpkgArgs
+        {
+            Dataset = DatasetName, // required for update
+        };
         var result = await ili2GpkgClient.ImportAsync(args, inputFile, outputFile, [transferFile], TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
@@ -132,13 +147,102 @@ public class Ili2GpkgClientIntegrationTest
         Assert.IsNotEmpty(result.Log);
         Assert.IsTrue(result.Success, "Export failed. Log: " + result.Log);
 
-        using var stream = transferFile.OpenReadFileStream();
-        Assert.IsGreaterThan(0, stream.Length, "Resulting XTF file is empty.");
+        await AssertIsInterlisTransferAsync(transferFile, InterlisVersion.Ili2_4);
+    }
 
-        var document = await XDocument.LoadAsync(stream, LoadOptions.None, TestContext.CancellationToken);
-        Assert.IsNotNull(document.Root, "Root element of the XTF file is null.");
-        Assert.AreEqual("transfer", document.Root.Name.LocalName);
-        Assert.AreEqual("http://www.interlis.ch/xtf/2.4/INTERLIS", document.Root.Name.NamespaceName);
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task UpdateAsync()
+    {
+        var inputFile = GetTestPipelineFile("data.gpkg");
+        var outputFile = GetTestPipelineFile("update.gpkg");
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        DeleteIfExists(outputFile);
+
+        var args = new Ili2GpkgArgs
+        {
+            Dataset = DatasetName,
+        };
+        var result = await ili2GpkgClient.UpdateAsync(args, inputFile, outputFile, [transferFile], TestContext.CancellationToken);
+
+        Assert.IsNotNull(result);
+        Assert.IsNotNull(result.Log);
+        Assert.IsNotEmpty(result.Log);
+        Assert.IsTrue(result.Success, "Update failed. Log: " + result.Log);
+
+        using var inputFileStream = inputFile.OpenReadFileStream();
+        using var outputFileStream = outputFile.OpenReadFileStream();
+        Assert.IsGreaterThan(0, outputFileStream.Length, "Resulting GPKG file is empty.");
+        Assert.IsGreaterThanOrEqualTo(inputFileStream.Length, outputFileStream.Length, "Resulting GPKG file is smaller than the input file.");
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task UpdateAsyncFailsWithoutTransferFiles()
+    {
+        var inputFile = GetTestPipelineFile("data.gpkg");
+        var outputFile = GetTestPipelineFile("update_invalid.gpkg");
+        DeleteIfExists(outputFile);
+
+        var args = new Ili2GpkgArgs
+        {
+            Dataset = DatasetName,
+        };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ili2GpkgClient.UpdateAsync(args, inputFile, outputFile, [], TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+        Assert.IsFalse(File.Exists(outputFile.GetLocalPath()), "GPKG file should not have been created.");
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ValidateAsync()
+    {
+        var inputFile = GetTestPipelineFile("data.gpkg");
+        var xtfLogFile = GetTestPipelineFile("log_success.xtf");
+        DeleteIfExists(xtfLogFile);
+
+        var args = new Ili2GpkgArgs
+        {
+            Models = ["SimpleModel"],
+        };
+
+        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, TestContext.CancellationToken);
+
+        Assert.IsNotNull(result);
+        Assert.IsNotNull(result.Log);
+        Assert.IsNotEmpty(result.Log);
+        Assert.IsTrue(result.Success, "Validation failed. Log: " + result.Log);
+
+        await AssertIsInterlisTransferAsync(xtfLogFile, InterlisVersion.Ili2_3);
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncCreatesXtfLogOnError()
+    {
+        var inputFile = GetTestPipelineFile("data_error.gpkg"); // contains a name that is too short
+        var xtfLogFile = GetTestPipelineFile("log_error.xtf");
+        DeleteIfExists(xtfLogFile);
+
+        var args = new Ili2GpkgArgs
+        {
+            Models = ["SimpleModel"],
+        };
+
+        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, TestContext.CancellationToken);
+
+        Assert.IsNotNull(result);
+        Assert.IsNotNull(result.Log);
+        Assert.IsNotEmpty(result.Log);
+        Assert.IsFalse(result.Success, "Validation should have failed. Log: " + result.Log);
+        Assert.MatchesRegex(MandatoryConstraintErrorRegex(), result.Log);
+
+        await AssertIsInterlisTransferAsync(xtfLogFile, InterlisVersion.Ili2_3);
     }
 
     private void DeleteIfExists(PipelineFile file)
@@ -153,4 +257,24 @@ public class Ili2GpkgClientIntegrationTest
     {
         return new PipelineFile(Path.Combine("TestData", "Ilitools", name), name);
     }
+
+    private async Task AssertIsInterlisTransferAsync(PipelineFile transferFile, InterlisVersion version)
+    {
+        using var stream = transferFile.OpenReadFileStream();
+        Assert.IsGreaterThan(0, stream.Length, "Resulting XTF file is empty.");
+
+        var document = await XDocument.LoadAsync(stream, LoadOptions.None, TestContext.CancellationToken);
+        Assert.IsNotNull(document.Root, "Root element of the XTF file is null.");
+
+        var expectedName = version switch
+        {
+            InterlisVersion.Ili2_4 => XNamespace.Get("http://www.interlis.ch/xtf/2.4/INTERLIS") + "transfer",
+            InterlisVersion.Ili2_3 => XNamespace.Get("http://www.interlis.ch/INTERLIS2.3") + "TRANSFER",
+            _ => throw new ArgumentOutOfRangeException(nameof(version), version, null),
+        };
+        Assert.AreEqual(expectedName, document.Root.Name);
+    }
+
+    [GeneratedRegex("^Error:.+? Mandatory Constraint SimpleModel\\.Testdata\\.ClassA\\.NameMinLength", RegexOptions.Multiline)]
+    private static partial Regex MandatoryConstraintErrorRegex();
 }
