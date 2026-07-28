@@ -823,6 +823,57 @@ public class PipelineStepTest
         Assert.AreEqual("Fertig.", message["de"]);
     }
 
+    [TestMethod]
+    public async Task PostConditionMessageIsMergedWithProcessStatusMessage()
+    {
+        // The process emits its own StatusMessage output and a post-fail condition matches with its own
+        // message. Both must survive: the condition message is merged onto the process message, not
+        // substituted for it.
+        var result = new MockMultiOutputResult
+        {
+            FirstFile = "boom",
+            Status = new Dictionary<string, string> { ["de"] = "Fertig.", ["en"] = "Done." },
+        };
+        var outputActions = new List<OutputActionConfig>
+        {
+            new OutputActionConfig { Property = "Status", Actions = new HashSet<OutputAction> { OutputAction.StatusMessage } },
+        };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Post = new PipelineStepPostConditionConfig
+            {
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.FirstFile] == 'boom'",
+                        Message = new Dictionary<string, string> { ["de"] = "Post-Bedingung fehlgeschlagen.", ["en"] = "Post-condition failed." },
+                    },
+                },
+            },
+        };
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions(outputActions)
+            .StepConditions(stepConditions)
+            .Process(new MockMultiOutputProcess(result))
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(ContextWith(), CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
+
+        var message = pipelineStep.StatusMessage;
+        Assert.IsNotNull(message);
+        Assert.AreEqual("Done. - Post-condition failed.", message["en"]);
+        Assert.AreEqual("Fertig. - Post-Bedingung fehlgeschlagen.", message["de"]);
+    }
+
     private PipelineStep BuildBareStep() =>
         PipelineStep
             .Builder()

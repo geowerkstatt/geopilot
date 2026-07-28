@@ -94,13 +94,13 @@ internal static class PipelineExtensions
             var currentStepResult = stepResultKeyValuePair.Value;
             if (!string.IsNullOrEmpty(currentStepId) && currentStepResult != null)
             {
-                expressionParameters = AppendExpressionParameters(expressionParameters, currentStepId, currentStepResult);
+                expressionParameters = AppendExpressionParameters(expressionParameters, currentStepId, currentStepResult.Result);
             }
         }
 
         if (stepId != null && stepResult != null)
         {
-            expressionParameters = AppendExpressionParameters(expressionParameters, stepId, stepResult);
+            expressionParameters = AppendExpressionParameters(expressionParameters, stepId, stepResult.Result);
         }
 
         return expressionParameters;
@@ -109,17 +109,17 @@ internal static class PipelineExtensions
     private static Dictionary<string, object?> AppendExpressionParameters(
         Dictionary<string, object?> src,
         string stepId,
-        StepResult stepResult)
+        object? result)
     {
         var cpy = new Dictionary<string, object?>(src);
-        if (stepResult.Result is null)
+        if (result is null)
             return cpy;
 
-        foreach (var property in stepResult.Result.GetType().GetProperties())
+        foreach (var property in result.GetType().GetProperties())
         {
             if (property.CanRead && property.GetIndexParameters().Length == 0)
             {
-                cpy[ToParameterKey(stepId, property.Name)] = property.GetValue(stepResult.Result);
+                cpy[ToParameterKey(stepId, property.Name)] = property.GetValue(result);
             }
         }
 

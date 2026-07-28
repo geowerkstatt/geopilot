@@ -130,8 +130,6 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
     {
         if (allSteps != null)
         {
-            // Outputs are implicit now, so we only validate that the referenced step exists and
-            // runs before the current one, not that the referenced property exists.
             return allSteps
                 .TakeWhile(s => currentStepId != null ? s.Id != currentStepId : true)
                 .Any(s => s.Id == stepId);

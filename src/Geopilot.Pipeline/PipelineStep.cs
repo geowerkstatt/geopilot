@@ -37,7 +37,7 @@ public sealed class PipelineStep : IPipelineStep
     public IReadOnlyDictionary<string, InputValue> Inputs { get; }
 
     /// <inheritdoc/>
-    public List<OutputActionConfig> OutputActions { get; }
+    public IReadOnlyList<OutputActionConfig> OutputActions { get; }
 
     /// <inheritdoc/>
     public PipelineStepConditionsConfig? StepConditions { get; }
@@ -159,7 +159,7 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"failed due to post-condition.");
-                    statusMessage = MergeConditionMessages(postFailConditions);
+                    statusMessage = CombineStatusMessages([statusMessage, MergeConditionMessages(postFailConditions)]);
                 }
                 else
                 {
@@ -274,28 +274,23 @@ public sealed class PipelineStep : IPipelineStep
         return matched;
     }
 
-    private LocalizedText? ExtractStatusMessage(StepResult stepResult)
+    private LocalizedText? ExtractStatusMessage(StepResult stepResult) =>
+        CombineStatusMessages(OutputActions
+            .Where(outputAction => outputAction.Actions.Contains(OutputAction.StatusMessage))
+            .Select(outputAction => NormalizeStatusMessage(stepResult.ExtractProperty(outputAction.Property))));
+
+    /// <summary>
+    /// Combines status messages from different sources into a single localized text, dropping absent
+    /// (<see langword="null"/>) parts and joining the remainder per language with " - ". Returns
+    /// <see langword="null"/> when nothing remains.
+    /// </summary>
+    private static LocalizedText? CombineStatusMessages(IEnumerable<LocalizedText?> messages)
     {
-        var messages = new List<LocalizedText>();
-
-        foreach (var outputAction in OutputActions)
-        {
-            if (!outputAction.Actions.Contains(OutputAction.StatusMessage))
-                continue;
-
-            var prop = stepResult.Result?.GetType().GetProperty(outputAction.Property);
-            if (prop is null || !prop.CanRead)
-                continue;
-
-            var message = NormalizeStatusMessage(prop.GetValue(stepResult.Result));
-            if (message is not null)
-                messages.Add(message);
-        }
-
-        if (messages.Count == 0)
+        var present = messages.Where(message => message is not null).Cast<LocalizedText>().ToList();
+        if (present.Count == 0)
             return null;
 
-        return LocalizedText.Merge(messages, " - ");
+        return LocalizedText.Merge(present, " - ");
     }
 
     /// <summary>
@@ -314,10 +309,14 @@ public sealed class PipelineStep : IPipelineStep
         _ => null,
     };
 
-    private static LocalizedText MergeConditionMessages(List<ConditionConfig> conditions) =>
-        LocalizedText.Merge(
-            conditions.Where(c => c.Message is not null).Select(c => c.Message!),
-            ", ");
+    private static LocalizedText? MergeConditionMessages(List<ConditionConfig> conditions)
+    {
+        var messages = conditions.Where(c => c.Message is not null).Select(c => c.Message!).ToList();
+        if (messages.Count == 0)
+            return null;
+
+        return LocalizedText.Merge(messages, ", ");
+    }
 
     private MethodInfo GetProcessRunMethod()
     {

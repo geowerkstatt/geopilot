@@ -9,8 +9,6 @@ internal sealed class NoDuplicatesAttribute : ValidationAttribute
 
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
-        // An absent (null) collection has no duplicates. This matters for optional collections such
-        // as StepConfig.Output, which is null when a step declares no output_actions.
         if (value is null)
         {
             return ValidationResult.Success;

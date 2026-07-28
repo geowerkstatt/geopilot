@@ -26,7 +26,7 @@ public interface IPipelineStep : IDisposable
     /// <summary>
     /// The output actions for this step: which result properties are tagged with which actions.
     /// </summary>
-    List<OutputActionConfig> OutputActions { get; }
+    IReadOnlyList<OutputActionConfig> OutputActions { get; }
 
     /// <summary>
     /// Gets the configuration settings that define the conditions under which the pipeline step is executed, skiped or failed.

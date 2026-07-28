@@ -155,6 +155,20 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public void ExtractStepDownloadsIgnoresStepThatDidNotRun()
+    {
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+        var step = BuildBareStep("step_1", OutputAction.Download, OutputAction.Visualization);
+        var stepResult = new StepResult();
+
+        runner.ExtractStepDownloads(jobId, step, stepResult);
+
+        Assert.IsEmpty(step.Downloads);
+        Assert.IsEmpty(step.Visualizations);
+    }
+
+    [TestMethod]
     public void ExtractDeliveryFilesWritesDeliveryFileToAssetStoreOnly()
     {
         var jobId = NewJob();

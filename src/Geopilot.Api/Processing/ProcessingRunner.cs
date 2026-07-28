@@ -116,6 +116,10 @@ public class ProcessingRunner : BackgroundService
     /// </summary>
     internal void ExtractStepDownloads(Guid jobId, IPipelineStep step, StepResult stepResult)
     {
+        // A skipped or pre-failed step produces no process result
+        if (stepResult.Result is null)
+            return;
+
         using var scope = serviceScopeFactory.CreateScope();
         var downloadFileStore = scope.ServiceProvider.GetRequiredService<IDownloadFileStore>();
         var visualizationFileStore = scope.ServiceProvider.GetRequiredService<IVisualizationFileStore>();

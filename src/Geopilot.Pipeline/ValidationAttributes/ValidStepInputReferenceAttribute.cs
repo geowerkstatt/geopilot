@@ -67,10 +67,6 @@ internal sealed class ValidStepInputReferenceAttribute : ValidationAttribute
 
     private static bool HasEarlierStep(InputValue.StepOutputReference reference, string currentStepId, List<StepConfig> allSteps)
     {
-        // Outputs are implicit now (every public result property is available), so we only
-        // validate that the referenced step exists and runs before the current one. Whether
-        // the referenced property actually exists on the process result type is checked closer
-        // to where the process type is resolved.
         return allSteps
             .TakeWhile(s => s.Id != currentStepId)
             .Any(s => s.Id == reference.StepId);
