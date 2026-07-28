@@ -17,6 +17,7 @@
 - A pipeline step `input` value can reference the uploaded delivery files with `${upload()}`, so a pipeline definition can wire the upload to a process parameter explicitly.
 - Pipeline processes can use an `IIli2GpkgClient` from `GeoWerkstatt.Geopilot.PipelineCore` to run ili2gpkg operations using an [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) service.
 - Mandates can have a description. The description is shown to the users when they choose a mandate before processing.
+- Pipeline steps can end in a `Warning` state through a post `warn_conditions` list: the step ran and reported issues but the pipeline continues, shown with a warning icon in the delivery view. The built-in XTF validation pipelines mark the validation step as a warning when the validation was not successful.
 
 ### Removed
 

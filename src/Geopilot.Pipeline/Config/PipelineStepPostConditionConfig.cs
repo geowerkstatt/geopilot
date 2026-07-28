@@ -16,4 +16,12 @@ public class PipelineStepPostConditionConfig
     /// </summary>
     [YamlMember(Alias = "fail_conditions")]
     public List<ConditionConfig>? FailConditions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the list of conditions that mark the step with a warning after execution. If no fail
+    /// condition matched and any warn condition evaluates to <see langword="true"/>, the step is marked as
+    /// a warning and the pipeline continues.
+    /// </summary>
+    [YamlMember(Alias = "warn_conditions")]
+    public List<ConditionConfig>? WarnConditions { get; set; }
 }

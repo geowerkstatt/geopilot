@@ -32,6 +32,11 @@ public class PipelineTest
     [DataRow(ProcessingState.Running, new[] { StepState.Success, StepState.Pending }, DisplayName = "success and running steps (edge case)")]
     [DataRow(ProcessingState.Success, new[] { StepState.Success, StepState.Success }, DisplayName = "all steps success")]
     [DataRow(ProcessingState.Success, new[] { StepState.Success, StepState.Skipped, StepState.Success }, DisplayName = "all steps success or skipped")]
+    [DataRow(ProcessingState.Success, new[] { StepState.Success, StepState.Warning }, DisplayName = "warning is folded into success")]
+    [DataRow(ProcessingState.Success, new[] { StepState.Warning, StepState.Skipped }, DisplayName = "warning and skipped is success")]
+    [DataRow(ProcessingState.Failed, new[] { StepState.Warning, StepState.Error }, DisplayName = "error wins over warning")]
+    [DataRow(ProcessingState.Running, new[] { StepState.Warning, StepState.Running }, DisplayName = "warning and running is running")]
+    [DataRow(ProcessingState.Running, new[] { StepState.Warning, StepState.Pending }, DisplayName = "warning mid-run stays running")]
     public void ProcessingStateTest(ProcessingState expectedState, IEnumerable<StepState> stepStates)
     {
         var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };

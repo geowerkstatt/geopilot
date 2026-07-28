@@ -19,6 +19,7 @@ const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
   StepState.Error,
   StepState.Cancelled,
   StepState.Skipped,
+  StepState.Warning,
 ]);
 
 export const DeliveryProcessingResults = () => {

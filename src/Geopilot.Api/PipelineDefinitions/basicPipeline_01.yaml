@@ -67,6 +67,9 @@ pipelines:
                   en: "Exactly one XTF file must be uploaded."
                   fr: "Exactement un fichier XTF doit être téléchargé."
                   it: "Deve essere caricato esattamente un file XTF."
+          post:
+            warn_conditions:
+              - expression: "!([validation.ValidationSuccessful])"
         process_config_overwrites:
         input:
           iliFile: "${step_output(xtf_matching.XtfFiles)}"

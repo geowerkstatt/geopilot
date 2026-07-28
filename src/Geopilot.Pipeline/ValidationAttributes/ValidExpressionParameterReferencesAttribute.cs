@@ -70,6 +70,12 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
                 errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Step-Post-Fail-Condition"));
         }
 
+        if (stepToValidate.Conditions?.Post?.WarnConditions != null)
+        {
+            foreach (var condition in stepToValidate.Conditions.Post.WarnConditions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Step-Post-Warn-Condition"));
+        }
+
         return errorMessages;
     }
 

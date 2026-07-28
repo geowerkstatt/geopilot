@@ -533,6 +533,109 @@ public class PipelineStepTest
     }
 
     [TestMethod]
+    public async Task StepShouldWarnBecauseOfPostCondition()
+    {
+        var inputs = SingleUploadInput();
+        var outputConfigs = SingleOutputConfig();
+        var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Post = new PipelineStepPostConditionConfig()
+            {
+                WarnConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.my_output] == 'some_data'",
+                        Message = new Dictionary<string, string>
+                        {
+                            { "de", "Warnung aus Post-Bedingung." },
+                            { "en", "Post-condition warning." },
+                        },
+                    },
+                },
+            },
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputConfig(outputConfigs)
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Warning, pipelineStep.State);
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_post_warn_condition"), "StepResult should contain a status_message output.");
+        var statusOutput = stepResult.Outputs["my_step_status_message_post_warn_condition"];
+        Assert.IsTrue(statusOutput.Action != null && statusOutput.Action.Contains(OutputAction.StatusMessage));
+        var message = statusOutput.Data as LocalizedText;
+        Assert.IsNotNull(message);
+        Assert.AreEqual("Post-condition warning.", message["en"]);
+        Assert.AreEqual("Warnung aus Post-Bedingung.", message["de"]);
+    }
+
+    [TestMethod]
+    public async Task StepShouldFailWhenPostFailAndWarnConditionsBothMatch()
+    {
+        var inputs = SingleUploadInput();
+        var outputConfigs = SingleOutputConfig();
+        var pipelineContext = ContextWith(("upload", "xtf_file", "some_data"));
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Post = new PipelineStepPostConditionConfig()
+            {
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.my_output] == 'some_data'",
+                        Message = new Dictionary<string, string> { { "en", "Failed." } },
+                    },
+                },
+                WarnConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.my_output] == 'some_data'",
+                        Message = new Dictionary<string, string> { { "en", "Warned." } },
+                    },
+                },
+            },
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputConfig(outputConfigs)
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Error, pipelineStep.State, "A matching fail condition must win over a matching warn condition.");
+        Assert.IsTrue(stepResult.Outputs.ContainsKey("my_step_status_message_post_fail_condition"));
+        Assert.IsFalse(stepResult.Outputs.ContainsKey("my_step_status_message_post_warn_condition"), "Warn message must not be attached when the step fails.");
+    }
+
+    [TestMethod]
     public async Task StepShouldFailWithMultiplePreFailConditionsAndConcatenatedMessages()
     {
         var inputs = SingleUploadInput();

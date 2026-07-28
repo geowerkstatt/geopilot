@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { Box, CircularProgress, Stack, Tooltip, Typography } from "@mui/material";
 import { StepState } from "../../../api/apiInterfaces";
 import { geopilotTheme } from "../../../appTheme";
@@ -21,6 +22,7 @@ const stateTranslationKey: Record<StepState, string> = {
   [StepState.Success]: "stepStateFinished",
   [StepState.Error]: "stepStateFailed",
   [StepState.Cancelled]: "stepStateCancelled",
+  [StepState.Warning]: "stepStateWarning",
 };
 
 const renderIcon = (state: StepState, index: number): ReactElement => {
@@ -30,6 +32,13 @@ const renderIcon = (state: StepState, index: number): ReactElement => {
         <CheckCircleOutlineIcon
           sx={{ fontSize: ICON_SIZE, color: geopilotTheme.palette.primary.main }}
           data-cy="processing-step-icon-success"
+        />
+      );
+    case StepState.Warning:
+      return (
+        <WarningAmberIcon
+          sx={{ fontSize: ICON_SIZE, color: geopilotTheme.palette.warning.main }}
+          data-cy="processing-step-icon-warning"
         />
       );
     case StepState.Error:

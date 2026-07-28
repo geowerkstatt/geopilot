@@ -97,6 +97,7 @@ export enum StepState {
   Success = "success",
   Error = "error",
   Cancelled = "cancelled",
+  Warning = "warning",
 }
 
 interface StepDownload {

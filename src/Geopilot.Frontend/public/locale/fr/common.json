@@ -137,6 +137,7 @@
   "stepStatePending": "En attente",
   "stepStateRunning": "En cours",
   "stepStateSkipped": "Ignoré",
+  "stepStateWarning": "Avertissement",
   "termsOfUseAcceptance": "J'accepte les <termsLink>conditions d'utilisation</termsLink>.",
   "treeErrorCountFiltered_one": "{{shown}} sur {{count}} erreur affichée",
   "treeErrorCountFiltered_other": "{{shown}} sur {{count}} erreurs affichées",

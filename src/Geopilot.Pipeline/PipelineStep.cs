@@ -163,8 +163,18 @@ public sealed class PipelineStep : IPipelineStep
                 }
                 else
                 {
-                    this.State = StepState.Success;
-                    logger.LogInformation($"run successfull.");
+                    var postWarnConditions = await this.FindMatchingWarnConditions(this.StepConditions.Post, context, stepResult);
+                    if (postWarnConditions.Count > 0)
+                    {
+                        this.State = StepState.Warning;
+                        logger.LogInformation($"completed with warnings due to post-condition.");
+                        statusMessage = CombineStatusMessages([statusMessage, MergeConditionMessages(postWarnConditions)]);
+                    }
+                    else
+                    {
+                        this.State = StepState.Success;
+                        logger.LogInformation($"run successfull.");
+                    }
                 }
             }
             else
@@ -278,6 +288,22 @@ public sealed class PipelineStep : IPipelineStep
         CombineStatusMessages(OutputActions
             .Where(outputAction => outputAction.Actions.Contains(OutputAction.StatusMessage))
             .Select(outputAction => NormalizeStatusMessage(stepResult.ExtractProperty(outputAction.Property))));
+
+    private async Task<List<ConditionConfig>> FindMatchingWarnConditions(PipelineStepPostConditionConfig? condition, PipelineContext context, StepResult stepResult)
+    {
+        var matched = new List<ConditionConfig>();
+        if (condition?.WarnConditions != null)
+        {
+            var expressionParameters = context.ToExpressionParameters(this.Id, stepResult);
+            foreach (var warnCondition in condition.WarnConditions)
+            {
+                if (await this.conditionEvaluator.EvaluateConditionAsync(warnCondition.Expression, expressionParameters))
+                    matched.Add(warnCondition);
+            }
+        }
+
+        return matched;
+    }
 
     /// <summary>
     /// Combines status messages from different sources into a single localized text, dropping absent
