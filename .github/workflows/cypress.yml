@@ -4,6 +4,7 @@ on: [push]
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   cypress-run:
@@ -27,6 +28,9 @@ jobs:
 
       - name: Start db and api's
         run: docker compose -f docker-compose.yml -f docker-compose.cypress.yml up --wait
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cypress run
         uses: cypress-io/github-action@v7

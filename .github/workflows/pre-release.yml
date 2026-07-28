@@ -63,6 +63,9 @@ jobs:
           build-args: |
             APP_VERSION=${{ env.VERSION }}
             REVISION=${{ env.REVISION }}
+            GITHUB_ACTOR=${{ github.actor }}
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           sbom: true

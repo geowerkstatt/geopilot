@@ -27,6 +27,7 @@
     <PackageReference Include="NCalc.Core" Version="6.2.0" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.7" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="Geowerkstatt.IlitoolsWrapperApi" Version="1.0.2-preview" />
   </ItemGroup>
 
   <ItemGroup>
