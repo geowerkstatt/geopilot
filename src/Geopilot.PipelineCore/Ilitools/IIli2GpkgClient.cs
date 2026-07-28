@@ -51,4 +51,34 @@ public interface IIli2GpkgClient
         IPipelineFile gpkgFile,
         IPipelineFile transferFile,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates the data in the GeoPackage file <paramref name="inputFile"/> with the INTERLIS transfer files <paramref name="transferFiles"/>.
+    /// </summary>
+    /// <param name="args">Additional ili2gpkg arguments.</param>
+    /// <param name="inputFile">Input GeoPackage file.</param>
+    /// <param name="outputFile">Output GeoPackage file for a successful update.</param>
+    /// <param name="transferFiles">INTERLIS transfer files for the updated data.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
+    Task<Ili2GpkgResult> UpdateAsync(
+        Ili2GpkgArgs args,
+        IPipelineFile inputFile,
+        IPipelineFile outputFile,
+        IReadOnlyList<IPipelineFile> transferFiles,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Validates the data in the GeoPackage file <paramref name="gpkgFile"/>.
+    /// </summary>
+    /// <param name="args">Additional ili2gpkg arguments.</param>
+    /// <param name="gpkgFile">GeoPackage file to validate data from.</param>
+    /// <param name="xtfLogFile">File to write the xtf validation log to.</param>
+    /// <param name="cancellationToken">Token to cancel the operation.</param>
+    /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
+    Task<Ili2GpkgResult> ValidateAsync(
+        Ili2GpkgArgs args,
+        IPipelineFile gpkgFile,
+        IPipelineFile xtfLogFile,
+        CancellationToken cancellationToken = default);
 }
