@@ -3,7 +3,7 @@ using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 
-namespace Api;
+namespace Geopilot.Api;
 
 /// <summary>
 /// Provides extension methods for mapping domain models to DTOs.

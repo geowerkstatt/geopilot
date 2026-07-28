@@ -1,5 +1,4 @@
-﻿using Api;
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
