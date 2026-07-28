@@ -2,6 +2,7 @@
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.DependencyInjection;
@@ -111,6 +112,11 @@ public class ProcessingRunnerTest
         public object? Output { get; init; }
     }
 
+    private sealed class TestVisualizationConfig
+    {
+        public string Data { get; init; }
+    }
+
     [TestMethod]
     public void ExtractStepDownloadsWritesDownloadFileToDownloadStoreOnly()
     {
@@ -136,8 +142,8 @@ public class ProcessingRunnerTest
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
         var step = BuildBareStep("step_1", OutputAction.Visualization);
-        var config = new { type = "map", layers = Array.Empty<object>() };
-        var stepResult = ObjectStepResult(config);
+        Visualization<TestVisualizationConfig> visualization = new("testViz", new TestVisualizationConfig { Data = "Hello World." });
+        var stepResult = ObjectStepResult(visualization);
 
         runner.ExtractStepDownloads(jobId, step, stepResult);
 
@@ -150,7 +156,7 @@ public class ProcessingRunnerTest
         Assert.IsEmpty(step.Downloads);
 
         var json = File.ReadAllText(visualizationStore.GetPath(jobId, persisted.PersistedFileName));
-        StringAssert.Contains(json, "\"type\":\"map\"");
+        StringAssert.Contains(json, "{\"data\":\"Hello World.\"}");
     }
 
     [TestMethod]
