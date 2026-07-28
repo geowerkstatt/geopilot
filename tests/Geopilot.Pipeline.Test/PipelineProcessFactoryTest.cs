@@ -1,7 +1,9 @@
 ﻿using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.XtfValidation;
 using Geopilot.Pipeline.Test.Processes;
+using Geopilot.PipelineCore.Ilitools;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -14,6 +16,7 @@ public class PipelineProcessFactoryTest
 {
     private Mock<ILogger<PipelineProcessFactory>> loggerMock;
     private Mock<ILoggerFactory> loggerFactoryMock;
+    private Mock<IOptions<IlitoolsOptions>> ilitoolsOptionsMock;
 
     [TestInitialize]
     public void Initialize()
@@ -21,6 +24,8 @@ public class PipelineProcessFactoryTest
         loggerMock = new Mock<ILogger<PipelineProcessFactory>>();
         loggerFactoryMock = new Mock<ILoggerFactory>();
         loggerFactoryMock.Setup(lf => lf.CreateLogger(It.IsAny<string>())).Returns(loggerMock.Object);
+        ilitoolsOptionsMock = new Mock<IOptions<IlitoolsOptions>>();
+        ilitoolsOptionsMock.SetupGet(o => o.Value).Returns(new IlitoolsOptions { IlitoolsWrapperAddress = "http://localhost:5555" });
     }
 
     [TestMethod(DisplayName = "Create Process With List Config")]
@@ -67,7 +72,7 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
+        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
         var stepConfig = new StepConfig()
@@ -163,7 +168,7 @@ public class PipelineProcessFactoryTest
                 },
                 new Parameterization() { },
                 new Parameterization() { },
-                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", null, 123, null, 123.456, null, true, null, Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>())
+                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", null, 123, null, 123.456, null, true, null, Mock.Of<IIli2GpkgClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>())
             ];
             yield return [
                 "default config with mandatory fields",
@@ -176,7 +181,7 @@ public class PipelineProcessFactoryTest
                     { "mandatoryBoolean", "true" },
                 },
                 new Parameterization() { },
-                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", null, 123, null, 123.456, null, true, null, Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
+                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", null, 123, null, 123.456, null, true, null, Mock.Of<IIli2GpkgClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
             ];
             yield return [
                 "default config with mandatory fields overwritten in overwrite config",
@@ -195,7 +200,7 @@ public class PipelineProcessFactoryTest
                     { "mandatoryDouble", "456.789" },
                     { "mandatoryBoolean", "false" },
                 },
-                new ManyDifferentInitialzationAttributesTestProcess("overwritten mandatory string value", null, 456, null, 456.789, null, false, null, Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
+                new ManyDifferentInitialzationAttributesTestProcess("overwritten mandatory string value", null, 456, null, 456.789, null, false, null, Mock.Of<IIli2GpkgClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
             ];
             yield return [
                 "default config with all fields",
@@ -212,7 +217,7 @@ public class PipelineProcessFactoryTest
                     { "optionalBoolean", "true" },
                 },
                 new Parameterization() { },
-                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", "optional string value", 123, 234, 345.678, 456.789, true, true, Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
+                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", "optional string value", 123, 234, 345.678, 456.789, true, true, Mock.Of<IIli2GpkgClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
             ];
         }
     }
@@ -242,7 +247,7 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
+        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
         var stepConfig = new StepConfig()
@@ -275,6 +280,7 @@ public class PipelineProcessFactoryTest
         Assert.IsNotNull(process, "Process should be created");
 
         var logger = process.GetType().GetProperty("Logger")?.GetValue(process);
+        var ili2GpkgClient = process.GetType().GetProperty("Ili2GpkgClient")?.GetValue(process);
         var mandatoryString = process.GetType().GetProperty("MandatoryString")?.GetValue(process);
         var optionalString = process.GetType().GetProperty("OptionalString")?.GetValue(process);
         var mandatoryInt = process.GetType().GetProperty("MandatoryInt")?.GetValue(process);
@@ -285,11 +291,12 @@ public class PipelineProcessFactoryTest
         var optionalBoolean = process.GetType().GetProperty("OptionalBoolean")?.GetValue(process);
 
         Assert.IsNotNull(logger, "Logger not defined");
+        Assert.IsInstanceOfType<IIli2GpkgClient>(ili2GpkgClient, "Ili2GpkgClient not injected");
         Assert.AreEqual(expected.MandatoryString, mandatoryString, "Mandatory String not as expected");
         Assert.AreEqual(expected.OptionalString, optionalString, "Optional String not as expected");
         Assert.AreEqual(expected.MandatoryInt, mandatoryInt, "Mandatory Int not as expected");
         Assert.AreEqual(expected.OptionalInt, optionalInt, "Optional Int not as expected");
-        Assert.AreEqual(expected.MandatoryDouble, mandatoryDouble, "Mandator yDouble not as expected");
+        Assert.AreEqual(expected.MandatoryDouble, mandatoryDouble, "Mandatory Double not as expected");
         Assert.AreEqual(expected.OptionalDouble, optionalDouble, "Optional Double not as expected");
         Assert.AreEqual(expected.MandatoryBoolean, mandatoryBoolean, "Mandatory Boolean not as expected");
         Assert.AreEqual(expected.OptionalBoolean, optionalBoolean, "Optional Boolean not as expected");
@@ -387,7 +394,7 @@ public class PipelineProcessFactoryTest
         };
         var pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
         pipelineOptionsMock.SetupGet(o => o.Value).Returns(pipelineOptions);
-        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, loggerFactoryMock.Object);
+        using var pipelineProcessFactory = new PipelineProcessFactory(pipelineOptionsMock.Object, ilitoolsOptionsMock.Object, loggerFactoryMock.Object);
 
         // Set up StepConfig and ProcessConfig
         var stepConfig = new StepConfig()

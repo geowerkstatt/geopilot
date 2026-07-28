@@ -1,10 +1,13 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Geopilot.PipelineCore.Ilitools;
+using Microsoft.Extensions.Logging;
 
 namespace Geopilot.Pipeline.Test.Processes;
 
 public class ManyDifferentInitialzationAttributesTestProcess
 {
     public ILogger? Logger { get; set; }
+
+    public IIli2GpkgClient? Ili2GpkgClient { get; set; }
 
     public string MandatoryString { get; set; }
 
@@ -31,9 +34,11 @@ public class ManyDifferentInitialzationAttributesTestProcess
         double? optionalDouble,
         bool mandatoryBoolean,
         bool? optionalBoolean,
+        IIli2GpkgClient ili2GpkgClient,
         ILogger logger)
     {
         this.Logger = logger;
+        this.Ili2GpkgClient = ili2GpkgClient;
         this.MandatoryString = mandatoryString;
         this.OptionalString = optionalString;
         this.MandatoryInt = mandatoryInt;

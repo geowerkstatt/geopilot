@@ -3,7 +3,6 @@ import { DeliveryBackButton, DeliveryContinueButton } from "../deliveryButtons";
 import { DeliveryContent } from "../deliveryContent";
 import { DeliveryContext } from "../deliveryContext";
 import { isProcessingDeliverable } from "../deliveryUtils";
-import { DeliveryProcessingLoading } from "./deliveryProcessingLoading";
 import { DeliveryProcessingResults } from "./deliveryProcessingResults";
 
 export const DeliveryProcessing = () => {
@@ -19,7 +18,6 @@ export const DeliveryProcessing = () => {
 
   return (
     <DeliveryContent title="processing" buttons={buttons}>
-      {isProcessing && <DeliveryProcessingLoading />}
       {hasSteps && <DeliveryProcessingResults />}
     </DeliveryContent>
   );

@@ -1,0 +1,11 @@
+name: 'GitHub NuGet Login'
+description: 'Authenticates the github-geowerkstatt NuGet source against GitHub Packages, uses the GITHUB_TOKEN environment variable on restore'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Authenticate to GitHub Packages
+      shell: bash
+      run: dotnet nuget update source github-geowerkstatt --username "$USERNAME" --password "%GITHUB_TOKEN%" --store-password-in-clear-text
+      env:
+        USERNAME: ${{ github.actor }}

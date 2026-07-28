@@ -3,13 +3,37 @@ using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 
-namespace Api;
+namespace Geopilot.Api;
 
 /// <summary>
 /// Provides extension methods for mapping domain models to DTOs.
 /// </summary>
 internal static class DtoMapperExtensions
 {
+    /// <summary>
+    /// Id of the synthetic preflight step that always leads the reported steps.
+    /// </summary>
+    internal const string PreflightStepId = "preflight";
+
+    private static readonly LocalizedText PreflightStepName = new(new Dictionary<string, string>
+    {
+        ["de"] = "Vorbereitung",
+        ["en"] = "Preparation",
+        ["fr"] = "Préparation",
+        ["it"] = "Preparazione",
+    });
+
+    /// <summary>
+    /// Message shown when preflight fails. <c>{jobId}</c> is replaced with the job id so support can trace the run.
+    /// </summary>
+    private static readonly LocalizedText PreflightFailedMessageTemplate = new(new Dictionary<string, string>
+    {
+        ["de"] = "Beim Starten der Verarbeitung ist ein Fehler aufgetreten. Möglicherweise liegt ein Problem mit den hochgeladenen Dateien oder ein Serverfehler vor. Bitte versuchen Sie es später erneut und benachrichtigen Sie den Support, falls das Problem weiterhin besteht. Referenz für den Support: {jobId}.",
+        ["en"] = "An error occurred while starting the processing. This may be caused by a problem with the uploaded files or by a server error. Please try again later and notify support if the problem persists. Reference for support: {jobId}.",
+        ["fr"] = "Une erreur s'est produite lors du démarrage du traitement. Cela peut être dû à un problème avec les fichiers téléversés ou à une erreur du serveur. Veuillez réessayer plus tard et contacter le support si le problème persiste. Référence pour le support: {jobId}.",
+        ["it"] = "Si è verificato un errore durante l'avvio dell'elaborazione. Potrebbe essere dovuto a un problema con i file caricati o a un errore del server. Riprova più tardi e contatta il supporto se il problema persiste. Riferimento per il supporto: {jobId}.",
+    });
+
     /// <summary>
     /// Maps a <see cref="ProcessingJob"/> to a <see cref="ProcessingJobResponse"/>.
     /// </summary>
@@ -20,10 +44,11 @@ internal static class DtoMapperExtensions
     {
         var pipelineName = job.Pipeline?.DisplayName ?? LocalizedText.Empty;
 
-        var steps = job.Pipeline?.Steps
-            .Select(step => step.ToResponse(job.Id, buildDownloadUrl, buildVisualizationUrl))
-            .ToList()
-            ?? new List<StepResultResponse>();
+        var steps = new List<StepResultResponse> { BuildPreflightStep(job) };
+        if (job.Pipeline != null)
+        {
+            steps.AddRange(job.Pipeline.Steps.Select(step => step.ToResponse(job.Id, buildDownloadUrl, buildVisualizationUrl)));
+        }
 
         return new ProcessingJobResponse(
             job.Id,
@@ -33,6 +58,44 @@ internal static class DtoMapperExtensions
             steps,
             job.Pipeline?.DeliveryRestrictionMessage);
     }
+
+    /// <summary>
+    /// Builds the synthetic preflight step that always leads the reported steps. When preflight failed a
+    /// generic status message is attached so the user sees that preparation, not a pipeline step, failed.
+    /// </summary>
+    private static StepResultResponse BuildPreflightStep(ProcessingJob job)
+    {
+        var state = DerivePreflightState(job);
+        var statusMessage = state == StepState.Error
+            ? PreflightFailedMessageTemplate.Map(text => text.Replace("{jobId}", job.Id.ToString(), StringComparison.Ordinal))
+            : null;
+
+        return new StepResultResponse(
+            PreflightStepId,
+            PreflightStepName,
+            state,
+            statusMessage,
+            Downloads: new List<StepDownload>(),
+            Visualizations: new List<StepVisualizationResponse>());
+    }
+
+    /// <summary>
+    /// Derives the preflight step's state from the job's lifecycle. Preflight runs while the job is still
+    /// pending and succeeds once the pipeline has been started (the job left the pending state). A failure
+    /// counts as a preflight failure only when the pipeline never started; a failure that occurs once the
+    /// pipeline is running is attributed to the pipeline itself, so preflight is reported as succeeded.
+    /// </summary>
+    private static StepState DerivePreflightState(ProcessingJob job) => job.State switch
+    {
+        ProcessingState.Pending => StepState.Running,
+        ProcessingState.Running => StepState.Success,
+        ProcessingState.Success => StepState.Success,
+        ProcessingState.Cancelled => StepState.Success,
+        ProcessingState.Failed => job.Pipeline is null || job.Pipeline.State == ProcessingState.Pending
+            ? StepState.Error
+            : StepState.Success,
+        _ => StepState.Pending,
+    };
 
     /// <summary>
     /// Maps a single <see cref="IPipelineStep"/> to a <see cref="StepResultResponse"/>.

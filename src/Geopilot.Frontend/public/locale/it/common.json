@@ -120,8 +120,6 @@
   "precursor": "Precursore",
   "privacyPolicy": "Informativa sulla privacy",
   "processing": "Elaborazione",
-  "processingIsBeingPrepared": "L'elaborazione è in fase di preparazione...",
-  "processingIsRunning": "Il file è in fase di elaborazione con {{pipeline}}...",
   "public": "Pubblico",
   "removeFile": "Rimuovi file",
   "removeLayer": "Rimuovi livello",
