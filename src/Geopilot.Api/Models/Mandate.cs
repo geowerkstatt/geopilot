@@ -23,6 +23,11 @@ public class Mandate
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// The localized description of the mandate.
+    /// </summary>
+    public LocalizedText Description { get; set; } = LocalizedText.Empty;
+
+    /// <summary>
     /// Indicates whether the mandate is public or restricted.
     /// Public mandates can be accessed by anyone, even not logged in users.
     /// Non-public, restricted mandates can only be accessed by logged in users that are part of an organisation listed in the mandates organisations.
