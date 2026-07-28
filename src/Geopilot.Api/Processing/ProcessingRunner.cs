@@ -1,8 +1,10 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -137,6 +139,13 @@ public class ProcessingRunner : BackgroundService
 
             if (outputAction.Actions.Contains(OutputAction.Download))
             {
+                if (!(data is IPipelineFile || data is IEnumerable<IPipelineFile>))
+                {
+                    var errorMessage = $"job <{jobId}>, step <{step.Id}>: Download output action references property <{outputAction.Property}>. this has to be a IPipelineFile or a IEnumerable<IPipelineFile> but is <{data?.GetType()}>";
+                    logger.LogError(errorMessage);
+                    throw new PipelineRunException(errorMessage);
+                }
+
                 foreach (var transferFile in ResolveFiles(data))
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedDownloadNames);
@@ -147,6 +156,13 @@ public class ProcessingRunner : BackgroundService
 
             if (outputAction.Actions.Contains(OutputAction.Visualization))
             {
+                if (data is not IVisualization)
+                {
+                    var errorMessage = $"job <{jobId}>, step <{step.Id}>: Visualization output action references property <{outputAction.Property}>. this has to be a IVisualization but is <{data?.GetType()}>";
+                    logger.LogError(errorMessage);
+                    throw new PipelineRunException(errorMessage);
+                }
+
                 // The visualization output value is the config object itself (not a file): serialize it to JSON
                 // in the dedicated visualization store. The frontend fetches it and renders the component the
                 // config's own type discriminator selects.

@@ -223,7 +223,7 @@ public sealed class PipelineStep : IPipelineStep
         PropertyInfo? prop = resultTask.GetType().GetProperty(nameof(Task<object>.Result));
         var result = prop?.GetValue(resultTask)
             ?? throw new PipelineRunException($"The process <{Process.GetType().Name}> did not return a result.");
-        return CreateStepResult(result);
+        return new StepResult { Result = result };
     }
 
     private async Task<List<ConditionConfig>> FindMatchingSkipConditions(PipelineStepPreConditionConfig? condition, PipelineContext context)
@@ -443,31 +443,6 @@ public sealed class PipelineStep : IPipelineStep
     {
         var directory = this.pipelineDirectory;
         return directory is null ? file : new CopyOnWriteFile(file, directory, this.Id);
-    }
-
-    private StepResult CreateStepResult(object outputProcessData)
-    {
-        var resultType = outputProcessData.GetType();
-        foreach (var outputAction in OutputActions)
-        {
-            var prop = resultType.GetProperty(outputAction.Property);
-            if (prop is null || !prop.CanRead)
-            {
-                var errorMessage = $"Output action references property <{outputAction.Property}>, which is not a readable property of the result of process <{Process.GetType().Name}>. This error should not occur. Please consolidate the pipeline validation logic.";
-                logger.LogError(errorMessage);
-                throw new PipelineRunException(errorMessage);
-            }
-
-            var processDataPart = prop.GetValue(outputProcessData);
-            if (outputAction.Actions.Contains(OutputAction.Visualization) && processDataPart is not IVisualization)
-            {
-                var visualizationError = $"Output <{outputAction.Property}> of process <{Process.GetType().Name}> is tagged as a visualization, but its value is <{processDataPart?.GetType().Name ?? "null"}> and not a Visualization<T> envelope. Build it with VisualizationFactory.";
-                logger.LogError(visualizationError);
-                throw new PipelineRunException(visualizationError);
-            }
-        }
-
-        return new StepResult { Result = outputProcessData };
     }
 
     /// <summary>
