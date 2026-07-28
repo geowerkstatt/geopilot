@@ -120,8 +120,6 @@
   "precursor": "Prédécesseur",
   "privacyPolicy": "Politique de confidentialité",
   "processing": "Traitement",
-  "processingIsBeingPrepared": "Le traitement est en cours de préparation...",
-  "processingIsRunning": "Le fichier est en cours de traitement avec {{pipeline}}...",
   "public": "Public",
   "removeFile": "Supprimer le fichier",
   "removeLayer": "Supprimer la couche",

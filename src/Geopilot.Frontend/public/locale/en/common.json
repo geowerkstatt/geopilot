@@ -120,8 +120,6 @@
   "precursor": "Precursor",
   "privacyPolicy": "Privacy policy",
   "processing": "Processing",
-  "processingIsBeingPrepared": "Processing is being prepared...",
-  "processingIsRunning": "The file is being processed with {{pipeline}}...",
   "public": "Public",
   "removeFile": "Remove file",
   "removeLayer": "Remove layer",

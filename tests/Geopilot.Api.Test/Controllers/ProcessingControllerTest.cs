@@ -73,6 +73,8 @@ public sealed class ProcessingControllerTest
         Assert.AreEqual(jobId, jobResponse.JobId);
         Assert.AreEqual(mandateId, jobResponse.MandateId);
         Assert.AreEqual(ProcessingState.Pending, jobResponse.State);
+        Assert.HasCount(1, jobResponse.Steps);
+        Assert.AreEqual(DtoMapperExtensions.PreflightStepId, jobResponse.Steps[0].Id);
     }
 
     [TestMethod]
