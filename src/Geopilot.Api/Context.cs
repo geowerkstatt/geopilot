@@ -115,10 +115,8 @@ public class Context : DbContext
             .HasQueryFilter(a => !a.Deleted);
 
         var localizedTextConverter = new ValueConverter<LocalizedText, string>(
-            localizedText => JsonSerializer.Serialize(localizedText.ToDictionary(), (JsonSerializerOptions?)null),
-            json => new LocalizedText(
-                JsonSerializer.Deserialize<Dictionary<string, string>>(json, (JsonSerializerOptions?)null)
-                ?? new Dictionary<string, string>()));
+            localizedText => JsonSerializer.Serialize(localizedText, (JsonSerializerOptions?)null),
+            json => JsonSerializer.Deserialize<LocalizedText>(json, (JsonSerializerOptions?)null) ?? LocalizedText.Empty);
 
         var localizedTextComparer = new ValueComparer<LocalizedText>(
             (left, right) => object.Equals(left, right),
