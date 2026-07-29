@@ -90,8 +90,8 @@ export const DeliveryStepper = () => {
             open={isOpen(index)}
             error={!!step.error}
             warning={!!step.warning}
-            enabled={isEnabled(index)}
-            onClick={() => onStepClick(index)}>
+            enabled={isEnabled(index) && !step.skipped}
+            onClick={step.skipped ? undefined : () => onStepClick(index)}>
             <StepperIcon
               index={index}
               open={isOpen(index)}
@@ -99,6 +99,7 @@ export const DeliveryStepper = () => {
               completed={isCompleted(index)}
               error={!!step.error}
               warning={!!step.warning}
+              skipped={!!step.skipped}
               isLoading={isLoading || isProcessing}
             />
             <Stack direction={{ xs: "row", md: "column" }} alignItems="baseline" sx={{ minWidth: "0" }}>
@@ -128,6 +129,11 @@ export const DeliveryStepper = () => {
               {!step.error && step.warning && (
                 <Typography variant="body2" color={isOpen(index) ? "textSecondary" : "warning.main"}>
                   {t(step.warning)}
+                </Typography>
+              )}
+              {!step.error && !step.warning && step.skipped && (
+                <Typography variant="body2" color="textSecondary">
+                  {t(step.skipped)}
                 </Typography>
               )}
             </Stack>

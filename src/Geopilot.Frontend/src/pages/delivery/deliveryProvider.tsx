@@ -147,6 +147,19 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     });
   }, []);
 
+  const setStepSkipped = useCallback((key: DeliveryStepEnum, skipped: string | undefined) => {
+    setSteps(prevSteps => {
+      const newSteps = new Map(prevSteps);
+      const step = newSteps.get(key);
+      if (step) {
+        step.skipped = skipped;
+        step.error = undefined;
+        step.warning = undefined;
+      }
+      return newSteps;
+    });
+  }, []);
+
   const addFiles = useCallback((newFiles: File[]) => {
     setSelectedFiles(prev => {
       const existingNames = new Set(prev.map(f => f.name));
@@ -274,18 +287,18 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         } else {
           setIsProcessing(false);
 
-          if (isProcessingDeliverable(response)) {
+          // The processing step reflects the pipeline status; the delivery step reflects deliverability.
+          if (response.state === ProcessingState.Failed || response.state === ProcessingState.Cancelled) {
+            setStepError(DeliveryStepEnum.Processing, response.state);
+          } else {
             markStepCompleted();
             if (response.state === ProcessingState.Warning) {
-              // Deliverable, but at least one step reported warnings.
               setStepWarning(DeliveryStepEnum.Processing, "completedWithWarnings");
             }
-          } else if (response.state === ProcessingState.Success || response.state === ProcessingState.Warning) {
-            // Pipeline completed (possibly with warnings) but a delivery restriction blocks delivery.
-            setStepError(DeliveryStepEnum.Processing, "deliveryNotPossible");
-          } else {
-            // ProcessingState.Failed or Cancelled: an unexpected error, distinct from a blocked delivery.
-            setStepError(DeliveryStepEnum.Processing, response.state);
+          }
+
+          if (!isProcessingDeliverable(response)) {
+            setStepSkipped(DeliveryStepEnum.Delivery, "deliveryNotPossible");
           }
         }
       })
@@ -384,6 +397,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         step.labelAddition = undefined;
         step.error = undefined;
         step.warning = undefined;
+        step.skipped = undefined;
       });
       return newSteps;
     });
