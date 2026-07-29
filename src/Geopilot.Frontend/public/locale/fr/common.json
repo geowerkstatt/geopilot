@@ -48,7 +48,6 @@
   "deliveryOverviewLoadingError": "Une erreur s'est produite lors du chargement des livraisons: {{error}}",
   "deliveryTitle": "Traitement en ligne de géodonnées",
   "description": "Description",
-  "descriptionText": "Description",
   "development": "Développement",
   "disconnect": "Déconnecter",
   "dragAndDrop": "glisser-déposer",

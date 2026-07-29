@@ -48,7 +48,6 @@
   "deliveryOverviewLoadingError": "An error occurred while loading the deliveries: {{error}}",
   "deliveryTitle": "Online processing of geodata",
   "description": "Description",
-  "descriptionText": "Description",
   "development": "Development",
   "disconnect": "Disconnect",
   "dragAndDrop": "drag and drop",

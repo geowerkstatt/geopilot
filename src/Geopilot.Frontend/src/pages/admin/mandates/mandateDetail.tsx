@@ -108,7 +108,7 @@ const MandateDetail = () => {
         <FormContainer>
           <FormInput
             fieldName={"description.de"}
-            label={"descriptionText"}
+            label={"description"}
             value={mandate?.description?.de}
             multiline={true}
             minRows={3}
