@@ -121,38 +121,22 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
         if (!Regex.IsMatch(parameterName, parameterPattern))
             return false;
 
-        var parameterParts = parameterName.Split(parameterSeparator);
-        var stepId = parameterParts[0];
-        var resultId = parameterParts[1];
+        var stepId = parameterName.Split(parameterSeparator)[0];
 
-        return IsValidStepOutputReference(stepId, resultId, currentStep?.Id, allSteps);
+        return IsValidStepOutputReference(stepId, currentStep?.Id, allSteps);
     }
 
-    private static bool IsValidStepOutputReference(string stepId, string take, string? currentStepId, List<StepConfig> allSteps)
+    private static bool IsValidStepOutputReference(string stepId, string? currentStepId, List<StepConfig> allSteps)
     {
         if (allSteps != null)
         {
             return allSteps
                 .TakeWhile(s => currentStepId != null ? s.Id != currentStepId : true)
-                .Any(s => s.Id == stepId && HasOutput(s.Output, take));
+                .Any(s => s.Id == stepId);
         }
         else
         {
             return false;
-        }
-    }
-
-    private static bool HasOutput(List<OutputConfig>? outputConfig, string take)
-    {
-        if (outputConfig != null)
-        {
-            return outputConfig.Any(o => o.As == take);
-        }
-        else
-        {
-            // we return true as the step has a required annotation on the output
-            // and we don't want to fail twice on the same issue (missing output reference)
-            return true;
         }
     }
 }

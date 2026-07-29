@@ -10,12 +10,10 @@ pipelines:
         display_name:
           en: XTF Validation
         process_id: xtf_validator
-        input:
-        output:
-          - take: ErrorLog
-            as: error
-            action:
-          - take: XtfLog
-            as: error
-            action:
-              - DOWNLOAD
+        output_actions:
+          - property: ErrorLog
+            actions:
+              - Download
+          - property: ErrorLog
+            actions:
+              - Delivery

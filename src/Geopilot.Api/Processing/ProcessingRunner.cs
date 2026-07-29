@@ -1,8 +1,10 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -116,6 +118,10 @@ public class ProcessingRunner : BackgroundService
     /// </summary>
     internal void ExtractStepDownloads(Guid jobId, IPipelineStep step, StepResult stepResult)
     {
+        // A skipped or pre-failed step produces no process result
+        if (stepResult.Result is null)
+            return;
+
         using var scope = serviceScopeFactory.CreateScope();
         var downloadFileStore = scope.ServiceProvider.GetRequiredService<IDownloadFileStore>();
         var visualizationFileStore = scope.ServiceProvider.GetRequiredService<IVisualizationFileStore>();
@@ -127,11 +133,20 @@ public class ProcessingRunner : BackgroundService
         var usedDownloadNames = new HashSet<string>(StringComparer.Ordinal);
         var usedVisualizationNames = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var (outputName, output) in stepResult.Outputs)
+        foreach (var outputAction in step.OutputActions)
         {
-            if (output.Action.Contains(OutputAction.Download))
+            var data = stepResult.ExtractProperty(outputAction.Property);
+
+            if (outputAction.Actions.Contains(OutputAction.Download))
             {
-                foreach (var transferFile in ResolveFiles(output.Data))
+                if (!(data is IPipelineFile || data is IEnumerable<IPipelineFile>))
+                {
+                    var errorMessage = $"job <{jobId}>, step <{step.Id}>: Download output action references property <{outputAction.Property}>. this has to be a IPipelineFile or a IEnumerable<IPipelineFile> but is <{data?.GetType()}>";
+                    logger.LogError(errorMessage);
+                    throw new PipelineRunException(errorMessage);
+                }
+
+                foreach (var transferFile in ResolveFiles(data))
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedDownloadNames);
                     CopyTo(downloadFileStore, jobId, fileName, transferFile);
@@ -139,14 +154,21 @@ public class ProcessingRunner : BackgroundService
                 }
             }
 
-            if (output.Action.Contains(OutputAction.Visualization))
+            if (outputAction.Actions.Contains(OutputAction.Visualization))
             {
+                if (data is not IVisualization)
+                {
+                    var errorMessage = $"job <{jobId}>, step <{step.Id}>: Visualization output action references property <{outputAction.Property}>. this has to be a IVisualization but is <{data?.GetType()}>";
+                    logger.LogError(errorMessage);
+                    throw new PipelineRunException(errorMessage);
+                }
+
                 // The visualization output value is the config object itself (not a file): serialize it to JSON
                 // in the dedicated visualization store. The frontend fetches it and renders the component the
                 // config's own type discriminator selects.
-                var originalFileName = $"{outputName}.json";
+                var originalFileName = $"{outputAction.Property}.json";
                 var fileName = MakeUniqueStepFileName(stepIdPrefix, originalFileName, usedVisualizationNames);
-                SerializeVisualization(visualizationFileStore, jobId, fileName, output.Data);
+                SerializeVisualization(visualizationFileStore, jobId, fileName, data);
                 step.AddVisualization(new StepVisualization(originalFileName, fileName));
             }
         }
@@ -173,12 +195,14 @@ public class ProcessingRunner : BackgroundService
             var stepIdPrefix = step.Id.SanitizeFileName();
             var usedNames = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var output in stepResult.Outputs.Values)
+            foreach (var outputAction in step.OutputActions)
             {
-                if (!output.Action.Contains(OutputAction.Delivery))
+                if (!outputAction.Actions.Contains(OutputAction.Delivery))
                     continue;
 
-                foreach (var transferFile in ResolveFiles(output.Data))
+                var data = stepResult.ExtractProperty(outputAction.Property);
+
+                foreach (var transferFile in ResolveFiles(data))
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
                     CopyTo(assetFileStore, pipeline.JobId, fileName, transferFile);

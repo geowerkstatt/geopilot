@@ -24,9 +24,6 @@ pipelines:
         display_name:
           en: XTF Matching
         process_id: xtf_matcher
-        output:
-          - take: XtfFiles
-            as: xtf_files
       - id: validation
         display_name:
           en: XTF Validation
@@ -37,16 +34,6 @@ pipelines:
               - expression: "[zip_package_process.archive] != null"
         input:
           iliFile: "${step_output(xtf_matching.xtf_files)}"
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
-          - take: XtfLog
-            as: xtf_log
-            action:
-              - DOWNLOAD
-          - take: ValidationSuccessful
-            as: successful
       - id: zip_package
         display_name:
           en: Zip Package
@@ -56,8 +43,3 @@ pipelines:
             - "${step_output(validation.error_log)}"
             - "${step_output(validation.xtf_log)}"
             - "${step_output(xtf_matching.xtf_files)}"
-        output:
-          - take: ZipPackage
-            as: archive
-            action:
-              - DOWNLOAD

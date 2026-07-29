@@ -10,11 +10,3 @@ pipelines:
         display_name:
           en: XTF Validation
         input:
-        output:
-          - take: ErrorLog
-            as: error_log
-            action:
-          - take: XtfLog
-            as: xtf_log
-            action:
-              - DOWNLOAD
