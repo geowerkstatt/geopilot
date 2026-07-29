@@ -20,9 +20,11 @@ export interface DeliveryStepProps {
 export interface DeliveryStep {
   label: string;
   labelAddition?: string;
-  error?: string | LocalizedText;
+  // A string is an i18n key, a LocalizedText an already-localized message; `true` marks the error
+  // state (red) without a subtitle.
+  error?: string | LocalizedText | true;
   warning?: string;
-  skipped?: string;
+  skipped?: string | LocalizedText;
   content: (completed: boolean) => ReactNode;
 }
 
@@ -43,7 +45,7 @@ export interface DeliveryContextInterface {
   lastCompletedStep: number;
   activeStep: number;
   isActiveStep: (step: DeliveryStepEnum) => boolean;
-  setStepError: (key: DeliveryStepEnum, error: string | LocalizedText | undefined) => void;
+  setStepError: (key: DeliveryStepEnum, error: string | LocalizedText | true | undefined) => void;
   selectedFiles: File[];
   addFiles: (files: File[]) => void;
   removeFile: (file: File) => void;

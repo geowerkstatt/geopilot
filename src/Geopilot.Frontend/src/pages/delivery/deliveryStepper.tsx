@@ -123,7 +123,7 @@ export const DeliveryStepper = () => {
                     ))}
                 </Typography>
               )}
-              {step.error && (
+              {step.error && typeof step.error !== "boolean" && (
                 <Typography variant="body2" color={isOpen(index) ? "textSecondary" : "error"}>
                   {typeof step.error === "string" ? t(step.error) : localized(step.error)}
                 </Typography>
@@ -135,7 +135,7 @@ export const DeliveryStepper = () => {
               )}
               {!step.error && !step.warning && step.skipped && (
                 <Typography variant="body2" color="textSecondary">
-                  {t(step.skipped)}
+                  {typeof step.skipped === "string" ? t(step.skipped) : localized(step.skipped)}
                 </Typography>
               )}
             </Stack>

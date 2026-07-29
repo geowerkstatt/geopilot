@@ -125,7 +125,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     return activeStep === stepKeys.indexOf(step);
   };
 
-  const setStepError = useCallback((key: DeliveryStepEnum, error: string | LocalizedText | undefined) => {
+  const setStepError = useCallback((key: DeliveryStepEnum, error: string | LocalizedText | true | undefined) => {
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
       const step = newSteps.get(key);
@@ -148,7 +148,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     });
   }, []);
 
-  const setStepSkipped = useCallback((key: DeliveryStepEnum, skipped: string | undefined) => {
+  const setStepSkipped = useCallback((key: DeliveryStepEnum, skipped: string | LocalizedText | undefined) => {
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
       const step = newSteps.get(key);
@@ -295,15 +295,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
               setStepWarning(DeliveryStepEnum.Processing, "completedWithWarnings");
             }
           } else {
-            // Not deliverable is a dead end. The processing node turns red and carries the reason:
-            // the delivery-restriction message for a blocked success/warning, or the run's own
-            // failed/cancelled message. The delivery node states the outcome ("delivery not possible").
+            // Not deliverable is a dead end. A hard failure keeps its message on the processing node;
+            // a restriction-blocked run shows the reason on the delivery node and marks the processing
+            // node red without a message (interim, per Dominic/Roswita review).
             if (response.state === ProcessingState.Failed || response.state === ProcessingState.Cancelled) {
               setStepError(DeliveryStepEnum.Processing, response.state);
             } else {
-              setStepError(DeliveryStepEnum.Processing, response.deliveryRestrictionMessage ?? "deliveryNotPossible");
+              setStepError(DeliveryStepEnum.Processing, true);
             }
-            setStepSkipped(DeliveryStepEnum.Delivery, "deliveryNotPossible");
+            setStepSkipped(DeliveryStepEnum.Delivery, response.deliveryRestrictionMessage ?? "deliveryNotPossible");
           }
         }
       })

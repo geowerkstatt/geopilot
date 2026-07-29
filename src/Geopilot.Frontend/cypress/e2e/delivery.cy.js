@@ -150,10 +150,10 @@ describe("Delivery tests", () => {
     // Right results pane: the validation step shows the warning icon.
     cy.dataCy("processing-step-validation").dataCy("processing-step-icon-warning").should("exist");
 
-    // Left stepper: the processing node turns red and carries the delivery-restriction reason,
-    // while the delivery node is shown as skipped with "delivery not possible".
-    stepHasError("processing", true, "Delivery is not possible");
-    stepIsSkipped("delivery", true, "Delivery not possible");
+    // Left stepper: the processing node turns red without a message, while the delivery node is
+    // shown as skipped and carries the delivery-restriction reason.
+    cy.dataCy("processing-step").dataCy("stepper-error").should("exist");
+    stepIsSkipped("delivery", true, "Delivery is not possible");
   });
 
   it("displays error if no mandates were found", () => {
