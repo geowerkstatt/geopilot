@@ -163,6 +163,12 @@ export const geopilotTheme = createTheme({
           "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
             borderColor: themePalette.primary.main,
           },
+          "&.Mui-error:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: themePalette.error.dark,
+          },
+          "&.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: themePalette.error.dark,
+          },
         },
       },
     },
