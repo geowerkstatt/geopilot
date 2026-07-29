@@ -36,6 +36,8 @@ export const themePalette = {
     main: "#e53835",
     selected: "#e538352E",
     hover: "#e538350D",
+    dark: "#C62828",
+    light: "#EF5350",
   },
   map: {
     fill: "#e53835",

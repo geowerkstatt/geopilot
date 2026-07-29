@@ -14,6 +14,8 @@ export interface FormInputProps {
   type?: FormValueType;
   multiline?: boolean;
   rows?: number;
+  minRows?: number;
+  maxRows?: number;
   /** The default value in form-context mode, the controlled value when `onChange` is provided. */
   value?: string | number;
   sx?: SxProps;
@@ -38,6 +40,8 @@ export const FormInput: FC<FormInputProps> = ({
   type,
   multiline,
   rows,
+  minRows,
+  maxRows,
   value,
   sx,
   inputProps,
@@ -69,12 +73,13 @@ export const FormInput: FC<FormInputProps> = ({
         type={type || FormValueType.Text}
         multiline={multiline || false}
         rows={rows}
+        minRows={minRows}
+        maxRows={maxRows}
         label={t(label)}
         value={value ?? ""}
         onChange={e => onChange(e.target.value)}
         disabled={disabled || false}
         data-cy={dataCy ?? (fieldName ? fieldName + "-formInput" : undefined)}
-        InputLabelProps={{ shrink: true }}
         InputProps={{ ...inputProps }}
       />
     );
@@ -90,6 +95,8 @@ export const FormInput: FC<FormInputProps> = ({
       type={type || FormValueType.Text}
       multiline={multiline || false}
       rows={rows}
+      minRows={minRows}
+      maxRows={maxRows}
       label={t(label)}
       {...register(fieldName!, {
         required: required || false,
@@ -114,7 +121,6 @@ export const FormInput: FC<FormInputProps> = ({
       defaultValue={getDefaultValue(value)}
       disabled={disabled || false}
       data-cy={dataCy ?? fieldName + "-formInput"}
-      InputLabelProps={{ shrink: true }}
       InputProps={{ ...inputProps }}
     />
   );

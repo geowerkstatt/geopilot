@@ -3,6 +3,7 @@ using System;
 using Geopilot.Api;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Geopilot.Api.Migrations
 {
     [DbContext(typeof(Context))]
-    partial class ContextModelSnapshot : ModelSnapshot
+    [Migration("20260728144750_AddDescriptionToMandate")]
+    partial class AddDescriptionToMandate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -120,7 +123,7 @@ namespace Geopilot.Api.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("jsonb")
-                        .HasDefaultValueSql("jsonb_build_object()");
+                        .HasDefaultValueSql("'{}'::jsonb");
 
                     b.Property<string>("EvaluateComment")
                         .IsRequired()

@@ -8,29 +8,21 @@ namespace Geopilot.Api.Services;
 public class MandateService : IMandateService
 {
     private readonly Context context;
-    private readonly IPipelineService pipelineService;
     private readonly IUploadStore uploadStore;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MandateService"/> class.
     /// </summary>
-    public MandateService(Context context, IPipelineService pipelineService, IUploadStore uploadStore)
+    public MandateService(Context context, IUploadStore uploadStore)
     {
         this.context = context;
-        this.pipelineService = pipelineService;
         this.uploadStore = uploadStore;
     }
 
     /// <inheritdoc/>
     public async Task<List<Mandate>> GetMandatesAsync(User? user = null, Guid? uploadId = null)
     {
-        var mandates = await GetMandatesQuery(user, uploadId).ToListAsync();
-        foreach (var mandate in mandates)
-        {
-            LoadPipelineSteps(mandate);
-        }
-
-        return mandates;
+        return await GetMandatesQuery(user, uploadId).ToListAsync();
     }
 
     /// <inheritdoc/>
@@ -47,9 +39,7 @@ public class MandateService : IMandateService
             mandates = mandates.Where(m => m.IsPublic);
         }
 
-        var mandate = await mandates.SingleOrDefaultAsync(m => m.Id == mandateId);
-        LoadPipelineSteps(mandate);
-        return mandate;
+        return await mandates.SingleOrDefaultAsync(m => m.Id == mandateId);
     }
 
     /// <inheritdoc/>
@@ -101,17 +91,5 @@ public class MandateService : IMandateService
         }
 
         return mandates;
-    }
-
-    private void LoadPipelineSteps(Mandate? mandate)
-    {
-        if (mandate != null && !string.IsNullOrEmpty(mandate.PipelineId))
-        {
-            var pipeline = pipelineService.GetById(mandate.PipelineId);
-            if (pipeline != null)
-            {
-                mandate.PipelineSteps = pipeline.Steps.Select(s => s.DisplayName).ToList();
-            }
-        }
     }
 }

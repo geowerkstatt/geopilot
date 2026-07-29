@@ -34,6 +34,7 @@ export interface Coordinate {
 export interface Mandate {
   id: number;
   name: string;
+  description: LocalizedText;
   isPublic: boolean;
   allowDelivery: boolean;
   fileTypes: string[];
@@ -44,7 +45,6 @@ export interface Mandate {
   evaluatePartial?: FieldEvaluationType;
   evaluateComment?: FieldEvaluationType;
   pipelineId?: string;
-  pipelineSteps: Record<string, string>[];
 }
 
 export interface Organisation {

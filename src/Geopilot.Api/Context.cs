@@ -1,5 +1,9 @@
 ﻿using Geopilot.Api.Models;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System.Text.Json;
 
 namespace Geopilot.Api;
 
@@ -109,5 +113,20 @@ public class Context : DbContext
         modelBuilder.Entity<Asset>()
             .HasQueryFilter(a => !a.Delivery.Deleted)
             .HasQueryFilter(a => !a.Deleted);
+
+        var localizedTextConverter = new ValueConverter<LocalizedText, string>(
+            localizedText => JsonSerializer.Serialize(localizedText, (JsonSerializerOptions?)null),
+            json => JsonSerializer.Deserialize<LocalizedText>(json, (JsonSerializerOptions?)null) ?? LocalizedText.Empty);
+
+        var localizedTextComparer = new ValueComparer<LocalizedText>(
+            (left, right) => object.Equals(left, right),
+            localizedText => localizedText.GetHashCode(),
+            localizedText => localizedText);
+
+        modelBuilder.Entity<Mandate>()
+            .Property(mandate => mandate.Description)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("jsonb_build_object()")
+            .HasConversion(localizedTextConverter, localizedTextComparer);
     }
 }
