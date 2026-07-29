@@ -137,6 +137,39 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public void ExtractStepDownloadsWritesEachFileWhenDownloadOutputIsAFileCollection()
+    {
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+        var step = BuildBareStep("step_1", OutputAction.Download);
+        var files = new IPipelineFile[]
+        {
+            new PipelineFile(WriteTempFile("first_content"), "first.log"),
+            new PipelineFile(WriteTempFile("second_content"), "second.log"),
+        };
+
+        var stepResult = ObjectStepResult(files);
+
+        runner.ExtractStepDownloads(jobId, step, stepResult);
+
+        Assert.HasCount(2, step.Downloads);
+        var persistedFirst = step.Downloads[0];
+        var persistedSecond = step.Downloads[1];
+
+        Assert.AreEqual("first.log", persistedFirst.OriginalFileName);
+        Assert.AreEqual("step_1_first.log", persistedFirst.PersistedFileName);
+        Assert.AreEqual("second.log", persistedSecond.OriginalFileName);
+        Assert.AreEqual("step_1_second.log", persistedSecond.PersistedFileName);
+
+        Assert.IsTrue(downloadStore.Exists(jobId, persistedFirst.PersistedFileName));
+        Assert.IsTrue(downloadStore.Exists(jobId, persistedSecond.PersistedFileName));
+        Assert.IsFalse(assetStore.Exists(jobId, persistedFirst.PersistedFileName), "Download files must not be written to the asset store.");
+        Assert.IsFalse(assetStore.Exists(jobId, persistedSecond.PersistedFileName), "Download files must not be written to the asset store.");
+        Assert.AreEqual("first_content", File.ReadAllText(downloadStore.GetPath(jobId, persistedFirst.PersistedFileName)));
+        Assert.AreEqual("second_content", File.ReadAllText(downloadStore.GetPath(jobId, persistedSecond.PersistedFileName)));
+    }
+
+    [TestMethod]
     public void ExtractStepDownloadsWritesVisualizationToVisualizationStoreOnly()
     {
         var jobId = NewJob();
@@ -171,6 +204,54 @@ public class ProcessingRunnerTest
 
         Assert.IsEmpty(step.Downloads);
         Assert.IsEmpty(step.Visualizations);
+    }
+
+    [TestMethod]
+    public void ExtractStepDownloadsFailsWhenVisualizationOutputIsNotAnEnvelope()
+    {
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+        var step = BuildBareStep("step_1", OutputAction.Visualization);
+        var stepResult = ObjectStepResult("not a visualization");
+
+        var exception = Assert.ThrowsExactly<PipelineRunException>(() => runner.ExtractStepDownloads(jobId, step, stepResult));
+
+        Assert.Contains("Visualization", exception.Message);
+        Assert.IsEmpty(step.Visualizations);
+    }
+
+    [TestMethod]
+    public void ExtractStepDownloadsFailsWhenDownloadOutputIsNotAFile()
+    {
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+        var step = BuildBareStep("step_1", OutputAction.Download);
+        var stepResult = ObjectStepResult("not a file");
+
+        var exception = Assert.ThrowsExactly<PipelineRunException>(() => runner.ExtractStepDownloads(jobId, step, stepResult));
+
+        Assert.Contains("Download", exception.Message);
+        Assert.IsEmpty(step.Downloads);
+    }
+
+    [TestMethod]
+    public void ExtractStepDownloadsFailsWhenPropertyDoesNotExistOnResult()
+    {
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+
+        var step = PipelineStep
+            .Builder()
+            .Id("step_1")
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions([new OutputActionConfig { Property = "DoesNotExist", Actions = new HashSet<OutputAction> { OutputAction.Download } }])
+            .Process(new object())
+            .Logger(pipelineLogger)
+            .Build();
+        var stepResult = ObjectStepResult("some_data");
+
+        Assert.ThrowsExactly<ArgumentException>(() => runner.ExtractStepDownloads(jobId, step, stepResult));
     }
 
     [TestMethod]
