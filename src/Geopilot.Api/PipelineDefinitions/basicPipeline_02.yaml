@@ -75,6 +75,11 @@ pipelines:
           post:
             warn_conditions:
               - expression: "!([validation.ValidationSuccessful])"
+                message:
+                  de: "Die Validierung hat Fehler gefunden."
+                  en: "Validation found errors."
+                  fr: "La validation a détecté des erreurs."
+                  it: "La validazione ha rilevato errori."
         input:
           iliFile: "${step_output(xtf_matching.XtfFiles)}"
         output_actions:
@@ -159,6 +164,11 @@ pipelines:
           post:
             warn_conditions:
               - expression: "!([validation.ValidationSuccessful])"
+                message:
+                  de: "Die Validierung hat Fehler gefunden."
+                  en: "Validation found errors."
+                  fr: "La validation a détecté des erreurs."
+                  it: "La validazione ha rilevato errori."
         process_config_overwrites:
           validationProfile: null
         input:
@@ -267,6 +277,11 @@ pipelines:
           post:
             warn_conditions:
               - expression: "!([validation.ValidationSuccessful])"
+                message:
+                  de: "Die Validierung hat Fehler gefunden."
+                  en: "Validation found errors."
+                  fr: "La validation a détecté des erreurs."
+                  it: "La validazione ha rilevato errori."
         input:
           iliFile: "${step_output(xtf_matching.XtfFiles)}"
         output_actions:

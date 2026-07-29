@@ -51,6 +51,9 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public LocalizedText? StatusMessage { get; private set; }
 
+    /// <inheritdoc/>
+    public LocalizedText? ConditionMessage { get; private set; }
+
     private ImmutableList<PersistedFile> downloads = ImmutableList<PersistedFile>.Empty;
     private ImmutableList<PersistedFile> deliveryFiles = ImmutableList<PersistedFile>.Empty;
 
@@ -134,7 +137,7 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"step failed due to pre-condition.");
-                    this.StatusMessage = MergeConditionMessages(failConditions);
+                    this.ConditionMessage = MergeConditionMessages(failConditions);
                     return new StepResult();
                 }
 
@@ -143,7 +146,7 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Skipped;
                     logger.LogInformation($"step skipped due to pre-condition.");
-                    this.StatusMessage = MergeConditionMessages(skipConditions);
+                    this.ConditionMessage = MergeConditionMessages(skipConditions);
                     return new StepResult();
                 }
             }
@@ -159,7 +162,7 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"failed due to post-condition.");
-                    statusMessage = CombineStatusMessages([statusMessage, MergeConditionMessages(postFailConditions)]);
+                    this.ConditionMessage = MergeConditionMessages(postFailConditions);
                 }
                 else
                 {
@@ -168,7 +171,7 @@ public sealed class PipelineStep : IPipelineStep
                     {
                         this.State = StepState.Warning;
                         logger.LogInformation($"completed with warnings due to post-condition.");
-                        statusMessage = CombineStatusMessages([statusMessage, MergeConditionMessages(postWarnConditions)]);
+                        this.ConditionMessage = MergeConditionMessages(postWarnConditions);
                     }
                     else
                     {

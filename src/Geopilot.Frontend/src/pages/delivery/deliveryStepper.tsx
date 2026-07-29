@@ -33,16 +33,19 @@ const StepperStack = styled(Stack)({
 });
 
 const DeliveryStepBox = styled(GeopilotBox, {
-  shouldForwardProp: prop => prop !== "open" && prop !== "enabled" && prop !== "error",
+  shouldForwardProp: prop => prop !== "open" && prop !== "enabled" && prop !== "error" && prop !== "warning",
 })<{
   open: boolean;
   error: boolean;
+  warning: boolean;
   enabled: boolean;
-}>(({ open, enabled, error, theme }) => ({
+}>(({ open, enabled, error, warning, theme }) => ({
   backgroundColor: open
     ? error
       ? theme.palette.error.selected
-      : theme.palette.primary.states.selected
+      : warning
+        ? theme.palette.warning.selected
+        : theme.palette.primary.states.selected
     : theme.palette.background.content,
   alignItems: "flex-start",
   cursor: enabled ? "pointer" : "default",
@@ -86,6 +89,7 @@ export const DeliveryStepper = () => {
             direction="row"
             open={isOpen(index)}
             error={!!step.error}
+            warning={!!step.warning}
             enabled={isEnabled(index)}
             onClick={() => onStepClick(index)}>
             <StepperIcon
@@ -94,6 +98,7 @@ export const DeliveryStepper = () => {
               enabled={isEnabled(index)}
               completed={isCompleted(index)}
               error={!!step.error}
+              warning={!!step.warning}
               isLoading={isLoading || isProcessing}
             />
             <Stack direction={{ xs: "row", md: "column" }} alignItems="baseline" sx={{ minWidth: "0" }}>
@@ -118,6 +123,11 @@ export const DeliveryStepper = () => {
               {step.error && (
                 <Typography variant="body2" color={isOpen(index) ? "textSecondary" : "error"}>
                   {t(step.error)}
+                </Typography>
+              )}
+              {!step.error && step.warning && (
+                <Typography variant="body2" color={isOpen(index) ? "textSecondary" : "warning.main"}>
+                  {t(step.warning)}
                 </Typography>
               )}
             </Stack>

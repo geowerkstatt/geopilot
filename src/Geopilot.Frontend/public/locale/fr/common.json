@@ -21,6 +21,7 @@
   "collapseLayerGroup": "Réduire le groupe de couches",
   "comment": "Commentaire",
   "completedWithErrors": "Terminé avec des erreurs",
+  "completedWithWarnings": "Terminé avec des avertissements",
   "contentNotFound": "Oups, rien n'a été trouvé!",
   "continue": "Continuer",
   "copied": "Copié",

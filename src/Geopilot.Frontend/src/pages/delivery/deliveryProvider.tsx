@@ -135,6 +135,18 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     });
   }, []);
 
+  const setStepWarning = useCallback((key: DeliveryStepEnum, warning: string | undefined) => {
+    setSteps(prevSteps => {
+      const newSteps = new Map(prevSteps);
+      const step = newSteps.get(key);
+      if (step) {
+        step.warning = warning;
+        step.error = undefined;
+      }
+      return newSteps;
+    });
+  }, []);
+
   const addFiles = useCallback((newFiles: File[]) => {
     setSelectedFiles(prev => {
       const existingNames = new Set(prev.map(f => f.name));
@@ -264,11 +276,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
           if (isProcessingDeliverable(response)) {
             markStepCompleted();
-          } else if (response.state === ProcessingState.Success) {
-            // Pipeline succeeded but delivery is blocked (e.g. delivery restriction matched).
-            setStepError(DeliveryStepEnum.Processing, "completedWithErrors");
+            if (response.state === ProcessingState.Warning) {
+              // Deliverable, but at least one step reported warnings.
+              setStepWarning(DeliveryStepEnum.Processing, "completedWithWarnings");
+            }
+          } else if (response.state === ProcessingState.Success || response.state === ProcessingState.Warning) {
+            // Pipeline completed (possibly with warnings) but a delivery restriction blocks delivery.
+            setStepError(DeliveryStepEnum.Processing, "deliveryNotPossible");
           } else {
-            // ProcessingState.Failed or Cancelled.
+            // ProcessingState.Failed or Cancelled: an unexpected error, distinct from a blocked delivery.
             setStepError(DeliveryStepEnum.Processing, response.state);
           }
         }
@@ -367,6 +383,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       newSteps.forEach(step => {
         step.labelAddition = undefined;
         step.error = undefined;
+        step.warning = undefined;
       });
       return newSteps;
     });

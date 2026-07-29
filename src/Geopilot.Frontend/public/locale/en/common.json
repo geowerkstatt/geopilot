@@ -21,6 +21,7 @@
   "collapseLayerGroup": "Collapse layer group",
   "comment": "Comment",
   "completedWithErrors": "Completed with errors",
+  "completedWithWarnings": "Completed with warnings",
   "contentNotFound": "Oops, nothing found!",
   "continue": "Continue",
   "copied": "Copied",

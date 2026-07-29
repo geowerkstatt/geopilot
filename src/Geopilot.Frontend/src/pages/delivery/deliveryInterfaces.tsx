@@ -21,6 +21,7 @@ export interface DeliveryStep {
   label: string;
   labelAddition?: string;
   error?: string;
+  warning?: string;
   content: (completed: boolean) => ReactNode;
 }
 

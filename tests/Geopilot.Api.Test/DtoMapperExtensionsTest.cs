@@ -47,6 +47,7 @@ public class DtoMapperExtensionsTest
     [DataRow(ProcessingState.Pending, ProcessingState.Pending, StepState.Running)]
     [DataRow(ProcessingState.Running, ProcessingState.Running, StepState.Success)]
     [DataRow(ProcessingState.Success, ProcessingState.Success, StepState.Success)]
+    [DataRow(ProcessingState.Warning, ProcessingState.Warning, StepState.Success)]
     [DataRow(ProcessingState.Cancelled, ProcessingState.Cancelled, StepState.Success)]
     [DataRow(ProcessingState.Failed, ProcessingState.Pending, StepState.Error)]
     [DataRow(ProcessingState.Failed, ProcessingState.Failed, StepState.Success)]

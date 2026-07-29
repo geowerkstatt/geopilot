@@ -9,10 +9,11 @@ interface StepperIconProps {
   enabled?: boolean;
   completed?: boolean;
   error?: boolean;
+  warning?: boolean;
   isLoading?: boolean;
 }
 
-export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, completed, error, isLoading }) => {
+export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, completed, error, warning, isLoading }) => {
   const theme = useTheme();
 
   return (
@@ -22,6 +23,8 @@ export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, comple
       {...(open ? { "data-cy": "active" } : {})}>
       {error ? (
         <WarningIcon color="error" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-error" />
+      ) : warning ? (
+        <WarningIcon color="warning" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-warning" />
       ) : (
         <>
           <Stack

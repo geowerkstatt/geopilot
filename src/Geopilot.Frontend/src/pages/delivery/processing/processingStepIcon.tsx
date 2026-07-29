@@ -11,6 +11,7 @@ import { geopilotTheme } from "../../../appTheme";
 interface ProcessingStepIconProps {
   state: StepState;
   index: number;
+  message?: string;
 }
 
 const ICON_SIZE = 28;
@@ -102,10 +103,10 @@ const renderIcon = (state: StepState, index: number): ReactElement => {
   }
 };
 
-export const ProcessingStepIcon: FC<ProcessingStepIconProps> = ({ state, index }) => {
+export const ProcessingStepIcon: FC<ProcessingStepIconProps> = ({ state, index, message }) => {
   const { t } = useTranslation();
   return (
-    <Tooltip title={t(stateTranslationKey[state])} arrow>
+    <Tooltip title={message ?? t(stateTranslationKey[state])} arrow>
       <Box sx={{ display: "inline-flex" }}>{renderIcon(state, index)}</Box>
     </Tooltip>
   );

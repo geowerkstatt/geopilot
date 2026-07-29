@@ -64,7 +64,12 @@ public sealed class Pipeline : IPipeline
             {
                 return ProcessingState.Running;
             }
-            else if (stepStates.All(s => s == StepState.Success || s == StepState.Skipped || s == StepState.Warning))
+            else if (stepStates.Contains(StepState.Warning)
+                && stepStates.All(s => s == StepState.Success || s == StepState.Skipped || s == StepState.Warning))
+            {
+                return ProcessingState.Warning;
+            }
+            else if (stepStates.All(s => s == StepState.Success || s == StepState.Skipped))
             {
                 return ProcessingState.Success;
             }

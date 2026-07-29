@@ -62,7 +62,7 @@ public class DeliveryController : ControllerBase
             logger.LogTrace("No job information available for job with id <{JobId}>.", declaration.JobId);
             return NotFound($"No job information available for job with id <{declaration.JobId}>");
         }
-        else if (job.Pipeline?.State != ProcessingState.Success || job.Pipeline.Delivery != PipelineDelivery.Allow)
+        else if (job.Pipeline is null || !job.Pipeline.State.IsDeliverable() || job.Pipeline.Delivery != PipelineDelivery.Allow)
         {
             logger.LogTrace("Job with id <{JobId}> is not completed or delivery is not allowed.", declaration.JobId);
             return BadRequest($"Job with id <{declaration.JobId}> is not completed or delivery is not allowed.");

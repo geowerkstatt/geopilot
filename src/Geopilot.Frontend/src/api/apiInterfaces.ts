@@ -88,6 +88,7 @@ export enum ProcessingState {
   Success = "success",
   Failed = "failed",
   Cancelled = "cancelled",
+  Warning = "warning",
 }
 
 export enum StepState {
@@ -179,6 +180,7 @@ export interface StepResult {
   name: LocalizedText;
   state: StepState;
   statusMessage?: LocalizedText;
+  conditionMessage?: LocalizedText;
   downloads: StepDownload[];
   visualizations: StepVisualization[];
 }
