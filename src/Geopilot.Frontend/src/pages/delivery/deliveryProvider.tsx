@@ -287,18 +287,22 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         } else {
           setIsProcessing(false);
 
-          // The processing step reflects the pipeline status; the delivery step reflects deliverability.
-          if (response.state === ProcessingState.Failed || response.state === ProcessingState.Cancelled) {
-            setStepError(DeliveryStepEnum.Processing, response.state);
-          } else {
+          // The processing node reflects whether the user can finish, the delivery node reflects deliverability.
+          if (isProcessingDeliverable(response)) {
             markStepCompleted();
             if (response.state === ProcessingState.Warning) {
               setStepWarning(DeliveryStepEnum.Processing, "completedWithWarnings");
             }
-          }
-
-          if (!isProcessingDeliverable(response)) {
-            setStepSkipped(DeliveryStepEnum.Delivery, "deliveryNotPossible");
+          } else {
+            // Not deliverable is a dead end: the processing node turns red and carries the
+            // reason, while the delivery node is shown as a neutral skipped step so the same
+            // "delivery not possible" text is not printed twice.
+            if (response.state === ProcessingState.Failed || response.state === ProcessingState.Cancelled) {
+              setStepError(DeliveryStepEnum.Processing, response.state);
+            } else {
+              setStepError(DeliveryStepEnum.Processing, "deliveryNotPossible");
+            }
+            setStepSkipped(DeliveryStepEnum.Delivery, "stepStateSkipped");
           }
         }
       })
