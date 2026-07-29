@@ -396,6 +396,7 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           color: themePalette.primary.main,
+          padding: themeSpacing(1),
           borderColor: themePalette.primary.light,
           textTransform: "none",
           "&:hover": {

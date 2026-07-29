@@ -1,6 +1,6 @@
 import { FC, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CircularProgress, Stack, styled, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { CircularProgress, Divider, Stack, styled, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { toggleButtonClasses } from "@mui/material/ToggleButton";
 import { Mandate } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
@@ -15,22 +15,14 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
   gap: theme.spacing(2),
   flexWrap: "wrap",
   [`& .${toggleButtonClasses.root}`]: {
-    flex: `0 0 calc(50% - ${theme.spacing(2)} / 2)`,
-    maxWidth: `calc(50% - ${theme.spacing(2)} / 2)`,
-    minWidth: 0,
     borderRadius: theme.radius.default,
     borderLeft: `1px solid ${theme.palette.primary.light}`,
+    paddingLeft: theme.spacing(3),
+    paddingRight: theme.spacing(3),
     [`&.${toggleButtonClasses.disabled}`]: {
       borderLeftColor: theme.palette.action.disabledBackground,
     },
   },
-}));
-
-const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
-  flexDirection: "column",
-  alignItems: "flex-start",
-  textAlign: "left",
-  gap: theme.spacing(0.5),
 }));
 
 interface MandateToggleButtonProps {
@@ -38,30 +30,10 @@ interface MandateToggleButtonProps {
 }
 
 const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
-  const { user } = useGeopilotAuth();
-  const { t, i18n } = useTranslation();
-
-  const steps = mandate.pipelineSteps.map(step => step[i18n.language] ?? step["en"]).join(", ");
-
   return (
-    <StyledToggleButton value={mandate.id} data-cy={`mandate-${mandate.id}`}>
-      <Typography variant="h5" mt={0}>
+    <ToggleButton value={mandate.id} data-cy={`mandate-${mandate.id}`}>
         {mandate.name}
-      </Typography>
-      <Stack direction="row" gap={0.5} sx={{ flex: 1 }}>
-        <Typography variant="body1" sx={{ textTransform: "none", lineHeight: 1.25 }}>
-          {t("pipelineSteps")}
-        </Typography>
-        <Typography variant="body1" sx={{ textTransform: "none", lineHeight: 1.25 }}>
-          {steps}
-        </Typography>
-      </Stack>
-      {user && (
-        <Typography variant="body1" sx={{ textTransform: "none" }}>
-          {mandate.allowDelivery ? t("deliveryPossible") : t("deliveryNotPossible")}
-        </Typography>
-      )}
-    </StyledToggleButton>
+    </ToggleButton>
   );
 };
 

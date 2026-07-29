@@ -45,7 +45,6 @@ export interface Mandate {
   evaluatePartial?: FieldEvaluationType;
   evaluateComment?: FieldEvaluationType;
   pipelineId?: string;
-  pipelineSteps: Record<string, string>[];
 }
 
 export interface Organisation {
