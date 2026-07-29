@@ -59,4 +59,10 @@ public sealed record Ili2GpkgArgs
     /// Maps to the ili2gpkg option <c>--strokeArcs</c>.
     /// </summary>
     public bool StrokeArcs { get; init; }
+
+    /// <summary>
+    /// The dataset to use for the operation.
+    /// Maps to the ili2gpkg option <c>--dataset</c>.
+    /// </summary>
+    public string? Dataset { get; init; }
 }
