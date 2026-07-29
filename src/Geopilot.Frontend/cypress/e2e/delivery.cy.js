@@ -8,6 +8,7 @@ import {
   stepIsActive,
   stepIsCompleted,
   stepIsLoading,
+  stepIsSkipped,
   uploadFile,
 } from "./helpers/deliveryHelpers.js";
 import { hasError, setSelect } from "./helpers/formHelpers.js";
@@ -97,6 +98,62 @@ describe("Delivery tests", () => {
     cy.dataCy("createDelivery-button").should("be.enabled").click();
     stepIsActive("delivery");
     stepIsCompleted("delivery");
+  });
+
+  it("shows a warning on the step and blocks delivery when a restriction applies", () => {
+    // Processing is fully mocked so this runs in CI, where real pipeline execution is unavailable
+    // (that is why the specs above are skipped). The mock mirrors the shipped pipeline: the
+    // validation step ends in a warning and a delivery restriction blocks the delivery.
+    const warningJob = {
+      jobId: "e2e-warning-job",
+      state: "warning",
+      mandateId: 1,
+      pipelineName: { en: "XTF Validation", de: "XTF Validierung" },
+      steps: [
+        {
+          id: "xtf_matching",
+          name: { en: "XTF Matching", de: "XTF Zuordnung" },
+          state: "success",
+          downloads: [],
+          visualizations: [],
+        },
+        {
+          id: "validation",
+          name: { en: "XTF Validation", de: "XTF Validierung" },
+          state: "warning",
+          statusMessage: { en: "Data not conform to INTERLIS model", de: "Daten nicht konform zum INTERLIS-Modell" },
+          downloads: [],
+          visualizations: [],
+        },
+      ],
+      deliveryRestrictionMessage: {
+        en: "Validation was not successful. Delivery is not possible.",
+        de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich.",
+      },
+    };
+
+    loginAsUploader();
+    addFile("deliveryFiles/ilimodels_valid.xtf", true);
+    uploadFile();
+
+    cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
+    cy.wait("@getMandates");
+    selectMandate(1);
+
+    cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: warningJob }).as("startProcessing");
+    cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: warningJob }).as("jobStatus");
+
+    cy.dataCy("startProcessing-button").click();
+    cy.wait("@startProcessing");
+    cy.wait("@jobStatus");
+
+    // Right results pane: the validation step shows the warning icon.
+    cy.dataCy("processing-step-validation").dataCy("processing-step-icon-warning").should("exist");
+
+    // Left stepper: the processing node turns red and carries the delivery-restriction reason,
+    // while the delivery node is shown as skipped with "delivery not possible".
+    stepHasError("processing", true, "Delivery is not possible");
+    stepIsSkipped("delivery", true, "Delivery not possible");
   });
 
   it("displays error if no mandates were found", () => {
