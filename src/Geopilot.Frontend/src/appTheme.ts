@@ -143,7 +143,15 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiInputLabel: {
+      defaultProps: {
+        shrink: true,
+      },
+    },
     MuiOutlinedInput: {
+      defaultProps: {
+        notched: true,
+      },
       styleOverrides: {
         notchedOutline: {
           borderColor: themePalette.primary.light,
