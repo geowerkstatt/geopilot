@@ -193,6 +193,11 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             return this;
         }
 
+        private static IReadOnlyList<string> ValidateOutputActions(Type processType, IReadOnlyList<OutputActionConfig>? outputActions)
+        {
+            return new List<string>();
+        }
+
         /// <inheritdoc />
         public object Build()
         {
@@ -221,7 +226,9 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 ValidateParameter(parameterInfo, processParameterization);
             }
 
-            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot);
+            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot)
+                .Concat(ValidateOutputActions(objectType, stepConfig.OutputActions))
+                .ToList();
             if (inputErrors.Count > 0)
             {
                 throw new InvalidOperationException(string.Join(Environment.NewLine, inputErrors));

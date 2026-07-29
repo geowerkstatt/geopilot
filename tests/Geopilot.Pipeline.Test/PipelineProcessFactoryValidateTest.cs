@@ -36,6 +36,62 @@ public class PipelineProcessFactoryValidateTest
             .Validate();
     }
 
+    [TestMethod]
+    public void RejectsOutputActionTargetingUnknownProperty()
+    {
+        using var factory = CreateFactory();
+        var step = ZipStep(new InputConfig());
+        step.OutputActions = new List<OutputActionConfig> { new OutputActionConfig { Property = "DoesNotExist", Actions = new HashSet<OutputAction> { OutputAction.Download } } };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => factory.Builder().StepConfig(step).Processes(ZipProcesses()).Validate());
+        Assert.Contains("DoesNotExist", exception.Message);
+    }
+
+    [TestMethod]
+    public void AcceptsOutputActionTargetingKnownProperty()
+    {
+        using var factory = CreateFactory();
+        var step = ZipStep(new InputConfig());
+        step.OutputActions = new List<OutputActionConfig> { new OutputActionConfig { Property = "ZipPackage", Actions = new HashSet<OutputAction> { OutputAction.Download } } };
+
+        factory.Builder().StepConfig(step).Processes(ZipProcesses()).Validate();
+    }
+
+    [TestMethod]
+    public void RejectsDownloadActionOnNonDownloadableProperty()
+    {
+        using var factory = CreateFactory();
+        var step = ZipStep(new InputConfig());
+        step.OutputActions = new List<OutputActionConfig> { new OutputActionConfig { Property = "StatusMessage", Actions = new HashSet<OutputAction> { OutputAction.Download } } };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => factory.Builder().StepConfig(step).Processes(ZipProcesses()).Validate());
+        Assert.Contains("StatusMessage", exception.Message);
+    }
+
+    [TestMethod]
+    public void RejectsStatusMessageActionOnNonLocalizedTextProperty()
+    {
+        using var factory = CreateFactory();
+        var step = ZipStep(new InputConfig());
+        step.OutputActions = new List<OutputActionConfig> { new OutputActionConfig { Property = "ZipPackage", Actions = new HashSet<OutputAction> { OutputAction.StatusMessage } } };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => factory.Builder().StepConfig(step).Processes(ZipProcesses()).Validate());
+
+        Assert.Contains("ZipPackage", exception.Message);
+    }
+
+    [TestMethod]
+    public void RejectsVisualizationActionOnNonVisualizationProperty()
+    {
+        using var factory = CreateFactory();
+        var step = ZipStep(new InputConfig());
+        step.OutputActions = new List<OutputActionConfig> { new OutputActionConfig { Property = "ZipPackage", Actions = new HashSet<OutputAction> { OutputAction.Visualization } } };
+
+        var exception = Assert.Throws<InvalidOperationException>(() => factory.Builder().StepConfig(step).Processes(ZipProcesses()).Validate());
+
+        Assert.Contains("Visualization", exception.Message);
+    }
+
     private static PipelineProcessFactory CreateFactory()
     {
         var options = new Mock<IOptions<PipelineOptions>>();
