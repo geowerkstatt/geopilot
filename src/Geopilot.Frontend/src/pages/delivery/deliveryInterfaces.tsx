@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Mandate, ProcessingJobResponse, UploadSettings } from "../../api/apiInterfaces.ts";
+import { LocalizedText, Mandate, ProcessingJobResponse, UploadSettings } from "../../api/apiInterfaces.ts";
 
 export enum DeliveryStepEnum {
   Files = "files",
@@ -20,7 +20,7 @@ export interface DeliveryStepProps {
 export interface DeliveryStep {
   label: string;
   labelAddition?: string;
-  error?: string;
+  error?: string | LocalizedText;
   warning?: string;
   skipped?: string;
   content: (completed: boolean) => ReactNode;
@@ -43,7 +43,7 @@ export interface DeliveryContextInterface {
   lastCompletedStep: number;
   activeStep: number;
   isActiveStep: (step: DeliveryStepEnum) => boolean;
-  setStepError: (key: DeliveryStepEnum, error: string | undefined) => void;
+  setStepError: (key: DeliveryStepEnum, error: string | LocalizedText | undefined) => void;
   selectedFiles: File[];
   addFiles: (files: File[]) => void;
   removeFile: (file: File) => void;

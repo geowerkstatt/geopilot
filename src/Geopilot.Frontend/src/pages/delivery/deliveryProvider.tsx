@@ -1,6 +1,7 @@
 import { FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ApiError,
+  LocalizedText,
   Mandate,
   ProcessingJobResponse,
   ProcessingState,
@@ -124,7 +125,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     return activeStep === stepKeys.indexOf(step);
   };
 
-  const setStepError = useCallback((key: DeliveryStepEnum, error: string | undefined) => {
+  const setStepError = useCallback((key: DeliveryStepEnum, error: string | LocalizedText | undefined) => {
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
       const step = newSteps.get(key);
@@ -294,15 +295,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
               setStepWarning(DeliveryStepEnum.Processing, "completedWithWarnings");
             }
           } else {
-            // Not deliverable is a dead end: the processing node turns red and carries the
-            // reason, while the delivery node is shown as a neutral skipped step so the same
-            // "delivery not possible" text is not printed twice.
+            // Not deliverable is a dead end. The processing node turns red and carries the reason:
+            // the delivery-restriction message for a blocked success/warning, or the run's own
+            // failed/cancelled message. The delivery node states the outcome ("delivery not possible").
             if (response.state === ProcessingState.Failed || response.state === ProcessingState.Cancelled) {
               setStepError(DeliveryStepEnum.Processing, response.state);
             } else {
-              setStepError(DeliveryStepEnum.Processing, "deliveryNotPossible");
+              setStepError(DeliveryStepEnum.Processing, response.deliveryRestrictionMessage ?? "deliveryNotPossible");
             }
-            setStepSkipped(DeliveryStepEnum.Delivery, "stepStateSkipped");
+            setStepSkipped(DeliveryStepEnum.Delivery, "deliveryNotPossible");
           }
         }
       })

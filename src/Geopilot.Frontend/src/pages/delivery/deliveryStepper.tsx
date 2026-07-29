@@ -4,6 +4,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { MiddleTruncate } from "../../components/middleTruncate";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
+import { useLocalized } from "../../hooks/useLocalized";
 import { SLIDE_TRANSITION_MS } from "./deliveryContentCarousel";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
@@ -58,6 +59,7 @@ const DeliveryStepBox = styled(GeopilotBox, {
 
 export const DeliveryStepper = () => {
   const { t } = useTranslation();
+  const localized = useLocalized();
   const { steps, lastCompletedStep, activeStep, isLoading, isProcessing, showCompletedOrNextStep } =
     useContext(DeliveryContext);
   const theme = useTheme();
@@ -123,7 +125,7 @@ export const DeliveryStepper = () => {
               )}
               {step.error && (
                 <Typography variant="body2" color={isOpen(index) ? "textSecondary" : "error"}>
-                  {t(step.error)}
+                  {typeof step.error === "string" ? t(step.error) : localized(step.error)}
                 </Typography>
               )}
               {!step.error && step.warning && (
