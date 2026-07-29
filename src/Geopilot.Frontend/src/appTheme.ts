@@ -137,6 +137,11 @@ export const geopilotTheme = createTheme({
       defaultProps: {
         IconComponent: ExpandMoreIcon,
       },
+      styleOverrides: {
+        icon: {
+          color: themePalette.primary.main,
+        },
+      },
     },
     MuiOutlinedInput: {
       styleOverrides: {
