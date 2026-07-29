@@ -40,6 +40,16 @@ public interface IPipelineProcessBuilder
     IPipelineProcessBuilder Processes(List<ProcessConfig> processes);
 
     /// <summary>
+    /// Configures the builder with every step of the pipeline the current step belongs to.
+    /// </summary>
+    /// <remarks>Consulted only by <see cref="Validate(string?)"/> to resolve cross-step references
+    /// (<c>${step_output(stepId.output)}</c>) against the result type of the referenced step; it does
+    /// not affect <see cref="Build"/>. When not supplied, cross-step references are not type checked.</remarks>
+    /// <param name="steps">All steps of the pipeline. The list must not be null.</param>
+    /// <returns>An <see cref="IPipelineProcessBuilder"/> instance that can be used to further configure the pipeline.</returns>
+    IPipelineProcessBuilder Steps(List<StepConfig> steps);
+
+    /// <summary>
     /// Configures the pipeline process to use the specified directory for locating pipeline files.
     /// </summary>
     /// <remarks>Ensure that the specified directory contains all required pipeline files for correct

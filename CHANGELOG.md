@@ -16,6 +16,7 @@
 - A pipeline step `input` value can reference a file shipped with the deployment via `${file(path)}` (relative to the configured `Storage:ResourcesDirectory`), injecting a constant resource such as a template or lookup table into a process without a preceding step.
 - A pipeline step `input` value can reference the uploaded delivery files with `${upload()}`, so a pipeline definition can wire the upload to a process parameter explicitly.
 - Pipeline processes can use an `IIli2GpkgClient` from `GeoWerkstatt.Geopilot.PipelineCore` to run ili2gpkg operations using an [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) service.
+- The pipeline definition is checked at startup and the application refuses to start on an invalid one: a step `input` that references an output an earlier step does not produce, or whose type cannot be bound to the target process parameter, and an `output_actions` entry that tags a non-existent or type-incompatible result property, are reported with the affected pipeline, step and property instead of only surfacing at run time.
 
 ### Removed
 

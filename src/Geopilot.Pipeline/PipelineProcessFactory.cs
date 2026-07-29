@@ -1,7 +1,9 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
+using Geopilot.PipelineCore.Pipeline.Process;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -131,6 +133,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         private string? pipelineId;
         private StepConfig? stepConfig;
         private List<ProcessConfig>? processes;
+        private List<StepConfig>? steps;
         private string? pipelineDirectory;
         private Guid jobId;
 
@@ -180,6 +183,13 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
 
         /// <inheritdoc />
+        public IPipelineProcessBuilder Steps(List<StepConfig> steps)
+        {
+            this.steps = steps;
+            return this;
+        }
+
+        /// <inheritdoc />
         public IPipelineProcessBuilder PipelineDirectory(string pipelineDirectory)
         {
             this.pipelineDirectory = pipelineDirectory;
@@ -193,9 +203,114 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             return this;
         }
 
-        private static IReadOnlyList<string> ValidateOutputActions(Type processType, IReadOnlyList<OutputActionConfig>? outputActions)
+        /// <summary>
+        /// Validates a step's output actions against its process result type at load time: each
+        /// <c>output_actions.property</c> must be a readable property of the result type, and each action
+        /// must be compatible with that property's type. Returns one message per problem; empty when valid
+        /// or when a single result type cannot be resolved.
+        /// </summary>
+        private static List<string> ValidateOutputActions(Type processType, List<OutputActionConfig>? outputActions)
         {
-            return new List<string>();
+            if (outputActions is null || outputActions.Count == 0)
+                return new List<string>();
+
+            var errors = new List<string>();
+
+            var resultType = ResolveResultType(processType);
+            if (resultType is null)
+                return errors;
+
+            foreach (var outputAction in outputActions)
+            {
+                var property = resultType.GetProperty(outputAction.Property);
+
+                if (property is null || !property.CanRead)
+                {
+                    errors.Add($"output action references property {outputAction.Property}, which is not a readable property of the result type <{resultType.Name}> of process <{processType.Name}>");
+                    continue;
+                }
+
+                foreach (var action in outputAction.Actions)
+                {
+                    if (!IsTypeCompatible(action, property.PropertyType))
+                        errors.Add($"output action property '{outputAction.Property}' of process <{processType.Name}> cannot be used with action {action}: its type <{property.PropertyType.Name}> is not compatible.");
+                }
+            }
+
+            return errors;
+        }
+
+        /// <summary>
+        /// Whether a result property of the given type may be tagged with <paramref name="action"/>:
+        /// <c>Download</c>/<c>Delivery</c> require an <c>IPipelineFile</c> or a collection of them,
+        /// <c>StatusMessage</c> a <c>LocalizedText</c>, and <c>Visualization</c> an <c>IVisualization</c>.
+        /// Actions without a type rule are accepted.
+        /// </summary>
+        private static bool IsTypeCompatible(OutputAction action, Type propertyType)
+        {
+            bool Is<T>() => typeof(T).IsAssignableFrom(propertyType);
+
+            if (action is OutputAction.Download or OutputAction.Delivery)
+                return Is<IPipelineFile>() || Is<IEnumerable<IPipelineFile>>();
+            if (action == OutputAction.StatusMessage)
+                return Is<LocalizedText>();
+            if (action == OutputAction.Visualization)
+                return Is<IVisualization>();
+
+            return true;
+        }
+
+        /// <summary>
+        /// The result type of a process: the <c>TResult</c> of the single <c>[PipelineProcessRun]</c>
+        /// method's <see cref="Task{TResult}"/> return type, or <see langword="null"/> when the process
+        /// has no unique run method or does not return a <see cref="Task{TResult}"/>.
+        /// </summary>
+        private static Type? ResolveResultType(Type processType)
+        {
+            var runMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Where(method => Attribute.IsDefined(method, typeof(PipelineProcessRunAttribute)))
+                .ToList();
+            if (runMethods.Count != 1)
+                return null;
+
+            var returnType = runMethods[0].ReturnType;
+            if (!returnType.IsGenericType || returnType.GetGenericTypeDefinition() != typeof(Task<>))
+                return null;
+
+            return returnType.GetGenericArguments()[0];
+        }
+
+        /// <summary>
+        /// Maps each configured step's id to its process result type, used to type check cross-step
+        /// references at load time. Steps whose process, type, or result type cannot be resolved are
+        /// omitted; the reference validator then leaves references to them unchecked rather than
+        /// reporting a spurious error. Empty when no steps have been supplied via <see cref="Steps"/>.
+        /// </summary>
+        private Dictionary<string, Type> BuildStepResultTypes()
+        {
+            var stepResultTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
+            if (steps is null || processes is null)
+                return stepResultTypes;
+
+            foreach (var step in steps)
+            {
+                if (step.ProcessId is null)
+                    continue;
+
+                var processConfig = processes.GetProcessConfig(step.ProcessId);
+                if (processConfig is null)
+                    continue;
+
+                var processType = GetProcessorType(processConfig.Implementation);
+                if (processType is null)
+                    continue;
+
+                var resultType = ResolveResultType(processType);
+                if (resultType is not null)
+                    stepResultTypes[step.Id] = resultType;
+            }
+
+            return stepResultTypes;
         }
 
         /// <inheritdoc />
@@ -226,7 +341,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 ValidateParameter(parameterInfo, processParameterization);
             }
 
-            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot)
+            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot, BuildStepResultTypes())
                 .Concat(ValidateOutputActions(objectType, stepConfig.OutputActions))
                 .ToList();
             if (inputErrors.Count > 0)

@@ -47,6 +47,7 @@ public static class WebApplicationExtensions
                     pipelineProcessFactory
                         .Builder()
                         .StepConfig(step)
+                        .Steps(pipeline.Steps)
                         .Processes(pipelineFactory.PipelineProcessConfig.Processes)
                         .Validate(resourcesDirectory);
                 }

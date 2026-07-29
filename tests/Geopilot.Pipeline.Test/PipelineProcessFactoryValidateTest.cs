@@ -37,6 +37,56 @@ public class PipelineProcessFactoryValidateTest
     }
 
     [TestMethod]
+    public void RejectsStepOutputReferenceToUnknownOutputOfEarlierStep()
+    {
+        using var factory = CreateFactory();
+        var match = MatchStep();
+        var zip = ZipStep(new InputConfig { ["input"] = "${step_output(match.DoesNotExist)}" });
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            factory.Builder()
+                .StepConfig(zip)
+                .Steps(new List<StepConfig> { match, zip })
+                .Processes(MatchAndZipProcesses())
+                .Validate());
+
+        Assert.Contains("DoesNotExist", exception.Message);
+    }
+
+    [TestMethod]
+    public void AcceptsStepOutputReferenceToKnownOutputOfEarlierStep()
+    {
+        using var factory = CreateFactory();
+        var match = MatchStep();
+        var zip = ZipStep(new InputConfig { ["input"] = "${step_output(match.MatchedFiles)}" });
+
+        factory.Builder()
+            .StepConfig(zip)
+            .Steps(new List<StepConfig> { match, zip })
+            .Processes(MatchAndZipProcesses())
+            .Validate();
+    }
+
+    [TestMethod]
+    public void RejectsStepOutputReferenceOfIncompatibleTypeFromEarlierStep()
+    {
+        using var factory = CreateFactory();
+        var match = MatchStep();
+
+        // match.StatusMessage is a LocalizedText; the zip 'input' parameter takes IPipelineFile values.
+        var zip = ZipStep(new InputConfig { ["input"] = "${step_output(match.StatusMessage)}" });
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            factory.Builder()
+                .StepConfig(zip)
+                .Steps(new List<StepConfig> { match, zip })
+                .Processes(MatchAndZipProcesses())
+                .Validate());
+
+        Assert.Contains("StatusMessage", exception.Message);
+    }
+
+    [TestMethod]
     public void RejectsOutputActionTargetingUnknownProperty()
     {
         using var factory = CreateFactory();
@@ -58,6 +108,28 @@ public class PipelineProcessFactoryValidateTest
     }
 
     [TestMethod]
+    public void AcceptsDownloadActionOnFileCollectionProperty()
+    {
+        using var factory = CreateFactory();
+        var step = new StepConfig
+        {
+            Id = "step",
+            DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "step" }),
+            ProcessId = "file_matcher",
+            OutputActions = new List<OutputActionConfig>
+        {
+            new OutputActionConfig { Property = "MatchedFiles", Actions = new HashSet<OutputAction> { OutputAction.Download } },
+        },
+        };
+        var processes = new List<ProcessConfig>
+    {
+        new ProcessConfig { Id = "file_matcher", Implementation = "Geopilot.Pipeline.Processes.Matcher.FileMatcher.FileMatcherProcess" },
+    };
+
+        factory.Builder().StepConfig(step).Processes(processes).Validate();
+    }
+
+    [TestMethod]
     public void RejectsDownloadActionOnNonDownloadableProperty()
     {
         using var factory = CreateFactory();
@@ -66,6 +138,16 @@ public class PipelineProcessFactoryValidateTest
 
         var exception = Assert.Throws<InvalidOperationException>(() => factory.Builder().StepConfig(step).Processes(ZipProcesses()).Validate());
         Assert.Contains("StatusMessage", exception.Message);
+    }
+
+    [TestMethod]
+    public void AcceptsStatusMessageActionOnLocalizedTextProperty()
+    {
+        using var factory = CreateFactory();
+        var step = ZipStep(new InputConfig());
+        step.OutputActions = new List<OutputActionConfig> { new OutputActionConfig { Property = "StatusMessage", Actions = new HashSet<OutputAction> { OutputAction.StatusMessage } } };
+
+        factory.Builder().StepConfig(step).Processes(ZipProcesses()).Validate();
     }
 
     [TestMethod]
@@ -78,6 +160,28 @@ public class PipelineProcessFactoryValidateTest
         var exception = Assert.Throws<InvalidOperationException>(() => factory.Builder().StepConfig(step).Processes(ZipProcesses()).Validate());
 
         Assert.Contains("ZipPackage", exception.Message);
+    }
+
+    [TestMethod]
+    public void AcceptsVisualizationActionOnVisualizationProperty()
+    {
+        using var factory = CreateFactory();
+        var step = new StepConfig
+        {
+            Id = "step",
+            DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "step" }),
+            ProcessId = "xtf_error_visualization",
+            OutputActions = new List<OutputActionConfig>
+        {
+            new OutputActionConfig { Property = "Visualization", Actions = new HashSet<OutputAction> { OutputAction.Visualization } },
+        },
+        };
+        var processes = new List<ProcessConfig>
+    {
+        new ProcessConfig { Id = "xtf_error_visualization", Implementation = "Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess" },
+    };
+
+        factory.Builder().StepConfig(step).Processes(processes).Validate();
     }
 
     [TestMethod]
@@ -119,6 +223,19 @@ public class PipelineProcessFactoryValidateTest
 
     private static List<ProcessConfig> ZipProcesses() => new()
     {
+        new ProcessConfig { Id = "zip_package_process", Implementation = "Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess" },
+    };
+
+    private static StepConfig MatchStep() => new()
+    {
+        Id = "match",
+        DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "Match" }),
+        ProcessId = "file_matcher",
+    };
+
+    private static List<ProcessConfig> MatchAndZipProcesses() => new()
+    {
+        new ProcessConfig { Id = "file_matcher", Implementation = "Geopilot.Pipeline.Processes.Matcher.FileMatcher.FileMatcherProcess" },
         new ProcessConfig { Id = "zip_package_process", Implementation = "Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess" },
     };
 }

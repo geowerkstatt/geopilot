@@ -137,6 +137,86 @@ public class InputBindingValidatorTest
         return input;
     }
 
+    [TestMethod]
+    public void RejectsStepOutputReferenceToUnknownOutput()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input(("template", "${step_output(up.DoesNotExist)}")),
+            stepResultTypes: stepResultTypes);
+
+        Assert.HasCount(1, errors);
+        Assert.Contains("DoesNotExist", errors[0]);
+    }
+
+    [TestMethod]
+    public void AcceptsStepOutputReferenceToKnownOutput()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input(("template", "${step_output(up.Document)}")),
+            stepResultTypes: stepResultTypes);
+
+        Assert.HasCount(0, errors);
+    }
+
+    [TestMethod]
+    public void RejectsStepOutputReferenceOfIncompatibleType()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${step_output(up.Count)}")), stepResultTypes: stepResultTypes);
+        Assert.HasCount(1, errors);
+        Assert.Contains("up.Count", errors[0]);
+    }
+
+    [TestMethod]
+    public void AcceptsStepOutputReferenceOfCompatibleType()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input(("files", "${step_output(up.Documents)}")),
+            stepResultTypes: stepResultTypes);
+
+        Assert.HasCount(0, errors);
+    }
+
+    [TestMethod]
+    public void AcceptsStepOutputReferenceThatSpreadsCollectionToSingleParameter()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        // up.Documents is IPipelineFile[]; the target parameter 'template' is a single IPipelineFile.
+        // The binder spreads a collection onto a single parameter, so this must not be rejected at load time.
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input(("template", "${step_output(up.Documents)}")),
+            stepResultTypes: stepResultTypes);
+
+        Assert.HasCount(0, errors);
+    }
+
+    [TestMethod]
+    public void AcceptsStepOutputReferenceThatWrapsSingleIntoCollectionParameter()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        // up.Document is a single IPipelineFile; the target parameter 'files' is IPipelineFile[].
+        // The binder wraps a single value into a collection, so this must not be rejected at load time.
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input(("files", "${step_output(up.Document)}")),
+            stepResultTypes: stepResultTypes);
+
+        Assert.HasCount(0, errors);
+    }
+
     private sealed class SampleProcess
     {
         [PipelineProcessRun]
@@ -153,5 +233,16 @@ public class InputBindingValidatorTest
 
     private sealed class SampleResult
     {
+    }
+
+    private sealed class UpstreamResult
+    {
+        public string Name { get; init; }
+
+        public int Count { get; init; }
+
+        public IPipelineFile Document { get; init; }
+
+        public IPipelineFile[] Documents { get; init; }
     }
 }
