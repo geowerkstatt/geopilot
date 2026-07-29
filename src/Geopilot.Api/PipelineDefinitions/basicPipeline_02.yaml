@@ -122,12 +122,12 @@ pipelines:
           - property: StatusMessage
             actions:
               - StatusMessage
-  - id: ili_validation_with_error_tree
+  - id: ili_validation_with_visualization_and_zip
     display_name:
-      en: XTF Validation with Error Tree
-      de: XTF Validierung mit Error Tree
-      it: Validazione XTF con albero degli errori
-      fr: Validation XTF avec arbre des erreurs
+      en: XTF Validation with Visualization
+      de: XTF Validierung mit Visualisierung
+      it: Validazione XTF con visualizzazione
+      fr: Validation XTF avec visualisation
     delivery_restrictions:
       - expression: "!([validation.ValidationSuccessful])"
         message:
@@ -187,25 +187,20 @@ pipelines:
               - StatusMessage
       - id: error_tree
         display_name:
-          en: Error Tree
-          de: Error Tree
-          it: Albero degli errori
-          fr: Arbre des erreurs
+          de: XTF-Visualisierung
+          en: XTF-Visualization
+          it: Visualizzazione XTF
+          fr: Visualisation XTF
         process_id: xtf_error_visualizer
-        process_config_overwrites:
-          include:
-            - tree
-          groupBy:
-            - Class
         conditions:
           pre:
             skip_conditions:
               - expression: "[validation.ValidationSuccessful]"
                 message:
-                  de: "Validierung erfolgreich. Error Tree wird übersprungen."
-                  en: "Validation successful. Error Tree will be skipped."
-                  fr: "Validation réussie. L'arbre des erreurs sera ignoré."
-                  it: "Validazione riuscita. L'albero degli errori sarà ignorato."
+                  de: "Validierung erfolgreich. Visualisierung wird übersprungen."
+                  en: "Validation successful. Visualization will be skipped."
+                  fr: "Validation réussie. La visualisation sera ignorée."
+                  it: "Validazione riuscita. La visualizzazione sarà ignorata."
         input:
           xtfLog: "${step_output(validation.XtfLog)}"
         output_actions:
