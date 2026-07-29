@@ -111,7 +111,7 @@ const MandateDetail = () => {
             label={"descriptionText"}
             value={mandate?.description?.de}
             multiline={true}
-            rows={3}
+            minRows={3}
           />
         </FormContainer>
         <FormContainer>
