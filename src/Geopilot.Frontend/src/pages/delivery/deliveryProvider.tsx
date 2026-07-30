@@ -17,6 +17,7 @@ import {
   DeliveryStep,
   DeliveryStepEnum,
   DeliveryStepError,
+  DeliveryStepStatus,
   DeliverySubmitData,
   FileUploadStatus,
 } from "./deliveryInterfaces.tsx";
@@ -125,41 +126,20 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     return activeStep === stepKeys.indexOf(step);
   };
 
-  const setStepError = useCallback((key: DeliveryStepEnum, error: string | LocalizedText | true | undefined) => {
-    setSteps(prevSteps => {
-      const newSteps = new Map(prevSteps);
-      const step = newSteps.get(key);
-      if (step) {
-        step.error = error;
-      }
-      return newSteps;
-    });
-  }, []);
-
-  const setStepWarning = useCallback((key: DeliveryStepEnum, warning: string | undefined) => {
-    setSteps(prevSteps => {
-      const newSteps = new Map(prevSteps);
-      const step = newSteps.get(key);
-      if (step) {
-        step.warning = warning;
-        step.error = undefined;
-      }
-      return newSteps;
-    });
-  }, []);
-
-  const setStepSkipped = useCallback((key: DeliveryStepEnum, skipped: string | LocalizedText | undefined) => {
-    setSteps(prevSteps => {
-      const newSteps = new Map(prevSteps);
-      const step = newSteps.get(key);
-      if (step) {
-        step.skipped = skipped;
-        step.error = undefined;
-        step.warning = undefined;
-      }
-      return newSteps;
-    });
-  }, []);
+  const setStepStatus = useCallback(
+    (key: DeliveryStepEnum, state: DeliveryStepStatus | undefined, message?: string | LocalizedText) => {
+      setSteps(prevSteps => {
+        const newSteps = new Map(prevSteps);
+        const step = newSteps.get(key);
+        if (step) {
+          step.state = state;
+          step.message = message;
+        }
+        return newSteps;
+      });
+    },
+    [],
+  );
 
   const addFiles = useCallback((newFiles: File[]) => {
     setSelectedFiles(prev => {
@@ -215,13 +195,14 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const handleApiError = useCallback(
     (error: ApiError, key: DeliveryStepEnum) => {
       if (error && error.message && !error.message.includes("AbortError")) {
-        setStepError(
+        setStepStatus(
           key,
+          "error",
           deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey || error.message,
         );
       }
     },
-    [deliveryStepErrors, setStepError],
+    [deliveryStepErrors, setStepStatus],
   );
 
   const onUploadComplete = (id: string) => {
@@ -292,18 +273,22 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
           if (isProcessingDeliverable(response)) {
             markStepCompleted();
             if (response.state === ProcessingState.Warning) {
-              setStepWarning(DeliveryStepEnum.Processing, "completedWithWarnings");
+              setStepStatus(DeliveryStepEnum.Processing, "warning", "completedWithWarnings");
             }
           } else {
             // Not deliverable is a dead end. A hard failure keeps its message on the processing node;
             // a restriction-blocked run shows the reason on the delivery node and marks the processing
             // node red without a message (interim, per Dominic/Roswita review).
             if (response.state === ProcessingState.Failed || response.state === ProcessingState.Cancelled) {
-              setStepError(DeliveryStepEnum.Processing, response.state);
+              setStepStatus(DeliveryStepEnum.Processing, "error", response.state);
             } else {
-              setStepError(DeliveryStepEnum.Processing, true);
+              setStepStatus(DeliveryStepEnum.Processing, "error");
             }
-            setStepSkipped(DeliveryStepEnum.Delivery, response.deliveryRestrictionMessage ?? "deliveryNotPossible");
+            setStepStatus(
+              DeliveryStepEnum.Delivery,
+              "skipped",
+              response.deliveryRestrictionMessage ?? "deliveryNotPossible",
+            );
           }
         }
       })
@@ -357,8 +342,8 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);
     setSubmittedData(data);
-    if (steps.get(DeliveryStepEnum.Delivery)?.error) {
-      setStepError(DeliveryStepEnum.Delivery, undefined);
+    if (steps.get(DeliveryStepEnum.Delivery)?.state === "error") {
+      setStepStatus(DeliveryStepEnum.Delivery, undefined);
     }
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
@@ -400,9 +385,8 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       const newSteps = new Map(prevSteps);
       newSteps.forEach(step => {
         step.labelAddition = undefined;
-        step.error = undefined;
-        step.warning = undefined;
-        step.skipped = undefined;
+        step.state = undefined;
+        step.message = undefined;
       });
       return newSteps;
     });
@@ -424,7 +408,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         lastCompletedStep,
         activeStep,
         isActiveStep,
-        setStepError,
+        setStepStatus,
         selectedFiles,
         addFiles,
         removeFile,

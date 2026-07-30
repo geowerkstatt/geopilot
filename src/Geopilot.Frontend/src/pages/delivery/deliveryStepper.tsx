@@ -90,18 +90,18 @@ export const DeliveryStepper = () => {
             data-cy={`${key}-step`}
             direction="row"
             open={isOpen(index)}
-            error={!!step.error}
-            warning={!!step.warning}
-            enabled={isEnabled(index) && !step.skipped}
-            onClick={step.skipped ? undefined : () => onStepClick(index)}>
+            error={step.state === "error"}
+            warning={step.state === "warning"}
+            enabled={isEnabled(index) && step.state !== "skipped"}
+            onClick={step.state === "skipped" ? undefined : () => onStepClick(index)}>
             <StepperIcon
               index={index}
               open={isOpen(index)}
               enabled={isEnabled(index)}
               completed={isCompleted(index)}
-              error={!!step.error}
-              warning={!!step.warning}
-              skipped={!!step.skipped}
+              error={step.state === "error"}
+              warning={step.state === "warning"}
+              skipped={step.state === "skipped"}
               isLoading={isLoading || isProcessing}
             />
             <Stack direction={{ xs: "row", md: "column" }} alignItems="baseline" sx={{ minWidth: "0" }}>
@@ -123,19 +123,17 @@ export const DeliveryStepper = () => {
                     ))}
                 </Typography>
               )}
-              {step.error && typeof step.error !== "boolean" && (
-                <Typography variant="body2" color={isOpen(index) ? "textSecondary" : "error"}>
-                  {typeof step.error === "string" ? t(step.error) : localized(step.error)}
-                </Typography>
-              )}
-              {!step.error && step.warning && (
-                <Typography variant="body2" color={isOpen(index) ? "textSecondary" : "warning.main"}>
-                  {t(step.warning)}
-                </Typography>
-              )}
-              {!step.error && !step.warning && step.skipped && (
-                <Typography variant="body2" color="textSecondary">
-                  {typeof step.skipped === "string" ? t(step.skipped) : localized(step.skipped)}
+              {step.message && (
+                <Typography
+                  variant="body2"
+                  color={
+                    isOpen(index) || step.state === "skipped"
+                      ? "textSecondary"
+                      : step.state === "warning"
+                        ? "warning.main"
+                        : "error"
+                  }>
+                  {typeof step.message === "string" ? t(step.message) : localized(step.message)}
                 </Typography>
               )}
             </Stack>

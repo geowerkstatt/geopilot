@@ -19,7 +19,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   const { fetchApi } = useFetch();
   const formMethods = useForm({ mode: "all" });
   const {
-    setStepError,
+    setStepStatus,
     selectedFiles,
     addFiles,
     removeFile,
@@ -42,15 +42,15 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
   }, [formMethods, lastCompletedStep]);
 
   const submitForm = () => {
-    setStepError(DeliveryStepEnum.Files, undefined);
+    setStepStatus(DeliveryStepEnum.Files, undefined);
     uploadFile();
   };
 
   const setFileError = useCallback(
     (error: string | undefined) => {
-      setStepError(DeliveryStepEnum.Files, error);
+      setStepStatus(DeliveryStepEnum.Files, error ? "error" : undefined, error);
     },
-    [setStepError],
+    [setStepStatus],
   );
 
   const button = completed ? (
