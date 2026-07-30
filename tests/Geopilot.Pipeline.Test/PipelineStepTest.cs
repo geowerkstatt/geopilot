@@ -401,10 +401,12 @@ public class PipelineStepTest
             .Logger(loggerMock.Object)
             .Build();
 
-        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
+
+        Assert.IsNull(stepResult.Result, "a pre-condition failure produces no process result.");
 
         var message = pipelineStep.ConditionMessage;
         Assert.IsNotNull(message);
@@ -453,10 +455,12 @@ public class PipelineStepTest
             .Logger(loggerMock.Object)
             .Build();
 
-        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.AreEqual(StepState.Skipped, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
+
+        Assert.IsNull(stepResult.Result, "a skipped step produces no process result.");
 
         var message = pipelineStep.ConditionMessage;
         Assert.IsNotNull(message);
@@ -515,10 +519,12 @@ public class PipelineStepTest
             .Logger(loggerMock.Object)
             .Build();
 
-        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        Assert.AreEqual("some_data", stepResult.ExtractProperty("OutputData"), "the process ran, so its result is available on Result.");
 
         var message = pipelineStep.ConditionMessage;
         Assert.IsNotNull(message);
@@ -684,10 +690,12 @@ public class PipelineStepTest
             .Logger(loggerMock.Object)
             .Build();
 
-        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+        var stepResult = await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
 
         Assert.AreEqual(StepState.Error, pipelineStep.State);
         Assert.AreEqual(0, processMock.NumberOfRunInvoced, "Process Run method was invoked but should be skipped.");
+
+        Assert.IsNull(stepResult.Result, "a pre-condition failure produces no process result.");
 
         var message = pipelineStep.ConditionMessage;
         Assert.IsNotNull(message);
