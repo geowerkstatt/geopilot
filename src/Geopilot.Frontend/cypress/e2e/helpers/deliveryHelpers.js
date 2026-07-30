@@ -65,6 +65,17 @@ export const stepHasError = (stepName, hasError, errorText) => {
   }
 };
 
+export const stepIsSkipped = (stepName, isSkipped = true, text) => {
+  if (isSkipped) {
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-skipped").should("exist");
+    if (text) {
+      cy.dataCy(`${stepName}-step`).contains(text);
+    }
+  } else {
+    cy.dataCy(`${stepName}-step`).dataCy("stepper-skipped").should("not.exist");
+  }
+};
+
 export const stepIsCompleted = (stepName, isCompleted = true) => {
   if (isCompleted) {
     cy.dataCy(`${stepName}-step`).dataCy("stepper-completed").should("exist");

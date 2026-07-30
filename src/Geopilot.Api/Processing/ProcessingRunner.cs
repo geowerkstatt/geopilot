@@ -75,7 +75,7 @@ public class ProcessingRunner : BackgroundService
                 // submission endpoint enforces (DeliveryController.Create). This keeps incomplete or
                 // non-deliverable payloads (a failed/aborted pipeline, or a matched delivery restriction)
                 // out of the asset store.
-                if (pipeline.State == ProcessingState.Success && pipeline.Delivery == PipelineDelivery.Allow)
+                if (pipeline.State.IsDeliverable() && pipeline.Delivery == PipelineDelivery.Allow)
                     ExtractDeliveryFiles(pipeline, pipelineContext);
 
                 jobStore.PipelineFinished(pipeline.JobId, pipeline.State);

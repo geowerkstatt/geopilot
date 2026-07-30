@@ -19,6 +19,7 @@ const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
   StepState.Error,
   StepState.Cancelled,
   StepState.Skipped,
+  StepState.Warning,
 ]);
 
 export const DeliveryProcessingResults = () => {
@@ -110,7 +111,11 @@ export const DeliveryProcessingResults = () => {
               data-cy={`processing-step-${step.id}`}>
               <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
                 <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
-                  <ProcessingStepIcon state={step.state} index={index} />
+                  <ProcessingStepIcon
+                    state={step.state}
+                    index={index}
+                    message={step.conditionMessage ? localized(step.conditionMessage) : undefined}
+                  />
                   <Typography variant="h5" sx={{ margin: 0 }}>
                     {localized(step.name)}
                   </Typography>

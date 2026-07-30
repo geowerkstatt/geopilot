@@ -39,4 +39,11 @@ public enum StepState
     /// the step did not fail by its own logic, it was interrupted.
     /// </summary>
     Cancelled,
+
+    /// <summary>
+    /// Indicates that the process or operation completed but reported issues (warnings). The step ran to
+    /// completion and the pipeline continues; distinct from <see cref="Success"/> (no issues reported) and
+    /// from <see cref="Error"/> (the step failed and the pipeline stops).
+    /// </summary>
+    Warning,
 }

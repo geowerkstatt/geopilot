@@ -413,6 +413,25 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task DeliveryFilesAreStagedWhenPipelineWarnsAndDeliveryAllowed()
+    {
+        var jobId = NewJob();
+        var step = BuildWarningDeliveryStep("step_1", "payload", "data.xtf", "delivery-content");
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Warning, pipeline.State);
+        Assert.HasCount(1, step.DeliveryFiles);
+        Assert.IsTrue(assetStore.Exists(jobId, "step_1_data.xtf"));
+        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Warning), Times.Once);
+    }
+
+    [TestMethod]
     public async Task DeliveryFilesAreNotStagedWhenAFailConditionAbortsThePipeline()
     {
         var jobId = NewJob();
@@ -574,6 +593,24 @@ public class ProcessingRunnerTest
                 },
             })
             .Process(new object())
+            .Logger(pipelineLogger)
+            .Build();
+
+    private PipelineStep BuildWarningDeliveryStep(string id, string outputKey, string originalFileName, string content) =>
+        PipelineStep
+            .Builder()
+            .Id(id)
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions([new OutputActionConfig { Property = "Result", Actions = new HashSet<OutputAction>(new[] { OutputAction.Delivery }) }])
+            .StepConditions(new PipelineStepConditionsConfig
+            {
+                Post = new PipelineStepPostConditionConfig
+                {
+                    WarnConditions = new List<ConditionConfig> { new ConditionConfig { Expression = "1 == 1" } },
+                },
+            })
+            .Process(new FileEmittingProcess(WriteTempFile(content), originalFileName))
             .Logger(pipelineLogger)
             .Build();
 

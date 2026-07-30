@@ -49,6 +49,7 @@ public class DeliveryControllerTest
     [TestMethod]
     [DataRow(ProcessingState.Running, PipelineDelivery.Allow)]
     [DataRow(ProcessingState.Success, PipelineDelivery.Prevent)]
+    [DataRow(ProcessingState.Warning, PipelineDelivery.Prevent)]
     [DataRow(ProcessingState.Failed, PipelineDelivery.Allow)]
     public async Task CreateFailsJobNotCompleted(ProcessingState pipelineState, PipelineDelivery delivery)
     {
@@ -125,6 +126,27 @@ public class DeliveryControllerTest
         };
 
         var result = (await deliveryController.Create(request)) as ObjectResult;
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(StatusCodes.Status201Created, result.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task CreateSucceedsWhenPipelineCompletedWithWarnings()
+    {
+        var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
+        var publicMandate = context.Mandates.Add(new Mandate
+        {
+            Name = nameof(CreateSucceedsWhenPipelineCompletedWithWarnings),
+            IsPublic = true,
+            AllowDelivery = true,
+        });
+        context.SaveChanges();
+        deliveryController.SetupTestUser(user.Entity);
+        var jobId = SetupProcessingJob(publicMandate.Entity.Id, ProcessingState.Warning, PipelineDelivery.Allow);
+        SetupJobPersistence(jobId);
+
+        var result = (await deliveryController.Create(new DeliveryRequest { JobId = jobId })) as ObjectResult;
 
         Assert.IsNotNull(result);
         Assert.AreEqual(StatusCodes.Status201Created, result.StatusCode);

@@ -51,6 +51,9 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public LocalizedText? StatusMessage { get; private set; }
 
+    /// <inheritdoc/>
+    public LocalizedText? ConditionMessage { get; private set; }
+
     private ImmutableList<PersistedFile> downloads = ImmutableList<PersistedFile>.Empty;
     private ImmutableList<PersistedFile> deliveryFiles = ImmutableList<PersistedFile>.Empty;
 
@@ -134,7 +137,7 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"step failed due to pre-condition.");
-                    this.StatusMessage = MergeConditionMessages(failConditions);
+                    this.ConditionMessage = MergeConditionMessages(failConditions);
                     return new StepResult();
                 }
 
@@ -143,7 +146,7 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Skipped;
                     logger.LogInformation($"step skipped due to pre-condition.");
-                    this.StatusMessage = MergeConditionMessages(skipConditions);
+                    this.ConditionMessage = MergeConditionMessages(skipConditions);
                     return new StepResult();
                 }
             }
@@ -159,12 +162,22 @@ public sealed class PipelineStep : IPipelineStep
                 {
                     this.State = StepState.Error;
                     logger.LogInformation($"failed due to post-condition.");
-                    statusMessage = CombineStatusMessages([statusMessage, MergeConditionMessages(postFailConditions)]);
+                    this.ConditionMessage = MergeConditionMessages(postFailConditions);
                 }
                 else
                 {
-                    this.State = StepState.Success;
-                    logger.LogInformation($"run successfull.");
+                    var postWarnConditions = await this.FindMatchingWarnConditions(this.StepConditions.Post, context, stepResult);
+                    if (postWarnConditions.Count > 0)
+                    {
+                        this.State = StepState.Warning;
+                        logger.LogInformation($"completed with warnings due to post-condition.");
+                        this.ConditionMessage = MergeConditionMessages(postWarnConditions);
+                    }
+                    else
+                    {
+                        this.State = StepState.Success;
+                        logger.LogInformation($"run successfull.");
+                    }
                 }
             }
             else
@@ -278,6 +291,22 @@ public sealed class PipelineStep : IPipelineStep
         CombineStatusMessages(OutputActions
             .Where(outputAction => outputAction.Actions.Contains(OutputAction.StatusMessage))
             .Select(outputAction => NormalizeStatusMessage(stepResult.ExtractProperty(outputAction.Property))));
+
+    private async Task<List<ConditionConfig>> FindMatchingWarnConditions(PipelineStepPostConditionConfig? condition, PipelineContext context, StepResult stepResult)
+    {
+        var matched = new List<ConditionConfig>();
+        if (condition?.WarnConditions != null)
+        {
+            var expressionParameters = context.ToExpressionParameters(this.Id, stepResult);
+            foreach (var warnCondition in condition.WarnConditions)
+            {
+                if (await this.conditionEvaluator.EvaluateConditionAsync(warnCondition.Expression, expressionParameters))
+                    matched.Add(warnCondition);
+            }
+        }
+
+        return matched;
+    }
 
     /// <summary>
     /// Combines status messages from different sources into a single localized text, dropping absent

@@ -44,12 +44,19 @@ public interface IPipelineStep : IDisposable
     StepState State { get; set; }
 
     /// <summary>
-    /// The localized status message produced by the step. Merges all outputs tagged with
-    /// <see cref="OutputAction.StatusMessage"/>, including condition-driven pre-fail, pre-skip,
-    /// and post-fail messages added during <see cref="Run"/>. <see langword="null"/> if the step
-    /// has not run, or ran without emitting any status message.
+    /// The localized status message produced by the process itself (outputs tagged with
+    /// <see cref="OutputAction.StatusMessage"/>). <see langword="null"/> if the step has not run, or
+    /// ran without emitting any status message. Condition-driven messages are exposed separately via
+    /// <see cref="ConditionMessage"/>.
     /// </summary>
     LocalizedText? StatusMessage { get; }
+
+    /// <summary>
+    /// The localized message from the step conditions that determined the terminal state (pre-fail,
+    /// pre-skip, post-fail or post-warn). Set during <see cref="Run"/> when a matching condition carries
+    /// a message. <see langword="null"/> when no condition matched or the matching conditions had no message.
+    /// </summary>
+    LocalizedText? ConditionMessage { get; }
 
     /// <summary>
     /// Files produced by the step that are available for the user to download (outputs configured

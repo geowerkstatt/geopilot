@@ -39,7 +39,7 @@ const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
 };
 
 export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
-  const { startProcessing, uploadId, setStepError, isLoading, selectedMandate } = useContext(DeliveryContext);
+  const { startProcessing, uploadId, setStepStatus, isLoading, selectedMandate } = useContext(DeliveryContext);
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
@@ -51,16 +51,16 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
     if (selectedMandate) {
       setMandates([selectedMandate]);
     } else if (uploadId) {
-      setStepError(DeliveryStepEnum.Mandate, undefined);
+      setStepStatus(DeliveryStepEnum.Mandate, undefined);
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ uploadId })).then(mandates => {
         if (mandates.length === 0) {
-          setStepError(DeliveryStepEnum.Mandate, "noMandatesFound");
+          setStepStatus(DeliveryStepEnum.Mandate, "error", "noMandatesFound");
         }
         setMandates(mandates);
         setSelected(mandates.length === 1 ? mandates[0] : null);
       });
     }
-  }, [uploadId, fetchApi, setStepError, t, user, selectedMandate]);
+  }, [uploadId, fetchApi, setStepStatus, t, user, selectedMandate]);
 
   const currentMandate = selectedMandate ?? selected;
   const description = localized(currentMandate?.description);

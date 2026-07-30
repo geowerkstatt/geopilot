@@ -30,6 +30,7 @@ export const themePalette = {
   },
   warning: {
     main: "#fd9903",
+    selected: "#fd99032E",
     hover: "#fd99030D",
   },
   error: {

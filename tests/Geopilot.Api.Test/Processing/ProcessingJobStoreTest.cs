@@ -182,6 +182,7 @@ public class ProcessingJobStoreTest
 
     [TestMethod]
     [DataRow(ProcessingState.Success)]
+    [DataRow(ProcessingState.Warning)]
     [DataRow(ProcessingState.Failed)]
     [DataRow(ProcessingState.Cancelled)]
     public void PipelineFinishedTransitionsFromRunning(ProcessingState pipelineState)

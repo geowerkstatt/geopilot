@@ -4,6 +4,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { MiddleTruncate } from "../../components/middleTruncate";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
+import { useLocalized } from "../../hooks/useLocalized";
 import { SLIDE_TRANSITION_MS } from "./deliveryContentCarousel";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
@@ -33,16 +34,19 @@ const StepperStack = styled(Stack)({
 });
 
 const DeliveryStepBox = styled(GeopilotBox, {
-  shouldForwardProp: prop => prop !== "open" && prop !== "enabled" && prop !== "error",
+  shouldForwardProp: prop => prop !== "open" && prop !== "enabled" && prop !== "error" && prop !== "warning",
 })<{
   open: boolean;
   error: boolean;
+  warning: boolean;
   enabled: boolean;
-}>(({ open, enabled, error, theme }) => ({
+}>(({ open, enabled, error, warning, theme }) => ({
   backgroundColor: open
     ? error
       ? theme.palette.error.selected
-      : theme.palette.primary.states.selected
+      : warning
+        ? theme.palette.warning.selected
+        : theme.palette.primary.states.selected
     : theme.palette.background.content,
   alignItems: "flex-start",
   cursor: enabled ? "pointer" : "default",
@@ -55,6 +59,7 @@ const DeliveryStepBox = styled(GeopilotBox, {
 
 export const DeliveryStepper = () => {
   const { t } = useTranslation();
+  const localized = useLocalized();
   const { steps, lastCompletedStep, activeStep, isLoading, isProcessing, showCompletedOrNextStep } =
     useContext(DeliveryContext);
   const theme = useTheme();
@@ -85,15 +90,18 @@ export const DeliveryStepper = () => {
             data-cy={`${key}-step`}
             direction="row"
             open={isOpen(index)}
-            error={!!step.error}
-            enabled={isEnabled(index)}
-            onClick={() => onStepClick(index)}>
+            error={step.state === "error"}
+            warning={step.state === "warning"}
+            enabled={isEnabled(index) && step.state !== "skipped"}
+            onClick={step.state === "skipped" ? undefined : () => onStepClick(index)}>
             <StepperIcon
               index={index}
               open={isOpen(index)}
               enabled={isEnabled(index)}
               completed={isCompleted(index)}
-              error={!!step.error}
+              error={step.state === "error"}
+              warning={step.state === "warning"}
+              skipped={step.state === "skipped"}
               isLoading={isLoading || isProcessing}
             />
             <Stack direction={{ xs: "row", md: "column" }} alignItems="baseline" sx={{ minWidth: "0" }}>
@@ -115,9 +123,17 @@ export const DeliveryStepper = () => {
                     ))}
                 </Typography>
               )}
-              {step.error && (
-                <Typography variant="body2" color={isOpen(index) ? "textSecondary" : "error"}>
-                  {t(step.error)}
+              {step.message && (
+                <Typography
+                  variant="body2"
+                  color={
+                    isOpen(index) || step.state === "skipped"
+                      ? "textSecondary"
+                      : step.state === "warning"
+                        ? "warning.main"
+                        : "error"
+                  }>
+                  {typeof step.message === "string" ? t(step.message) : localized(step.message)}
                 </Typography>
               )}
             </Stack>

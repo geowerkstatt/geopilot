@@ -67,6 +67,14 @@ pipelines:
                   en: "Exactly one XTF file must be uploaded."
                   fr: "Exactement un fichier XTF doit être téléchargé."
                   it: "Deve essere caricato esattamente un file XTF."
+          post:
+            warn_conditions:
+              - expression: "!([validation.ValidationSuccessful])"
+                message:
+                  de: "Die Validierung hat Fehler gefunden."
+                  en: "Validation found errors."
+                  fr: "La validation a détecté des erreurs."
+                  it: "La validazione ha rilevato errori."
         process_config_overwrites:
         input:
           iliFile: "${step_output(xtf_matching.XtfFiles)}"

@@ -8,6 +8,8 @@
 - Pipeline step `input` is now a map from process parameter name to value, replacing the previous list of `from`, `take` and `as` entries. A value is a literal, a `${step_output(stepId.outputName)}` reference, or a YAML list of those. Existing pipeline definitions must be updated to the new form.
 - A pipeline step no longer declares which outputs it exposes: every public property of a process result is available to later steps by its PascalCase name (for example `${step_output(matcher.XtfFiles)}`). The `output:` block with `take`/`as` is replaced by an optional `output_actions:` list that only tags a result property with actions (`Download`, `Delivery`, `StatusMessage`, `Visualization`), and outputs can no longer be renamed. Existing pipeline definitions must be updated to the new form.
 - A process run method receives a file collection as `IPipelineFile[]`, which can be wired from any input source (`${upload()}`, a step output, `${file(...)}`, or a combination). The `IPipelineFileList` type has been removed from `GeoWerkstatt.Geopilot.PipelineCore`; file collections are plain `IPipelineFile[]` (or `IReadOnlyList<IPipelineFile>`), and the file filters (`WithExtensions`, `WithMatchingName`) are extension methods on `IEnumerable<IPipelineFile>`.
+- In the delivery view, the processing step in the left navigation now turns red whenever a run cannot be delivered, not only when it fails: a run blocked by a delivery restriction shows "delivery not possible" and the delivery step is shown as skipped, while a failed or cancelled run keeps its own message.
+- A step's condition messages (why it failed, was skipped, or ended with a warning) are now shown as the step's tooltip in the delivery view, separate from the process's own status message, which continues to be shown inline.
 
 ### Added
 
@@ -17,6 +19,7 @@
 - A pipeline step `input` value can reference the uploaded delivery files with `${upload()}`, so a pipeline definition can wire the upload to a process parameter explicitly.
 - Pipeline processes can use an `IIli2GpkgClient` from `GeoWerkstatt.Geopilot.PipelineCore` to run ili2gpkg operations using an [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) service.
 - Mandates can have a description. The description is shown to the users when they choose a mandate before processing.
+- Pipeline steps can end in a `Warning` state through a post `warn_conditions` list: the step ran and reported issues but the pipeline continues, shown with a warning icon in the delivery view. A run whose only non-successful steps are warnings is reported as a warning overall, and a warning does not block delivery on its own (delivery stays governed by the pipeline's `delivery_restrictions`). The built-in XTF validation pipelines mark the validation step as a warning when the validation was not successful.
 
 ### Removed
 

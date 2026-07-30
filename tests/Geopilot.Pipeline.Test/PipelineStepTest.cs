@@ -408,7 +408,7 @@ public class PipelineStepTest
 
         Assert.IsNull(stepResult.Result, "a pre-condition failure produces no process result.");
 
-        var message = pipelineStep.StatusMessage;
+        var message = pipelineStep.ConditionMessage;
         Assert.IsNotNull(message);
         Assert.AreEqual("Step failed.", message["en"]);
         Assert.AreEqual("Schritt fehlgeschlagen.", message["de"]);
@@ -462,7 +462,7 @@ public class PipelineStepTest
 
         Assert.IsNull(stepResult.Result, "a skipped step produces no process result.");
 
-        var message = pipelineStep.StatusMessage;
+        var message = pipelineStep.ConditionMessage;
         Assert.IsNotNull(message);
         Assert.AreEqual("Step skipped.", message["en"]);
         Assert.AreEqual("Schritt übersprungen.", message["de"]);
@@ -526,10 +526,108 @@ public class PipelineStepTest
 
         Assert.AreEqual("some_data", stepResult.ExtractProperty("OutputData"), "the process ran, so its result is available on Result.");
 
-        var message = pipelineStep.StatusMessage;
+        var message = pipelineStep.ConditionMessage;
         Assert.IsNotNull(message);
         Assert.AreEqual("Post-condition failed.", message["en"]);
         Assert.AreEqual("Post-Bedingung fehlgeschlagen.", message["de"]);
+    }
+
+    [TestMethod]
+    public async Task StepShouldWarnBecauseOfPostCondition()
+    {
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Post = new PipelineStepPostConditionConfig()
+            {
+                WarnConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.OutputData] == 'some_data'",
+                        Message = new Dictionary<string, string>
+                        {
+                            { "de", "Warnung aus Post-Bedingung." },
+                            { "en", "Post-condition warning." },
+                        },
+                    },
+                },
+            },
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Warning, pipelineStep.State);
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        var message = pipelineStep.ConditionMessage;
+        Assert.IsNotNull(message);
+        Assert.AreEqual("Post-condition warning.", message["en"]);
+        Assert.AreEqual("Warnung aus Post-Bedingung.", message["de"]);
+    }
+
+    [TestMethod]
+    public async Task StepShouldFailWhenPostFailAndWarnConditionsBothMatch()
+    {
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Post = new PipelineStepPostConditionConfig()
+            {
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.OutputData] == 'some_data'",
+                        Message = new Dictionary<string, string> { { "en", "Failed." } },
+                    },
+                },
+                WarnConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.OutputData] == 'some_data'",
+                        Message = new Dictionary<string, string> { { "en", "Warned." } },
+                    },
+                },
+            },
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Error, pipelineStep.State, "A matching fail condition must win over a matching warn condition.");
+        Assert.IsNotNull(pipelineStep.ConditionMessage);
+        Assert.AreEqual("Failed.", pipelineStep.ConditionMessage["en"], "The fail condition message must win over the warn message.");
     }
 
     [TestMethod]
@@ -599,7 +697,7 @@ public class PipelineStepTest
 
         Assert.IsNull(stepResult.Result, "a pre-condition failure produces no process result.");
 
-        var message = pipelineStep.StatusMessage;
+        var message = pipelineStep.ConditionMessage;
         Assert.IsNotNull(message);
 
         // First and second conditions match, third does not (999 != 123).
@@ -751,11 +849,11 @@ public class PipelineStepTest
     }
 
     [TestMethod]
-    public async Task PostConditionMessageIsMergedWithProcessStatusMessage()
+    public async Task PostConditionMessageIsSeparateFromProcessStatusMessage()
     {
         // The process emits its own StatusMessage output and a post-fail condition matches with its own
-        // message. Both must survive: the condition message is merged onto the process message, not
-        // substituted for it.
+        // message. Both survive independently: the process message stays in StatusMessage, the condition
+        // message is exposed separately in ConditionMessage (rendered as the step tooltip).
         var result = new MockMultiOutputResult
         {
             FirstFile = "boom",
@@ -797,8 +895,13 @@ public class PipelineStepTest
 
         var message = pipelineStep.StatusMessage;
         Assert.IsNotNull(message);
-        Assert.AreEqual("Done. - Post-condition failed.", message["en"]);
-        Assert.AreEqual("Fertig. - Post-Bedingung fehlgeschlagen.", message["de"]);
+        Assert.AreEqual("Done.", message["en"]);
+        Assert.AreEqual("Fertig.", message["de"]);
+
+        var conditionMessage = pipelineStep.ConditionMessage;
+        Assert.IsNotNull(conditionMessage);
+        Assert.AreEqual("Post-condition failed.", conditionMessage["en"]);
+        Assert.AreEqual("Post-Bedingung fehlgeschlagen.", conditionMessage["de"]);
     }
 
     private PipelineStep BuildBareStep() =>
