@@ -44,11 +44,11 @@ const renderIcon = (state: StepState, index: number): ReactElement => {
           data-cy="processing-step-icon-warning"
         />
       );
-    // Placeholder styling for the delivery-restriction state; final icon and colour to be defined by design.
+    // Delivery-restriction state: a distinct block icon in the error colour, since delivery is blocked.
     case StepState.DeliveryRestriction:
       return (
         <BlockIcon
-          sx={{ fontSize: ICON_SIZE, color: geopilotTheme.palette.warning.main }}
+          sx={{ fontSize: ICON_SIZE, color: geopilotTheme.palette.error.main }}
           data-cy="processing-step-icon-deliveryrestriction"
         />
       );

@@ -40,7 +40,7 @@ export const StepperIcon: FC<StepperIconProps> = ({
       ) : warning ? (
         <WarningIcon color="warning" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-warning" />
       ) : deliveryRestriction ? (
-        <BlockIcon color="warning" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-deliveryrestriction" />
+        <BlockIcon color="error" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-deliveryrestriction" />
       ) : skipped ? (
         <RemoveCircleOutlineIcon
           sx={{ fontSize: { xs: 24, md: 28 }, color: theme.palette.primary.states.disabledBackground }}

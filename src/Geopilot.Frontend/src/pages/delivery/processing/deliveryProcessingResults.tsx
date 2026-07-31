@@ -146,7 +146,7 @@ export const DeliveryProcessingResults = () => {
           );
         })}
       </Box>
-      {deliveryRestrictionMessage && <Alert severity="warning">{localized(deliveryRestrictionMessage)}</Alert>}
+      {deliveryRestrictionMessage && <Alert severity="error">{localized(deliveryRestrictionMessage)}</Alert>}
     </Stack>
   );
 };
