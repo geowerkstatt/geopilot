@@ -91,11 +91,17 @@ export const buildWmtsLayer = async (
   }
 };
 
+/** Colours used to render error features: the marker fill, its outline, and the fill of a selected marker. */
+interface MapFeatureColors {
+  fill: string;
+  stroke: string;
+  highlight: string;
+}
+
 export const buildFeatureLayer = (
   layer: MapLayer,
-  color: string,
+  colors: MapFeatureColors,
   title: LocalizedText | undefined,
-  highlightColor: string,
   projection: string,
   visibleIdsRef: MutableRefObject<ReadonlySet<string> | undefined>,
   highlightedIdsRef: MutableRefObject<ReadonlySet<string>>,
@@ -118,20 +124,20 @@ export const buildFeatureLayer = (
   const defaultStyle = new Style({
     image: new Circle({
       radius: 6,
-      fill: new Fill({ color }),
-      stroke: new Stroke({ color: highlightColor, width: 2 }),
+      fill: new Fill({ color: colors.fill }),
+      stroke: new Stroke({ color: colors.stroke, width: 2 }),
     }),
-    stroke: new Stroke({ color, width: 2 }),
-    fill: new Fill({ color: alpha(color, 0.2) }),
+    stroke: new Stroke({ color: colors.fill, width: 2 }),
+    fill: new Fill({ color: alpha(colors.fill, 0.2) }),
   });
   const highlightStyle = new Style({
     image: new Circle({
       radius: 9,
-      fill: new Fill({ color }),
-      stroke: new Stroke({ color: highlightColor, width: 3 }),
+      fill: new Fill({ color: colors.highlight }),
+      stroke: new Stroke({ color: colors.stroke, width: 3 }),
     }),
-    stroke: new Stroke({ color: highlightColor, width: 3 }),
-    fill: new Fill({ color: alpha(color, 0.2) }),
+    stroke: new Stroke({ color: colors.highlight, width: 3 }),
+    fill: new Fill({ color: alpha(colors.highlight, 0.2) }),
   });
 
   return new VectorLayer({

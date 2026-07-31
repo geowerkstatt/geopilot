@@ -43,6 +43,7 @@ export const themePalette = {
   map: {
     fill: "#e53835",
     stroke: "#ffffff",
+    highlight: "#980303",
   },
   divider: alpha("#124A4F", 0.2),
 } satisfies PaletteOptions;
