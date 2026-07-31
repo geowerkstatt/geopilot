@@ -166,17 +166,27 @@ public sealed class PipelineStep : IPipelineStep
                 }
                 else
                 {
-                    var postWarnConditions = await this.FindMatchingWarnConditions(this.StepConditions.Post, context, stepResult);
-                    if (postWarnConditions.Count > 0)
+                    var postRestrictDeliveryConditions = await this.FindMatchingRestrictDeliveryConditions(this.StepConditions.Post, context, stepResult);
+                    if (postRestrictDeliveryConditions.Count > 0)
                     {
-                        this.State = StepState.Warning;
-                        logger.LogInformation($"completed with warnings due to post-condition.");
-                        this.ConditionMessage = MergeConditionMessages(postWarnConditions);
+                        this.State = StepState.DeliveryRestriction;
+                        logger.LogInformation($"delivery restricted due to post-condition.");
+                        this.ConditionMessage = MergeConditionMessages(postRestrictDeliveryConditions);
                     }
                     else
                     {
-                        this.State = StepState.Success;
-                        logger.LogInformation($"run successfull.");
+                        var postWarnConditions = await this.FindMatchingWarnConditions(this.StepConditions.Post, context, stepResult);
+                        if (postWarnConditions.Count > 0)
+                        {
+                            this.State = StepState.Warning;
+                            logger.LogInformation($"completed with warnings due to post-condition.");
+                            this.ConditionMessage = MergeConditionMessages(postWarnConditions);
+                        }
+                        else
+                        {
+                            this.State = StepState.Success;
+                            logger.LogInformation($"run successfull.");
+                        }
                     }
                 }
             }
@@ -302,6 +312,22 @@ public sealed class PipelineStep : IPipelineStep
             {
                 if (await this.conditionEvaluator.EvaluateConditionAsync(warnCondition.Expression, expressionParameters))
                     matched.Add(warnCondition);
+            }
+        }
+
+        return matched;
+    }
+
+    private async Task<List<ConditionConfig>> FindMatchingRestrictDeliveryConditions(PipelineStepPostConditionConfig? condition, PipelineContext context, StepResult stepResult)
+    {
+        var matched = new List<ConditionConfig>();
+        if (condition?.RestrictDeliveryConditions != null)
+        {
+            var expressionParameters = context.ToExpressionParameters(this.Id, stepResult);
+            foreach (var restrictDeliveryCondition in condition.RestrictDeliveryConditions)
+            {
+                if (await this.conditionEvaluator.EvaluateConditionAsync(restrictDeliveryCondition.Expression, expressionParameters))
+                    matched.Add(restrictDeliveryCondition);
             }
         }
 

@@ -49,6 +49,7 @@ public interface IProcessingJobStore
     /// <param name="jobId">The job whose pipeline has finished.</param>
     /// <param name="pipelineState">
     /// The terminal state the pipeline ended in. Must be one of <see cref="ProcessingState.Success"/>,
+    /// <see cref="ProcessingState.Warning"/>, <see cref="ProcessingState.DeliveryRestriction"/>,
     /// <see cref="ProcessingState.Failed"/>, or <see cref="ProcessingState.Cancelled"/>.
     /// </param>
     /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>

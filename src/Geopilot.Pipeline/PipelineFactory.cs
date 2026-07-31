@@ -56,7 +56,6 @@ public class PipelineFactory : IPipelineFactory
                 .Id(pipelineConfig.Id)
                 .DisplayName(pipelineConfig.DisplayName)
                 .Steps(CreateSteps(pipelineConfig, jobPipelineDirectory, jobId))
-                .DeliveryRestrictions(pipelineConfig.DeliveryRestrictions)
                 .Logger(PipelineLogger
                     .Builder()
                     .Logger(loggerFactory.CreateLogger<Geopilot.Pipeline.Pipeline>())

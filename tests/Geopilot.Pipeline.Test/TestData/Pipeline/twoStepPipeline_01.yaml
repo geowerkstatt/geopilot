@@ -18,8 +18,6 @@ pipelines:
   - id: two_steps_skip_validation
     display_name:
       en: two steps pipeline with skip condition
-    delivery_restrictions:
-      - expression: "Length([matcher.XtfFiles]) == 1"
     steps:
       - id: matcher
         display_name:
@@ -64,8 +62,6 @@ pipelines:
   - id: two_steps_roadsexdm2ien
     display_name:
       en: two steps pipeline
-    delivery_restrictions:
-      - expression: "!([validation.ValidationSuccessful])"
     steps:
       - id: matcher
         display_name:

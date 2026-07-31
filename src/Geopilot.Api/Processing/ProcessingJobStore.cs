@@ -67,7 +67,7 @@ public class ProcessingJobStore : IProcessingJobStore
     /// <inheritdoc/>
     public ProcessingJob PipelineFinished(Guid jobId, ProcessingState pipelineState)
     {
-        if (pipelineState is not (ProcessingState.Success or ProcessingState.Warning or ProcessingState.Failed or ProcessingState.Cancelled))
+        if (pipelineState is not (ProcessingState.Success or ProcessingState.Warning or ProcessingState.DeliveryRestriction or ProcessingState.Failed or ProcessingState.Cancelled))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(pipelineState),

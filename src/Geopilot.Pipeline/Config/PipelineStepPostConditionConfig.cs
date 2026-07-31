@@ -24,4 +24,13 @@ public class PipelineStepPostConditionConfig
     /// </summary>
     [YamlMember(Alias = "warn_conditions")]
     public List<ConditionConfig>? WarnConditions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the list of conditions that restrict delivery after execution. If no fail condition
+    /// matched and any restrict-delivery condition evaluates to <see langword="true"/>, the step is marked
+    /// as restricting delivery (taking precedence over a warning) and the pipeline continues, but the
+    /// produced data may not be delivered.
+    /// </summary>
+    [YamlMember(Alias = "restrict_delivery_conditions")]
+    public List<ConditionConfig>? RestrictDeliveryConditions { get; set; }
 }

@@ -30,12 +30,6 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
             errorMessages.AddRange(stepConditionsErrorMessges);
         }
 
-        if (pipeline.DeliveryRestrictions != null)
-        {
-            foreach (var condition in pipeline.DeliveryRestrictions)
-                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Pipeline-Delivery-Restriction"));
-        }
-
         if (errorMessages.Count > 0)
         {
             return new ValidationResult(string.Join(Environment.NewLine, errorMessages));
@@ -74,6 +68,12 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
         {
             foreach (var condition in stepToValidate.Conditions.Post.WarnConditions)
                 errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Step-Post-Warn-Condition"));
+        }
+
+        if (stepToValidate.Conditions?.Post?.RestrictDeliveryConditions != null)
+        {
+            foreach (var condition in stepToValidate.Conditions.Post.RestrictDeliveryConditions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Step-Post-Restrict-Delivery-Condition"));
         }
 
         return errorMessages;

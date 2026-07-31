@@ -312,10 +312,8 @@ namespace Geopilot.Api.Controllers
             var processingServiceMock = new Mock<IProcessingService>();
             var pipelineMock = new Mock<IPipeline>();
             pipelineMock.SetupGet(p => p.State).Returns(ProcessingState.Success);
-            pipelineMock.SetupGet(p => p.Delivery).Returns(PipelineDelivery.Allow);
             pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
             pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
-            pipelineMock.SetupGet(p => p.DeliveryRestrictionMessage).Returns((LocalizedText?)null);
 
             var processingJob = new ProcessingJob(guid, new List<ProcessingJobFile>() { new ProcessingJobFile("ORIGINAL.zip", "TEMP.zip") }, mandateToUpdate.Id, DateTime.Now)
             {

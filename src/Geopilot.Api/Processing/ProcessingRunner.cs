@@ -73,9 +73,9 @@ public class ProcessingRunner : BackgroundService
 
                 // Stage the delivery payload only when the job is actually deliverable — the same gate the
                 // submission endpoint enforces (DeliveryController.Create). This keeps incomplete or
-                // non-deliverable payloads (a failed/aborted pipeline, or a matched delivery restriction)
+                // non-deliverable payloads (a failed/aborted pipeline, or a step that restricts delivery)
                 // out of the asset store.
-                if (pipeline.State.IsDeliverable() && pipeline.Delivery == PipelineDelivery.Allow)
+                if (pipeline.State.IsDeliverable())
                     ExtractDeliveryFiles(pipeline, pipelineContext);
 
                 jobStore.PipelineFinished(pipeline.JobId, pipeline.State);

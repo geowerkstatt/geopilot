@@ -631,6 +631,153 @@ public class PipelineStepTest
     }
 
     [TestMethod]
+    public async Task StepShouldRestrictDeliveryBecauseOfPostCondition()
+    {
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Post = new PipelineStepPostConditionConfig()
+            {
+                RestrictDeliveryConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.OutputData] == 'some_data'",
+                        Message = new Dictionary<string, string>
+                        {
+                            { "de", "Lieferung eingeschränkt aus Post-Bedingung." },
+                            { "en", "Delivery restricted by post-condition." },
+                        },
+                    },
+                },
+            },
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.DeliveryRestriction, pipelineStep.State);
+        Assert.AreEqual(1, processMock.NumberOfRunInvoced, "Process Run method was not invoked exactly once.");
+
+        var message = pipelineStep.ConditionMessage;
+        Assert.IsNotNull(message);
+        Assert.AreEqual("Delivery restricted by post-condition.", message["en"]);
+        Assert.AreEqual("Lieferung eingeschränkt aus Post-Bedingung.", message["de"]);
+    }
+
+    [TestMethod]
+    public async Task StepShouldFailWhenPostFailAndRestrictDeliveryConditionsBothMatch()
+    {
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Post = new PipelineStepPostConditionConfig()
+            {
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.OutputData] == 'some_data'",
+                        Message = new Dictionary<string, string> { { "en", "Failed." } },
+                    },
+                },
+                RestrictDeliveryConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.OutputData] == 'some_data'",
+                        Message = new Dictionary<string, string> { { "en", "Restricted." } },
+                    },
+                },
+            },
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Error, pipelineStep.State, "A matching fail condition must win over a matching restrict-delivery condition.");
+        Assert.IsNotNull(pipelineStep.ConditionMessage);
+        Assert.AreEqual("Failed.", pipelineStep.ConditionMessage["en"], "The fail condition message must win over the restrict-delivery message.");
+    }
+
+    [TestMethod]
+    public async Task StepShouldRestrictDeliveryWhenPostRestrictAndWarnConditionsBothMatch()
+    {
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
+        var processData = new MockPipelineProcessSingleInputResult { OutputData = "some_data" };
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Post = new PipelineStepPostConditionConfig()
+            {
+                RestrictDeliveryConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.OutputData] == 'some_data'",
+                        Message = new Dictionary<string, string> { { "en", "Restricted." } },
+                    },
+                },
+                WarnConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Expression = "[my_step.OutputData] == 'some_data'",
+                        Message = new Dictionary<string, string> { { "en", "Warned." } },
+                    },
+                },
+            },
+        };
+
+        var processMock = new MockPipelineProcessSingleInput(processData);
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.DeliveryRestriction, pipelineStep.State, "A matching restrict-delivery condition must win over a matching warn condition.");
+        Assert.IsNotNull(pipelineStep.ConditionMessage);
+        Assert.AreEqual("Restricted.", pipelineStep.ConditionMessage["en"], "The restrict-delivery message must win over the warn message.");
+    }
+
+    [TestMethod]
     public async Task StepShouldFailWithMultiplePreFailConditionsAndConcatenatedMessages()
     {
         var inputs = SingleUploadInput();
