@@ -4,6 +4,8 @@
 
 geopilot ist ein benutzerfreundliches Tool für das Liefern und Validieren von Geodaten. Es ermöglicht das Hochladen von Geodaten in verschiedenen Formaten und überprüft sie auf Einhaltung geltender Standards. Anwender können ihre hochgeladenen und validierten Daten deklarieren um diese für die Weiterverarbeitung bereit zu stellen. Mit geopilot wird der Prozess der Geodatenverarbeitung für eine reibungslose und zuverlässige Datenübermittlung optimiert.
 
+Die Dokumentation zu Pipelines, den mitgelieferten Prozessoren und dem Plugin-System liegt unter [`docs/`](./docs/README.md).
+
 ## Einrichten der Entwicklungsumgebung
 
 Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
@@ -45,6 +47,8 @@ docker compose up -d
 ### Pipeline-Konfiguration
 
 geopilot verwendet eine YAML-Konfigurationsdatei, um den Validierungs- und Lieferprozess als Pipeline zu definieren. Diese Datei beschreibt die verfügbaren Prozesse (z.B. INTERLIS-Validierung), deren Konfiguration sowie die Schritte, die bei einer Datenlieferung ausgeführt werden. Ein Beispiel befindet sich unter [`src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml`](./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml).
+
+Das Format der Definition, die mitgelieferten Prozessoren und das Plugin-System sind in der [Pipeline-Dokumentation](./docs/pipeline/Pipelines.md) beschrieben.
 
 Der Pfad zur Pipeline-Konfiguration kann auf zwei Arten festgelegt werden:
 
