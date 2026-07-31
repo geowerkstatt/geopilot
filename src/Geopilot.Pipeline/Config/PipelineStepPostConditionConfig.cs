@@ -3,11 +3,12 @@
 namespace Geopilot.Pipeline.Config;
 
 /// <summary>
-/// Represents configuration settings for conditional execution of a pipeline step after it has executed.
-/// If any condition evaluates to <see langword="true"/>, the step will be marked as failed.
+/// Represents configuration settings that classify a pipeline step's outcome after it has executed.
+/// The post-conditions are evaluated in precedence order to mark the step as failed, delivery-restricting,
+/// or completed with a warning; if none match, the step succeeds.
 /// </summary>
-/// <remarks>Use this class to specify expressions that determine whether a pipeline step should be
-/// marked as failed after execution. The conditions are typically evaluated at runtime based on pipeline variables or state.</remarks>
+/// <remarks>Use this class to specify expressions that determine a step's terminal state after execution.
+/// The conditions are typically evaluated at runtime based on pipeline variables or state.</remarks>
 public class PipelineStepPostConditionConfig
 {
     /// <summary>

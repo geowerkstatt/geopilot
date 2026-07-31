@@ -7,6 +7,7 @@ import { GeopilotBox, pageContentPadding } from "../../components/styledComponen
 import { useLocalized } from "../../hooks/useLocalized";
 import { SLIDE_TRANSITION_MS } from "./deliveryContentCarousel";
 import { DeliveryContext } from "./deliveryContext";
+import { DeliveryStepStatus } from "./deliveryInterfaces";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 import { StepperIcon } from "./stepperIcon";
 
@@ -34,17 +35,16 @@ const StepperStack = styled(Stack)({
 });
 
 const DeliveryStepBox = styled(GeopilotBox, {
-  shouldForwardProp: prop => prop !== "open" && prop !== "enabled" && prop !== "error" && prop !== "warning",
+  shouldForwardProp: prop => prop !== "open" && prop !== "enabled" && prop !== "status",
 })<{
   open: boolean;
-  error: boolean;
-  warning: boolean;
+  status?: DeliveryStepStatus;
   enabled: boolean;
-}>(({ open, enabled, error, warning, theme }) => ({
+}>(({ open, enabled, status, theme }) => ({
   backgroundColor: open
-    ? error
+    ? status === "error" || status === "deliveryRestriction"
       ? theme.palette.error.selected
-      : warning
+      : status === "warning"
         ? theme.palette.warning.selected
         : theme.palette.primary.states.selected
     : theme.palette.background.content,
@@ -90,8 +90,7 @@ export const DeliveryStepper = () => {
             data-cy={`${key}-step`}
             direction="row"
             open={isOpen(index)}
-            error={step.state === "error"}
-            warning={step.state === "warning"}
+            status={step.state}
             enabled={isEnabled(index) && step.state !== "skipped"}
             onClick={step.state === "skipped" ? undefined : () => onStepClick(index)}>
             <StepperIcon
@@ -99,10 +98,7 @@ export const DeliveryStepper = () => {
               open={isOpen(index)}
               enabled={isEnabled(index)}
               completed={isCompleted(index)}
-              error={step.state === "error"}
-              warning={step.state === "warning"}
-              skipped={step.state === "skipped"}
-              deliveryRestriction={step.state === "deliveryRestriction"}
+              status={step.state}
               isLoading={isLoading || isProcessing}
             />
             <Stack direction={{ xs: "row", md: "column" }} alignItems="baseline" sx={{ minWidth: "0" }}>

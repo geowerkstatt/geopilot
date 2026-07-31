@@ -43,6 +43,7 @@
   "deliveryErrorUnexpected": "An unexpected error occurred during delivery. (Error 500)",
   "deliveryForm": "Delivery form",
   "deliveryNoInputRequired": "No further information is required for this delivery.",
+  "deliveryNotPossible": "Delivery is not possible.",
   "deliveryOverview": "Delivery overview",
   "deliveryOverviewDeleteError": "An error occurred while deleting the delivery: {{error}}",
   "deliveryOverviewDeleteIdError": "An error occurred while deleting the delivery with the ID {{id}}",

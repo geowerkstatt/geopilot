@@ -49,7 +49,7 @@ const renderIcon = (state: StepState, index: number): ReactElement => {
       return (
         <BlockIcon
           sx={{ fontSize: ICON_SIZE, color: geopilotTheme.palette.error.main }}
-          data-cy="processing-step-icon-deliveryrestriction"
+          data-cy="processing-step-icon-deliveryRestriction"
         />
       );
     case StepState.Error:

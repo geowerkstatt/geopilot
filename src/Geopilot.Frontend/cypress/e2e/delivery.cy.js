@@ -158,11 +158,11 @@ describe("Delivery tests", () => {
     cy.wait("@jobStatus");
 
     // Right results pane: the validation step shows the delivery-restriction icon.
-    cy.dataCy("processing-step-validation").dataCy("processing-step-icon-deliveryrestriction").should("exist");
+    cy.dataCy("processing-step-validation").dataCy("processing-step-icon-deliveryRestriction").should("exist");
 
     // Left stepper: the processing node shows the delivery-restriction state, while the delivery node is
     // shown as skipped and carries the merged reason of all restricting steps.
-    cy.dataCy("processing-step").dataCy("stepper-deliveryrestriction").should("exist");
+    cy.dataCy("processing-step").dataCy("stepper-deliveryRestriction").should("exist");
     stepIsSkipped("delivery", true, "Delivery is not possible");
     cy.dataCy("delivery-step").contains("Topology check failed");
   });
@@ -218,7 +218,7 @@ describe("Delivery tests", () => {
     // Left stepper: a warning does not block delivery, so neither the delivery-restriction nor the
     // error state appears; the processing node stays in the (deliverable) warning state.
     cy.dataCy("processing-step").dataCy("stepper-warning").should("exist");
-    cy.dataCy("stepper-deliveryrestriction").should("not.exist");
+    cy.dataCy("stepper-deliveryRestriction").should("not.exist");
     cy.dataCy("stepper-error").should("not.exist");
   });
 
