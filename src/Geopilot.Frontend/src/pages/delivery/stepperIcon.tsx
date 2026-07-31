@@ -1,4 +1,5 @@
 import { FC } from "react";
+import BlockIcon from "@mui/icons-material/Block";
 import CheckIcon from "@mui/icons-material/Check";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import WarningIcon from "@mui/icons-material/Warning";
@@ -12,6 +13,7 @@ interface StepperIconProps {
   error?: boolean;
   warning?: boolean;
   skipped?: boolean;
+  deliveryRestriction?: boolean;
   isLoading?: boolean;
 }
 
@@ -23,6 +25,7 @@ export const StepperIcon: FC<StepperIconProps> = ({
   error,
   warning,
   skipped,
+  deliveryRestriction,
   isLoading,
 }) => {
   const theme = useTheme();
@@ -36,6 +39,8 @@ export const StepperIcon: FC<StepperIconProps> = ({
         <WarningIcon color="error" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-error" />
       ) : warning ? (
         <WarningIcon color="warning" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-warning" />
+      ) : deliveryRestriction ? (
+        <BlockIcon color="warning" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-deliveryrestriction" />
       ) : skipped ? (
         <RemoveCircleOutlineIcon
           sx={{ fontSize: { xs: 24, md: 28 }, color: theme.palette.primary.states.disabledBackground }}

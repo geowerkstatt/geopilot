@@ -6,6 +6,7 @@ import {
   ProcessingJobResponse,
   ProcessingState,
   StartJobRequest,
+  StepState,
   UploadSettings,
 } from "../../api/apiInterfaces.ts";
 import { useGeopilotAuth } from "../../auth";
@@ -276,19 +277,18 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
               setStepStatus(DeliveryStepEnum.Processing, "warning", "completedWithWarnings");
             }
           } else {
-            // Not deliverable is a dead end. A hard failure keeps its message on the processing node;
-            // a restriction-blocked run shows the reason on the delivery node and marks the processing
-            // node red without a message (interim, per Dominic/Roswita review).
-            if (response.state === ProcessingState.Failed || response.state === ProcessingState.Cancelled) {
-              setStepStatus(DeliveryStepEnum.Processing, "error", response.state);
+            // Not deliverable is a dead end. The processing node mirrors the aggregate state; the delivery
+            // node is skipped and carries the reason, sourced from the delivery-restricting step (or a
+            // generic fallback for a hard failure or cancellation).
+            if (response.state === ProcessingState.DeliveryRestriction) {
+              setStepStatus(DeliveryStepEnum.Processing, "deliveryRestriction");
             } else {
-              setStepStatus(DeliveryStepEnum.Processing, "error");
+              setStepStatus(DeliveryStepEnum.Processing, "error", response.state);
             }
-            setStepStatus(
-              DeliveryStepEnum.Delivery,
-              "skipped",
-              response.deliveryRestrictionMessage ?? "deliveryNotPossible",
-            );
+            const restrictionReason = response.steps.find(
+              step => step.state === StepState.DeliveryRestriction,
+            )?.conditionMessage;
+            setStepStatus(DeliveryStepEnum.Delivery, "skipped", restrictionReason ?? "deliveryNotPossible");
           }
         }
       })

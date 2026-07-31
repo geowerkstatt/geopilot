@@ -102,6 +102,7 @@ export const DeliveryStepper = () => {
               error={step.state === "error"}
               warning={step.state === "warning"}
               skipped={step.state === "skipped"}
+              deliveryRestriction={step.state === "deliveryRestriction"}
               isLoading={isLoading || isProcessing}
             />
             <Stack direction={{ xs: "row", md: "column" }} alignItems="baseline" sx={{ minWidth: "0" }}>

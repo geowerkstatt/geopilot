@@ -89,6 +89,7 @@ export enum ProcessingState {
   Failed = "failed",
   Cancelled = "cancelled",
   Warning = "warning",
+  DeliveryRestriction = "deliveryRestriction",
 }
 
 export enum StepState {
@@ -99,6 +100,7 @@ export enum StepState {
   Error = "error",
   Cancelled = "cancelled",
   Warning = "warning",
+  DeliveryRestriction = "deliveryRestriction",
 }
 
 interface StepDownload {
@@ -191,7 +193,6 @@ export interface ProcessingJobResponse {
   mandateId?: number;
   pipelineName: LocalizedText;
   steps: StepResult[];
-  deliveryRestrictionMessage?: LocalizedText;
 }
 
 export interface StartJobRequest {

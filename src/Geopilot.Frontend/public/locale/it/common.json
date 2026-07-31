@@ -134,6 +134,7 @@
   "stacBrowser": "Browser STAC",
   "startProcessing": "Avvia elaborazione",
   "stepStateCancelled": "Annullato",
+  "stepStateDeliveryRestriction": "Consegna limitata",
   "stepStateFailed": "Fallito",
   "stepStateFinished": "Completato",
   "stepStatePending": "In attesa",

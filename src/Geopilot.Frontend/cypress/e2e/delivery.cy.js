@@ -100,10 +100,64 @@ describe("Delivery tests", () => {
     stepIsCompleted("delivery");
   });
 
-  it("shows a warning on the step and blocks delivery when a restriction applies", () => {
+  it("marks the step and blocks delivery when a delivery restriction applies", () => {
     // Processing is fully mocked so this runs in CI, where real pipeline execution is unavailable
     // (that is why the specs above are skipped). The mock mirrors the shipped pipeline: the
-    // validation step ends in a warning and a delivery restriction blocks the delivery.
+    // validation step restricts delivery, which aggregates to a delivery-restricted job.
+    const restrictedJob = {
+      jobId: "e2e-restricted-job",
+      state: "deliveryRestriction",
+      mandateId: 1,
+      pipelineName: { en: "XTF Validation", de: "XTF Validierung" },
+      steps: [
+        {
+          id: "xtf_matching",
+          name: { en: "XTF Matching", de: "XTF Zuordnung" },
+          state: "success",
+          downloads: [],
+          visualizations: [],
+        },
+        {
+          id: "validation",
+          name: { en: "XTF Validation", de: "XTF Validierung" },
+          state: "deliveryRestriction",
+          conditionMessage: {
+            en: "Validation was not successful. Delivery is not possible.",
+            de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich.",
+          },
+          downloads: [],
+          visualizations: [],
+        },
+      ],
+    };
+
+    loginAsUploader();
+    addFile("deliveryFiles/ilimodels_valid.xtf", true);
+    uploadFile();
+
+    cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
+    cy.wait("@getMandates");
+    selectMandate(1);
+
+    cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: restrictedJob }).as("startProcessing");
+    cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: restrictedJob }).as("jobStatus");
+
+    cy.dataCy("startProcessing-button").click();
+    cy.wait("@startProcessing");
+    cy.wait("@jobStatus");
+
+    // Right results pane: the validation step shows the delivery-restriction icon.
+    cy.dataCy("processing-step-validation").dataCy("processing-step-icon-deliveryrestriction").should("exist");
+
+    // Left stepper: the processing node shows the delivery-restriction state, while the delivery node is
+    // shown as skipped and carries the reason from the restricting step's condition message.
+    cy.dataCy("processing-step").dataCy("stepper-deliveryrestriction").should("exist");
+    stepIsSkipped("delivery", true, "Delivery is not possible");
+  });
+
+  it("shows a warning on the step without blocking delivery", () => {
+    // A warning is a non-blocking outcome: the run stays deliverable (the Warning capability is kept
+    // for pipelines that opt into it, even though the shipped pipelines do not use it).
     const warningJob = {
       jobId: "e2e-warning-job",
       state: "warning",
@@ -121,15 +175,14 @@ describe("Delivery tests", () => {
           id: "validation",
           name: { en: "XTF Validation", de: "XTF Validierung" },
           state: "warning",
-          statusMessage: { en: "Data not conform to INTERLIS model", de: "Daten nicht konform zum INTERLIS-Modell" },
+          conditionMessage: {
+            en: "Validation completed with warnings.",
+            de: "Validierung mit Warnungen abgeschlossen.",
+          },
           downloads: [],
           visualizations: [],
         },
       ],
-      deliveryRestrictionMessage: {
-        en: "Validation was not successful. Delivery is not possible.",
-        de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich.",
-      },
     };
 
     loginAsUploader();
@@ -150,10 +203,11 @@ describe("Delivery tests", () => {
     // Right results pane: the validation step shows the warning icon.
     cy.dataCy("processing-step-validation").dataCy("processing-step-icon-warning").should("exist");
 
-    // Left stepper: the processing node turns red without a message, while the delivery node is
-    // shown as skipped and carries the delivery-restriction reason.
-    cy.dataCy("processing-step").dataCy("stepper-error").should("exist");
-    stepIsSkipped("delivery", true, "Delivery is not possible");
+    // Left stepper: a warning does not block delivery, so neither the delivery-restriction nor the
+    // error state appears; the processing node stays in the (deliverable) warning state.
+    cy.dataCy("processing-step").dataCy("stepper-warning").should("exist");
+    cy.dataCy("stepper-deliveryrestriction").should("not.exist");
+    cy.dataCy("stepper-error").should("not.exist");
   });
 
   it("displays error if no mandates were found", () => {

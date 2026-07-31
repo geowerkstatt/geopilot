@@ -20,6 +20,7 @@ const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
   StepState.Cancelled,
   StepState.Skipped,
   StepState.Warning,
+  StepState.DeliveryRestriction,
 ]);
 
 export const DeliveryProcessingResults = () => {
@@ -29,6 +30,10 @@ export const DeliveryProcessingResults = () => {
   const autoExpandedIds = useRef<Set<string>>(new Set());
 
   const steps = useMemo(() => processingResponse?.steps ?? [], [processingResponse?.steps]);
+  const deliveryRestrictionMessage = useMemo(
+    () => steps.find(step => step.state === StepState.DeliveryRestriction)?.conditionMessage,
+    [steps],
+  );
   const stepRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [scrollToStep, setScrollToStep] = useState<StepResult | null>(null);
 
@@ -143,9 +148,7 @@ export const DeliveryProcessingResults = () => {
           );
         })}
       </Box>
-      {processingResponse?.deliveryRestrictionMessage && (
-        <Alert severity="error">{localized(processingResponse.deliveryRestrictionMessage)}</Alert>
-      )}
+      {deliveryRestrictionMessage && <Alert severity="warning">{localized(deliveryRestrictionMessage)}</Alert>}
     </Stack>
   );
 };

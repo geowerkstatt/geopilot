@@ -1,5 +1,6 @@
 import { FC, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
+import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
@@ -24,6 +25,7 @@ const stateTranslationKey: Record<StepState, string> = {
   [StepState.Error]: "stepStateFailed",
   [StepState.Cancelled]: "stepStateCancelled",
   [StepState.Warning]: "stepStateWarning",
+  [StepState.DeliveryRestriction]: "stepStateDeliveryRestriction",
 };
 
 const renderIcon = (state: StepState, index: number): ReactElement => {
@@ -40,6 +42,14 @@ const renderIcon = (state: StepState, index: number): ReactElement => {
         <WarningAmberIcon
           sx={{ fontSize: ICON_SIZE, color: geopilotTheme.palette.warning.main }}
           data-cy="processing-step-icon-warning"
+        />
+      );
+    // Placeholder styling for the delivery-restriction state; final icon and colour to be defined by design.
+    case StepState.DeliveryRestriction:
+      return (
+        <BlockIcon
+          sx={{ fontSize: ICON_SIZE, color: geopilotTheme.palette.warning.main }}
+          data-cy="processing-step-icon-deliveryrestriction"
         />
       );
     case StepState.Error:
