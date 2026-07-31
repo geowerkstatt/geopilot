@@ -1,3 +1,5 @@
+# Beispiel einer Pipeline-Definition. Format, Prozessoren und Plugin-System sind
+# unter docs/pipeline/Pipelines.md dokumentiert.
 processes:
   - id: xtf_matcher
     implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
