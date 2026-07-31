@@ -102,8 +102,8 @@ describe("Delivery tests", () => {
 
   it("marks the step and blocks delivery when a delivery restriction applies", () => {
     // Processing is fully mocked so this runs in CI, where real pipeline execution is unavailable
-    // (that is why the specs above are skipped). The mock mirrors the shipped pipeline: the
-    // validation step restricts delivery, which aggregates to a delivery-restricted job.
+    // (that is why the specs above are skipped). Two steps restrict delivery, so the job aggregates to a
+    // delivery-restricted state and the delivery node shows both reasons merged.
     const restrictedJob = {
       jobId: "e2e-restricted-job",
       state: "deliveryRestriction",
@@ -124,6 +124,17 @@ describe("Delivery tests", () => {
           conditionMessage: {
             en: "Validation was not successful. Delivery is not possible.",
             de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich.",
+          },
+          downloads: [],
+          visualizations: [],
+        },
+        {
+          id: "topology_check",
+          name: { en: "Topology Check", de: "Topologieprüfung" },
+          state: "deliveryRestriction",
+          conditionMessage: {
+            en: "Topology check failed.",
+            de: "Topologieprüfung fehlgeschlagen.",
           },
           downloads: [],
           visualizations: [],
@@ -150,9 +161,10 @@ describe("Delivery tests", () => {
     cy.dataCy("processing-step-validation").dataCy("processing-step-icon-deliveryrestriction").should("exist");
 
     // Left stepper: the processing node shows the delivery-restriction state, while the delivery node is
-    // shown as skipped and carries the reason from the restricting step's condition message.
+    // shown as skipped and carries the merged reason of all restricting steps.
     cy.dataCy("processing-step").dataCy("stepper-deliveryrestriction").should("exist");
     stepIsSkipped("delivery", true, "Delivery is not possible");
+    cy.dataCy("delivery-step").contains("Topology check failed");
   });
 
   it("shows a warning on the step without blocking delivery", () => {

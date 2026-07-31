@@ -6,7 +6,6 @@ import {
   ProcessingJobResponse,
   ProcessingState,
   StartJobRequest,
-  StepState,
   UploadSettings,
 } from "../../api/apiInterfaces.ts";
 import { useGeopilotAuth } from "../../auth";
@@ -24,7 +23,7 @@ import {
 } from "./deliveryInterfaces.tsx";
 import { DeliverySelectMandate } from "./deliverySelectMandate.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
-import { isProcessingDeliverable } from "./deliveryUtils.tsx";
+import { getDeliveryRestrictionReason, isProcessingDeliverable } from "./deliveryUtils.tsx";
 import { DeliveryProcessing } from "./processing/deliveryProcessing.tsx";
 
 // Gets the current steps while reusing previous steps if possible to keep their state (e.g. errors)
@@ -285,9 +284,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
             } else {
               setStepStatus(DeliveryStepEnum.Processing, "error", response.state);
             }
-            const restrictionReason = response.steps.find(
-              step => step.state === StepState.DeliveryRestriction,
-            )?.conditionMessage;
+            const restrictionReason = getDeliveryRestrictionReason(response.steps);
             setStepStatus(DeliveryStepEnum.Delivery, "skipped", restrictionReason ?? "deliveryNotPossible");
           }
         }

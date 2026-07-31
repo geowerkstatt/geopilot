@@ -7,6 +7,7 @@ import { Button } from "../../../components/buttons";
 import { VisualizationLoader } from "../../../components/visualizations/visualizationLoader";
 import { useLocalized } from "../../../hooks/useLocalized";
 import { DeliveryContext } from "../deliveryContext";
+import { getDeliveryRestrictionReason } from "../deliveryUtils.tsx";
 import { ProcessingStepIcon } from "./processingStepIcon";
 
 const stepHasContent = (step: StepResult) =>
@@ -30,10 +31,7 @@ export const DeliveryProcessingResults = () => {
   const autoExpandedIds = useRef<Set<string>>(new Set());
 
   const steps = useMemo(() => processingResponse?.steps ?? [], [processingResponse?.steps]);
-  const deliveryRestrictionMessage = useMemo(
-    () => steps.find(step => step.state === StepState.DeliveryRestriction)?.conditionMessage,
-    [steps],
-  );
+  const deliveryRestrictionMessage = useMemo(() => getDeliveryRestrictionReason(steps), [steps]);
   const stepRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [scrollToStep, setScrollToStep] = useState<StepResult | null>(null);
 
