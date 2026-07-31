@@ -70,8 +70,8 @@ volumes:
 
 | URL                    | Project                                       | Reverse Proxy                                                             |
 | ---------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
-| https://localhost:5173 | Geopilot.Frontend                             | `/api` und `/browser` zu https://localhost:7188                           |
-| https://localhost:7188 | Geopilot.Api                                  | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
+| https://localhost:5173 | Geopilot.Frontend                             | `/api` und `/browser` zu https://localhost:7443                           |
+| https://localhost:7443 | Geopilot.Api                                  | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
 | https://localhost:5173 | Geopilot.Api (in docker-compose mit Frontend) | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
 | http://localhost:8080  | stac-browser (in docker-compose)              | -                                                                         |
 | http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
@@ -162,7 +162,7 @@ Diese werden beispielsweise bei den [OIDC Scopes](https://openid.net/specs/openi
 ### Redirect URIs
 
 Als erlaubte Redirect URIs müssen für das Login aus dem Frontend `https://<app-domain>` und aus Swagger UI `https://<app-domain>/swagger/oauth2-redirect.html` angegeben werden.
-_([Entwicklungsumgebung](./config/realms/keycloak-geopilot.json): `https://localhost:5173` und `https://localhost:7188/swagger/oauth2-redirect.html`)_
+_([Entwicklungsumgebung](./config/realms/keycloak-geopilot.json): `https://localhost:5173` und `https://localhost:7443/swagger/oauth2-redirect.html`)_
 
 ### Swagger UI
 
@@ -185,7 +185,7 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
     "FullScope": "openid profile email geopilot.api" // Full scope a client application needs to send as to configure access and id tokens correctly
 
     // Swagger UI auth options
-    "ApiOrigin": "https://localhost:7188", // Swagger UI origin (required)
+    "ApiOrigin": "https://localhost:7443", // Swagger UI origin (required)
     "AuthorizationUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/auth", // OAuth2 login URL
     "TokenUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token", // OAuth2 token URL
     "ApiServerScope": "<custom app scope>"

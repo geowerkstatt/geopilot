@@ -7,7 +7,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <!-- NuGet package metadata (shared metadata comes from Directory.Build.props) -->
-    <!-- Versioned independently from the API: bump per SemVer based on the public surface tracked in PublicAPI.Shipped.txt. A major bump here forces every plugin to rebuild (see ValidatePluginCoreCompatibility). -->
+    <!-- Versioned independently from the API: bump per SemVer based on the public surface tracked in PublicAPI.Shipped.txt. A major bump here forces every plugin to rebuild (see ProcessPluginLoadContext.ValidateCompatibility in Geopilot.Pipeline). -->
     <VersionPrefix>2.0</VersionPrefix>
     <IsPackable>true</IsPackable>
     <PackageId>GeoWerkstatt.Geopilot.PipelineCore</PackageId>
