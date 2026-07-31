@@ -130,71 +130,19 @@ public sealed class PipelineStep : IPipelineStep
         logger.LogInformation($"run step.");
         try
         {
-            if (this.StepConditions != null)
+            var preOutcome = await EvaluatePreConditions(context);
+            if (preOutcome is not null)
             {
-                var failConditions = await this.FindMatchingFailConditions(this.StepConditions.Pre, context);
-                if (failConditions.Count > 0)
-                {
-                    this.State = StepState.Error;
-                    logger.LogInformation($"step failed due to pre-condition.");
-                    this.ConditionMessage = MergeConditionMessages(failConditions);
-                    return new StepResult();
-                }
-
-                var skipConditions = await this.FindMatchingSkipConditions(this.StepConditions.Pre, context);
-                if (skipConditions.Count > 0)
-                {
-                    this.State = StepState.Skipped;
-                    logger.LogInformation($"step skipped due to pre-condition.");
-                    this.ConditionMessage = MergeConditionMessages(skipConditions);
-                    return new StepResult();
-                }
+                (this.State, this.ConditionMessage) = preOutcome.Value;
+                return new StepResult();
             }
 
             this.State = StepState.Running;
 
             var stepResult = await ExecuteProcess(context, cancellationToken);
             var statusMessage = ExtractStatusMessage(stepResult);
-            if (this.StepConditions != null)
-            {
-                var postFailConditions = await this.FindMatchingFailConditions(this.StepConditions.Post, context, stepResult);
-                if (postFailConditions.Count > 0)
-                {
-                    this.State = StepState.Error;
-                    logger.LogInformation($"failed due to post-condition.");
-                    this.ConditionMessage = MergeConditionMessages(postFailConditions);
-                }
-                else
-                {
-                    var postRestrictDeliveryConditions = await this.FindMatchingRestrictDeliveryConditions(this.StepConditions.Post, context, stepResult);
-                    if (postRestrictDeliveryConditions.Count > 0)
-                    {
-                        this.State = StepState.DeliveryRestriction;
-                        logger.LogInformation($"delivery restricted due to post-condition.");
-                        this.ConditionMessage = MergeConditionMessages(postRestrictDeliveryConditions);
-                    }
-                    else
-                    {
-                        var postWarnConditions = await this.FindMatchingWarnConditions(this.StepConditions.Post, context, stepResult);
-                        if (postWarnConditions.Count > 0)
-                        {
-                            this.State = StepState.Warning;
-                            logger.LogInformation($"completed with warnings due to post-condition.");
-                            this.ConditionMessage = MergeConditionMessages(postWarnConditions);
-                        }
-                        else
-                        {
-                            this.State = StepState.Success;
-                            logger.LogInformation($"run successfull.");
-                        }
-                    }
-                }
-            }
-            else
-            {
-                this.State = StepState.Success;
-                logger.LogInformation($"run successfull.");
-            }
+
+            (this.State, this.ConditionMessage) = await EvaluatePostConditions(context, stepResult);
 
             this.StatusMessage = statusMessage;
             return stepResult;
@@ -249,90 +197,82 @@ public sealed class PipelineStep : IPipelineStep
         return new StepResult { Result = result };
     }
 
-    private async Task<List<ConditionConfig>> FindMatchingSkipConditions(PipelineStepPreConditionConfig? condition, PipelineContext context)
+    private async Task<List<ConditionConfig>> FindMatchingConditions(List<ConditionConfig>? conditions, Dictionary<string, object?> parameters)
     {
         var matched = new List<ConditionConfig>();
-        if (condition?.SkipConditions != null)
+        if (conditions != null)
         {
-            var expressionParameters = context.ToExpressionParameters();
-            foreach (var skipCondition in condition.SkipConditions)
+            foreach (var condition in conditions)
             {
-                if (await this.conditionEvaluator.EvaluateConditionAsync(skipCondition.Expression, expressionParameters))
-                    matched.Add(skipCondition);
+                if (await this.conditionEvaluator.EvaluateConditionAsync(condition.Expression, parameters))
+                    matched.Add(condition);
             }
         }
 
         return matched;
     }
 
-    private async Task<List<ConditionConfig>> FindMatchingFailConditions(PipelineStepPreConditionConfig? condition, PipelineContext context)
+    // PRE-conditions gate whether the step runs at all, evaluated in precedence (fail, then skip). A match
+    // returns the gating state; null means no gate matched and the step proceeds to execution.
+    private async Task<(StepState State, LocalizedText? ConditionMessage)?> EvaluatePreConditions(PipelineContext context)
     {
-        var matched = new List<ConditionConfig>();
-        if (condition?.FailConditions != null)
+        var pre = this.StepConditions?.Pre;
+        var parameters = context.ToExpressionParameters();
+
+        var failConditions = await this.FindMatchingConditions(pre?.FailConditions, parameters);
+        if (failConditions.Count > 0)
         {
-            var expressionParameters = context.ToExpressionParameters();
-            foreach (var failCondition in condition.FailConditions)
-            {
-                if (await this.conditionEvaluator.EvaluateConditionAsync(failCondition.Expression, expressionParameters))
-                    matched.Add(failCondition);
-            }
+            logger.LogInformation($"step failed due to pre-condition.");
+            return (StepState.Error, MergeConditionMessages(failConditions));
         }
 
-        return matched;
+        var skipConditions = await this.FindMatchingConditions(pre?.SkipConditions, parameters);
+        if (skipConditions.Count > 0)
+        {
+            logger.LogInformation($"step skipped due to pre-condition.");
+            return (StepState.Skipped, MergeConditionMessages(skipConditions));
+        }
+
+        return null;
     }
 
-    private async Task<List<ConditionConfig>> FindMatchingFailConditions(PipelineStepPostConditionConfig? condition, PipelineContext context, StepResult stepResult)
+    // POST-conditions run after the step. They are evaluated in a fixed precedence (fail, then
+    // restrict-delivery, then warn); the first matching type determines the step's terminal state, and
+    // if none match the step succeeds. Each type is a flat guard clause, so adding a type adds no nesting.
+    private async Task<(StepState State, LocalizedText? ConditionMessage)> EvaluatePostConditions(PipelineContext context, StepResult stepResult)
     {
-        var matched = new List<ConditionConfig>();
-        if (condition?.FailConditions != null)
+        var post = this.StepConditions?.Post;
+        var parameters = context.ToExpressionParameters(this.Id, stepResult);
+
+        var failConditions = await this.FindMatchingConditions(post?.FailConditions, parameters);
+        if (failConditions.Count > 0)
         {
-            var expressionParameters = context.ToExpressionParameters(this.Id, stepResult);
-            foreach (var failCondition in condition.FailConditions)
-            {
-                if (await this.conditionEvaluator.EvaluateConditionAsync(failCondition.Expression, expressionParameters))
-                    matched.Add(failCondition);
-            }
+            logger.LogInformation($"failed due to post-condition.");
+            return (StepState.Error, MergeConditionMessages(failConditions));
         }
 
-        return matched;
+        var restrictDeliveryConditions = await this.FindMatchingConditions(post?.RestrictDeliveryConditions, parameters);
+        if (restrictDeliveryConditions.Count > 0)
+        {
+            logger.LogInformation($"delivery restricted due to post-condition.");
+            return (StepState.DeliveryRestriction, MergeConditionMessages(restrictDeliveryConditions));
+        }
+
+        var warnConditions = await this.FindMatchingConditions(post?.WarnConditions, parameters);
+        if (warnConditions.Count > 0)
+        {
+            logger.LogInformation($"completed with warnings due to post-condition.");
+            return (StepState.Warning, MergeConditionMessages(warnConditions));
+        }
+
+        logger.LogInformation($"run successfull.");
+        return (StepState.Success, null);
     }
 
     private LocalizedText? ExtractStatusMessage(StepResult stepResult) =>
         CombineStatusMessages(OutputActions
             .Where(outputAction => outputAction.Actions.Contains(OutputAction.StatusMessage))
             .Select(outputAction => NormalizeStatusMessage(stepResult.ExtractProperty(outputAction.Property))));
-
-    private async Task<List<ConditionConfig>> FindMatchingWarnConditions(PipelineStepPostConditionConfig? condition, PipelineContext context, StepResult stepResult)
-    {
-        var matched = new List<ConditionConfig>();
-        if (condition?.WarnConditions != null)
-        {
-            var expressionParameters = context.ToExpressionParameters(this.Id, stepResult);
-            foreach (var warnCondition in condition.WarnConditions)
-            {
-                if (await this.conditionEvaluator.EvaluateConditionAsync(warnCondition.Expression, expressionParameters))
-                    matched.Add(warnCondition);
-            }
-        }
-
-        return matched;
-    }
-
-    private async Task<List<ConditionConfig>> FindMatchingRestrictDeliveryConditions(PipelineStepPostConditionConfig? condition, PipelineContext context, StepResult stepResult)
-    {
-        var matched = new List<ConditionConfig>();
-        if (condition?.RestrictDeliveryConditions != null)
-        {
-            var expressionParameters = context.ToExpressionParameters(this.Id, stepResult);
-            foreach (var restrictDeliveryCondition in condition.RestrictDeliveryConditions)
-            {
-                if (await this.conditionEvaluator.EvaluateConditionAsync(restrictDeliveryCondition.Expression, expressionParameters))
-                    matched.Add(restrictDeliveryCondition);
-            }
-        }
-
-        return matched;
-    }
 
     /// <summary>
     /// Combines status messages from different sources into a single localized text, dropping absent
