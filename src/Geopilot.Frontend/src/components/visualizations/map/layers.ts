@@ -138,6 +138,8 @@ export const buildFeatureLayer = (
     }),
     stroke: new Stroke({ color: colors.highlight, width: 3 }),
     fill: new Fill({ color: alpha(colors.highlight, 0.2) }),
+    // Highlighted features are drawn on top so nearby unselected markers cannot cover them.
+    zIndex: 1,
   });
 
   return new VectorLayer({
