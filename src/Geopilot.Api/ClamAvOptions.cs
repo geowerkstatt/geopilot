@@ -6,7 +6,7 @@
 public class ClamAvOptions
 {
     /// <summary>
-    /// Whether ClamAV virus scanning is enabled. Requires cloud storage to be enabled.
+    /// Whether ClamAV virus scanning is enabled.
     /// </summary>
     public bool Enabled { get; set; }
 
