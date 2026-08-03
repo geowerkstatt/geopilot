@@ -45,7 +45,7 @@ jobs:
           limit-severities-for-sarif: 'true'
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.37.3
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'main-build'
@@ -77,7 +77,7 @@ jobs:
           limit-severities-for-sarif: 'true'
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.37.3
         with:
           sarif_file: 'trivy-results-latest.sarif'
           category: 'latest-image'
@@ -110,7 +110,7 @@ jobs:
           limit-severities-for-sarif: 'true'
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.37.3
         with:
           sarif_file: 'trivy-results-custom.sarif'
           category: 'custom-tag-${{ inputs.custom_tag }}'
