@@ -131,7 +131,11 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
     <Stack>
       <div {...getRootProps({ style: dropzoneStyle })} data-cy="file-dropzone">
         <input {...getInputProps()} />
-        <Typography variant="body1" color="text.primary" className={disabled ? "Mui-disabled" : ""}>
+        <Typography
+          variant="body1"
+          color="text.primary"
+          className={disabled ? "Mui-disabled" : ""}
+          sx={{ textAlign: "center" }}>
           <Link>{t("clickToSelect")}</Link>
           &nbsp;
           {t("or")} {t("dragAndDrop")}
