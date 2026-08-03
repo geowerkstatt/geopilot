@@ -131,19 +131,24 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
     // are never referenceable, since their outputs do not exist yet when the condition is evaluated.
     private static bool IsValidStepOutputReference(string stepId, string? currentStepId, bool includeCurrentStep, List<StepConfig> allSteps)
     {
-        var referenceableSteps = new List<StepConfig>();
-        foreach (var step in allSteps)
+        if (stepId == currentStepId)
         {
-            if (step.Id == currentStepId)
-            {
-                if (includeCurrentStep)
-                    referenceableSteps.Add(step);
-                break;
-            }
-
-            referenceableSteps.Add(step);
+            return includeCurrentStep;
         }
 
-        return referenceableSteps.Any(s => s.Id == stepId);
+        foreach (var step in allSteps)
+        {
+            if (step.Id == stepId)
+            {
+                return true;
+            }
+
+            if (step.Id == currentStepId)
+            {
+                break;
+            }
+        }
+
+        return false;
     }
 }

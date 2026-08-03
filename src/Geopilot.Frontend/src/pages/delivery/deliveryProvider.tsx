@@ -282,6 +282,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
             if (response.state === ProcessingState.DeliveryRestriction) {
               setStepStatus(DeliveryStepEnum.Processing, "deliveryRestriction");
             } else {
+              // Only Failed and Cancelled reach this branch; their enum values double as i18n keys.
               setStepStatus(DeliveryStepEnum.Processing, "error", response.state);
             }
             const restrictionReason = getDeliveryRestrictionReason(response.steps);

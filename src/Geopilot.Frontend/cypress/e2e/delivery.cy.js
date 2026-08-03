@@ -157,8 +157,9 @@ describe("Delivery tests", () => {
     cy.wait("@startProcessing");
     cy.wait("@jobStatus");
 
-    // Right results pane: the validation step shows the delivery-restriction icon.
+    // Right results pane: both restricting steps show the delivery-restriction icon.
     cy.dataCy("processing-step-validation").dataCy("processing-step-icon-deliveryRestriction").should("exist");
+    cy.dataCy("processing-step-topology_check").dataCy("processing-step-icon-deliveryRestriction").should("exist");
 
     // Left stepper: the processing node shows the delivery-restriction state, while the delivery node is
     // shown as skipped and carries the merged reason of all restricting steps.
@@ -220,6 +221,10 @@ describe("Delivery tests", () => {
     cy.dataCy("processing-step").dataCy("stepper-warning").should("exist");
     cy.dataCy("stepper-deliveryRestriction").should("not.exist");
     cy.dataCy("stepper-error").should("not.exist");
+
+    // Delivery stays possible: continuing leads to the delivery step.
+    cy.dataCy("continue-button").should("be.enabled").click();
+    stepIsActive("delivery");
   });
 
   it("displays error if no mandates were found", () => {
