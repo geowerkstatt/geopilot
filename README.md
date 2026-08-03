@@ -194,11 +194,11 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
 
 Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im Swagger UI die OpenID Konfiguration der Authority (`<authority-url>/.well-known/openid-configuration`) geladen und alle vom Identity Provider unterstützten Flows angezeigt.
 
-## Cloud Upload (optional)
+## Cloud Upload
 
-geopilot kann optional mit einem Cloud-Upload-Flow betrieben werden, bei dem Dateien über Presigned URLs direkt in einen Object Storage hochgeladen werden. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
+Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
 
-Beide Features sind standardmässig deaktiviert. Ohne Konfiguration wird ausschliesslich der klassische direkte Upload verwendet.
+Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID den Verarbeitungsjob.
 
 ### Entwicklung
 
@@ -210,11 +210,13 @@ docker compose up -d azurite clamav
 
 ### Konfiguration
 
+Die `CloudStorage`-Konfiguration ist erforderlich; ohne `ConnectionString` und `BucketName` startet die Applikation nicht.
+
 ```json5
 "CloudStorage": {
-    "Enabled": true,
     "ConnectionString": "...",
     "BucketName": "uploads",
+    "BlobEndpoint": "https://localhost:10000", // Öffentlicher Storage-Endpoint, wird der CSP (connect-src) hinzugefügt
     "AutoCreateContainer": false, // Nur für Entwicklung auf true setzen
     "AllowedOrigins": ["https://localhost:5173"] // CORS für Presigned-URL-Uploads
 },
@@ -227,6 +229,5 @@ docker compose up -d azurite clamav
 
 Weitere Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `PresignedUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) werden in `appsettings.json` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `CloudCleanupService` bereinigt.
 
-- **Cloud Storage deaktiviert (Standard):** Nur der direkte Upload (`/api/v1/validation`) ist verfügbar. ClamAV-Einstellungen werden ignoriert.
-- **Cloud Storage aktiviert, ClamAV deaktiviert:** Cloud-Upload funktioniert ohne Virenprüfung. Pro Upload wird eine Warnung geloggt.
-- **Cloud Storage aktiviert, ClamAV aktiviert:** Cloud-Upload mit Virenprüfung vor der Validierung.
+- **ClamAV deaktiviert (Standard):** Uploads werden ohne Virenprüfung verarbeitet. Pro Upload wird eine Warnung geloggt.
+- **ClamAV aktiviert:** Virenprüfung vor der Verarbeitung.
