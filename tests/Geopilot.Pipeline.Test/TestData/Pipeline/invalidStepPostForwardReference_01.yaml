@@ -15,13 +15,15 @@ pipelines:
   - id: ili_validation
     display_name:
       en: XTF Validation
-    delivery_restrictions:
-      - expression: "([upload.ili_file]"
     steps:
       - id: xtf_matching
         display_name:
           en: XTF Matching
         process_id: xtf_matcher
+        conditions:
+          post:
+            fail_conditions:
+              - expression: "[validation.ValidationSuccessful]"
       - id: validation
         display_name:
           en: XTF Validation

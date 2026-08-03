@@ -3,11 +3,12 @@
 namespace Geopilot.Pipeline.Config;
 
 /// <summary>
-/// Represents configuration settings for conditional execution of a pipeline step after it has executed.
-/// If any condition evaluates to <see langword="true"/>, the step will be marked as failed.
+/// Represents configuration settings that classify a pipeline step's outcome after it has executed.
+/// The post-conditions are evaluated in precedence order to mark the step as failed, delivery-restricting,
+/// or completed with a warning; if none match, the step succeeds.
 /// </summary>
-/// <remarks>Use this class to specify expressions that determine whether a pipeline step should be
-/// marked as failed after execution. The conditions are typically evaluated at runtime based on pipeline variables or state.</remarks>
+/// <remarks>Use this class to specify expressions that determine a step's terminal state after execution.
+/// The conditions are typically evaluated at runtime based on pipeline variables or state.</remarks>
 public class PipelineStepPostConditionConfig
 {
     /// <summary>
@@ -24,4 +25,13 @@ public class PipelineStepPostConditionConfig
     /// </summary>
     [YamlMember(Alias = "warn_conditions")]
     public List<ConditionConfig>? WarnConditions { get; set; }
+
+    /// <summary>
+    /// Gets or sets the list of conditions that restrict delivery after execution. If no fail condition
+    /// matched and any restrict-delivery condition evaluates to <see langword="true"/>, the step is marked
+    /// as restricting delivery (taking precedence over a warning) and the pipeline continues, but the
+    /// produced data may not be delivered.
+    /// </summary>
+    [YamlMember(Alias = "restrict_delivery_conditions")]
+    public List<ConditionConfig>? RestrictDeliveryConditions { get; set; }
 }

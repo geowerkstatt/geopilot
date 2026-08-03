@@ -28,18 +28,6 @@ public interface IPipeline : IDisposable
     ProcessingState State { get; }
 
     /// <summary>
-    /// Gets the pipeline delivery configuration used for processing messages.
-    /// </summary>
-    PipelineDelivery Delivery { get; }
-
-    /// <summary>
-    /// The localized message describing why delivery is prevented, or <see langword="null"/> when delivery is allowed.
-    /// Set when matched delivery restrictions are evaluated; <see langword="null"/> also when delivery is prevented
-    /// for reasons other than restriction matches (e.g. pipeline failure).
-    /// </summary>
-    LocalizedText? DeliveryRestrictionMessage { get; }
-
-    /// <summary>
     /// The unique identifier for the job associated with this pipeline execution, used for logging and tracking purposes.
     /// </summary>
     Guid JobId { get; }

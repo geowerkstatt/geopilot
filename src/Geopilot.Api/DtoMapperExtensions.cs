@@ -55,8 +55,7 @@ internal static class DtoMapperExtensions
             job.State,
             job.MandateId,
             pipelineName,
-            steps,
-            job.Pipeline?.DeliveryRestrictionMessage);
+            steps);
     }
 
     /// <summary>
@@ -92,6 +91,7 @@ internal static class DtoMapperExtensions
         ProcessingState.Running => StepState.Success,
         ProcessingState.Success => StepState.Success,
         ProcessingState.Warning => StepState.Success,
+        ProcessingState.DeliveryRestriction => StepState.Success,
         ProcessingState.Cancelled => StepState.Success,
         ProcessingState.Failed => job.Pipeline is null || job.Pipeline.State == ProcessingState.Pending
             ? StepState.Error

@@ -36,13 +36,6 @@ pipelines:
       de: XTF Validierung
       it: Validazione XTF
       fr: Validation XTF
-    delivery_restrictions:
-      - expression: "!([validation.ValidationSuccessful])"
-        message:
-          de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
-          en: "Validation was not successful. Delivery is not possible."
-          fr: "La validation n'a pas réussi. La livraison n'est pas possible."
-          it: "La validazione non è riuscita. La consegna non è possibile."
     steps:
       - id: xtf_matching
         display_name:
@@ -70,13 +63,13 @@ pipelines:
                   fr: "Exactement un fichier XTF doit être téléchargé."
                   it: "Deve essere caricato esattamente un file XTF."
           post:
-            warn_conditions:
+            restrict_delivery_conditions:
               - expression: "!([validation.ValidationSuccessful])"
                 message:
-                  de: "Die Validierung hat Fehler gefunden."
-                  en: "Validation found errors."
-                  fr: "La validation a détecté des erreurs."
-                  it: "La validazione ha rilevato errori."
+                  de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
+                  en: "Validation was not successful. Delivery is not possible."
+                  fr: "La validation n'a pas réussi. La livraison n'est pas possible."
+                  it: "La validazione non è riuscita. La consegna non è possibile."
         process_config_overwrites:
         input:
           iliFile: "${step_output(xtf_matching.XtfFiles)}"

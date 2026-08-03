@@ -47,14 +47,14 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    [DataRow(ProcessingState.Running, PipelineDelivery.Allow)]
-    [DataRow(ProcessingState.Success, PipelineDelivery.Prevent)]
-    [DataRow(ProcessingState.Warning, PipelineDelivery.Prevent)]
-    [DataRow(ProcessingState.Failed, PipelineDelivery.Allow)]
-    public async Task CreateFailsJobNotCompleted(ProcessingState pipelineState, PipelineDelivery delivery)
+    [DataRow(ProcessingState.Running)]
+    [DataRow(ProcessingState.Failed)]
+    [DataRow(ProcessingState.Cancelled)]
+    [DataRow(ProcessingState.DeliveryRestriction)]
+    public async Task CreateFailsJobNotCompleted(ProcessingState pipelineState)
     {
         var mandateId = context.Mandates.First().Id;
-        var guid = SetupProcessingJob(mandateId, pipelineState, delivery);
+        var guid = SetupProcessingJob(mandateId, pipelineState);
         var deliveriesCount = context.Deliveries.Count();
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
@@ -143,7 +143,7 @@ public class DeliveryControllerTest
         });
         context.SaveChanges();
         deliveryController.SetupTestUser(user.Entity);
-        var jobId = SetupProcessingJob(publicMandate.Entity.Id, ProcessingState.Warning, PipelineDelivery.Allow);
+        var jobId = SetupProcessingJob(publicMandate.Entity.Id, ProcessingState.Warning);
         SetupJobPersistence(jobId);
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = jobId })) as ObjectResult;
@@ -403,15 +403,13 @@ public class DeliveryControllerTest
             .Returns(new List<Asset> { new Asset(), new Asset() });
     }
 
-    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState pipelineState = ProcessingState.Success, PipelineDelivery delivery = PipelineDelivery.Allow)
+    private Guid SetupProcessingJob(int? mandateId = null, ProcessingState pipelineState = ProcessingState.Success)
     {
         var guid = Guid.NewGuid();
         var pipelineMock = new Mock<IPipeline>();
         pipelineMock.SetupGet(p => p.State).Returns(pipelineState);
-        pipelineMock.SetupGet(p => p.Delivery).Returns(delivery);
         pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
         pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
-        pipelineMock.SetupGet(p => p.DeliveryRestrictionMessage).Returns((LocalizedText?)null);
 
         var job = new ProcessingJob(guid, new List<ProcessingJobFile> { new ProcessingJobFile("ORIGINAL.zip", "TEMP.zip") }, mandateId, DateTime.Now)
         {

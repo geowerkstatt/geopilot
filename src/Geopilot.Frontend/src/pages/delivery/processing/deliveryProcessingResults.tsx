@@ -7,6 +7,7 @@ import { Button } from "../../../components/buttons";
 import { VisualizationLoader } from "../../../components/visualizations/visualizationLoader";
 import { useLocalized } from "../../../hooks/useLocalized";
 import { DeliveryContext } from "../deliveryContext";
+import { getDeliveryRestrictionReason } from "../deliveryUtils.tsx";
 import { ProcessingStepIcon } from "./processingStepIcon";
 
 const stepHasContent = (step: StepResult) =>
@@ -20,6 +21,7 @@ const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
   StepState.Cancelled,
   StepState.Skipped,
   StepState.Warning,
+  StepState.DeliveryRestriction,
 ]);
 
 export const DeliveryProcessingResults = () => {
@@ -29,6 +31,7 @@ export const DeliveryProcessingResults = () => {
   const autoExpandedIds = useRef<Set<string>>(new Set());
 
   const steps = useMemo(() => processingResponse?.steps ?? [], [processingResponse?.steps]);
+  const deliveryRestrictionMessage = useMemo(() => getDeliveryRestrictionReason(steps), [steps]);
   const stepRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [scrollToStep, setScrollToStep] = useState<StepResult | null>(null);
 
@@ -143,9 +146,7 @@ export const DeliveryProcessingResults = () => {
           );
         })}
       </Box>
-      {processingResponse?.deliveryRestrictionMessage && (
-        <Alert severity="error">{localized(processingResponse.deliveryRestrictionMessage)}</Alert>
-      )}
+      {deliveryRestrictionMessage && <Alert severity="error">{localized(deliveryRestrictionMessage)}</Alert>}
     </Stack>
   );
 };

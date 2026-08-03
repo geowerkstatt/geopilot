@@ -163,7 +163,6 @@ public class PipelineIntegrationTest
         var context = await pipeline.Run(pipelineFiles, CancellationToken.None);
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
-        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[1].State);
         Assert.AreEqual(StepState.Success, pipeline.Steps[2].State);
@@ -246,7 +245,6 @@ public class PipelineIntegrationTest
         var context = await pipeline.Run(pipelineFiles, CancellationToken.None);
 
         Assert.AreEqual(ProcessingState.Success, pipeline.State);
-        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery);
         Assert.AreEqual(StepState.Success, pipeline.Steps[0].State);
         Assert.AreEqual(StepState.Skipped, pipeline.Steps[1].State);
         Assert.AreEqual(StepState.Skipped, pipeline.Steps[2].State);

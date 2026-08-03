@@ -20,7 +20,7 @@ export interface DeliveryStepProps {
 // A step's non-normal outcome: `state` selects the icon and colour, the optional `message` is the subtitle
 // (a string is an i18n key, a LocalizedText an already-localized message). A `state` without a `message`
 // renders the state without a subtitle (e.g. the processing node red without text).
-export type DeliveryStepStatus = "error" | "warning" | "skipped";
+export type DeliveryStepStatus = "error" | "warning" | "skipped" | "deliveryRestriction";
 
 export interface DeliveryStep {
   label: string;

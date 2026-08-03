@@ -38,6 +38,7 @@ Die Schritte können dabei verschiedene Stati durchlaufen, welche den aktuellen 
 - `Running`: Schritt ist aktuell in Bearbeitung.
 - `Success`: Schritt wurde erfolgreich abgeschlossen.
 - `Warning`: Schritt wurde ausgeführt, hat aber Probleme gemeldet (eine `warn_conditions`-POST-Condition traf zu). Die Pipeline läuft normal weiter; der Schritt gilt nicht als Fehler.
+- `DeliveryRestriction`: Schritt wurde ausgeführt, schränkt aber die Datenlieferung ein (eine `restrict_delivery_conditions`-POST-Condition traf zu). Die Pipeline läuft normal weiter und der Schritt gilt nicht als Fehler, die produzierten Daten dürfen aber nicht geliefert werden.
 - `Error`: Schritt ist durch eigene Verarbeitungslogik fehlgeschlagen.
 - `Cancelled`: Schritt wurde vor Abschluss von aussen abgebrochen (z.B. Job-Timeout oder Shutdown des Hosts). Wird bewusst von `Error` unterschieden, weil der Schritt nicht aufgrund eines Verarbeitungsfehlers, sondern durch eine externe Unterbrechung beendet wurde.
 
@@ -48,9 +49,10 @@ Der Status der Pipeline ergibt sich aus den Stati der Schritte.
 - `Pending`: Alle Schritte befinden sich im Status `Pending`.
 - `Running`: Ein Schritt befindet sich im Status `Running`, und es gibt keinen Schritt im Status `Error`.
 - `Success`: Alle Schritte haben mit dem Status `Success` oder `Skipped` abgeschlossen.
-- `Warning`: Alle Schritte haben terminal abgeschlossen, mindestens einer im Status `Warning` und die übrigen `Success` oder `Skipped` (kein `Error`, kein `Cancelled`). Ein `Warning`-Status verhindert die Datenlieferung nicht von sich aus; ob geliefert werden darf, entscheiden weiterhin die Delivery-Restrictions.
+- `Warning`: Alle Schritte haben terminal abgeschlossen, mindestens einer im Status `Warning` und die übrigen `Success` oder `Skipped` (kein `Error`, kein `Cancelled`, kein `DeliveryRestriction`). Ein `Warning`-Status verhindert die Datenlieferung nicht von sich aus.
+- `DeliveryRestriction`: Alle Schritte haben terminal abgeschlossen, mindestens einer im Status `DeliveryRestriction` und die übrigen `Success`, `Skipped` oder `Warning` (kein `Error`, kein `Cancelled`). Die Datenlieferung ist nicht möglich. Dieser Status hat Vorrang vor `Warning`.
 - `Failed`: Ein Schritt hat mit dem Status `Error` abgeschlossen (die darauffolgenden Schritte wurden nicht mehr ausgeführt).
-- `Cancelled`: Mindestens ein Schritt befindet sich im Status `Cancelled` und kein Schritt ist im Status `Error`. Tritt auf, wenn die Pipeline während der Ausführung von aussen abgebrochen wurde (z.B. Job-Timeout oder Shutdown des Hosts). Eine `Cancelled`-Pipeline verhindert die Datenlieferung, unabhängig von definierten Delivery-Restrictions.
+- `Cancelled`: Mindestens ein Schritt befindet sich im Status `Cancelled` und kein Schritt ist im Status `Error`. Tritt auf, wenn die Pipeline während der Ausführung von aussen abgebrochen wurde (z.B. Job-Timeout oder Shutdown des Hosts). Eine `Cancelled`-Pipeline verhindert die Datenlieferung.
 
 ### Datenfluss in der Pipeline
 
@@ -126,7 +128,6 @@ pipelines:
 - `pipelines`: Liste von Pipelines, welche die Verarbeitungsschritte beschreiben.
   - `pipelines[0].id`: Eindeutige ID der Pipeline, welche zur Ausführung der Pipeline verwendet wird. Diese ID wird als Referenz im Mandat verwendet, um die Berechtigung zur Ausführung der Pipeline zu regeln.
   - `pipelines[0].display_name`: Anzeigename der Pipeline, der in der Benutzeroberfläche verwendet wird. Wir übersetzen üblicherweise die folgenden Sprachen: Deutsch 'de', Englisch 'en', Französisch 'fr' und Italienisch 'it'.
-  - `pipelines[0].delivery_restrictions`: Optionale Liste von Einschränkungen für die Datenlieferung. Jede Einschränkung ist ein Objekt mit `expression` und optionaler `message`. Trifft eine Einschränkung zu, wird die Datenlieferung verhindert (siehe [Einschränkungen für die Datenlieferung](#einschränkungen-für-die-datenlieferung-delivery-restrictions)).
   - `pipelines[0].steps`: Liste der Schritte, die in der Pipeline ausgeführt werden. In diesem Beispiel ist der erste Schritt (`steps[0]`) der XTF Matcher, welcher die hochgeladenen Dateien filtert, und der zweite Schritt (`steps[1]`) die XTF Validierung.
     - `pipelines[0].steps[X].id`: ID des Schrittes. Diese ID muss für jeden Schritt innerhalb einer Pipeline eindeutig sein. In diesem Beispiel ist die ID des Matcher-Schrittes `xtf_matching` und die ID des Validierungsschrittes `validation`.
     - `pipelines[0].steps[X].display_name`: Anzeigename des Schrittes, der in der Benutzeroberfläche verwendet wird. Wir übersetzen üblicherweise die folgenden Sprachen: Deutsch 'de', Englisch 'en', Französisch 'fr' und Italienisch 'it'.
@@ -275,11 +276,6 @@ pipelines:
   - id: xtf_validation
     display_name:
       en: XTF Validation
-    delivery_restrictions:
-      - expression: "!([validation.ValidationSuccessful])"
-        message:
-          de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
-          en: "Validation was not successful. Delivery is not possible."
     steps:
       - id: xtf_matching
         display_name:
@@ -289,6 +285,13 @@ pipelines:
         display_name:
           en: XTF Validation
         process_id: xtf_validator
+        conditions:
+          post:
+            restrict_delivery_conditions:
+              - expression: "!([validation.ValidationSuccessful])"
+                message:
+                  de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
+                  en: "Validation was not successful. Delivery is not possible."
         input:
           iliFile: "${step_output(xtf_matching.XtfFiles)}"
       - id: zip_package
@@ -354,7 +357,7 @@ Conditions auf Schritten ermöglichen es, die Ausführung eines Schrittes zu ste
 - `expression`: Der boolsche Ausdruck, welcher ausgewertet wird (Pflichtfeld).
 - `message`: Ein optionaler lokalisierter Text (`LocalizedText`, Key = Sprachcode, Value = Nachricht). Diese Nachrichten werden als Statusnachricht des Schrittes bereitgestellt.
 
-Es können pro Bedingungstyp (`skip_conditions`, `fail_conditions`, `warn_conditions`) mehrere Conditions definiert werden. Die Conditions werden mit ODER-Logik ausgewertet: Trifft mindestens eine Condition zu, wird die entsprechende Aktion (Skip, Error oder Warning) ausgelöst. Dabei werden **alle** zutreffenden Conditions gesammelt und deren Nachrichten pro Sprache kommasepariert zusammengeführt.
+Es können pro Bedingungstyp (`skip_conditions`, `fail_conditions`, `restrict_delivery_conditions`, `warn_conditions`) mehrere Conditions definiert werden. Die Conditions werden mit ODER-Logik ausgewertet: Trifft mindestens eine Condition zu, wird die entsprechende Aktion (Skip, Error, DeliveryRestriction oder Warning) ausgelöst. Dabei werden **alle** zutreffenden Conditions gesammelt und deren Nachrichten pro Sprache kommasepariert zusammengeführt.
 
 #### PRE-Condition
 
@@ -365,21 +368,22 @@ In einer PRE-Condition wird vor der Ausführung eines Schrittes ausgewertet und 
 
 #### POST-Condition
 
-In einer POST-Condition wird nach der Ausführung eines Schrittes ausgewertet, wie der Schritt abgeschlossen wird. Es gibt zwei Bedingungstypen mit fester Priorität:
+In einer POST-Condition wird nach der Ausführung eines Schrittes ausgewertet, wie der Schritt abgeschlossen wird. Es gibt drei Bedingungstypen mit fester Priorität:
 
 - `fail_conditions`: Trifft eine zu, wird der Schritt mit `Error` abgebrochen; die Pipeline schlägt fehl und die darauffolgenden Schritte werden nicht mehr ausgeführt.
-- `warn_conditions`: Trifft keine `fail_conditions`, aber mindestens eine `warn_conditions`-Condition zu, schliesst der Schritt mit `Warning` ab. Der Schritt gilt nicht als Fehler, die Pipeline läuft normal weiter. Damit lassen sich Probleme sichtbar machen (z.B. eine nicht erfolgreiche Validierung), ohne die Pipeline abzubrechen. Die Datenlieferung wird dadurch nicht verhindert; das bleibt Sache der Delivery-Restrictions.
+- `restrict_delivery_conditions`: Trifft keine `fail_conditions`, aber mindestens eine `restrict_delivery_conditions`-Condition zu, schliesst der Schritt mit `DeliveryRestriction` ab. Der Schritt gilt nicht als Fehler, die Pipeline läuft normal weiter, die produzierten Daten dürfen aber nicht geliefert werden. Damit lassen sich datenabhängige Lieferbedingungen ausdrücken (z.B. eine nicht erfolgreiche Validierung), welche die Lieferung verhindern, ohne die Pipeline abzubrechen.
+- `warn_conditions`: Trifft keine `fail_conditions` und keine `restrict_delivery_conditions`, aber mindestens eine `warn_conditions`-Condition zu, schliesst der Schritt mit `Warning` ab. Der Schritt gilt nicht als Fehler, die Pipeline läuft normal weiter. Damit lassen sich Probleme sichtbar machen, ohne die Pipeline abzubrechen. Die Datenlieferung wird dadurch nicht verhindert.
 
-Die Precedence ist somit `Error` (fail) vor `Warning` (warn) vor `Success`.
+Die Precedence ist somit `Error` (fail) vor `DeliveryRestriction` (restrict_delivery) vor `Warning` (warn) vor `Success`.
 
 ```yaml
-warn_conditions:
+restrict_delivery_conditions:
   - expression: "!([validation.ValidationSuccessful])"
     message:
-      de: "Die Validierung hat Fehler gefunden."
-      en: "Validation found errors."
-      fr: "La validation a détecté des erreurs."
-      it: "La validazione ha rilevato errori."
+      de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
+      en: "Validation was not successful. Delivery is not possible."
+      fr: "La validation n'a pas réussi. La livraison n'est pas possible."
+      it: "La validazione non è riuscita. La consegna non è possibile."
 ```
 
 #### Statusnachrichten aus Conditions
@@ -400,31 +404,29 @@ fail_conditions:
 
 ### Einschränkungen für die Datenlieferung (Delivery Restrictions)
 
-Einschränkungen für die Datenlieferung (`delivery_restrictions`) ermöglichen es, die Bereitstellung von Daten in der Datenlieferung zu steuern. Der Default ist, dass eine Datenlieferung möglich ist. Dies kann mit einer oder mehreren Einschränkungen übersteuert und somit verhindert werden.
+Ob die produzierten Daten geliefert werden dürfen, wird über den Schritt-Status `DeliveryRestriction` gesteuert. Ein Schritt, dessen `restrict_delivery_conditions`-POST-Condition zutrifft (siehe [POST-Condition](#post-condition)), schliesst mit `DeliveryRestriction` ab. Dieser Status verdichtet sich auf die Pipeline (der Pipeline-Status wird `DeliveryRestriction`), womit die Datenlieferung nicht möglich ist. Der Default ist, dass eine Datenlieferung möglich ist; sie wird nur verhindert, wenn mindestens ein Schritt sie einschränkt oder die Pipeline fehlschlägt bzw. abgebrochen wird.
 
-Die Einschränkungen verwenden die gleiche Objektstruktur wie Conditions auf Schritten (`expression` und optionale `message`). Die Semantik ist dabei: **Trifft eine Einschränkung zu (`expression` ergibt `true`), wird die Datenlieferung verhindert.**
-
-Es werden alle Einschränkungen ausgewertet und die Nachrichten aller zutreffenden Einschränkungen pro Sprache kommasepariert zusammengeführt. Die resultierende Nachricht wird dem Anwender in der Benutzeroberfläche als Statusnachricht angezeigt.
+Die Einschränkung wird auf dem Schritt definiert, der den ausschlaggebenden Wert produziert (typischerweise die Validierung). Die Bedingung verwendet dieselbe Objektstruktur wie die übrigen Conditions (`expression` und optionale `message`) und referenziert Werte im gleichen Scope wie andere POST-Conditions (eigene Outputs und Outputs früherer Schritte). Die Nachrichten aller zutreffenden Einschränkungen werden pro Sprache kommasepariert zusammengeführt und dem Anwender in der Benutzeroberfläche als Grund angezeigt.
 
 Beispiel:
 
 ```yaml
-pipelines:
-  - id: xtf_validation
-    display_name:
-      en: XTF Validation
-    delivery_restrictions:
-      - expression: "!([validation.ValidationSuccessful])"
-        message:
-          de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
-          en: "Validation was not successful. Delivery is not possible."
-          fr: "La validation n'a pas réussi. La livraison n'est pas possible."
-          it: "La validazione non è riuscita. La consegna non è possibile."
-    steps:
-      # ...
+steps:
+  - id: validation
+    process_id: xtf_validator
+    conditions:
+      post:
+        restrict_delivery_conditions:
+          - expression: "!([validation.ValidationSuccessful])"
+            message:
+              de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
+              en: "Validation was not successful. Delivery is not possible."
+              fr: "La validation n'a pas réussi. La livraison n'est pas possible."
+              it: "La validazione non è riuscita. La consegna non è possibile."
+    # ...
 ```
 
-> **Hinweis:** Schlägt die Pipeline fehl (Status `Failed`), wird die Datenlieferung unabhängig von den definierten Einschränkungen automatisch verhindert.
+> **Hinweis:** Schlägt die Pipeline fehl (Status `Failed`) oder wird sie abgebrochen (Status `Cancelled`), wird die Datenlieferung automatisch verhindert, unabhängig von den `restrict_delivery_conditions`.
 
 ## Prozesse
 

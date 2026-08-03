@@ -1,30 +1,21 @@
 import { FC } from "react";
+import BlockIcon from "@mui/icons-material/Block";
 import CheckIcon from "@mui/icons-material/Check";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import WarningIcon from "@mui/icons-material/Warning";
 import { CircularProgress, Stack, useTheme } from "@mui/material";
+import { DeliveryStepStatus } from "./deliveryInterfaces";
 
 interface StepperIconProps {
   index: number;
   open?: boolean;
   enabled?: boolean;
   completed?: boolean;
-  error?: boolean;
-  warning?: boolean;
-  skipped?: boolean;
+  status?: DeliveryStepStatus;
   isLoading?: boolean;
 }
 
-export const StepperIcon: FC<StepperIconProps> = ({
-  index,
-  open,
-  enabled,
-  completed,
-  error,
-  warning,
-  skipped,
-  isLoading,
-}) => {
+export const StepperIcon: FC<StepperIconProps> = ({ index, open, enabled, completed, status, isLoading }) => {
   const theme = useTheme();
 
   return (
@@ -32,11 +23,13 @@ export const StepperIcon: FC<StepperIconProps> = ({
       direction="row"
       sx={{ alignItems: "center", flexWrap: "wrap", position: "relative", justifyContent: "center" }}
       {...(open ? { "data-cy": "active" } : {})}>
-      {error ? (
+      {status === "error" ? (
         <WarningIcon color="error" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-error" />
-      ) : warning ? (
+      ) : status === "deliveryRestriction" ? (
+        <BlockIcon color="error" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-deliveryRestriction" />
+      ) : status === "warning" ? (
         <WarningIcon color="warning" sx={{ fontSize: { xs: 24, md: 28 } }} data-cy="stepper-warning" />
-      ) : skipped ? (
+      ) : status === "skipped" ? (
         <RemoveCircleOutlineIcon
           sx={{ fontSize: { xs: 24, md: 28 }, color: theme.palette.primary.states.disabledBackground }}
           data-cy="stepper-skipped"
