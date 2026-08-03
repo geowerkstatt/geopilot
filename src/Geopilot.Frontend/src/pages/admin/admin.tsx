@@ -122,12 +122,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
                   />
                 </Box>
               )}
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "start",
-                }}>
+              <Stack sx={{ alignItems: "start", gap: 0 }}>
                 <Typography variant="h4" sx={{ margin: "0 !important" }}>
                   geopilot&nbsp;
                 </Typography>
@@ -136,7 +131,7 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
                     {applicationName}
                   </Typography>
                 )}
-              </Box>
+              </Stack>
             </Stack>
             {drawerContent(false)}
           </>
