@@ -25,8 +25,12 @@ const StepperViewport = styled(Box)(({ theme }) => ({
     overscrollBehaviorX: "contain",
     flex: "0 0 58px",
     alignItems: "flex-start",
-    margin: `0 -${pageContentPadding} !important`,
-    padding: `0 ${pageContentPadding}`,
+    margin: `0 -${pageContentPadding.default} !important`,
+    padding: `0 ${pageContentPadding.default}`,
+  },
+  [theme.breakpoints.down("sm")]: {
+    margin: `0 -${pageContentPadding.xs} !important`,
+    padding: `0 ${pageContentPadding.xs}`,
   },
 }));
 
@@ -64,6 +68,7 @@ export const DeliveryStepper = () => {
     useContext(DeliveryContext);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
   const isOpen = (stepIndex: number) => activeStep === stepIndex;
   const isCompleted = (stepIndex: number) => lastCompletedStep >= stepIndex;
@@ -75,12 +80,15 @@ export const DeliveryStepper = () => {
     }
   };
 
+  const stepperStackGap = isXs ? 1 : 2;
+
   return (
     <StepperViewport>
       <StepperStack
         direction={{ xs: "row", md: "column" }}
+        gap={stepperStackGap}
         style={{
-          left: isMobile ? `calc(${activeStep} * (-100% - ${theme.spacing(2)}))` : undefined,
+          left: isMobile ? `calc(${activeStep} * (-100% - ${theme.spacing(stepperStackGap)}))` : undefined,
           transition: isMobile ? `left ${SLIDE_TRANSITION_MS}ms ease` : undefined,
         }}
         data-cy="delivery-stepper">

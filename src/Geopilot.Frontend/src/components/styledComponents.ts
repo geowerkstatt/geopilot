@@ -13,14 +13,20 @@ export const ScrollableContent = styled(Stack)(({ theme }) => ({
   flex: "1",
 }));
 
-export const pageContentPadding = "40px";
+export const pageContentPadding = {
+  default: "40px",
+  xs: "16px",
+};
 
-export const PageContent = styled(Stack)({
+export const PageContent = styled(Stack)(({ theme }) => ({
   height: "100%",
-  padding: pageContentPadding,
+  padding: pageContentPadding.default,
   flex: "1",
   alignItems: "center",
-});
+  [theme.breakpoints.down("sm")]: {
+    padding: pageContentPadding.xs,
+  },
+}));
 
 export const CenteredContent = styled(Stack)({
   width: "100%",
