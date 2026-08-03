@@ -12,8 +12,6 @@ import {
 } from "../../../api/apiInterfaces.ts";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import {
-  FormAutocomplete,
-  FormCheckbox,
   FormContainer,
   FormContainerHalfWidth,
   FormExtent,
@@ -23,7 +21,7 @@ import {
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
-import PipelineFormSelect from "./pipelineFormSelect.tsx";
+import MandateConfigurationFields from "./mandateConfigurationFields.tsx";
 
 const MandateDetail = () => {
   const { t } = useTranslation();
@@ -82,9 +80,10 @@ const MandateDetail = () => {
   const prepareMandateForSave = (formData: FieldValues): Mandate => {
     const mandate = formData as Mandate;
     mandate.deliveries = [];
-    mandate.organisations = formData["organisations"]?.map(
-      (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
-    );
+    // Clear eligible organisations if mandate is public
+    mandate.organisations = formData["isPublic"]
+      ? []
+      : formData["organisations"]?.map((value: FormAutocompleteValue) => ({ id: value.id }) as Organisation);
 
     return mandate;
   };
@@ -119,43 +118,7 @@ const MandateDetail = () => {
         <Typography variant={"h3"} marginTop={0}>
           {t("configuration")}
         </Typography>
-        <FormContainer>
-          <FormContainerHalfWidth>
-            <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId} />
-          </FormContainerHalfWidth>
-          <FormContainerHalfWidth>
-            <FormAutocomplete<string>
-              freeSolo
-              validator={v => /^\.(\*|[a-zA-Z0-9]+)$/i.test(v)}
-              errorMessage="invalidFileExtension"
-              fieldName={"fileTypes"}
-              label={"fileTypes"}
-              required={true}
-              values={[]}
-              selected={mandate?.fileTypes}
-            />
-          </FormContainerHalfWidth>
-        </FormContainer>
-        <FormContainer>
-          <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
-        </FormContainer>
-        <FormContainer>
-          <FormContainerHalfWidth>
-            <FormAutocomplete<Organisation>
-              fieldName={"organisations"}
-              label={"eligibleOrganisations"}
-              required={false}
-              values={organisations}
-              selected={mandate?.organisations}
-              valueFormatter={org => ({
-                id: org.id,
-                primaryText: org.name,
-                detailText: `${org.name} (ID: ${org.id})`,
-              })}
-            />
-          </FormContainerHalfWidth>
-          <FormCheckbox fieldName={"allowDelivery"} label={"allowDelivery"} checked={mandate?.allowDelivery ?? false} />
-        </FormContainer>
+        <MandateConfigurationFields mandate={mandate} organisations={organisations} pipelines={pipelines} />
       </GeopilotBox>
       <GeopilotBox>
         <Typography variant={"h3"} marginTop={0}>
