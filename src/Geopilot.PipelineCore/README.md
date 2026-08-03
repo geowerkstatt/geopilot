@@ -34,19 +34,26 @@ using Geopilot.PipelineCore.Pipeline;
 public class MyCustomProcess
 {
     [PipelineProcessRun]
-    public Task<Dictionary<string, object?>> RunAsync(IPipelineFile[] files)
+    public Task<MyCustomProcessResult> RunAsync(IPipelineFile[] files, CancellationToken cancellationToken)
     {
         // The pipeline definition wires this parameter to any source, e.g. files: "${upload()}"
         // ... your logic
-        return Task.FromResult(new Dictionary<string, object?>
-        {
-            { "result", "..." },
-        });
+        return Task.FromResult(new MyCustomProcessResult { Result = "..." });
     }
+}
+
+// Every public property of the result is an output, referenced from a later step by its
+// PascalCase name, for example "${step_output(myStep.Result)}".
+public class MyCustomProcessResult
+{
+    public required string Result { get; set; }
 }
 ```
 
-See the [geopilot repository](https://github.com/GeoWerkstatt/geopilot) for documentation and examples.
+Documentation:
+
+- [Plugin System](https://github.com/GeoWerkstatt/geopilot/blob/main/docs/pipeline/pluginSystem.md): the plugin contract, processor requirements and how to load a plugin into geopilot.
+- [Pipelines](https://github.com/GeoWerkstatt/geopilot/blob/main/docs/pipeline/Pipelines.md): the pipeline concepts and the YAML definition format a processor is wired into.
 
 ## License
 

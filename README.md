@@ -4,6 +4,8 @@
 
 geopilot ist ein benutzerfreundliches Tool für das Liefern und Validieren von Geodaten. Es ermöglicht das Hochladen von Geodaten in verschiedenen Formaten und überprüft sie auf Einhaltung geltender Standards. Anwender können ihre hochgeladenen und validierten Daten deklarieren um diese für die Weiterverarbeitung bereit zu stellen. Mit geopilot wird der Prozess der Geodatenverarbeitung für eine reibungslose und zuverlässige Datenübermittlung optimiert.
 
+Die Dokumentation zu Pipelines, den mitgelieferten Prozessoren und dem Plugin-System liegt unter [`docs/`](./docs/README.md).
+
 ## Einrichten der Entwicklungsumgebung
 
 Folgende Komponenten müssen auf dem Entwicklungsrechner installiert sein:
@@ -46,6 +48,8 @@ docker compose up -d
 
 geopilot verwendet eine YAML-Konfigurationsdatei, um den Validierungs- und Lieferprozess als Pipeline zu definieren. Diese Datei beschreibt die verfügbaren Prozesse (z.B. INTERLIS-Validierung), deren Konfiguration sowie die Schritte, die bei einer Datenlieferung ausgeführt werden. Ein Beispiel befindet sich unter [`src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml`](./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml).
 
+Das Format der Definition, die mitgelieferten Prozessoren und das Plugin-System sind in der [Pipeline-Dokumentation](./docs/pipeline/Pipelines.md) beschrieben.
+
 Der Pfad zur Pipeline-Konfiguration kann auf zwei Arten festgelegt werden:
 
 - **Appsettings:** In den [Appsettings](./src/Geopilot.Api/appsettings.json) unter `Pipeline:Definition` (z.B. beim Betrieb ohne Docker).
@@ -66,8 +70,8 @@ volumes:
 
 | URL                    | Project                                       | Reverse Proxy                                                             |
 | ---------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
-| https://localhost:5173 | Geopilot.Frontend                             | `/api` und `/browser` zu https://localhost:7188                           |
-| https://localhost:7188 | Geopilot.Api                                  | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
+| https://localhost:5173 | Geopilot.Frontend                             | `/api` und `/browser` zu https://localhost:7443                           |
+| https://localhost:7443 | Geopilot.Api                                  | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
 | https://localhost:5173 | Geopilot.Api (in docker-compose mit Frontend) | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
 | http://localhost:8080  | stac-browser (in docker-compose)              | -                                                                         |
 | http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
@@ -158,7 +162,7 @@ Diese werden beispielsweise bei den [OIDC Scopes](https://openid.net/specs/openi
 ### Redirect URIs
 
 Als erlaubte Redirect URIs müssen für das Login aus dem Frontend `https://<app-domain>` und aus Swagger UI `https://<app-domain>/swagger/oauth2-redirect.html` angegeben werden.
-_([Entwicklungsumgebung](./config/realms/keycloak-geopilot.json): `https://localhost:5173` und `https://localhost:7188/swagger/oauth2-redirect.html`)_
+_([Entwicklungsumgebung](./config/realms/keycloak-geopilot.json): `https://localhost:5173` und `https://localhost:7443/swagger/oauth2-redirect.html`)_
 
 ### Swagger UI
 
@@ -181,7 +185,7 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
     "FullScope": "openid profile email geopilot.api" // Full scope a client application needs to send as to configure access and id tokens correctly
 
     // Swagger UI auth options
-    "ApiOrigin": "https://localhost:7188", // Swagger UI origin (required)
+    "ApiOrigin": "https://localhost:7443", // Swagger UI origin (required)
     "AuthorizationUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/auth", // OAuth2 login URL
     "TokenUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token", // OAuth2 token URL
     "ApiServerScope": "<custom app scope>"
@@ -190,11 +194,11 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
 
 Falls die `AuthorizationUrl` und/oder `TokenUrl` nicht definiert sind, wird im Swagger UI die OpenID Konfiguration der Authority (`<authority-url>/.well-known/openid-configuration`) geladen und alle vom Identity Provider unterstützten Flows angezeigt.
 
-## Cloud Upload (optional)
+## Cloud Upload
 
-geopilot kann optional mit einem Cloud-Upload-Flow betrieben werden, bei dem Dateien über Presigned URLs direkt in einen Object Storage hochgeladen werden. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
+Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. Die Standardimplementierung verwendet Azure Blob Storage (bzw. [Azurite](https://github.com/Azure/Azurite) als Emulator für die Entwicklung). Für die Virenprüfung wird optional [ClamAV](https://www.clamav.net/) unterstützt.
 
-Beide Features sind standardmässig deaktiviert. Ohne Konfiguration wird ausschliesslich der klassische direkte Upload verwendet.
+Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID den Verarbeitungsjob.
 
 ### Entwicklung
 
@@ -206,11 +210,13 @@ docker compose up -d azurite clamav
 
 ### Konfiguration
 
+Die `CloudStorage`-Konfiguration ist erforderlich; ohne `ConnectionString` und `BucketName` startet die Applikation nicht.
+
 ```json5
 "CloudStorage": {
-    "Enabled": true,
     "ConnectionString": "...",
     "BucketName": "uploads",
+    "BlobEndpoint": "https://localhost:10000", // Öffentlicher Storage-Endpoint, wird der CSP (connect-src) hinzugefügt
     "AutoCreateContainer": false, // Nur für Entwicklung auf true setzen
     "AllowedOrigins": ["https://localhost:5173"] // CORS für Presigned-URL-Uploads
 },
@@ -223,6 +229,5 @@ docker compose up -d azurite clamav
 
 Weitere Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `PresignedUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) werden in `appsettings.json` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `CloudCleanupService` bereinigt.
 
-- **Cloud Storage deaktiviert (Standard):** Nur der direkte Upload (`/api/v1/validation`) ist verfügbar. ClamAV-Einstellungen werden ignoriert.
-- **Cloud Storage aktiviert, ClamAV deaktiviert:** Cloud-Upload funktioniert ohne Virenprüfung. Pro Upload wird eine Warnung geloggt.
-- **Cloud Storage aktiviert, ClamAV aktiviert:** Cloud-Upload mit Virenprüfung vor der Validierung.
+- **ClamAV deaktiviert (Standard):** Uploads werden ohne Virenprüfung verarbeitet. Pro Upload wird eine Warnung geloggt.
+- **ClamAV aktiviert:** Virenprüfung vor der Verarbeitung.
