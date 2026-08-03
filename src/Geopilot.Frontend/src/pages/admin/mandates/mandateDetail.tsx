@@ -99,8 +99,8 @@ const MandateDetail = () => {
       prepareDataForSave={prepareMandateForSave}
       onSaveSuccess={setMandate}>
       <GeopilotBox>
-        <Typography variant={"h3"} margin={0}>
-          {t("description")}
+        <Typography variant={"h3"} marginTop={0}>
+          {t("general")}
         </Typography>
         <FormContainer>
           <FormInput fieldName={"name"} label={"name"} value={mandate?.name} required={true} />
@@ -114,45 +114,51 @@ const MandateDetail = () => {
             minRows={3}
           />
         </FormContainer>
+      </GeopilotBox>
+      <GeopilotBox>
+        <Typography variant={"h3"} marginTop={0}>
+          {t("configuration")}
+        </Typography>
+        <FormContainer>
+          <FormContainerHalfWidth>
+            <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId} />
+          </FormContainerHalfWidth>
+          <FormContainerHalfWidth>
+            <FormAutocomplete<string>
+              freeSolo
+              validator={v => /^\.(\*|[a-zA-Z0-9]+)$/i.test(v)}
+              errorMessage="invalidFileExtension"
+              fieldName={"fileTypes"}
+              label={"fileTypes"}
+              required={true}
+              values={[]}
+              selected={mandate?.fileTypes}
+            />
+          </FormContainerHalfWidth>
+        </FormContainer>
         <FormContainer>
           <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
-          <FormCheckbox fieldName={"allowDelivery"} label={"delivery"} checked={mandate?.allowDelivery ?? false} />
         </FormContainer>
         <FormContainer>
-          <FormAutocomplete<Organisation>
-            fieldName={"organisations"}
-            label={"eligibleOrganisations"}
-            required={false}
-            values={organisations}
-            selected={mandate?.organisations}
-            valueFormatter={org => ({
-              id: org.id,
-              primaryText: org.name,
-              detailText: `${org.name} (ID: ${org.id})`,
-            })}
-          />
-        </FormContainer>
-        <FormContainer>
-          <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId} />
-        </FormContainer>
-        <FormContainer>
-          <FormAutocomplete<string>
-            freeSolo
-            validator={v => /^\.(\*|[a-zA-Z0-9]+)$/i.test(v)}
-            errorMessage="invalidFileExtension"
-            fieldName={"fileTypes"}
-            label={"fileTypes"}
-            required={true}
-            values={[]}
-            selected={mandate?.fileTypes}
-          />
-        </FormContainer>
-        <FormContainer>
-          <FormExtent fieldName={"coordinates"} label={"spatialExtent"} value={mandate?.coordinates} required={true} />
+          <FormContainerHalfWidth>
+            <FormAutocomplete<Organisation>
+              fieldName={"organisations"}
+              label={"eligibleOrganisations"}
+              required={false}
+              values={organisations}
+              selected={mandate?.organisations}
+              valueFormatter={org => ({
+                id: org.id,
+                primaryText: org.name,
+                detailText: `${org.name} (ID: ${org.id})`,
+              })}
+            />
+          </FormContainerHalfWidth>
+          <FormCheckbox fieldName={"allowDelivery"} label={"allowDelivery"} checked={mandate?.allowDelivery ?? false} />
         </FormContainer>
       </GeopilotBox>
       <GeopilotBox>
-        <Typography variant={"h3"} margin={0}>
+        <Typography variant={"h3"} marginTop={0}>
           {t("deliveryForm")}
         </Typography>
         <FormContainer>
@@ -191,6 +197,14 @@ const MandateDetail = () => {
             ]}
           />
         </FormContainerHalfWidth>
+      </GeopilotBox>
+      <GeopilotBox>
+        <Typography variant={"h3"} marginTop={0}>
+          {t("spatialExtent")}
+        </Typography>
+        <FormContainer>
+          <FormExtent fieldName={"coordinates"} value={mandate?.coordinates} required={true} />
+        </FormContainer>
       </GeopilotBox>
     </AdminDetailForm>
   );
