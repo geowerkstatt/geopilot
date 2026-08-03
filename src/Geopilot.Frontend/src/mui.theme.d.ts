@@ -22,6 +22,7 @@ declare module "@mui/material/styles" {
   interface PaletteMap {
     fill: string;
     stroke: string;
+    highlight: string;
   }
 
   interface PaletteColor {

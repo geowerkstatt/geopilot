@@ -195,15 +195,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       const layers: BaseLayer[] = config.layers
         .filter(layer => layer.features)
         .map(layer =>
-          buildFeatureLayer(
-            layer,
-            theme.palette.map.fill,
-            layer.title,
-            theme.palette.map.stroke,
-            SWISS_PROJECTION,
-            visibleIdsRef,
-            highlightedIdsRef,
-          ),
+          buildFeatureLayer(layer, theme.palette.map, layer.title, SWISS_PROJECTION, visibleIdsRef, highlightedIdsRef),
         );
 
       const wmtsLayerConfig = config.layers.find(layer => layer.wmts);
