@@ -18,7 +18,7 @@ public class UploadStore : IUploadStore
         var upload = new UploadInfo(
             Id: id,
             Files: files,
-            CreatedAt: DateTime.Now);
+            CreatedAt: DateTime.UtcNow);
 
         if (!uploads.TryAdd(id, upload))
             throw new InvalidOperationException($"An upload with id <{id}> already exists.");

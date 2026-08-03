@@ -31,6 +31,10 @@
 - The `ili2gpkg-worker` container and its shared job directory have been removed. ili2gpkg operations now run exclusively through the [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) service configured with `Ilitools:IlitoolsWrapperAddress`. Deployments must drop the `ili2gpkg-worker` service and the `/shared/ili2gpkg` mount from their compose file; pipeline definitions must drop the `jobsDirectory` configuration of processes that used the worker.
 - The `Storage:SharedDirectory` setting and the `/shared` volume of the geopilot image have been removed along with the file-drop integration. A `Storage__SharedDirectory` environment variable or `/shared` mount left in a deployment is ignored.
 
+### Fixed
+
+- Processing job and upload timestamps are now recorded in UTC, so the cleanup retention windows (job, download and visualization) are honored regardless of the container time zone. Previously, with the image default `TZ=Europe/Zurich`, expired downloads and visualizations lingered up to two hours longer than configured.
+
 ## v3.0.341 - 2026-06-17
 
 ### Added
