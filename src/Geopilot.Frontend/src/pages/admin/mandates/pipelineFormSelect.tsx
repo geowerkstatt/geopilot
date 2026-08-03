@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { PipelineSummary } from "../../../api/apiInterfaces";
 import { FormSelect } from "../../../components/form/form";
 import { FormSelectValue } from "../../../components/form/formSelect";
-import { findPipeline, getLocalisedPipelineName } from "./pipelineDisplay";
+import { useLocalized } from "../../../hooks/useLocalized";
+import { findPipeline } from "./pipelineDisplay";
 
 interface PipelineFormSelectProps {
   pipelines?: PipelineSummary[];
@@ -14,12 +15,12 @@ interface PipelineFormSelectProps {
 const getPipelineSelectMenuItems = (
   pipelines: PipelineSummary[] | undefined,
   selected: string | undefined,
-  language: string,
+  localized: ReturnType<typeof useLocalized>,
   t: (key: string) => string,
 ): FormSelectValue[] => {
   const items: FormSelectValue[] =
     pipelines?.map((pipeline, idx) => {
-      const localisedName = getLocalisedPipelineName(pipeline, language);
+      const localisedName = localized(pipeline.displayName, pipeline.id);
       return {
         key: idx,
         value: pipeline.id,
@@ -38,7 +39,8 @@ const getPipelineSelectMenuItems = (
 };
 
 const PipelineFormSelect: FC<PipelineFormSelectProps> = ({ pipelines, selected }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const localized = useLocalized();
   const { trigger } = useFormContext();
 
   // The pipeline a mandate was configured with may have been removed from the definition. Re-validate once
@@ -49,7 +51,7 @@ const PipelineFormSelect: FC<PipelineFormSelectProps> = ({ pipelines, selected }
     }
   }, [pipelines, selected, trigger]);
 
-  const menuItems = getPipelineSelectMenuItems(pipelines, selected, i18n.language, t);
+  const menuItems = getPipelineSelectMenuItems(pipelines, selected, localized, t);
 
   return (
     <FormSelect

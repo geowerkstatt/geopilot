@@ -9,10 +9,12 @@ import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
-import { findPipeline, getLocalisedPipelineName } from "./pipelineDisplay";
+import { useLocalized } from "../../../hooks/useLocalized.ts";
+import { findPipeline } from "./pipelineDisplay";
 
 const Mandates = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const localized = useLocalized();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [mandates, setMandates] = useState<Mandate[]>();
@@ -65,7 +67,7 @@ const Mandates = () => {
         }
         const pipeline = findPipeline(pipelines, pipelineId);
         if (pipeline) {
-          return getLocalisedPipelineName(pipeline, i18n.language);
+          return localized(pipeline.displayName, pipeline.id);
         }
         return (
           <Tooltip
