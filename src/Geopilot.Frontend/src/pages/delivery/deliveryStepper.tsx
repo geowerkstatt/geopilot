@@ -123,6 +123,9 @@ export const DeliveryStepper = () => {
               {step.message && (
                 <Typography
                   variant="body2"
+                  sx={{
+                    display: { xs: "none", md: "block" },
+                  }}
                   color={
                     isOpen(index) || step.state === "skipped"
                       ? "textSecondary"
