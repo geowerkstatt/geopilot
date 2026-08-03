@@ -71,7 +71,6 @@ ENV Storage__DownloadDirectory=/downloads
 ENV Storage__AssetsDirectory=/assets
 ENV Storage__PipelineDirectory=/pipeline
 ENV Storage__ResourcesDirectory=/resources
-ENV Storage__SharedDirectory=/shared
 ENV Storage__VisualizationDirectory=/visualizations
 ENV PublicAssetsOverride=/public
 WORKDIR ${HOME}
@@ -91,7 +90,6 @@ RUN \
  mkdir -p $Storage__AssetsDirectory && \
  mkdir -p $Storage__PipelineDirectory && \
  mkdir -p $Storage__ResourcesDirectory && \
- mkdir -p $Storage__SharedDirectory && \
  mkdir -p $Storage__VisualizationDirectory && \
  mkdir -p $PublicAssetsOverride
 
@@ -101,7 +99,6 @@ VOLUME $Storage__DownloadDirectory
 VOLUME $Storage__AssetsDirectory
 VOLUME $Storage__PipelineDirectory
 VOLUME $Storage__ResourcesDirectory
-VOLUME $Storage__SharedDirectory
 VOLUME $Storage__VisualizationDirectory
 
 # Set default locale

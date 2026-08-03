@@ -16,7 +16,6 @@ echo -n "Fix permissions for mounted volumes ..." && \
   chown -R app:app $Storage__AssetsDirectory && \
   chown -R app:app $Storage__PipelineDirectory && \
   chown -R app:app $Storage__ResourcesDirectory && \
-  chown -R app:app $Storage__SharedDirectory && \
   chown -R app:app $Storage__VisualizationDirectory && \
   chown -R app:app $PublicAssetsOverride && \
 
@@ -26,7 +25,6 @@ echo -n "Fix permissions for mounted volumes ..." && \
   chmod -R g+rwXs $Storage__AssetsDirectory && \
   chmod -R g+rwXs $Storage__PipelineDirectory && \
   chmod -R g+rwXs $Storage__ResourcesDirectory && \
-  chmod -R g+rwXs $Storage__SharedDirectory && \
   chmod -R g+rwXs $Storage__VisualizationDirectory && \
   chmod -R g+rwXs $PublicAssetsOverride && \
   echo "done!"

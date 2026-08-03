@@ -27,8 +27,7 @@ namespace Geopilot.Api
                 if (!Directory.Exists(directoryProvider.UploadDirectory)
                     || !Directory.Exists(directoryProvider.DownloadDirectory)
                     || !Directory.Exists(directoryProvider.AssetDirectory)
-                    || !Directory.Exists(directoryProvider.PipelineDirectory)
-                    || !Directory.Exists(directoryProvider.SharedDirectory))
+                    || !Directory.Exists(directoryProvider.PipelineDirectory))
                 {
                     healthCheckResult = HealthCheckResult.Unhealthy();
                 }

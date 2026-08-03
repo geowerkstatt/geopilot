@@ -21,7 +21,6 @@ public sealed class AssemblyInitialize
         var assetDirectory = Path.Combine(testContext.DeploymentDirectory, "Asset");
         var pipelineDirectory = Path.Combine(testContext.DeploymentDirectory, "Pipeline");
         var resourcesDirectory = Path.Combine(testContext.DeploymentDirectory, "Resources");
-        var sharedDirectory = Path.Combine(testContext.DeploymentDirectory, "Shared");
 
         var fileAccessOptions = new FileAccessOptions()
         {
@@ -31,7 +30,6 @@ public sealed class AssemblyInitialize
             AssetsDirectory = assetDirectory,
             PipelineDirectory = pipelineDirectory,
             ResourcesDirectory = resourcesDirectory,
-            SharedDirectory = sharedDirectory,
         };
 
         TestDirectoryProvider = new DirectoryProvider(Options.Create(fileAccessOptions));
