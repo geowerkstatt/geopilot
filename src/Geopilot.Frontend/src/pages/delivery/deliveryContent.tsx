@@ -9,6 +9,7 @@ interface DeliveryContentProps {
   title: string;
   subtitle?: string;
   buttons?: ReactNode;
+  hideBox?: boolean;
 }
 
 const DeliveryContentGrid = styled(Box)({
@@ -69,19 +70,23 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
   title,
   subtitle,
   buttons,
+  hideBox,
 }) => {
   const { t } = useTranslation();
   const { steps, lastCompletedStep } = useContext(DeliveryContext);
+
+  const ContentBox = hideBox ? Box : GeopilotBox;
+
   return (
     <DeliveryContentGrid>
       <DeliveryContentBox>
-        <GeopilotBox sx={{ overflow: "auto" }}>
+        <ContentBox sx={{ overflow: "auto" }}>
           <Typography variant="h3" m={0} sx={{ display: { xs: "none", md: "block" } }}>
             {t(title)}
           </Typography>
           {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}
           {children}
-        </GeopilotBox>
+        </ContentBox>
         <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
           <DeliveryRestartButton
             sx={{ display: { xs: "block", md: "none" } }}
