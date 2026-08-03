@@ -21,9 +21,6 @@ public class DirectoryProvider : IDirectoryProvider
     public string PipelineDirectory { get; }
 
     /// <inheritdoc/>
-    public string SharedDirectory { get; }
-
-    /// <inheritdoc/>
     public string ResourcesDirectory { get; }
 
     /// <summary>
@@ -41,7 +38,6 @@ public class DirectoryProvider : IDirectoryProvider
         VisualizationDirectory = fileAccess.VisualizationDirectory;
         AssetDirectory = fileAccess.AssetsDirectory;
         PipelineDirectory = fileAccess.PipelineDirectory;
-        SharedDirectory = fileAccess.SharedDirectory;
         ResourcesDirectory = fileAccess.ResourcesDirectory;
     }
 

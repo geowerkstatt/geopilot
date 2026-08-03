@@ -34,11 +34,6 @@ public interface IDirectoryProvider
     string PipelineDirectory { get; }
 
     /// <summary>
-    /// Gets the root directory for shared files.
-    /// </summary>
-    string SharedDirectory { get; }
-
-    /// <summary>
     /// Gets the root directory for read-only resource files that pipeline definitions reference via
     /// <c>${file(path)}</c>. Provided by the deployment; not created by the application.
     /// </summary>
