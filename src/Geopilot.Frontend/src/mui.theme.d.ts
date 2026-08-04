@@ -23,6 +23,8 @@ declare module "@mui/material/styles" {
     fill: string;
     stroke: string;
     highlight: string;
+    hintBackground: string;
+    hintText: string;
   }
 
   interface PaletteColor {

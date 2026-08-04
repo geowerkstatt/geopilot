@@ -1,6 +1,6 @@
 import { FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { alpha, Theme, useTheme } from "@mui/material/styles";
+import { Theme, useTheme } from "@mui/material/styles";
 import { defaults as defaultControls } from "ol/control";
 import { Condition, platformModifierKeyOnly } from "ol/events/condition";
 import { Extent, getCenter } from "ol/extent";
@@ -88,7 +88,7 @@ const createSelectionOverlay = (theme: Theme): [Overlay, (text: string) => void]
 const createInteractionHint = (
   theme: Theme,
 ): { element: HTMLDivElement; show: (text: string) => void; hide: () => void } => {
-  const INTERACTION_HINT_DURATION_MS = 2000;
+  const INTERACTION_HINT_DURATION_MS = 1500;
 
   const element = document.createElement("div");
   Object.assign(element.style, {
@@ -98,10 +98,10 @@ const createInteractionHint = (
     alignItems: "center",
     justifyContent: "center",
     textAlign: "center",
-    fontSize: "1.5rem",
-    color: theme.palette.common.white,
-    backgroundColor: alpha(theme.palette.common.black, 0.6),
-    textShadow: `0 0 2px ${alpha(theme.palette.common.black, 0.5)}`,
+    padding: theme.spacing(2),
+    fontSize: "1.25rem",
+    color: theme.palette.map.hintText,
+    backgroundColor: theme.palette.map.hintBackground,
     opacity: "0",
     transition: "opacity 0.2s ease",
     pointerEvents: "none",
@@ -251,12 +251,12 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     const onWheel = (event: WheelEvent) => {
       const modifierKey = MAC ? event.metaKey : event.ctrlKey;
       if (!modifierKey) {
-        interactionHint.show(t("mapInteractionHintScroll", { key: MAC ? "⌘" : "ctrl" }));
+        interactionHint.show(t("mapInteractionHintScroll", { key: MAC ? "⌘" : "Ctrl" }));
       } else {
         interactionHint.hide();
       }
     };
-    map.getViewport().addEventListener("wheel", onWheel);
+    map.getViewport().addEventListener("wheel", onWheel, { passive: true });
 
     const dragHintKey = map.on("pointerdrag", event => {
       if (isTouch(event) && event.activePointers?.length === 1) {
