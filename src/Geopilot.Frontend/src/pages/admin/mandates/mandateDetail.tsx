@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { Typography } from "@mui/material";
+import { FormHelperText, Stack, Typography } from "@mui/material";
 import {
   AvailablePipelinesResponse,
   FieldEvaluationType,
@@ -162,9 +162,12 @@ const MandateDetail = () => {
         </FormContainerHalfWidth>
       </GeopilotBox>
       <GeopilotBox>
-        <Typography variant={"h3"} marginTop={0}>
-          {t("spatialExtent")}
-        </Typography>
+        <Stack direction="row">
+          <Typography variant={"h3"} marginTop={0}>
+            {t("spatialExtent")}
+          </Typography>
+          <FormHelperText>{t("spatialExtentHelperText")}</FormHelperText>
+        </Stack>
         <FormContainer>
           <FormExtent fieldName={"coordinates"} value={mandate?.coordinates} required={true} />
         </FormContainer>

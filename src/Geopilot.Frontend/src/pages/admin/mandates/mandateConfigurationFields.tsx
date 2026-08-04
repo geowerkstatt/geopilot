@@ -1,5 +1,7 @@
 import { FC } from "react";
 import { useWatch } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { FormHelperText } from "@mui/material";
 import { Mandate, Organisation, PipelineSummary } from "../../../api/apiInterfaces.ts";
 import {
   FormAutocomplete,
@@ -16,6 +18,7 @@ interface MandateConfigurationFieldsProps {
 }
 
 const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ mandate, organisations, pipelines }) => {
+  const { t } = useTranslation();
   const isPublic = useWatch({ name: "isPublic", defaultValue: mandate?.isPublic ?? false });
 
   return (
@@ -37,8 +40,9 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
           />
         </FormContainerHalfWidth>
       </FormContainer>
-      <FormContainer>
+      <FormContainer alignItems="center">
         <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
+        {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
       </FormContainer>
       {!isPublic && (
         <FormContainer>
