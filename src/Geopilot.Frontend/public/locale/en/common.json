@@ -157,7 +157,7 @@
   "treeVisualizationUngrouped": "Unassigned",
   "unsavedChanges": "You have unsaved changes. How would you like to proceed?",
   "upload": "Upload",
-  "uploadSubtitle": "Upload the files you would like to process.",
+  "uploadSubtitle": "Upload the files you would like to process. It is not possible to add more files later on.",
   "upperRight": "Upper right",
   "userDisconnect": "Do you really want to disconnect the user? This will remove all connections to organisations and cannot be undone.",
   "userLoadingError": "An error occurred while loading the user: {{error}}",

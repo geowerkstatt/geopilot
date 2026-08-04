@@ -157,7 +157,7 @@
   "treeVisualizationUngrouped": "Senza assegnazione",
   "unsavedChanges": "Le modifiche non sono state salvate. Come si desidera procedere?",
   "upload": "Caricare",
-  "uploadSubtitle": "Carica i file che desideri elaborare.",
+  "uploadSubtitle": "Carica i file che desideri elaborare. Non è possibile aggiungere altri file in seguito.",
   "upperRight": "In alto a destra",
   "userDisconnect": "Volete davvero scollegare l'utente? Questa operazione rimuove tutti i collegamenti alle organizzazioni e non può essere annullata.",
   "userLoadingError": "Si è verificato un errore durante il caricamento del' utento: {{error}}",

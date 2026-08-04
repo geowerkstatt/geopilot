@@ -157,7 +157,7 @@
   "treeVisualizationUngrouped": "Ohne Zuordnung",
   "unsavedChanges": "Sie haben ungespeicherte Änderungen. Wie möchten Sie fortfahren?",
   "upload": "Hochladen",
-  "uploadSubtitle": "Laden Sie die Dateien hoch, die Sie verarbeiten möchten.",
+  "uploadSubtitle": "Laden Sie die Dateien hoch, die Sie verarbeiten möchten. Es ist nicht möglich, später weitere Dateien hinzuzufügen.",
   "upperRight": "Oben rechts",
   "userDisconnect": "Möchten Sie den Benutzer wirklich inaktiv setzen? Der Benutzer wird von allen Organisationen getrennt. Diese Aktion kann nicht rückgängig gemacht werden.",
   "userLoadingError": "Beim Laden der Benutzer:in ist ein Fehler aufgetreten: {{error}}",
