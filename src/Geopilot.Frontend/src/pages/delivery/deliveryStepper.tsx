@@ -5,6 +5,7 @@ import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { MiddleTruncate } from "../../components/middleTruncate";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
 import { useLocalized } from "../../hooks/useLocalized";
+import { STICKY_TOP_POSITION_DEFAULT, STICKY_TOP_POSITION_XS } from "./deliveryContent";
 import { SLIDE_TRANSITION_MS } from "./deliveryContentCarousel";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryStepStatus } from "./deliveryInterfaces";
@@ -15,7 +16,7 @@ const StepperViewport = styled(Box)(({ theme }) => ({
   minWidth: 300,
   flex: 0,
   position: "sticky",
-  top: "100px",
+  top: `${STICKY_TOP_POSITION_DEFAULT}px`,
   zIndex: 10,
   [theme.breakpoints.down("md")]: {
     overflowX: "hidden",
@@ -29,6 +30,7 @@ const StepperViewport = styled(Box)(({ theme }) => ({
     padding: `0 ${pageContentPadding.default}`,
   },
   [theme.breakpoints.down("sm")]: {
+    top: `${STICKY_TOP_POSITION_XS}px`,
     margin: `0 -${pageContentPadding.xs} !important`,
     padding: `0 ${pageContentPadding.xs}`,
   },

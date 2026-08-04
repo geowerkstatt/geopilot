@@ -17,8 +17,15 @@ const DeliveryContentGrid = styled(Box)({
   flex: 1,
 });
 
-const desktopTopDistance = 100; // header and spacing
-const mobileTopDistance = desktopTopDistance + 58 + 16; // top distance + stepper + spacing
+const APP_HEADER_HEIGHT = 60;
+const STEPPER_HEIGHT = 58;
+
+export const STICKY_TOP_POSITION_DEFAULT = APP_HEADER_HEIGHT + 40;
+export const STICKY_TOP_POSITION_XS = APP_HEADER_HEIGHT + 8;
+
+const desktopTopDistance = STICKY_TOP_POSITION_DEFAULT;
+const mobileTopDistance = STICKY_TOP_POSITION_DEFAULT + STEPPER_HEIGHT + 16; // top distance + stepper + spacing
+const smallTopDistance = STICKY_TOP_POSITION_XS + STEPPER_HEIGHT + 8; // small top distance + stepper + spacing
 
 // place all elements in the same grid cell and add sticky scrolling
 const Overlay = styled(Box)(({ theme }) => ({
@@ -27,6 +34,9 @@ const Overlay = styled(Box)(({ theme }) => ({
   top: `${desktopTopDistance}px`,
   [theme.breakpoints.down("md")]: {
     top: `${mobileTopDistance}px`,
+  },
+  [theme.breakpoints.down("sm")]: {
+    top: `${smallTopDistance}px`,
   },
 }));
 
@@ -39,6 +49,9 @@ const ScrollContentOverlay = styled(Overlay)(({ theme }) => ({
   zIndex: 7,
   [theme.breakpoints.down("md")]: {
     height: `${mobileTopDistance}px`,
+  },
+  [theme.breakpoints.down("sm")]: {
+    height: `${smallTopDistance}px`,
   },
 }));
 
