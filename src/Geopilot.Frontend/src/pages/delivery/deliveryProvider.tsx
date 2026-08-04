@@ -4,8 +4,8 @@ import {
   LocalizedText,
   Mandate,
   ProcessingJobResponse,
-  ProcessingState,
   StartJobRequest,
+  StepState,
   UploadSettings,
 } from "../../api/apiInterfaces.ts";
 import { useGeopilotAuth } from "../../auth";
@@ -17,13 +17,12 @@ import {
   DeliveryStep,
   DeliveryStepEnum,
   DeliveryStepError,
-  DeliveryStepStatus,
   DeliverySubmitData,
   FileUploadStatus,
 } from "./deliveryInterfaces.tsx";
 import { DeliverySelectMandate } from "./deliverySelectMandate.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
-import { getDeliveryRestrictionReason, isProcessingDeliverable } from "./deliveryUtils.tsx";
+import { getDeliveryRestrictionReason, isProcessingDeliverable, normalizeJobState } from "./deliveryUtils.tsx";
 import { DeliveryProcessing } from "./processing/deliveryProcessing.tsx";
 
 // Gets the current steps while reusing previous steps if possible to keep their state (e.g. errors)
@@ -127,7 +126,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   };
 
   const setStepStatus = useCallback(
-    (key: DeliveryStepEnum, state: DeliveryStepStatus | undefined, message?: string | LocalizedText) => {
+    (key: DeliveryStepEnum, state: StepState | undefined, message?: string | LocalizedText) => {
       setSteps(prevSteps => {
         const newSteps = new Map(prevSteps);
         const step = newSteps.get(key);
@@ -197,7 +196,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       if (error && error.message && !error.message.includes("AbortError")) {
         setStepStatus(
           key,
-          "error",
+          StepState.Error,
           deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey || error.message,
         );
       }
@@ -263,30 +262,28 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       signal: abortController.signal,
     })
       .then(response => {
-        setProcessingResponse(response);
-        if (response.state === ProcessingState.Pending || response.state === ProcessingState.Running) {
+        const jobState = normalizeJobState(response.state);
+        setProcessingResponse({ ...response, state: jobState });
+        if (jobState === StepState.Pending || jobState === StepState.Running) {
           setTimeout(() => pollProcessingStatusUntilFinished(jobId, abortController), 2000);
         } else {
           setIsProcessing(false);
 
           // The processing node reflects whether the user can finish, the delivery node reflects deliverability.
-          if (isProcessingDeliverable(response)) {
+          if (isProcessingDeliverable({ ...response, state: jobState })) {
             markStepCompleted();
-            if (response.state === ProcessingState.Warning) {
-              setStepStatus(DeliveryStepEnum.Processing, "warning", "completedWithWarnings");
+            if (jobState === StepState.Warning) {
+              setStepStatus(DeliveryStepEnum.Processing, StepState.Warning, "completedWithWarnings");
             }
           } else {
-            // Not deliverable is a dead end. The processing node mirrors the aggregate state; the delivery
-            // node is skipped and carries the reason, sourced from the delivery-restricting step (or a
-            // generic fallback for a hard failure or cancellation).
-            if (response.state === ProcessingState.DeliveryRestriction) {
-              setStepStatus(DeliveryStepEnum.Processing, "deliveryRestriction");
+            if (jobState === StepState.DeliveryRestriction) {
+              setStepStatus(DeliveryStepEnum.Processing, StepState.DeliveryRestriction);
             } else {
               // Only Failed and Cancelled reach this branch; their enum values double as i18n keys.
-              setStepStatus(DeliveryStepEnum.Processing, "error", response.state);
+              setStepStatus(DeliveryStepEnum.Processing, StepState.Error, response.state);
             }
             const restrictionReason = getDeliveryRestrictionReason(response.steps);
-            setStepStatus(DeliveryStepEnum.Delivery, "skipped", restrictionReason ?? "deliveryNotPossible");
+            setStepStatus(DeliveryStepEnum.Delivery, StepState.Skipped, restrictionReason ?? "deliveryNotPossible");
           }
         }
       })
@@ -340,7 +337,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const submitDelivery = (data: DeliverySubmitData) => {
     setIsLoading(true);
     setSubmittedData(data);
-    if (steps.get(DeliveryStepEnum.Delivery)?.state === "error") {
+    if (steps.get(DeliveryStepEnum.Delivery)?.state === StepState.Error) {
       setStepStatus(DeliveryStepEnum.Delivery, undefined);
     }
     const abortController = new AbortController();

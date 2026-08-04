@@ -2,7 +2,7 @@ import { FC, useCallback, useContext, useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { Trans } from "react-i18next";
 import { Link, Stack } from "@mui/material";
-import { ProcessingSettings } from "../../api/apiInterfaces.ts";
+import { ProcessingSettings, StepState } from "../../api/apiInterfaces.ts";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { Button } from "../../components/buttons.tsx";
 import { FileDropzone } from "../../components/fileDropzone.tsx";
@@ -48,7 +48,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
 
   const setFileError = useCallback(
     (error: string | undefined) => {
-      setStepStatus(DeliveryStepEnum.Files, error ? "error" : undefined, error);
+      setStepStatus(DeliveryStepEnum.Files, error ? StepState.Error : undefined, error);
     },
     [setStepStatus],
   );

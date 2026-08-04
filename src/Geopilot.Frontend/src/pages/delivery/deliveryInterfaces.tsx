@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { LocalizedText, Mandate, ProcessingJobResponse, UploadSettings } from "../../api/apiInterfaces.ts";
+import { LocalizedText, Mandate, ProcessingJobResponse, StepState, UploadSettings } from "../../api/apiInterfaces.ts";
 
 export enum DeliveryStepEnum {
   Files = "files",
@@ -17,15 +17,10 @@ export interface DeliveryStepProps {
   completed: boolean;
 }
 
-// A step's non-normal outcome: `state` selects the icon and colour, the optional `message` is the subtitle
-// (a string is an i18n key, a LocalizedText an already-localized message). A `state` without a `message`
-// renders the state without a subtitle (e.g. the processing node red without text).
-export type DeliveryStepStatus = "error" | "warning" | "skipped" | "deliveryRestriction";
-
 export interface DeliveryStep {
   label: string;
   labelAddition?: string;
-  state?: DeliveryStepStatus;
+  state?: StepState;
   message?: string | LocalizedText;
   content: (completed: boolean) => ReactNode;
 }
@@ -47,11 +42,7 @@ export interface DeliveryContextInterface {
   lastCompletedStep: number;
   activeStep: number;
   isActiveStep: (step: DeliveryStepEnum) => boolean;
-  setStepStatus: (
-    key: DeliveryStepEnum,
-    state: DeliveryStepStatus | undefined,
-    message?: string | LocalizedText,
-  ) => void;
+  setStepStatus: (key: DeliveryStepEnum, state: StepState | undefined, message?: string | LocalizedText) => void;
   selectedFiles: File[];
   addFiles: (files: File[]) => void;
   removeFile: (file: File) => void;

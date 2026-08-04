@@ -42,45 +42,45 @@ export const startProcessing = () => {
 
 export const stepIsActive = (stepName, isActive = true) => {
   if (isActive) {
-    cy.dataCy(`${stepName}-step`).dataCy("active").should("exist");
+    cy.dataCy(`${stepName}-step`).should("have.attr", "aria-current", "step");
   } else {
-    cy.dataCy(`${stepName}-step`).dataCy("active").should("not.exist");
+    cy.dataCy(`${stepName}-step`).should("not.have.attr", "aria-current");
   }
 };
 
 export const stepIsLoading = (stepName, isLoading = true) => {
   if (isLoading) {
-    cy.dataCy(`${stepName}-step`).dataCy("stepper-loading").should("exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepIcon-loading").should("exist");
   } else {
-    cy.dataCy(`${stepName}-step`).dataCy("stepper-loading").should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepIcon-loading").should("not.exist");
   }
 };
 
 export const stepHasError = (stepName, hasError, errorText) => {
   if (hasError) {
-    cy.dataCy(`${stepName}-step`).dataCy("stepper-error").should("exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepIcon-error").should("exist");
     cy.dataCy(`${stepName}-step`).contains(errorText);
   } else {
-    cy.dataCy(`${stepName}-step`).dataCy("stepper-error").should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepIcon-error").should("not.exist");
   }
 };
 
 export const stepIsSkipped = (stepName, isSkipped = true, text) => {
   if (isSkipped) {
-    cy.dataCy(`${stepName}-step`).dataCy("stepper-skipped").should("exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepIcon-skipped").should("exist");
     if (text) {
       cy.dataCy(`${stepName}-step`).contains(text);
     }
   } else {
-    cy.dataCy(`${stepName}-step`).dataCy("stepper-skipped").should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepIcon-skipped").should("not.exist");
   }
 };
 
 export const stepIsCompleted = (stepName, isCompleted = true) => {
   if (isCompleted) {
-    cy.dataCy(`${stepName}-step`).dataCy("stepper-completed").should("exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepIcon-success").should("exist");
   } else {
-    cy.dataCy(`${stepName}-step`).dataCy("stepper-completed").should("not.exist");
+    cy.dataCy(`${stepName}-step`).dataCy("stepIcon-success").should("not.exist");
   }
 };
 

@@ -82,16 +82,6 @@ export interface ProcessingSettings {
   allowedFileExtensions: string[];
 }
 
-export enum ProcessingState {
-  Pending = "pending",
-  Running = "running",
-  Success = "success",
-  Failed = "failed",
-  Cancelled = "cancelled",
-  Warning = "warning",
-  DeliveryRestriction = "deliveryRestriction",
-}
-
 export enum StepState {
   Pending = "pending",
   Skipped = "skipped",
@@ -189,7 +179,7 @@ export interface StepResult {
 
 export interface ProcessingJobResponse {
   jobId: string;
-  state: ProcessingState;
+  state: StepState;
   mandateId?: number;
   pipelineName: LocalizedText;
   steps: StepResult[];

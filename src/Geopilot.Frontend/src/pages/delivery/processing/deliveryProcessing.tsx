@@ -1,5 +1,4 @@
 import { useContext } from "react";
-import { useMediaQuery, useTheme } from "@mui/material";
 import { DeliveryBackButton, DeliveryContinueButton } from "../deliveryButtons";
 import { DeliveryContent } from "../deliveryContent";
 import { DeliveryContext } from "../deliveryContext";
@@ -10,9 +9,6 @@ export const DeliveryProcessing = () => {
   const { isProcessing, processingResponse } = useContext(DeliveryContext);
   const hasSteps = (processingResponse?.steps?.length ?? 0) > 0;
 
-  const theme = useTheme();
-  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
-
   const buttons = (
     <>
       <DeliveryBackButton />
@@ -21,7 +17,7 @@ export const DeliveryProcessing = () => {
   );
 
   return (
-    <DeliveryContent title="processing" buttons={buttons} hideBox={isXs}>
+    <DeliveryContent title="processing" buttons={buttons} hideBox={true}>
       {hasSteps && <DeliveryProcessingResults />}
     </DeliveryContent>
   );

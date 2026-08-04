@@ -55,7 +55,7 @@ describe("Delivery tests", () => {
     startProcessing();
     stepIsLoading("processing", true);
     stepHasError("processing", true, "Failed");
-    cy.dataCy("processing-step-validation").dataCy("processing-step-icon-error").should("exist");
+    cy.dataCy("processing-step-validation").dataCy("stepIcon-error").should("exist");
     cy.dataCy("errorLog.log-button").should("not.exist");
     cy.dataCy("xtfLog.xtf-button").should("not.exist");
     stepIsActive("processing");
@@ -158,12 +158,12 @@ describe("Delivery tests", () => {
     cy.wait("@jobStatus");
 
     // Right results pane: both restricting steps show the delivery-restriction icon.
-    cy.dataCy("processing-step-validation").dataCy("processing-step-icon-deliveryRestriction").should("exist");
-    cy.dataCy("processing-step-topology_check").dataCy("processing-step-icon-deliveryRestriction").should("exist");
+    cy.dataCy("processing-step-validation").dataCy("stepIcon-deliveryRestriction").should("exist");
+    cy.dataCy("processing-step-topology_check").dataCy("stepIcon-deliveryRestriction").should("exist");
 
     // Left stepper: the processing node shows the delivery-restriction state, while the delivery node is
     // shown as skipped and carries the merged reason of all restricting steps.
-    cy.dataCy("processing-step").dataCy("stepper-deliveryRestriction").should("exist");
+    cy.dataCy("processing-step").dataCy("stepIcon-deliveryRestriction").should("exist");
     stepIsSkipped("delivery", true, "Delivery is not possible");
     cy.dataCy("delivery-step").contains("Topology check failed");
   });
@@ -214,13 +214,13 @@ describe("Delivery tests", () => {
     cy.wait("@jobStatus");
 
     // Right results pane: the validation step shows the warning icon.
-    cy.dataCy("processing-step-validation").dataCy("processing-step-icon-warning").should("exist");
+    cy.dataCy("processing-step-validation").dataCy("stepIcon-warning").should("exist");
 
     // Left stepper: a warning does not block delivery, so neither the delivery-restriction nor the
     // error state appears; the processing node stays in the (deliverable) warning state.
-    cy.dataCy("processing-step").dataCy("stepper-warning").should("exist");
-    cy.dataCy("stepper-deliveryRestriction").should("not.exist");
-    cy.dataCy("stepper-error").should("not.exist");
+    cy.dataCy("processing-step").dataCy("stepIcon-warning").should("exist");
+    cy.dataCy("stepIcon-deliveryRestriction").should("not.exist");
+    cy.dataCy("stepIcon-error").should("not.exist");
 
     // Delivery stays possible: continuing leads to the delivery step.
     cy.dataCy("continue-button").should("be.enabled").click();

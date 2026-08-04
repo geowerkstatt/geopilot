@@ -4,11 +4,11 @@ import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Box, Stack, Typography } from "@mui/material";
 import { StepResult, StepState } from "../../../api/apiInterfaces";
 import { Button } from "../../../components/buttons";
+import { StepIcon } from "../../../components/stepIcon.tsx";
 import { VisualizationLoader } from "../../../components/visualizations/visualizationLoader";
 import { useLocalized } from "../../../hooks/useLocalized";
 import { DeliveryContext } from "../deliveryContext";
 import { getDeliveryRestrictionReason } from "../deliveryUtils.tsx";
-import { ProcessingStepIcon } from "./processingStepIcon";
 
 const stepHasContent = (step: StepResult) =>
   Boolean(step.statusMessage) || step.downloads.length > 0 || (step.visualizations?.length ?? 0) > 0;
@@ -114,12 +114,8 @@ export const DeliveryProcessingResults = () => {
               data-cy={`processing-step-${step.id}`}>
               <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
                 <Stack direction="row" sx={{ alignItems: "center", flexWrap: "nowrap" }}>
-                  <ProcessingStepIcon
-                    state={step.state}
-                    index={index}
-                    message={step.conditionMessage ? localized(step.conditionMessage) : undefined}
-                  />
-                  <Typography variant="h5" sx={{ margin: 0 }}>
+                  <StepIcon step={index + 1} state={step.state} variant={"outlined"} />
+                  <Typography variant="h4" sx={{ margin: 0 }}>
                     {localized(step.name)}
                   </Typography>
                 </Stack>
