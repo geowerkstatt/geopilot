@@ -100,7 +100,7 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
           {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}
           {children}
         </ContentBox>
-        <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
+        <Stack direction="row" sx={{ alignItems: "flex-start", flexWrap: "wrap", justifyContent: "space-between" }}>
           <DeliveryRestartButton
             sx={{ display: { xs: "block", md: "none" } }}
             immediate={lastCompletedStep === steps.size - 1}
