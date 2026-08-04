@@ -4,6 +4,7 @@ import { Outlet } from "react-router-dom";
 import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { useControlledNavigate } from "../../components/controlledNavigate";
+import { PageContent } from "../../components/styledComponents.ts";
 import { useApplicationName } from "../../hooks/useApplicationName.ts";
 
 interface AdminProps {
@@ -71,82 +72,79 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   );
 
   return (
-    <Box sx={{ width: "100%", height: "100%" }}>
-      <Drawer
-        variant="permanent"
-        sx={{
-          display: { xs: "none", md: "block" },
-          width: drawerWidth,
-          flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
+    <PageContent>
+      <Box sx={{ width: "100%", height: "100%" }}>
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: "none", md: "block" },
             width: drawerWidth,
-            zIndex: 1000,
-            borderColor: theme => theme.palette.primary.light,
-          },
-        }}
-        data-cy="admin-navigation">
-        <>
-          <Box sx={{ height: "60px" }} />
-          {drawerContent(true)}
-        </>
-      </Drawer>
-      <Drawer
-        variant="temporary"
-        open={isSubMenuOpen}
-        onClose={handleDrawerClose}
-        ModalProps={{
-          keepMounted: true,
-        }}
-        sx={{
-          display: { xs: "block", md: "none" },
-          width: drawerWidth,
-          "& .MuiDrawer-paper": { width: drawerWidth },
-        }}>
-        <>
-          <Stack
-            direction="row"
-            py={1}
-            px={2}
-            sx={{ alignItems: "center", flexWrap: "wrap", cursor: "pointer" }}
-            onClick={() => {
-              navigate("/");
-            }}>
-            {clientSettings?.application?.logo && (
-              <Box>
-                <img
-                  src={clientSettings?.application?.logo}
-                  alt={`Logo of ${applicationName}`}
-                  style={{ maxHeight: "40px", cursor: "pointer" }}
-                />
-              </Box>
-            )}
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "start",
+            flexShrink: 0,
+            [`& .MuiDrawer-paper`]: {
+              width: drawerWidth,
+              zIndex: 1000,
+              borderColor: theme => theme.palette.primary.light,
+            },
+          }}
+          data-cy="admin-navigation">
+          <>
+            <Box sx={{ height: "60px" }} />
+            {drawerContent(true)}
+          </>
+        </Drawer>
+        <Drawer
+          variant="temporary"
+          open={isSubMenuOpen}
+          onClose={handleDrawerClose}
+          ModalProps={{
+            keepMounted: true,
+          }}
+          sx={{
+            display: { xs: "block", md: "none" },
+            width: drawerWidth,
+            "& .MuiDrawer-paper": { width: drawerWidth },
+          }}>
+          <>
+            <Stack
+              direction="row"
+              py={1}
+              px={2}
+              sx={{ alignItems: "center", flexWrap: "wrap", cursor: "pointer" }}
+              onClick={() => {
+                navigate("/");
               }}>
-              <Typography variant="h4" sx={{ margin: "0 !important" }}>
-                geopilot&nbsp;
-              </Typography>
-              {applicationName && (
-                <Typography variant="h6" sx={{ margin: "0 !important" }}>
-                  {applicationName}
-                </Typography>
+              {clientSettings?.application?.logo && (
+                <Box>
+                  <img
+                    src={clientSettings?.application?.logo}
+                    alt={`Logo of ${applicationName}`}
+                    style={{ maxHeight: "40px", cursor: "pointer" }}
+                  />
+                </Box>
               )}
-            </Box>
-          </Stack>
-          {drawerContent(false)}
-        </>
-      </Drawer>
-      <Stack
-        sx={{
-          height: "100%",
-          marginLeft: { xs: "0", md: drawerWidth },
-        }}>
-        <Outlet />
-      </Stack>
-    </Box>
+              <Stack sx={{ alignItems: "start", gap: 0 }}>
+                <Typography variant="h4" sx={{ margin: "0 !important" }}>
+                  geopilot&nbsp;
+                </Typography>
+                {applicationName && (
+                  <Typography variant="h6" sx={{ margin: "0 !important" }}>
+                    {applicationName}
+                  </Typography>
+                )}
+              </Stack>
+            </Stack>
+            {drawerContent(false)}
+          </>
+        </Drawer>
+        <Stack
+          sx={{
+            height: "100%",
+            marginLeft: { xs: "0", md: drawerWidth },
+          }}>
+          <Outlet />
+        </Stack>
+      </Box>
+    </PageContent>
   );
 };
 
