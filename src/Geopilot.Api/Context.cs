@@ -124,6 +124,12 @@ public class Context : DbContext
             localizedText => localizedText);
 
         modelBuilder.Entity<Mandate>()
+            .Property(mandate => mandate.Name)
+            .HasColumnType("jsonb")
+            .HasDefaultValueSql("jsonb_build_object()")
+            .HasConversion(localizedTextConverter, localizedTextComparer);
+
+        modelBuilder.Entity<Mandate>()
             .Property(mandate => mandate.Description)
             .HasColumnType("jsonb")
             .HasDefaultValueSql("jsonb_build_object()")

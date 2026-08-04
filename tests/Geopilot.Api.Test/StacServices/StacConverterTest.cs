@@ -33,7 +33,7 @@ public class StacConverterTest
         mandate = new()
         {
             Id = 1,
-            Name = "Test Mandate",
+            Name = TestHelpers.Localized("Test Mandate"),
             SpatialExtent = new Polygon(new LinearRing(new NetTopologySuite.Geometries.Coordinate[]
             {
                     new(mandateExtent[1], mandateExtent[0]),
