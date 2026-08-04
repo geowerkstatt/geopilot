@@ -37,7 +37,7 @@ const getStateColors = (state: StepState, active: boolean) => {
       };
     default:
       return {
-        backgroundColor: themePalette.background.content,
+        backgroundColor: themePalette.primary.states.selected,
         borderColor: active ? themePalette.primary.dark : themePalette.primary.light,
         messageColor: themePalette.text.primary,
       };
