@@ -10,7 +10,9 @@ import {
 } from "../../api/apiInterfaces.ts";
 import { useGeopilotAuth } from "../../auth";
 import useCloudUpload from "../../hooks/useCloudUpload.ts";
+import { useDeliveryRestrictionMessage } from "../../hooks/useDeliveryRestrictionMessage.ts";
 import useFetch from "../../hooks/useFetch.ts";
+import { useLocalized } from "../../hooks/useLocalized.ts";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryFileUpload } from "./deliveryFileUpload.tsx";
 import {
@@ -20,10 +22,10 @@ import {
   DeliverySubmitData,
   FileUploadStatus,
 } from "./deliveryInterfaces.tsx";
+import { DeliveryProcessing } from "./deliveryProcessing.tsx";
 import { DeliverySelectMandate } from "./deliverySelectMandate.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
-import { getDeliveryRestrictionReason, isProcessingDeliverable, normalizeJobState } from "./deliveryUtils.tsx";
-import { DeliveryProcessing } from "./processing/deliveryProcessing.tsx";
+import { isProcessingDeliverable, normalizeJobState } from "./deliveryUtils.tsx";
 
 // Gets the current steps while reusing previous steps if possible to keep their state (e.g. errors)
 const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelivery: boolean) => {
@@ -66,6 +68,8 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
 };
 
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
+  const localized = useLocalized();
+  const getDeliveryRestrictionMessage = useDeliveryRestrictionMessage();
   const [lastCompletedStep, setLastCompletedStep] = useState(-1);
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -278,12 +282,17 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
           } else {
             if (jobState === StepState.DeliveryRestriction) {
               setStepStatus(DeliveryStepEnum.Processing, StepState.DeliveryRestriction);
+              setStepStatus(
+                DeliveryStepEnum.Delivery,
+                StepState.Skipped,
+                getDeliveryRestrictionMessage(response.steps),
+              );
             } else {
-              // Only Failed and Cancelled reach this branch; their enum values double as i18n keys.
-              setStepStatus(DeliveryStepEnum.Processing, StepState.Error, response.state);
+              const errorMessage = localized(
+                response.steps.find(step => step.state === StepState.Error)?.conditionMessage,
+              );
+              setStepStatus(DeliveryStepEnum.Processing, StepState.Error, errorMessage ?? response.state);
             }
-            const restrictionReason = getDeliveryRestrictionReason(response.steps);
-            setStepStatus(DeliveryStepEnum.Delivery, StepState.Skipped, restrictionReason ?? "deliveryNotPossible");
           }
         }
       })

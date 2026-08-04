@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Box, Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { StepState } from "../../api/apiInterfaces";
+import { themePalette } from "../../appPalette.ts";
 import { MiddleTruncate } from "../../components/middleTruncate";
 import { StepIcon } from "../../components/stepIcon";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
@@ -11,6 +12,37 @@ import { SLIDE_TRANSITION_MS } from "./deliveryContentCarousel";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 import { STEPPER_HEIGHT, STICKY_TOP_POSITION_DEFAULT, STICKY_TOP_POSITION_XS } from "./deliveryUtils";
+
+const getStateColors = (state: StepState, active: boolean) => {
+  switch (state) {
+    case StepState.DeliveryRestriction:
+    case StepState.Cancelled:
+    case StepState.Error:
+      return {
+        backgroundColor: themePalette.error.background,
+        borderColor: active ? themePalette.error.dark : themePalette.error.light,
+        messageColor: themePalette.error.contrastText,
+      };
+    case StepState.Warning:
+      return {
+        backgroundColor: themePalette.warning.background,
+        borderColor: active ? themePalette.warning.dark : themePalette.warning.light,
+        messageColor: themePalette.warning.contrastText,
+      };
+    case StepState.Skipped:
+      return {
+        backgroundColor: themePalette.background.content,
+        borderColor: themePalette.primary.light,
+        messageColor: themePalette.text.secondary,
+      };
+    default:
+      return {
+        backgroundColor: themePalette.background.content,
+        borderColor: active ? themePalette.primary.dark : themePalette.primary.light,
+        messageColor: themePalette.text.primary,
+      };
+  }
+};
 
 const StepperViewport = styled(Box)(({ theme }) => ({
   minWidth: 300,
@@ -50,30 +82,6 @@ const StepDetailTypography = styled(Typography)(({ theme }) => ({
 }));
 StepDetailTypography.defaultProps = { variant: "body2" };
 
-const DeliveryStepBox = styled(GeopilotBox, {
-  shouldForwardProp: prop => prop !== "open" && prop !== "enabled" && prop !== "status",
-})<{
-  open: boolean;
-  status?: StepState;
-  enabled: boolean;
-}>(({ open, enabled, status, theme }) => ({
-  backgroundColor: open
-    ? status === StepState.Error || status === StepState.DeliveryRestriction
-      ? theme.palette.error.selected
-      : status === StepState.Warning
-        ? theme.palette.warning.selected
-        : theme.palette.primary.states.selected
-    : theme.palette.background.content,
-  alignItems: "flex-start",
-  cursor: enabled ? "pointer" : "default",
-  [theme.breakpoints.down("md")]: {
-    scrollSnapAlign: "center",
-    width: "100%",
-    height: `${STEPPER_HEIGHT}px`,
-    flexShrink: 0,
-  },
-}));
-
 export const DeliveryStepper = () => {
   const { t } = useTranslation();
   const localized = useLocalized();
@@ -108,7 +116,8 @@ export const DeliveryStepper = () => {
         {Array.from(steps.entries()).map(([key, step], index) => {
           const completed = isCompleted(index);
           const enabled = isEnabled(index);
-          const isSkipped = step.state === StepState.Skipped;
+          const open = isOpen(index);
+          const skipped = step.state === StepState.Skipped;
           const stepState =
             step.state ??
             (completed
@@ -116,16 +125,26 @@ export const DeliveryStepper = () => {
               : enabled && (isLoading || isProcessing)
                 ? StepState.Running
                 : StepState.Pending);
+          const { backgroundColor, borderColor, messageColor } = getStateColors(stepState, open);
 
           return (
-            <DeliveryStepBox
+            <GeopilotBox
               key={key}
               data-cy={`${key}-step`}
-              open={isOpen(index)}
-              status={step.state}
-              enabled={enabled && !isSkipped}
-              aria-current={isOpen(index) ? "step" : undefined}
-              onClick={isSkipped ? undefined : () => onStepClick(index)}>
+              aria-current={open ? "step" : undefined}
+              onClick={skipped ? undefined : () => onStepClick(index)}
+              sx={{
+                gap: 1,
+                backgroundColor: backgroundColor,
+                borderColor: borderColor,
+                cursor: enabled ? "pointer" : "default",
+                [theme.breakpoints.down("md")]: {
+                  scrollSnapAlign: "center",
+                  width: "100%",
+                  height: `${STEPPER_HEIGHT}px`,
+                  flexShrink: 0,
+                },
+              }}>
               <Stack direction="row" sx={{ alignItems: "center" }}>
                 <StepIcon step={index + 1} state={stepState} variant="contained" />
                 <Typography variant="h4" color={isEnabled(index) ? "text.primary" : "text.secondary"} m={0}>
@@ -142,18 +161,11 @@ export const DeliveryStepper = () => {
                 </StepDetailTypography>
               )}
               {step.message && (
-                <StepDetailTypography
-                  color={
-                    isOpen(index) || isSkipped
-                      ? "text.secondary"
-                      : step.state === StepState.Warning
-                        ? "warning.main"
-                        : "error"
-                  }>
+                <StepDetailTypography color={messageColor}>
                   {typeof step.message === "string" ? t(step.message) : localized(step.message)}
                 </StepDetailTypography>
               )}
-            </DeliveryStepBox>
+            </GeopilotBox>
           );
         })}
         <DeliveryRestartButton

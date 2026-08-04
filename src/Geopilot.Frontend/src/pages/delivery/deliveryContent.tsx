@@ -1,15 +1,21 @@
 import { FC, PropsWithChildren, ReactNode, useContext } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Stack, styled, Typography } from "@mui/material";
+import { Alert, AlertColor, Box, Stack, styled, Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 import { mobileTopDistance, smallTopDistance, STICKY_TOP_POSITION_DEFAULT } from "./deliveryUtils";
 
+interface DeliveryStepAlert {
+  message: string;
+  severity: AlertColor;
+}
+
 interface DeliveryContentProps {
   title: string;
   subtitle?: string;
   buttons?: ReactNode;
+  alert?: DeliveryStepAlert;
   hideBox?: boolean;
 }
 
@@ -76,6 +82,7 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
   title,
   subtitle,
   buttons,
+  alert,
   hideBox,
 }) => {
   const { t } = useTranslation();
@@ -93,6 +100,11 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
           {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}
           {children}
         </ContentBox>
+        {alert && (
+          <Alert severity={alert.severity} variant="outlined">
+            {alert.message}
+          </Alert>
+        )}
         <Stack direction="row" sx={{ alignItems: "flex-start", flexWrap: "wrap", justifyContent: "space-between" }}>
           <DeliveryRestartButton
             sx={{ display: { xs: "block", md: "none" } }}

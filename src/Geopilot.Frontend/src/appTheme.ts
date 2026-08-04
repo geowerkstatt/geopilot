@@ -435,6 +435,16 @@ export const geopilotTheme = createTheme({
           success: createElement(CheckIcon, { fontSize: "inherit" }),
         },
       },
+      styleOverrides: {
+        outlined: ({ theme, ownerState }) => {
+          const paletteColor = theme.palette[ownerState.severity ?? ownerState.color ?? "success"];
+          return {
+            color: paletteColor.contrastText,
+            backgroundColor: paletteColor.background,
+            borderColor: paletteColor.main,
+          };
+        },
+      },
     },
     MuiAccordion: {
       defaultProps: {
