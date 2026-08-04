@@ -41,11 +41,7 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
         <Stack gap={0.5} flex={1}>
           <Typography variant="body1" color="primary.main" sx={{ wordBreak: "break-word", lineBreak: "anywhere" }}>
             {file.name}{" "}
-            <Typography
-              component="span"
-              variant="caption"
-              color="primary.light"
-              sx={{ verticalAlign: "middle", whiteSpace: "nowrap" }}>
+            <Typography variant="caption" color="primary.light" sx={{ verticalAlign: "middle", whiteSpace: "nowrap" }}>
               ({formatFileSize(file.size)})
             </Typography>
           </Typography>
