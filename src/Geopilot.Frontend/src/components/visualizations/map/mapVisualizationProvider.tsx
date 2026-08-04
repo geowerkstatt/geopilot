@@ -1,8 +1,11 @@
 import { FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Theme, useTheme } from "@mui/material/styles";
+import { alpha, Theme, useTheme } from "@mui/material/styles";
 import { defaults as defaultControls } from "ol/control";
+import { Condition, platformModifierKeyOnly } from "ol/events/condition";
 import { Extent, getCenter } from "ol/extent";
+import { MAC } from "ol/has";
+import { defaults as defaultInteractions, DragPan, MouseWheelZoom } from "ol/interaction";
 import BaseLayer from "ol/layer/Base";
 import VectorLayer from "ol/layer/Vector";
 import Map from "ol/Map";
@@ -80,6 +83,45 @@ const createSelectionOverlay = (theme: Theme): [Overlay, (text: string) => void]
       popupContent.textContent = text;
     },
   ];
+};
+
+const createInteractionHint = (
+  theme: Theme,
+): { element: HTMLDivElement; show: (text: string) => void; hide: () => void } => {
+  const INTERACTION_HINT_DURATION_MS = 2000;
+
+  const element = document.createElement("div");
+  Object.assign(element.style, {
+    position: "absolute",
+    inset: "0",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center",
+    fontSize: "1.5rem",
+    color: theme.palette.common.white,
+    backgroundColor: alpha(theme.palette.common.black, 0.6),
+    textShadow: `0 0 2px ${alpha(theme.palette.common.black, 0.5)}`,
+    opacity: "0",
+    transition: "opacity 0.2s ease",
+    pointerEvents: "none",
+    zIndex: "1",
+  } satisfies Partial<CSSStyleDeclaration>);
+
+  let hideTimeout: number | undefined;
+  const hide = () => {
+    if (hideTimeout) clearTimeout(hideTimeout);
+    element.style.opacity = "0";
+  };
+  const show = (text: string) => {
+    hide();
+    element.textContent = text;
+    element.style.opacity = "1";
+    hideTimeout = setTimeout(() => {
+      hide();
+    }, INTERACTION_HINT_DURATION_MS);
+  };
+  return { element, show, hide };
 };
 
 /**
@@ -173,9 +215,22 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   useEffect(() => {
     if (!config) return;
 
+    const isTouch: Condition = e => e.originalEvent instanceof PointerEvent && e.originalEvent.pointerType === "touch";
+    const interactions = defaultInteractions({
+      dragPan: false,
+      mouseWheelZoom: false,
+      pinchRotate: false,
+    }).extend([
+      new DragPan({
+        condition: e => !isTouch(e) || e.activePointers?.length === 2,
+      }),
+      new MouseWheelZoom({ condition: platformModifierKeyOnly }),
+    ]);
+
     const map = new Map({
       overlays: [selectionOverlay],
       controls: defaultControls({ zoom: false, attribution: false }),
+      interactions,
       view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
     });
 
@@ -187,6 +242,28 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     map.on("pointermove", event => {
       const hit = map?.hasFeatureAtPixel(event.pixel) ?? false;
       map!.getTargetElement().style.cursor = hit ? "pointer" : "";
+    });
+
+    // Explain the restricted pan/zoom gestures to the user when they attempt the blocked variant
+    const interactionHint = createInteractionHint(theme);
+    map.getViewport().appendChild(interactionHint.element);
+
+    const onWheel = (event: WheelEvent) => {
+      const modifierKey = MAC ? event.metaKey : event.ctrlKey;
+      if (!modifierKey) {
+        interactionHint.show(t("mapInteractionHintScroll", { key: MAC ? "⌘" : "ctrl" }));
+      } else {
+        interactionHint.hide();
+      }
+    };
+    map.getViewport().addEventListener("wheel", onWheel);
+
+    const dragHintKey = map.on("pointerdrag", event => {
+      if (isTouch(event) && event.activePointers?.length === 1) {
+        interactionHint.show(t("mapInteractionHintTouch"));
+      } else {
+        interactionHint.hide();
+      }
     });
 
     let cancelled = false;
@@ -221,9 +298,12 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
 
     return () => {
       cancelled = true;
+      map.getViewport().removeEventListener("wheel", onWheel);
+      unByKey(dragHintKey);
+      interactionHint.hide();
       map.setTarget(undefined);
     };
-  }, [config, selectionOverlay, theme]);
+  }, [config, selectionOverlay, t, theme]);
 
   useEffect(() => {
     if (!map) return;
