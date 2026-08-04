@@ -102,8 +102,11 @@ public class ProcessingJobCleanupService : BackgroundService
             // is the long-term archive; for a job whose run was never submitted as a delivery
             // we wipe its asset directory too so dead data doesn't accumulate. Submitted
             // deliveries survive cleanup and are only removed via DeliveryController.Delete.
+            // Pipeline working directories are normally removed by Pipeline.Dispose, but survive
+            // a hard restart (nothing gets disposed), so they count as retirement candidates too.
             var retiredCandidates = EnumerateJobIds(directoryProvider.UploadDirectory);
             retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.AssetDirectory));
+            retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.PipelineDirectory));
             foreach (var jobId in retiredCandidates)
             {
                 var job = jobStore.GetJob(jobId);
@@ -148,6 +151,7 @@ public class ProcessingJobCleanupService : BackgroundService
             DeleteIfExists(directoryProvider.GetUploadDirectoryPath(jobId));
             DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId));
             DeleteIfExists(directoryProvider.GetVisualizationDirectoryPath(jobId));
+            DeleteIfExists(directoryProvider.GetPipelineDirectoryPath(jobId));
             if (!hasSubmittedDelivery)
                 DeleteIfExists(directoryProvider.GetAssetDirectoryPath(jobId));
             jobStore.RemoveJob(jobId);
