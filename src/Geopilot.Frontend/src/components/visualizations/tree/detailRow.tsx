@@ -4,12 +4,13 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { TableCell, TableRow, Typography } from "@mui/material";
 import { IconButton } from "../../buttons";
 
-interface MetadataRowProps {
+interface DetailRowProps {
+  /** The translated field label. */
   label: string;
   value: string;
 }
 
-export const MetadataRow = ({ label, value }: MetadataRowProps) => {
+export const DetailRow = ({ label, value }: DetailRowProps) => {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
     <TableRow
       sx={{
         "&:last-child td": { border: 0 },
-        "&:hover .metadata-copy-button": { opacity: 1 },
+        "&:hover .detail-copy-button": { opacity: 1 },
       }}>
       <TableCell sx={{ width: "35%", verticalAlign: "top", color: "text.secondary", px: 0 }}>
         <Typography variant="body2">{label}</Typography>
@@ -45,7 +46,7 @@ export const MetadataRow = ({ label, value }: MetadataRowProps) => {
           icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
           label={copied ? "copied" : "copy"}
           onClick={copyValue}
-          className="metadata-copy-button"
+          className="detail-copy-button"
           sx={{
             mt: "-5px",
             opacity: copied ? 1 : 0,

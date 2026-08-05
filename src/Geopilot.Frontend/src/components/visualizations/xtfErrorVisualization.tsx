@@ -2,7 +2,7 @@ import { FC, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, useTheme } from "@mui/material";
-import { MapVisualizationConfig, TreeVisualizationConfig } from "../../api/apiInterfaces";
+import { MapVisualizationConfig, TreeField, TreeVisualizationConfig } from "../../api/apiInterfaces";
 import { IconButton } from "../../components/buttons";
 import { GeopilotBox } from "../../components/styledComponents";
 import { useLocalized } from "../../hooks/useLocalized";
@@ -10,7 +10,7 @@ import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
 import { FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
-import { buildErrorIdIndex, buildTree, collectMetadataAttributes, filterItems, MetadataFilters } from "./tree/treeNode";
+import { buildErrorIdIndex, buildTree, collectFilterAttributes, FieldFilters, filterItems } from "./tree/treeNode";
 import { TreeVisualization } from "./tree/treeVisualization";
 
 /**
@@ -18,13 +18,13 @@ import { TreeVisualization } from "./tree/treeVisualization";
  * errors. Mirrors the backend XtfErrorVisualizationConfig. This component owns the state the two views
  * share: the filter (which filters both) and the selection (which cross-highlights both), correlated by a
  * shared errorId. The tree itself is built here from the flat items the backend ships, grouped by the
- * configured metadata keys.
+ * configured fields.
  */
 export interface XtfErrorVisualizationConfig {
   map?: MapVisualizationConfig;
   tree?: TreeVisualizationConfig;
-  /** Metadata keys offered as filters, in display order; the filter spans map + tree. Absent without a tree. */
-  filterBy?: string[];
+  /** Fields offered as filters, in display order; the filter spans map + tree. Absent without a tree. */
+  filterBy?: TreeField[];
 }
 
 interface XtfErrorVisualizationProps {
@@ -36,7 +36,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const localize = useLocalized();
   const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
-  const [metadataFilters, setMetadataFilters] = useState<MetadataFilters>({});
+  const [fieldFilters, setFieldFilters] = useState<FieldFilters>({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [zoomRequest, setZoomRequest] = useState<MapZoomRequest | null>(null);
@@ -44,12 +44,12 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
   const filterBy = useMemo(() => config.filterBy ?? [], [config.filterBy]);
-  const attributes = useMemo(() => collectMetadataAttributes(items, localize, filterBy), [items, localize, filterBy]);
+  const attributes = useMemo(() => collectFilterAttributes(items, localize, filterBy), [items, localize, filterBy]);
   const hasActiveFilters =
-    messageQuery.trim().length > 0 || Object.values(metadataFilters).some(values => values.length > 0);
+    messageQuery.trim().length > 0 || Object.values(fieldFilters).some(values => (values?.length ?? 0) > 0);
   const filteredItems = useMemo(
-    () => (hasActiveFilters ? filterItems(items, messageQuery.trim().toLowerCase(), metadataFilters, localize) : items),
-    [items, hasActiveFilters, messageQuery, metadataFilters, localize],
+    () => (hasActiveFilters ? filterItems(items, messageQuery.trim().toLowerCase(), fieldFilters, localize) : items),
+    [items, hasActiveFilters, messageQuery, fieldFilters, localize],
   );
 
   const ungroupedLabel = t("treeVisualizationUngrouped");
@@ -87,11 +87,11 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
     return zoomable;
   }, [errorIdsByNodeId, mappableErrorIds]);
 
-  const handleMetadataFilterChange = (key: string, selected: string[]) =>
-    setMetadataFilters(current => ({ ...current, [key]: selected }));
+  const handleFieldFilterChange = (field: TreeField, selected: string[]) =>
+    setFieldFilters(current => ({ ...current, [field]: selected }));
   const handleClearFilters = () => {
     setMessageQuery("");
-    setMetadataFilters({});
+    setFieldFilters({});
   };
   const handleSelectFeature = (errorId: string) => setSelectedNodeId(nodeIdByErrorId.get(errorId) ?? null);
   const handleZoomToNode = useCallback(
@@ -108,8 +108,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       attributes={attributes}
       messageQuery={messageQuery}
       onMessageQueryChange={setMessageQuery}
-      metadataFilters={metadataFilters}
-      onMetadataFilterChange={handleMetadataFilterChange}
+      fieldFilters={fieldFilters}
+      onFieldFilterChange={handleFieldFilterChange}
       onClearFilters={handleClearFilters}
       forceMobileView={fullscreen}
     />
