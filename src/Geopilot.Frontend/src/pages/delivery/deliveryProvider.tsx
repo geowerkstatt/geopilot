@@ -357,6 +357,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       signal: abortController.signal,
     })
       .then(() => {
+        setStepStatus(DeliveryStepEnum.Delivery, StepState.Success);
         continueToNextStep();
       })
       .catch((error: ApiError) => {
