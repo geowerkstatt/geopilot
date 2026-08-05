@@ -116,6 +116,12 @@ namespace Geopilot.Api.Migrations
                     b.Property<bool>("AllowDelivery")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValueSql("jsonb_build_object()");
+
                     b.Property<string>("EvaluateComment")
                         .IsRequired()
                         .HasColumnType("varchar(12)");

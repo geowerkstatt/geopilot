@@ -30,12 +30,6 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
             errorMessages.AddRange(stepConditionsErrorMessges);
         }
 
-        if (pipeline.DeliveryRestrictions != null)
-        {
-            foreach (var condition in pipeline.DeliveryRestrictions)
-                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Pipeline-Delivery-Restriction"));
-        }
-
         if (errorMessages.Count > 0)
         {
             return new ValidationResult(string.Join(Environment.NewLine, errorMessages));
@@ -52,22 +46,36 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
     {
         var errorMessages = new List<string>();
 
+        // PRE-conditions may reference only earlier steps (includeCurrentStep: false); POST-conditions run
+        // after the step, so they may also reference the current step's own output (includeCurrentStep: true).
         if (stepToValidate.Conditions?.Pre?.SkipConditions != null)
         {
             foreach (var condition in stepToValidate.Conditions.Pre.SkipConditions)
-                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, "Step-Pre-Skip-Condition"));
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, includeCurrentStep: false, "Step-Pre-Skip-Condition"));
         }
 
         if (stepToValidate.Conditions?.Pre?.FailConditions != null)
         {
             foreach (var condition in stepToValidate.Conditions.Pre.FailConditions)
-                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, "Step-Pre-Fail-Condition"));
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, includeCurrentStep: false, "Step-Pre-Fail-Condition"));
         }
 
         if (stepToValidate.Conditions?.Post?.FailConditions != null)
         {
             foreach (var condition in stepToValidate.Conditions.Post.FailConditions)
-                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, null, "Step-Post-Fail-Condition"));
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, includeCurrentStep: true, "Step-Post-Fail-Condition"));
+        }
+
+        if (stepToValidate.Conditions?.Post?.WarnConditions != null)
+        {
+            foreach (var condition in stepToValidate.Conditions.Post.WarnConditions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, includeCurrentStep: true, "Step-Post-Warn-Condition"));
+        }
+
+        if (stepToValidate.Conditions?.Post?.RestrictDeliveryConditions != null)
+        {
+            foreach (var condition in stepToValidate.Conditions.Post.RestrictDeliveryConditions)
+                errorMessages.AddRange(GetExpressionErrorMessages(condition.Expression, pipeline, stepToValidate, includeCurrentStep: true, "Step-Post-Restrict-Delivery-Condition"));
         }
 
         return errorMessages;
@@ -76,7 +84,8 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
     private IEnumerable<string> GetExpressionErrorMessages(
         string? expression,
         PipelineConfig pipeline,
-        StepConfig? currentStep,
+        StepConfig currentStep,
+        bool includeCurrentStep,
         string field)
     {
         if (!string.IsNullOrEmpty(expression))
@@ -90,27 +99,18 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
             }
             catch (NCalcException e)
             {
-                if (currentStep != null)
-                    return new List<string>() { $"pipeline '{pipeline.Id}', step '{currentStep.Id}', invalid expression '{expression}' on field {field}: {e.Message}" };
-                else
-                    return new List<string>() { $"pipeline '{pipeline.Id}, invalid expression '{expression}' on field {field}: {e.Message}" };
+                return new List<string>() { $"pipeline '{pipeline.Id}', step '{currentStep.Id}', invalid expression '{expression}' on field {field}: {e.Message}" };
             }
 
             return parameterNames
-                .Where(p => !ValidParameterName(p, currentStep, pipeline.Steps))
-                .Select(p =>
-                {
-                    if (currentStep != null)
-                        return $"pipeline '{pipeline.Id}', step '{currentStep.Id}', invalid expression '{expression}' on field {field}, parameter '{p}' is not valid";
-                    else
-                        return $"pipeline '{pipeline.Id}', invalid expression '{expression}' on field {field}, parameter '{p}' is not valid";
-                });
+                .Where(p => !ValidParameterName(p, currentStep, includeCurrentStep, pipeline.Steps))
+                .Select(p => $"pipeline '{pipeline.Id}', step '{currentStep.Id}', invalid expression '{expression}' on field {field}, parameter '{p}' is not valid");
         }
 
         return new List<string>();
     }
 
-    private static bool ValidParameterName(string parameterName, StepConfig? currentStep, List<StepConfig> allSteps)
+    private static bool ValidParameterName(string parameterName, StepConfig currentStep, bool includeCurrentStep, List<StepConfig> allSteps)
     {
         if (string.IsNullOrEmpty(parameterName))
             return false;
@@ -123,20 +123,32 @@ internal sealed class ValidExpressionParameterReferencesAttribute : ValidationAt
 
         var stepId = parameterName.Split(parameterSeparator)[0];
 
-        return IsValidStepOutputReference(stepId, currentStep?.Id, allSteps);
+        return IsValidStepOutputReference(stepId, currentStep.Id, includeCurrentStep, allSteps);
     }
 
-    private static bool IsValidStepOutputReference(string stepId, string? currentStepId, List<StepConfig> allSteps)
+    // Steps before the current one are always referenceable; the current step itself only when
+    // includeCurrentStep is true (POST-conditions, where its own output already exists). Later steps
+    // are never referenceable, since their outputs do not exist yet when the condition is evaluated.
+    private static bool IsValidStepOutputReference(string stepId, string? currentStepId, bool includeCurrentStep, List<StepConfig> allSteps)
     {
-        if (allSteps != null)
+        if (stepId == currentStepId)
         {
-            return allSteps
-                .TakeWhile(s => currentStepId != null ? s.Id != currentStepId : true)
-                .Any(s => s.Id == stepId);
+            return includeCurrentStep;
         }
-        else
+
+        foreach (var step in allSteps)
         {
-            return false;
+            if (step.Id == stepId)
+            {
+                return true;
+            }
+
+            if (step.Id == currentStepId)
+            {
+                break;
+            }
         }
+
+        return false;
     }
 }

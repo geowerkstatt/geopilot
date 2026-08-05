@@ -6,7 +6,7 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   lastCompletedStep: 0,
   activeStep: 0,
   isActiveStep: () => false,
-  setStepError: () => {},
+  setStepStatus: () => {},
   selectedFiles: [],
   addFiles: () => {},
   removeFile: () => {},

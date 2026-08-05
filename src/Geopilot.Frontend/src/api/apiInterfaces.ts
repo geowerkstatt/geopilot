@@ -34,6 +34,7 @@ export interface Coordinate {
 export interface Mandate {
   id: number;
   name: string;
+  description: LocalizedText;
   isPublic: boolean;
   allowDelivery: boolean;
   fileTypes: string[];
@@ -44,7 +45,6 @@ export interface Mandate {
   evaluatePartial?: FieldEvaluationType;
   evaluateComment?: FieldEvaluationType;
   pipelineId?: string;
-  pipelineSteps: Record<string, string>[];
 }
 
 export interface Organisation {
@@ -88,6 +88,8 @@ export enum ProcessingState {
   Success = "success",
   Failed = "failed",
   Cancelled = "cancelled",
+  Warning = "warning",
+  DeliveryRestriction = "deliveryRestriction",
 }
 
 export enum StepState {
@@ -97,6 +99,8 @@ export enum StepState {
   Success = "success",
   Error = "error",
   Cancelled = "cancelled",
+  Warning = "warning",
+  DeliveryRestriction = "deliveryRestriction",
 }
 
 interface StepDownload {
@@ -178,6 +182,7 @@ export interface StepResult {
   name: LocalizedText;
   state: StepState;
   statusMessage?: LocalizedText;
+  conditionMessage?: LocalizedText;
   downloads: StepDownload[];
   visualizations: StepVisualization[];
 }
@@ -188,7 +193,6 @@ export interface ProcessingJobResponse {
   mandateId?: number;
   pipelineName: LocalizedText;
   steps: StepResult[];
-  deliveryRestrictionMessage?: LocalizedText;
 }
 
 export interface StartJobRequest {

@@ -39,7 +39,7 @@ const Delivery: FC<DeliveryProps> = ({ stepSwipeRef }) => {
   }, [stepSwipeRef, swipeHandlers]);
 
   return (
-    <CenteredContent data-cy="delivery" sx={{ maxWidth: "1400px" }}>
+    <CenteredContent data-cy="delivery" maxWidth="1400px">
       <Typography variant="h1" zIndex={10}>
         {t("deliveryTitle")}
       </Typography>

@@ -23,6 +23,11 @@ public class Mandate
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// The localized description of the mandate.
+    /// </summary>
+    public LocalizedText Description { get; set; } = LocalizedText.Empty;
+
+    /// <summary>
     /// Indicates whether the mandate is public or restricted.
     /// Public mandates can be accessed by anyone, even not logged in users.
     /// Non-public, restricted mandates can only be accessed by logged in users that are part of an organisation listed in the mandates organisations.
@@ -46,13 +51,6 @@ public class Mandate
     /// </summary>
     [Column(TypeName = "varchar(128)")]
     public string? PipelineId { get; set; }
-
-    /// <summary>
-    /// Gets or sets the localized names of the pipeline steps referred to by <see cref="PipelineId"/>.
-    /// This is a non-persisted property used for display purposes only.
-    /// </summary>
-    [NotMapped]
-    public List<LocalizedText> PipelineSteps { get; set; } = new List<LocalizedText>();
 
     /// <summary>
     /// The spatial extent of the mandate. The extent is a polygon in WGS84.

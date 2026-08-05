@@ -413,6 +413,25 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task DeliveryFilesAreStagedWhenPipelineWarnsAndDeliveryAllowed()
+    {
+        var jobId = NewJob();
+        var step = BuildWarningDeliveryStep("step_1", "payload", "data.xtf", "delivery-content");
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Warning, pipeline.State);
+        Assert.HasCount(1, step.DeliveryFiles);
+        Assert.IsTrue(assetStore.Exists(jobId, "step_1_data.xtf"));
+        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Warning), Times.Once);
+    }
+
+    [TestMethod]
     public async Task DeliveryFilesAreNotStagedWhenAFailConditionAbortsThePipeline()
     {
         var jobId = NewJob();
@@ -433,11 +452,11 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public async Task DeliveryFilesAreNotStagedWhenDeliveryIsPrevented()
+    public async Task DeliveryFilesAreNotStagedWhenDeliveryIsRestricted()
     {
         var jobId = NewJob();
-        var step = BuildEmittingStep("step_1", "payload", "data.xtf", "delivery-content", OutputAction.Delivery);
-        using var pipeline = BuildRestrictedPipeline(jobId, "1 == 1", step);
+        var step = BuildRestrictDeliveryStep("step_1", "payload", "data.xtf", "delivery-content");
+        using var pipeline = BuildPipeline(jobId, step);
 
         var (runner, store) = CreateRunnerWithStore(pipeline);
 
@@ -445,11 +464,10 @@ public class ProcessingRunnerTest
         await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
         await runner.StopAsync(CancellationToken.None);
 
-        Assert.AreEqual(ProcessingState.Success, pipeline.State);
-        Assert.AreEqual(PipelineDelivery.Prevent, pipeline.Delivery);
-        Assert.IsEmpty(step.DeliveryFiles, "No delivery files may be staged when delivery is prevented by a restriction.");
-        Assert.IsFalse(assetStore.Exists(jobId, "step_1_data.xtf"), "No delivery may be written to the asset store when delivery is prevented.");
-        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
+        Assert.AreEqual(ProcessingState.DeliveryRestriction, pipeline.State);
+        Assert.IsEmpty(step.DeliveryFiles, "No delivery files may be staged when a step restricts delivery.");
+        Assert.IsFalse(assetStore.Exists(jobId, "step_1_data.xtf"), "No delivery may be written to the asset store when delivery is restricted.");
+        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.DeliveryRestriction), Times.Once);
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
@@ -577,16 +595,40 @@ public class ProcessingRunnerTest
             .Logger(pipelineLogger)
             .Build();
 
-    private Geopilot.Pipeline.Pipeline BuildRestrictedPipeline(Guid jobId, string restrictionExpression, params PipelineStep[] steps) =>
-        Geopilot.Pipeline.Pipeline
+    private PipelineStep BuildWarningDeliveryStep(string id, string outputKey, string originalFileName, string content) =>
+        PipelineStep
             .Builder()
-            .Id("test_pipeline")
+            .Id(id)
             .DisplayName(LocalizedText.Empty)
-            .Steps(steps.Cast<IPipelineStep>().ToList())
-            .DeliveryRestrictions(new List<ConditionConfig> { new ConditionConfig { Expression = restrictionExpression } })
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions([new OutputActionConfig { Property = "Result", Actions = new HashSet<OutputAction>(new[] { OutputAction.Delivery }) }])
+            .StepConditions(new PipelineStepConditionsConfig
+            {
+                Post = new PipelineStepPostConditionConfig
+                {
+                    WarnConditions = new List<ConditionConfig> { new ConditionConfig { Expression = "1 == 1" } },
+                },
+            })
+            .Process(new FileEmittingProcess(WriteTempFile(content), originalFileName))
             .Logger(pipelineLogger)
-            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
-            .JobId(jobId)
+            .Build();
+
+    private PipelineStep BuildRestrictDeliveryStep(string id, string outputKey, string originalFileName, string content) =>
+        PipelineStep
+            .Builder()
+            .Id(id)
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(new Dictionary<string, InputValue>())
+            .OutputActions([new OutputActionConfig { Property = "Result", Actions = new HashSet<OutputAction>(new[] { OutputAction.Delivery }) }])
+            .StepConditions(new PipelineStepConditionsConfig
+            {
+                Post = new PipelineStepPostConditionConfig
+                {
+                    RestrictDeliveryConditions = new List<ConditionConfig> { new ConditionConfig { Expression = "1 == 1" } },
+                },
+            })
+            .Process(new FileEmittingProcess(WriteTempFile(content), originalFileName))
+            .Logger(pipelineLogger)
             .Build();
 
     private Geopilot.Pipeline.Pipeline BuildPipeline(Guid jobId, params PipelineStep[] steps) =>

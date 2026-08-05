@@ -1,3 +1,5 @@
+# Beispiel einer Pipeline-Definition. Format, Prozessoren und Plugin-System sind
+# unter docs/pipeline/Pipelines.md dokumentiert.
 processes:
   - id: xtf_matcher
     implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
@@ -34,13 +36,6 @@ pipelines:
       de: XTF Validierung
       it: Validazione XTF
       fr: Validation XTF
-    delivery_restrictions:
-      - expression: "!([validation.ValidationSuccessful])"
-        message:
-          de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
-          en: "Validation was not successful. Delivery is not possible."
-          fr: "La validation n'a pas réussi. La livraison n'est pas possible."
-          it: "La validazione non è riuscita. La consegna non è possibile."
     steps:
       - id: xtf_matching
         display_name:
@@ -67,6 +62,14 @@ pipelines:
                   en: "Exactly one XTF file must be uploaded."
                   fr: "Exactement un fichier XTF doit être téléchargé."
                   it: "Deve essere caricato esattamente un file XTF."
+          post:
+            restrict_delivery_conditions:
+              - expression: "!([validation.ValidationSuccessful])"
+                message:
+                  de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
+                  en: "Validation was not successful. Delivery is not possible."
+                  fr: "La validation n'a pas réussi. La livraison n'est pas possible."
+                  it: "La validazione non è riuscita. La consegna non è possibile."
         process_config_overwrites:
         input:
           iliFile: "${step_output(xtf_matching.XtfFiles)}"

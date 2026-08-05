@@ -34,15 +34,4 @@ public class PipelineConfig
     [NoDuplicates(PropertyName = "Id")]
     [YamlMember(Alias = "steps")]
     public required List<StepConfig> Steps { get; set; }
-
-    /// <summary>
-    /// Gets or sets the list of conditions that control when delivery of the pipeline data is not allowed.
-    /// If any condition evaluates to <see langword="true"/>, delivery of the pipeline data is prevented.
-    /// </summary>
-    /// <remarks>
-    /// Each condition is evaluated at runtime and references the pipeline context data.
-    /// If no conditions are defined or none evaluate to <see langword="true"/>, delivery is allowed by default.
-    /// </remarks>
-    [YamlMember(Alias = "delivery_restrictions")]
-    public List<ConditionConfig>? DeliveryRestrictions { get; set; }
 }

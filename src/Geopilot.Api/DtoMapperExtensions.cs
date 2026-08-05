@@ -55,8 +55,7 @@ internal static class DtoMapperExtensions
             job.State,
             job.MandateId,
             pipelineName,
-            steps,
-            job.Pipeline?.DeliveryRestrictionMessage);
+            steps);
     }
 
     /// <summary>
@@ -75,6 +74,7 @@ internal static class DtoMapperExtensions
             PreflightStepName,
             state,
             statusMessage,
+            ConditionMessage: null,
             Downloads: new List<StepDownload>(),
             Visualizations: new List<StepVisualizationResponse>());
     }
@@ -90,6 +90,8 @@ internal static class DtoMapperExtensions
         ProcessingState.Pending => StepState.Running,
         ProcessingState.Running => StepState.Success,
         ProcessingState.Success => StepState.Success,
+        ProcessingState.Warning => StepState.Success,
+        ProcessingState.DeliveryRestriction => StepState.Success,
         ProcessingState.Cancelled => StepState.Success,
         ProcessingState.Failed => job.Pipeline is null || job.Pipeline.State == ProcessingState.Pending
             ? StepState.Error
@@ -119,6 +121,7 @@ internal static class DtoMapperExtensions
             step.DisplayName,
             step.State,
             step.StatusMessage,
+            step.ConditionMessage,
             downloads,
             visualizations);
     }

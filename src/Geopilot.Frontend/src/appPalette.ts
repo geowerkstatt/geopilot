@@ -30,16 +30,20 @@ export const themePalette = {
   },
   warning: {
     main: "#fd9903",
+    selected: "#fd99032E",
     hover: "#fd99030D",
   },
   error: {
     main: "#e53835",
     selected: "#e538352E",
     hover: "#e538350D",
+    dark: "#C62828",
+    light: "#EF5350",
   },
   map: {
     fill: "#e53835",
     stroke: "#ffffff",
+    highlight: "#980303",
   },
   divider: alpha("#124A4F", 0.2),
 } satisfies PaletteOptions;

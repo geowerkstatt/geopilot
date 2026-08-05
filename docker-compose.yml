@@ -77,13 +77,6 @@ services:
     ports:
       - 3080:8080
 
-  ili2gpkg-worker:
-    build:
-      context: ./docker/ili2gpkg-worker
-    restart: unless-stopped
-    volumes:
-      - ./shared/ili2gpkg/jobs:/shared/ili2gpkg/jobs
-
   geopilot:
     build:
       context: .
@@ -111,7 +104,6 @@ services:
       Auth__FullScope: "profile email openid geopilot.api"
       Auth__ApiServerScope: "geopilot.api"
       Pipeline__ProcessConfigs__Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess__checkServiceBaseUrl: http://interlis-check-service:8080/
-      CloudStorage__Enabled: true
       CloudStorage__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://localhost:10000/devstoreaccount1;"
       CloudStorage__BucketName: uploads
       CloudStorage__BlobEndpoint: https://localhost:10000
@@ -136,7 +128,6 @@ services:
       - ./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml:/pipelines/pipelines.yaml:ro
       - ./src/Geopilot.Frontend/devPublic:/public
       - ./certs:/https:ro
-      - ./shared/ili2gpkg/jobs:/shared/ili2gpkg
     extra_hosts:
       - "localhost:host-gateway"
     depends_on:
@@ -155,7 +146,7 @@ services:
     command: start-dev --import-realm
 
   ilitools-wrapper:
-    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.0.2
+    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.0.4
     restart: unless-stopped
     ports:
       - 5555:5555

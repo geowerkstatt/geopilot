@@ -34,4 +34,18 @@ public enum ProcessingState
     /// the job did not fail by its own logic, it was interrupted.
     /// </summary>
     Cancelled,
+
+    /// <summary>
+    /// Indicates that the processing job completed but at least one step reported warnings, with no step
+    /// failed, cancelled or restricting delivery. The pipeline ran to completion and the result may be
+    /// delivered (a warning does not block delivery on its own).
+    /// </summary>
+    Warning,
+
+    /// <summary>
+    /// Indicates that the processing job completed but at least one step restricts delivery, with no step
+    /// failed or cancelled. The pipeline ran to completion, but the result may not be delivered. Takes
+    /// precedence over <see cref="Warning"/> in the aggregated job state.
+    /// </summary>
+    DeliveryRestriction,
 }

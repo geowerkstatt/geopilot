@@ -1,5 +1,4 @@
-﻿using Geopilot.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -32,6 +31,19 @@ public class PipelineTest
     [DataRow(ProcessingState.Running, new[] { StepState.Success, StepState.Pending }, DisplayName = "success and running steps (edge case)")]
     [DataRow(ProcessingState.Success, new[] { StepState.Success, StepState.Success }, DisplayName = "all steps success")]
     [DataRow(ProcessingState.Success, new[] { StepState.Success, StepState.Skipped, StepState.Success }, DisplayName = "all steps success or skipped")]
+    [DataRow(ProcessingState.Warning, new[] { StepState.Success, StepState.Warning }, DisplayName = "warning with success is warning")]
+    [DataRow(ProcessingState.Warning, new[] { StepState.Warning, StepState.Skipped }, DisplayName = "warning with skipped is warning")]
+    [DataRow(ProcessingState.Warning, new[] { StepState.Warning, StepState.Warning }, DisplayName = "all warning is warning")]
+    [DataRow(ProcessingState.Failed, new[] { StepState.Warning, StepState.Error }, DisplayName = "error wins over warning")]
+    [DataRow(ProcessingState.Running, new[] { StepState.Warning, StepState.Running }, DisplayName = "warning and running is running")]
+    [DataRow(ProcessingState.Running, new[] { StepState.Warning, StepState.Pending }, DisplayName = "warning mid-run stays running")]
+    [DataRow(ProcessingState.DeliveryRestriction, new[] { StepState.Success, StepState.DeliveryRestriction }, DisplayName = "delivery restriction with success is delivery restriction")]
+    [DataRow(ProcessingState.DeliveryRestriction, new[] { StepState.DeliveryRestriction, StepState.Skipped }, DisplayName = "delivery restriction with skipped is delivery restriction")]
+    [DataRow(ProcessingState.DeliveryRestriction, new[] { StepState.DeliveryRestriction, StepState.Warning }, DisplayName = "delivery restriction wins over warning")]
+    [DataRow(ProcessingState.DeliveryRestriction, new[] { StepState.DeliveryRestriction, StepState.DeliveryRestriction }, DisplayName = "all delivery restriction is delivery restriction")]
+    [DataRow(ProcessingState.Failed, new[] { StepState.DeliveryRestriction, StepState.Error }, DisplayName = "error wins over delivery restriction")]
+    [DataRow(ProcessingState.Running, new[] { StepState.DeliveryRestriction, StepState.Running }, DisplayName = "delivery restriction and running is running")]
+    [DataRow(ProcessingState.Running, new[] { StepState.DeliveryRestriction, StepState.Pending }, DisplayName = "delivery restriction mid-run stays running")]
     public void ProcessingStateTest(ProcessingState expectedState, IEnumerable<StepState> stepStates)
     {
         var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
@@ -86,11 +98,7 @@ public class PipelineTest
             .JobId(Guid.NewGuid())
             .Build();
 
-        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
-
-        var context = pipeline.Run(uploadFiles, CancellationToken.None);
-
-        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed after running the pipeline");
+        _ = pipeline.Run(uploadFiles, CancellationToken.None);
 
         firstStep.Verify(
             p => p.Run(It.Is<PipelineContext>(pc => pc.StepResults.Count == 0), It.IsAny<CancellationToken>()),
@@ -99,138 +107,6 @@ public class PipelineTest
         secondStep.Verify(
             p => p.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()),
             Times.Never());
-    }
-
-    [TestMethod]
-    public async Task PreventPipelineDeliveryIfRestrictionMatches()
-    {
-        var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
-
-        var step = new Mock<IPipelineStep>();
-
-        step.SetupProperty(s => s.State, StepState.Pending);
-        step.SetupGet(s => s.Id).Returns("step_id");
-        StepResult stepResult = new StepResult()
-        {
-            Result = new DeliveryRestrictionResult { Output1 = "my_step_data" },
-        };
-        step.Setup(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(stepResult));
-
-        var steps = new List<IPipelineStep> { step.Object };
-
-        var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-
-        var deliveryRestrictions = new List<ConditionConfig>
-        {
-            new ConditionConfig
-            {
-                Expression = "[step_id.Output1] == 'my_step_data'",
-                Message = new Dictionary<string, string>
-                {
-                    { "de", "Datenlieferung nicht möglich." },
-                    { "en", "Delivery not possible." },
-                },
-            },
-        };
-
-        var uploadFiles = new List<IPipelineFile> { uploadFile };
-
-        using var pipeline = Geopilot.Pipeline.Pipeline
-            .Builder()
-            .Id("test_pipeline")
-            .DisplayName(pipelineDisplayName)
-            .Steps(steps)
-            .JobId(Guid.NewGuid())
-            .DeliveryRestrictions(deliveryRestrictions)
-            .Logger(loggerMock.Object)
-            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
-            .Build();
-
-        Assert.AreEqual(PipelineDelivery.Allow, pipeline.Delivery, "pipeline delivery should be allowed before running the pipeline");
-
-        var context = await pipeline.Run(uploadFiles, CancellationToken.None);
-
-        Assert.AreEqual(PipelineDelivery.Prevent, pipeline.Delivery, "pipeline delivery should be prevented after running the pipeline");
-
-        Assert.IsNotNull(context.DeliveryRestrictionMessage, "Context should contain a delivery restriction message.");
-        Assert.AreEqual("Delivery not possible.", context.DeliveryRestrictionMessage["en"]);
-        Assert.AreEqual("Datenlieferung nicht möglich.", context.DeliveryRestrictionMessage["de"]);
-    }
-
-    [TestMethod]
-    public async Task PreventPipelineDeliveryWithMultipleMatchingRestrictions()
-    {
-        var pipelineDisplayName = new Dictionary<string, string>() { { "de", "test pipeline" } };
-
-        var step = new Mock<IPipelineStep>();
-
-        step.SetupProperty(s => s.State, StepState.Pending);
-        step.SetupGet(s => s.Id).Returns("step_id");
-        StepResult stepResult = new StepResult()
-        {
-            Result = new DeliveryRestrictionResult { Output1 = "my_step_data", Output2 = 42 },
-        };
-        step.Setup(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult(stepResult));
-
-        var steps = new List<IPipelineStep> { step.Object };
-
-        var uploadFile = new PipelineFile("RoadsExdm2ien", "TestData/UploadFiles/RoadsExdm2ien.xtf");
-
-        var deliveryRestrictions = new List<ConditionConfig>
-        {
-            new ConditionConfig
-            {
-                Expression = "[step_id.Output1] == 'my_step_data'",
-                Message = new Dictionary<string, string>
-                {
-                    { "de", "Erste Einschränkung" },
-                    { "en", "First restriction" },
-                },
-            },
-            new ConditionConfig
-            {
-                Expression = "[step_id.Output2] == 42",
-                Message = new Dictionary<string, string>
-                {
-                    { "de", "Zweite Einschränkung" },
-                    { "en", "Second restriction" },
-                    { "fr", "Deuxième restriction" },
-                },
-            },
-            new ConditionConfig
-            {
-                Expression = "[step_id.Output1] == 'no_match'",
-                Message = new Dictionary<string, string>
-                {
-                    { "de", "Dritte Einschränkung" },
-                    { "en", "Third restriction" },
-                },
-            },
-        };
-
-        var uploadFiles = new List<IPipelineFile> { uploadFile };
-
-        using var pipeline = Geopilot.Pipeline.Pipeline
-            .Builder()
-            .Id("test_pipeline")
-            .DisplayName(pipelineDisplayName)
-            .Steps(steps)
-            .JobId(Guid.NewGuid())
-            .DeliveryRestrictions(deliveryRestrictions)
-            .Logger(loggerMock.Object)
-            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
-            .Build();
-
-        var context = await pipeline.Run(uploadFiles, CancellationToken.None);
-
-        Assert.AreEqual(PipelineDelivery.Prevent, pipeline.Delivery);
-
-        Assert.IsNotNull(context.DeliveryRestrictionMessage, "Context should contain a delivery restriction message.");
-        Assert.AreEqual("First restriction, Second restriction", context.DeliveryRestrictionMessage["en"]);
-        Assert.AreEqual("Erste Einschränkung, Zweite Einschränkung", context.DeliveryRestrictionMessage["de"]);
-        Assert.AreEqual("Deuxième restriction", context.DeliveryRestrictionMessage["fr"]);
     }
 
     [TestMethod]
@@ -346,13 +222,6 @@ public class PipelineTest
 
         step1.Verify(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()), Times.Once);
         step2.Verify(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    private sealed class DeliveryRestrictionResult
-    {
-        public string? Output1 { get; init; }
-
-        public int Output2 { get; init; }
     }
 
     private static Mock<IPipelineStep> NewMockStep(string id, StepResult result, Action? onRun = null)

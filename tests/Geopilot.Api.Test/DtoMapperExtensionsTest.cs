@@ -47,6 +47,8 @@ public class DtoMapperExtensionsTest
     [DataRow(ProcessingState.Pending, ProcessingState.Pending, StepState.Running)]
     [DataRow(ProcessingState.Running, ProcessingState.Running, StepState.Success)]
     [DataRow(ProcessingState.Success, ProcessingState.Success, StepState.Success)]
+    [DataRow(ProcessingState.Warning, ProcessingState.Warning, StepState.Success)]
+    [DataRow(ProcessingState.DeliveryRestriction, ProcessingState.DeliveryRestriction, StepState.Success)]
     [DataRow(ProcessingState.Cancelled, ProcessingState.Cancelled, StepState.Success)]
     [DataRow(ProcessingState.Failed, ProcessingState.Pending, StepState.Error)]
     [DataRow(ProcessingState.Failed, ProcessingState.Failed, StepState.Success)]
@@ -115,7 +117,6 @@ public class DtoMapperExtensionsTest
         pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
         pipelineMock.SetupGet(p => p.State).Returns(state);
         pipelineMock.SetupGet(p => p.Steps).Returns(steps);
-        pipelineMock.SetupGet(p => p.DeliveryRestrictionMessage).Returns((LocalizedText?)null);
         return pipelineMock.Object;
     }
 

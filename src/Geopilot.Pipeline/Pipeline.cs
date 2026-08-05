@@ -1,5 +1,4 @@
-﻿using Geopilot.Pipeline.Config;
-using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 
 namespace Geopilot.Pipeline;
@@ -27,7 +26,6 @@ public sealed class Pipeline : IPipeline
         disposed = true;
     }
 
-    private readonly ConditionEvaluator conditionEvaluator;
     private readonly string pipelineFileDirectory;
 
     /// <inheritdoc/>
@@ -35,8 +33,6 @@ public sealed class Pipeline : IPipeline
 
     /// <inheritdoc/>
     public LocalizedText DisplayName { get; }
-
-    private List<ConditionConfig>? deliveryRestrictions;
 
     /// <inheritdoc/>
     public List<IPipelineStep> Steps { get; }
@@ -64,6 +60,16 @@ public sealed class Pipeline : IPipeline
             {
                 return ProcessingState.Running;
             }
+            else if (stepStates.Contains(StepState.DeliveryRestriction)
+                && stepStates.All(s => s == StepState.Success || s == StepState.Skipped || s == StepState.Warning || s == StepState.DeliveryRestriction))
+            {
+                return ProcessingState.DeliveryRestriction;
+            }
+            else if (stepStates.Contains(StepState.Warning)
+                && stepStates.All(s => s == StepState.Success || s == StepState.Skipped || s == StepState.Warning))
+            {
+                return ProcessingState.Warning;
+            }
             else if (stepStates.All(s => s == StepState.Success || s == StepState.Skipped))
             {
                 return ProcessingState.Success;
@@ -85,12 +91,6 @@ public sealed class Pipeline : IPipeline
     /// <inheritdoc/>
     public Func<IPipelineStep, StepResult, CancellationToken, Task>? OnStepCompleted { get; set; }
 
-    /// <inheritdoc/>
-    public PipelineDelivery Delivery { get; set; } = PipelineDelivery.Allow;
-
-    /// <inheritdoc/>
-    public LocalizedText? DeliveryRestrictionMessage { get; private set; }
-
     private ILogger logger;
 
     /// <summary>
@@ -99,7 +99,6 @@ public sealed class Pipeline : IPipeline
     /// <param name="id">The unique name of the pipeline.</param>
     /// <param name="displayName">The pipelines display name. A human-readable name for the pipeline.</param>
     /// <param name="steps">The steps in the pipeline.</param>
-    /// <param name="deliveryRestrictions">Restrictions to determine when the pipeline data can not be delivered. If any restriction evaluates to true, delivery is prevented.</param>
     /// <param name="logger">The logger to use for logging.</param>
     /// <param name="pipelineDirectory">The directory for the pipeline to use for storing temporary files. The pipeline is responsible for cleaning up the temporary files during dispose.</param>
     /// <param name="jobId">The job id associated with the pipeline execution, used for logging and tracking purposes.</param>
@@ -107,7 +106,6 @@ public sealed class Pipeline : IPipeline
         string id,
         LocalizedText displayName,
         List<IPipelineStep> steps,
-        List<ConditionConfig>? deliveryRestrictions,
         ILogger logger,
         string pipelineDirectory,
         Guid jobId)
@@ -115,8 +113,6 @@ public sealed class Pipeline : IPipeline
         this.Id = id;
         this.DisplayName = displayName;
         this.Steps = steps;
-        this.deliveryRestrictions = deliveryRestrictions;
-        this.conditionEvaluator = new ConditionEvaluator(logger);
         this.pipelineFileDirectory = pipelineDirectory;
         this.logger = logger;
         this.JobId = jobId;
@@ -148,78 +144,18 @@ public sealed class Pipeline : IPipeline
                     await this.OnStepCompleted(step, stepResult, cancellationToken).ConfigureAwait(false);
             }
 
-            await this.EvaluateDeliveryCondition(context);
-
             logger.LogInformation("all steps in pipeline executed");
             return context;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // Cancellation (job timeout or host shutdown) is not a pipeline failure —
-            // the currently running step marked itself Cancelled, the pipeline state
-            // getter reports Cancelled, and we prevent delivery defensively before
-            // rethrowing so the caller can distinguish timeout from crash.
-            this.Delivery = PipelineDelivery.Prevent;
+            // the currently running step marked itself Cancelled and the pipeline state
+            // getter reports Cancelled, which is not deliverable.
             logger.LogInformation("pipeline cancelled");
             throw;
         }
     }
-
-    private async Task EvaluateDeliveryCondition(PipelineContext context)
-    {
-        if (this.State == ProcessingState.Failed)
-        {
-            this.Delivery = PipelineDelivery.Prevent;
-        }
-        else
-        {
-            if (this.deliveryRestrictions != null && this.deliveryRestrictions.Count > 0)
-            {
-                var matchedRestrictions = await FindMatchingRestrictions(context);
-                if (matchedRestrictions.Count > 0)
-                {
-                    this.Delivery = PipelineDelivery.Prevent;
-                    AddRestrictionMessages(context, matchedRestrictions);
-                }
-                else
-                {
-                    this.Delivery = PipelineDelivery.Allow;
-                }
-            }
-            else
-            {
-                this.Delivery = PipelineDelivery.Allow;
-            }
-        }
-    }
-
-    private async Task<List<ConditionConfig>> FindMatchingRestrictions(PipelineContext context)
-    {
-        var matched = new List<ConditionConfig>();
-        var expressionParameters = context.ToExpressionParameters();
-        foreach (var restriction in this.deliveryRestrictions!)
-        {
-            if (await this.conditionEvaluator.EvaluateConditionAsync(restriction.Expression, expressionParameters))
-                matched.Add(restriction);
-        }
-
-        return matched;
-    }
-
-    private void AddRestrictionMessages(PipelineContext context, List<ConditionConfig> matchedRestrictions)
-    {
-        var mergedMessages = MergeConditionMessages(matchedRestrictions);
-        if (mergedMessages.Count > 0)
-        {
-            context.DeliveryRestrictionMessage = mergedMessages;
-            this.DeliveryRestrictionMessage = mergedMessages;
-        }
-    }
-
-    private static LocalizedText MergeConditionMessages(List<ConditionConfig> conditions) =>
-        LocalizedText.Merge(
-            conditions.Where(c => c.Message is not null).Select(c => c.Message!),
-            ", ");
 
     internal static PipelineBuilder Builder() => new PipelineBuilder();
 
@@ -228,7 +164,6 @@ public sealed class Pipeline : IPipeline
         private string? id;
         private LocalizedText? displayName;
         private List<IPipelineStep>? steps;
-        private List<ConditionConfig>? deliveryRestrictions;
         private ILogger? logger;
         private string? pipelineDirectory;
         private Guid? jobId;
@@ -248,12 +183,6 @@ public sealed class Pipeline : IPipeline
         public PipelineBuilder Steps(List<IPipelineStep>? steps)
         {
             this.steps = steps;
-            return this;
-        }
-
-        public PipelineBuilder DeliveryRestrictions(List<ConditionConfig>? deliveryRestrictions)
-        {
-            this.deliveryRestrictions = deliveryRestrictions;
             return this;
         }
 
@@ -290,7 +219,7 @@ public sealed class Pipeline : IPipeline
             if (jobId == null)
                 throw new InvalidOperationException("Pipeline JobId must be provided.");
 
-            return new Pipeline(id, displayName, steps, deliveryRestrictions, logger, pipelineDirectory, jobId.Value);
+            return new Pipeline(id, displayName, steps, logger, pipelineDirectory, jobId.Value);
         }
     }
 }

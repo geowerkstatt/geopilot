@@ -72,6 +72,39 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
         return await ReceiveResponseAsync(call.ResponseStream, Ili2gpkgFileType.TransferFile, transferFile, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public async Task<Ili2GpkgResult> UpdateAsync(Ili2GpkgArgs args, IPipelineFile inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Starting Ili2Gpkg update operation for {Count} transfer file(s).", transferFiles.Count);
+
+        using var call = client.Convert(cancellationToken: cancellationToken);
+
+        await call.RequestStream.WriteAsync(CreateConvertRequest(ConvertOperation.OperationUpdate, args), cancellationToken);
+        await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, inputFile, cancellationToken);
+        foreach (var transferFile in transferFiles)
+        {
+            await SendFileAsync(call.RequestStream, Ili2gpkgFileType.TransferFile, transferFile, cancellationToken);
+        }
+
+        await call.RequestStream.CompleteAsync();
+
+        return await ReceiveResponseAsync(call.ResponseStream, Ili2gpkgFileType.DbFile, outputFile, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<Ili2GpkgResult> ValidateAsync(Ili2GpkgArgs args, IPipelineFile gpkgFile, IPipelineFile xtfLogFile, CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation("Starting Ili2Gpkg validation operation.");
+
+        using var call = client.Convert(cancellationToken: cancellationToken);
+
+        await call.RequestStream.WriteAsync(CreateConvertRequest(ConvertOperation.OperationValidate, args), cancellationToken);
+        await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, gpkgFile, cancellationToken);
+        await call.RequestStream.CompleteAsync();
+
+        return await ReceiveResponseAsync(call.ResponseStream, Ili2gpkgFileType.XtfLogFile, xtfLogFile, cancellationToken);
+    }
+
     private static ConvertRequest CreateConvertRequest(ConvertOperation operation, Ili2GpkgArgs args)
     {
         var info = new ConvertRequestInfo
@@ -85,6 +118,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
             SkipGeometryErrors = args.SkipGeometryErrors,
             ImportTid = args.ImportTid,
             StrokeArcs = args.StrokeArcs,
+            Dataset = args.Dataset ?? string.Empty,
         };
 
         if (args.Models != null)

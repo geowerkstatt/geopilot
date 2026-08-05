@@ -137,8 +137,21 @@ export const geopilotTheme = createTheme({
       defaultProps: {
         IconComponent: ExpandMoreIcon,
       },
+      styleOverrides: {
+        icon: {
+          color: themePalette.primary.main,
+        },
+      },
+    },
+    MuiInputLabel: {
+      defaultProps: {
+        shrink: true,
+      },
     },
     MuiOutlinedInput: {
+      defaultProps: {
+        notched: true,
+      },
       styleOverrides: {
         notchedOutline: {
           borderColor: themePalette.primary.light,
@@ -149,6 +162,12 @@ export const geopilotTheme = createTheme({
           },
           "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
             borderColor: themePalette.primary.main,
+          },
+          "&.Mui-error:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: themePalette.error.dark,
+          },
+          "&.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: themePalette.error.dark,
           },
         },
       },
@@ -396,6 +415,7 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           color: themePalette.primary.main,
+          padding: themeSpacing(1),
           borderColor: themePalette.primary.light,
           textTransform: "none",
           "&:hover": {

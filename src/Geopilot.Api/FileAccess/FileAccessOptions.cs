@@ -52,10 +52,4 @@ public class FileAccessOptions
     /// </summary>
     [Required(AllowEmptyStrings = false)]
     public required string ResourcesDirectory { get; set; }
-
-    /// <summary>
-    /// Gets or sets the directory for shared files.
-    /// </summary>
-    [Required(AllowEmptyStrings = false)]
-    public required string SharedDirectory { get; set; }
 }
