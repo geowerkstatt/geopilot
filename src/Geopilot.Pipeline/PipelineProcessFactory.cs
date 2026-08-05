@@ -6,6 +6,7 @@ using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -313,6 +314,89 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             return stepResultTypes;
         }
 
+        /// <summary>
+        /// Validates a step's condition expressions against the result types of the steps they reference at
+        /// load time: each <c>stepId.property</c> parameter must name a readable property of that step's result
+        /// type. Expression syntax and reference scope are already enforced by
+        /// <c>ValidExpressionParameterReferencesAttribute</c> in an earlier pass, so this only adds the property
+        /// check. References to steps whose result type cannot be resolved are left unchecked rather than
+        /// reported as errors, matching the input reference validator.
+        /// </summary>
+        private static List<string> ValidateConditions(StepConfig stepConfig, Dictionary<string, Type> stepResultTypes)
+        {
+            var errors = new List<string>();
+
+            foreach (var expression in CollectConditionExpressions(stepConfig))
+            {
+                var runner = ConditionEvaluator.CreateRunner(expression, NullLogger.Instance);
+                foreach (var parameterName in runner.GetParameterNames())
+                {
+                    if (!TryGetStepProperty(parameterName, out var stepId, out var propertyName))
+                        continue;
+
+                    if (!stepResultTypes.TryGetValue(stepId, out var resultType))
+                        continue;
+
+                    var property = resultType.GetProperty(propertyName);
+                    if (property is null || !property.CanRead)
+                        errors.Add($"condition '{expression}' references property {propertyName}, which is not a readable property of the result type <{resultType.Name}> of step <{stepId}>");
+                }
+            }
+
+            return errors;
+        }
+
+        /// <summary>
+        /// Yields every non-empty condition expression of a step across all condition kinds
+        /// (pre skip/fail and post fail/warn/restrict-delivery).
+        /// </summary>
+        private static IEnumerable<string> CollectConditionExpressions(StepConfig stepConfig)
+        {
+            var conditions = stepConfig.Conditions;
+            if (conditions is null)
+                yield break;
+
+            var conditionLists = new[]
+            {
+                conditions.Pre?.SkipConditions,
+                conditions.Pre?.FailConditions,
+                conditions.Post?.FailConditions,
+                conditions.Post?.WarnConditions,
+                conditions.Post?.RestrictDeliveryConditions,
+            };
+
+            foreach (var conditionList in conditionLists)
+            {
+                if (conditionList is null)
+                    continue;
+
+                foreach (var condition in conditionList)
+                {
+                    if (!string.IsNullOrEmpty(condition.Expression))
+                        yield return condition.Expression;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Splits an NCalc parameter name of the form <c>stepId.property</c> into its two parts. Returns
+        /// <see langword="false"/> for anything else (e.g. the <c>null</c> literal), so such parameters are
+        /// skipped rather than treated as a step-output reference.
+        /// </summary>
+        private static bool TryGetStepProperty(string parameterName, out string stepId, out string propertyName)
+        {
+            stepId = string.Empty;
+            propertyName = string.Empty;
+
+            var parts = parameterName.Split('.');
+            if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0)
+                return false;
+
+            stepId = parts[0];
+            propertyName = parts[1];
+            return true;
+        }
+
         /// <inheritdoc />
         public object Build()
         {
@@ -341,8 +425,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 ValidateParameter(parameterInfo, processParameterization);
             }
 
+            var stepResultTypes = BuildStepResultTypes();
             var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot, BuildStepResultTypes())
                 .Concat(ValidateOutputActions(objectType, stepConfig.OutputActions))
+                .Concat(ValidateConditions(stepConfig, stepResultTypes))
                 .ToList();
             if (inputErrors.Count > 0)
             {

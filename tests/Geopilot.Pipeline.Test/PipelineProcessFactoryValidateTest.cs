@@ -196,6 +196,66 @@ public class PipelineProcessFactoryValidateTest
         Assert.Contains("Visualization", exception.Message);
     }
 
+    [TestMethod]
+    public void RejectsConditionReferencingUnknownPropertyOfEarlierStep()
+    {
+        using var factory = CreateFactory();
+        var match_step = MatchStep();
+        var zip_step = WithPreFailCondition(ZipStep(new InputConfig { ["input"] = "${step_output(match.MatchedFiles)}" }), "[match.DoesNotExist] != null");
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            factory.Builder()
+                .StepConfig(zip_step)
+                .Steps(new List<StepConfig> { match_step, zip_step })
+                .Processes(MatchAndZipProcesses())
+                .Validate());
+
+        Assert.Contains("DoesNotExist", exception.Message);
+    }
+
+    [TestMethod]
+    public void AcceptsConditionReferencingKnownPropertyOfEarlierStep()
+    {
+        using var factory = CreateFactory();
+        var match_step = MatchStep();
+        var zip_step = WithPreFailCondition(ZipStep(new InputConfig { ["input"] = "${step_output(match.MatchedFiles)}" }), "[match.MatchedFiles] != null");
+
+        factory.Builder()
+            .StepConfig(zip_step)
+            .Steps(new List<StepConfig> { match_step, zip_step })
+            .Processes(MatchAndZipProcesses())
+            .Validate();
+    }
+
+    [TestMethod]
+    public void RejectsPostConditionReferencingUnknownPropertyOfCurrentStep()
+    {
+        using var factory = CreateFactory();
+        var zip = WithPostFailCondition(ZipStep(new InputConfig()), "[zip.DoesNotExist]");
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            factory.Builder()
+                .StepConfig(zip)
+                .Steps(new List<StepConfig> { zip })
+                .Processes(ZipProcesses())
+                .Validate());
+
+        Assert.Contains("DoesNotExist", exception.Message);
+    }
+
+    [TestMethod]
+    public void AcceptsPostConditionReferencingKnownPropertyOfCurrentStep()
+    {
+        using var factory = CreateFactory();
+        var zip = WithPostFailCondition(ZipStep(new InputConfig()), "[zip.ZipPackage] != null");
+
+        factory.Builder()
+            .StepConfig(zip)
+            .Steps(new List<StepConfig> { zip })
+            .Processes(ZipProcesses())
+            .Validate();
+    }
+
     private static PipelineProcessFactory CreateFactory()
     {
         var options = new Mock<IOptions<PipelineOptions>>();
@@ -238,4 +298,34 @@ public class PipelineProcessFactoryValidateTest
         new ProcessConfig { Id = "file_matcher", Implementation = "Geopilot.Pipeline.Processes.Matcher.FileMatcher.FileMatcherProcess" },
         new ProcessConfig { Id = "zip_package_process", Implementation = "Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess" },
     };
+
+    private static StepConfig WithPreFailCondition(StepConfig step, string expression)
+    {
+        step.Conditions = new PipelineStepConditionsConfig
+        {
+            Pre = new PipelineStepPreConditionConfig
+            {
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig { Expression = expression },
+                },
+            },
+        };
+        return step;
+    }
+
+    private static StepConfig WithPostFailCondition(StepConfig step, string expression)
+    {
+        step.Conditions = new PipelineStepConditionsConfig
+        {
+            Post = new PipelineStepPostConditionConfig
+            {
+                FailConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig { Expression = expression },
+                },
+            },
+        };
+        return step;
+    }
 }
