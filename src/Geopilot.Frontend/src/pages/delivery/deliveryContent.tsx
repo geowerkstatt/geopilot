@@ -1,4 +1,4 @@
-import { FC, PropsWithChildren, ReactNode, useContext } from "react";
+import { FC, PropsWithChildren, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Stack, styled, Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents";
@@ -82,11 +82,47 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
   const { steps, lastCompletedStep } = useContext(DeliveryContext);
 
   const ContentBox = hideBox ? Box : GeopilotBox;
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const topBorderRef = useRef<HTMLDivElement | null>(null);
+  const [isTopBorderVisible, setIsTopBorderVisible] = useState(false);
+
+  // The sticky top border fakes the upper edge of a box while its real edge is scrolled
+  // out of view. Only show it while a real box actually crosses the border line.
+  const updateTopBorderVisibility = useCallback(() => {
+    const topBorder = topBorderRef.current;
+    const content = contentRef.current;
+    if (!topBorder || !content) return;
+
+    const lineY = topBorder.getBoundingClientRect().top;
+    const boxes: Element[] = hideBox ? Array.from(content.children) : [content];
+    const reachesLine = boxes.some(box => {
+      const { top, bottom } = box.getBoundingClientRect();
+      return top <= lineY && bottom > lineY;
+    });
+    setIsTopBorderVisible(reachesLine);
+  }, [hideBox]);
+
+  useEffect(() => {
+    const content = contentRef.current;
+    const observer = new ResizeObserver(updateTopBorderVisibility);
+    if (content) observer.observe(content);
+    window.addEventListener("scroll", updateTopBorderVisibility, { capture: true, passive: true });
+    window.addEventListener("resize", updateTopBorderVisibility);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", updateTopBorderVisibility, { capture: true });
+      window.removeEventListener("resize", updateTopBorderVisibility);
+    };
+  }, [updateTopBorderVisibility]);
+
+  useEffect(() => {
+    updateTopBorderVisibility();
+  });
 
   return (
     <DeliveryContentGrid>
       <DeliveryContentBox>
-        <ContentBox sx={{ overflow: "auto" }}>
+        <ContentBox ref={contentRef} sx={{ overflow: "auto" }}>
           <Typography variant="h4" m={0} sx={{ display: { xs: "none", md: hideBox ? "none" : "block" } }}>
             {t(title)}
           </Typography>
@@ -104,8 +140,8 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
         </Stack>
       </DeliveryContentBox>
       <ScrollContentOverlay />
-      <ContainerTopBorderOverlay />
-      <ContainerTopBorder />
+      <ContainerTopBorderOverlay sx={{ visibility: isTopBorderVisible ? "visible" : "hidden" }} />
+      <ContainerTopBorder ref={topBorderRef} sx={{ visibility: isTopBorderVisible ? "visible" : "hidden" }} />
     </DeliveryContentGrid>
   );
 };
