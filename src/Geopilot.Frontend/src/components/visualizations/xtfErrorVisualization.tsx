@@ -149,7 +149,13 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
           size="small"
           label="fullscreen"
           icon={<OpenInFullIcon />}
-          sx={{ position: "absolute", top: 0, right: theme.spacing(6), padding: theme.spacing(2) }}
+          sx={{
+            position: "absolute",
+            top: 0,
+            right: theme.spacing(6),
+            padding: theme.spacing(2),
+            display: { xs: "none", md: "block" },
+          }}
           onClick={() => setFullscreen(prev => !prev)}
         />
       )}

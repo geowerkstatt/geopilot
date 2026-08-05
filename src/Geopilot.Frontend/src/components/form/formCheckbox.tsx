@@ -1,7 +1,7 @@
 import { FC, ReactNode } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Checkbox, FormControlLabel, SxProps } from "@mui/material";
+import { Box, Checkbox, FormControlLabel, SxProps } from "@mui/material";
 import { formControlLabelClasses } from "@mui/material/FormControlLabel";
 import { OverflowTooltipLabel } from "./overflowTooltipLabel";
 
@@ -28,6 +28,8 @@ export interface FormCheckboxProps {
    * hover, but only when it is actually cut off. Meant for tight layouts; do not use with multi-line labels.
    */
   truncateLabel?: boolean;
+  /** Wrap the label text to multiple lines if needed. Defaults to false (single line). */
+  wrapLabel?: boolean;
 }
 
 export const FormCheckbox: FC<FormCheckboxProps> = ({
@@ -41,6 +43,7 @@ export const FormCheckbox: FC<FormCheckboxProps> = ({
   dataCy,
   size = "medium",
   truncateLabel,
+  wrapLabel,
 }) => {
   const { t } = useTranslation();
   // Returns null when rendered without a FormProvider; only consumed in form-context mode.
@@ -87,7 +90,17 @@ export const FormCheckbox: FC<FormCheckboxProps> = ({
           />
         )
       }
-      label={truncateLabel ? <OverflowTooltipLabel>{resolvedLabel}</OverflowTooltipLabel> : resolvedLabel}
+      label={
+        truncateLabel ? (
+          <OverflowTooltipLabel>{resolvedLabel}</OverflowTooltipLabel>
+        ) : wrapLabel ? (
+          <Box component="span" sx={{ wordBreak: "break-word", hyphens: "auto", py: 0.5, display: "inline-block" }}>
+            {resolvedLabel}
+          </Box>
+        ) : (
+          resolvedLabel
+        )
+      }
     />
   );
 };

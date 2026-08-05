@@ -32,16 +32,16 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
         direction="row"
         sx={{
           alignItems: "center",
-          flexWrap: "wrap",
+          flexWrap: "nowrap",
           px: 2,
           pt: 1.5,
           pb: status?.state !== "neutral" ? 1 : 1.5,
           justifyContent: "space-between",
         }}>
-        <Stack gap={0.5}>
-          <Typography variant="body1" color="primary.main">
-            {file.name}&nbsp;
-            <Typography component="span" variant="caption" color="primary.light" sx={{ verticalAlign: "middle" }}>
+        <Stack gap={0.5} flex={1}>
+          <Typography variant="body1" color="primary.main" sx={{ wordBreak: "break-word", lineBreak: "anywhere" }}>
+            {file.name}{" "}
+            <Typography variant="caption" color="primary.light" sx={{ verticalAlign: "middle", whiteSpace: "nowrap" }}>
               ({formatFileSize(file.size)})
             </Typography>
           </Typography>

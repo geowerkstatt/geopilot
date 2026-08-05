@@ -43,6 +43,7 @@ export const AppContext = () => {
         gridLng = gridEn;
         break;
     }
+    document.documentElement.lang = language;
     setTheme(createTheme(geopilotTheme, gridLng, coreLng));
   }, [language]);
 

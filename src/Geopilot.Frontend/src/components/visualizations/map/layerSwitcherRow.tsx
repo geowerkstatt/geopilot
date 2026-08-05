@@ -129,7 +129,7 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, isFirst }: LayerRowPr
               updateParentLayerVisibility(rootLayers, layer);
             }}
             label={title}
-            truncateLabel
+            wrapLabel
             sx={{ flex: 1, minWidth: 0 }}
           />
           <Box sx={{ width: "30px", flexShrink: 0 }}>

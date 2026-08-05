@@ -5,6 +5,7 @@ import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { MiddleTruncate } from "../../components/middleTruncate";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
 import { useLocalized } from "../../hooks/useLocalized";
+import { STICKY_TOP_POSITION_DEFAULT, STICKY_TOP_POSITION_XS } from "./deliveryContent";
 import { SLIDE_TRANSITION_MS } from "./deliveryContentCarousel";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryStepStatus } from "./deliveryInterfaces";
@@ -15,7 +16,7 @@ const StepperViewport = styled(Box)(({ theme }) => ({
   minWidth: 300,
   flex: 0,
   position: "sticky",
-  top: "100px",
+  top: `${STICKY_TOP_POSITION_DEFAULT}px`,
   zIndex: 10,
   [theme.breakpoints.down("md")]: {
     overflowX: "hidden",
@@ -25,8 +26,13 @@ const StepperViewport = styled(Box)(({ theme }) => ({
     overscrollBehaviorX: "contain",
     flex: "0 0 58px",
     alignItems: "flex-start",
-    margin: `0 -${pageContentPadding} !important`,
-    padding: `0 ${pageContentPadding}`,
+    margin: `0 -${pageContentPadding.default} !important`,
+    padding: `0 ${pageContentPadding.default}`,
+  },
+  [theme.breakpoints.down("sm")]: {
+    top: `${STICKY_TOP_POSITION_XS}px`,
+    margin: `0 -${pageContentPadding.xs} !important`,
+    padding: `0 ${pageContentPadding.xs}`,
   },
 }));
 
@@ -64,6 +70,7 @@ export const DeliveryStepper = () => {
     useContext(DeliveryContext);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
   const isOpen = (stepIndex: number) => activeStep === stepIndex;
   const isCompleted = (stepIndex: number) => lastCompletedStep >= stepIndex;
@@ -75,12 +82,15 @@ export const DeliveryStepper = () => {
     }
   };
 
+  const stepperStackGap = isXs ? 1 : 2;
+
   return (
     <StepperViewport>
       <StepperStack
         direction={{ xs: "row", md: "column" }}
+        gap={stepperStackGap}
         style={{
-          left: isMobile ? `calc(${activeStep} * (-100% - ${theme.spacing(2)}))` : undefined,
+          left: isMobile ? `calc(${activeStep} * (-100% - ${theme.spacing(stepperStackGap)}))` : undefined,
           transition: isMobile ? `left ${SLIDE_TRANSITION_MS}ms ease` : undefined,
         }}
         data-cy="delivery-stepper">
@@ -123,6 +133,9 @@ export const DeliveryStepper = () => {
               {step.message && (
                 <Typography
                   variant="body2"
+                  sx={{
+                    display: { xs: "none", md: "block" },
+                  }}
                   color={
                     isOpen(index) || step.state === "skipped"
                       ? "textSecondary"

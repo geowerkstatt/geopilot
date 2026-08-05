@@ -113,7 +113,7 @@ export const DeliveryProcessingResults = () => {
               sx={{ position: "relative" }}
               data-cy={`processing-step-${step.id}`}>
               <AccordionSummary expandIcon={isExpandable ? <ExpandMoreIcon /> : null}>
-                <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                <Stack direction="row" sx={{ alignItems: "center", flexWrap: "nowrap" }}>
                   <ProcessingStepIcon
                     state={step.state}
                     index={index}

@@ -96,6 +96,8 @@
   "mandates": "Mandati",
   "mandatesLoadingError": "Si è verificato un errore durante il caricamento dei mandati: {{error}}",
   "mapCopyrightPrefix": "© Dati:",
+  "mapInteractionHintScroll": "Usa {{key}} + scorrimento per ingrandire",
+  "mapInteractionHintTouch": "Usa due dita per spostare la mappa",
   "mapVisualizationFeatureLayer": "Elementi",
   "mapZoomIn": "Ingrandisci",
   "mapZoomOut": "Riduci",
