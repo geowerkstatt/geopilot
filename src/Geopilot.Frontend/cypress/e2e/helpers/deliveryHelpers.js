@@ -114,16 +114,41 @@ export const processingJob = (jobId, state, steps) => ({
 });
 
 /**
- * Logs in, uploads a valid file, selects mandate 1 and starts processing, returning the given mocked job
- * as the response for both the POST and the status GET. Leaves the wizard on the processing step with the
- * job status loaded.
+ * Builds a mandate that allows delivery and requires no delivery-form input (every field is "notEvaluated"),
+ * so the create-delivery button is enabled without filling anything. Use it to stub the mandate list when a
+ * test needs a deterministic delivery form rather than the randomly seeded mandate config.
  */
-export const runMockedProcessingJob = job => {
+export const deliverableMandate = (id, name) => ({
+  id,
+  name,
+  description: {},
+  isPublic: true,
+  allowDelivery: true,
+  fileTypes: [".xtf"],
+  coordinates: [],
+  organisations: [],
+  deliveries: [],
+  evaluatePrecursorDelivery: "notEvaluated",
+  evaluatePartial: "notEvaluated",
+  evaluateComment: "notEvaluated",
+  pipelineId: "ili_validation",
+});
+
+/**
+ * Logs in, uploads a valid file, selects mandate 1 and starts processing, returning the given mocked job as
+ * the response for both the POST and the status GET. Leaves the wizard on the processing step with the job
+ * status loaded. Pass `mandates` to stub the mandate list (otherwise the real seeded mandates are used).
+ */
+export const runMockedProcessingJob = (job, mandates) => {
   loginAsUploader();
   addFile("deliveryFiles/ilimodels_valid.xtf", true);
   uploadFile();
 
-  cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
+  if (mandates) {
+    cy.intercept("GET", "/api/v1/mandate?uploadId=*", { statusCode: 200, body: mandates }).as("getMandates");
+  } else {
+    cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
+  }
   cy.wait("@getMandates");
   selectMandate(1);
 
