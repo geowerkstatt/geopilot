@@ -274,6 +274,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
               const warningMessages = getConditionMessages(response.steps, StepState.Warning);
               setStepStatus(DeliveryStepEnum.Processing, StepState.Warning, warningMessages);
             }
+            setStepStatus(DeliveryStepEnum.Delivery, StepState.Enabled);
           } else {
             if (jobState === StepState.DeliveryRestriction) {
               const restrictionMessages = getConditionMessages(response.steps, StepState.DeliveryRestriction);

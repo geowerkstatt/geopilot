@@ -21,6 +21,7 @@ interface StepIconProps {
 }
 
 const stateLabelKey: Record<StepState, string> = {
+  [StepState.Enabled]: "stepStateEnabled",
   [StepState.Pending]: "stepStatePending",
   [StepState.Running]: "stepStateRunning",
   [StepState.Skipped]: "stepStateSkipped",
@@ -53,6 +54,7 @@ export const StepIcon: FC<StepIconProps> = ({ step, state, variant }) => {
         ) : (
           <RemoveCircleIcon sx={{ color: theme.palette.primary.states.disabledBackground }} />
         );
+      case StepState.Enabled:
       case StepState.Pending:
       case StepState.Running: {
         const baseColor =

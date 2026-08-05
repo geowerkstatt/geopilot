@@ -83,6 +83,7 @@ export interface ProcessingSettings {
 }
 
 export enum StepState {
+  Enabled = "enabled",
   Pending = "pending",
   Skipped = "skipped",
   Running = "running",
