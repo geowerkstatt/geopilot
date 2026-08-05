@@ -1,6 +1,6 @@
 ﻿using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
-using Geowerkstatt.IlitoolsWrapperApi;
+using Geowerkstatt.IlitoolsWrapperApi.Ili2gpkg;
 using Google.Protobuf;
 using Grpc.Core;
 using Grpc.Net.Client;
