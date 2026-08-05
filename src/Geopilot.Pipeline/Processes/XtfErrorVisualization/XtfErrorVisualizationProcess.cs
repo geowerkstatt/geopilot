@@ -27,19 +27,19 @@ internal class XtfErrorVisualizationProcess
     private readonly string baseMapWmtsCapabilitiesUrl;
     private readonly string baseMapAttribution;
     private readonly string baseMapAttributionUrl;
-    private readonly IReadOnlyList<string> groupBy;
-    private readonly IReadOnlyList<string> filterBy;
+    private readonly IReadOnlyList<TreeField> groupBy;
+    private readonly IReadOnlyList<TreeField> filterBy;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="XtfErrorVisualizationProcess"/> class.
     /// </summary>
     /// <param name="include">Views to produce ("map", "tree"). Null or empty means both.</param>
     /// <param name="baseMapWmtsCapabilitiesUrl">Optional override for the base map WMTS capabilities URL.</param>
-    /// <param name="groupBy">Metadata keys the frontend groups the tree items by. Null means no grouping (a flat list).</param>
-    /// <param name="filterBy">Metadata keys the frontend offers as filters, in display order. Null means no filters are offered.</param>
+    /// <param name="groupBy">Fields the frontend groups the tree items by (<see cref="TreeField"/> names, case-insensitive). Null means no grouping (a flat list).</param>
+    /// <param name="filterBy">Fields the frontend offers as filters, in display order (<see cref="TreeField"/> names, case-insensitive). Null means no filters are offered.</param>
     /// <param name="baseMapAttribution">Optional override for the base map copyright/attribution text.</param>
     /// <param name="baseMapAttributionUrl">Optional override for the URL the base map attribution links to.</param>
-    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<string>? groupBy = null, IReadOnlyList<string>? filterBy = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null)
+    public XtfErrorVisualizationProcess(HashSet<string>? include = null, string? baseMapWmtsCapabilitiesUrl = null, IReadOnlyList<TreeField>? groupBy = null, IReadOnlyList<TreeField>? filterBy = null, string? baseMapAttribution = null, string? baseMapAttributionUrl = null)
     {
         var selected = include is { Count: > 0 }
             ? new HashSet<string>(include, StringComparer.OrdinalIgnoreCase)

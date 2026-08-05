@@ -14,9 +14,9 @@ internal sealed record XtfErrorVisualizationConfig
     public TreeVisualizationConfig? Tree { get; init; }
 
     /// <summary>
-    /// Gets the metadata keys the frontend offers as filters, in display order (e.g. <c>["Model", "Topic",
-    /// "Class", "Error type"]</c>), or <see langword="null"/> when there is no tree. The filter applies to both
-    /// the map and the tree, so it lives on the composite root. Empty means no filters.
+    /// Gets the fields the frontend offers as filters, in display order (e.g. model, topic, class, error type),
+    /// or <see langword="null"/> when there is no tree. The filter applies to both the map and the tree, so it
+    /// lives on the composite root. Empty means no filters.
     /// </summary>
-    public IReadOnlyList<string>? FilterBy { get; init; }
+    public IReadOnlyList<TreeField>? FilterBy { get; init; }
 }

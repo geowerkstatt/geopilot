@@ -68,12 +68,11 @@ public class XtfErrorVisualizationProcessTest
         var itemIds = config.Tree.Items.Where(i => i.Id is not null).Select(i => i.Id!).ToHashSet();
         Assert.IsTrue(featureIds.All(itemIds.Contains), "every feature's errorId is present on a tree item");
 
-        // Each item carries a display label, severity icon/color and metadata including the raw validator message.
+        // Each item carries a severity for the icon/colour and the raw validator message.
         foreach (var item in config.Tree.Items)
         {
-            Assert.IsNotEmpty(item.Label);
             Assert.IsTrue(item.Severity is "error" or "warning", "item carries an error or warning severity");
-            Assert.IsTrue(item.Metadata.ContainsKey("Message"), "item metadata carries the validator message");
+            Assert.IsNotEmpty(item.Message);
         }
 
         var statusMessage = processResult.StatusMessage;
@@ -114,7 +113,7 @@ public class XtfErrorVisualizationProcessTest
     [TestMethod]
     public async Task TreeUsesConfiguredGroupBy()
     {
-        var process = new XtfErrorVisualizationProcess(include: ["tree"], groupBy: ["Class"]);
+        var process = new XtfErrorVisualizationProcess(include: ["tree"], groupBy: [TreeField.Class]);
         var xtfLog = new PipelineFile(XtfLogPath, "errorLogWithErrors.xtf");
 
         var processResult = await process.RunAsync(xtfLog).ConfigureAwait(false);
@@ -122,13 +121,13 @@ public class XtfErrorVisualizationProcessTest
         var visualization = processResult.Visualization;
         Assert.IsNotNull(visualization);
         Assert.IsNotNull(visualization.Data.Tree);
-        CollectionAssert.AreEqual(new[] { "Class" }, visualization.Data.Tree.GroupBy.ToList());
+        CollectionAssert.AreEqual(new[] { TreeField.Class }, visualization.Data.Tree.GroupBy.ToList());
     }
 
     [TestMethod]
     public async Task TreeUsesConfiguredFilterBy()
     {
-        var process = new XtfErrorVisualizationProcess(include: ["tree"], filterBy: ["Class", "Error type"]);
+        var process = new XtfErrorVisualizationProcess(include: ["tree"], filterBy: [TreeField.Class, TreeField.ErrorType]);
         var xtfLog = new PipelineFile(XtfLogPath, "errorLogWithErrors.xtf");
 
         var processResult = await process.RunAsync(xtfLog).ConfigureAwait(false);
@@ -137,6 +136,6 @@ public class XtfErrorVisualizationProcessTest
         Assert.IsNotNull(visualization);
         Assert.IsNotNull(visualization.Data.Tree);
         Assert.IsNotNull(visualization.Data.FilterBy);
-        CollectionAssert.AreEqual(new[] { "Class", "Error type" }, visualization.Data.FilterBy.ToList());
+        CollectionAssert.AreEqual(new[] { TreeField.Class, TreeField.ErrorType }, visualization.Data.FilterBy.ToList());
     }
 }

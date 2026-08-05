@@ -6,9 +6,9 @@ namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// Maps parsed XTF validator log entries to the flat <see cref="TreeItem"/> list of the tree visualization.
-/// Each error or warning becomes one item displayed by its object TID (or its message when no TID is present),
-/// carrying the error category, model, topic, class, message, line and coordinate as metadata. The frontend
-/// groups, counts and renders these items; this mapper does not build any hierarchy.
+/// Each error or warning becomes one item with explicit fields: the classified error category, the TID of the
+/// failing object, its model, topic and class, the message, and the line and coordinates when present. The
+/// frontend groups, counts and renders these items; this mapper does not build any hierarchy.
 /// </summary>
 internal static class LogErrorToTreeItemMapper
 {
@@ -39,12 +39,19 @@ internal static class LogErrorToTreeItemMapper
                 continue;
 
             var isError = severity == LogEntryType.Error;
+            var qualifiedName = QualifiedClassName(logEntry);
             items.Add(new TreeItem
             {
                 Id = indexedError.Id,
-                Label = string.IsNullOrEmpty(logEntry.Tid) ? logEntry.Message! : logEntry.Tid!,
                 Severity = isError ? SeverityError : SeverityWarning,
-                Metadata = BuildMetadata(logEntry),
+                ErrorType = ErrorTypeClassifier.Classify(logEntry.Message!),
+                Tid = string.IsNullOrEmpty(logEntry.Tid) ? null : logEntry.Tid,
+                Model = qualifiedName?[0],
+                Topic = qualifiedName?[1],
+                Class = qualifiedName?[2],
+                Message = logEntry.Message!,
+                Line = logEntry.Line,
+                Coordinates = FormatCoordinates(logEntry.Geometry?.Coord),
             });
         }
 
@@ -52,43 +59,15 @@ internal static class LogErrorToTreeItemMapper
     }
 
     /// <summary>
-    /// Builds the metadata of a log entry in a stable display order: the error category, the TID of the failing
-    /// object, model, topic and class from the object tag, the full message, then the line and coordinates when present.
+    /// Formats the coordinates as an invariant <c>"C1, C2"</c> display string, or <see langword="null"/>
+    /// when there is no coordinate.
     /// </summary>
-    /// <param name="logEntry">The log entry whose details are collected.</param>
-    /// <returns>The metadata of the tree item.</returns>
-    private static Dictionary<string, object> BuildMetadata(LogError logEntry)
+    private static string? FormatCoordinates(Coord? coord)
     {
-        var metadata = new Dictionary<string, object>(StringComparer.Ordinal);
+        if (coord is null)
+            return null;
 
-        var category = ErrorTypeClassifier.Classify(logEntry.Message!);
-        if (category is not null)
-            metadata["Error type"] = category;
-
-        if (!string.IsNullOrEmpty(logEntry.Tid))
-            metadata["TID"] = logEntry.Tid;
-
-        var qualifiedName = QualifiedClassName(logEntry);
-        if (qualifiedName is not null)
-        {
-            metadata["Model"] = qualifiedName[0];
-            metadata["Topic"] = qualifiedName[1];
-            metadata["Class"] = qualifiedName[2];
-        }
-
-        metadata["Message"] = logEntry.Message!;
-
-        if (logEntry.Line.HasValue)
-            metadata["Line"] = logEntry.Line.Value.ToString(CultureInfo.InvariantCulture);
-
-        var coord = logEntry.Geometry?.Coord;
-        if (coord is not null)
-        {
-            metadata["Coordinates"] =
-                $"{coord.C1.ToString(CultureInfo.InvariantCulture)}, {coord.C2.ToString(CultureInfo.InvariantCulture)}";
-        }
-
-        return metadata;
+        return $"{coord.C1.ToString(CultureInfo.InvariantCulture)}, {coord.C2.ToString(CultureInfo.InvariantCulture)}";
     }
 
     /// <summary>

@@ -1,9 +1,12 @@
-﻿namespace Geopilot.Pipeline.Visualization;
+﻿using Geopilot.PipelineCore.Pipeline;
+
+namespace Geopilot.Pipeline.Visualization;
 
 /// <summary>
-/// A flat item of the error-tree visualization. The frontend builds the displayed hierarchy by grouping items
-/// on the metadata keys named in <see cref="TreeVisualizationConfig.GroupBy"/> and derives the leaf's icon and
-/// colour from its <see cref="Severity"/>.
+/// A flat item of the error-tree visualization: one validation error or warning with explicit, typed fields.
+/// The frontend builds the displayed hierarchy by grouping items on the <see cref="TreeField"/>s named in
+/// <see cref="TreeVisualizationConfig.GroupBy"/>, derives the leaf's icon and colour from <see cref="Severity"/>
+/// and shows <see cref="Tid"/> (falling back to <see cref="Message"/>) as the leaf text.
 /// </summary>
 internal sealed class TreeItem
 {
@@ -14,19 +17,50 @@ internal sealed class TreeItem
     public string? Id { get; init; }
 
     /// <summary>
-    /// Gets the text shown for this item's leaf node.
-    /// </summary>
-    public required string Label { get; init; }
-
-    /// <summary>
     /// Gets the item's severity (<c>error</c> or <c>warning</c>); the frontend derives the leaf's icon and colour from it.
     /// </summary>
     public required string Severity { get; init; }
 
     /// <summary>
-    /// Gets the item's metadata. A value is either a plain <see cref="string"/> (data, e.g. a class name) or a
-    /// <c>LocalizedText</c> (a label we generate, e.g. the error category) which serializes to a per-language object.
-    /// The keys named in <see cref="TreeVisualizationConfig.GroupBy"/> reference entries of this dictionary.
+    /// Gets the classified error category as a localized label, or <see langword="null"/> when the message
+    /// matches no known category.
     /// </summary>
-    public required IReadOnlyDictionary<string, object> Metadata { get; init; }
+    public LocalizedText? ErrorType { get; init; }
+
+    /// <summary>
+    /// Gets the TID of the failing object, or <see langword="null"/> when the log entry carries none.
+    /// </summary>
+    public string? Tid { get; init; }
+
+    /// <summary>
+    /// Gets the INTERLIS model of the failing object. <see cref="Model"/>, <see cref="Topic"/> and
+    /// <see cref="Class"/> are either all set or all <see langword="null"/>.
+    /// </summary>
+    public string? Model { get; init; }
+
+    /// <summary>
+    /// Gets the INTERLIS topic of the failing object.
+    /// </summary>
+    public string? Topic { get; init; }
+
+    /// <summary>
+    /// Gets the INTERLIS class of the failing object.
+    /// </summary>
+    public string? Class { get; init; }
+
+    /// <summary>
+    /// Gets the validator message.
+    /// </summary>
+    public required string Message { get; init; }
+
+    /// <summary>
+    /// Gets the line number in the validated file, or <see langword="null"/> when the log entry carries none.
+    /// </summary>
+    public int? Line { get; init; }
+
+    /// <summary>
+    /// Gets the error's coordinates as an invariant <c>"C1, C2"</c> display string, or <see langword="null"/>
+    /// when the log entry carries no geometry.
+    /// </summary>
+    public string? Coordinates { get; init; }
 }

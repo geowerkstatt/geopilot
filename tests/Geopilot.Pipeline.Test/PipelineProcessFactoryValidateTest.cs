@@ -55,6 +55,24 @@ public class PipelineProcessFactoryValidateTest
         Assert.Contains("abc", exception.Message);
     }
 
+    [TestMethod]
+    public void RejectsUnknownTreeFieldInGroupBy()
+    {
+        using var factory = CreateFactory();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            factory.Builder()
+                .StepConfig(VisualizationStep())
+                .Processes(VisualizationProcesses(new Parameterization
+                {
+                    ["groupBy"] = new List<object> { "Error type" },
+                }))
+                .Validate());
+
+        Assert.Contains("groupBy", exception.Message);
+        Assert.Contains("Error type", exception.Message);
+    }
+
     private static PipelineProcessFactory CreateFactory()
     {
         var options = new Mock<IOptions<PipelineOptions>>();
@@ -95,5 +113,17 @@ public class PipelineProcessFactoryValidateTest
     private static List<ProcessConfig> ValidationProcesses(Parameterization defaultConfig) => new()
     {
         new ProcessConfig { Id = "xtf_validator", Implementation = "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess", DefaultConfig = defaultConfig },
+    };
+
+    private static StepConfig VisualizationStep() => new()
+    {
+        Id = "visualize",
+        DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "Visualize" }),
+        ProcessId = "xtf_error_visualizer",
+    };
+
+    private static List<ProcessConfig> VisualizationProcesses(Parameterization defaultConfig) => new()
+    {
+        new ProcessConfig { Id = "xtf_error_visualizer", Implementation = "Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess", DefaultConfig = defaultConfig },
     };
 }
