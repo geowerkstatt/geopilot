@@ -42,54 +42,54 @@ const App: FC = () => {
             onTouchStart={event => stepSwipeRef.current?.onTouchStart(event)}
             onTouchEnd={event => stepSwipeRef.current?.onTouchEnd(event)}
             onWheel={event => stepSwipeRef.current?.onWheel(event)}>
-            <PageContent>
-              {isLoading ? (
+            {isLoading ? (
+              <PageContent>
                 <CircularProgress />
-              ) : (
-                <Routes>
-                  <Route
-                    path="/"
-                    element={
-                      <DeliveryProvider>
-                        <Delivery stepSwipeRef={stepSwipeRef} />
-                      </DeliveryProvider>
-                    }
-                  />
-                  {user ? (
-                    <>
-                      <Route path="user">
-                        <Route index element={<Navigate to="/user/deliveries" replace />} />
-                        <Route path="deliveries" element={<UserDeliveryOverview />} />
-                      </Route>
-                    </>
-                  ) : (
-                    <Route path="user/*" element={<Navigate to="/" replace />} />
-                  )}
-                  {isAdmin ? (
-                    <>
-                      <Route
-                        path="admin"
-                        element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
-                        <Route index element={<Navigate to="/admin/delivery-overview" replace />} />
-                        <Route path="delivery-overview" element={<DeliveryOverview />} />
-                        <Route path="users" element={<Users />} />
-                        <Route path="users/:id" element={<UserDetail />} />
-                        <Route path="mandates" element={<Mandates />} />
-                        <Route path="mandates/:id" element={<MandateDetail />} />
-                        <Route path="organisations" element={<Organisations />} />
-                        <Route path="organisations/:id" element={<OrganisationDetail />} />
-                      </Route>
-                    </>
-                  ) : (
-                    <Route path="admin/*" element={<Navigate to="/" replace />} />
-                  )}
-                  <Route path="/imprint" element={<Imprint />} />
-                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/licenses" element={<Licenses />} />
-                </Routes>
-              )}
-            </PageContent>
+              </PageContent>
+            ) : (
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <DeliveryProvider>
+                      <Delivery stepSwipeRef={stepSwipeRef} />
+                    </DeliveryProvider>
+                  }
+                />
+                {user ? (
+                  <>
+                    <Route path="user">
+                      <Route index element={<Navigate to="/user/deliveries" replace />} />
+                      <Route path="deliveries" element={<UserDeliveryOverview />} />
+                    </Route>
+                  </>
+                ) : (
+                  <Route path="user/*" element={<Navigate to="/" replace />} />
+                )}
+                {isAdmin ? (
+                  <>
+                    <Route
+                      path="admin"
+                      element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
+                      <Route index element={<Navigate to="/admin/delivery-overview" replace />} />
+                      <Route path="delivery-overview" element={<DeliveryOverview />} />
+                      <Route path="users" element={<Users />} />
+                      <Route path="users/:id" element={<UserDetail />} />
+                      <Route path="mandates" element={<Mandates />} />
+                      <Route path="mandates/:id" element={<MandateDetail />} />
+                      <Route path="organisations" element={<Organisations />} />
+                      <Route path="organisations/:id" element={<OrganisationDetail />} />
+                    </Route>
+                  </>
+                ) : (
+                  <Route path="admin/*" element={<Navigate to="/" replace />} />
+                )}
+                <Route path="/imprint" element={<Imprint />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/licenses" element={<Licenses />} />
+              </Routes>
+            )}
             <Footer />
           </ScrollableContent>
         </ControlledNavigateProvider>
