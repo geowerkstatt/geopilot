@@ -9,6 +9,7 @@ interface DeliveryContentProps {
   title: string;
   subtitle?: string;
   buttons?: ReactNode;
+  hideBox?: boolean;
 }
 
 const DeliveryContentGrid = styled(Box)({
@@ -16,8 +17,15 @@ const DeliveryContentGrid = styled(Box)({
   flex: 1,
 });
 
-const desktopTopDistance = 100; // header and spacing
-const mobileTopDistance = desktopTopDistance + 58 + 16; // top distance + stepper + spacing
+const APP_HEADER_HEIGHT = 60;
+const STEPPER_HEIGHT = 58;
+
+export const STICKY_TOP_POSITION_DEFAULT = APP_HEADER_HEIGHT + 40;
+export const STICKY_TOP_POSITION_XS = APP_HEADER_HEIGHT + 8;
+
+const desktopTopDistance = STICKY_TOP_POSITION_DEFAULT;
+const mobileTopDistance = STICKY_TOP_POSITION_DEFAULT + STEPPER_HEIGHT + 16; // top distance + stepper + spacing
+const smallTopDistance = STICKY_TOP_POSITION_XS + STEPPER_HEIGHT + 8; // small top distance + stepper + spacing
 
 // place all elements in the same grid cell and add sticky scrolling
 const Overlay = styled(Box)(({ theme }) => ({
@@ -26,6 +34,9 @@ const Overlay = styled(Box)(({ theme }) => ({
   top: `${desktopTopDistance}px`,
   [theme.breakpoints.down("md")]: {
     top: `${mobileTopDistance}px`,
+  },
+  [theme.breakpoints.down("sm")]: {
+    top: `${smallTopDistance}px`,
   },
 }));
 
@@ -38,6 +49,9 @@ const ScrollContentOverlay = styled(Overlay)(({ theme }) => ({
   zIndex: 7,
   [theme.breakpoints.down("md")]: {
     height: `${mobileTopDistance}px`,
+  },
+  [theme.breakpoints.down("sm")]: {
+    height: `${smallTopDistance}px`,
   },
 }));
 
@@ -69,20 +83,24 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
   title,
   subtitle,
   buttons,
+  hideBox,
 }) => {
   const { t } = useTranslation();
   const { steps, lastCompletedStep } = useContext(DeliveryContext);
+
+  const ContentBox = hideBox ? Box : GeopilotBox;
+
   return (
     <DeliveryContentGrid>
       <DeliveryContentBox>
-        <GeopilotBox sx={{ overflow: "auto" }}>
+        <ContentBox sx={{ overflow: "auto" }}>
           <Typography variant="h3" m={0} sx={{ display: { xs: "none", md: "block" } }}>
             {t(title)}
           </Typography>
           {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}
           {children}
-        </GeopilotBox>
-        <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "space-between" }}>
+        </ContentBox>
+        <Stack direction="row" sx={{ alignItems: "flex-start", flexWrap: "wrap", justifyContent: "space-between" }}>
           <DeliveryRestartButton
             sx={{ display: { xs: "block", md: "none" } }}
             immediate={lastCompletedStep === steps.size - 1}

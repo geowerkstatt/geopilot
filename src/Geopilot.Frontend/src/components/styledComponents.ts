@@ -13,26 +13,35 @@ export const ScrollableContent = styled(Stack)(({ theme }) => ({
   flex: "1",
 }));
 
-export const pageContentPadding = "40px";
+export const pageContentPadding = {
+  default: "40px",
+  xs: "16px",
+};
 
-export const PageContent = styled(Stack)({
+export const PageContent = styled(Stack)(({ theme }) => ({
   height: "100%",
-  padding: pageContentPadding,
+  padding: pageContentPadding.default,
   flex: "1",
   alignItems: "center",
-});
+  [theme.breakpoints.down("sm")]: {
+    padding: pageContentPadding.xs,
+  },
+}));
 
 export const CenteredContent = styled(Stack, {
   shouldForwardProp: prop => prop !== "maxWidth",
-})<{ maxWidth?: string }>(({ maxWidth = "1200px" }) => ({
+})<{ maxWidth?: string }>(({ theme, maxWidth = "1200px" }) => ({
   width: "100%",
   maxWidth,
   height: "100%",
-  padding: pageContentPadding,
+  padding: pageContentPadding.default,
   alignSelf: "center",
   flex: "1",
   [`@media (min-width: ${maxWidth})`]: {
-    paddingLeft: `calc(${pageContentPadding} + ((100vw - 100%) / 2))`, // prevent the scrollbar from shifting the content
+    paddingLeft: `calc(${pageContentPadding.default} + ((100vw - 100%) / 2))`, // prevent the scrollbar from shifting the content
+  },
+  [theme.breakpoints.down("sm")]: {
+    padding: pageContentPadding.xs,
   },
 }));
 

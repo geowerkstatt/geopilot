@@ -68,9 +68,43 @@ export const MapVisualization = ({
           height: "100%",
         }}
       />
+      {attributions.length > 0 && (
+        <Typography
+          variant="caption"
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            px: 0.75,
+            py: 0.25,
+            maxWidth: "100%",
+            backgroundColor: alpha(theme.palette.background.paper, 0.7),
+            borderTopRightRadius: theme.radius.default,
+            lineHeight: 1.2,
+          }}>
+          {t("mapCopyrightPrefix")}{" "}
+          {attributions.map((attribution, index) => (
+            <Fragment key={attribution.text}>
+              {index > 0 && ", "}
+              {attribution.url ? (
+                <Link
+                  href={attribution.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variant="inherit"
+                  color="inherit">
+                  {attribution.text}
+                </Link>
+              ) : (
+                attribution.text
+              )}
+            </Fragment>
+          ))}
+        </Typography>
+      )}
       {map && (
         <>
-          <Stack direction="column" sx={{ position: "absolute", top: 0, right: 0, m: 2 }}>
+          <Stack direction="column" sx={{ position: "absolute", top: 0, right: 0, m: { xs: 1, sm: 2 } }}>
             {fullscreen && (
               <IconButton
                 color="primaryOutlined"
@@ -106,40 +140,6 @@ export const MapVisualization = ({
           </Stack>
           <LayerSwitcher map={map} />
         </>
-      )}
-      {attributions.length > 0 && (
-        <Typography
-          variant="caption"
-          sx={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            px: 0.75,
-            py: 0.25,
-            maxWidth: "100%",
-            backgroundColor: alpha(theme.palette.background.paper, 0.7),
-            borderTopRightRadius: theme.radius.default,
-            lineHeight: 1.2,
-          }}>
-          {t("mapCopyrightPrefix")}{" "}
-          {attributions.map((attribution, index) => (
-            <Fragment key={attribution.text}>
-              {index > 0 && ", "}
-              {attribution.url ? (
-                <Link
-                  href={attribution.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="inherit"
-                  color="inherit">
-                  {attribution.text}
-                </Link>
-              ) : (
-                attribution.text
-              )}
-            </Fragment>
-          ))}
-        </Typography>
       )}
     </Box>
   );

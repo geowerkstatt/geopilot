@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
-import { Stack } from "@mui/material";
+import { Stack, useTheme } from "@mui/material";
 import Collection from "ol/Collection";
 import { EventsKey } from "ol/events";
 import BaseLayer from "ol/layer/Base";
@@ -94,6 +94,7 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
   const [searchValue, setSearchValue] = useState("");
   const forceUpdate = useForceUpdate();
   const containerRef = useRef<HTMLDivElement>(null);
+  const theme = useTheme();
 
   // Close the panel when the user clicks anywhere outside it (e.g. on the map).
   useEffect(() => {
@@ -147,17 +148,19 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
         position: "absolute",
         bottom: 0,
         right: 0,
-        m: 2,
-        maxHeight: theme => `calc(100% - ${theme.spacing(4)})`,
+        m: { xs: 1, sm: 2 },
+        maxHeight: { xs: `calc(100% - ${theme.spacing(2)})`, sm: `calc(100% - ${theme.spacing(4)})` },
+        maxWidth: { xs: `calc(100% - ${theme.spacing(2)})`, sm: `calc(100% - ${theme.spacing(4)})` },
       }}>
       {open ? (
         <Stack
           ref={containerRef}
           sx={{
             width: "360px",
-            p: 2,
+            maxWidth: "100%",
+            p: { xs: 1, sm: 2 },
             pb: 0,
-            gap: 1,
+            gap: { xs: 0, sm: 1 },
             overflow: "hidden",
             backgroundColor: "background.content",
             border: theme => `1px solid ${theme.palette.primary.main}`,
@@ -182,7 +185,7 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
                 />
               ))}
           </Stack>
-          <Stack sx={{ pb: 2, overflowY: "auto" }}>
+          <Stack sx={{ pb: 1, overflowY: "auto" }}>
             <LayerSwitcherCollection collection={rootCollection} map={map} rootLayers={rootLayers} />
           </Stack>
         </Stack>
