@@ -4,6 +4,7 @@ import {
   LocalizedText,
   Mandate,
   ProcessingJobResponse,
+  RawProcessingJobResponse,
   StartJobRequest,
   StepState,
   UploadSettings,
@@ -23,7 +24,7 @@ import {
 import { DeliveryProcessing } from "./deliveryProcessing.tsx";
 import { DeliverySelectMandate } from "./deliverySelectMandate.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
-import { getConditionMessages, isProcessingDeliverable, normalizeJobState } from "./deliveryUtils.tsx";
+import { getConditionMessages, isProcessingDeliverable, normalizeProcessingJob } from "./deliveryUtils.tsx";
 
 // Gets the current steps while reusing previous steps if possible to keep their state (e.g. errors)
 const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelivery: boolean) => {
@@ -255,39 +256,37 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   };
 
   const pollProcessingStatusUntilFinished = (jobId: string, abortController: AbortController) => {
-    fetchApi<ProcessingJobResponse>(`/api/v2/processing/${jobId}`, {
+    fetchApi<RawProcessingJobResponse>(`/api/v2/processing/${jobId}`, {
       method: "GET",
       signal: abortController.signal,
     })
       .then(response => {
-        const jobState = normalizeJobState(response.state);
-        setProcessingResponse({ ...response, state: jobState });
-        if (jobState === StepState.Pending || jobState === StepState.Running) {
+        const job = normalizeProcessingJob(response);
+        setProcessingResponse(job);
+        if (job.state === StepState.Pending || job.state === StepState.Running) {
           setTimeout(() => pollProcessingStatusUntilFinished(jobId, abortController), 2000);
         } else {
           setIsProcessing(false);
 
           // The processing node reflects whether the user can finish, the delivery node reflects deliverability.
-          if (isProcessingDeliverable({ ...response, state: jobState })) {
+          if (isProcessingDeliverable(job)) {
             markStepCompleted();
-            if (jobState === StepState.Warning) {
-              const warningMessages = getConditionMessages(response.steps, StepState.Warning);
+            if (job.state === StepState.Warning) {
+              const warningMessages = getConditionMessages(job.steps, StepState.Warning);
               setStepStatus(DeliveryStepEnum.Processing, StepState.Warning, warningMessages);
             }
             setStepStatus(DeliveryStepEnum.Delivery, StepState.Enabled);
+          } else if (job.state === StepState.DeliveryRestriction) {
+            const restrictionMessages = getConditionMessages(job.steps, StepState.DeliveryRestriction);
+            setStepStatus(DeliveryStepEnum.Processing, StepState.DeliveryRestriction, restrictionMessages);
+            setStepStatus(DeliveryStepEnum.Delivery, StepState.Skipped, ["deliveryBlocked"]);
           } else {
-            if (jobState === StepState.DeliveryRestriction) {
-              const restrictionMessages = getConditionMessages(response.steps, StepState.DeliveryRestriction);
-              setStepStatus(DeliveryStepEnum.Processing, StepState.DeliveryRestriction, restrictionMessages);
-              setStepStatus(DeliveryStepEnum.Delivery, StepState.Skipped, ["deliveryBlocked"]);
-            } else {
-              const errorMessages = getConditionMessages(response.steps, StepState.Error);
-              setStepStatus(
-                DeliveryStepEnum.Processing,
-                StepState.Error,
-                errorMessages.length > 0 ? errorMessages : [response.state],
-              );
-            }
+            const errorMessages = getConditionMessages(job.steps, StepState.Error);
+            setStepStatus(
+              DeliveryStepEnum.Processing,
+              StepState.Error,
+              errorMessages.length > 0 ? errorMessages : [response.state],
+            );
           }
         }
       })
@@ -320,14 +319,14 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       uploadId,
     };
 
-    fetchApi<ProcessingJobResponse>("/api/v2/processing", {
+    fetchApi<RawProcessingJobResponse>("/api/v2/processing", {
       method: "POST",
       body: JSON.stringify(startJobRequest),
       signal: abortController.signal,
     })
       .then(response => {
         setJobId(response.jobId);
-        setProcessingResponse(response);
+        setProcessingResponse(normalizeProcessingJob(response));
         setIsLoading(false);
         setIsProcessing(true);
         pollProcessingStatusUntilFinished(response.jobId, abortController);

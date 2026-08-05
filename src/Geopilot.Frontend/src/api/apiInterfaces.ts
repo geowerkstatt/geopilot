@@ -190,12 +190,40 @@ export interface StepResult {
   visualizations: StepVisualization[];
 }
 
-export interface ProcessingJobResponse {
+/**
+ * The aggregate lifecycle state of a processing job, as serialized by the backend
+ * (`Geopilot.Pipeline.ProcessingState`). It is a rollup of the job's pipeline steps, not the state of any
+ * single step, and is deliberately kept separate from {@link StepState}. The two diverge by design: a step
+ * (a single processor) that does not succeed carries an error, hence {@link StepState.Error}, whereas a job
+ * whose pipeline could not run to completion because a step errored has failed, hence the job-level
+ * `"failed"`. The job level likewise has no `"skipped"` or `"enabled"`. {@link normalizeProcessingJob} maps it onto
+ * {@link StepState} at the fetch boundary so the job state can be shown with the same `StepState`-based UI
+ * (the shared `StepIcon`) as the individual pipeline steps.
+ */
+export type ProcessingState =
+  | "pending"
+  | "running"
+  | "success"
+  | "failed"
+  | "cancelled"
+  | "warning"
+  | "deliveryRestriction";
+
+/** A processing job exactly as returned by the processing API, before the job state is normalized. */
+export interface RawProcessingJobResponse {
   jobId: string;
-  state: StepState;
+  state: ProcessingState;
   mandateId?: number;
   pipelineName: LocalizedText;
   steps: StepResult[];
+}
+
+/**
+ * A processing job as used throughout the app: identical to {@link RawProcessingJobResponse} except the
+ * job-level {@link state} has been normalized to the shared {@link StepState} (see {@link normalizeProcessingJob}).
+ */
+export interface ProcessingJobResponse extends Omit<RawProcessingJobResponse, "state"> {
+  state: StepState;
 }
 
 export interface StartJobRequest {
