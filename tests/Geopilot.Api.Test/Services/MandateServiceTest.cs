@@ -1,6 +1,8 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
+using Geopilot.Pipeline.Config;
+using Moq;
 using System.Collections.Immutable;
 
 namespace Geopilot.Api.Test.Services;
@@ -19,21 +21,36 @@ public class MandateServiceTest
     private Mandate publicCsvMandate;
     private Mandate noOrganisationsMandate;
     private Mandate noPermissionMandate;
+    private Mandate missingPipelineMandate;
+    private Mock<IPipelineService> pipelineServiceMock;
 
     [TestInitialize]
     public void Initialize()
     {
+        const string existingPipelineId = "existing-pipeline";
+        const string missingPipelineId = "missing-pipeline";
+
         context = AssemblyInitialize.DbFixture.GetTestContext();
         uploadStore = new UploadStore();
 
-        mandateService = new MandateService(context, uploadStore);
+        var pipelineConfig = new PipelineConfig
+        {
+            Id = existingPipelineId,
+            DisplayName = new Dictionary<string, string> { { "en", "Existing Pipeline" } },
+            Steps = [],
+        };
+        pipelineServiceMock = new Mock<IPipelineService>();
+        pipelineServiceMock.Setup(s => s.GetAvailablePipelines()).Returns([pipelineConfig]);
 
-        unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate), AllowDelivery = true };
-        noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noDeliveryMandate), AllowDelivery = false };
-        xtfMandate = new Mandate { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate), AllowDelivery = true };
-        publicCsvMandate = new Mandate { FileTypes = new string[] { ".csv" }, Name = nameof(publicCsvMandate), IsPublic = true, AllowDelivery = true };
-        noOrganisationsMandate = new Mandate { FileTypes = new string[] { ".itf" }, Name = nameof(noOrganisationsMandate), AllowDelivery = true };
-        noPermissionMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noPermissionMandate), AllowDelivery = true };
+        mandateService = new MandateService(context, uploadStore, pipelineServiceMock.Object);
+
+        unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate), AllowDelivery = true, PipelineId = existingPipelineId };
+        noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noDeliveryMandate), AllowDelivery = false, PipelineId = existingPipelineId };
+        xtfMandate = new Mandate { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate), AllowDelivery = true, PipelineId = existingPipelineId };
+        publicCsvMandate = new Mandate { FileTypes = new string[] { ".csv" }, Name = nameof(publicCsvMandate), IsPublic = true, AllowDelivery = true, PipelineId = existingPipelineId };
+        noOrganisationsMandate = new Mandate { FileTypes = new string[] { ".itf" }, Name = nameof(noOrganisationsMandate), AllowDelivery = true, PipelineId = existingPipelineId };
+        noPermissionMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noPermissionMandate), AllowDelivery = true, PipelineId = existingPipelineId };
+        missingPipelineMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(missingPipelineMandate), AllowDelivery = true, PipelineId = missingPipelineId };
 
         context.Mandates.Add(unrestrictedMandate);
         context.Mandates.Add(noDeliveryMandate);
@@ -41,6 +58,7 @@ public class MandateServiceTest
         context.Mandates.Add(publicCsvMandate);
         context.Mandates.Add(noOrganisationsMandate);
         context.Mandates.Add(noPermissionMandate);
+        context.Mandates.Add(missingPipelineMandate);
 
         editUser = CreateUser("ms-123", "Edit User", "example@example.org");
         context.Users.Add(editUser);
@@ -53,6 +71,7 @@ public class MandateServiceTest
         organisation.Mandates.Add(noDeliveryMandate);
         organisation.Mandates.Add(xtfMandate);
         organisation.Mandates.Add(publicCsvMandate);
+        organisation.Mandates.Add(missingPipelineMandate);
         organisation.Users.Add(editUser);
         organisation.Users.Add(adminUser);
 
@@ -152,6 +171,7 @@ public class MandateServiceTest
         ContainsMandate(result, publicCsvMandate);
         DoesNotContainMandate(result, noOrganisationsMandate);
         DoesNotContainMandate(result, noPermissionMandate);
+        ContainsMandate(result, missingPipelineMandate);
     }
 
     [TestMethod]
@@ -165,6 +185,7 @@ public class MandateServiceTest
         ContainsMandate(result, publicCsvMandate);
         ContainsMandate(result, noOrganisationsMandate);
         ContainsMandate(result, noPermissionMandate);
+        ContainsMandate(result, missingPipelineMandate);
     }
 
     [TestMethod]
@@ -180,6 +201,7 @@ public class MandateServiceTest
         DoesNotContainMandate(result, publicCsvMandate);
         DoesNotContainMandate(result, noOrganisationsMandate);
         DoesNotContainMandate(result, noPermissionMandate);
+        DoesNotContainMandate(result, missingPipelineMandate);
     }
 
     [TestMethod]
@@ -195,6 +217,7 @@ public class MandateServiceTest
         ContainsMandate(result, noPermissionMandate);
         DoesNotContainMandate(result, noOrganisationsMandate);
         DoesNotContainMandate(result, publicCsvMandate);
+        DoesNotContainMandate(result, missingPipelineMandate);
     }
 
     [TestMethod]
@@ -208,6 +231,7 @@ public class MandateServiceTest
         DoesNotContainMandate(result, noDeliveryMandate);
         DoesNotContainMandate(result, noOrganisationsMandate);
         DoesNotContainMandate(result, noPermissionMandate);
+        DoesNotContainMandate(result, missingPipelineMandate);
     }
 
     [TestMethod]
@@ -223,6 +247,7 @@ public class MandateServiceTest
         DoesNotContainMandate(result, xtfMandate);
         DoesNotContainMandate(result, noOrganisationsMandate);
         DoesNotContainMandate(result, noPermissionMandate);
+        DoesNotContainMandate(result, missingPipelineMandate);
     }
 
     [TestMethod]
@@ -237,6 +262,7 @@ public class MandateServiceTest
         ContainsMandate(result, xtfMandate);
         DoesNotContainMandate(result, publicCsvMandate);
         DoesNotContainMandate(result, noOrganisationsMandate);
+        DoesNotContainMandate(result, missingPipelineMandate);
     }
 
     [TestMethod]
