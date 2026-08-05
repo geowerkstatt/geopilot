@@ -160,9 +160,13 @@ export const DeliveryStepper = () => {
                     ))}
                 </StepDetailTypography>
               )}
-              {step.message && (
+              {step.messages && step.messages.length > 0 && (
                 <StepDetailTypography color={messageColor}>
-                  {typeof step.message === "string" ? t(step.message) : localized(step.message)}
+                  {step.messages.map((message, idx) => (
+                    <Box component="span" key={idx} sx={{ display: "block" }}>
+                      {typeof message === "string" ? t(message) : localized(message)}
+                    </Box>
+                  ))}
                 </StepDetailTypography>
               )}
             </GeopilotBox>

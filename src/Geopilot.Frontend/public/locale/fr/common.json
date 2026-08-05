@@ -35,6 +35,7 @@
   "deliver": "Livrer les données",
   "deliveredBy": "Livré par",
   "delivery": "Livraison",
+  "deliveryBlocked": "Bloquée par le traitement",
   "deliveryCompleted": "La livraison a été effectuée avec succès.",
   "deliveryDate": "Date de livraison",
   "deliveryErrorMalformedRequest": "Requête de livraison invalide ou corrompue. (Erreur 400)",

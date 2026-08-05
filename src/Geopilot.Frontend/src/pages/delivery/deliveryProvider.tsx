@@ -10,9 +10,7 @@ import {
 } from "../../api/apiInterfaces.ts";
 import { useGeopilotAuth } from "../../auth";
 import useCloudUpload from "../../hooks/useCloudUpload.ts";
-import { useDeliveryRestrictionMessage } from "../../hooks/useDeliveryRestrictionMessage.ts";
 import useFetch from "../../hooks/useFetch.ts";
-import { useLocalized } from "../../hooks/useLocalized.ts";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryFileUpload } from "./deliveryFileUpload.tsx";
 import {
@@ -25,7 +23,7 @@ import {
 import { DeliveryProcessing } from "./deliveryProcessing.tsx";
 import { DeliverySelectMandate } from "./deliverySelectMandate.tsx";
 import { DeliverySubmit } from "./deliverySubmit.tsx";
-import { isProcessingDeliverable, normalizeJobState } from "./deliveryUtils.tsx";
+import { getConditionMessages, isProcessingDeliverable, normalizeJobState } from "./deliveryUtils.tsx";
 
 // Gets the current steps while reusing previous steps if possible to keep their state (e.g. errors)
 const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelivery: boolean) => {
@@ -68,8 +66,6 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
 };
 
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
-  const localized = useLocalized();
-  const getDeliveryRestrictionMessage = useDeliveryRestrictionMessage();
   const [lastCompletedStep, setLastCompletedStep] = useState(-1);
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -130,13 +126,13 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   };
 
   const setStepStatus = useCallback(
-    (key: DeliveryStepEnum, state: StepState | undefined, message?: string | LocalizedText) => {
+    (key: DeliveryStepEnum, state: StepState | undefined, messages?: (string | LocalizedText)[]) => {
       setSteps(prevSteps => {
         const newSteps = new Map(prevSteps);
         const step = newSteps.get(key);
         if (step) {
           step.state = state;
-          step.message = message;
+          step.messages = messages;
         }
         return newSteps;
       });
@@ -198,11 +194,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const handleApiError = useCallback(
     (error: ApiError, key: DeliveryStepEnum) => {
       if (error && error.message && !error.message.includes("AbortError")) {
-        setStepStatus(
-          key,
-          StepState.Error,
+        setStepStatus(key, StepState.Error, [
           deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey || error.message,
-        );
+        ]);
       }
     },
     [deliveryStepErrors, setStepStatus],
@@ -277,21 +271,21 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
           if (isProcessingDeliverable({ ...response, state: jobState })) {
             markStepCompleted();
             if (jobState === StepState.Warning) {
-              setStepStatus(DeliveryStepEnum.Processing, StepState.Warning, "completedWithWarnings");
+              const warningMessages = getConditionMessages(response.steps, StepState.Warning);
+              setStepStatus(DeliveryStepEnum.Processing, StepState.Warning, warningMessages);
             }
           } else {
             if (jobState === StepState.DeliveryRestriction) {
-              setStepStatus(DeliveryStepEnum.Processing, StepState.DeliveryRestriction);
-              setStepStatus(
-                DeliveryStepEnum.Delivery,
-                StepState.Skipped,
-                getDeliveryRestrictionMessage(response.steps),
-              );
+              const restrictionMessages = getConditionMessages(response.steps, StepState.DeliveryRestriction);
+              setStepStatus(DeliveryStepEnum.Processing, StepState.DeliveryRestriction, restrictionMessages);
+              setStepStatus(DeliveryStepEnum.Delivery, StepState.Skipped, ["deliveryBlocked"]);
             } else {
-              const errorMessage = localized(
-                response.steps.find(step => step.state === StepState.Error)?.conditionMessage,
+              const errorMessages = getConditionMessages(response.steps, StepState.Error);
+              setStepStatus(
+                DeliveryStepEnum.Processing,
+                StepState.Error,
+                errorMessages.length > 0 ? errorMessages : [response.state],
               );
-              setStepStatus(DeliveryStepEnum.Processing, StepState.Error, errorMessage ?? response.state);
             }
           }
         }
@@ -390,7 +384,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       newSteps.forEach(step => {
         step.labelAddition = undefined;
         step.state = undefined;
-        step.message = undefined;
+        step.messages = undefined;
       });
       return newSteps;
     });

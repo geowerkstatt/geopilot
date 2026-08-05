@@ -21,7 +21,7 @@ export interface DeliveryStep {
   label: string;
   labelAddition?: string;
   state?: StepState;
-  message?: string | LocalizedText;
+  messages?: (string | LocalizedText)[];
   content: (completed: boolean) => ReactNode;
 }
 
@@ -42,7 +42,7 @@ export interface DeliveryContextInterface {
   lastCompletedStep: number;
   activeStep: number;
   isActiveStep: (step: DeliveryStepEnum) => boolean;
-  setStepStatus: (key: DeliveryStepEnum, state: StepState | undefined, message?: string | LocalizedText) => void;
+  setStepStatus: (key: DeliveryStepEnum, state: StepState | undefined, messages?: (string | LocalizedText)[]) => void;
   selectedFiles: File[];
   addFiles: (files: File[]) => void;
   removeFile: (file: File) => void;

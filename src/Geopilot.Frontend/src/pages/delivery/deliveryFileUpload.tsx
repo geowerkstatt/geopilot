@@ -48,7 +48,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
 
   const setFileError = useCallback(
     (error: string | undefined) => {
-      setStepStatus(DeliveryStepEnum.Files, error ? StepState.Error : undefined, error);
+      setStepStatus(DeliveryStepEnum.Files, error ? StepState.Error : undefined, error ? [error] : undefined);
     },
     [setStepStatus],
   );

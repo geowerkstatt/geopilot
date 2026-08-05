@@ -35,6 +35,7 @@
   "deliver": "Consegna dati",
   "deliveredBy": "Consegnato da",
   "delivery": "Consegna",
+  "deliveryBlocked": "Bloccata dall'elaborazione",
   "deliveryCompleted": "La consegna è stata completata con successo.",
   "deliveryDate": "Data di consegna",
   "deliveryErrorMalformedRequest": "Richiesta di consegna non valida o danneggiata. (Errore 400)",

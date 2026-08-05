@@ -1,4 +1,6 @@
 import { SyntheticEvent, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import BlockIcon from "@mui/icons-material/Block";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Stack, Typography } from "@mui/material";
@@ -6,7 +8,6 @@ import { StepResult, StepState } from "../../api/apiInterfaces.ts";
 import { Button } from "../../components/buttons.tsx";
 import { StepIcon } from "../../components/stepIcon.tsx";
 import { VisualizationLoader } from "../../components/visualizations/visualizationLoader.tsx";
-import { useDeliveryRestrictionMessage } from "../../hooks/useDeliveryRestrictionMessage.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
 import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons.tsx";
 import { DeliveryContent } from "./deliveryContent.tsx";
@@ -31,8 +32,8 @@ const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
 ]);
 
 export const DeliveryProcessing = () => {
+  const { t } = useTranslation();
   const localized = useLocalized();
-  const getDeliveryRestrictionMessage = useDeliveryRestrictionMessage();
 
   const { isProcessing, processingResponse } = useContext(DeliveryContext);
   const [expandedStepIds, setExpandedStepIds] = useState<Set<string>>(new Set());
@@ -111,15 +112,7 @@ export const DeliveryProcessing = () => {
   );
 
   return (
-    <DeliveryContent
-      title="processing"
-      buttons={buttons}
-      hideBox={true}
-      alert={
-        steps.some(step => step.state === StepState.DeliveryRestriction)
-          ? { message: getDeliveryRestrictionMessage(steps), severity: "error" }
-          : undefined
-      }>
+    <DeliveryContent title="processing" buttons={buttons} hideBox={true}>
       {steps.map((step, index) => {
         const isExpandable = stepIsExpandable(step);
         const isExpanded = isExpandable && expandedStepIds.has(step.id);
@@ -143,14 +136,23 @@ export const DeliveryProcessing = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack>
-                {step.conditionMessage && (
-                  <Alert
-                    severity={
-                      step.state === StepState.Skipped ? "info" : step.state === StepState.Warning ? "warning" : "error"
-                    }>
-                    {localized(step.conditionMessage)}
-                  </Alert>
-                )}
+                {step.conditionMessage &&
+                  (step.state === StepState.DeliveryRestriction ? (
+                    <Alert severity="error" icon={<BlockIcon fontSize="inherit" />}>
+                      {t("deliveryNotPossible")}: {localized(step.conditionMessage)}
+                    </Alert>
+                  ) : (
+                    <Alert
+                      severity={
+                        step.state === StepState.Skipped
+                          ? "info"
+                          : step.state === StepState.Warning
+                            ? "warning"
+                            : "error"
+                      }>
+                      {localized(step.conditionMessage)}
+                    </Alert>
+                  ))}
                 {step.statusMessage && <Typography variant="body1">{localized(step.statusMessage)}</Typography>}
                 {step.downloads.length > 0 && (
                   <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap" }}>

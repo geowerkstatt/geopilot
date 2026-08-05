@@ -54,7 +54,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
       setStepStatus(DeliveryStepEnum.Mandate, undefined);
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ uploadId })).then(mandates => {
         if (mandates.length === 0) {
-          setStepStatus(DeliveryStepEnum.Mandate, StepState.Error, "noMandatesFound");
+          setStepStatus(DeliveryStepEnum.Mandate, StepState.Error, ["noMandatesFound"]);
         }
         setMandates(mandates);
         setSelected(mandates.length === 1 ? mandates[0] : null);

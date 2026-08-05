@@ -35,6 +35,7 @@
   "deliver": "Deliver data",
   "deliveredBy": "Delivered by",
   "delivery": "Delivery",
+  "deliveryBlocked": "Blocked by processing",
   "deliveryCompleted": "The delivery was completed successfully.",
   "deliveryDate": "Delivery date",
   "deliveryErrorMalformedRequest": "Invalid or corrupted delivery request. (Error 400)",

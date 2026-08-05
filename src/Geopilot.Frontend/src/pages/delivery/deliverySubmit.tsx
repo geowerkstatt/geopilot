@@ -1,7 +1,7 @@
 import { FC, useContext, useEffect, useState } from "react";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Stack, Typography } from "@mui/material";
+import { Alert, Stack, Typography } from "@mui/material";
 import { Delivery, FieldEvaluationType } from "../../api/apiInterfaces.ts";
 import { Button } from "../../components/buttons.tsx";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
@@ -51,10 +51,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
   );
 
   return (
-    <DeliveryContent
-      title="createDelivery"
-      buttons={buttons}
-      alert={completed ? { message: t("deliveryCompleted"), severity: "success" } : undefined}>
+    <DeliveryContent title="createDelivery" buttons={buttons}>
       <FormProvider {...formMethods}>
         <form onSubmit={formMethods.handleSubmit(submitForm)}>
           <Stack>
@@ -98,6 +95,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
           </Stack>
         </form>
       </FormProvider>
+      {completed && <Alert severity="success">{t("deliveryCompleted")}</Alert>}
     </DeliveryContent>
   );
 };
