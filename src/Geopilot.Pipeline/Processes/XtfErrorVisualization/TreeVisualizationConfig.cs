@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Pipeline.Visualization;
+﻿namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// The config for the built-in tree visualization: a flat list of <see cref="Items"/> plus the fields

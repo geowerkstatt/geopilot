@@ -1,6 +1,6 @@
 ﻿using Geopilot.PipelineCore.Pipeline;
 
-namespace Geopilot.Pipeline.Visualization;
+namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// A flat item of the error-tree visualization: one validation error or warning with explicit, typed fields.

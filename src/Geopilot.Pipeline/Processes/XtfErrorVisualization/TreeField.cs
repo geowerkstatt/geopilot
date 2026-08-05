@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Pipeline.Visualization;
+﻿namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// The categorical fields of a <see cref="TreeItem"/> the frontend can group and filter the error tree by.

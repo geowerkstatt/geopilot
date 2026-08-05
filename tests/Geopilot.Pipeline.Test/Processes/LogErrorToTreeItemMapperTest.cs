@@ -1,5 +1,4 @@
 ﻿using Geopilot.Pipeline.Processes.XtfErrorVisualization;
-using Geopilot.Pipeline.Visualization;
 
 namespace Geopilot.Pipeline.Test.Processes;
 

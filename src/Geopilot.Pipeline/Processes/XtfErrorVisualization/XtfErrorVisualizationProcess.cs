@@ -1,5 +1,4 @@
-﻿using Geopilot.Pipeline.Visualization;
-using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 
 namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
@@ -82,7 +81,7 @@ internal class XtfErrorVisualizationProcess
 
         return Task.FromResult(result: new XtfErrorVisualizationResult
         {
-            Visualization = VisualizationFactory.XtfError(config),
+            Visualization = config.ToVisualization(),
 
             StatusMessage = SuccessfulStatusMessage,
         });

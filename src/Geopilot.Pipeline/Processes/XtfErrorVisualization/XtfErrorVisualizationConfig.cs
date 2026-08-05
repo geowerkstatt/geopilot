@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Pipeline.Visualization;
+﻿using Geopilot.Pipeline.Visualization;
+
+namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// Composite payload of the built-in XTF error visualization: an optional <see cref="Map"/> and an
@@ -19,4 +21,11 @@ internal sealed record XtfErrorVisualizationConfig
     /// lives on the composite root. Empty means no filters.
     /// </summary>
     public IReadOnlyList<TreeField>? FilterBy { get; init; }
+
+    /// <summary>
+    /// Wraps this config in its visualization envelope, binding it to the <c>xtfError</c> discriminator in
+    /// one place so the type and the data cannot drift apart.
+    /// </summary>
+    /// <returns>The XTF error visualization envelope.</returns>
+    public Visualization<XtfErrorVisualizationConfig> ToVisualization() => new("xtfError", this);
 }

@@ -1,5 +1,5 @@
 ﻿using Geopilot.Api.Processing;
-using Geopilot.Pipeline.Visualization;
+using Geopilot.Pipeline.Processes.XtfErrorVisualization;
 using Geopilot.PipelineCore.Pipeline;
 using System.Text.Json;
 
@@ -41,7 +41,7 @@ public class VisualizationSerializationTest
             FilterBy = [TreeField.Class, TreeField.ErrorType],
         };
 
-        var json = JsonSerializer.Serialize(VisualizationFactory.XtfError(config), ProcessingRunner.VisualizationJsonOptions);
+        var json = JsonSerializer.Serialize(config.ToVisualization(), ProcessingRunner.VisualizationJsonOptions);
 
         // The exact wire format the frontend types mirror: camelCase properties, camelCase enum values,
         // LocalizedText as a flat language map, line as a number, null fields omitted.
