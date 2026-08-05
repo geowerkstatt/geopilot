@@ -61,6 +61,8 @@ export const themePalette = {
     fill: "#e53835",
     stroke: "#ffffff",
     highlight: "#980303",
+    hintBackground: "#00000099",
+    hintText: "#ffffff",
   },
   divider: alpha("#124A4F", 0.2),
 } satisfies PaletteOptions;

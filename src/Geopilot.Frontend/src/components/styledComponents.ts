@@ -28,10 +28,19 @@ export const PageContent = styled(Stack)(({ theme }) => ({
   },
 }));
 
-export const CenteredContent = styled(Stack)({
+export const CenteredContent = styled(Stack, {
+  shouldForwardProp: prop => prop !== "maxWidth",
+})<{ maxWidth?: string }>(({ maxWidth = "1200px" }) => ({
   width: "100%",
-  maxWidth: "1200px",
-});
+  maxWidth,
+  height: "100%",
+  padding: pageContentPadding,
+  alignSelf: "center",
+  flex: "1",
+  [`@media (min-width: ${maxWidth})`]: {
+    paddingLeft: `calc(${pageContentPadding} + ((100vw - 100%) / 2))`, // prevent the scrollbar from shifting the content
+  },
+}));
 
 export const GeopilotBox = styled(Stack)(({ theme }) => ({
   backgroundColor: theme.palette.background.content,

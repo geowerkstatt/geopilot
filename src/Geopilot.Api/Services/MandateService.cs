@@ -9,14 +9,16 @@ public class MandateService : IMandateService
 {
     private readonly Context context;
     private readonly IUploadStore uploadStore;
+    private readonly IPipelineService pipelineService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MandateService"/> class.
     /// </summary>
-    public MandateService(Context context, IUploadStore uploadStore)
+    public MandateService(Context context, IUploadStore uploadStore, IPipelineService pipelineService)
     {
         this.context = context;
         this.uploadStore = uploadStore;
+        this.pipelineService = pipelineService;
     }
 
     /// <inheritdoc/>
@@ -84,6 +86,9 @@ public class MandateService : IMandateService
 
         if (fileExtensions.Count == 0)
             throw new InvalidOperationException($"Upload with id <{uploadId}> has no file associated.");
+
+        var pipelineIds = pipelineService.GetAvailablePipelines().Select(p => p.Id).ToHashSet();
+        mandates = mandates.Where(m => !string.IsNullOrEmpty(m.PipelineId) && pipelineIds.Contains(m.PipelineId));
 
         foreach (var extension in fileExtensions)
         {
