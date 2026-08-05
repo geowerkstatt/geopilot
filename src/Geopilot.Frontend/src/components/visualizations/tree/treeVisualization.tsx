@@ -5,7 +5,7 @@ import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { Box, Stack, Typography } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
 import { Button } from "../../buttons";
-import { MetadataPanel } from "./metadataPanel";
+import { DetailPanel } from "./detailPanel";
 import { renderTreeItems } from "./renderTreeItems";
 import { collectExpandableIds, collectItemIds, indexNodes, TreeNode } from "./treeNode";
 
@@ -122,19 +122,19 @@ export const TreeVisualization = ({
   };
 
   const selectedNode = selectedId ? (nodesById.get(selectedId) ?? null) : null;
-  const hasMetadata = !!selectedNode?.metadata && Object.keys(selectedNode.metadata).length > 0;
+  const selectedItem = selectedNode?.item ?? null;
 
   const items = useMemo(() => {
     const zoomOptions = { onZoom, zoomableNodeIds };
-    if (!sideBySide && hasMetadata) {
+    if (!sideBySide && selectedItem) {
       return renderTreeItems(nodes, "n", {
         ...zoomOptions,
         selectedId,
-        inlinePanel: <MetadataPanel node={selectedNode} />,
+        inlinePanel: <DetailPanel item={selectedItem} />,
       });
     }
     return renderTreeItems(nodes, "n", zoomOptions);
-  }, [nodes, sideBySide, hasMetadata, selectedId, selectedNode, onZoom, zoomableNodeIds]);
+  }, [nodes, sideBySide, selectedId, selectedItem, onZoom, zoomableNodeIds]);
 
   // Align the box's top with the selected row, but keep it within the tree so a selection far down does not
   // push the box past the tree and grow the accordion: clamp to the tree's bottom edge. Recompute when
@@ -219,7 +219,7 @@ export const TreeVisualization = ({
               width: PANEL_WIDTH,
               maxWidth: "100%",
             }}>
-            {sideBySide && hasMetadata && <MetadataPanel node={selectedNode} />}
+            {sideBySide && selectedItem && <DetailPanel item={selectedItem} />}
           </Box>
         </Stack>
       )}

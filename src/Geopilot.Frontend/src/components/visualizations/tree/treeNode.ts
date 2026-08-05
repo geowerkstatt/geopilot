@@ -1,25 +1,30 @@
-import { LocalizedText, MetadataValue, TreeItem } from "../../../api/apiInterfaces";
+import { LocalizedText, TreeField, TreeItem } from "../../../api/apiInterfaces";
 
 /** A node of the error tree's displayed hierarchy, built in the frontend from the flat items by {@link buildTree}. */
 export interface TreeNode {
-  /** The text shown for this node (a group value, or a leaf's label). */
+  /** The text shown for this node (a group value, or a leaf's text). */
   message: string;
   /** Severity ("error"/"warning") of the node's most severe leaf; drives the leaf/group icon and colour. */
   color?: string;
   /** Number of contained leaf nodes (errors) in this node's subtree; 0 for a leaf. Shown next to group labels. */
   count: number;
-  /** Resolved (single-language) metadata shown when the node is selected. Set on leaves. */
-  metadata?: Record<string, string>;
+  /** The underlying error item, shown in the detail panel when the node is selected. Set on leaves. */
+  item?: TreeItem;
   /** Child nodes nested under this node. */
   values?: TreeNode[];
   /** Stable id of the validation error this leaf represents, shared with its map feature. Absent on group nodes. */
   errorId?: string;
 }
 
-export type MetadataFilters = Record<string, string[]>;
+/** All groupable/filterable fields, in a stable iteration order. */
+const TREE_FIELDS: readonly TreeField[] = ["errorType", "model", "topic", "class"];
 
-export interface MetadataAttribute {
-  key: string;
+/** The selected filter values per field. */
+export type FieldFilters = Partial<Record<TreeField, string[]>>;
+
+/** A filterable field together with its distinct (resolved) value options. */
+export interface FilterAttribute {
+  field: TreeField;
   options: string[];
 }
 
@@ -30,18 +35,22 @@ const severityRank = (color?: string): number => (color ? (SEVERITY_RANK[color] 
 /** Resolver for a backend multilingual string, from the useLocalized hook. */
 type Localize = (entries?: LocalizedText) => string;
 
-/** Resolves a metadata value: a plain data string as-is, a localized label via the active-language resolver. */
-const resolveValue = (value: MetadataValue, localize: Localize): string =>
-  typeof value === "string" ? value : localize(value);
+/** Resolves a groupable field of an item: the localized error category, or one of the plain string fields. */
+const fieldValue = (item: TreeItem, field: TreeField, localize: Localize): string | undefined => {
+  if (field === "errorType") {
+    return item.errorType ? localize(item.errorType) : undefined;
+  }
+  return item[field];
+};
 
-const resolveMetadata = (metadata: Record<string, MetadataValue>, localize: Localize): Record<string, string> =>
-  Object.fromEntries(Object.entries(metadata).map(([key, value]) => [key, resolveValue(value, localize)]));
+// The leaf text; the ?? "" guards against legacy payloads that carry neither field.
+const leafText = (item: TreeItem): string => item.tid ?? item.message ?? "";
 
-const toLeaf = (item: TreeItem, localize: Localize): TreeNode => ({
-  message: item.label,
+const toLeaf = (item: TreeItem): TreeNode => ({
+  message: leafText(item),
   color: item.severity,
   count: 0,
-  metadata: resolveMetadata(item.metadata, localize),
+  item,
   errorId: item.id,
 });
 
@@ -77,26 +86,25 @@ const sortGroups = (groups: TreeNode[]): TreeNode[] =>
 
 const groupItems = (
   items: TreeItem[],
-  groupBy: string[],
+  groupBy: TreeField[],
   level: number,
   localize: Localize,
   ungroupedLabel: string,
 ): TreeNode[] => {
   if (level >= groupBy.length) {
-    return items.map(item => toLeaf(item, localize));
+    return items.map(item => toLeaf(item));
   }
 
-  const key = groupBy[level];
+  const field = groupBy[level];
   const groups = new Map<string, TreeItem[]>();
   const ungrouped: TreeItem[] = [];
 
   for (const item of items) {
-    const raw = item.metadata[key];
-    if (raw === undefined) {
+    const value = fieldValue(item, field, localize);
+    if (value === undefined) {
       ungrouped.push(item);
       continue;
     }
-    const value = resolveValue(raw, localize);
     const bucket = groups.get(value);
     if (bucket) bucket.push(item);
     else groups.set(value, [item]);
@@ -108,13 +116,13 @@ const groupItems = (
     ),
   );
 
-  // Items missing this key are shown as leaves directly under a single "ungrouped" group, never recursed into
-  // the remaining keys, so a missing attribute does not produce a chain of virtual "ungrouped" subgroups.
+  // Items missing this field are shown as leaves directly under a single "ungrouped" group, never recursed into
+  // the remaining fields, so a missing field does not produce a chain of virtual "ungrouped" subgroups.
   if (ungrouped.length > 0) {
     named.push(
       makeGroup(
         ungroupedLabel,
-        ungrouped.map(item => toLeaf(item, localize)),
+        ungrouped.map(item => toLeaf(item)),
       ),
     );
   }
@@ -122,10 +130,10 @@ const groupItems = (
   return named;
 };
 
-/** Builds the displayed hierarchy from the flat items by grouping them on the given metadata keys. */
+/** Builds the displayed hierarchy from the flat items by grouping them on the given fields. */
 export const buildTree = (
   items: TreeItem[],
-  groupBy: string[],
+  groupBy: TreeField[],
   localize: Localize,
   ungroupedLabel: string,
 ): TreeNode[] => groupItems(items, groupBy, 0, localize, ungroupedLabel);
@@ -133,22 +141,31 @@ export const buildTree = (
 const itemMatchesFilters = (
   item: TreeItem,
   messageQuery: string,
-  metadataFilters: MetadataFilters,
+  fieldFilters: FieldFilters,
   localize: Localize,
 ): boolean => {
   if (messageQuery) {
-    // Match the leaf label and every metadata value, so an error can be found by any of its attributes.
-    // messageQuery is already lower-cased.
-    const haystacks = [item.label, ...Object.values(item.metadata).map(value => resolveValue(value, localize))];
-    if (!haystacks.some(value => value.toLowerCase().includes(messageQuery))) {
+    // Match every field of the error, so it can be found by any of its attributes. messageQuery is already lower-cased.
+    const haystacks = [
+      item.message,
+      item.tid,
+      item.model,
+      item.topic,
+      item.class,
+      item.line?.toString(),
+      item.coordinates,
+      item.errorType ? localize(item.errorType) : undefined,
+    ];
+    if (!haystacks.some(value => value !== undefined && value.toLowerCase().includes(messageQuery))) {
       return false;
     }
   }
 
-  return Object.entries(metadataFilters).every(([key, selected]) => {
-    if (selected.length === 0) return true;
-    const value = item.metadata[key];
-    return value !== undefined && selected.includes(resolveValue(value, localize));
+  return TREE_FIELDS.every(field => {
+    const selected = fieldFilters[field];
+    if (!selected || selected.length === 0) return true;
+    const value = fieldValue(item, field, localize);
+    return value !== undefined && selected.includes(value);
   });
 };
 
@@ -156,39 +173,29 @@ const itemMatchesFilters = (
 export const filterItems = (
   items: TreeItem[],
   messageQuery: string,
-  metadataFilters: MetadataFilters,
+  fieldFilters: FieldFilters,
   localize: Localize,
-): TreeItem[] => items.filter(item => itemMatchesFilters(item, messageQuery, metadataFilters, localize));
+): TreeItem[] => items.filter(item => itemMatchesFilters(item, messageQuery, fieldFilters, localize));
 
 /**
- * Collects the filterable metadata attributes together with their distinct (resolved) values. Only the keys
- * listed in {@link filterBy} are offered, in that display order; keys absent from the items are skipped. An
+ * Collects the filterable fields together with their distinct (resolved) values. Only the fields listed in
+ * {@link filterBy} are offered, in that display order; fields without any value in the items are skipped. An
  * empty {@link filterBy} offers no filters.
  */
-export const collectMetadataAttributes = (
+export const collectFilterAttributes = (
   items: TreeItem[],
   localize: Localize,
-  filterBy: string[],
-): MetadataAttribute[] => {
-  if (filterBy.length === 0) return [];
-
-  const valuesByKey = new Map<string, Set<string>>();
-
-  for (const item of items) {
-    for (const [key, value] of Object.entries(item.metadata)) {
-      const values = valuesByKey.get(key) ?? new Set<string>();
-      values.add(resolveValue(value, localize));
-      valuesByKey.set(key, values);
-    }
-  }
-
-  return filterBy
-    .filter(key => valuesByKey.has(key))
-    .map(key => ({
-      key,
-      options: Array.from(valuesByKey.get(key) ?? []).sort((a, b) => a.localeCompare(b)),
-    }));
-};
+  filterBy: TreeField[],
+): FilterAttribute[] =>
+  filterBy
+    .map(field => {
+      const values = items.flatMap(item => {
+        const value = fieldValue(item, field, localize);
+        return value === undefined ? [] : [value];
+      });
+      return { field, options: [...new Set(values)].sort((a, b) => a.localeCompare(b)) };
+    })
+    .filter(attribute => attribute.options.length > 0);
 
 export const nodeId = (prefix: string, index: number): string => `${prefix}-${index}`;
 

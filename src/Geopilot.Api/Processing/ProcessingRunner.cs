@@ -27,10 +27,12 @@ public class ProcessingRunner : BackgroundService
     private readonly ProcessingOptions processingOptions;
     private readonly IServiceScopeFactory serviceScopeFactory;
 
-    private static readonly JsonSerializerOptions VisualizationJsonOptions = new()
+    // Internal so tests can pin the wire format the frontend depends on.
+    internal static readonly JsonSerializerOptions VisualizationJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
     /// <summary>
