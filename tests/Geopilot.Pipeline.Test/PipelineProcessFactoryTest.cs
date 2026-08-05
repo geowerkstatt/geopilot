@@ -366,6 +366,20 @@ public class PipelineProcessFactoryTest
                 new Parameterization() { },
                 "Process initialization: No suitable parameter found for parameter of type <Boolean> and name <mandatoryBoolean>. Parameter is not nullable, cannot initialize process."
             ];
+            yield return [
+                "configured value not convertible on nullable parameter",
+                new Parameterization() { },
+                new Parameterization()
+                {
+                    { "mandatoryString", "mandatory string value" },
+                    { "mandatoryInt", "123" },
+                    { "mandatoryDouble", "123.456" },
+                    { "mandatoryBoolean", "true" },
+                    { "optionalInt", "abc" },
+                },
+                new Parameterization() { },
+                "Process initialization: The configured value <\"abc\"> for parameter <optionalInt> cannot be converted to type <Int32?>."
+            ];
         }
     }
 

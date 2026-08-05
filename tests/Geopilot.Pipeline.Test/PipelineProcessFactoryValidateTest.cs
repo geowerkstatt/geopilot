@@ -36,6 +36,25 @@ public class PipelineProcessFactoryValidateTest
             .Validate();
     }
 
+    [TestMethod]
+    public void RejectsConfiguredValueNotConvertibleToNullableParameter()
+    {
+        using var factory = CreateFactory();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            factory.Builder()
+                .StepConfig(ValidationStep())
+                .Processes(ValidationProcesses(new Parameterization
+                {
+                    ["checkServiceBaseUrl"] = "http://localhost/",
+                    ["pollInterval"] = "abc",
+                }))
+                .Validate());
+
+        Assert.Contains("pollInterval", exception.Message);
+        Assert.Contains("abc", exception.Message);
+    }
+
     private static PipelineProcessFactory CreateFactory()
     {
         var options = new Mock<IOptions<PipelineOptions>>();
@@ -64,5 +83,17 @@ public class PipelineProcessFactoryValidateTest
     private static List<ProcessConfig> ZipProcesses() => new()
     {
         new ProcessConfig { Id = "zip_package_process", Implementation = "Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess" },
+    };
+
+    private static StepConfig ValidationStep() => new()
+    {
+        Id = "validate",
+        DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "Validate" }),
+        ProcessId = "xtf_validator",
+    };
+
+    private static List<ProcessConfig> ValidationProcesses(Parameterization defaultConfig) => new()
+    {
+        new ProcessConfig { Id = "xtf_validator", Implementation = "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess", DefaultConfig = defaultConfig },
     };
 }

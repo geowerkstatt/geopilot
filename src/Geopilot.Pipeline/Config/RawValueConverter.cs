@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Geopilot.Pipeline.Config;
 
@@ -10,6 +11,13 @@ namespace Geopilot.Pipeline.Config;
 /// </summary>
 internal static class RawValueConverter
 {
+    // Enum values arrive from YAML as strings (also inside lists), so the JSON round-trip
+    // must accept enum member names; reading is case-insensitive.
+    private static readonly JsonSerializerOptions FallbackSerializerOptions = new()
+    {
+        Converters = { new JsonStringEnumConverter() },
+    };
+
     /// <summary>
     /// Attempts to convert the specified raw value to the specified target type.
     /// </summary>
@@ -81,8 +89,8 @@ internal static class RawValueConverter
 
         try
         {
-            var json = JsonSerializer.Serialize(rawValue);
-            convertedValue = JsonSerializer.Deserialize(json, effectiveTargetType);
+            var json = JsonSerializer.Serialize(rawValue, FallbackSerializerOptions);
+            convertedValue = JsonSerializer.Deserialize(json, effectiveTargetType, FallbackSerializerOptions);
             return convertedValue != null;
         }
         catch

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Text.Json;
 
 namespace Geopilot.Pipeline.Process;
 
@@ -274,17 +275,60 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 return;
             }
 
-            if (!string.IsNullOrEmpty(parameterInfo.Name) &&
-                processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&
-                RawValueConverter.TryConvert(rawValue, parameterInfo.ParameterType, out _))
-            {
+            if (TryGetConfiguredValue(parameterInfo, processConfig, out _))
                 return;
-            }
 
             if (IsParameterNullable(parameterInfo))
                 return;
 
             throw new InvalidOperationException($"Process initialization: No suitable parameter found for parameter of type <{parameterInfo.ParameterType.Name}> and name <{parameterInfo.Name}>. Parameter is not nullable, cannot initialize process.");
+        }
+
+        /// <summary>
+        /// Resolves the configured value for a constructor parameter. Returns false when the
+        /// parameter is not configured. A configured value that cannot be converted to the
+        /// parameter type is a configuration error and throws, even for a nullable parameter:
+        /// silently falling back to null would hide typos in the pipeline definition. A
+        /// configured null counts as convertible only for nullable parameter types.
+        /// </summary>
+        private static bool TryGetConfiguredValue(ParameterInfo parameterInfo, Parameterization processConfig, out object? convertedValue)
+        {
+            convertedValue = null;
+            if (string.IsNullOrEmpty(parameterInfo.Name) || !processConfig.TryGetValue(parameterInfo.Name, out var rawValue))
+                return false;
+
+            if (RawValueConverter.TryConvert(rawValue, parameterInfo.ParameterType, out convertedValue))
+                return true;
+
+            if (rawValue is not null)
+                throw new InvalidOperationException($"Process initialization: The configured value <{FormatRawValue(rawValue)}> for parameter <{parameterInfo.Name}> cannot be converted to type <{FormatTypeName(parameterInfo.ParameterType)}>.");
+
+            return false;
+        }
+
+        private static string FormatRawValue(object rawValue)
+        {
+            try
+            {
+                return JsonSerializer.Serialize(rawValue);
+            }
+            catch (Exception)
+            {
+                return rawValue.ToString() ?? string.Empty;
+            }
+        }
+
+        private static string FormatTypeName(Type type)
+        {
+            var underlyingType = Nullable.GetUnderlyingType(type);
+            if (underlyingType != null)
+                return FormatTypeName(underlyingType) + "?";
+
+            if (!type.IsGenericType)
+                return type.Name;
+
+            var genericName = type.Name[..type.Name.IndexOf('`')];
+            return $"{genericName}<{string.Join(", ", type.GetGenericArguments().Select(FormatTypeName))}>";
         }
 
         private Type? GetProcessorType(string implementation)
@@ -331,9 +375,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             {
                 return new Ili2GpkgClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<Ili2GpkgClient>());
             }
-            else if (!string.IsNullOrEmpty(parameterInfo.Name) &&
-                     processConfig.TryGetValue(parameterInfo.Name, out var rawValue) &&
-                     RawValueConverter.TryConvert(rawValue, parameterInfo.ParameterType, out var convertedValue))
+            else if (TryGetConfiguredValue(parameterInfo, processConfig, out var convertedValue))
             {
                 return convertedValue;
             }
