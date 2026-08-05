@@ -1,17 +1,26 @@
 import { useState } from "react";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { Badge, Box, Stack } from "@mui/material";
+import { TreeField } from "../../api/apiInterfaces";
 import { Button, IconButton } from "../buttons";
 import { FormAutocomplete } from "../form/formAutocomplete";
 import { SearchField } from "../searchField";
-import { MetadataAttribute, MetadataFilters } from "./tree/treeNode";
+import { FieldFilters, FilterAttribute } from "./tree/treeNode";
+
+/** The filter dropdown label (translation key) per field. */
+const FIELD_LABEL_KEYS: Record<TreeField, string> = {
+  errorType: "treeFieldErrorType",
+  model: "treeFieldModel",
+  topic: "treeFieldTopic",
+  class: "treeFieldClass",
+};
 
 interface FilterBarProps {
-  attributes: MetadataAttribute[];
+  attributes: FilterAttribute[];
   messageQuery: string;
   onMessageQueryChange: (value: string) => void;
-  metadataFilters: MetadataFilters;
-  onMetadataFilterChange: (key: string, selected: string[]) => void;
+  fieldFilters: FieldFilters;
+  onFieldFilterChange: (field: TreeField, selected: string[]) => void;
   onClearFilters: () => void;
   forceMobileView?: boolean;
 }
@@ -20,14 +29,14 @@ export const FilterBar = ({
   attributes,
   messageQuery,
   onMessageQueryChange,
-  metadataFilters,
-  onMetadataFilterChange,
+  fieldFilters,
+  onFieldFilterChange,
   onClearFilters,
   forceMobileView,
 }: FilterBarProps) => {
   const [showFilters, setShowFilters] = useState(false);
 
-  const activeFilterCount = Object.values(metadataFilters).filter(values => values.length > 0).length;
+  const activeFilterCount = Object.values(fieldFilters).filter(values => (values?.length ?? 0) > 0).length;
   const hasActiveFilters = messageQuery.trim().length > 0 || activeFilterCount > 0;
   // Emphasize the toggle (filled) while the filter panel is open or filters are in effect.
   const toggleActive = showFilters || activeFilterCount > 0;
@@ -64,12 +73,12 @@ export const FilterBar = ({
             }}>
             {attributes.map(attribute => (
               <FormAutocomplete
-                key={attribute.key}
-                label={attribute.key}
+                key={attribute.field}
+                label={FIELD_LABEL_KEYS[attribute.field]}
                 values={attribute.options}
-                selected={metadataFilters[attribute.key] ?? []}
-                onChange={value => onMetadataFilterChange(attribute.key, value as string[])}
-                dataCy={`metadata-filter-${attribute.key}`}
+                selected={fieldFilters[attribute.field] ?? []}
+                onChange={value => onFieldFilterChange(attribute.field, value as string[])}
+                dataCy={`metadata-filter-${attribute.field}`}
                 sx={{ minWidth: "0" }}
               />
             ))}

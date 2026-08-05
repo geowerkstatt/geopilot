@@ -1,5 +1,4 @@
-﻿using Geopilot.Pipeline.Visualization;
-using System.Globalization;
+﻿using System.Globalization;
 
 namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 

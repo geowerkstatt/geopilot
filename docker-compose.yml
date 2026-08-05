@@ -123,7 +123,6 @@ services:
       - ./src/Geopilot.Api/Uploads:/uploads
       - ./src/Geopilot.Api/Downloads:/downloads
       - ./src/Geopilot.Api/Persistent:/assets
-      - ./src/Geopilot.Api/Pipeline:/pipeline
       - ./src/Geopilot.Api/Resources:/resources
       - ./src/Geopilot.Api/PipelineDefinitions/basicPipeline_01.yaml:/pipelines/pipelines.yaml:ro
       - ./src/Geopilot.Frontend/devPublic:/public
@@ -146,7 +145,7 @@ services:
     command: start-dev --import-realm
 
   ilitools-wrapper:
-    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.0.4
+    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.0.6
     restart: unless-stopped
     ports:
       - 5555:5555
