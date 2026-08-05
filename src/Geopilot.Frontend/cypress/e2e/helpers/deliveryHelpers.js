@@ -1,3 +1,4 @@
+import { loginAsUploader } from "./appHelpers.js";
 import { toggleCheckbox } from "./formHelpers.js";
 
 export const fileNameExists = (filePath, success) => {
@@ -86,4 +87,80 @@ export const stepIsCompleted = (stepName, isCompleted = true) => {
 
 export const selectStep = stepName => {
   cy.dataCy(`${stepName}-step`).click();
+};
+
+/**
+ * Builds a single pipeline-step result for a mocked processing job. Omitting `message` leaves the step
+ * without a condition message.
+ */
+export const processingStep = (id, name, state, message) => ({
+  id,
+  name: { en: name, de: name },
+  state,
+  ...(message ? { conditionMessage: { en: message, de: message } } : {}),
+  downloads: [],
+  visualizations: [],
+});
+
+/**
+ * Builds a mocked processing-job response for mandate 1 with the given aggregate state and steps.
+ */
+export const processingJob = (jobId, state, steps) => ({
+  jobId,
+  state,
+  mandateId: 1,
+  pipelineName: { en: "XTF Validation", de: "XTF Validierung" },
+  steps,
+});
+
+/**
+ * Logs in, uploads a valid file, selects mandate 1 and starts processing, returning the given mocked job
+ * as the response for both the POST and the status GET. Leaves the wizard on the processing step with the
+ * job status loaded.
+ */
+export const runMockedProcessingJob = job => {
+  loginAsUploader();
+  addFile("deliveryFiles/ilimodels_valid.xtf", true);
+  uploadFile();
+
+  cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
+  cy.wait("@getMandates");
+  selectMandate(1);
+
+  cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: job }).as("startProcessing");
+  cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: job }).as("jobStatus");
+
+  cy.dataCy("startProcessing-button").click();
+  cy.wait("@startProcessing");
+  cy.wait("@jobStatus");
+};
+
+/** Asserts the results-pane accordion for a pipeline step shows the icon for the given state. */
+export const resultStepHasIcon = (stepId, state) => {
+  cy.dataCy(`processing-step-${stepId}`).dataCy(`stepIcon-${state}`).should("exist");
+};
+
+/** Asserts the results-pane accordion for a pipeline step contains the given text. */
+export const resultStepShowsMessage = (stepId, text) => {
+  cy.dataCy(`processing-step-${stepId}`).contains(text);
+};
+
+/** Asserts the stepper node for a wizard step shows the icon for the given state. */
+export const stepperStepHasIcon = (stepName, state) => {
+  cy.dataCy(`${stepName}-step`).dataCy(`stepIcon-${state}`).should("exist");
+};
+
+/** Asserts the stepper node for a wizard step does not show the icon for the given state. */
+export const stepperStepMissingIcon = (stepName, state) => {
+  cy.dataCy(`${stepName}-step`).dataCy(`stepIcon-${state}`).should("not.exist");
+};
+
+/** Asserts the stepper node for a wizard step contains the given text. */
+export const stepperStepShowsMessage = (stepName, text) => {
+  cy.dataCy(`${stepName}-step`).contains(text);
+};
+
+/** Asserts the stepper node for a wizard step does not contain the given text. */
+export const stepperStepMissingMessage = (stepName, text) => {
+  cy.dataCy(`${stepName}-step`).should("not.contain", text);
 };
