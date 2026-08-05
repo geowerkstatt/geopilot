@@ -19,13 +19,13 @@ const getStateColors = (state: StepState, active: boolean) => {
     case StepState.Cancelled:
     case StepState.Error:
       return {
-        backgroundColor: themePalette.error.background,
+        backgroundColor: active ? themePalette.error.background : themePalette.background.content,
         borderColor: active ? themePalette.error.dark : themePalette.error.light,
         messageColor: themePalette.error.contrastText,
       };
     case StepState.Warning:
       return {
-        backgroundColor: themePalette.warning.background,
+        backgroundColor: active ? themePalette.warning.background : themePalette.background.content,
         borderColor: active ? themePalette.warning.dark : themePalette.warning.light,
         messageColor: themePalette.warning.contrastText,
       };
@@ -37,7 +37,7 @@ const getStateColors = (state: StepState, active: boolean) => {
       };
     default:
       return {
-        backgroundColor: themePalette.primary.states.selected,
+        backgroundColor: active ? themePalette.primary.states.selected : themePalette.background.content,
         borderColor: active ? themePalette.primary.dark : themePalette.primary.light,
         messageColor: themePalette.text.primary,
       };
