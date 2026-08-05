@@ -129,12 +129,21 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
           {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}
           {children}
         </ContentBox>
-        <Stack direction="row" sx={{ alignItems: "flex-start", flexWrap: "wrap", justifyContent: "space-between" }}>
+        <Stack
+          direction={{ xs: "column-reverse", sm: "row" }}
+          sx={{ alignItems: { xs: "stretch", sm: "flex-start" }, flexWrap: "wrap", justifyContent: "space-between" }}>
           <DeliveryRestartButton
-            sx={{ display: { xs: "block", md: "none" } }}
+            sx={{ display: { xs: "block", md: "none" }, alignSelf: { xs: "center", sm: "flex-start" } }}
             immediate={lastCompletedStep === steps.size - 1}
           />
-          <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", flex: 1, justifyContent: "flex-end" }}>
+          <Stack
+            direction={{ xs: "column-reverse", sm: "row" }}
+            sx={{
+              alignItems: { xs: "stretch", sm: "center" },
+              flexWrap: "wrap",
+              flex: { xs: "0 1 auto", sm: 1 },
+              justifyContent: "flex-end",
+            }}>
             {buttons}
           </Stack>
         </Stack>
