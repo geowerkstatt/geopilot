@@ -1,4 +1,4 @@
-﻿namespace Geopilot.Pipeline.Visualization;
+﻿namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
 /// Describes what is displayed in the map visualization on the client. Serializes to the custom

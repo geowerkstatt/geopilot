@@ -12,8 +12,8 @@ Ein XTF Fehlervisualisierungs-Prozess muss unter `processes[X].implementation` d
 - `baseMapWmtsCapabilitiesUrl`: Optionaler Parameter vom Typ `string`. Übersteuert die WMTS-Capabilities-URL der Hintergrundkarte für die Kartenansicht. Wenn `null` oder leer, wird die eingebaute Standard-Hintergrundkarte verwendet.
 - `baseMapAttribution`: Optionaler Parameter vom Typ `string`. Übersteuert den Copyright-/Urhebervermerk der Hintergrundkarte (Daten-Owner, z.B. `swisstopo`), symmetrisch zu `baseMapWmtsCapabilitiesUrl`. Wenn `null` oder leer, wird der eingebaute Standardwert verwendet. Das Frontend zeigt den Vermerk mit einem lokalisierten "©"-Präfix in der linken unteren Ecke der Karte an.
 - `baseMapAttributionUrl`: Optionaler Parameter vom Typ `string`. Übersteuert die URL, auf die der Copyright-Vermerk verlinkt (z.B. die Nutzungsbedingungen des Karten-Owners). Wenn `null` oder leer, wird der eingebaute Standardwert verwendet. Da `null` und leer auf den Standardwert zurückfallen, ist immer eine URL wirksam und der Vermerk wird stets als Link dargestellt. Wer `baseMapAttribution` übersteuert, sollte deshalb auch `baseMapAttributionUrl` passend setzen, sonst verlinkt der angepasste Vermerk weiterhin auf den Standardwert (z.B. swisstopo).
-- `groupBy`: Optionaler Parameter vom Typ `IReadOnlyList<string>`. Metadaten-Schlüssel, nach denen das Frontend den Error Tree gruppiert, äusserste Ebene zuerst (z.B. `["Model", "Topic", "Class"]`). Wenn `null` oder leer, wird nicht gruppiert (flache Liste). Ein Schlüssel, der auf einem Fehler nicht vorhanden ist, landet in einer separaten Gruppe "Ohne Zuordnung".
-- `filterBy`: Optionaler Parameter vom Typ `IReadOnlyList<string>`. Metadaten-Schlüssel, die das Frontend als Filter anbietet, in Anzeigereihenfolge (z.B. `["Model", "Topic", "Class", "Error type"]`). Der Filter wirkt auf Karte und Baum gleichzeitig. Wenn `null` oder leer, werden keine Filter angeboten.
+- `groupBy`: Optionaler Parameter vom Typ `IReadOnlyList<TreeField>`. Felder, nach denen das Frontend den Error Tree gruppiert, äusserste Ebene zuerst (z.B. `["model", "topic", "class"]`). Erlaubte Werte: `errorType`, `model`, `topic`, `class`; die Gross-/Kleinschreibung ist unerheblich, ein anderer Wert schlägt bei der Validierung beim Applikationsstart fehl. Wenn `null` oder leer, wird nicht gruppiert (flache Liste). Ein Feld, das auf einem Fehler nicht vorhanden ist, landet in einer separaten Gruppe "Ohne Zuordnung".
+- `filterBy`: Optionaler Parameter vom Typ `IReadOnlyList<TreeField>`. Felder, die das Frontend als Filter anbietet, in Anzeigereihenfolge (z.B. `["model", "topic", "class", "errorType"]`). Erlaubte Werte wie bei `groupBy`. Der Filter wirkt auf Karte und Baum gleichzeitig. Wenn `null` oder leer, werden keine Filter angeboten.
 
 ## Input
 
@@ -46,7 +46,6 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfError` und
           "attributionUrl": "https://www.swisstopo.admin.ch/de/nutzungsbedingungen-kostenlose-geodaten-und-geodienste"
         },
         {
-          "color": "#e53835",
           "features": [
             { "errorId": "e0", "geom": "POINT(2600000 1200000)", "info": "Fehlerbeschreibung" }
           ]
@@ -57,34 +56,33 @@ Der `Visualization`-Output ist ein Envelope mit dem Diskriminator `xtfError` und
       "items": [
         {
           "id": "e0",
-          "label": "obj123",
           "severity": "error",
-          "metadata": {
-            "Error type": {
-              "de": "Pflichtattribut fehlt",
-              "en": "Mandatory attribute missing",
-              "fr": "Attribut obligatoire manquant",
-              "it": "Attributo obbligatorio mancante"
-            },
-            "Model": "Schutzbauten_V1_1",
-            "Topic": "Einzelobjekte",
-            "Class": "Gebaeudeeingang",
-            "Message": "Attribute IstExaktDefiniert requires a value",
-            "Line": "42"
-          }
+          "errorType": {
+            "de": "Pflichtattribut fehlt",
+            "en": "Mandatory attribute missing",
+            "fr": "Attribut obligatoire manquant",
+            "it": "Attributo obbligatorio mancante"
+          },
+          "tid": "obj123",
+          "model": "Schutzbauten_V1_1",
+          "topic": "Einzelobjekte",
+          "class": "Gebaeudeeingang",
+          "message": "Attribute IstExaktDefiniert requires a value",
+          "line": 42,
+          "coordinates": "2600000.000, 1200000.000"
         }
       ],
-      "groupBy": ["Model", "Topic", "Class"]
+      "groupBy": ["model", "topic", "class"]
     },
-    "filterBy": ["Model", "Topic", "Class", "Error type"]
+    "filterBy": ["model", "topic", "class", "errorType"]
   }
 }
 ```
 
 - `data.map` und `data.tree` erscheinen nur, wenn die jeweilige Ansicht via `include` erzeugt wurde. `data.filterBy` erscheint nur, wenn ein Baum erzeugt wurde.
-- `map.layers` werden in Reihenfolge gezeichnet. Ein Layer ist entweder ein WMTS-Layer (`wmts` = Capabilities-URL, optional `layerIds`) oder ein Feature-Layer (`features`, optional `color` als Hex-Farbe). `title` (lokalisiert) ist optional. Ein Layer kann zudem einen Copyright-Vermerk tragen: `attribution` (Daten-Owner bzw. Anzeigetext) und optional `attributionUrl` (Link-Ziel); das Frontend zeigt ihn mit lokalisiertem "©"-Präfix unten links an.
+- `map.layers` werden in Reihenfolge gezeichnet. Ein Layer ist entweder ein WMTS-Layer (`wmts` = Capabilities-URL, optional `layerIds`) oder ein Feature-Layer (`features`). `title` (lokalisiert) ist optional. Ein Layer kann zudem einen Copyright-Vermerk tragen: `attribution` (Daten-Owner bzw. Anzeigetext) und optional `attributionUrl` (Link-Ziel); das Frontend zeigt ihn mit lokalisiertem "©"-Präfix unten links an.
 - Pro `features`-Eintrag: `geom` als WKT (z.B. `POINT(...)`), `errorId` als stabile Fehler-ID, `info` als Anzeigetext.
-- `tree.items` ist eine flache Liste; jedes Element ist ein Fehler und wird zum Blatt des Baums. Pro Element: `id` (stabile Fehler-ID, optional), `label` (Anzeigetext des Blattes), `severity` (`error` oder `warning`, daraus leitet das Frontend Icon und Farbe ab) und `metadata` (Key/Value). Ein Metadaten-Wert ist entweder ein einfacher String (Daten, z.B. ein Klassenname) oder ein `LocalizedText` (eine generierte Beschriftung wie die Fehlerkategorie, serialisiert als Objekt je Sprache).
-- `tree.groupBy` sind die Metadaten-Schlüssel, nach denen das Frontend die Items zur Hierarchie gruppiert (äusserste Ebene zuerst); eine leere Liste ergibt eine flache Liste. `data.filterBy` sind die im Frontend als Filter angebotenen Schlüssel; der Filter wirkt auf Karte und Baum.
+- `tree.items` ist eine flache Liste; jedes Element ist ein Fehler und wird zum Blatt des Baums. Pro Element sind die Felder explizit: `severity` (`error` oder `warning`, daraus leitet das Frontend Icon und Farbe ab) und `message` sind immer vorhanden; `id` (stabile Fehler-ID), `errorType` (die klassifizierte Fehlerkategorie als `LocalizedText`, serialisiert als Objekt je Sprache), `tid`, `model`, `topic`, `class`, `line` (Zahl) und `coordinates` (vorformatierter String `"C1, C2"`) erscheinen nur, wenn der Fehler sie trägt (`model`, `topic` und `class` immer zusammen). Als Blatt-Text zeigt das Frontend `tid`, ersatzweise `message`.
+- `tree.groupBy` sind die Felder, nach denen das Frontend die Items zur Hierarchie gruppiert (äusserste Ebene zuerst); eine leere Liste ergibt eine flache Liste. `data.filterBy` sind die im Frontend als Filter angebotenen Felder; der Filter wirkt auf Karte und Baum. Feld-Werte werden als camelCase-Strings serialisiert (`errorType`, `model`, `topic`, `class`).
 - `id` des Tree-Items und `errorId` des Map-Features sind identisch; daran verknüpft das Frontend Karte und Baum (Cross-Select).
 

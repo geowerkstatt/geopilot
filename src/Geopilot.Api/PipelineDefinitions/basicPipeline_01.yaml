@@ -20,15 +20,15 @@ processes:
         - map
         - tree
       groupBy:
-        - Model
-        - Topic
-        - Class
-        - Error type
+        - model
+        - topic
+        - class
+        - errorType
       filterBy:
-        - Model
-        - Topic
-        - Class
-        - Error type
+        - model
+        - topic
+        - class
+        - errorType
 pipelines:
   - id: ili_validation
     display_name:

@@ -98,10 +98,10 @@ interface StepDownload {
   url: string;
 }
 
-/** A single feature inside a feature layer of a map visualization. */
 /** A backend multilingual string, keyed by ISO 639 language code ("de", "fr", "it", "en"). */
 export type LocalizedText = Record<string, string>;
 
+/** A single feature inside a feature layer of a map visualization. */
 interface MapFeature {
   /** Stable id of the validation error this feature represents, shared with its tree node for cross-select. */
   errorId: string;
@@ -139,27 +139,39 @@ export interface MapVisualizationConfig {
   layers: MapLayer[];
 }
 
-/** A metadata value on an error-tree item: a plain data string, or a localized label from the backend. */
-export type MetadataValue = string | LocalizedText;
+/** A categorical field of an error-tree item the tree can be grouped and filtered by. */
+export type TreeField = "errorType" | "model" | "topic" | "class";
 
 /** A flat item of the error-tree visualization; the frontend groups the items into the displayed hierarchy. */
 export interface TreeItem {
   /** Stable id correlating this item with its map feature for cross-select. Absent on items without a feature. */
   id?: string;
-  /** The text shown for the item's leaf node. */
-  label: string;
   /** Error or warning; drives the leaf's icon and colour. */
   severity: "error" | "warning";
-  /** Arbitrary metadata; values are plain strings (data) or LocalizedText (generated labels), keyed for groupBy. */
-  metadata: Record<string, MetadataValue>;
+  /** The classified error category as a localized label. Absent when the message matches no known category. */
+  errorType?: LocalizedText;
+  /** The TID of the failing object. Shown as the leaf text when present. */
+  tid?: string;
+  /** The INTERLIS model of the failing object; model, topic and class are either all set or all absent. */
+  model?: string;
+  /** The INTERLIS topic of the failing object. */
+  topic?: string;
+  /** The INTERLIS class of the failing object. */
+  class?: string;
+  /** The validator message. Shown as the leaf text when there is no TID. */
+  message: string;
+  /** The line number in the validated file. */
+  line?: number;
+  /** The error's coordinates as a preformatted "C1, C2" display string. */
+  coordinates?: string;
 }
 
 /** The error-tree visualization payload produced by the pipeline step. */
 export interface TreeVisualizationConfig {
   /** The flat items; the frontend groups them on {@link groupBy} to build the displayed tree. */
   items: TreeItem[];
-  /** The metadata keys to group by, outermost first (e.g. ["Model", "Topic", "Class"]). */
-  groupBy: string[];
+  /** The fields to group by, outermost first (e.g. ["model", "topic", "class"]). */
+  groupBy: TreeField[];
 }
 
 interface StepVisualization {

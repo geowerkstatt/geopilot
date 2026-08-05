@@ -1,9 +1,9 @@
-﻿namespace Geopilot.Pipeline.Visualization;
+﻿namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
 /// <summary>
-/// The config for the built-in tree visualization: a flat list of <see cref="Items"/> plus the metadata keys
+/// The config for the built-in tree visualization: a flat list of <see cref="Items"/> plus the fields
 /// (<see cref="GroupBy"/>) the frontend groups them by to build the displayed hierarchy. The composite root
-/// carries the filter keys, since the filter also applies to the map. Serialized to JSON and rendered by the
+/// carries the filter fields, since the filter also applies to the map. Serialized to JSON and rendered by the
 /// frontend tree component.
 /// </summary>
 internal sealed class TreeVisualizationConfig
@@ -14,7 +14,7 @@ internal sealed class TreeVisualizationConfig
     public required IReadOnlyList<TreeItem> Items { get; init; }
 
     /// <summary>
-    /// The metadata keys to group the items by, outermost first (e.g. <c>["Model", "Topic", "Class"]</c>).
+    /// The fields to group the items by, outermost first (e.g. model, topic, class).
     /// </summary>
-    public required IReadOnlyList<string> GroupBy { get; init; }
+    public required IReadOnlyList<TreeField> GroupBy { get; init; }
 }

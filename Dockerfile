@@ -97,7 +97,6 @@ EXPOSE 8080
 VOLUME $Storage__UploadDirectory
 VOLUME $Storage__DownloadDirectory
 VOLUME $Storage__AssetsDirectory
-VOLUME $Storage__PipelineDirectory
 VOLUME $Storage__ResourcesDirectory
 VOLUME $Storage__VisualizationDirectory
 

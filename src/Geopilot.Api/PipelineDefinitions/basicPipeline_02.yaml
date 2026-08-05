@@ -23,15 +23,15 @@ processes:
         - map
         - tree
       groupBy:
-        - Model
-        - Topic
-        - Class
-        - Error type
+        - model
+        - topic
+        - class
+        - errorType
       filterBy:
-        - Model
-        - Topic
-        - Class
-        - Error type
+        - model
+        - topic
+        - class
+        - errorType
   - id: zip_packager
     implementation: Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess
 pipelines:
