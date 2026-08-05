@@ -5,6 +5,7 @@ import { Tooltip } from "@mui/material";
 import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { ApiError, Delivery } from "../../api/apiInterfaces";
 import useFetch from "../../hooks/useFetch.ts";
+import { useLocalized } from "../../hooks/useLocalized.ts";
 import { AlertContext } from "..//alert/alertContext";
 import { PromptContext } from "..//prompt/promptContext";
 import GeopilotDataGrid from "./geopilotDataGrid.tsx";
@@ -32,6 +33,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
   const { showPrompt } = useContext(PromptContext);
   const { showAlert } = useContext(AlertContext);
   const { fetchApi } = useFetch();
+  const localized = useLocalized();
 
   const loadDeliveries = useCallback(async () => {
     fetchApi<Delivery[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
@@ -41,7 +43,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
             id: d.id,
             date: d.date,
             userName: d.declaringUser.fullName,
-            mandateName: d.mandate.name,
+            mandateName: localized(d.mandate.name),
             comment: d.comment,
             canDelete: d.canDelete,
           })),
@@ -50,7 +52,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [fetchApi, fetchUrl]);
+  }, [fetchApi, fetchUrl, localized]);
 
   useEffect(() => {
     loadDeliveries();

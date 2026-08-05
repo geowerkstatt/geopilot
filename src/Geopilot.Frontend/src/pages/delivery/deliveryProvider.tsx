@@ -12,6 +12,7 @@ import {
 import { useGeopilotAuth } from "../../auth";
 import useCloudUpload from "../../hooks/useCloudUpload.ts";
 import useFetch from "../../hooks/useFetch.ts";
+import { useLocalized } from "../../hooks/useLocalized.ts";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryFileUpload } from "./deliveryFileUpload.tsx";
 import {
@@ -83,6 +84,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const { fetchApi } = useFetch();
   const { cloudUpload } = useCloudUpload();
   const { user } = useGeopilotAuth();
+  const localized = useLocalized();
   const prevUserIdRef = useRef<number | undefined>(user?.id);
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), false));
   const [submittedData, setSubmittedData] = useState<DeliverySubmitData>();
@@ -302,7 +304,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       const newSteps = new Map(prevSteps);
       const step = newSteps.get(DeliveryStepEnum.Mandate);
       if (step) {
-        step.labelAddition = mandate.name;
+        step.labelAddition = localized(mandate.name);
       }
       return newSteps;
     });

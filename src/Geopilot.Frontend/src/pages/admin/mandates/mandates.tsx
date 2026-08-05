@@ -4,7 +4,13 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { Stack, Tooltip } from "@mui/material";
 import { GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
-import { AvailablePipelinesResponse, Mandate, Organisation, PipelineSummary } from "../../../api/apiInterfaces";
+import {
+  AvailablePipelinesResponse,
+  LocalizedText,
+  Mandate,
+  Organisation,
+  PipelineSummary,
+} from "../../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
@@ -54,6 +60,7 @@ const Mandates = () => {
       headerName: t("name"),
       flex: 0.5,
       minWidth: 200,
+      valueGetter: (name: LocalizedText) => localized(name),
     },
     {
       field: "pipelineId",

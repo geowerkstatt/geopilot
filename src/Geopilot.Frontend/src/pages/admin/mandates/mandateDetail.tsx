@@ -10,12 +10,14 @@ import {
   Organisation,
   PipelineSummary,
 } from "../../../api/apiInterfaces.ts";
+import { Language } from "../../../appInterfaces.ts";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import {
   FormContainer,
   FormContainerHalfWidth,
   FormExtent,
-  FormInput,
+  FormLanguageTabs,
+  FormLocalizedInput,
   FormSelect,
 } from "../../../components/form/form.ts";
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
@@ -24,13 +26,14 @@ import useFetch from "../../../hooks/useFetch.ts";
 import MandateConfigurationFields from "./mandateConfigurationFields.tsx";
 
 const MandateDetail = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { fetchApi } = useFetch();
   const { id = "0" } = useParams<{ id: string }>();
 
   const [mandate, setMandate] = useState<Mandate>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>();
+  const [activeLanguage, setActiveLanguage] = useState<Language>(i18n.resolvedLanguage as Language);
 
   const loadMandate = useCallback(
     async (id: string) => {
@@ -60,7 +63,7 @@ const MandateDetail = () => {
     } else {
       setMandate({
         id: 0,
-        name: "",
+        name: {},
         description: {},
         isPublic: false,
         allowDelivery: false,
@@ -98,19 +101,31 @@ const MandateDetail = () => {
       prepareDataForSave={prepareMandateForSave}
       onSaveSuccess={setMandate}>
       <GeopilotBox>
-        <Typography variant={"h3"} marginTop={0}>
-          {t("general")}
-        </Typography>
+        <Stack direction="row" justifyContent="space-between">
+          <Typography variant={"h3"} marginTop={0}>
+            {t("general")}
+          </Typography>
+          <FormLanguageTabs language={activeLanguage} onLanguageChange={setActiveLanguage} />
+        </Stack>
         <FormContainer>
-          <FormInput fieldName={"name"} label={"name"} value={mandate?.name} required={true} />
+          <FormLocalizedInput
+            fieldName={"name"}
+            label={"name"}
+            value={mandate?.name}
+            activeLanguage={activeLanguage}
+            requireAtLeastOne={true}
+          />
         </FormContainer>
         <FormContainer>
-          <FormInput
-            fieldName={"description.de"}
+          <FormLocalizedInput
+            fieldName={"description"}
             label={"description"}
-            value={mandate?.description?.de}
+            value={mandate?.description}
+            activeLanguage={activeLanguage}
             multiline={true}
             minRows={3}
+            maxRows={3}
+            helperText={t("mandateDescriptionHelperText")}
           />
         </FormContainer>
       </GeopilotBox>

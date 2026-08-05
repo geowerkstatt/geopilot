@@ -31,9 +31,10 @@ interface MandateToggleButtonProps {
 }
 
 const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
+  const localized = useLocalized();
   return (
     <ToggleButton value={mandate} data-cy={`mandate-${mandate.id}`}>
-      {mandate.name}
+      {localized(mandate.name)}
     </ToggleButton>
   );
 };
