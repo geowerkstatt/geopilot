@@ -48,6 +48,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, required, disabled,
         <FormContainer>
           <TextField
             label={t("bottomLeft") + " - " + t("longitude")}
+            required={required ?? false}
             error={showError}
             value={coords?.[0]?.x ?? ""}
             disabled={disabled ?? false}
@@ -58,6 +59,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, required, disabled,
           />
           <TextField
             label={t("bottomLeft") + " - " + t("latitude")}
+            required={required ?? false}
             error={showError}
             value={coords?.[0]?.y ?? ""}
             disabled={disabled ?? false}
@@ -70,6 +72,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, required, disabled,
         <FormContainer>
           <TextField
             label={t("upperRight") + " - " + t("longitude")}
+            required={required ?? false}
             error={showError}
             value={coords?.[1]?.x ?? ""}
             disabled={disabled ?? false}
@@ -80,6 +83,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, required, disabled,
           />
           <TextField
             label={t("upperRight") + " - " + t("latitude")}
+            required={required ?? false}
             error={showError}
             value={coords?.[1]?.y ?? ""}
             disabled={disabled ?? false}
