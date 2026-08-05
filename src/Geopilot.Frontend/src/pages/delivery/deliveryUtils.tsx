@@ -1,7 +1,7 @@
 import { LocalizedText, ProcessingJobResponse, StepResult, StepState } from "../../api/apiInterfaces";
 
 const APP_HEADER_HEIGHT = 60;
-export const STEPPER_HEIGHT = 58;
+export const STEPPER_HEIGHT = 62;
 
 export const STICKY_TOP_POSITION_DEFAULT = APP_HEADER_HEIGHT + 40;
 export const STICKY_TOP_POSITION_XS = APP_HEADER_HEIGHT + 8;
