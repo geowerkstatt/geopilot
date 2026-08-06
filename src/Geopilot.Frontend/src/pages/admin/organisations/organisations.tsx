@@ -8,9 +8,11 @@ import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
+import { useLocalized } from "../../../hooks/useLocalized.ts";
 
 const Organisations = () => {
   const { t } = useTranslation();
+  const localize = useLocalized();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [organisations, setOrganisations] = useState<Organisation[]>();
@@ -49,7 +51,7 @@ const Organisations = () => {
       flex: 1,
       minWidth: 400,
       valueGetter: (mandates: Mandate[]) => {
-        const sortedNames = [...mandates].map(m => m.name).sort();
+        const sortedNames = [...mandates].map(m => localize(m.name)).sort();
         return sortedNames.join(", ");
       },
     },
