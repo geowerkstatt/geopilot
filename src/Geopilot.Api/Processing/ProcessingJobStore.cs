@@ -26,7 +26,7 @@ public class ProcessingJobStore : IProcessingJobStore
             Id: Guid.NewGuid(),
             Files: new List<ProcessingJobFile>(),
             MandateId: null,
-            CreatedAt: DateTime.Now);
+            CreatedAt: DateTime.UtcNow);
 
         jobs[newJob.Id] = newJob;
         return newJob;
