@@ -12,7 +12,7 @@ import { useLocalized } from "../../../hooks/useLocalized.ts";
 
 const Organisations = () => {
   const { t } = useTranslation();
-  const localize = useLocalized();
+  const { localized } = useLocalized();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [organisations, setOrganisations] = useState<Organisation[]>();
@@ -51,7 +51,7 @@ const Organisations = () => {
       flex: 1,
       minWidth: 400,
       valueGetter: (mandates: Mandate[]) => {
-        const sortedNames = [...mandates].map(m => localize(m.name)).sort();
+        const sortedNames = [...mandates].map(m => localized(m.name)).sort();
         return sortedNames.join(", ");
       },
     },

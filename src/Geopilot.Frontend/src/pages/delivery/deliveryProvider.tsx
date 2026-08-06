@@ -84,7 +84,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const { fetchApi } = useFetch();
   const { cloudUpload } = useCloudUpload();
   const { user } = useGeopilotAuth();
-  const localized = useLocalized();
+  const { localized } = useLocalized();
   const prevUserIdRef = useRef<number | undefined>(user?.id);
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), false));
   const [submittedData, setSubmittedData] = useState<DeliverySubmitData>();

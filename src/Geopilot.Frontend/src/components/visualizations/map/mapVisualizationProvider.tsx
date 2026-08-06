@@ -163,7 +163,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   children,
 }) => {
   const { t } = useTranslation();
-  const localized = useLocalized();
+  const { localized } = useLocalized();
   const theme = useTheme();
 
   const [map, setMap] = useState<Map | null>(null);

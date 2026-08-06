@@ -14,7 +14,7 @@ import { useLocalized } from "../../../hooks/useLocalized.ts";
 const OrganisationDetail = () => {
   const { t } = useTranslation();
   const { fetchApi } = useFetch();
-  const localized = useLocalized();
+  const { localized } = useLocalized();
   const { id = "0" } = useParams<{ id: string }>();
 
   const [organisation, setOrganisation] = useState<Organisation>();

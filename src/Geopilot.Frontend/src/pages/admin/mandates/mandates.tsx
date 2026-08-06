@@ -20,7 +20,7 @@ import { findPipeline } from "./pipelineDisplay";
 
 const Mandates = () => {
   const { t } = useTranslation();
-  const localized = useLocalized();
+  const { localized } = useLocalized();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [mandates, setMandates] = useState<Mandate[]>();

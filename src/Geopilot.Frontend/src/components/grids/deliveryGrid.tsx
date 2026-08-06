@@ -33,7 +33,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
   const { showPrompt } = useContext(PromptContext);
   const { showAlert } = useContext(AlertContext);
   const { fetchApi } = useFetch();
-  const localized = useLocalized();
+  const { localized } = useLocalized();
 
   const loadDeliveries = useCallback(async () => {
     fetchApi<Delivery[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
