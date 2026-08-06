@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Stac;
 using Stac.Api.Interfaces;
+using Stac.Api.Services.Pagination;
+using Stac.Api.WebApi.Services;
 
 namespace Geopilot.Api.StacServices;
 
@@ -79,6 +81,8 @@ public class StacItemsProvider : IItemsProvider
     {
         ArgumentNullException.ThrowIfNull(stacApiContext);
 
+        FixPaginationParameters(stacApiContext);
+
         var items = new List<StacItem>();
 
         var collectionIds = stacApiContext.Collections?.ToList();
@@ -96,5 +100,19 @@ public class StacItemsProvider : IItemsProvider
         }
 
         return items;
+    }
+
+    private void FixPaginationParameters(IStacApiContext stacApiContext)
+    {
+        // Fix limit defaulting to 0 instead of null, resulting in no items returned from search.
+        switch (stacApiContext.Properties[PaginationExtensions.PaginationPropertiesKey])
+        {
+            case QueryStringPaginationParameters queryPagination when queryPagination.Limit == 0:
+                queryPagination.Limit = null;
+                break;
+            case BodyPaginationParameters bodyPagination when bodyPagination.Limit == 0:
+                bodyPagination.Limit = null;
+                break;
+        }
     }
 }
