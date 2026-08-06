@@ -5,7 +5,7 @@ import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
 import { TreeItem } from "../../../api/apiInterfaces";
-import { STICKY_TOP_POSITION_DEFAULT } from "../../../pages/delivery/deliveryUtils";
+import { useContentTopPosition } from "../../../pages/delivery/deliveryUtils";
 import { Button } from "../../buttons";
 import { DetailPanel } from "./detailPanel";
 import { renderTreeItems } from "./renderTreeItems";
@@ -69,14 +69,13 @@ const useElementWidth = <T extends HTMLElement>(): [(node: T | null) => void, nu
 const InlineDetailPanel = forwardRef<HTMLDivElement, { item: TreeItem; fullscreen?: boolean }>(
   ({ item, fullscreen }, ref) => {
     const theme = useTheme();
+    const contentTop = useContentTopPosition();
 
     return (
       <Box
         ref={ref}
         sx={{
-          scrollMarginTop: fullscreen
-            ? theme.spacing(8)
-            : `calc(${STICKY_TOP_POSITION_DEFAULT}px + ${theme.spacing(8)})`,
+          scrollMarginTop: fullscreen ? theme.spacing(8) : `calc(${contentTop}px + ${theme.spacing(8)})`,
           scrollMarginBottom: fullscreen ? undefined : theme.spacing(4),
         }}>
         <DetailPanel item={item} />
@@ -105,6 +104,7 @@ export const TreeVisualization = ({
   const inlinePanelRef = useRef<HTMLDivElement>(null);
   const treeRef = useRef<HTMLUListElement>(null);
   const theme = useTheme();
+  const contentTop = useContentTopPosition();
 
   const sideBySide = !fullscreen && (containerWidth === 0 || containerWidth >= SIDE_BY_SIDE_THRESHOLD);
 
@@ -268,7 +268,7 @@ export const TreeVisualization = ({
               transition: "transform 0.15s ease",
               width: PANEL_WIDTH,
               maxWidth: "100%",
-              scrollMarginTop: `calc(${STICKY_TOP_POSITION_DEFAULT}px + ${theme.spacing(4)})`,
+              scrollMarginTop: `calc(${contentTop}px + ${theme.spacing(4)})`,
               scrollMarginBottom: theme.spacing(4),
             }}>
             {sideBySide && selectedItem && <DetailPanel item={selectedItem} />}
