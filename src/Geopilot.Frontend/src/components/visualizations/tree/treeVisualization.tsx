@@ -1,9 +1,11 @@
-import { SyntheticEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { SimpleTreeView } from "@mui/x-tree-view";
+import { TreeItem } from "../../../api/apiInterfaces";
+import { useContentTopPosition } from "../../../pages/delivery/deliveryUtils";
 import { Button } from "../../buttons";
 import { DetailPanel } from "./detailPanel";
 import { renderTreeItems } from "./renderTreeItems";
@@ -64,6 +66,24 @@ const useElementWidth = <T extends HTMLElement>(): [(node: T | null) => void, nu
   return [ref, width];
 };
 
+const InlineDetailPanel = forwardRef<HTMLDivElement, { item: TreeItem; fullscreen?: boolean }>(
+  ({ item, fullscreen }, ref) => {
+    const theme = useTheme();
+    const contentTop = useContentTopPosition();
+
+    return (
+      <Box
+        ref={ref}
+        sx={{
+          scrollMarginTop: fullscreen ? theme.spacing(8) : `calc(${contentTop}px + ${theme.spacing(8)})`,
+          scrollMarginBottom: fullscreen ? undefined : theme.spacing(4),
+        }}>
+        <DetailPanel item={item} />
+      </Box>
+    );
+  },
+);
+
 export const TreeVisualization = ({
   nodes,
   selectedId,
@@ -81,6 +101,10 @@ export const TreeVisualization = ({
   const [measureContainer, containerWidth] = useElementWidth<HTMLDivElement>();
   const treeWrapperRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const inlinePanelRef = useRef<HTMLDivElement>(null);
+  const treeRef = useRef<HTMLUListElement>(null);
+  const theme = useTheme();
+  const contentTop = useContentTopPosition();
 
   const sideBySide = !fullscreen && (containerWidth === 0 || containerWidth >= SIDE_BY_SIDE_THRESHOLD);
 
@@ -130,16 +154,16 @@ export const TreeVisualization = ({
       return renderTreeItems(nodes, "n", {
         ...zoomOptions,
         selectedId,
-        inlinePanel: <DetailPanel item={selectedItem} />,
+        inlinePanel: <InlineDetailPanel ref={inlinePanelRef} item={selectedItem} fullscreen={fullscreen} />,
       });
     }
     return renderTreeItems(nodes, "n", zoomOptions);
-  }, [nodes, sideBySide, selectedId, selectedItem, onZoom, zoomableNodeIds]);
+  }, [fullscreen, nodes, onZoom, selectedId, selectedItem, sideBySide, zoomableNodeIds]);
 
   // Align the box's top with the selected row, but keep it within the tree so a selection far down does not
   // push the box past the tree and grow the accordion: clamp to the tree's bottom edge. Recompute when
   // layout-affecting state changes.
-  useLayoutEffect(() => {
+  const updatePanelTop = useCallback(() => {
     if (!sideBySide || !selectedId) {
       setPanelTop(0);
       return;
@@ -154,13 +178,38 @@ export const TreeVisualization = ({
     const panelHeight = panelRef.current?.offsetHeight ?? 0;
     const maxTop = Math.max(0, wrapper.offsetHeight - panelHeight);
     setPanelTop(Math.min(Math.max(0, offset), maxTop));
-  }, [sideBySide, selectedId, expandedItems, items, containerWidth]);
+  }, [selectedId, sideBySide]);
 
-  // Scroll the selected node into view once it (and its now-expanded ancestors) are rendered.
   useEffect(() => {
-    if (!selectedId) return;
-    treeWrapperRef.current?.querySelector<HTMLElement>(".Mui-selected")?.scrollIntoView({ block: "nearest" });
-  }, [selectedId, expandedItems]);
+    const tree = treeRef.current;
+    if (!tree) return;
+
+    const scrollInlineOrUpdatePanelTop = () => {
+      updatePanelTop();
+      inlinePanelRef.current?.scrollIntoView({ block: "nearest" });
+    };
+
+    scrollInlineOrUpdatePanelTop();
+
+    tree.addEventListener("transitionend", scrollInlineOrUpdatePanelTop, { once: true });
+    return () => {
+      tree.removeEventListener("transitionend", scrollInlineOrUpdatePanelTop);
+    };
+  }, [expandedItems, items, containerWidth, updatePanelTop]);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel || !sideBySide) return;
+
+    const onPanelTopTransitionEnd = () => {
+      panel.scrollIntoView({ block: "nearest" });
+    };
+
+    panel.addEventListener("transitionend", onPanelTopTransitionEnd);
+    return () => {
+      panel.removeEventListener("transitionend", onPanelTopTransitionEnd);
+    };
+  }, [selectedId, sideBySide]);
 
   if (nodes.length === 0 && !filterActive) return null;
 
@@ -193,6 +242,7 @@ export const TreeVisualization = ({
               minWidth: 0,
             }}>
             <SimpleTreeView
+              ref={treeRef}
               selectedItems={selectedId}
               onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
               expandedItems={expandedItems}
@@ -213,11 +263,13 @@ export const TreeVisualization = ({
             ref={panelRef}
             sx={{
               display: sideBySide ? "block" : "none",
-              mt: `${panelTop}px`,
+              transform: `translateY(${panelTop}px)`,
               flexShrink: 0,
-              transition: "margin-top 0.15s ease",
+              transition: "transform 0.15s ease",
               width: PANEL_WIDTH,
               maxWidth: "100%",
+              scrollMarginTop: `calc(${contentTop}px + ${theme.spacing(4)})`,
+              scrollMarginBottom: theme.spacing(4),
             }}>
             {sideBySide && selectedItem && <DetailPanel item={selectedItem} />}
           </Box>

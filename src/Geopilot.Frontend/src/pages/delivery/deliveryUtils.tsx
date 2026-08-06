@@ -1,3 +1,4 @@
+import { useMediaQuery, useTheme } from "@mui/material";
 import {
   LocalizedText,
   ProcessingJobResponse,
@@ -10,11 +11,26 @@ import {
 const APP_HEADER_HEIGHT = 60;
 export const STEPPER_HEIGHT = 62;
 
-export const STICKY_TOP_POSITION_DEFAULT = APP_HEADER_HEIGHT + 40;
-export const STICKY_TOP_POSITION_XS = APP_HEADER_HEIGHT + 8;
+/** Top position of the delivery stepper for different screen sizes. */
+export const stepperTopPosition = {
+  default: APP_HEADER_HEIGHT + 40,
+  xs: APP_HEADER_HEIGHT + 8,
+};
 
-export const mobileTopDistance = STICKY_TOP_POSITION_DEFAULT + STEPPER_HEIGHT + 16; // top distance + stepper + spacing
-export const smallTopDistance = STICKY_TOP_POSITION_XS + STEPPER_HEIGHT + 8; // small top distance + stepper + spacing
+/** Top position of the delivery content for different screen sizes. */
+export const contentTopPosition = {
+  default: stepperTopPosition.default,
+  sm: stepperTopPosition.default + STEPPER_HEIGHT + 16,
+  xs: stepperTopPosition.xs + STEPPER_HEIGHT + 8,
+};
+
+/** Gets the current top position of the delivery content based on the screen size. */
+export const useContentTopPosition = () => {
+  const theme = useTheme();
+  const isSm = useMediaQuery(theme.breakpoints.down("md"));
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
+  return isXs ? contentTopPosition.xs : isSm ? contentTopPosition.sm : contentTopPosition.default;
+};
 
 export function isProcessingDeliverable(job?: ProcessingJobResponse) {
   return job?.state === StepState.Success || job?.state === StepState.Warning;

@@ -4,7 +4,7 @@ import { Box, Stack, styled, Typography } from "@mui/material";
 import { GeopilotBox } from "../../components/styledComponents";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
-import { mobileTopDistance, smallTopDistance, STICKY_TOP_POSITION_DEFAULT } from "./deliveryUtils";
+import { contentTopPosition } from "./deliveryUtils";
 
 interface DeliveryContentProps {
   title: string;
@@ -18,33 +18,31 @@ const DeliveryContentGrid = styled(Box)({
   flex: 1,
 });
 
-const desktopTopDistance = STICKY_TOP_POSITION_DEFAULT;
-
 // place all elements in the same grid cell and add sticky scrolling
 const Overlay = styled(Box)(({ theme }) => ({
   gridArea: "1 / 1",
   position: "sticky",
-  top: `${desktopTopDistance}px`,
+  top: `${contentTopPosition.default}px`,
   [theme.breakpoints.down("md")]: {
-    top: `${mobileTopDistance}px`,
+    top: `${contentTopPosition.sm}px`,
   },
   [theme.breakpoints.down("sm")]: {
-    top: `${smallTopDistance}px`,
+    top: `${contentTopPosition.xs}px`,
   },
 }));
 
 // hide the scrolled content
 const ScrollContentOverlay = styled(Overlay)(({ theme }) => ({
   background: theme.palette.background.base,
-  height: `${desktopTopDistance}px`,
+  height: `${contentTopPosition.default}px`,
   transform: "translateY(-100%)",
   margin: `0 -${theme.spacing(1)}`,
   zIndex: 7,
   [theme.breakpoints.down("md")]: {
-    height: `${mobileTopDistance}px`,
+    height: `${contentTopPosition.sm}px`,
   },
   [theme.breakpoints.down("sm")]: {
-    height: `${smallTopDistance}px`,
+    height: `${contentTopPosition.xs}px`,
   },
 }));
 
@@ -133,7 +131,11 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
           direction={{ xs: "column-reverse", sm: "row" }}
           sx={{ alignItems: { xs: "stretch", sm: "flex-start" }, flexWrap: "wrap", justifyContent: "space-between" }}>
           <DeliveryRestartButton
-            sx={{ display: { xs: "block", md: "none" }, alignSelf: { xs: "center", sm: "flex-start" } }}
+            sx={{
+              display: { xs: "block", md: "none" },
+              alignSelf: { xs: "center", sm: "flex-start" },
+              width: { xs: "100%", sm: "auto" },
+            }}
             immediate={lastCompletedStep === steps.size - 1}
           />
           <Stack
