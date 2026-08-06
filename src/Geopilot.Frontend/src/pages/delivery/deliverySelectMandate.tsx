@@ -2,7 +2,7 @@ import { FC, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CircularProgress, Divider, Stack, styled, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { toggleButtonClasses } from "@mui/material/ToggleButton";
-import { Mandate } from "../../api/apiInterfaces";
+import { Mandate, StepState } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { Button } from "../../components/buttons";
 import useFetch from "../../hooks/useFetch";
@@ -54,7 +54,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
       setStepStatus(DeliveryStepEnum.Mandate, undefined);
       fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ uploadId })).then(mandates => {
         if (mandates.length === 0) {
-          setStepStatus(DeliveryStepEnum.Mandate, "error", "noMandatesFound");
+          setStepStatus(DeliveryStepEnum.Mandate, StepState.Error, ["noMandatesFound"]);
         }
         setMandates(mandates);
         setSelected(mandates.length === 1 ? mandates[0] : null);

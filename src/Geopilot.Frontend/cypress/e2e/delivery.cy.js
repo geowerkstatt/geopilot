@@ -1,6 +1,12 @@
 import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appHelpers.js";
 import {
   addFile,
+  deliverableMandate,
+  processingJob,
+  processingStep,
+  resultStepHasIcon,
+  resultStepShowsMessage,
+  runMockedProcessingJob,
   selectMandate,
   selectStep,
   startProcessing,
@@ -9,6 +15,10 @@ import {
   stepIsCompleted,
   stepIsLoading,
   stepIsSkipped,
+  stepperStepHasIcon,
+  stepperStepMissingIcon,
+  stepperStepMissingMessage,
+  stepperStepShowsMessage,
   uploadFile,
 } from "./helpers/deliveryHelpers.js";
 import { hasError, setSelect } from "./helpers/formHelpers.js";
@@ -55,7 +65,7 @@ describe("Delivery tests", () => {
     startProcessing();
     stepIsLoading("processing", true);
     stepHasError("processing", true, "Failed");
-    cy.dataCy("processing-step-validation").dataCy("processing-step-icon-error").should("exist");
+    cy.dataCy("processing-step-validation").dataCy("stepIcon-error").should("exist");
     cy.dataCy("errorLog.log-button").should("not.exist");
     cy.dataCy("xtfLog.xtf-button").should("not.exist");
     stepIsActive("processing");
@@ -101,130 +111,124 @@ describe("Delivery tests", () => {
   });
 
   it("marks the step and blocks delivery when a delivery restriction applies", () => {
-    // Processing is fully mocked so this runs in CI, where real pipeline execution is unavailable
-    // (that is why the specs above are skipped). Two steps restrict delivery, so the job aggregates to a
-    // delivery-restricted state and the delivery node shows both reasons merged.
-    const restrictedJob = {
-      jobId: "e2e-restricted-job",
-      state: "deliveryRestriction",
-      mandateId: 1,
-      pipelineName: { en: "XTF Validation", de: "XTF Validierung" },
-      steps: [
-        {
-          id: "xtf_matching",
-          name: { en: "XTF Matching", de: "XTF Zuordnung" },
-          state: "success",
-          downloads: [],
-          visualizations: [],
-        },
-        {
-          id: "validation",
-          name: { en: "XTF Validation", de: "XTF Validierung" },
-          state: "deliveryRestriction",
-          conditionMessage: {
-            en: "Validation was not successful. Delivery is not possible.",
-            de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich.",
-          },
-          downloads: [],
-          visualizations: [],
-        },
-        {
-          id: "topology_check",
-          name: { en: "Topology Check", de: "Topologieprüfung" },
-          state: "deliveryRestriction",
-          conditionMessage: {
-            en: "Topology check failed.",
-            de: "Topologieprüfung fehlgeschlagen.",
-          },
-          downloads: [],
-          visualizations: [],
-        },
-      ],
-    };
+    const restrictedJob = processingJob("e2e-restricted-job", "deliveryRestriction", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "deliveryRestriction", "Validation was not successful."),
+      processingStep("topology_check", "Topology Check", "deliveryRestriction", "Topology check failed."),
+      processingStep("cleanup", "Cleanup", "success"),
+    ]);
 
-    loginAsUploader();
-    addFile("deliveryFiles/ilimodels_valid.xtf", true);
-    uploadFile();
+    runMockedProcessingJob(restrictedJob);
 
-    cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
-    cy.wait("@getMandates");
-    selectMandate(1);
+    resultStepHasIcon("validation", "deliveryRestriction");
+    resultStepShowsMessage("validation", "Delivery is not possible");
+    resultStepHasIcon("topology_check", "deliveryRestriction");
+    resultStepHasIcon("cleanup", "success");
 
-    cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: restrictedJob }).as("startProcessing");
-    cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: restrictedJob }).as("jobStatus");
-
-    cy.dataCy("startProcessing-button").click();
-    cy.wait("@startProcessing");
-    cy.wait("@jobStatus");
-
-    // Right results pane: both restricting steps show the delivery-restriction icon.
-    cy.dataCy("processing-step-validation").dataCy("processing-step-icon-deliveryRestriction").should("exist");
-    cy.dataCy("processing-step-topology_check").dataCy("processing-step-icon-deliveryRestriction").should("exist");
-
-    // Left stepper: the processing node shows the delivery-restriction state, while the delivery node is
-    // shown as skipped and carries the merged reason of all restricting steps.
-    cy.dataCy("processing-step").dataCy("stepper-deliveryRestriction").should("exist");
-    stepIsSkipped("delivery", true, "Delivery is not possible");
-    cy.dataCy("delivery-step").contains("Topology check failed");
+    stepperStepHasIcon("processing", "deliveryRestriction");
+    stepperStepShowsMessage("processing", "Validation was not successful");
+    stepperStepShowsMessage("processing", "Topology check failed");
+    stepIsSkipped("delivery", true, "Blocked by processing");
   });
 
-  it("shows a warning on the step without blocking delivery", () => {
-    // A warning is a non-blocking outcome: the run stays deliverable (the Warning capability is kept
-    // for pipelines that opt into it, even though the shipped pipelines do not use it).
-    const warningJob = {
-      jobId: "e2e-warning-job",
-      state: "warning",
-      mandateId: 1,
-      pipelineName: { en: "XTF Validation", de: "XTF Validierung" },
-      steps: [
-        {
-          id: "xtf_matching",
-          name: { en: "XTF Matching", de: "XTF Zuordnung" },
-          state: "success",
-          downloads: [],
-          visualizations: [],
-        },
-        {
-          id: "validation",
-          name: { en: "XTF Validation", de: "XTF Validierung" },
-          state: "warning",
-          conditionMessage: {
-            en: "Validation completed with warnings.",
-            de: "Validierung mit Warnungen abgeschlossen.",
-          },
-          downloads: [],
-          visualizations: [],
-        },
-      ],
-    };
+  it("enables the delivery step as ready and completes it once a delivery is created", () => {
+    const successJob = processingJob("e2e-success-job", "success", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "success"),
+      processingStep(
+        "error_visualization",
+        "Error Visualization",
+        "skipped",
+        "Skipped because no errors were reported.",
+      ),
+    ]);
 
-    loginAsUploader();
-    addFile("deliveryFiles/ilimodels_valid.xtf", true);
-    uploadFile();
+    cy.intercept("GET", "/api/v1/delivery?mandateId=*", { statusCode: 200, body: [] }).as("precursors");
+    runMockedProcessingJob(successJob, [deliverableMandate(1, "Test Mandate"), deliverableMandate(2, "Other Mandate")]);
 
-    cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
-    cy.wait("@getMandates");
-    selectMandate(1);
+    resultStepHasIcon("validation", "success");
+    resultStepHasIcon("error_visualization", "skipped");
+    resultStepShowsMessage("error_visualization", "Skipped because no errors were reported.");
 
-    cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: warningJob }).as("startProcessing");
-    cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: warningJob }).as("jobStatus");
+    stepperStepHasIcon("processing", "success");
+    stepperStepHasIcon("delivery", "enabled");
+    stepperStepMissingIcon("delivery", "skipped");
 
-    cy.dataCy("startProcessing-button").click();
-    cy.wait("@startProcessing");
-    cy.wait("@jobStatus");
+    // The ready step can be opened directly from the stepper.
+    cy.dataCy("continue-button").should("be.enabled");
+    selectStep("delivery");
+    stepIsActive("delivery");
 
-    // Right results pane: the validation step shows the warning icon.
-    cy.dataCy("processing-step-validation").dataCy("processing-step-icon-warning").should("exist");
+    cy.intercept("POST", "/api/v1/delivery", { statusCode: 200, body: { id: 1 } }).as("createDelivery");
+    cy.dataCy("createDelivery-button").should("be.enabled").click();
+    cy.wait("@createDelivery");
 
-    // Left stepper: a warning does not block delivery, so neither the delivery-restriction nor the
-    // error state appears; the processing node stays in the (deliverable) warning state.
-    cy.dataCy("processing-step").dataCy("stepper-warning").should("exist");
-    cy.dataCy("stepper-deliveryRestriction").should("not.exist");
-    cy.dataCy("stepper-error").should("not.exist");
+    cy.dataCy("createDelivery-button").should("not.exist");
+    stepIsCompleted("delivery");
+  });
 
-    // Delivery stays possible: continuing leads to the delivery step.
+  it("shows warnings on the steps without blocking delivery", () => {
+    const warningJob = processingJob("e2e-warning-job", "warning", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "warning", "Validation completed with warnings."),
+      processingStep("topology_check", "Topology Check", "warning", "Minor topology issues detected."),
+    ]);
+
+    runMockedProcessingJob(warningJob);
+
+    resultStepHasIcon("validation", "warning");
+    resultStepShowsMessage("validation", "Validation completed with warnings.");
+    resultStepHasIcon("topology_check", "warning");
+    resultStepShowsMessage("topology_check", "Minor topology issues detected.");
+
+    stepperStepHasIcon("processing", "warning");
+    stepperStepShowsMessage("processing", "Validation completed with warnings.");
+    stepperStepShowsMessage("processing", "Minor topology issues detected.");
+    cy.dataCy("stepIcon-deliveryRestriction").should("not.exist");
+    cy.dataCy("stepIcon-error").should("not.exist");
+
     cy.dataCy("continue-button").should("be.enabled").click();
     stepIsActive("delivery");
+  });
+
+  it("keeps warnings out of the stepper but visible in the accordion when delivery is restricted", () => {
+    const mixedJob = processingJob("e2e-mixed-job", "deliveryRestriction", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "warning", "Validation completed with warnings."),
+      processingStep("topology_check", "Topology Check", "deliveryRestriction", "Topology check failed."),
+    ]);
+
+    runMockedProcessingJob(mixedJob);
+
+    resultStepHasIcon("validation", "warning");
+    resultStepShowsMessage("validation", "Validation completed with warnings.");
+    resultStepHasIcon("topology_check", "deliveryRestriction");
+
+    stepperStepHasIcon("processing", "deliveryRestriction");
+    stepperStepShowsMessage("processing", "Topology check failed");
+    stepperStepMissingMessage("processing", "Validation completed with warnings.");
+
+    stepIsSkipped("delivery", true, "Blocked by processing");
+  });
+
+  it("stops the pipeline and blocks delivery when a step fails", () => {
+    const failedJob = processingJob("e2e-failed-job", "failed", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "error", "Validation failed unexpectedly."),
+      processingStep("topology_check", "Topology Check", "pending"),
+    ]);
+
+    runMockedProcessingJob(failedJob);
+
+    resultStepHasIcon("validation", "error");
+    resultStepShowsMessage("validation", "Validation failed unexpectedly.");
+    resultStepHasIcon("topology_check", "pending");
+
+    stepperStepHasIcon("processing", "error");
+    stepperStepShowsMessage("processing", "Validation failed unexpectedly.");
+    stepperStepHasIcon("delivery", "pending");
+    stepperStepMissingIcon("delivery", "skipped");
+    cy.dataCy("continue-button").should("be.disabled");
   });
 
   it("displays error if no mandates were found", () => {
