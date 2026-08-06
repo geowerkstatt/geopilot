@@ -96,7 +96,7 @@ export const FormInput: FC<FormInputProps> = ({
     );
   }
 
-  const { formState, register, setValue } = formContext;
+  const { formState, register } = formContext;
 
   const hasError = getFormFieldError(fieldName, formState.errors);
   const errorMessage = getFormFieldErrorMessage(fieldName, formState.errors);
@@ -126,7 +126,6 @@ export const FormInput: FC<FormInputProps> = ({
           return validate ? validate(value, formValues) : true;
         },
         onChange: e => {
-          setValue(fieldName!, e.target.value, { shouldValidate: true });
           if (onUpdate) {
             onUpdate(e.target.value);
           }
