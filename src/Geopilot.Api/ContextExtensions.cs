@@ -141,7 +141,20 @@ internal static class ContextExtensions
 
         context.Mandates.Add(new Mandate()
         {
-            Name = new LocalizedText(new Dictionary<string, string> { { "de", "Public Mandate" } }),
+            Name = new LocalizedText(new Dictionary<string, string>
+            {
+                { "de", "Öffentliches Mandat" },
+                { "en", "Public Mandate" },
+                { "fr", "Mandat public" },
+                { "it", "Mandato pubblico" },
+            }),
+            Description = new LocalizedText(new Dictionary<string, string>
+            {
+                { "de", "Ein öffentliches Mandat, das ohne Anmeldung sichtbar ist." },
+                { "en", "A public mandate that is visible without signing in." },
+                { "fr", "Un mandat public visible sans connexion." },
+                { "it", "Un mandato pubblico visibile senza accesso." },
+            }),
             PipelineId = "ili_validation",
             FileTypes = [".xtf"],
             SpatialExtent = GetExtent(),
