@@ -131,7 +131,11 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
           direction={{ xs: "column-reverse", sm: "row" }}
           sx={{ alignItems: { xs: "stretch", sm: "flex-start" }, flexWrap: "wrap", justifyContent: "space-between" }}>
           <DeliveryRestartButton
-            sx={{ display: { xs: "block", md: "none" }, alignSelf: { xs: "center", sm: "flex-start" } }}
+            sx={{
+              display: { xs: "block", md: "none" },
+              alignSelf: { xs: "center", sm: "flex-start" },
+              width: { xs: "100%", sm: "auto" },
+            }}
             immediate={lastCompletedStep === steps.size - 1}
           />
           <Stack
