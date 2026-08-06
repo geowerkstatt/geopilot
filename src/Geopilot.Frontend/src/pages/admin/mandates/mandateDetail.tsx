@@ -83,10 +83,15 @@ const MandateDetail = () => {
   const prepareMandateForSave = (formData: FieldValues): Mandate => {
     const mandate = formData as Mandate;
     mandate.deliveries = [];
-    // Clear eligible organisations if mandate is public
-    mandate.organisations = formData["isPublic"]
-      ? []
-      : formData["organisations"]?.map((value: FormAutocompleteValue) => ({ id: value.id }) as Organisation);
+    // Clear eligible organisations and allowDelivery if mandate is public
+    if (formData["isPublic"]) {
+      mandate.organisations = [];
+      mandate.allowDelivery = false;
+    } else {
+      mandate.organisations = formData["organisations"]?.map(
+        (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
+      );
+    }
 
     return mandate;
   };
