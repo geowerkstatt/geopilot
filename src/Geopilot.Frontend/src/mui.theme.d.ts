@@ -32,6 +32,7 @@ declare module "@mui/material/styles" {
     states: PaletteColorStates;
     selected: string;
     hover: string;
+    background: string;
   }
 
   interface SimplePaletteColorOptions {
@@ -39,6 +40,7 @@ declare module "@mui/material/styles" {
     states?: PaletteColorStates;
     selected?: string;
     hover?: string;
+    background?: string;
   }
 
   interface TypeBackground {

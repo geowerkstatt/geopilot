@@ -92,10 +92,10 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
               selectedMandate.evaluateComment === FieldEvaluationType.NotEvaluated && (
                 <Typography variant="body1">{t("deliveryNoInputRequired")}</Typography>
               )}
-            {completed && <Alert severity="success">{t("deliveryCompleted")}</Alert>}
           </Stack>
         </form>
       </FormProvider>
+      {completed && <Alert severity="success">{t("deliveryCompleted")}</Alert>}
     </DeliveryContent>
   );
 };
