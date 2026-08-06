@@ -7,10 +7,17 @@ namespace Geopilot.Pipeline.Test;
 [TestClass]
 public class InputBindingValidatorTest
 {
+    private enum Severity
+    {
+        Info,
+        Warning,
+        Error,
+    }
+
     [TestMethod]
     public void AcceptsInputMatchingARunParameter()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("title", "report")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("title", "report")), null, null);
 
         Assert.HasCount(0, errors);
     }
@@ -18,7 +25,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void AcceptsNullInput()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), null);
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), null, null, null);
 
         Assert.HasCount(0, errors);
     }
@@ -26,7 +33,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void RejectsInputKeyThatMatchesNoParameter()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("titel", "report")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("titel", "report")), null, null);
 
         Assert.HasCount(1, errors);
         Assert.Contains("titel", errors[0]);
@@ -35,7 +42,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void RejectsInputKeyTargetingCancellationToken()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("cancellationToken", "x")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("cancellationToken", "x")), null, null);
 
         Assert.HasCount(1, errors);
     }
@@ -43,7 +50,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void RejectsLiteralThatCannotConvertToParameterType()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("maxErrors", "not a number")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("maxErrors", "not a number")), null, null);
 
         Assert.HasCount(1, errors);
         Assert.Contains("maxErrors", errors[0]);
@@ -52,7 +59,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void AcceptsLiteralThatConvertsToParameterType()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("maxErrors", "42")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("maxErrors", "42")), null, null);
 
         Assert.HasCount(0, errors);
     }
@@ -60,7 +67,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void SkipsTypeCheckForStepOutputReference()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("maxErrors", "${step_output(detect.count)}")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("maxErrors", "${step_output(detect.count)}")), null, null);
 
         Assert.HasCount(0, errors);
     }
@@ -68,7 +75,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void AcceptsFileReferenceForFileParameterWithoutRoot()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${file(templates/header.xtf)}")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${file(templates/header.xtf)}")), null, null);
 
         Assert.HasCount(0, errors);
     }
@@ -76,7 +83,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void RejectsFileReferenceForNonFileParameter()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("title", "${file(templates/header.xtf)}")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("title", "${file(templates/header.xtf)}")), null, null);
 
         Assert.HasCount(1, errors);
         Assert.Contains("title", errors[0]);
@@ -87,7 +94,7 @@ public class InputBindingValidatorTest
     {
         var root = Path.Combine(Path.GetTempPath(), "geopilot-missing-resources");
 
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${file(missing.xtf)}")), root);
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${file(missing.xtf)}")), root, null);
 
         Assert.HasCount(1, errors);
         Assert.Contains("does not exist", errors[0]);
@@ -102,7 +109,7 @@ public class InputBindingValidatorTest
         {
             File.WriteAllText(Path.Combine(root, "template.xtf"), "content");
 
-            var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${file(template.xtf)}")), root);
+            var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${file(template.xtf)}")), root, null);
 
             Assert.HasCount(0, errors);
         }
@@ -115,7 +122,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void AcceptsUploadReferenceForFileListParameter()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("files", "${upload()}")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("files", "${upload()}")), null, null);
 
         Assert.HasCount(0, errors);
     }
@@ -123,7 +130,7 @@ public class InputBindingValidatorTest
     [TestMethod]
     public void RejectsUploadReferenceForNonFileListParameter()
     {
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("title", "${upload()}")));
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("title", "${upload()}")), null, null);
 
         Assert.HasCount(1, errors);
         Assert.Contains("title", errors[0]);
@@ -145,7 +152,8 @@ public class InputBindingValidatorTest
         var errors = InputBindingValidator.Validate(
             typeof(SampleProcess),
             Input(("template", "${step_output(up.DoesNotExist)}")),
-            stepResultTypes: stepResultTypes);
+            null,
+            stepResultTypes);
 
         Assert.HasCount(1, errors);
         Assert.Contains("DoesNotExist", errors[0]);
@@ -159,7 +167,8 @@ public class InputBindingValidatorTest
         var errors = InputBindingValidator.Validate(
             typeof(SampleProcess),
             Input(("template", "${step_output(up.Document)}")),
-            stepResultTypes: stepResultTypes);
+            null,
+            stepResultTypes);
 
         Assert.HasCount(0, errors);
     }
@@ -169,7 +178,7 @@ public class InputBindingValidatorTest
     {
         var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
 
-        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${step_output(up.Count)}")), stepResultTypes: stepResultTypes);
+        var errors = InputBindingValidator.Validate(typeof(SampleProcess), Input(("template", "${step_output(up.Count)}")), null, stepResultTypes);
         Assert.HasCount(1, errors);
         Assert.Contains("up.Count", errors[0]);
     }
@@ -182,7 +191,8 @@ public class InputBindingValidatorTest
         var errors = InputBindingValidator.Validate(
             typeof(SampleProcess),
             Input(("files", "${step_output(up.Documents)}")),
-            stepResultTypes: stepResultTypes);
+            null,
+            stepResultTypes);
 
         Assert.HasCount(0, errors);
     }
@@ -197,7 +207,8 @@ public class InputBindingValidatorTest
         var errors = InputBindingValidator.Validate(
             typeof(SampleProcess),
             Input(("template", "${step_output(up.Documents)}")),
-            stepResultTypes: stepResultTypes);
+            null,
+            stepResultTypes);
 
         Assert.HasCount(0, errors);
     }
@@ -212,7 +223,112 @@ public class InputBindingValidatorTest
         var errors = InputBindingValidator.Validate(
             typeof(SampleProcess),
             Input(("files", "${step_output(up.Document)}")),
-            stepResultTypes: stepResultTypes);
+            null,
+            stepResultTypes);
+
+        Assert.HasCount(0, errors);
+    }
+
+    [TestMethod]
+    public void AcceptsStepOutputReferencesInsideAList()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        // The value is a YAML list; each step output reference inside it is type checked. up.Document
+        // (IPipelineFile) and up.Documents (IPipelineFile[]) both bind to the IPipelineFile[] parameter.
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input(("files", new List<object?> { "${step_output(up.Document)}", "${step_output(up.Documents)}" })),
+            null,
+            stepResultTypes);
+
+        Assert.HasCount(0, errors);
+    }
+
+    [TestMethod]
+    public void RejectsStepOutputReferenceOfIncompatibleTypeInsideAList()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        // A reference inside a list is not exempt from the type check: up.Count is an int, which cannot
+        // bind to the IPipelineFile[] parameter 'files', so the list item is rejected.
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input(("files", new List<object?> { "${step_output(up.Count)}" })),
+            null,
+            stepResultTypes);
+
+        Assert.HasCount(1, errors);
+        Assert.Contains("up.Count", errors[0]);
+    }
+
+    [TestMethod]
+    public void SkipsStepOutputReferenceToUnknownStep()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        // The referenced step 'other' has no entry in the result-type map (an unknown step, or one whose
+        // result type could not be resolved). The reference is left unchecked instead of reported as an
+        // error, so a valid pipeline is never rejected because a step type was unavailable.
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input(("template", "${step_output(other.Whatever)}")),
+            null,
+            stepResultTypes);
+
+        Assert.HasCount(0, errors);
+    }
+
+    [TestMethod]
+    [DataRow("maxErrors")]
+    [DataRow("threshold")]
+    [DataRow("strict")]
+    [DataRow("timeout")]
+    [DataRow("severity")]
+    public void AcceptsStringOutputBoundToConvertibleParameter(string parameterName)
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        // up.Name is a string; the binder converts a string to each of these parameter types at run time
+        // via the shared conversion table, so the load-time check must accept the same string-to-X pairs.
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input((parameterName, "${step_output(up.Name)}")),
+            null,
+            stepResultTypes);
+
+        Assert.HasCount(0, errors);
+    }
+
+    [TestMethod]
+    public void AcceptsObjectTypedOutputBoundToParameter()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        // up.Payload is declared as object; its run-time value may already be an IPipelineFile. The binder
+        // binds an assignable value, so a base-typed source must not be rejected at load time.
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input(("template", "${step_output(up.Payload)}")),
+            null,
+            stepResultTypes);
+
+        Assert.HasCount(0, errors);
+    }
+
+    [TestMethod]
+    public void AcceptsCollectionOutputBoundToConcreteListParameter()
+    {
+        var stepResultTypes = new Dictionary<string, Type> { ["up"] = typeof(UpstreamResult) };
+
+        // up.Tags is a string[]; the target parameter 'tags' is a concrete List<string>. List<T> is not one
+        // of the binder's element-wise list targets but a value it builds by JSON round-trip, which the
+        // load-time check treats leniently, so this must not be rejected.
+        var errors = InputBindingValidator.Validate(
+            typeof(SampleProcess),
+            Input(("tags", "${step_output(up.Tags)}")),
+            null,
+            stepResultTypes);
 
         Assert.HasCount(0, errors);
     }
@@ -223,6 +339,11 @@ public class InputBindingValidatorTest
         public Task<SampleResult> RunAsync(
             string title,
             int maxErrors,
+            double threshold,
+            bool strict,
+            TimeSpan timeout,
+            Severity severity,
+            List<string> tags,
             IPipelineFile template,
             IPipelineFile[] files,
             CancellationToken cancellationToken)
@@ -241,8 +362,12 @@ public class InputBindingValidatorTest
 
         public int Count { get; init; }
 
+        public object Payload { get; init; }
+
         public IPipelineFile Document { get; init; }
 
         public IPipelineFile[] Documents { get; init; }
+
+        public string[] Tags { get; init; }
     }
 }

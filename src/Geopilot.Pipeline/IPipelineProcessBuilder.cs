@@ -40,16 +40,6 @@ public interface IPipelineProcessBuilder
     IPipelineProcessBuilder Processes(List<ProcessConfig> processes);
 
     /// <summary>
-    /// Configures the builder with every step of the pipeline the current step belongs to.
-    /// </summary>
-    /// <remarks>Consulted only by <see cref="Validate(string?)"/> to resolve cross-step references
-    /// (<c>${step_output(stepId.output)}</c>) against the result type of the referenced step; it does
-    /// not affect <see cref="Build"/>. When not supplied, cross-step references are not type checked.</remarks>
-    /// <param name="steps">All steps of the pipeline. The list must not be null.</param>
-    /// <returns>An <see cref="IPipelineProcessBuilder"/> instance that can be used to further configure the pipeline.</returns>
-    IPipelineProcessBuilder Steps(List<StepConfig> steps);
-
-    /// <summary>
     /// Configures the pipeline process to use the specified directory for locating pipeline files.
     /// </summary>
     /// <remarks>Ensure that the specified directory contains all required pipeline files for correct
@@ -66,6 +56,16 @@ public interface IPipelineProcessBuilder
     /// <param name="jobId">The unique identifier for the job. This value must be a valid GUID representing the job to be processed.</param>
     /// <returns>An instance of IPipelineProcessBuilder, allowing for further configuration of the pipeline process.</returns>
     IPipelineProcessBuilder JobId(Guid jobId);
+
+    /// <summary>
+    /// Supplies the map from step id to process result type that <see cref="Validate"/> uses to type check
+    /// cross-step references (<c>${step_output(stepId.output)}</c> in inputs and <c>[stepId.Property]</c> in
+    /// conditions). Typically built once per pipeline by the factory. When not supplied, cross-step
+    /// references are not type checked.
+    /// </summary>
+    /// <param name="stepResultTypes">The step id to result type map, typically produced by the factory's BuildStepResultTypes.</param>
+    /// <returns>An <see cref="IPipelineProcessBuilder"/> instance that can be used to further configure the pipeline.</returns>
+    IPipelineProcessBuilder StepResultTypes(IReadOnlyDictionary<string, Type> stepResultTypes);
 
     /// <summary>
     /// Builds and returns an object that represents the result of the pipeline construction process.

@@ -33,7 +33,7 @@ internal static class InputBinder
     /// <see cref="IEnumerable{T}"/> interface itself. Concrete collection types such as
     /// <c>List&lt;T&gt;</c> are deliberately not treated as lists. Reports the element type on success.
     /// </summary>
-    private static bool TryGetListElementType(Type parameterType, out Type elementType)
+    internal static bool TryGetListElementType(Type parameterType, out Type elementType)
     {
         if (parameterType.IsArray)
         {
@@ -49,6 +49,27 @@ internal static class InputBinder
 
         elementType = typeof(object);
         return false;
+    }
+
+    /// <summary>
+    /// The element type when a value of <paramref name="type"/> is a collection the binder spreads (any
+    /// <see cref="System.Collections.IEnumerable"/> other than a string), or <see langword="null"/>
+    /// otherwise. The type-level counterpart of <see cref="TryAsCollection"/>; a non-generic enumerable
+    /// yields <see cref="object"/>.
+    /// </summary>
+    internal static Type? SpreadableElementType(Type type)
+    {
+        if (type == typeof(string) || !typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
+            return null;
+
+        if (type.IsArray)
+            return type.GetElementType();
+
+        var enumerableInterface = new[] { type }
+            .Concat(type.GetInterfaces())
+            .FirstOrDefault(candidate => candidate.IsGenericType && candidate.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+
+        return enumerableInterface?.GetGenericArguments()[0] ?? typeof(object);
     }
 
     /// <summary>

@@ -19,6 +19,19 @@ internal static class RawValueConverter
     };
 
     /// <summary>
+    /// The supported string-to-value conversions, shared as the single source of truth: <see cref="TryConvert"/>
+    /// runs them and the load-time binding check consults <see cref="IsStringConvertibleTarget"/>, so both accept
+    /// the same string-to-X pairs. Each reports whether the string parsed and, if so, the converted value.
+    /// </summary>
+    private static readonly IReadOnlyList<(Type TargetType, Func<string, (bool Success, object? Value)> Parse)> StringConversions = new (Type, Func<string, (bool, object?)>)[]
+    {
+        (typeof(int), value => (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed), parsed)),
+        (typeof(double), value => (double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var parsed), parsed)),
+        (typeof(bool), value => (bool.TryParse(value, out var parsed), parsed)),
+        (typeof(TimeSpan), value => (TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var parsed), parsed)),
+    };
+
+    /// <summary>
     /// Attempts to convert the specified raw value to the specified target type.
     /// </summary>
     /// <param name="rawValue">The raw value to convert.</param>
@@ -62,28 +75,17 @@ internal static class RawValueConverter
                 return true;
             }
 
-            if (effectiveTargetType == typeof(int) && int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i))
+            foreach (var (conversionTarget, parse) in StringConversions)
             {
-                convertedValue = i;
-                return true;
-            }
+                if (conversionTarget != effectiveTargetType)
+                    continue;
 
-            if (effectiveTargetType == typeof(double) && double.TryParse(s, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var d))
-            {
-                convertedValue = d;
-                return true;
-            }
-
-            if (effectiveTargetType == typeof(bool) && bool.TryParse(s, out var b))
-            {
-                convertedValue = b;
-                return true;
-            }
-
-            if (effectiveTargetType == typeof(TimeSpan) && TimeSpan.TryParse(s, CultureInfo.InvariantCulture, out var ts))
-            {
-                convertedValue = ts;
-                return true;
+                var (success, value) = parse(s);
+                if (success)
+                {
+                    convertedValue = value;
+                    return true;
+                }
             }
         }
 
@@ -98,5 +100,18 @@ internal static class RawValueConverter
             convertedValue = null;
             return false;
         }
+    }
+
+    /// <summary>
+    /// Whether a <see cref="string"/> value can convert to <paramref name="targetType"/> via one of the
+    /// supported conversions (another string, an enum, or an entry of <see cref="StringConversions"/>). The
+    /// load-time binding check uses this so it accepts the same string-to-X pairs the binder does.
+    /// </summary>
+    internal static bool IsStringConvertibleTarget(Type targetType)
+    {
+        var effectiveTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+        return effectiveTargetType == typeof(string)
+            || effectiveTargetType.IsEnum
+            || StringConversions.Any(conversion => conversion.TargetType == effectiveTargetType);
     }
 }

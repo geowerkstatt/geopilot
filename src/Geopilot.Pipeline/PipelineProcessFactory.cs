@@ -8,6 +8,7 @@ using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using NCalc.Exceptions;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
@@ -120,11 +121,89 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// <inheritdoc />
     public IPipelineProcessBuilder Builder()
     {
-        return new PipelineProcessBuilder(processorPluginAssemblies, loggerFactory, pipelineOptions, ilitoolsWrapperChannel);
+        return new PipelineProcessBuilder(this, processorPluginAssemblies, loggerFactory, pipelineOptions, ilitoolsWrapperChannel);
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyDictionary<string, Type> BuildStepResultTypes(List<StepConfig> steps, List<ProcessConfig> processes)
+    {
+        ArgumentNullException.ThrowIfNull(steps);
+        ArgumentNullException.ThrowIfNull(processes);
+
+        var stepResultTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
+        foreach (var step in steps)
+        {
+            if (step.ProcessId is null)
+                continue;
+
+            var processConfig = processes.GetProcessConfig(step.ProcessId);
+            if (processConfig is null)
+                continue;
+
+            var processType = GetProcessorType(processConfig.Implementation);
+            if (processType is null)
+                continue;
+
+            var resultType = ResolveResultType(processType);
+            if (resultType is not null)
+                stepResultTypes[step.Id] = resultType;
+        }
+
+        return stepResultTypes;
+    }
+
+    /// <summary>
+    /// The result type of a process: the <c>TResult</c> of the single <c>[PipelineProcessRun]</c> method's
+    /// <see cref="Task{TResult}"/> return type, or <see langword="null"/> when the process has no unique run
+    /// method or does not return a <see cref="Task{TResult}"/>.
+    /// </summary>
+    internal static Type? ResolveResultType(Type processType)
+    {
+        var runMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .Where(method => Attribute.IsDefined(method, typeof(PipelineProcessRunAttribute)))
+            .ToList();
+        if (runMethods.Count != 1)
+            return null;
+
+        var returnType = runMethods[0].ReturnType;
+        if (!returnType.IsGenericType || returnType.GetGenericTypeDefinition() != typeof(Task<>))
+            return null;
+
+        return returnType.GetGenericArguments()[0];
+    }
+
+    /// <summary>
+    /// Resolves a process implementation type name to its <see cref="Type"/>: built-in processes (namespace
+    /// <c>Geopilot.Pipeline.Processes</c>) are looked up across the loaded app domain, everything else in the
+    /// registered plugin assemblies. Returns <see langword="null"/> when the type cannot be resolved.
+    /// </summary>
+    internal Type? GetProcessorType(string implementation)
+    {
+        if (implementation.StartsWith("Geopilot.Pipeline.Processes", StringComparison.Ordinal))
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetType(implementation))
+                .FirstOrDefault(t => t != null);
+        }
+        else if (this.processorPluginAssemblies.Count > 0)
+        {
+            foreach (var assembly in this.processorPluginAssemblies)
+            {
+                var type = assembly.GetType(implementation);
+                if (type != null)
+                {
+                    return type;
+                }
+            }
+        }
+
+        logger.LogWarning($"For process implementation '{implementation}' no processor plugin configured. Cannot load process.");
+        return null;
     }
 
     internal class PipelineProcessBuilder : IPipelineProcessBuilder
     {
+        private readonly PipelineProcessFactory factory;
         private readonly ILoggerFactory loggerFactory;
         private readonly ILogger logger;
 
@@ -135,7 +214,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         private string? pipelineId;
         private StepConfig? stepConfig;
         private List<ProcessConfig>? processes;
-        private List<StepConfig>? steps;
+        private IReadOnlyDictionary<string, Type>? stepResultTypes;
         private string? pipelineDirectory;
         private Guid jobId;
 
@@ -146,16 +225,19 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// <remarks>Use this constructor to configure the PipelineProcessBuilder with all required
         /// dependencies for plugin-based pipeline processing. Supplying appropriate assemblies and load contexts allows
         /// for flexible plugin management and versioning.</remarks>
+        /// <param name="factory">The factory that created this builder; used to resolve process types.</param>
         /// <param name="processorPluginAssemblies">A set of assemblies that contain processor plugins to be included in the pipeline.</param>
         /// <param name="loggerFactory">The factory used to create loggers for pipeline processing operations.</param>
         /// <param name="pipelineOptions">The options that configure the behavior and execution parameters of the pipeline.</param>
         /// <param name="ilitoolsWrapperChannel">The gRPC channel used for communication with the ilitools-wrapper service.</param>
         public PipelineProcessBuilder(
+            PipelineProcessFactory factory,
             HashSet<Assembly> processorPluginAssemblies,
             ILoggerFactory loggerFactory,
             PipelineOptions pipelineOptions,
             GrpcChannel ilitoolsWrapperChannel)
         {
+            this.factory = factory;
             this.processorPluginAssemblies = processorPluginAssemblies;
             this.loggerFactory = loggerFactory;
             this.logger = loggerFactory.CreateLogger<PipelineProcessBuilder>();
@@ -185,9 +267,9 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
 
         /// <inheritdoc />
-        public IPipelineProcessBuilder Steps(List<StepConfig> steps)
+        public IPipelineProcessBuilder StepResultTypes(IReadOnlyDictionary<string, Type> stepResultTypes)
         {
-            this.steps = steps;
+            this.stepResultTypes = stepResultTypes;
             return this;
         }
 
@@ -218,12 +300,15 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
             var errors = new List<string>();
 
-            var resultType = ResolveResultType(processType);
+            var resultType = PipelineProcessFactory.ResolveResultType(processType);
             if (resultType is null)
                 return errors;
 
             foreach (var outputAction in outputActions)
             {
+                if (outputAction.Actions is null)
+                    continue;
+
                 var property = resultType.GetProperty(outputAction.Property);
 
                 if (property is null || !property.CanRead)
@@ -245,8 +330,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// <summary>
         /// Whether a result property of the given type may be tagged with <paramref name="action"/>:
         /// <c>Download</c>/<c>Delivery</c> require an <c>IPipelineFile</c> or a collection of them,
-        /// <c>StatusMessage</c> a <c>LocalizedText</c>, and <c>Visualization</c> an <c>IVisualization</c>.
-        /// Actions without a type rule are accepted.
+        /// <c>StatusMessage</c> a <c>LocalizedText</c> or a string-to-string dictionary (<c>IReadOnlyDictionary</c>
+        /// or <c>IDictionary</c>, kept for backward compatibility to mirror what
+        /// <c>PipelineStep.NormalizeStatusMessage</c> accepts at run time), and <c>Visualization</c> an
+        /// <c>IVisualization</c>. Actions without a type rule are accepted.
         /// </summary>
         private static bool IsTypeCompatible(OutputAction action, Type propertyType)
         {
@@ -255,64 +342,11 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             if (action is OutputAction.Download or OutputAction.Delivery)
                 return Is<IPipelineFile>() || Is<IEnumerable<IPipelineFile>>();
             if (action == OutputAction.StatusMessage)
-                return Is<LocalizedText>();
+                return Is<LocalizedText>() || Is<IReadOnlyDictionary<string, string>>() || Is<IDictionary<string, string>>();
             if (action == OutputAction.Visualization)
                 return Is<IVisualization>();
 
             return true;
-        }
-
-        /// <summary>
-        /// The result type of a process: the <c>TResult</c> of the single <c>[PipelineProcessRun]</c>
-        /// method's <see cref="Task{TResult}"/> return type, or <see langword="null"/> when the process
-        /// has no unique run method or does not return a <see cref="Task{TResult}"/>.
-        /// </summary>
-        private static Type? ResolveResultType(Type processType)
-        {
-            var runMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .Where(method => Attribute.IsDefined(method, typeof(PipelineProcessRunAttribute)))
-                .ToList();
-            if (runMethods.Count != 1)
-                return null;
-
-            var returnType = runMethods[0].ReturnType;
-            if (!returnType.IsGenericType || returnType.GetGenericTypeDefinition() != typeof(Task<>))
-                return null;
-
-            return returnType.GetGenericArguments()[0];
-        }
-
-        /// <summary>
-        /// Maps each configured step's id to its process result type, used to type check cross-step
-        /// references at load time. Steps whose process, type, or result type cannot be resolved are
-        /// omitted; the reference validator then leaves references to them unchecked rather than
-        /// reporting a spurious error. Empty when no steps have been supplied via <see cref="Steps"/>.
-        /// </summary>
-        private Dictionary<string, Type> BuildStepResultTypes()
-        {
-            var stepResultTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
-            if (steps is null || processes is null)
-                return stepResultTypes;
-
-            foreach (var step in steps)
-            {
-                if (step.ProcessId is null)
-                    continue;
-
-                var processConfig = processes.GetProcessConfig(step.ProcessId);
-                if (processConfig is null)
-                    continue;
-
-                var processType = GetProcessorType(processConfig.Implementation);
-                if (processType is null)
-                    continue;
-
-                var resultType = ResolveResultType(processType);
-                if (resultType is not null)
-                    stepResultTypes[step.Id] = resultType;
-            }
-
-            return stepResultTypes;
         }
 
         /// <summary>
@@ -323,14 +357,26 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// check. References to steps whose result type cannot be resolved are left unchecked rather than
         /// reported as errors, matching the input reference validator.
         /// </summary>
-        private static List<string> ValidateConditions(StepConfig stepConfig, Dictionary<string, Type> stepResultTypes)
+        private static List<string> ValidateConditions(StepConfig stepConfig, IReadOnlyDictionary<string, Type> stepResultTypes)
         {
             var errors = new List<string>();
 
             foreach (var expression in CollectConditionExpressions(stepConfig))
             {
                 var runner = ConditionEvaluator.CreateRunner(expression, NullLogger.Instance);
-                foreach (var parameterName in runner.GetParameterNames())
+
+                List<string> parameterNames;
+                try
+                {
+                    parameterNames = runner.GetParameterNames();
+                }
+                catch (NCalcException ex)
+                {
+                    errors.Add($"condition '{expression}' is not a valid expression: {ex.Message}");
+                    continue;
+                }
+
+                foreach (var parameterName in parameterNames)
                 {
                     if (!TryGetStepProperty(parameterName, out var stepId, out var propertyName))
                         continue;
@@ -426,8 +472,8 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 ValidateParameter(parameterInfo, processParameterization);
             }
 
-            var stepResultTypes = BuildStepResultTypes();
-            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot, BuildStepResultTypes())
+            var stepResultTypes = this.stepResultTypes ?? new Dictionary<string, Type>();
+            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot, stepResultTypes)
                 .Concat(ValidateOutputActions(objectType, stepConfig.OutputActions))
                 .Concat(ValidateConditions(stepConfig, stepResultTypes))
                 .ToList();
@@ -453,7 +499,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             if (processConfig == null)
                 throw new InvalidOperationException($"No process config found for process ID <{stepConfig.ProcessId}>.");
 
-            var objectType = GetProcessorType(processConfig.Implementation) ?? throw new InvalidOperationException($"Process <{processConfig.Implementation}> is unknown");
+            var objectType = factory.GetProcessorType(processConfig.Implementation) ?? throw new InvalidOperationException($"Process <{processConfig.Implementation}> is unknown");
 
             var constructors = objectType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
             if (constructors.Length != 1)
@@ -537,30 +583,6 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
             var genericName = type.Name[..type.Name.IndexOf('`')];
             return $"{genericName}<{string.Join(", ", type.GetGenericArguments().Select(FormatTypeName))}>";
-        }
-
-        private Type? GetProcessorType(string implementation)
-        {
-            if (implementation.StartsWith("Geopilot.Pipeline.Processes", StringComparison.Ordinal))
-            {
-                return AppDomain.CurrentDomain.GetAssemblies()
-                    .Select(a => a.GetType(implementation))
-                    .FirstOrDefault(t => t != null);
-            }
-            else if (this.processorPluginAssemblies.Count > 0)
-            {
-                foreach (var assembly in this.processorPluginAssemblies)
-                {
-                    var type = assembly.GetType(implementation);
-                    if (type != null)
-                    {
-                        return type;
-                    }
-                }
-            }
-
-            logger.LogWarning($"For process implementation '{implementation}' no processor plugin configured. Cannot load process.");
-            return null;
         }
 
         private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory, Guid jobId)

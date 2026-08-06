@@ -29,7 +29,7 @@ internal static class InputBindingValidator
     /// <param name="resourcesRoot">The resources root that <c>${file(path)}</c> references resolve against; when null, file existence is not checked.</param>
     /// <param name="stepResultTypes">Maps each earlier step's id to its process result type. Used to validate <c>${step_output(stepId.output)}</c> references (that the output exists and its type is bindable to the target parameter); when null, step output references are not type checked.</param>
     /// <returns>One message per problem found; empty when the input is valid.</returns>
-    internal static IReadOnlyList<string> Validate(Type processType, InputConfig? input, string? resourcesRoot = null, IReadOnlyDictionary<string, Type>? stepResultTypes = null)
+    internal static IReadOnlyList<string> Validate(Type processType, InputConfig? input, string? resourcesRoot, IReadOnlyDictionary<string, Type>? stepResultTypes)
     {
         var errors = new List<string>();
         if (input is null || input.Count == 0)
@@ -132,43 +132,38 @@ internal static class InputBindingValidator
 
     /// <summary>
     /// Whether a value of <paramref name="sourceType"/> can bind to a parameter of
-    /// <paramref name="parameterType"/>, mirroring the binder's rules: direct assignability, spreading a
-    /// collection source onto the parameter, or wrapping a single source into a collection parameter.
-    /// Kept no stricter than the binder so a valid pipeline is not rejected at load time.
+    /// <paramref name="parameterType"/> for at least some run-time value, mirroring the binder without
+    /// duplicating its rules: it reuses the binder's list detection
+    /// (<see cref="InputBinder.TryGetListElementType"/> for the target,
+    /// <see cref="InputBinder.SpreadableElementType"/> for a collection source) and its string conversions
+    /// (<see cref="RawValueConverter.IsStringConvertibleTarget"/>). A single-value target binds when the
+    /// source is assignable in either direction, when a collection source unwraps to a bindable element,
+    /// when a string converts to it, or when it is a concrete type the binder's JSON round-trip could
+    /// produce; only an interface or abstract target the source is not assignable to is rejected. Kept no
+    /// stricter than the binder so a valid pipeline is not rejected at load time.
     /// </summary>
     private static bool IsBindable(Type sourceType, Type parameterType)
     {
-        if (parameterType.IsAssignableFrom(sourceType))
+        if (InputBinder.TryGetListElementType(parameterType, out var listElementType))
+        {
+            var collectionElement = InputBinder.SpreadableElementType(sourceType);
+            return collectionElement is not null
+                ? IsBindable(collectionElement, listElementType)
+                : IsBindable(sourceType, listElementType);
+        }
+
+        if (parameterType.IsAssignableFrom(sourceType) || sourceType.IsAssignableFrom(parameterType))
             return true;
 
-        var sourceElement = ElementType(sourceType);
-        if (sourceElement is not null && IsBindable(sourceElement, parameterType))
+        var sourceElement = InputBinder.SpreadableElementType(sourceType);
+        if (sourceElement is not null)
+            return IsBindable(sourceElement, parameterType);
+
+        if (sourceType == typeof(string) && RawValueConverter.IsStringConvertibleTarget(parameterType))
             return true;
 
-        var parameterElement = ElementType(parameterType);
-        if (parameterElement is not null && IsBindable(sourceType, parameterElement))
-            return true;
-
-        return false;
-    }
-
-    /// <summary>
-    /// The element type of an array or <see cref="IEnumerable{T}"/>, or <see langword="null"/> when the
-    /// type is not such a collection. <see cref="string"/> is intentionally not treated as a collection.
-    /// </summary>
-    private static Type? ElementType(Type type)
-    {
-        if (type == typeof(string))
-            return null;
-
-        if (type.IsArray)
-            return type.GetElementType();
-
-        var enumerableInterface = new[] { type }
-            .Concat(type.GetInterfaces())
-            .FirstOrDefault(candidate => candidate.IsGenericType && candidate.GetGenericTypeDefinition() == typeof(IEnumerable<>));
-
-        return enumerableInterface?.GetGenericArguments()[0];
+        var target = Nullable.GetUnderlyingType(parameterType) ?? parameterType;
+        return !target.IsInterface && !target.IsAbstract;
     }
 
     private static MethodInfo? FindRunMethod(Type processType)
