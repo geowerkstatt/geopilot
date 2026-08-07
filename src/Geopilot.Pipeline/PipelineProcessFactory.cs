@@ -292,7 +292,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
                 if (property is null || !property.CanRead)
                 {
-                    errors.Add($"output action references property {outputAction.Property}, which is not a readable property of the result type <{resultType.Name}> of process <{processType.Name}>");
+                    errors.Add($"output action references property '{outputAction.Property}', which is not a readable property of the result type <{resultType.Name}> of process <{processType.Name}>.");
                     continue;
                 }
 
@@ -365,7 +365,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
                     var property = resultType.GetProperty(propertyName);
                     if (property is null || !property.CanRead)
-                        errors.Add($"condition '{expression}' references property {propertyName}, which is not a readable property of the result type <{resultType.Name}> of step <{stepId}>");
+                        errors.Add($"condition '{expression}' references property '{propertyName}', which is not a readable property of the result type <{resultType.Name}> of step <{stepId}>.");
                 }
             }
 
@@ -452,13 +452,13 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             }
 
             var stepResultTypes = this.stepResultTypes ?? new Dictionary<string, Type>();
-            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot, stepResultTypes)
+            var validationErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot, stepResultTypes)
                 .Concat(ValidateOutputActions(objectType, stepConfig.OutputActions))
                 .Concat(ValidateConditions(stepConfig, stepResultTypes))
                 .ToList();
-            if (inputErrors.Count > 0)
+            if (validationErrors.Count > 0)
             {
-                throw new InvalidOperationException(string.Join(Environment.NewLine, inputErrors));
+                throw new InvalidOperationException(string.Join(Environment.NewLine, validationErrors));
             }
         }
 

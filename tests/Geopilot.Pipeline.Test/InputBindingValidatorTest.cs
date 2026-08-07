@@ -350,14 +350,12 @@ public class InputBindingValidatorTest
     [DynamicData(nameof(BinderConvertibleCases))]
     public void IsBindableAcceptsEveryTypePairTheBinderConverts(object value, Type targetType)
     {
-        // The load-time check must never be stricter than the run-time binder: whenever the binder's leaf
-        // converter (RawValueConverter) converts a value, IsBindable must accept the matching source and
-        // target types. This pins the "no stricter than the binder" invariant to a test rather than a
-        // comment, so a conversion added straight to TryConvert, bypassing the shared table, cannot break
-        // it silently.
-        if (!RawValueConverter.TryConvert(value, targetType, out _))
-            return;
-
+        // The load-time check must never be stricter than the run-time binder. BinderConvertibleCases is a
+        // curated list of pairs the binder is expected to convert, so assert the conversion actually happens
+        // (a broken one must fail here, not be silently skipped) and that IsBindable accepts the same pair.
+        Assert.IsTrue(
+            RawValueConverter.TryConvert(value, targetType, out _),
+            $"{value.GetType().Name} -> {targetType.Name} should be convertible");
         Assert.IsTrue(InputBindingValidator.IsBindable(value.GetType(), targetType));
     }
 

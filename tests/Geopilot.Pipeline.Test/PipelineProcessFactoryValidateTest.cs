@@ -124,14 +124,14 @@ public class PipelineProcessFactoryValidateTest
             DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "step" }),
             ProcessId = "file_matcher",
             OutputActions = new List<OutputActionConfig>
-        {
-            new OutputActionConfig { Property = "MatchedFiles", Actions = new HashSet<OutputAction> { OutputAction.Download } },
-        },
+            {
+                new OutputActionConfig { Property = "MatchedFiles", Actions = new HashSet<OutputAction> { OutputAction.Download } },
+            },
         };
         var processes = new List<ProcessConfig>
-    {
-        new ProcessConfig { Id = "file_matcher", Implementation = "Geopilot.Pipeline.Processes.Matcher.FileMatcher.FileMatcherProcess" },
-    };
+        {
+            new ProcessConfig { Id = "file_matcher", Implementation = "Geopilot.Pipeline.Processes.Matcher.FileMatcher.FileMatcherProcess" },
+        };
 
         factory.Builder().StepConfig(step).Processes(processes).Validate();
     }
