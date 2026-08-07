@@ -13,7 +13,7 @@ interface DetailPanelProps {
 /** Shows the fields of the selected error in a fixed order, skipping the ones the error does not carry. */
 export const DetailPanel = ({ item }: DetailPanelProps) => {
   const { t } = useTranslation();
-  const localize = useLocalized();
+  const { localized } = useLocalized();
 
   return (
     <GeopilotBox
@@ -27,7 +27,7 @@ export const DetailPanel = ({ item }: DetailPanelProps) => {
       </Typography>
       <Table size="small" sx={{ tableLayout: "fixed" }}>
         <TableBody>
-          {item.errorType && <DetailRow label={t("treeFieldErrorType")} value={localize(item.errorType)} />}
+          {item.errorType && <DetailRow label={t("treeFieldErrorType")} value={localized(item.errorType)} />}
           {item.tid && <DetailRow label={t("treeFieldTid")} value={item.tid} />}
           {item.model && <DetailRow label={t("treeFieldModel")} value={item.model} />}
           {item.topic && <DetailRow label={t("treeFieldTopic")} value={item.topic} />}

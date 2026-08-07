@@ -77,13 +77,13 @@ public class StacConverter
             var extent = new StacExtent(ToStacSpatialExtent(mandate.SpatialExtent), new StacTemporalExtent(nowTimestamp, nowTimestamp));
             return new StacCollection(collectionId, string.Empty, extent, null, null)
             {
-                Title = mandate.Name,
+                Title = mandate.Name.GetDisplayText(),
             };
         }
         else
         {
             var collection = StacCollection.Create(collectionId, string.Empty, items);
-            collection.Title = mandate.Name;
+            collection.Title = mandate.Name.GetDisplayText();
             return collection;
         }
     }

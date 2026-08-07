@@ -4,15 +4,23 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { Stack, Tooltip } from "@mui/material";
 import { GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
-import { AvailablePipelinesResponse, Mandate, Organisation, PipelineSummary } from "../../../api/apiInterfaces";
+import {
+  AvailablePipelinesResponse,
+  LocalizedText,
+  Mandate,
+  Organisation,
+  PipelineSummary,
+} from "../../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
-import { findPipeline, getLocalisedPipelineName } from "./pipelineDisplay";
+import { useLocalized } from "../../../hooks/useLocalized.ts";
+import { findPipeline } from "./pipelineDisplay";
 
 const Mandates = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const { localized } = useLocalized();
   const { user } = useGeopilotAuth();
   const { navigateTo } = useControlledNavigate();
   const [mandates, setMandates] = useState<Mandate[]>();
@@ -52,6 +60,7 @@ const Mandates = () => {
       headerName: t("name"),
       flex: 0.5,
       minWidth: 200,
+      valueGetter: (name: LocalizedText) => localized(name),
     },
     {
       field: "pipelineId",
@@ -65,7 +74,7 @@ const Mandates = () => {
         }
         const pipeline = findPipeline(pipelines, pipelineId);
         if (pipeline) {
-          return getLocalisedPipelineName(pipeline, i18n.language);
+          return localized(pipeline.displayName, pipeline.id);
         }
         return (
           <Tooltip

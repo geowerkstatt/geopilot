@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useContext, useEffect, useRef } from "react";
-import { FieldValues, FormProvider, useForm } from "react-hook-form";
+import { FieldValues, FormProvider, KeepStateOptions, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "@mui/icons-material";
@@ -9,6 +9,8 @@ import { Button } from "./buttons.tsx";
 import { useControlledNavigate } from "./controlledNavigate";
 import { PromptContext } from "./prompt/promptContext.tsx";
 import { PromptAction } from "./prompt/promptInterfaces.ts";
+
+const resetOptions: KeepStateOptions = { keepFieldsRef: true };
 
 interface AdminDetailFormProps<T> {
   basePath: string;
@@ -63,7 +65,7 @@ const AdminDetailForm = <T extends { id: number }>({
 
         if (reloadAfterSave) {
           onSaveSuccess(savedData);
-          formMethods.reset(newFormData);
+          formMethods.reset(newFormData, resetOptions);
 
           if (id === 0) {
             const newPath = `${basePath}/${savedData.id}`;
@@ -162,7 +164,7 @@ const AdminDetailForm = <T extends { id: number }>({
               <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <Button
                   disabled={!formMethods.formState.isDirty}
-                  onClick={() => formMethods.reset(data)}
+                  onClick={() => formMethods.reset(data, resetOptions)}
                   label={"reset"}
                 />
                 <Button
