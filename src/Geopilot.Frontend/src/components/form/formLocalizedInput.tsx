@@ -30,7 +30,7 @@ export const FormLocalizedInput: FC<FormLocalizedInputProps> = ({
 }) => {
   const validateAtLeastOne = (_: string, formValues: FieldValues): string | boolean => {
     const entries = (formValues[fieldName] ?? {}) as LocalizedText;
-    const anyFilled = Object.values(entries).some(entry => entry.trim() !== "");
+    const anyFilled = Object.values(entries).some(entry => typeof entry === "string" && entry.trim() !== "");
     return anyFilled || "atLeastOneLanguageRequired";
   };
 
