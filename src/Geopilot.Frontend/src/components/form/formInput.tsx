@@ -33,6 +33,8 @@ export interface FormInputProps {
   onChange?: (value: string) => void;
   /** Extra validation run after the built-in checks in form-context mode. Return true when valid, or a message/false when invalid. */
   validate?: (value: string, formValues: FieldValues) => string | boolean;
+  /** Field names that are revalidated whenever this field changes, for validations that span several fields. */
+  deps?: string[];
   /** Controlled mode: error state to display. Ignored in form-context mode, which derives it from the form. */
   error?: boolean;
   /** Overrides the default `data-cy` (`${fieldName}-formInput`). */
@@ -57,6 +59,7 @@ export const FormInput: FC<FormInputProps> = ({
   onUpdate,
   onChange,
   validate,
+  deps,
   error,
   dataCy,
 }) => {
@@ -116,6 +119,7 @@ export const FormInput: FC<FormInputProps> = ({
       {...register(fieldName!, {
         required: required || false,
         valueAsNumber: type === FormValueType.Number,
+        deps,
         validate: (value, formValues) => {
           if (value !== "" && (type === FormValueType.Date || type === FormValueType.DateTime)) {
             const date = new Date(value);

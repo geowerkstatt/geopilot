@@ -48,6 +48,13 @@ export const FormLocalizedInput: FC<FormLocalizedInputProps> = ({
           sx={{ display: language === activeLanguage ? "inherit" : "none" }}
           showRequiredIndicator={requireAtLeastOne}
           validate={requireAtLeastOne ? validateAtLeastOne : undefined}
+          deps={
+            requireAtLeastOne
+              ? Object.values(Language)
+                  .filter(other => other !== language)
+                  .map(other => `${fieldName}.${other}`)
+              : undefined
+          }
           helperText={helperText}
         />
       ))}
