@@ -18,17 +18,19 @@ internal static class RawValueConverter
         Converters = { new JsonStringEnumConverter() },
     };
 
+    private delegate bool TryParseString(string value, out object? parsed);
+
     /// <summary>
     /// The supported string-to-value conversions, shared as the single source of truth: <see cref="TryConvert"/>
-    /// runs them and the load-time binding check consults <see cref="IsStringConvertibleTarget"/>, so both accept
-    /// the same string-to-X pairs. Each reports whether the string parsed and, if so, the converted value.
+    /// looks them up and the load-time binding check consults <see cref="IsStringConvertibleTarget"/>, so both
+    /// accept the same string-to-X pairs. Each parser reports whether the string parsed and, if so, the value.
     /// </summary>
-    private static readonly IReadOnlyList<(Type TargetType, Func<string, (bool Success, object? Value)> Parse)> StringConversions = new (Type, Func<string, (bool, object?)>)[]
+    private static readonly Dictionary<Type, TryParseString> StringConversions = new()
     {
-        (typeof(int), value => (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed), parsed)),
-        (typeof(double), value => (double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var parsed), parsed)),
-        (typeof(bool), value => (bool.TryParse(value, out var parsed), parsed)),
-        (typeof(TimeSpan), value => (TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var parsed), parsed)),
+        [typeof(int)] = TryParseInt,
+        [typeof(double)] = TryParseDouble,
+        [typeof(bool)] = TryParseBool,
+        [typeof(TimeSpan)] = TryParseTimeSpan,
     };
 
     /// <summary>
@@ -75,18 +77,8 @@ internal static class RawValueConverter
                 return true;
             }
 
-            foreach (var (conversionTarget, parse) in StringConversions)
-            {
-                if (conversionTarget != effectiveTargetType)
-                    continue;
-
-                var (success, value) = parse(s);
-                if (success)
-                {
-                    convertedValue = value;
-                    return true;
-                }
-            }
+            if (StringConversions.TryGetValue(effectiveTargetType, out var parse) && parse(s, out convertedValue))
+                return true;
         }
 
         try
@@ -112,6 +104,73 @@ internal static class RawValueConverter
         var effectiveTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
         return effectiveTargetType == typeof(string)
             || effectiveTargetType.IsEnum
-            || StringConversions.Any(conversion => conversion.TargetType == effectiveTargetType);
+            || StringConversions.ContainsKey(effectiveTargetType);
+    }
+
+    /// <summary>
+    /// Whether a value of <paramref name="sourceType"/> could convert to <paramref name="targetType"/> at
+    /// the leaf, ignoring collection structure, as a tri-state for the load-time binding check:
+    /// <see cref="Convertibility.Yes"/> when the value is assignable in either direction or a string
+    /// converts via a supported conversion, <see cref="Convertibility.No"/> when the target is an interface
+    /// or abstract type the source is not assignable to (the JSON round-trip cannot build it), and
+    /// <see cref="Convertibility.Maybe"/> for a concrete target whose JSON round-trip only the run-time
+    /// value decides.
+    /// </summary>
+    internal static Convertibility CanConvert(Type sourceType, Type targetType)
+    {
+        if (targetType.IsAssignableFrom(sourceType) || sourceType.IsAssignableFrom(targetType))
+            return Convertibility.Yes;
+
+        if (sourceType == typeof(string) && IsStringConvertibleTarget(targetType))
+            return Convertibility.Yes;
+
+        var effectiveTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+        return effectiveTargetType.IsInterface || effectiveTargetType.IsAbstract
+            ? Convertibility.No
+            : Convertibility.Maybe;
+    }
+
+    /// <summary>
+    /// The outcome of <see cref="CanConvert"/>: whether a value of one type could bind to a target for at
+    /// least some run-time value.
+    /// </summary>
+    internal enum Convertibility
+    {
+        /// <summary>The target is an interface or abstract type the source is not assignable to; it cannot be built.</summary>
+        No,
+
+        /// <summary>A concrete target whose JSON round-trip succeeds or fails depending on the run-time value.</summary>
+        Maybe,
+
+        /// <summary>The value is assignable, or a string converts to the target via a supported conversion.</summary>
+        Yes,
+    }
+
+    private static bool TryParseInt(string value, out object? parsed)
+    {
+        var success = int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result);
+        parsed = result;
+        return success;
+    }
+
+    private static bool TryParseDouble(string value, out object? parsed)
+    {
+        var success = double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var result);
+        parsed = result;
+        return success;
+    }
+
+    private static bool TryParseBool(string value, out object? parsed)
+    {
+        var success = bool.TryParse(value, out var result);
+        parsed = result;
+        return success;
+    }
+
+    private static bool TryParseTimeSpan(string value, out object? parsed)
+    {
+        var success = TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var result);
+        parsed = result;
+        return success;
     }
 }

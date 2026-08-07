@@ -258,7 +258,7 @@ internal static class InputBinder
     /// Returns <see langword="false"/> for a string, a scalar or null so the caller handles it as a
     /// single value.
     /// </summary>
-    private static bool TryAsCollection(object? value, out List<object?> items)
+    internal static bool TryAsCollection(object? value, out List<object?> items)
     {
         if (value is System.Collections.IEnumerable enumerable and not string)
         {

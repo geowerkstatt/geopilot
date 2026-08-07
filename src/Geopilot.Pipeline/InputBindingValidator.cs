@@ -1,6 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
-using Geopilot.PipelineCore.Pipeline.Process;
 using System.Reflection;
 
 namespace Geopilot.Pipeline;
@@ -37,7 +36,7 @@ internal static class InputBindingValidator
 
         // Without exactly one run method the input cannot be bound at all; the run-time invocation
         // surfaces that separately, so there is nothing to validate against here.
-        var runMethod = FindRunMethod(processType);
+        var runMethod = ProcessReflection.FindRunMethod(processType);
         if (runMethod is null)
             return errors;
 
@@ -132,17 +131,16 @@ internal static class InputBindingValidator
 
     /// <summary>
     /// Whether a value of <paramref name="sourceType"/> can bind to a parameter of
-    /// <paramref name="parameterType"/> for at least some run-time value, mirroring the binder without
-    /// duplicating its rules: it reuses the binder's list detection
+    /// <paramref name="parameterType"/> for at least some run-time value, mirroring the binder. This method
+    /// owns only the structural rules, reusing the binder's own list detection
     /// (<see cref="InputBinder.TryGetListElementType"/> for the target,
-    /// <see cref="InputBinder.SpreadableElementType"/> for a collection source) and its string conversions
-    /// (<see cref="RawValueConverter.IsStringConvertibleTarget"/>). A single-value target binds when the
-    /// source is assignable in either direction, when a collection source unwraps to a bindable element,
-    /// when a string converts to it, or when it is a concrete type the binder's JSON round-trip could
-    /// produce; only an interface or abstract target the source is not assignable to is rejected. Kept no
-    /// stricter than the binder so a valid pipeline is not rejected at load time.
+    /// <see cref="InputBinder.SpreadableElementType"/> for a collection source) to spread a collection or
+    /// wrap a single value; the leaf convertibility is delegated to <see cref="RawValueConverter.CanConvert"/>,
+    /// which owns the conversion rules. A pair is bindable unless its convertibility is
+    /// <see cref="RawValueConverter.Convertibility.No"/>. Kept no stricter than the binder so a valid
+    /// pipeline is not rejected at load time.
     /// </summary>
-    private static bool IsBindable(Type sourceType, Type parameterType)
+    internal static bool IsBindable(Type sourceType, Type parameterType)
     {
         if (InputBinder.TryGetListElementType(parameterType, out var listElementType))
         {
@@ -152,27 +150,15 @@ internal static class InputBindingValidator
                 : IsBindable(sourceType, listElementType);
         }
 
-        if (parameterType.IsAssignableFrom(sourceType) || sourceType.IsAssignableFrom(parameterType))
+        var convertibility = RawValueConverter.CanConvert(sourceType, parameterType);
+        if (convertibility == RawValueConverter.Convertibility.Yes)
             return true;
 
         var sourceElement = InputBinder.SpreadableElementType(sourceType);
         if (sourceElement is not null)
             return IsBindable(sourceElement, parameterType);
 
-        if (sourceType == typeof(string) && RawValueConverter.IsStringConvertibleTarget(parameterType))
-            return true;
-
-        var target = Nullable.GetUnderlyingType(parameterType) ?? parameterType;
-        return !target.IsInterface && !target.IsAbstract;
-    }
-
-    private static MethodInfo? FindRunMethod(Type processType)
-    {
-        var runMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessRunAttribute)))
-            .ToList();
-
-        return runMethods.Count == 1 ? runMethods[0] : null;
+        return convertibility == RawValueConverter.Convertibility.Maybe;
     }
 
     private static bool ReferencesEarlierStep(InputValue value) => value switch

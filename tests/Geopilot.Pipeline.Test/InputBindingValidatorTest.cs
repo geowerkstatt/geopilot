@@ -1,6 +1,7 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
+using System.Collections;
 
 namespace Geopilot.Pipeline.Test;
 
@@ -331,6 +332,33 @@ public class InputBindingValidatorTest
             stepResultTypes);
 
         Assert.HasCount(0, errors);
+    }
+
+    public static IEnumerable<object[]> BinderConvertibleCases =>
+    [
+        ["42", typeof(int)],
+        ["1.5", typeof(double)],
+        ["00:00:01", typeof(TimeSpan)],
+        ["Warning", typeof(Severity)],
+        [new[] { 1, 2 }, typeof(IEnumerable<int>)],
+        [new List<string> { "a", "b" }, typeof(string[])],
+        [new ArrayList { "a", "b" }, typeof(string[])],
+        ["hello", typeof(string)],
+    ];
+
+    [TestMethod]
+    [DynamicData(nameof(BinderConvertibleCases))]
+    public void IsBindableAcceptsEveryTypePairTheBinderConverts(object value, Type targetType)
+    {
+        // The load-time check must never be stricter than the run-time binder: whenever the binder's leaf
+        // converter (RawValueConverter) converts a value, IsBindable must accept the matching source and
+        // target types. This pins the "no stricter than the binder" invariant to a test rather than a
+        // comment, so a conversion added straight to TryConvert, bypassing the shared table, cannot break
+        // it silently.
+        if (!RawValueConverter.TryConvert(value, targetType, out _))
+            return;
+
+        Assert.IsTrue(InputBindingValidator.IsBindable(value.GetType(), targetType));
     }
 
     private sealed class SampleProcess

@@ -3,7 +3,6 @@ using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
-using Geopilot.PipelineCore.Pipeline.Process;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -144,32 +143,12 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             if (processType is null)
                 continue;
 
-            var resultType = ResolveResultType(processType);
+            var resultType = ProcessReflection.ResolveResultType(processType);
             if (resultType is not null)
                 stepResultTypes[step.Id] = resultType;
         }
 
         return stepResultTypes;
-    }
-
-    /// <summary>
-    /// The result type of a process: the <c>TResult</c> of the single <c>[PipelineProcessRun]</c> method's
-    /// <see cref="Task{TResult}"/> return type, or <see langword="null"/> when the process has no unique run
-    /// method or does not return a <see cref="Task{TResult}"/>.
-    /// </summary>
-    internal static Type? ResolveResultType(Type processType)
-    {
-        var runMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(method => Attribute.IsDefined(method, typeof(PipelineProcessRunAttribute)))
-            .ToList();
-        if (runMethods.Count != 1)
-            return null;
-
-        var returnType = runMethods[0].ReturnType;
-        if (!returnType.IsGenericType || returnType.GetGenericTypeDefinition() != typeof(Task<>))
-            return null;
-
-        return returnType.GetGenericArguments()[0];
     }
 
     /// <summary>
@@ -300,7 +279,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
             var errors = new List<string>();
 
-            var resultType = PipelineProcessFactory.ResolveResultType(processType);
+            var resultType = ProcessReflection.ResolveResultType(processType);
             if (resultType is null)
                 return errors;
 
