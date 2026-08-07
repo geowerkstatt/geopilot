@@ -28,6 +28,18 @@ public class ProcessingJobStoreTest
     }
 
     [TestMethod]
+    public void CreateJobSetsUtcCreatedAt()
+    {
+        var before = DateTime.UtcNow;
+        var job = store.CreateJob();
+        var after = DateTime.UtcNow;
+
+        Assert.AreEqual(DateTimeKind.Utc, job.CreatedAt.Kind);
+        Assert.IsTrue(before <= job.CreatedAt);
+        Assert.IsTrue(job.CreatedAt <= after);
+    }
+
+    [TestMethod]
     public void GetJob()
     {
         var created = store.CreateJob();

@@ -6,13 +6,14 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 
-namespace Geopilot.Api.Test.Validation;
+namespace Geopilot.Api.Test.Processing;
 
 [TestClass]
 public class ProcessingJobCleanupServiceTest
 {
     private const double JobRetentionHours = 24;
     private const double DownloadRetentionHours = 1;
+    private const double VisualizationRetentionHours = 0.5;
     private Mock<IProcessingJobStore> jobStoreMock;
     private Mock<IDirectoryProvider> directoryProviderMock;
     private Mock<ILogger<ProcessingJobCleanupService>> loggerMock;
@@ -20,6 +21,7 @@ public class ProcessingJobCleanupServiceTest
     private string tempUploadRoot;
     private string tempAssetRoot;
     private string tempDownloadRoot;
+    private string tempVisualizationRoot;
     private string tempPipelineRoot;
     private ProcessingJobCleanupService service;
 
@@ -35,6 +37,7 @@ public class ProcessingJobCleanupServiceTest
         {
             JobRetention = TimeSpan.FromHours(JobRetentionHours),
             DownloadRetention = TimeSpan.FromHours(DownloadRetentionHours),
+            VisualizationRetention = TimeSpan.FromHours(VisualizationRetentionHours),
             JobCleanupInterval = TimeSpan.FromHours(24),
             JobTimeout = TimeSpan.FromHours(12),
         };
@@ -59,14 +62,17 @@ public class ProcessingJobCleanupServiceTest
         tempUploadRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         tempAssetRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         tempDownloadRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        tempVisualizationRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         tempPipelineRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tempUploadRoot);
         Directory.CreateDirectory(tempAssetRoot);
         Directory.CreateDirectory(tempDownloadRoot);
+        Directory.CreateDirectory(tempVisualizationRoot);
         Directory.CreateDirectory(tempPipelineRoot);
         directoryProviderMock.Setup(d => d.UploadDirectory).Returns(tempUploadRoot);
         directoryProviderMock.Setup(d => d.AssetDirectory).Returns(tempAssetRoot);
         directoryProviderMock.Setup(d => d.DownloadDirectory).Returns(tempDownloadRoot);
+        directoryProviderMock.Setup(d => d.VisualizationDirectory).Returns(tempVisualizationRoot);
         directoryProviderMock.Setup(d => d.PipelineDirectory).Returns(tempPipelineRoot);
         directoryProviderMock
             .Setup(d => d.GetUploadDirectoryPath(It.IsAny<Guid>()))
@@ -78,6 +84,9 @@ public class ProcessingJobCleanupServiceTest
             .Setup(d => d.GetDownloadDirectoryPath(It.IsAny<Guid>()))
             .Returns<Guid>(jobId => Path.Combine(tempDownloadRoot, jobId.ToString()));
         directoryProviderMock
+            .Setup(d => d.GetVisualizationDirectoryPath(It.IsAny<Guid>()))
+            .Returns<Guid>(jobId => Path.Combine(tempVisualizationRoot, jobId.ToString()));
+        directoryProviderMock
             .Setup(d => d.GetPipelineDirectoryPath(It.IsAny<Guid>()))
             .Returns<Guid>(jobId => Path.Combine(tempPipelineRoot, jobId.ToString()));
     }
@@ -85,7 +94,7 @@ public class ProcessingJobCleanupServiceTest
     [TestCleanup]
     public void Cleanup()
     {
-        foreach (var root in new[] { tempUploadRoot, tempAssetRoot, tempDownloadRoot, tempPipelineRoot })
+        foreach (var root in new[] { tempUploadRoot, tempAssetRoot, tempDownloadRoot, tempVisualizationRoot, tempPipelineRoot })
         {
             if (Directory.Exists(root))
                 Directory.Delete(root, true);
@@ -99,7 +108,7 @@ public class ProcessingJobCleanupServiceTest
     public void RunCleanupRetiresOrphanedJob()
     {
         var orphanJobId = Guid.NewGuid();
-        var (uploadDir, assetDir, downloadDir, pipelineDir) = CreateJobDirectories(orphanJobId);
+        var (uploadDir, assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(orphanJobId);
 
         jobStoreMock.Setup(s => s.GetJob(orphanJobId)).Returns((ProcessingJob?)null);
         jobStoreMock.Setup(s => s.RemoveJob(orphanJobId)).Returns(true);
@@ -108,6 +117,7 @@ public class ProcessingJobCleanupServiceTest
 
         Assert.IsFalse(Directory.Exists(uploadDir));
         Assert.IsFalse(Directory.Exists(downloadDir));
+        Assert.IsFalse(Directory.Exists(visualizationDir));
         Assert.IsFalse(Directory.Exists(assetDir));
         Assert.IsFalse(Directory.Exists(pipelineDir));
         jobStoreMock.Verify(s => s.RemoveJob(orphanJobId), Times.Once);
@@ -117,7 +127,7 @@ public class ProcessingJobCleanupServiceTest
     public void RunCleanupRetiresExpiredUnsubmittedJob()
     {
         var jobId = Guid.NewGuid();
-        var (uploadDir, assetDir, downloadDir, pipelineDir) = CreateJobDirectories(jobId);
+        var (uploadDir, assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
 
         var oldJob = new ProcessingJob(
             jobId,
@@ -132,6 +142,7 @@ public class ProcessingJobCleanupServiceTest
 
         Assert.IsFalse(Directory.Exists(uploadDir));
         Assert.IsFalse(Directory.Exists(downloadDir));
+        Assert.IsFalse(Directory.Exists(visualizationDir));
         Assert.IsFalse(Directory.Exists(assetDir));
         Assert.IsFalse(Directory.Exists(pipelineDir));
         jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
@@ -141,7 +152,7 @@ public class ProcessingJobCleanupServiceTest
     public void RunCleanupKeepsAssetDirForSubmittedDelivery()
     {
         var jobId = Guid.NewGuid();
-        var (uploadDir, assetDir, downloadDir, pipelineDir) = CreateJobDirectories(jobId);
+        var (uploadDir, assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
 
         // The job has been submitted as a delivery; the asset directory must survive cleanup.
         SeedDelivery(jobId);
@@ -159,6 +170,7 @@ public class ProcessingJobCleanupServiceTest
 
         Assert.IsFalse(Directory.Exists(uploadDir), "Upload directory should be cleaned on JobRetention.");
         Assert.IsFalse(Directory.Exists(downloadDir), "Download directory should be cleaned on JobRetention.");
+        Assert.IsFalse(Directory.Exists(visualizationDir), "Visualization directory should be cleaned on JobRetention.");
         Assert.IsFalse(Directory.Exists(pipelineDir), "Pipeline working directory should be cleaned on JobRetention.");
         Assert.IsTrue(Directory.Exists(assetDir), "Asset directory must survive cleanup for submitted deliveries.");
         jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
@@ -168,7 +180,7 @@ public class ProcessingJobCleanupServiceTest
     public void RunCleanupExpiresDownloadsBeforeFullRetention()
     {
         var jobId = Guid.NewGuid();
-        var (uploadDir, assetDir, downloadDir, pipelineDir) = CreateJobDirectories(jobId);
+        var (uploadDir, assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
 
         var partlyExpiredJob = new ProcessingJob(
             jobId,
@@ -184,6 +196,55 @@ public class ProcessingJobCleanupServiceTest
         Assert.IsTrue(Directory.Exists(assetDir), "Asset directory should still exist within JobRetention.");
         Assert.IsTrue(Directory.Exists(pipelineDir), "Pipeline working directory should still exist within JobRetention.");
         Assert.IsFalse(Directory.Exists(downloadDir), "Download directory should be cleaned after DownloadRetention.");
+        Assert.IsFalse(Directory.Exists(visualizationDir), "Visualization directory should be cleaned after VisualizationRetention.");
+        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public void RunCleanupExpiresVisualizationsBeforeDownloadRetention()
+    {
+        var jobId = Guid.NewGuid();
+        var (uploadDir, assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
+
+        var partlyExpiredJob = new ProcessingJob(
+            jobId,
+            new List<ProcessingJobFile>(),
+            null,
+            DateTime.UtcNow.AddHours(-(VisualizationRetentionHours + 0.25)));
+
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(partlyExpiredJob);
+
+        service.RunCleanup();
+
+        Assert.IsTrue(Directory.Exists(uploadDir), "Upload directory should still exist within JobRetention.");
+        Assert.IsTrue(Directory.Exists(assetDir), "Asset directory should still exist within JobRetention.");
+        Assert.IsTrue(Directory.Exists(downloadDir), "Download directory should still exist within DownloadRetention.");
+        Assert.IsTrue(Directory.Exists(pipelineDir), "Pipeline working directory should still exist within JobRetention.");
+        Assert.IsFalse(Directory.Exists(visualizationDir), "Visualization directory should be cleaned after VisualizationRetention.");
+        jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public void RunCleanupKeepsFreshJobDirectories()
+    {
+        var jobId = Guid.NewGuid();
+        var (uploadDir, assetDir, downloadDir, visualizationDir, pipelineDir) = CreateJobDirectories(jobId);
+
+        var freshJob = new ProcessingJob(
+            jobId,
+            new List<ProcessingJobFile>(),
+            null,
+            DateTime.UtcNow);
+
+        jobStoreMock.Setup(s => s.GetJob(jobId)).Returns(freshJob);
+
+        service.RunCleanup();
+
+        Assert.IsTrue(Directory.Exists(uploadDir));
+        Assert.IsTrue(Directory.Exists(assetDir));
+        Assert.IsTrue(Directory.Exists(downloadDir));
+        Assert.IsTrue(Directory.Exists(visualizationDir));
+        Assert.IsTrue(Directory.Exists(pipelineDir));
         jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
     }
 
@@ -219,17 +280,19 @@ public class ProcessingJobCleanupServiceTest
         jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never);
     }
 
-    private (string Upload, string Asset, string Download, string Pipeline) CreateJobDirectories(Guid jobId)
+    private (string Upload, string Asset, string Download, string Visualization, string Pipeline) CreateJobDirectories(Guid jobId)
     {
         var upload = Path.Combine(tempUploadRoot, jobId.ToString());
         var asset = Path.Combine(tempAssetRoot, jobId.ToString());
         var download = Path.Combine(tempDownloadRoot, jobId.ToString());
+        var visualization = Path.Combine(tempVisualizationRoot, jobId.ToString());
         var pipeline = Path.Combine(tempPipelineRoot, jobId.ToString());
         Directory.CreateDirectory(upload);
         Directory.CreateDirectory(asset);
         Directory.CreateDirectory(download);
+        Directory.CreateDirectory(visualization);
         Directory.CreateDirectory(pipeline);
-        return (upload, asset, download, pipeline);
+        return (upload, asset, download, visualization, pipeline);
     }
 
     private void SeedDelivery(Guid jobId)
