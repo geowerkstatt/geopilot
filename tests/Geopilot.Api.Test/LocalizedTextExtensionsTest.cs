@@ -34,6 +34,27 @@ public class LocalizedTextExtensionsTest
     }
 
     [TestMethod]
+    public void GetDisplayTextSkipsBlankPreferredLanguage()
+    {
+        var text = new LocalizedText(new Dictionary<string, string> { ["de"] = "Hallo", ["en"] = string.Empty, ["fr"] = "   ", ["it"] = string.Empty });
+        Assert.AreEqual("Hallo", text.GetDisplayText());
+    }
+
+    [TestMethod]
+    public void GetDisplayTextSkipsBlankRemainingLanguage()
+    {
+        var text = new LocalizedText(new Dictionary<string, string> { ["rm"] = string.Empty, ["rs"] = "Zdravo" });
+        Assert.AreEqual("Zdravo", text.GetDisplayText());
+    }
+
+    [TestMethod]
+    public void GetDisplayTextReturnsEmptyStringWhenAllLanguagesBlank()
+    {
+        var text = new LocalizedText(new Dictionary<string, string> { ["de"] = string.Empty, ["en"] = string.Empty, ["fr"] = string.Empty, ["it"] = string.Empty });
+        Assert.AreEqual(string.Empty, text.GetDisplayText());
+    }
+
+    [TestMethod]
     public void GetDisplayTextReturnsEmptyStringWhenNoLanguagePresent()
     {
         Assert.AreEqual(string.Empty, LocalizedText.Empty.GetDisplayText());
