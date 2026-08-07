@@ -20,7 +20,8 @@
 - A pipeline step `input` value can reference a file shipped with the deployment via `${file(path)}` (relative to the configured `Storage:ResourcesDirectory`), injecting a constant resource such as a template or lookup table into a process without a preceding step.
 - A pipeline step `input` value can reference the uploaded delivery files with `${upload()}`, so a pipeline definition can wire the upload to a process parameter explicitly.
 - Pipeline processes can use an `IIli2GpkgClient` from `GeoWerkstatt.Geopilot.PipelineCore` to run ili2gpkg operations using an [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) service.
-- Mandates can have a description. The description is shown to the users when they choose a mandate before processing.
+- The name of a mandate is localized. The name can be defined for the different languages in the mandate administration.
+- Mandates can have a localized description. The description is shown to the users when they choose a mandate before processing.
 - The documentation of the pipeline definition format, of the processors shipped with geopilot and of the plugin system is now published with the code under [`docs/pipeline/`](docs/pipeline/Pipelines.md).
 - Pipeline steps can end in a `Warning` state through a post `warn_conditions` list: the step ran and reported issues but the pipeline continues, shown with a warning icon in the delivery view. A run whose only non-successful steps are warnings is reported as a warning overall, and a warning does not block delivery on its own.
 
