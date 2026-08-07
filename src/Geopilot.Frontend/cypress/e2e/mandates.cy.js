@@ -4,6 +4,7 @@ import {
   evaluateInput,
   evaluateSelect,
   hasError,
+  setFormLanguage,
   setFreeSoloAutocomplete,
   setInput,
   setNonFreeSoloAutocomplete,
@@ -197,8 +198,21 @@ describe("Mandate tests", () => {
     evaluateSelect("evaluatePartial", "");
     evaluateSelect("evaluateComment", "");
 
-    // Fill out the entire form
+    // Fill out the entire form, with the name in two languages.
     setInput("name.en", randomMandateName);
+    setFormLanguage("de");
+    cy.dataCy("name.de-formInput").should("be.visible");
+    setInput("name.de", `${randomMandateName}-de`);
+
+    // Switch to a language that stays empty. The form must remain valid and savable in that state,
+    // because the name is required in at least one language only.
+    setFormLanguage("fr");
+    cy.dataCy("name.fr-formInput").should("be.visible");
+    evaluateInput("name.fr", "");
+    hasError("name.fr", false);
+    hasError("name.en", false);
+    hasError("name.de", false);
+
     setSelect("pipelineId", 0, 1);
     setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
     setFreeSoloAutocomplete("fileTypes", ".xml");
@@ -212,6 +226,7 @@ describe("Mandate tests", () => {
     setSelect("evaluateComment", 1, 3);
 
     // Save the mandate and check that we stay on the detail page of the new mandate.
+    cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("save-button").click();
     cy.wait("@saveNew");
     cy.location().should(location => {
@@ -219,6 +234,13 @@ describe("Mandate tests", () => {
     });
 
     // Buttons should be disabled again after save.
+    cy.dataCy("reset-button").should("be.disabled");
+    cy.dataCy("save-button").should("be.disabled");
+
+    // Both saved names are kept, and switching the language does not dirty the form.
+    evaluateInput("name.en", randomMandateName);
+    setFormLanguage("de");
+    evaluateInput("name.de", `${randomMandateName}-de`);
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
