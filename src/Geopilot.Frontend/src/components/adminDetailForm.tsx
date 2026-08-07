@@ -10,6 +10,12 @@ import { useControlledNavigate } from "./controlledNavigate";
 import { PromptContext } from "./prompt/promptContext.tsx";
 import { PromptAction } from "./prompt/promptInterfaces.ts";
 
+/**
+ * A form reset with reset(data) does not clear a field that is missing in data.
+ * i.e. if data.foo = undefined, the field foo would not be reset.
+ * keepFieldsRef makes so that you can omit a field from data, and it still resets the field,
+ * instead of silently just keeping the value.
+ */
 const resetOptions: KeepStateOptions = { keepFieldsRef: true };
 
 interface AdminDetailFormProps<T> {
