@@ -13,6 +13,7 @@
 - Post-conditions (`fail_conditions`, `warn_conditions`, `restrict_delivery_conditions`) may reference the current step's own output and earlier steps, but no longer a later step: a reference to a step that runs afterwards is now rejected when the pipeline definition is loaded (it was previously accepted but had no value at runtime). Pre-conditions remain restricted to earlier steps.
 - A configured pipeline-process parameter whose value cannot be converted to the parameter type now fails startup validation and process creation instead of being silently ignored. Enum-valued parameters accept their member names case-insensitively, also inside lists. Pipeline definitions should be re-checked on upgrade, since a previously ignored typo now prevents the application from starting.
 - The name of a mandate is localized (was `string` is now `LocalizedText`). The name can be defined for the different languages in the mandate administration.
+- The title shown on the delivery page is configured per environment in `client-settings.json` under `application.localTitle` (a language-code to text map) instead of a fixed built-in translation, so each deployment can present a title tailored to the customer. When no title is configured for the active language, no title is shown.
 
 ### Added
 

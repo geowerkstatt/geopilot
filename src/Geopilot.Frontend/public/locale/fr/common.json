@@ -51,7 +51,6 @@
   "deliveryOverviewDeleteIdError": "Une erreur s'est produite lors de la suppression de la livraison avec l'ID {{id}}.",
   "deliveryOverviewDeleteIdNotExistError": "La livraison avec l'ID {{id}} n'existe pas et ne peut donc pas être supprimée.",
   "deliveryOverviewLoadingError": "Une erreur s'est produite lors du chargement des livraisons: {{error}}",
-  "deliveryTitle": "Traitement en ligne de géodonnées",
   "description": "Description",
   "development": "Développement",
   "disconnect": "Déconnecter",

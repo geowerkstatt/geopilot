@@ -11,6 +11,9 @@ export interface ClientSettings {
     localName?: {
       [languageCode: string]: string;
     };
+    localTitle?: {
+      [languageCode: string]: string;
+    };
     logo: string;
     favicon: string;
     faviconDark?: string;

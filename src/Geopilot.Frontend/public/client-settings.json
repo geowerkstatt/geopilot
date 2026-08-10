@@ -7,6 +7,12 @@
       "fr": "geowerkstatt Sàrl",
       "it": "geowerkstatt Sagl"
     },
+    "localTitle": {
+      "de": "Online Verarbeitung von Geodaten",
+      "en": "Online processing of geodata",
+      "fr": "Traitement en ligne de géodonnées",
+      "it": "Elaborazione online di dati geografici"
+    },
     "logo": "/logo.png",
     "favicon": "/logo.png",
     "faviconDark": "/logo-dark.png"

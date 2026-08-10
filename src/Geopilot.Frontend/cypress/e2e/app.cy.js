@@ -107,6 +107,39 @@ describe("General app tests", () => {
     });
   });
 
+  it("displays the configured localized delivery title when language changes", () => {
+    cy.intercept("**/client-settings.json").as("clientSettings");
+
+    cy.visit("/");
+
+    cy.wait("@clientSettings").then(interception => {
+      const localTitle = interception.response.body.application.localTitle;
+
+      Object.entries(localTitle).forEach(([language, expectedTitle]) => {
+        if (!["en", "de", "fr", "it"].includes(language)) return;
+
+        selectLanguage(language);
+        cy.dataCy("delivery-title").should("be.visible").and("contain", expectedTitle);
+      });
+    });
+  });
+
+  it("hides the delivery title when none is configured", () => {
+    cy.intercept("**/client-settings.json", req => {
+      req.continue(res => {
+        const modifiedBody = { ...res.body };
+        delete modifiedBody.application.localTitle;
+        res.send({ body: modifiedBody });
+      });
+    }).as("settings");
+
+    cy.visit("/");
+
+    cy.wait("@settings");
+    cy.dataCy("delivery").should("exist");
+    cy.dataCy("delivery-title").should("not.exist");
+  });
+
   it("falls back to default application name when localNames are not available", () => {
     // Intercept and modify the client-settings response to remove localName
     cy.intercept("**/client-settings.json", req => {

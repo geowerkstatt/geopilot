@@ -51,7 +51,6 @@
   "deliveryOverviewDeleteIdError": "Si è verificato un errore durante l'eliminazione della consegna con ID {{id}}.",
   "deliveryOverviewDeleteIdNotExistError": "La consegna con ID {{id}} non esiste e non può essere eliminata.",
   "deliveryOverviewLoadingError": "Si è verificato un errore durante il caricamento delle consegne: {{error}}",
-  "deliveryTitle": "Elaborazione online di dati geografici",
   "description": "Descrizione",
   "development": "Sviluppo",
   "disconnect": "Disconnessione",
