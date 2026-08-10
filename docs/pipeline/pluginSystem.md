@@ -176,6 +176,34 @@ Drei Punkte, die dabei regelmässig überraschen:
 
 **Es werden immer alle Schritte konstruiert**, auch wenn nur einer ausgeführt wird. Die Konfigurationsschicht muss deshalb jeden Prozessor der Definition befriedigen, nicht nur den getesteten. Parameter, die nicht aus der `default_config` der Definition stammen, kommen in Produktion aus `Pipeline:ProcessConfigs` und müssen im Test entsprechend gesetzt werden.
 
+Wer einen einzelnen Prozessor isoliert testen will, gibt der Factory statt der produktiven Datei eine minimale Definition als Text mit. `Builder().Yaml(...)` nimmt die Definition direkt entgegen, und es wird nur konstruiert, was darin steht:
+
+```csharp
+var factory = PipelineFactory.Builder()
+    .Yaml("""
+        processes:
+          - id: only_this
+            implementation: MyPlugin.Processors.MyProcess
+            default_config:
+              someParameter: "value"
+        pipelines:
+          - id: isolated
+            display_name:
+              en: Isolated
+            steps:
+              - id: the_step
+                display_name:
+                  en: The step
+                process_id: only_this
+                input:
+                  someInput: "${step_output(upstream.SomeOutput)}"
+        """)
+    // ... übrige Builder-Aufrufe wie oben
+    .Build();
+```
+
+Ein Test gegen die produktive Definition prüft die Verdrahtung, wie sie beim Kunden läuft; ein Test gegen eine Minimaldefinition prüft einen Prozessor für sich. Beides ist sinnvoll, die Wahl hängt vom Szenario ab.
+
 **Prozessoren werden in einen eigenen `AssemblyLoadContext` geladen.** Der Typ einer Prozessor-Instanz ist deshalb *nicht identisch* mit dem direkt referenzierten Typ, obwohl Typname und DLL-Pfad übereinstimmen. `is`-Prüfungen und Casts schlagen fehl:
 
 ```csharp
