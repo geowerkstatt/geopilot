@@ -37,7 +37,7 @@ export const FormLanguageTabs: FC<FormLanguageTabsProps> = ({ language, onLangua
     }}
     data-cy="language-tabs">
     {Object.values(Language).map(lang => (
-      <ToggleButton key={lang} value={lang} data-cy={`language-tab-${lang}`}>
+      <ToggleButton key={lang} value={lang} data-cy={`language-tab-${lang}`} size="small">
         <Box sx={{ borderBottom: lang === language ? "1px solid" : "1px solid transparent" }}>{lang.toUpperCase()}</Box>
       </ToggleButton>
     ))}
