@@ -10,7 +10,7 @@ internal static class LocalizedTextExtensions
     private static readonly string[] PreferredLanguages = ["en", "de", "fr", "it"];
 
     /// <summary>
-    /// Resolves the localized text to a single display string by taking the first langauge that is available in the order:
+    /// Resolves the localized text to a single display string by taking the first language that is available in the order:
     /// English, German, French, Italian, then any remaining language.
     /// Entries that are missing or blank are skipped.
     /// </summary>
