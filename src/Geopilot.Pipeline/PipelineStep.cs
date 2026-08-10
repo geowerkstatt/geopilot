@@ -1,7 +1,6 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
-using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Reflection;
@@ -315,20 +314,19 @@ public sealed class PipelineStep : IPipelineStep
 
     private MethodInfo GetProcessRunMethod()
     {
-        var processRunMethods = Process.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessRunAttribute)));
+        var processRunMethods = ProcessReflection.GetRunMethods(Process.GetType());
 
-        if (processRunMethods.Count() > 1)
+        if (processRunMethods.Count > 1)
         {
             throw new PipelineRunException($"Multiple methods found with PipelineProcessRunAttribute on process <{Process.GetType().Name}>.");
         }
-        else if (!processRunMethods.Any())
+        else if (processRunMethods.Count == 0)
         {
             throw new PipelineRunException($"No method found with PipelineProcessRunAttribute on process <{Process.GetType().Name}>. There should be exactly one.");
         }
         else
         {
-            return processRunMethods.First();
+            return processRunMethods[0];
         }
     }
 
