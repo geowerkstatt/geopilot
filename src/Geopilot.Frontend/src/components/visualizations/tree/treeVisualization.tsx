@@ -97,7 +97,6 @@ export const TreeVisualization = ({
 }: TreeVisualizationProps) => {
   const { t } = useTranslation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  const [panelTop, setPanelTop] = useState(0);
   const [measureContainer, containerWidth] = useElementWidth<HTMLDivElement>();
   const treeWrapperRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -163,53 +162,43 @@ export const TreeVisualization = ({
   // Align the box's top with the selected row, but keep it within the tree so a selection far down does not
   // push the box past the tree and grow the accordion: clamp to the tree's bottom edge. Recompute when
   // layout-affecting state changes.
-  const updatePanelTop = useCallback(() => {
+  const calculatePanelTop = useCallback(() => {
     if (!sideBySide || !selectedId) {
-      setPanelTop(0);
-      return;
+      return 0;
     }
     const wrapper = treeWrapperRef.current;
     const selected = wrapper?.querySelector<HTMLElement>(".Mui-selected");
     if (!wrapper || !selected) {
-      setPanelTop(0);
-      return;
+      return 0;
     }
     const offset = selected.getBoundingClientRect().top - wrapper.getBoundingClientRect().top;
     const panelHeight = panelRef.current?.offsetHeight ?? 0;
     const maxTop = Math.max(0, wrapper.offsetHeight - panelHeight);
-    setPanelTop(Math.min(Math.max(0, offset), maxTop));
+    return Math.min(Math.max(0, offset), maxTop);
   }, [selectedId, sideBySide]);
 
   useEffect(() => {
     const tree = treeRef.current;
     if (!tree) return;
 
-    const scrollInlineOrUpdatePanelTop = () => {
-      updatePanelTop();
-      inlinePanelRef.current?.scrollIntoView({ block: "nearest" });
+    const scrollToPanel = (event: TransitionEvent | null) => {
+      // include height transitions of child nodes in the tree
+      if (event && event.propertyName !== "height") return;
+
+      if (panelRef.current) {
+        panelRef.current.style.marginTop = `${calculatePanelTop()}px`;
+        panelRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+      inlinePanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     };
 
-    scrollInlineOrUpdatePanelTop();
+    scrollToPanel(null);
 
-    tree.addEventListener("transitionend", scrollInlineOrUpdatePanelTop, { once: true });
+    tree.addEventListener("transitionend", scrollToPanel);
     return () => {
-      tree.removeEventListener("transitionend", scrollInlineOrUpdatePanelTop);
+      tree.removeEventListener("transitionend", scrollToPanel);
     };
-  }, [expandedItems, items, containerWidth, updatePanelTop]);
-
-  useEffect(() => {
-    const panel = panelRef.current;
-    if (!panel || !sideBySide) return;
-
-    const onPanelTopTransitionEnd = () => {
-      panel.scrollIntoView({ block: "nearest" });
-    };
-
-    panel.addEventListener("transitionend", onPanelTopTransitionEnd);
-    return () => {
-      panel.removeEventListener("transitionend", onPanelTopTransitionEnd);
-    };
-  }, [selectedId, sideBySide]);
+  }, [expandedItems, items, calculatePanelTop]);
 
   if (nodes.length === 0 && !filterActive) return null;
 
@@ -263,9 +252,7 @@ export const TreeVisualization = ({
             ref={panelRef}
             sx={{
               display: sideBySide ? "block" : "none",
-              transform: `translateY(${panelTop}px)`,
               flexShrink: 0,
-              transition: "transform 0.15s ease",
               width: PANEL_WIDTH,
               maxWidth: "100%",
               scrollMarginTop: `calc(${contentTop}px + ${theme.spacing(4)})`,
