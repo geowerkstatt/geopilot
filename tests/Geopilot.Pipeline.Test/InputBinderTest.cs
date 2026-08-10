@@ -1,6 +1,7 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
 using Moq;
+using System.Collections;
 using System.Reflection;
 
 namespace Geopilot.Pipeline.Test;
@@ -426,6 +427,29 @@ public class InputBinderTest
         var result = InputBinder.Bind(ArrayTarget(typeof(IPipelineFile[])), new InputValue.UploadReference(), ResolverReturning(uploadList));
 
         CollectionAssert.AreEqual(new[] { first, second }, (IPipelineFile[])result!);
+    }
+
+    public static IEnumerable<object[]> CollectionParityValues =>
+    [
+        [new[] { 1, 2 }],
+        [new List<string> { "a", "b" }],
+        [new ArrayList { "a", "b" }],
+        [new Dictionary<string, string> { ["de"] = "Hallo" }],
+        ["hello"],
+        [42],
+    ];
+
+    [TestMethod]
+    [DynamicData(nameof(CollectionParityValues))]
+    public void SpreadableElementTypeAgreesWithTryAsCollection(object value)
+    {
+        // SpreadableElementType is the type-level mirror of the binder's TryAsCollection; the two must
+        // agree on what counts as a spreadable collection, otherwise the load-time check and the binder
+        // would disagree on whether a value gets spread.
+        var isCollection = InputBinder.TryAsCollection(value, out _);
+        var elementType = InputBinder.SpreadableElementType(value.GetType());
+
+        Assert.AreEqual(isCollection, elementType is not null);
     }
 
     private static BindingTarget Single(Type type, bool nullable = false) => new("param", type, nullable, false);

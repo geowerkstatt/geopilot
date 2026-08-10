@@ -1,6 +1,5 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.PipelineCore.Pipeline;
-using Geopilot.PipelineCore.Pipeline.Process;
 using System.Reflection;
 
 namespace Geopilot.Pipeline;
@@ -27,8 +26,9 @@ internal static class InputBindingValidator
     /// <param name="processType">The resolved process implementation type.</param>
     /// <param name="input">The step's raw input map, keyed by target parameter name; may be null.</param>
     /// <param name="resourcesRoot">The resources root that <c>${file(path)}</c> references resolve against; when null, file existence is not checked.</param>
+    /// <param name="stepResultTypes">Maps each earlier step's id to its process result type. Used to validate <c>${step_output(stepId.output)}</c> references (that the output exists and its type is bindable to the target parameter); when null, step output references are not type checked.</param>
     /// <returns>One message per problem found; empty when the input is valid.</returns>
-    internal static IReadOnlyList<string> Validate(Type processType, InputConfig? input, string? resourcesRoot = null)
+    internal static IReadOnlyList<string> Validate(Type processType, InputConfig? input, string? resourcesRoot, IReadOnlyDictionary<string, Type>? stepResultTypes)
     {
         var errors = new List<string>();
         if (input is null || input.Count == 0)
@@ -36,7 +36,7 @@ internal static class InputBindingValidator
 
         // Without exactly one run method the input cannot be bound at all; the run-time invocation
         // surfaces that separately, so there is nothing to validate against here.
-        var runMethod = FindRunMethod(processType);
+        var runMethod = ProcessReflection.FindRunMethod(processType);
         if (runMethod is null)
             return errors;
 
@@ -64,9 +64,11 @@ internal static class InputBindingValidator
                 continue;
             }
 
-            // Only literals can be type checked at load time; a step output's type is known at run time.
             if (ReferencesEarlierStep(compiled))
+            {
+                ValidateStepOutputReferences(parameter, compiled, stepResultTypes, errors);
                 continue;
+            }
 
             if (ContainsFileReference(compiled) || ContainsUploadReference(compiled))
             {
@@ -87,13 +89,76 @@ internal static class InputBindingValidator
         return errors;
     }
 
-    private static MethodInfo? FindRunMethod(Type processType)
+    /// <summary>
+    /// Validates the <c>${step_output(stepId.output)}</c> references in a step's input: the referenced
+    /// output must be a readable property of the referenced step's result type, and its type must be
+    /// bindable to the target run method parameter. No-op when <paramref name="stepResultTypes"/> is null.
+    /// </summary>
+    private static void ValidateStepOutputReferences(ParameterInfo parameter, InputValue compiled, IReadOnlyDictionary<string, Type>? stepResultTypes, List<string> errors)
     {
-        var runMethods = processType.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => Attribute.IsDefined(m, typeof(PipelineProcessRunAttribute)))
-            .ToList();
+        if (stepResultTypes is null)
+            return;
 
-        return runMethods.Count == 1 ? runMethods[0] : null;
+        foreach (var reference in StepOutputReferencesOf(compiled))
+        {
+            if (!stepResultTypes.TryGetValue(reference.StepId, out var resultType))
+                continue;
+
+            var property = resultType.GetProperty(reference.OutputName);
+            if (property is null || !property.CanRead)
+            {
+                errors.Add($"input '{parameter.Name}' references '{reference.StepId}.{reference.OutputName}', which is not a readable property of the result type <{resultType.Name}>.");
+                continue;
+            }
+
+            if (!IsBindable(property.PropertyType, parameter.ParameterType))
+                errors.Add($"input '{parameter.Name}' references '{reference.StepId}.{reference.OutputName}' of type <{property.PropertyType.Name}>, which is not compatible with the parameter type <{parameter.ParameterType.Name}>.");
+        }
+    }
+
+    /// <summary>
+    /// The step output references in an input value: the value itself when it is a reference, or the
+    /// reference items of a sequence; empty otherwise.
+    /// </summary>
+    private static IEnumerable<InputValue.StepOutputReference> StepOutputReferencesOf(InputValue value)
+    {
+        if (value is InputValue.StepOutputReference reference)
+            return new[] { reference };
+        if (value is InputValue.Sequence sequence)
+            return sequence.Items.OfType<InputValue.StepOutputReference>();
+        return Enumerable.Empty<InputValue.StepOutputReference>();
+    }
+
+    /// <summary>
+    /// Whether a value of <paramref name="sourceType"/> can bind to a parameter of
+    /// <paramref name="parameterType"/> for at least some run-time value, mirroring the binder. This method
+    /// owns only the structural rules, reusing the binder's own list detection
+    /// (<see cref="InputBinder.TryGetListElementType"/> for the target,
+    /// <see cref="InputBinder.SpreadableElementType"/> for a collection source) to spread a collection or
+    /// wrap a single value; the leaf convertibility is delegated to <see cref="RawValueConverter.CanConvert"/>,
+    /// which owns the conversion rules. A pair is bindable unless its convertibility is
+    /// <see cref="RawValueConverter.Convertibility.No"/>. Kept no stricter than the binder so a valid
+    /// pipeline is not rejected at load time.
+    /// </summary>
+    internal static bool IsBindable(Type sourceType, Type parameterType)
+    {
+        if (InputBinder.TryGetListElementType(parameterType, out var listElementType))
+        {
+            var collectionElement = InputBinder.SpreadableElementType(sourceType);
+            return collectionElement is not null
+                ? IsBindable(collectionElement, listElementType)
+                : IsBindable(sourceType, listElementType);
+        }
+
+        var convertibility = RawValueConverter.CanConvert(sourceType, parameterType);
+        if (convertibility == RawValueConverter.Convertibility.Yes)
+            return true;
+
+        var sourceElement = InputBinder.SpreadableElementType(sourceType);
+        if (sourceElement is not null)
+            return IsBindable(sourceElement, parameterType);
+
+        return convertibility == RawValueConverter.Convertibility.Maybe;
     }
 
     private static bool ReferencesEarlierStep(InputValue value) => value switch

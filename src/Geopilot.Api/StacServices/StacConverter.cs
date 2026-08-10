@@ -73,7 +73,7 @@ public class StacConverter
 
         if (items.Values.Count == 0)
         {
-            var nowTimestamp = DateTime.Now.ToUniversalTime();
+            var nowTimestamp = DateTime.UtcNow;
             var extent = new StacExtent(ToStacSpatialExtent(mandate.SpatialExtent), new StacTemporalExtent(nowTimestamp, nowTimestamp));
             return new StacCollection(collectionId, string.Empty, extent, null, null)
             {
