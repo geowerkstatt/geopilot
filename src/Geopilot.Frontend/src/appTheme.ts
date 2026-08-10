@@ -283,6 +283,13 @@ export const geopilotTheme = createTheme({
         },
       },
     },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          fontStyle: "italic",
+        },
+      },
+    },
     MuiAppBar: {
       styleOverrides: {
         root: {

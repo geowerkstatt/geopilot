@@ -24,6 +24,28 @@ export const getFormFieldError = (
   return !!currentElement;
 };
 
+export const getFormFieldErrorMessage = (
+  fieldName: string | undefined,
+  errors: FieldError | Merge<FieldError, FieldErrorsImpl> | undefined,
+): string | undefined => {
+  if (!fieldName || !errors) {
+    return undefined;
+  }
+
+  const fieldNameElements = fieldName.split(".");
+  let currentElement = errors;
+  for (let i = 0; i < fieldNameElements.length; i++) {
+    // @ts-expect-error - we know that currentElement either has a key of fieldNameElements[i] or it doesn't,
+    // which is what we're checking for
+    currentElement = currentElement[fieldNameElements[i]];
+    if (!currentElement) {
+      return undefined;
+    }
+  }
+  const message = (currentElement as FieldError).message;
+  return typeof message === "string" && message !== "" ? message : undefined;
+};
+
 export enum FormValueType {
   Text = "text",
   Number = "number",
@@ -48,3 +70,5 @@ export { FormSelect } from "./formSelect";
 export { FormCheckbox } from "./formCheckbox";
 export { FormAutocomplete } from "./formAutocomplete";
 export { FormExtent } from "./formExtent";
+export { FormLanguageTabs } from "./formLanguageTabs";
+export { FormLocalizedInput } from "./formLocalizedInput";

@@ -2,6 +2,7 @@ import { initReactI18next } from "react-i18next";
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import backend from "i18next-http-backend";
+import { Language } from "./appInterfaces";
 
 i18n
   .use(backend)
@@ -20,15 +21,15 @@ i18n
     },
     react: {
       useSuspense: false,
+      transSupportBasicHtmlNodes: true,
     },
-    supportedLngs: ["de", "en", "it", "fr"],
-    whitelist: ["de", "en", "it", "fr"],
+    fallbackLng: Language.EN,
+    supportedLngs: Object.values(Language),
     ns: ["common"],
     defaultNS: "common",
     interpolation: {
       escapeValue: false,
       formatSeparator: ",",
-      transSupportBasicHtmlNodes: true,
     },
   });
 

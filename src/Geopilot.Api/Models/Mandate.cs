@@ -18,9 +18,9 @@ public class Mandate
     public int Id { get; set; }
 
     /// <summary>
-    /// The display name of the mandate.
+    /// The localized display name of the mandate.
     /// </summary>
-    public string Name { get; set; } = string.Empty;
+    public LocalizedText Name { get; set; } = LocalizedText.Empty;
 
     /// <summary>
     /// The localized description of the mandate.

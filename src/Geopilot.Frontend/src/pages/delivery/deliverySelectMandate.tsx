@@ -31,9 +31,10 @@ interface MandateToggleButtonProps {
 }
 
 const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
+  const { localized } = useLocalized();
   return (
     <ToggleButton value={mandate} data-cy={`mandate-${mandate.id}`}>
-      {mandate.name}
+      {localized(mandate.name)}
     </ToggleButton>
   );
 };
@@ -43,7 +44,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
-  const localized = useLocalized();
+  const { language } = useLocalized();
   const [selected, setSelected] = useState<Mandate | null>(null);
   const [mandates, setMandates] = useState<Mandate[] | null>(null);
 
@@ -63,7 +64,9 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
   }, [uploadId, fetchApi, setStepStatus, t, user, selectedMandate]);
 
   const currentMandate = selectedMandate ?? selected;
-  const description = localized(currentMandate?.description);
+  // The description follows the language the name is displayed in, and is omitted when it has no entry for it.
+  const nameLanguage = language(currentMandate?.name);
+  const description = nameLanguage ? currentMandate?.description?.[nameLanguage]?.trim() : undefined;
 
   const submitForm = () => {
     if (currentMandate) {

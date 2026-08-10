@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import { Typography } from "@mui/material";
+import { FormHelperText, Stack, Typography } from "@mui/material";
 import {
   AvailablePipelinesResponse,
   FieldEvaluationType,
@@ -10,29 +10,30 @@ import {
   Organisation,
   PipelineSummary,
 } from "../../../api/apiInterfaces.ts";
+import { Language } from "../../../appInterfaces.ts";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import {
-  FormAutocomplete,
-  FormCheckbox,
   FormContainer,
   FormContainerHalfWidth,
   FormExtent,
-  FormInput,
+  FormLanguageTabs,
+  FormLocalizedInput,
   FormSelect,
 } from "../../../components/form/form.ts";
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
-import PipelineFormSelect from "./pipelineFormSelect.tsx";
+import MandateConfigurationFields from "./mandateConfigurationFields.tsx";
 
 const MandateDetail = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { fetchApi } = useFetch();
   const { id = "0" } = useParams<{ id: string }>();
 
   const [mandate, setMandate] = useState<Mandate>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>();
+  const [activeLanguage, setActiveLanguage] = useState<Language>(i18n.resolvedLanguage as Language);
 
   const loadMandate = useCallback(
     async (id: string) => {
@@ -62,7 +63,7 @@ const MandateDetail = () => {
     } else {
       setMandate({
         id: 0,
-        name: "",
+        name: {},
         description: {},
         isPublic: false,
         allowDelivery: false,
@@ -82,9 +83,15 @@ const MandateDetail = () => {
   const prepareMandateForSave = (formData: FieldValues): Mandate => {
     const mandate = formData as Mandate;
     mandate.deliveries = [];
-    mandate.organisations = formData["organisations"]?.map(
-      (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
-    );
+    // Clear eligible organisations and allowDelivery if mandate is public
+    if (formData["isPublic"]) {
+      mandate.organisations = [];
+      mandate.allowDelivery = false;
+    } else {
+      mandate.organisations = formData["organisations"]?.map(
+        (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
+      );
+    }
 
     return mandate;
   };
@@ -99,60 +106,42 @@ const MandateDetail = () => {
       prepareDataForSave={prepareMandateForSave}
       onSaveSuccess={setMandate}>
       <GeopilotBox>
-        <Typography variant={"h3"} margin={0}>
-          {t("description")}
-        </Typography>
+        <Stack direction="row" justifyContent="space-between">
+          <Typography variant={"h3"} marginTop={0}>
+            {t("general")}
+          </Typography>
+          <FormLanguageTabs language={activeLanguage} onLanguageChange={setActiveLanguage} />
+        </Stack>
         <FormContainer>
-          <FormInput fieldName={"name"} label={"name"} value={mandate?.name} required={true} />
+          <FormLocalizedInput
+            fieldName={"name"}
+            label={"name"}
+            value={mandate?.name}
+            activeLanguage={activeLanguage}
+            requireAtLeastOne={true}
+          />
         </FormContainer>
         <FormContainer>
-          <FormInput
-            fieldName={"description.de"}
+          <FormLocalizedInput
+            fieldName={"description"}
             label={"description"}
-            value={mandate?.description?.de}
+            value={mandate?.description}
+            activeLanguage={activeLanguage}
             multiline={true}
             minRows={3}
+            maxRows={3}
+            helperText={t("mandateDescriptionHelperText")}
           />
-        </FormContainer>
-        <FormContainer>
-          <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
-          <FormCheckbox fieldName={"allowDelivery"} label={"delivery"} checked={mandate?.allowDelivery ?? false} />
-        </FormContainer>
-        <FormContainer>
-          <FormAutocomplete<Organisation>
-            fieldName={"organisations"}
-            label={"eligibleOrganisations"}
-            required={false}
-            values={organisations}
-            selected={mandate?.organisations}
-            valueFormatter={org => ({
-              id: org.id,
-              primaryText: org.name,
-              detailText: `${org.name} (ID: ${org.id})`,
-            })}
-          />
-        </FormContainer>
-        <FormContainer>
-          <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId} />
-        </FormContainer>
-        <FormContainer>
-          <FormAutocomplete<string>
-            freeSolo
-            validator={v => /^\.(\*|[a-zA-Z0-9]+)$/i.test(v)}
-            errorMessage="invalidFileExtension"
-            fieldName={"fileTypes"}
-            label={"fileTypes"}
-            required={true}
-            values={[]}
-            selected={mandate?.fileTypes}
-          />
-        </FormContainer>
-        <FormContainer>
-          <FormExtent fieldName={"coordinates"} label={"spatialExtent"} value={mandate?.coordinates} required={true} />
         </FormContainer>
       </GeopilotBox>
       <GeopilotBox>
-        <Typography variant={"h3"} margin={0}>
+        <Typography variant={"h3"} marginTop={0}>
+          {t("configuration")}
+        </Typography>
+        <MandateConfigurationFields mandate={mandate} organisations={organisations} pipelines={pipelines} />
+      </GeopilotBox>
+      <GeopilotBox>
+        <Typography variant={"h3"} marginTop={0}>
           {t("deliveryForm")}
         </Typography>
         <FormContainer>
@@ -191,6 +180,17 @@ const MandateDetail = () => {
             ]}
           />
         </FormContainerHalfWidth>
+      </GeopilotBox>
+      <GeopilotBox>
+        <Stack direction="row">
+          <Typography variant={"h3"} marginTop={0}>
+            {t("spatialExtent")}
+          </Typography>
+          <FormHelperText>{t("spatialExtentHelperText")}</FormHelperText>
+        </Stack>
+        <FormContainer>
+          <FormExtent fieldName={"coordinates"} value={mandate?.coordinates} required={true} />
+        </FormContainer>
       </GeopilotBox>
     </AdminDetailForm>
   );

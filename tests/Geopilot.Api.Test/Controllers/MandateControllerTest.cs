@@ -44,12 +44,12 @@ namespace Geopilot.Api.Controllers
 
             mandateController = new MandateController(loggerMock.Object, context, mandateServiceMock.Object, pipelineServiceMock.Object);
 
-            unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate), AllowDelivery = true };
-            noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noDeliveryMandate), AllowDelivery = false };
+            unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(unrestrictedMandate)), AllowDelivery = true };
+            noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(noDeliveryMandate)), AllowDelivery = false };
             xtfMandate = new Mandate
             {
                 FileTypes = new string[] { ".xtf" },
-                Name = nameof(xtfMandate),
+                Name = TestHelpers.Localized(nameof(xtfMandate)),
                 SpatialExtent = Geometry.DefaultFactory.CreatePolygon(new NetTopologySuite.Geometries.Coordinate[]
                 {
                     new(8.046284, 47.392423),
@@ -62,9 +62,9 @@ namespace Geopilot.Api.Controllers
             };
             xtfMandate.SetCoordinateListFromPolygon();
 
-            publicCsvMandate = new Mandate { FileTypes = new string[] { ".csv" }, Name = nameof(publicCsvMandate), IsPublic = true, AllowDelivery = true, };
-            noOrganisationsMandate = new Mandate { FileTypes = new string[] { ".itf" }, Name = nameof(noOrganisationsMandate), AllowDelivery = true, };
-            noPermissionMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noPermissionMandate), AllowDelivery = true };
+            publicCsvMandate = new Mandate { FileTypes = new string[] { ".csv" }, Name = TestHelpers.Localized(nameof(publicCsvMandate)), IsPublic = true, AllowDelivery = true, };
+            noOrganisationsMandate = new Mandate { FileTypes = new string[] { ".itf" }, Name = TestHelpers.Localized(nameof(noOrganisationsMandate)), AllowDelivery = true, };
+            noPermissionMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(noPermissionMandate)), AllowDelivery = true };
 
             context.Mandates.Add(unrestrictedMandate);
             context.Mandates.Add(noDeliveryMandate);
@@ -181,7 +181,7 @@ namespace Geopilot.Api.Controllers
             var mandate = (response as OkObjectResult)?.Value as Mandate;
             Assert.IsNotNull(mandate);
             Assert.AreEqual(mandateId, mandate.Id);
-            Assert.AreEqual("Handmade Soft Cheese", mandate.Name);
+            Assert.AreEqual("Handmade Soft Cheese", mandate.Name["de"]);
             Assert.HasCount(2, mandate.Coordinates);
             Assert.HasCount(2, mandate.Deliveries);
             Assert.AreEqual(FieldEvaluationType.Optional, mandate.EvaluatePrecursorDelivery);
@@ -219,7 +219,7 @@ namespace Geopilot.Api.Controllers
             var mandate = new Mandate()
             {
                 FileTypes = new string[] { ".*" },
-                Name = "ACCORDIANWALK",
+                Name = TestHelpers.Localized("ACCORDIANWALK"),
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 PipelineId = pipelineId,
@@ -241,7 +241,7 @@ namespace Geopilot.Api.Controllers
             var mandate = new Mandate()
             {
                 FileTypes = new string[] { ".*" },
-                Name = "ACCORDIANWALK",
+                Name = TestHelpers.Localized("ACCORDIANWALK"),
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 PipelineId = "NONEXISTENT",
@@ -265,7 +265,7 @@ namespace Geopilot.Api.Controllers
             var mandate = new Mandate()
             {
                 FileTypes = new string[] { ".*" },
-                Name = "ACCORDIANWALK",
+                Name = TestHelpers.Localized("ACCORDIANWALK"),
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate>(),
                 AllowDelivery = true,
@@ -297,7 +297,7 @@ namespace Geopilot.Api.Controllers
             var mandate = new Mandate()
             {
                 FileTypes = new string[] { ".*", ".zip" },
-                Name = "PEARLFOLLOWER",
+                Name = TestHelpers.Localized("PEARLFOLLOWER"),
                 PipelineId = pipelineId,
                 Organisations = new List<Organisation> { new() { Id = 1 }, new() { Id = organisation.Id } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
@@ -342,7 +342,7 @@ namespace Geopilot.Api.Controllers
             var delivery = (result as CreatedResult)?.Value as Delivery;
             Assert.IsNotNull(delivery);
 
-            mandateToUpdate.Name = "ARKMUTANT";
+            mandateToUpdate.Name = TestHelpers.Localized("ARKMUTANT");
             mandateToUpdate.PipelineId = pipelineId;
             mandateToUpdate.FileTypes = new string[] { ".zip", ".gpkg" };
             mandateToUpdate.Organisations = new List<Organisation> { new() { Id = 3 }, new() { Id = organisation.Id } };
@@ -376,7 +376,7 @@ namespace Geopilot.Api.Controllers
             {
                 Id = xtfMandate.Id,
                 FileTypes = new string[] { ".*", ".zip" },
-                Name = "PEARLFOLLOWER",
+                Name = TestHelpers.Localized("PEARLFOLLOWER"),
                 Organisations = new List<Organisation>() { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate>(),
                 AllowDelivery = true,
@@ -395,7 +395,7 @@ namespace Geopilot.Api.Controllers
             {
                 Id = xtfMandate.Id,
                 FileTypes = new string[] { ".*", ".zip" },
-                Name = "PEARLFOLLOWER",
+                Name = TestHelpers.Localized("PEARLFOLLOWER"),
                 Organisations = new List<Organisation>() { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 PipelineId = pipelineId,
