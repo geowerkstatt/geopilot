@@ -122,7 +122,7 @@ internal static class ContextExtensions
             .UseDateTimeReference(referenceDateTime)
             .StrictMode(true)
             .RuleFor(o => o.Id, f => 0)
-            .RuleFor(o => o.Name, f => f.Commerce.ProductName())
+            .RuleFor(o => o.Name, f => new LocalizedText(new Dictionary<string, string> { { "de", f.Commerce.ProductName() } }))
             .RuleFor(o => o.FileTypes, f => f.PickRandom(knownFileFormats, 4).Distinct().ToArray())
             .RuleFor(o => o.PipelineId, f => "ili_validation")
             .RuleFor(o => o.EvaluatePrecursorDelivery, f => f.PickRandom<FieldEvaluationType>())
@@ -141,7 +141,20 @@ internal static class ContextExtensions
 
         context.Mandates.Add(new Mandate()
         {
-            Name = "Public Mandate",
+            Name = new LocalizedText(new Dictionary<string, string>
+            {
+                { "de", "Öffentliches Mandat" },
+                { "en", "Public Mandate" },
+                { "fr", "Mandat public" },
+                { "it", "Mandato pubblico" },
+            }),
+            Description = new LocalizedText(new Dictionary<string, string>
+            {
+                { "de", "Ein öffentliches Mandat, das ohne Anmeldung sichtbar ist." },
+                { "en", "A public mandate that is visible without signing in." },
+                { "fr", "Un mandat public visible sans connexion." },
+                { "it", "Un mandato pubblico visibile senza accesso." },
+            }),
             PipelineId = "ili_validation",
             FileTypes = [".xtf"],
             SpatialExtent = GetExtent(),

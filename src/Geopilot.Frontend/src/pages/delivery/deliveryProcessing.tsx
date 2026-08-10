@@ -33,7 +33,7 @@ const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
 
 export const DeliveryProcessing = () => {
   const { t } = useTranslation();
-  const localized = useLocalized();
+  const { localized } = useLocalized();
 
   const { isProcessing, processingResponse } = useContext(DeliveryContext);
   const [expandedStepIds, setExpandedStepIds] = useState<Set<string>>(new Set());

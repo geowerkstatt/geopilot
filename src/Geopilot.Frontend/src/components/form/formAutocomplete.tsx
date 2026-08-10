@@ -139,7 +139,6 @@ export const FormAutocomplete = <T,>({
       slotProps={{ paper: stopStepSwipePropagation }}
       disableCloseOnSelect={disableCloseOnSelect ?? true}
       popupIcon={<ExpandMoreIcon />}
-      forcePopupIcon={(values?.length ?? 0) > 0 ? "auto" : true}
       multiple
       freeSolo={freeSolo ?? false}
       disabled={disabled ?? false}

@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Models;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using System.Runtime.CompilerServices;
@@ -8,6 +9,13 @@ namespace Geopilot.Api;
 
 internal static class TestHelpers
 {
+    /// <summary>
+    /// Wraps a plain string as a <see cref="LocalizedText"/> with a single German entry for building test fixtures.
+    /// </summary>
+    /// <param name="text">The text to use as the German entry.</param>
+    /// <returns>A localized text holding <paramref name="text"/> under the "de" language.</returns>
+    public static LocalizedText Localized(string text) => new(new Dictionary<string, string> { { "de", text } });
+
     public static ClaimsPrincipal CreateClaimsPrincipal(User user)
         => new ClaimsPrincipal(
             new ClaimsIdentity(
@@ -51,7 +59,7 @@ internal static class TestHelpers
 
         if (mandate == null)
         {
-            mandate = new Mandate() { Name = string.Join(' ', callerName, "Mandate") };
+            mandate = new Mandate() { Name = Localized(string.Join(' ', callerName, "Mandate")) };
         }
 
         mandate.Organisations.Add(organisation);

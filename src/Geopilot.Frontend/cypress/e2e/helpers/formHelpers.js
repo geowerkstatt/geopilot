@@ -70,6 +70,16 @@ export const setInput = (fieldName, value, parent) => {
 };
 
 /**
+ * Selects the language that the localized form inputs are edited in.
+ * @param {string} language The language code of the tab, for example "de".
+ * @param {string} parent (optional) The parent of the language tabs.
+ */
+export const setFormLanguage = (language, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="language-tab-${language}"]`;
+  cy.get(selector).click();
+};
+
+/**
  * Evaluates the state of an input form element
  * @param {string} fieldName The name of the input field.
  * @param {number} expectedValue The expected value.

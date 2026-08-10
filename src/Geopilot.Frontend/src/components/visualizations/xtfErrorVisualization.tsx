@@ -33,7 +33,7 @@ interface XtfErrorVisualizationProps {
 
 export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }) => {
   const { t } = useTranslation();
-  const localize = useLocalized();
+  const { localized } = useLocalized();
   const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
   const [fieldFilters, setFieldFilters] = useState<FieldFilters>({});
@@ -44,19 +44,19 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const items = useMemo(() => config.tree?.items ?? [], [config.tree]);
   const groupBy = useMemo(() => config.tree?.groupBy ?? [], [config.tree]);
   const filterBy = useMemo(() => config.filterBy ?? [], [config.filterBy]);
-  const attributes = useMemo(() => collectFilterAttributes(items, localize, filterBy), [items, localize, filterBy]);
+  const attributes = useMemo(() => collectFilterAttributes(items, localized, filterBy), [items, localized, filterBy]);
   const hasActiveFilters =
     messageQuery.trim().length > 0 || Object.values(fieldFilters).some(values => (values?.length ?? 0) > 0);
   const filteredItems = useMemo(
-    () => (hasActiveFilters ? filterItems(items, messageQuery.trim().toLowerCase(), fieldFilters, localize) : items),
-    [items, hasActiveFilters, messageQuery, fieldFilters, localize],
+    () => (hasActiveFilters ? filterItems(items, messageQuery.trim().toLowerCase(), fieldFilters, localized) : items),
+    [items, hasActiveFilters, messageQuery, fieldFilters, localized],
   );
 
   const ungroupedLabel = t("treeVisualizationUngrouped");
   // The displayed hierarchy, rebuilt from the filtered items so structural ids, counts and selection stay consistent.
   const nodes = useMemo(
-    () => buildTree(filteredItems, groupBy, localize, ungroupedLabel),
-    [filteredItems, groupBy, localize, ungroupedLabel],
+    () => buildTree(filteredItems, groupBy, localized, ungroupedLabel),
+    [filteredItems, groupBy, localized, ungroupedLabel],
   );
 
   // One index over the SAME nodes the tree renders so structural ids match.
