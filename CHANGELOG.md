@@ -38,6 +38,7 @@
 
 ### Fixed
 
+- The error map in fullscreen can be moved with a single finger and zoomed by scrolling without holding Ctrl (⌘ on macOS). Inline the map keeps asking for two fingers and the modifier key so that it does not swallow the page scroll.
 - Processing job and upload timestamps are now recorded in UTC, so the cleanup retention windows (job, download and visualization) are honored regardless of the container time zone. Previously, with the image default `TZ=Europe/Zurich`, expired downloads and visualizations lingered up to two hours longer than configured.
 
 ## v3.0.341 - 2026-06-17

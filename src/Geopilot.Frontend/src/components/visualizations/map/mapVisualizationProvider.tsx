@@ -146,6 +146,8 @@ interface MapVisualizationProviderProps {
   onSelectFeature?: (featureId: string) => void;
   /** Whether to show the metadata popup when a feature is selected. */
   showMapSelectionPopup?: boolean;
+  /** Whether the map is shown fullscreen, where it may claim single-touch drag and plain scroll-zoom. */
+  fullscreen?: boolean;
 }
 
 /**
@@ -160,6 +162,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   zoomRequest,
   onSelectFeature,
   showMapSelectionPopup = false,
+  fullscreen = false,
   children,
 }) => {
   const { t } = useTranslation();
@@ -175,6 +178,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
   const visibleIdsRef = useRef<ReadonlySet<string> | undefined>(visibleFeatureIds);
   const highlightedIdsRef = useRef<ReadonlySet<string>>(highlightedFeatureIds);
   const lastZoomTokenRef = useRef<number | undefined>(undefined);
+  const fullscreenRef = useRef(fullscreen);
 
   // Padding and max zoom used whenever the view is fit to features.
   const fitOptions = useRef<FitOptions>({ padding: [40, 40, 40, 40], maxZoom: 12 });
@@ -216,15 +220,18 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     if (!config) return;
 
     const isTouch: Condition = e => e.originalEvent instanceof PointerEvent && e.originalEvent.pointerType === "touch";
+    // Inline the map shares the page with the surrounding scroll, so panning takes two fingers and zooming
+    // the platform modifier key. Fullscreen there is nothing behind the map, so both gestures are handed to
+    // the map unrestricted (issue #848).
     const interactions = defaultInteractions({
       dragPan: false,
       mouseWheelZoom: false,
       pinchRotate: false,
     }).extend([
       new DragPan({
-        condition: e => !isTouch(e) || e.activePointers?.length === 2,
+        condition: e => fullscreenRef.current || !isTouch(e) || e.activePointers?.length === 2,
       }),
-      new MouseWheelZoom({ condition: platformModifierKeyOnly }),
+      new MouseWheelZoom({ condition: e => fullscreenRef.current || platformModifierKeyOnly(e) }),
     ]);
 
     const map = new Map({
@@ -249,6 +256,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     map.getViewport().appendChild(interactionHint.element);
 
     const onWheel = (event: WheelEvent) => {
+      if (fullscreenRef.current) return;
       const modifierKey = MAC ? event.metaKey : event.ctrlKey;
       if (!modifierKey) {
         interactionHint.show(t("mapInteractionHintScroll", { key: MAC ? "⌘" : "Ctrl" }));
@@ -259,6 +267,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     map.getViewport().addEventListener("wheel", onWheel, { passive: true });
 
     const dragHintKey = map.on("pointerdrag", event => {
+      if (fullscreenRef.current) return;
       if (isTouch(event) && event.activePointers?.length === 1) {
         interactionHint.show(t("mapInteractionHintTouch"));
       } else {
@@ -304,6 +313,15 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
       map.setTarget(undefined);
     };
   }, [config, selectionOverlay, t, theme]);
+
+  // The interaction conditions and the gesture hints read the fullscreen state from a ref, so toggling
+  // fullscreen does not rebuild the map (which would re-fetch the base map and reset the view). The viewport
+  // additionally has to give up the touch-action ol.css reserves for page scrolling, otherwise the browser
+  // keeps the single-finger gesture and the map never sees it.
+  useEffect(() => {
+    fullscreenRef.current = fullscreen;
+    if (map) map.getViewport().style.touchAction = fullscreen ? "none" : "";
+  }, [fullscreen, map]);
 
   useEffect(() => {
     if (!map) return;
