@@ -150,7 +150,7 @@ Ein typisches Beispiel für die Konfiguration könnte wie folgt aussehen:
 
 ## Integrationstests im Plugin-Repository
 
-Ein Prozessor wird vom Framework auf zwei Wegen versorgt, und beide sind Reflexion über eine Pipeline-Definition: die **Konstruktor-Injektion** löst die Parameter aus der zusammengeführten Konfiguration auf, die **Run-Methoden-Injektion** bindet die Parameter der `[PipelineProcessRun]`-Methode an die `input`-Einträge des Schritts. Beides lässt sich nicht sinnvoll nachbauen, ohne die Runtime nachzubauen.
+Ein Prozessor wird vom Framework auf zwei Wegen versorgt, und beide sind Reflection über eine Pipeline-Definition: die **Konstruktor-Injection** löst die Parameter aus der zusammengeführten Konfiguration auf, die **Run-Methoden-Injection** bindet die Parameter der `[PipelineProcessRun]`-Methode an die `input`-Einträge des Schritts. Beides lässt sich nicht sinnvoll nachbauen, ohne die Runtime nachzubauen.
 
 **Ein Integrationstest führt einen Prozessor deshalb immer über eine Pipeline aus.** Die Pipeline-Klassen selbst sind nicht Teil der öffentlichen API; ein Schritt kann nicht von Hand zusammengesteckt werden. Der Einstieg ist `PipelineFactory`, gespeist aus einer Definition. Was ein Test damit prüft, ist genau das, was in Produktion schiefgehen kann: ein Konstruktor, der nicht zur Konfiguration passt, und eine Run-Methode, deren Parameter nicht zu den `input`-Einträgen passen.
 
@@ -174,7 +174,7 @@ using var pipeline = factory.CreatePipeline("my_pipeline", Guid.NewGuid());
 var context = await pipeline.Run(uploadFiles, CancellationToken.None);
 ```
 
-Damit laufen die Konstruktor-Injektion, die Auflösung der `${...}`-Ausdrücke und die in geopilot eingebauten Prozessoren so, wie sie es zur Laufzeit tun. Ein einzelner Schritt lässt sich über `pipeline.Steps` herausgreifen und mit `step.Run(context, ct)` isoliert ausführen; die Ergebnisse vorangehender Schritte werden dann über `PipelineContext.StepResults` gestellt.
+Damit laufen die Konstruktor-Injection, die Auflösung der `${...}`-Ausdrücke und die in geopilot eingebauten Prozessoren so, wie sie es zur Laufzeit tun. Ein einzelner Schritt lässt sich über `pipeline.Steps` herausgreifen und mit `step.Run(context, ct)` isoliert ausführen; die Ergebnisse vorangehender Schritte werden dann über `PipelineContext.StepResults` gestellt.
 
 Drei Punkte, die dabei regelmässig überraschen:
 

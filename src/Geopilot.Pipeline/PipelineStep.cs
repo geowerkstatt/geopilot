@@ -40,9 +40,7 @@ internal sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public IReadOnlyList<OutputActionConfig> OutputActions { get; }
 
-    /// <summary>
-    /// The conditions that decide whether this step is executed, skipped, fails, warns or restricts delivery.
-    /// </summary>
+    /// <inheritdoc/>
     public PipelineStepConditionsConfig? StepConditions { get; }
 
     /// <inheritdoc/>
