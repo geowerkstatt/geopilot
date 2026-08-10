@@ -310,6 +310,9 @@ describe("File type filter per platform", () => {
   // The native iOS/iPadOS grey-out cannot be reproduced in a desktop browser, so we assert the
   // observable proxy instead: the file input carries an `accept` attribute on desktop (native
   // pre-filtering) but not on iOS/iPadOS, where it would grey out .xtf files (see platform.ts).
+  // The iOS cases first upload a wrong type and expect a rejection: that proves the restriction is
+  // actually applied, so a missing `accept` can only mean the iOS branch dropped it, not that the
+  // processing settings are still loading.
   const visitAs = navigatorProps => {
     // A mandate that restricts the file types (no ".*") so the accept filter would be active.
     cy.intercept("GET", "/api/v2/processing", {
@@ -341,6 +344,8 @@ describe("File type filter per platform", () => {
       platform: "iPhone",
       maxTouchPoints: 5,
     });
+    addFile("deliveryFiles/picture-type.png", false);
+    stepHasError("files", true, "The file type is not supported");
     fileInput().should("not.have.attr", "accept");
   });
 
@@ -350,6 +355,8 @@ describe("File type filter per platform", () => {
       platform: "MacIntel",
       maxTouchPoints: 5,
     });
+    addFile("deliveryFiles/picture-type.png", false);
+    stepHasError("files", true, "The file type is not supported");
     fileInput().should("not.have.attr", "accept");
   });
 });
