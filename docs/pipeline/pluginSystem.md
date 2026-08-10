@@ -147,3 +147,90 @@ Ein typisches Beispiel für die Konfiguration könnte wie folgt aussehen:
   }
 }
 ```
+
+## Integrationstests im Plugin-Repository
+
+Ein Prozessor wird vom Framework auf zwei Wegen versorgt, und beide sind Reflection über eine Pipeline-Definition: die **Konstruktor-Injection** löst die Parameter aus der zusammengeführten Konfiguration auf, die **Run-Methoden-Injection** bindet die Parameter der `[PipelineProcessRun]`-Methode an die `input`-Einträge des Schritts. Beides lässt sich nicht sinnvoll nachbauen, ohne die Runtime nachzubauen.
+
+**Ein Integrationstest führt einen Prozessor deshalb immer über eine Pipeline aus.** Die Pipeline-Klassen selbst sind nicht Teil der öffentlichen API; ein Schritt kann nicht von Hand zusammengesteckt werden. Der Einstieg ist `PipelineFactory`, gespeist aus einer Definition. Was ein Test damit prüft, ist genau das, was in Produktion schiefgehen kann: ein Konstruktor, der nicht zur Konfiguration passt, und eine Run-Methode, deren Parameter nicht zu den `input`-Einträgen passen.
+
+Dazu referenziert das Testprojekt zusätzlich das NuGet-Paket `GeoWerkstatt.Geopilot.Pipeline` und baut die Pipeline aus der eigenen Definitionsdatei:
+
+```csharp
+var processFactory = new PipelineProcessFactory(
+    Options.Create(new PipelineOptions { Plugins = [pathToPluginDll] }),
+    Options.Create(new IlitoolsOptions { IlitoolsWrapperAddress = "http://localhost:5555" }),
+    NullLoggerFactory.Instance);
+
+var factory = PipelineFactory.Builder()
+    .File("Pipelines/myPipeline.yaml")
+    .PipelineProcessFactory(processFactory)
+    .LoggerFactory(NullLoggerFactory.Instance)
+    .PipelineTempDirectory(workingDirectory)
+    .ResourcesDirectory(resourcesDirectory)
+    .Build();
+
+using var pipeline = factory.CreatePipeline("my_pipeline", Guid.NewGuid());
+var context = await pipeline.Run(uploadFiles, CancellationToken.None);
+```
+
+Damit laufen die Konstruktor-Injection, die Auflösung der `${...}`-Ausdrücke und die in geopilot eingebauten Prozessoren so, wie sie es zur Laufzeit tun. Ein einzelner Schritt lässt sich über `pipeline.Steps` herausgreifen und mit `step.Run(context, ct)` isoliert ausführen; die Ergebnisse vorangehender Schritte werden dann über `PipelineContext.StepResults` gestellt.
+
+Drei Punkte, die dabei regelmässig überraschen:
+
+**Es werden immer alle Schritte konstruiert**, auch wenn nur einer ausgeführt wird. Die Konfigurationsschicht muss deshalb jeden Prozessor der Definition befriedigen, nicht nur den getesteten. Parameter, die nicht aus der `default_config` der Definition stammen, kommen in Produktion aus `Pipeline:ProcessConfigs` und müssen im Test entsprechend gesetzt werden.
+
+Wer einen einzelnen Prozessor isoliert testen will, gibt der Factory statt der produktiven Datei eine minimale Definition als Text mit. `Builder().Yaml(...)` nimmt die Definition direkt entgegen, und es wird nur konstruiert, was darin steht:
+
+```csharp
+var factory = PipelineFactory.Builder()
+    .Yaml("""
+        processes:
+          - id: only_this
+            implementation: MyPlugin.Processors.MyProcess
+            default_config:
+              someParameter: "value"
+        pipelines:
+          - id: isolated
+            display_name:
+              en: Isolated
+            steps:
+              - id: the_step
+                display_name:
+                  en: The step
+                process_id: only_this
+                input:
+                  someInput: "${step_output(upstream.SomeOutput)}"
+        """)
+    // ... übrige Builder-Aufrufe wie oben
+    .Build();
+```
+
+Ein Test gegen die produktive Definition prüft die Verdrahtung, wie sie beim Kunden läuft; ein Test gegen eine Minimaldefinition prüft einen Prozessor für sich. Beides ist sinnvoll, die Wahl hängt vom Szenario ab.
+
+Hat der zu testende Schritt höchstens einen Datei-Input, lässt er sich aus dem Upload speisen (`someInput: "${upload()}"`) und über `pipeline.Run(uploadFiles, ct)` ausführen. Dann muss gar kein Ergebnis eines Vorgängerschritts gestellt werden. Bei mehreren Datei-Inputs geht das nicht, weil `${upload()}` allen verdrahteten Parametern dieselbe Liste reicht; dort führt `${file(...)}` mit einem auf die Testfixtures gesetzten `ResourcesDirectory` zum selben Ziel.
+
+Zu beachten bleibt: solange der erzeugende Schritt nicht mitläuft, deckt kein Test ab, ob ein `${step_output(...)}` noch auf eine existierende Eigenschaft des echten Result-Typs zeigt. Wer diese Abweichung ausschliessen will, muss die beteiligten Schritte gemeinsam ausführen.
+
+**Prozessoren werden in einen eigenen `AssemblyLoadContext` geladen.** Der Typ einer Prozessor-Instanz ist deshalb *nicht identisch* mit dem direkt referenzierten Typ, obwohl Typname und DLL-Pfad übereinstimmen. `is`-Prüfungen und Casts schlagen fehl:
+
+```csharp
+step.Process is MyProcess               // false
+step.Process.GetType() == typeof(MyProcess)  // false
+```
+
+Auf Ergebnisse wird darum über den Namen zugegriffen, nicht über einen Cast:
+
+```csharp
+var value = stepResult.ExtractProperty(nameof(MyProcessResult.MyOutput));
+```
+
+**Externe Abhängigkeiten werden nach der Konstruktion ersetzt.** Die Runtime erzeugt die Prozessoren selbst und bietet dafür keine vorgesehene Naht. Ein Test, der einen `HttpClient` oder einen `IIli2GpkgClient` durch ein Test-Double ersetzen will, greift über `IPipelineStep.Process` per Reflection auf das private Feld zu. Aus dem vorigen Punkt folgt, dass das über den Laufzeittyp geschehen muss:
+
+```csharp
+step.Process.GetType()
+    .GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)!
+    .SetValue(step.Process, testHttpClient);
+```
+
+Das ist bewusst als Behelf dokumentiert und kein stabiler Vertrag. Ob dafür eine gestaltete Schnittstelle entsteht, wird in [Issue #665](https://github.com/geowerkstatt/geopilot/issues/665) evaluiert.

@@ -5,7 +5,7 @@ namespace Geopilot.Pipeline;
 /// <summary>
 /// Represents a test implementation of the IPilelineTransferFile interface.
 /// </summary>
-public class PipelineFile : IPipelineFile
+internal class PipelineFile : IPipelineFile
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PipelineFile"/> class for a file at the root of its logical hierarchy.

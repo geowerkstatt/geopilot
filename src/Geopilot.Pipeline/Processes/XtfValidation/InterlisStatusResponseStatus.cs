@@ -3,7 +3,7 @@
 /// <summary>
 /// Represents the status of a validation returned by the interlis-check-service.
 /// </summary>
-public enum InterlisStatusResponseStatus
+internal enum InterlisStatusResponseStatus
 {
     /// <summary>
     /// The validation is processing.

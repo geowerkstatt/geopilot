@@ -12,7 +12,7 @@ namespace Geopilot.Pipeline;
 /// <remarks>Use this class to determine whether specific conditions are met during pipeline execution by
 /// evaluating expressions against the provided context. This type is typically used to support dynamic branching or
 /// decision-making in pipeline workflows.</remarks>
-public class ConditionEvaluator : IConditionEvaluator
+internal class ConditionEvaluator : IConditionEvaluator
 {
     private readonly ILogger logger;
 
@@ -52,7 +52,7 @@ public class ConditionEvaluator : IConditionEvaluator
     /// runtime. It logs a warning if the evaluated expression does not return a boolean value. Instances are intended
     /// for scenarios where expression logic needs to be evaluated based on runtime data, such as feature toggling or
     /// conditional workflows.</remarks>
-    public class ConditionEvaluatorRunner
+    internal class ConditionEvaluatorRunner
     {
         private readonly ILogger logger;
         private readonly Expression expression;
