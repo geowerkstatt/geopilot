@@ -35,7 +35,7 @@ jobs:
       - name: Cypress run
         uses: cypress-io/github-action@v7
         with:
-          command: npx cypress run --record --parallel --key ${{ secrets.CYPRESS_RECORD_KEY }} --ci-build-id ${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt}}
+          command: npx cypress run --record --parallel --ci-build-id ${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt}}
           wait-on: "https://localhost:5173"
           wait-on-timeout: 120
           working-directory: ./src/Geopilot.Frontend
