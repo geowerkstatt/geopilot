@@ -9,13 +9,13 @@ public class PipelineTest
 {
     private readonly IReadOnlyList<IPipelineFile> uploadFiles = Array.Empty<IPipelineFile>();
     private Mock<ILoggerFactory> loggerFactory;
-    private Mock<ILogger<Geopilot.Pipeline.Pipeline>> loggerMock;
+    private Mock<ILogger> loggerMock;
 
     [TestInitialize]
     public void SetUp()
     {
         loggerFactory = new Mock<ILoggerFactory>();
-        loggerMock = new Mock<ILogger<Geopilot.Pipeline.Pipeline>>();
+        loggerMock = new Mock<ILogger>();
         loggerFactory
             .Setup(lf => lf.CreateLogger(It.IsAny<string>()))
             .Returns(loggerMock.Object);

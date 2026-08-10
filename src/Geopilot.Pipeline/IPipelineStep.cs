@@ -19,19 +19,9 @@ public interface IPipelineStep : IDisposable
     LocalizedText DisplayName { get; }
 
     /// <summary>
-    /// The compiled input values for this step, keyed by the target process parameter name.
-    /// </summary>
-    public IReadOnlyDictionary<string, InputValue> Inputs { get; }
-
-    /// <summary>
     /// The output actions for this step: which result properties are tagged with which actions.
     /// </summary>
     IReadOnlyList<OutputActionConfig> OutputActions { get; }
-
-    /// <summary>
-    /// Gets the configuration settings that define the conditions under which the pipeline step is executed, skiped or failed.
-    /// </summary>
-    PipelineStepConditionsConfig? StepConditions { get; }
 
     /// <summary>
     /// The process to be executed for this step.

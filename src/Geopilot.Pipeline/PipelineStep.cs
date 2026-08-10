@@ -32,13 +32,17 @@ internal sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public LocalizedText DisplayName { get; }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// The compiled input values for this step, keyed by the target process parameter name.
+    /// </summary>
     public IReadOnlyDictionary<string, InputValue> Inputs { get; }
 
     /// <inheritdoc/>
     public IReadOnlyList<OutputActionConfig> OutputActions { get; }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// The conditions that decide whether this step is executed, skipped, fails, warns or restricts delivery.
+    /// </summary>
     public PipelineStepConditionsConfig? StepConditions { get; }
 
     /// <inheritdoc/>
