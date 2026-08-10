@@ -1,8 +1,10 @@
 import { FC, TransitionEvent, useContext, useEffect, useState } from "react";
 import { Box, Stack } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
+import { ScrollMarginProvider } from "../../components/scrollMargin/ScrollMarginProvider.tsx";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStep } from "./deliveryInterfaces.tsx";
+import { useContentTopPosition } from "./deliveryUtils.tsx";
 
 export const SLIDE_TRANSITION_MS = 300;
 
@@ -36,6 +38,7 @@ export const DeliveryContentCarousel: FC = () => {
 
   const [liveIndices, setLiveIndices] = useState<Set<number>>(() => new Set([activeStep]));
   const [animate, setAnimate] = useState(false);
+  const contentTop = useContentTopPosition();
 
   useEffect(() => {
     // Desktop shows a single step without sliding, so keep only the active step mounted.
@@ -63,28 +66,32 @@ export const DeliveryContentCarousel: FC = () => {
   // the active step and drops the carousel-specific layout (translate, clipping) so it lays
   // out exactly as a single static panel.
   return (
-    <CarouselViewport
-      data-cy="delivery-content-carousel"
-      sx={{
-        overflowX: isMobile ? "clip" : "visible",
-        touchAction: isMobile ? "pan-y" : undefined,
-        overscrollBehaviorX: isMobile ? "contain" : undefined,
-      }}>
-      <CarouselTrack
-        onTransitionEnd={handleTransitionEnd}
-        style={{
-          left: isMobile ? `calc(${activeStep} * (-100% - ${theme.spacing(2)}))` : 0,
-          transition: isMobile && animate ? `left ${SLIDE_TRANSITION_MS}ms ease` : "none",
+    <ScrollMarginProvider
+      scrollMarginTop={`calc(${contentTop}px + ${theme.spacing(4)})`}
+      scrollMarginBottom={theme.spacing(4)}>
+      <CarouselViewport
+        data-cy="delivery-content-carousel"
+        sx={{
+          overflowX: isMobile ? "clip" : "visible",
+          touchAction: isMobile ? "pan-y" : undefined,
+          overscrollBehaviorX: isMobile ? "contain" : undefined,
         }}>
-        {stepEntries.map(([key, step], index) => {
-          if (!isMobile && index !== activeStep) return null;
-          return (
-            <CarouselSlide key={key} aria-hidden={index !== activeStep}>
-              {liveIndices.has(index) ? renderContent(step, index) : null}
-            </CarouselSlide>
-          );
-        })}
-      </CarouselTrack>
-    </CarouselViewport>
+        <CarouselTrack
+          onTransitionEnd={handleTransitionEnd}
+          style={{
+            left: isMobile ? `calc(${activeStep} * (-100% - ${theme.spacing(2)}))` : 0,
+            transition: isMobile && animate ? `left ${SLIDE_TRANSITION_MS}ms ease` : "none",
+          }}>
+          {stepEntries.map(([key, step], index) => {
+            if (!isMobile && index !== activeStep) return null;
+            return (
+              <CarouselSlide key={key} aria-hidden={index !== activeStep}>
+                {liveIndices.has(index) ? renderContent(step, index) : null}
+              </CarouselSlide>
+            );
+          })}
+        </CarouselTrack>
+      </CarouselViewport>
+    </ScrollMarginProvider>
   );
 };

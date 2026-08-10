@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo, useState } from "react";
+import { FC, Reducer, useCallback, useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, useTheme } from "@mui/material";
@@ -7,6 +7,7 @@ import { IconButton } from "../../components/buttons";
 import { GeopilotBox } from "../../components/styledComponents";
 import { useLocalized } from "../../hooks/useLocalized";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
+import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
 import { FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
@@ -31,13 +32,26 @@ interface XtfErrorVisualizationProps {
   config: XtfErrorVisualizationConfig;
 }
 
+interface NodeSelectionState {
+  selectedNodeId: string | null;
+  selectionToken: number;
+}
+
 export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }) => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
   const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
   const [fieldFilters, setFieldFilters] = useState<FieldFilters>({});
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [{ selectedNodeId, selectionToken }, setSelectedNodeId] = useReducer<
+    Reducer<NodeSelectionState, string | null>
+  >(
+    (state, nodeId) => ({
+      selectedNodeId: nodeId,
+      selectionToken: state.selectionToken + 1, // automatically increment the token every time setSelectedNodeId is called, so the tree can scroll to the new selection
+    }),
+    { selectedNodeId: null, selectionToken: 0 },
+  );
   const [fullscreen, setFullscreen] = useState(false);
   const [zoomRequest, setZoomRequest] = useState<MapZoomRequest | null>(null);
 
@@ -126,6 +140,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
     <TreeVisualization
       nodes={nodes}
       selectedId={selectedNodeId}
+      selectionToken={selectionToken}
       onSelect={setSelectedNodeId}
       onZoom={handleZoomToNode}
       zoomableNodeIds={zoomableNodeIds}
@@ -162,23 +177,25 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       )}
       {config.map && fullscreen ? (
         <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
-          <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
-            {map}
-            {config.tree && (
-              <GeopilotBox
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  m: 2,
-                  width: "400px",
-                  maxHeight: `calc(100% - ${theme.spacing(4)})`,
-                }}>
-                {filter}
-                {tree}
-              </GeopilotBox>
-            )}
-          </Box>
+          <ScrollMarginProvider scrollMarginTop="0px" scrollMarginBottom="0px">
+            <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
+              {map}
+              {config.tree && (
+                <GeopilotBox
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    m: 2,
+                    width: "400px",
+                    maxHeight: `calc(100% - ${theme.spacing(4)})`,
+                  }}>
+                  {filter}
+                  {tree}
+                </GeopilotBox>
+              )}
+            </Box>
+          </ScrollMarginProvider>
         </Modal>
       ) : (
         <Stack sx={{ width: "100%" }}>
