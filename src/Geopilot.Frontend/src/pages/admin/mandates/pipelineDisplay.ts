@@ -8,10 +8,3 @@ export const findPipeline = (
   pipelines: PipelineSummary[] | undefined,
   id: string | undefined,
 ): PipelineSummary | undefined => (id === undefined ? undefined : pipelines?.find(pipeline => pipeline.id === id));
-
-/**
- * Resolves the display name of a pipeline for the active language, falling back to German and finally to
- * the raw id when no localised name is available.
- */
-export const getLocalisedPipelineName = (pipeline: PipelineSummary, language: string): string =>
-  pipeline.displayName?.[language] || pipeline.displayName?.["de"] || pipeline.id;

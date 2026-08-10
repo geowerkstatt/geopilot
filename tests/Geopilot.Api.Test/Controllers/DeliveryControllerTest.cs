@@ -111,7 +111,7 @@ public class DeliveryControllerTest
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
         var publicMandate = context.Mandates.Add(new Mandate
         {
-            Name = nameof(CreateWithPublicMandate),
+            Name = TestHelpers.Localized(nameof(CreateWithPublicMandate)),
             IsPublic = true,
             AllowDelivery = true,
         });
@@ -137,7 +137,7 @@ public class DeliveryControllerTest
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
         var publicMandate = context.Mandates.Add(new Mandate
         {
-            Name = nameof(CreateSucceedsWhenPipelineCompletedWithWarnings),
+            Name = TestHelpers.Localized(nameof(CreateSucceedsWhenPipelineCompletedWithWarnings)),
             IsPublic = true,
             AllowDelivery = true,
         });
@@ -158,7 +158,7 @@ public class DeliveryControllerTest
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
         var publicMandate = context.Mandates.Add(new Mandate
         {
-            Name = nameof(CreateWithPublicMandate),
+            Name = TestHelpers.Localized(nameof(CreateWithPublicMandate)),
             IsPublic = true,
             AllowDelivery = false,
         });
@@ -184,7 +184,7 @@ public class DeliveryControllerTest
         var (user, mandate) = context.AddMandateWithUserOrganisation(
             new Mandate
             {
-                Name = nameof(CreateMinimalDelivery),
+                Name = TestHelpers.Localized(nameof(CreateMinimalDelivery)),
                 EvaluateComment = FieldEvaluationType.NotEvaluated,
                 EvaluatePartial = FieldEvaluationType.NotEvaluated,
                 EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
@@ -244,7 +244,7 @@ public class DeliveryControllerTest
         var (user, mandate) = context.AddMandateWithUserOrganisation(
             new Mandate
             {
-                Name = nameof(CreateValidatesComment),
+                Name = TestHelpers.Localized(nameof(CreateValidatesComment)),
                 EvaluateComment = evaluaton,
                 AllowDelivery = true,
             });
@@ -286,7 +286,7 @@ public class DeliveryControllerTest
         var (user, mandate) = context.AddMandateWithUserOrganisation(
             new Mandate
             {
-                Name = nameof(CreateValidatesPartialDelivery),
+                Name = TestHelpers.Localized(nameof(CreateValidatesPartialDelivery)),
                 EvaluatePartial = evaluaton,
                 AllowDelivery = true,
             });
@@ -328,7 +328,7 @@ public class DeliveryControllerTest
         var (user, mandate) = context.AddMandateWithUserOrganisation(
             new Mandate
             {
-                Name = nameof(CreateValidatesPrecursorDelivery),
+                Name = TestHelpers.Localized(nameof(CreateValidatesPrecursorDelivery)),
                 EvaluatePrecursorDelivery = evaluaton,
                 AllowDelivery = true,
             });
@@ -357,11 +357,11 @@ public class DeliveryControllerTest
     public async Task CreateFailsPrecursorFromOtherMandate()
     {
         var deliveriesCount = context.Deliveries.Count();
-        var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = nameof(CreateFailsPrecursorFromOtherMandate), AllowDelivery = true, });
+        var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsPrecursorFromOtherMandate)), AllowDelivery = true, });
         deliveryController.SetupTestUser(user);
         var guid = SetupProcessingJob(mandate.Id);
         mandate.EvaluatePrecursorDelivery = FieldEvaluationType.Required;
-        var otherMandate = context.Mandates.Add(new Mandate { Name = nameof(CreateFailsPrecursorFromOtherMandate), AllowDelivery = true, }).Entity;
+        var otherMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsPrecursorFromOtherMandate)), AllowDelivery = true, }).Entity;
         var precursorDelivery = new Delivery() { JobId = Guid.NewGuid(), Mandate = otherMandate, DeclaringUser = user };
         context.SaveChanges();
 
@@ -380,7 +380,7 @@ public class DeliveryControllerTest
     public async Task CreateFailsPrecursorNotFound()
     {
         var deliveriesCount = context.Deliveries.Count();
-        var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = nameof(CreateFailsPrecursorNotFound), AllowDelivery = true, });
+        var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsPrecursorNotFound)), AllowDelivery = true, });
         deliveryController.SetupTestUser(user);
         var guid = SetupProcessingJob(mandate.Id);
         mandate.EvaluatePrecursorDelivery = FieldEvaluationType.Required;

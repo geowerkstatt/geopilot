@@ -174,7 +174,7 @@ public class CloudUploadPollingTest
     private async Task<(Guid JobId, Guid UploadId, Mandate Mandate, User User)> CreateAndStartCloudJobAsync()
     {
         var pipelineId = "pipeline1";
-        var mandate = new Mandate { Id = 1, Name = "Test Mandate", PipelineId = pipelineId };
+        var mandate = new Mandate { Id = 1, Name = TestHelpers.Localized("Test Mandate"), PipelineId = pipelineId };
         var user = new User { FullName = "Test User", AuthIdentifier = "auth-123" };
         context.Users.Add(user);
         await context.SaveChangesAsync();

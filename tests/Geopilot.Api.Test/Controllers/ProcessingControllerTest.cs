@@ -157,7 +157,7 @@ public sealed class ProcessingControllerTest
         var jobId = Guid.NewGuid();
 
         var (user, mandate) = context.AddMandateWithUserOrganisation(
-            new Mandate { Name = nameof(StartJobAsyncSuccess) });
+            new Mandate { Name = TestHelpers.Localized(nameof(StartJobAsyncSuccess)) });
         controller.SetupTestUser(user);
 
         var startJobRequest = new StartJobRequest { UploadId = uploadId, MandateId = mandate.Id };
@@ -199,7 +199,7 @@ public sealed class ProcessingControllerTest
 
         var publicMandate = context.Add(new Mandate
         {
-            Name = nameof(StartJobAsyncWithPublicMandate),
+            Name = TestHelpers.Localized(nameof(StartJobAsyncWithPublicMandate)),
             IsPublic = true,
         });
 
@@ -254,7 +254,7 @@ public sealed class ProcessingControllerTest
     {
         // Arrange
         var (user, mandate) = context.AddMandateWithUserOrganisation(
-            new Mandate { Name = nameof(StartJobAsyncReturns400ForInvalidOperationException) });
+            new Mandate { Name = TestHelpers.Localized(nameof(StartJobAsyncReturns400ForInvalidOperationException)) });
 
         var startJobRequest = new StartJobRequest { UploadId = Guid.NewGuid(), MandateId = mandate.Id };
 
@@ -298,7 +298,7 @@ public sealed class ProcessingControllerTest
         // Arrange
         var nonPublicMandate = context.Add(new Mandate
         {
-            Name = nameof(StartJobAsyncWithNonPublicMandateAsUnauthenticated),
+            Name = TestHelpers.Localized(nameof(StartJobAsyncWithNonPublicMandateAsUnauthenticated)),
             IsPublic = false,
         });
 

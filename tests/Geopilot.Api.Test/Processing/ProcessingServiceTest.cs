@@ -68,7 +68,7 @@ public class ProcessingServiceTest
         var uploadId = Guid.NewGuid();
         var jobId = Guid.NewGuid();
         var pipelineId = "pipeline1";
-        var mandate = new Mandate { Id = 1, Name = nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight), FileTypes = [".xtf"], PipelineId = pipelineId };
+        var mandate = new Mandate { Id = 1, Name = TestHelpers.Localized(nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight)), FileTypes = [".xtf"], PipelineId = pipelineId };
         var user = new User { Id = 2, FullName = nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight), AuthIdentifier = "auth-123" };
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
@@ -130,7 +130,7 @@ public class ProcessingServiceTest
         var user = new User { Id = 2, FullName = nameof(StartJobThrowsForMandateWithoutPipeline) };
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
-        var mandate = new Mandate { Id = mandateId, Name = nameof(StartJobThrowsForMandateWithoutPipeline), FileTypes = [".xtf"], PipelineId = null };
+        var mandate = new Mandate { Id = mandateId, Name = TestHelpers.Localized(nameof(StartJobThrowsForMandateWithoutPipeline)), FileTypes = [".xtf"], PipelineId = null };
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user)).ReturnsAsync(mandate);

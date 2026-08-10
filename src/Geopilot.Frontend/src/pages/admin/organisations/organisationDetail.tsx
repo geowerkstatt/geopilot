@@ -9,10 +9,12 @@ import { FormAutocomplete, FormContainer, FormInput } from "../../../components/
 import { FormAutocompleteValue } from "../../../components/form/formAutocomplete.tsx";
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
+import { useLocalized } from "../../../hooks/useLocalized.ts";
 
 const OrganisationDetail = () => {
   const { t } = useTranslation();
   const { fetchApi } = useFetch();
+  const { localized } = useLocalized();
   const { id = "0" } = useParams<{ id: string }>();
 
   const [organisation, setOrganisation] = useState<Organisation>();
@@ -86,8 +88,8 @@ const OrganisationDetail = () => {
             selected={organisation?.mandates}
             valueFormatter={man => ({
               id: man.id,
-              primaryText: man.name,
-              detailText: `${man.name} (ID: ${man.id})`,
+              primaryText: localized(man.name),
+              detailText: `${localized(man.name)} (ID: ${man.id})`,
             })}
           />
         </FormContainer>
