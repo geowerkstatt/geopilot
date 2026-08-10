@@ -15,6 +15,7 @@
 
 ### Added
 
+- A plugin test project can build a pipeline from its own definition file with `PipelineFactory.Builder()` in `GeoWerkstatt.Geopilot.Pipeline`, run it and inspect the result, instead of assembling steps and their inputs by hand. The pipeline definition, its `${...}` input expressions and the processes built into geopilot are exercised as they are at run time.
 - Validation errors can be explored visually in the delivery view: when a validation step fails, its errors are shown on an interactive map and in an error tree.
 - `Visualization` output action in the `GeoWerkstatt.Geopilot.Pipeline` runtime: a pipeline step can tag an output as a self-describing visualization config (a `{ type, data }` envelope), which the runtime serves to the frontend to render based on its `type`. Enum values in visualization payloads are serialized as camelCase strings.
 - A pipeline step `input` value can reference a file shipped with the deployment via `${file(path)}` (relative to the configured `Storage:ResourcesDirectory`), injecting a constant resource such as a template or lookup table into a process without a preceding step.
