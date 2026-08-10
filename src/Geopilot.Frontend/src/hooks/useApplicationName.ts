@@ -1,23 +1,18 @@
-import { useTranslation } from "react-i18next";
-import { ClientSettings, useAppSettings } from "../components/appSettings/appSettingsInterface";
+import { useAppSettings } from "../components/appSettings/appSettingsInterface";
+import { useLocalized } from "./useLocalized";
 
 /**
- * Resolves the configured application name for the given language, preferring the language-specific
- * localName and falling back to the default name. Returns undefined when no name is configured.
- * Shared by the useApplicationName hook and the settings provider, which supplies the context and
- * therefore cannot consume the hook itself.
- */
-export const resolveApplicationName = (
-  application: ClientSettings["application"] | undefined,
-  language: string,
-): string | undefined => application?.localName?.[language] || application?.name;
-
-/**
- * Returns the configured application name for the active UI language. Returns undefined when no name
- * is configured, so callers can use it directly as a render guard. Reactive to the active language.
+ * Returns the configured application name for the active UI language, falling back to the default
+ * name. Returns undefined when no name is configured, so callers can use it directly as a render
+ * guard. Reactive to the active language.
+ *
+ * application.localName is a Record<string, string>, structurally the backend LocalizedText, so we
+ * reuse useLocalized to keep a single language-resolution strategy across the app. The data here
+ * comes from client-settings.json, not from the backend.
  */
 export const useApplicationName = (): string | undefined => {
-  const { i18n } = useTranslation();
+  const { localized } = useLocalized();
   const { clientSettings } = useAppSettings();
-  return resolveApplicationName(clientSettings?.application, i18n.language);
+  const application = clientSettings?.application;
+  return localized(application?.localName, application?.name) || undefined;
 };

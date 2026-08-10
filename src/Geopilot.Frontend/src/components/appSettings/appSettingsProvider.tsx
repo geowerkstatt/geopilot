@@ -1,14 +1,15 @@
 import { FC, PropsWithChildren, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ContentType } from "../../api/apiInterfaces.ts";
-import { resolveApplicationName } from "../../hooks/useApplicationName.ts";
 import useFetch from "../../hooks/useFetch.ts";
+import { useLocalized } from "../../hooks/useLocalized.ts";
 import { AppSettingsContext } from "./appSettingsContext";
 import { ClientSettings } from "./appSettingsInterface";
 
 export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   const { i18n } = useTranslation();
   const { fetchApi, fetchLocalizedMarkdown } = useFetch();
+  const { localized } = useLocalized();
   const [clientSettings, setClientSettings] = useState<ClientSettings | null>();
   const [termsOfUse, setTermsOfUse] = useState<string | null>();
 
@@ -53,9 +54,10 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [clientSettings]);
 
   useEffect(() => {
-    const applicationName = resolveApplicationName(clientSettings?.application, i18n.language);
+    const application = clientSettings?.application;
+    const applicationName = localized(application?.localName, application?.name);
     document.title = applicationName ? `geopilot ${applicationName}` : "geopilot";
-  }, [clientSettings?.application, i18n.language]);
+  }, [clientSettings?.application, localized]);
 
   return (
     <AppSettingsContext.Provider
