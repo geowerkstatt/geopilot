@@ -3,7 +3,7 @@
 namespace Geopilot.Pipeline;
 
 /// <inheritdoc />
-public class PipelineFileManager : IPipelineFileManager
+internal class PipelineFileManager : IPipelineFileManager
 {
     private readonly string basePath;
 

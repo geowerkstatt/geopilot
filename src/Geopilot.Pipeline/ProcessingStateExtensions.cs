@@ -3,7 +3,7 @@
 /// <summary>
 /// Extension methods for <see cref="ProcessingState"/>.
 /// </summary>
-public static class ProcessingStateExtensions
+internal static class ProcessingStateExtensions
 {
     /// <summary>
     /// Gets a value indicating whether a job that finished in this state may be delivered. Delivery is

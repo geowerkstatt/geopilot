@@ -6,7 +6,7 @@
 /// <remarks>Implementations of this interface are responsible for interpreting the provided condition string and
 /// determining its truth value based on the supplied pipeline context. This interface is typically used to enable
 /// conditional logic in pipeline execution scenarios, such as controlling step execution or allow/prevent deliveries.</remarks>
-public interface IConditionEvaluator
+internal interface IConditionEvaluator
 {
     /// <summary>
     /// Evaluates a logical condition expression within the specified pipeline context.
