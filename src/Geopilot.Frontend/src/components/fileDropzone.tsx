@@ -57,7 +57,8 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       }
       if (fileRejections.length > 0) {
         let errorKey: string;
-        const errorCode = fileRejections[0].errors[0].code;
+        const { errors } = fileRejections[0];
+        const errorCode = errors.find(e => e.code === "file-invalid-type")?.code ?? errors[0].code;
 
         switch (errorCode) {
           case "file-invalid-type":
@@ -93,7 +94,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       if (acceptsAllFileTypes) return null;
       const fileName = file.name.toLowerCase();
       const isSupported = (fileExtensions ?? []).some(ext => fileName.endsWith(ext.toLowerCase()));
-      return isSupported ? null : { code: "file-invalid-type", message: "fileDropzoneErrorNotSupported" };
+      return isSupported ? null : { code: "file-invalid-type", message: "File type not supported" };
     },
     [acceptsAllFileTypes, fileExtensions],
   );
@@ -110,7 +111,7 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
     maxFiles,
     maxSize: maxFileSizeMB * 1024 * 1024,
     accept: restrictNativePicker ? { "application/x-geopilot-files": fileExtensions ?? [] } : undefined,
-    validator: acceptsAllFileTypes ? undefined : validateExtension,
+    validator: restrictNativePicker ? undefined : validateExtension,
     disabled,
   });
 

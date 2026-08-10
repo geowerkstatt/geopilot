@@ -1,10 +1,3 @@
-/** The `navigator` signals required to recognise an iOS/iPadOS device. */
-interface PlatformSignals {
-  userAgent: string;
-  platform: string;
-  maxTouchPoints: number;
-}
-
 /**
  * Detects iPhone, iPod and iPad. Every browser on iOS/iPadOS runs on WebKit and shares
  * the native file-picker behaviour that greys out files whose extension has no known UTI
@@ -13,9 +6,14 @@ interface PlatformSignals {
  * iPadOS 13+ reports as "MacIntel" in its default desktop-site mode, so an iPad is only
  * distinguishable from a real Mac by its touch support (Macs report 0 touch points).
  *
- * @param nav Navigator signals to inspect. Defaults to the global `navigator`; injectable for tests.
+ * The branching heuristic is safeguarded by a Cypress test that stubs `navigator`
+ * (see cypress/e2e/delivery.cy.js).
  */
-export const isIosDevice = (nav: PlatformSignals = navigator): boolean => {
+export const isIosDevice = (): boolean => {
+  // `navigator.platform` is deprecated (its successor `navigator.userAgentData` is missing in
+  // Safari/WebKit, exactly the browsers we target here), so it is read deliberately through a
+  // local type that documents the fields we depend on and keeps the deprecation notice off it.
+  const nav: { userAgent: string; platform: string; maxTouchPoints: number } = navigator;
   const isIPhone = /iPhone|iPod/.test(nav.userAgent);
   const isIPad = /iPad/.test(nav.userAgent) || (nav.platform === "MacIntel" && nav.maxTouchPoints > 1);
   return isIPhone || isIPad;

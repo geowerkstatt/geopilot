@@ -305,3 +305,51 @@ describe("Delivery tests", () => {
     cy.dataCy("mandate-selection-group").should("not.exist");
   });
 });
+
+describe("File type filter per platform", () => {
+  // The native iOS/iPadOS grey-out cannot be reproduced in a desktop browser, so we assert the
+  // observable proxy instead: the file input carries an `accept` attribute on desktop (native
+  // pre-filtering) but not on iOS/iPadOS, where it would grey out .xtf files (see platform.ts).
+  const visitAs = navigatorProps => {
+    // A mandate that restricts the file types (no ".*") so the accept filter would be active.
+    cy.intercept("GET", "/api/v2/processing", {
+      statusCode: 200,
+      body: { allowedFileExtensions: [".xtf"] },
+    }).as("fileExtensions");
+    cy.intercept("/api/v1/user/auth", { statusCode: 200, body: { authority: "", clientAudience: "" } });
+    cy.visit("/", {
+      onBeforeLoad(win) {
+        Object.entries(navigatorProps).forEach(([key, value]) =>
+          Object.defineProperty(win.navigator, key, { value, configurable: true }),
+        );
+      },
+    });
+    cy.wait("@fileExtensions");
+    cy.dataCy("file-dropzone").should("exist");
+  };
+
+  const fileInput = () => cy.dataCy("file-dropzone").find("input[type=file]");
+
+  it("keeps the native accept filter on desktop", () => {
+    visitAs({ userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", platform: "Win32", maxTouchPoints: 0 });
+    fileInput().should("have.attr", "accept").and("include", ".xtf");
+  });
+
+  it("drops the native accept filter on iPhone", () => {
+    visitAs({
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15",
+      platform: "iPhone",
+      maxTouchPoints: 5,
+    });
+    fileInput().should("not.have.attr", "accept");
+  });
+
+  it("drops the native accept filter on iPad that reports as a Mac", () => {
+    visitAs({
+      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15",
+      platform: "MacIntel",
+      maxTouchPoints: 5,
+    });
+    fileInput().should("not.have.attr", "accept");
+  });
+});
