@@ -143,7 +143,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       highlightedFeatureIds={highlightedErrorIds}
       zoomRequest={zoomRequest}
       onSelectFeature={handleSelectFeature}
-      showMapSelectionPopup={!config.tree}>
+      showMapSelectionPopup={!config.tree}
+      fullscreen={fullscreen}>
       {config.map && (
         <IconButton
           size="small"
