@@ -1,13 +1,14 @@
 services:
   stac-browser:
-    image: ghcr.io/geowerkstatt/stac-browser:3.2.0
+    image: ghcr.io/radiantearth/stac-browser:5.0.0
     ports:
       - 8080:8080
     environment:
+      SB_pathPrefix: "/browser/"
       SB_catalogUrl: "https://localhost:5173/api/stac"
       SB_locale: "de-CH"
       SB_fallbackLocale: "de-CH"
-      SB_supportedLocales: "de-CH"
+      SB_supportedLocales: "de-CH,fr-CH,it-CH,en"
 
   db:
     image: postgis/postgis

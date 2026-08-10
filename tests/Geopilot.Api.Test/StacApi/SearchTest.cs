@@ -54,4 +54,16 @@ public class SearchTest
         Assert.AreEqual(20, result.NumberMatched);
         Assert.AreEqual(limit, result.NumberReturned);
     }
+
+    [TestMethod]
+    public async Task SearchWithoutLimit()
+    {
+        var result = await searchClient.PostItemSearchAsync(new SearchBody
+        {
+            Collections = Array.Empty<string>(),
+        });
+
+        Assert.AreEqual(20, result.NumberMatched);
+        Assert.AreEqual(20, result.NumberReturned);
+    }
 }
