@@ -58,6 +58,16 @@ public interface IPipelineProcessBuilder
     IPipelineProcessBuilder JobId(Guid jobId);
 
     /// <summary>
+    /// Supplies the map from step id to process result type that <see cref="Validate"/> uses to type check
+    /// cross-step references (<c>${step_output(stepId.output)}</c> in inputs and <c>[stepId.Property]</c> in
+    /// conditions). Typically built once per pipeline by the factory. When not supplied, cross-step
+    /// references are not type checked.
+    /// </summary>
+    /// <param name="stepResultTypes">The step id to result type map, typically produced by the factory's BuildStepResultTypes.</param>
+    /// <returns>An <see cref="IPipelineProcessBuilder"/> instance that can be used to further configure the pipeline.</returns>
+    IPipelineProcessBuilder StepResultTypes(IReadOnlyDictionary<string, Type> stepResultTypes);
+
+    /// <summary>
     /// Builds and returns an object that represents the result of the pipeline construction process.
     /// </summary>
     /// <remarks>Call this method after configuring all necessary parameters and steps for the pipeline. The

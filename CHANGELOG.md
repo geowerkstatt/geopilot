@@ -12,6 +12,7 @@
 - A step's condition messages (why it failed, was skipped, restricted delivery, or ended with a warning) are now shown as the step's tooltip in the delivery view, separate from the process's own status message, which continues to be shown inline.
 - Post-conditions (`fail_conditions`, `warn_conditions`, `restrict_delivery_conditions`) may reference the current step's own output and earlier steps, but no longer a later step: a reference to a step that runs afterwards is now rejected when the pipeline definition is loaded (it was previously accepted but had no value at runtime). Pre-conditions remain restricted to earlier steps.
 - A configured pipeline-process parameter whose value cannot be converted to the parameter type now fails startup validation and process creation instead of being silently ignored. Enum-valued parameters accept their member names case-insensitively, also inside lists. Pipeline definitions should be re-checked on upgrade, since a previously ignored typo now prevents the application from starting.
+- The name of a mandate is localized (was `string` is now `LocalizedText`). The name can be defined for the different languages in the mandate administration.
 
 ### Added
 
@@ -20,7 +21,9 @@
 - A pipeline step `input` value can reference a file shipped with the deployment via `${file(path)}` (relative to the configured `Storage:ResourcesDirectory`), injecting a constant resource such as a template or lookup table into a process without a preceding step.
 - A pipeline step `input` value can reference the uploaded delivery files with `${upload()}`, so a pipeline definition can wire the upload to a process parameter explicitly.
 - Pipeline processes can use an `IIli2GpkgClient` from `GeoWerkstatt.Geopilot.PipelineCore` to run ili2gpkg operations using an [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) service.
-- Mandates can have a description. The description is shown to the users when they choose a mandate before processing.
+- The pipeline definition is checked at startup and the application refuses to start on an invalid one: a step `input` that references an output an earlier step does not produce, or whose type cannot be bound to the target process parameter, and an `output_actions` entry that tags a non-existent or type-incompatible result property, are reported with the affected pipeline, step and property instead of only surfacing at run time.
+- A step condition expression (`skip_conditions`, `fail_conditions`, `warn_conditions`, `restrict_delivery_conditions`) that references a `stepId.property` which is not a readable property of that step's result type is now rejected when the pipeline definition is loaded, reported with the affected step and property, instead of only misbehaving at run time.
+- Mandates can have a localized description. The description is shown to the users when they choose a mandate before processing.
 - The documentation of the pipeline definition format, of the processors shipped with geopilot and of the plugin system is now published with the code under [`docs/pipeline/`](docs/pipeline/Pipelines.md).
 - Pipeline steps can end in a `Warning` state through a post `warn_conditions` list: the step ran and reported issues but the pipeline continues, shown with a warning icon in the delivery view. A run whose only non-successful steps are warnings is reported as a warning overall, and a warning does not block delivery on its own.
 
@@ -30,6 +33,10 @@
 - The built-in ZIP packaging process no longer has a separate uploaded-files parameter or the `includeUploadFiles` configuration; the files to archive are passed through its single `input` parameter.
 - The `ili2gpkg-worker` container and its shared job directory have been removed. ili2gpkg operations now run exclusively through the [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) service configured with `Ilitools:IlitoolsWrapperAddress`. Deployments must drop the `ili2gpkg-worker` service and the `/shared/ili2gpkg` mount from their compose file; pipeline definitions must drop the `jobsDirectory` configuration of processes that used the worker.
 - The `Storage:SharedDirectory` setting and the `/shared` volume of the geopilot image have been removed along with the file-drop integration. A `Storage__SharedDirectory` environment variable or `/shared` mount left in a deployment is ignored.
+
+### Fixed
+
+- Processing job and upload timestamps are now recorded in UTC, so the cleanup retention windows (job, download and visualization) are honored regardless of the container time zone. Previously, with the image default `TZ=Europe/Zurich`, expired downloads and visualizations lingered up to two hours longer than configured.
 
 ## v3.0.341 - 2026-06-17
 

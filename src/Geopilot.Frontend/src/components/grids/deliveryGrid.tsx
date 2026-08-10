@@ -3,8 +3,9 @@ import { useTranslation } from "react-i18next";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { Tooltip } from "@mui/material";
 import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
-import { ApiError, Delivery } from "../../api/apiInterfaces";
+import { ApiError, Delivery, LocalizedText } from "../../api/apiInterfaces";
 import useFetch from "../../hooks/useFetch.ts";
+import { useLocalized } from "../../hooks/useLocalized.ts";
 import { AlertContext } from "..//alert/alertContext";
 import { PromptContext } from "..//prompt/promptContext";
 import GeopilotDataGrid from "./geopilotDataGrid.tsx";
@@ -13,7 +14,7 @@ interface DeliveryInfo {
   id: number;
   date: string;
   userName: string;
-  mandateName: string;
+  mandateName: LocalizedText;
   comment: string;
   canDelete?: boolean;
 }
@@ -32,6 +33,7 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
   const { showPrompt } = useContext(PromptContext);
   const { showAlert } = useContext(AlertContext);
   const { fetchApi } = useFetch();
+  const { localized } = useLocalized();
 
   const loadDeliveries = useCallback(async () => {
     fetchApi<Delivery[]>(fetchUrl, { errorMessageLabel: "deliveryOverviewLoadingError" })
@@ -89,7 +91,13 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
       width: 180,
     },
     userName: { field: "userName", headerName: t("deliveredBy"), flex: 0.5, minWidth: 200 },
-    mandateName: { field: "mandateName", headerName: t("mandate"), flex: 0.5, minWidth: 200 },
+    mandateName: {
+      field: "mandateName",
+      headerName: t("mandate"),
+      flex: 0.5,
+      minWidth: 200,
+      valueGetter: (mandateName: LocalizedText) => localized(mandateName),
+    },
     comment: { field: "comment", headerName: t("comment"), flex: 1, minWidth: 400 },
   };
 

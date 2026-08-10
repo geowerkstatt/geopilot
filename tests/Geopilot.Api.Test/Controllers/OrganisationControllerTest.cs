@@ -25,9 +25,9 @@ namespace Geopilot.Api.Controllers
             context = AssemblyInitialize.DbFixture.GetTestContext();
             organisationController = new OrganisationController(loggerMock.Object, context);
 
-            unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate) };
-            xtfMandate = new Mandate { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate) };
-            unassociatedMandate = new Mandate { FileTypes = new string[] { "*.itf" }, Name = nameof(unassociatedMandate) };
+            unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(unrestrictedMandate)) };
+            xtfMandate = new Mandate { FileTypes = new string[] { ".xtf" }, Name = TestHelpers.Localized(nameof(xtfMandate)) };
+            unassociatedMandate = new Mandate { FileTypes = new string[] { "*.itf" }, Name = TestHelpers.Localized(nameof(unassociatedMandate)) };
 
             context.Mandates.Add(unrestrictedMandate);
             context.Mandates.Add(xtfMandate);

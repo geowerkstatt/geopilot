@@ -33,7 +33,7 @@ export interface Coordinate {
 
 export interface Mandate {
   id: number;
-  name: string;
+  name: LocalizedText;
   description: LocalizedText;
   isPublic: boolean;
   allowDelivery: boolean;

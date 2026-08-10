@@ -1,14 +1,13 @@
 import { ChangeEvent, FC } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { FormLabel, Stack, SxProps, TextField } from "@mui/material";
+import { Stack, SxProps, TextField } from "@mui/material";
 import { Coordinate } from "../../api/apiInterfaces.ts";
 import { FormContainer, FormValueType, getFormFieldError } from "./form";
 
 export interface FormExtentProps {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode. */
   fieldName?: string;
-  label: string;
   required?: boolean;
   disabled?: boolean;
   /** The default value in form-context mode, the controlled value when `onChange` is provided. */
@@ -23,16 +22,7 @@ export interface FormExtentProps {
   error?: boolean;
 }
 
-export const FormExtent: FC<FormExtentProps> = ({
-  fieldName,
-  label,
-  required,
-  disabled,
-  value,
-  sx,
-  onChange,
-  error,
-}) => {
+export const FormExtent: FC<FormExtentProps> = ({ fieldName, required, disabled, value, sx, onChange, error }) => {
   const { t } = useTranslation();
   const formContext = useFormContext();
 
@@ -54,11 +44,11 @@ export const FormExtent: FC<FormExtentProps> = ({
     showError: boolean,
   ) => (
     <Stack sx={{ width: "100%" }} gap={1}>
-      <FormLabel error={showError}>{t(label) + (required ? " *" : "")}</FormLabel>
       <Stack>
         <FormContainer>
           <TextField
             label={t("bottomLeft") + " - " + t("longitude")}
+            required={required ?? false}
             error={showError}
             value={coords?.[0]?.x ?? ""}
             disabled={disabled ?? false}
@@ -69,6 +59,7 @@ export const FormExtent: FC<FormExtentProps> = ({
           />
           <TextField
             label={t("bottomLeft") + " - " + t("latitude")}
+            required={required ?? false}
             error={showError}
             value={coords?.[0]?.y ?? ""}
             disabled={disabled ?? false}
@@ -81,6 +72,7 @@ export const FormExtent: FC<FormExtentProps> = ({
         <FormContainer>
           <TextField
             label={t("upperRight") + " - " + t("longitude")}
+            required={required ?? false}
             error={showError}
             value={coords?.[1]?.x ?? ""}
             disabled={disabled ?? false}
@@ -91,6 +83,7 @@ export const FormExtent: FC<FormExtentProps> = ({
           />
           <TextField
             label={t("upperRight") + " - " + t("latitude")}
+            required={required ?? false}
             error={showError}
             value={coords?.[1]?.y ?? ""}
             disabled={disabled ?? false}

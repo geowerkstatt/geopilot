@@ -1,4 +1,5 @@
-import { LocalizedText, TreeField, TreeItem } from "../../../api/apiInterfaces";
+import { TreeField, TreeItem } from "../../../api/apiInterfaces";
+import { LocalizedResolver } from "../../../hooks/useLocalized";
 
 /** A node of the error tree's displayed hierarchy, built in the frontend from the flat items by {@link buildTree}. */
 export interface TreeNode {
@@ -32,11 +33,8 @@ const SEVERITY_RANK: Record<string, number> = { error: 2, warning: 1 };
 
 const severityRank = (color?: string): number => (color ? (SEVERITY_RANK[color] ?? 0) : 0);
 
-/** Resolver for a backend multilingual string, from the useLocalized hook. */
-type Localize = (entries?: LocalizedText) => string;
-
 /** Resolves a groupable field of an item: the localized error category, or one of the plain string fields. */
-const fieldValue = (item: TreeItem, field: TreeField, localize: Localize): string | undefined => {
+const fieldValue = (item: TreeItem, field: TreeField, localize: LocalizedResolver): string | undefined => {
   if (field === "errorType") {
     return item.errorType ? localize(item.errorType) : undefined;
   }
@@ -88,7 +86,7 @@ const groupItems = (
   items: TreeItem[],
   groupBy: TreeField[],
   level: number,
-  localize: Localize,
+  localize: LocalizedResolver,
   ungroupedLabel: string,
 ): TreeNode[] => {
   if (level >= groupBy.length) {
@@ -134,7 +132,7 @@ const groupItems = (
 export const buildTree = (
   items: TreeItem[],
   groupBy: TreeField[],
-  localize: Localize,
+  localize: LocalizedResolver,
   ungroupedLabel: string,
 ): TreeNode[] => groupItems(items, groupBy, 0, localize, ungroupedLabel);
 
@@ -142,7 +140,7 @@ const itemMatchesFilters = (
   item: TreeItem,
   messageQuery: string,
   fieldFilters: FieldFilters,
-  localize: Localize,
+  localize: LocalizedResolver,
 ): boolean => {
   if (messageQuery) {
     // Match every field of the error, so it can be found by any of its attributes. messageQuery is already lower-cased.
@@ -174,7 +172,7 @@ export const filterItems = (
   items: TreeItem[],
   messageQuery: string,
   fieldFilters: FieldFilters,
-  localize: Localize,
+  localize: LocalizedResolver,
 ): TreeItem[] => items.filter(item => itemMatchesFilters(item, messageQuery, fieldFilters, localize));
 
 /**
@@ -184,7 +182,7 @@ export const filterItems = (
  */
 export const collectFilterAttributes = (
   items: TreeItem[],
-  localize: Localize,
+  localize: LocalizedResolver,
   filterBy: TreeField[],
 ): FilterAttribute[] =>
   filterBy

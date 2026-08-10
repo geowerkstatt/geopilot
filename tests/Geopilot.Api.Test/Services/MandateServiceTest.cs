@@ -44,13 +44,13 @@ public class MandateServiceTest
 
         mandateService = new MandateService(context, uploadStore, pipelineServiceMock.Object);
 
-        unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(unrestrictedMandate), AllowDelivery = true, PipelineId = existingPipelineId };
-        noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noDeliveryMandate), AllowDelivery = false, PipelineId = existingPipelineId };
-        xtfMandate = new Mandate { FileTypes = new string[] { ".xtf" }, Name = nameof(xtfMandate), AllowDelivery = true, PipelineId = existingPipelineId };
-        publicCsvMandate = new Mandate { FileTypes = new string[] { ".csv" }, Name = nameof(publicCsvMandate), IsPublic = true, AllowDelivery = true, PipelineId = existingPipelineId };
-        noOrganisationsMandate = new Mandate { FileTypes = new string[] { ".itf" }, Name = nameof(noOrganisationsMandate), AllowDelivery = true, PipelineId = existingPipelineId };
-        noPermissionMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(noPermissionMandate), AllowDelivery = true, PipelineId = existingPipelineId };
-        missingPipelineMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = nameof(missingPipelineMandate), AllowDelivery = true, PipelineId = missingPipelineId };
+        unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(unrestrictedMandate)), AllowDelivery = true, PipelineId = existingPipelineId };
+        noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(noDeliveryMandate)), AllowDelivery = false, PipelineId = existingPipelineId };
+        xtfMandate = new Mandate { FileTypes = new string[] { ".xtf" }, Name = TestHelpers.Localized(nameof(xtfMandate)), AllowDelivery = true, PipelineId = existingPipelineId };
+        publicCsvMandate = new Mandate { FileTypes = new string[] { ".csv" }, Name = TestHelpers.Localized(nameof(publicCsvMandate)), IsPublic = true, AllowDelivery = true, PipelineId = existingPipelineId };
+        noOrganisationsMandate = new Mandate { FileTypes = new string[] { ".itf" }, Name = TestHelpers.Localized(nameof(noOrganisationsMandate)), AllowDelivery = true, PipelineId = existingPipelineId };
+        noPermissionMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(noPermissionMandate)), AllowDelivery = true, PipelineId = existingPipelineId };
+        missingPipelineMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(missingPipelineMandate)), AllowDelivery = true, PipelineId = missingPipelineId };
 
         context.Mandates.Add(unrestrictedMandate);
         context.Mandates.Add(noDeliveryMandate);
@@ -94,7 +94,7 @@ public class MandateServiceTest
     public async Task GetMandateAsUserReturnsPublicMandateForAuthenticatedUser()
     {
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
-        var publicMandate = context.Mandates.Add(new Mandate { Name = "Public Mandate", IsPublic = true }).Entity;
+        var publicMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Public Mandate"), IsPublic = true }).Entity;
         context.SaveChanges();
 
         var result = await mandateService.GetMandateForUser(publicMandate.Id, user);
@@ -106,7 +106,7 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandateAsUserReturnsPublicMandateForUnauthenticatedUser()
     {
-        var publicMandate = context.Mandates.Add(new Mandate { Name = "Public Mandate", IsPublic = true }).Entity;
+        var publicMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Public Mandate"), IsPublic = true }).Entity;
         context.SaveChanges();
 
         var result = await mandateService.GetMandateForUser(publicMandate.Id, null);
@@ -118,7 +118,7 @@ public class MandateServiceTest
     [TestMethod]
     public async Task GetMandateAsUserReturnsNullForNonPublicMandateWhenUnauthenticated()
     {
-        var privateMandate = context.Mandates.Add(new Mandate { Name = "Private Mandate", IsPublic = false }).Entity;
+        var privateMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Private Mandate"), IsPublic = false }).Entity;
         context.SaveChanges();
 
         var result = await mandateService.GetMandateForUser(privateMandate.Id, null);
@@ -141,7 +141,7 @@ public class MandateServiceTest
     public async Task GetMandateAsUserReturnsNullForUnauthorizedUser()
     {
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
-        var mandate = context.Mandates.Add(new Mandate { Name = "Restricted Mandate", IsPublic = false }).Entity;
+        var mandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized("Restricted Mandate"), IsPublic = false }).Entity;
         context.SaveChanges();
 
         var result = await mandateService.GetMandateForUser(mandate.Id, user);

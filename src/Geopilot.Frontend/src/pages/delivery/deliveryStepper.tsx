@@ -84,7 +84,7 @@ StepDetailTypography.defaultProps = { variant: "body2" };
 
 export const DeliveryStepper = () => {
   const { t } = useTranslation();
-  const localized = useLocalized();
+  const { localized } = useLocalized();
   const { steps, lastCompletedStep, activeStep, isLoading, isProcessing, showCompletedOrNextStep } =
     useContext(DeliveryContext);
   const theme = useTheme();

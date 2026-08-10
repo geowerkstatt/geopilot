@@ -1,10 +1,13 @@
 ﻿using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using NCalc.Exceptions;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text.Json;
@@ -117,11 +120,69 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
     /// <inheritdoc />
     public IPipelineProcessBuilder Builder()
     {
-        return new PipelineProcessBuilder(processorPluginAssemblies, loggerFactory, pipelineOptions, ilitoolsWrapperChannel);
+        return new PipelineProcessBuilder(this, processorPluginAssemblies, loggerFactory, pipelineOptions, ilitoolsWrapperChannel);
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyDictionary<string, Type> BuildStepResultTypes(List<StepConfig> steps, List<ProcessConfig> processes)
+    {
+        ArgumentNullException.ThrowIfNull(steps);
+        ArgumentNullException.ThrowIfNull(processes);
+
+        var stepResultTypes = new Dictionary<string, Type>(StringComparer.Ordinal);
+        foreach (var step in steps)
+        {
+            if (step.ProcessId is null)
+                continue;
+
+            var processConfig = processes.GetProcessConfig(step.ProcessId);
+            if (processConfig is null)
+                continue;
+
+            var processType = GetProcessorType(processConfig.Implementation);
+            if (processType is null)
+                continue;
+
+            var resultType = ProcessReflection.ResolveResultType(processType);
+            if (resultType is not null)
+                stepResultTypes[step.Id] = resultType;
+        }
+
+        return stepResultTypes;
+    }
+
+    /// <summary>
+    /// Resolves a process implementation type name to its <see cref="Type"/>: built-in processes (namespace
+    /// <c>Geopilot.Pipeline.Processes</c>) are looked up across the loaded app domain, everything else in the
+    /// registered plugin assemblies. Returns <see langword="null"/> when the type cannot be resolved.
+    /// </summary>
+    internal Type? GetProcessorType(string implementation)
+    {
+        if (implementation.StartsWith("Geopilot.Pipeline.Processes", StringComparison.Ordinal))
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Select(a => a.GetType(implementation))
+                .FirstOrDefault(t => t != null);
+        }
+        else if (this.processorPluginAssemblies.Count > 0)
+        {
+            foreach (var assembly in this.processorPluginAssemblies)
+            {
+                var type = assembly.GetType(implementation);
+                if (type != null)
+                {
+                    return type;
+                }
+            }
+        }
+
+        logger.LogWarning($"For process implementation '{implementation}' no processor plugin configured. Cannot load process.");
+        return null;
     }
 
     internal class PipelineProcessBuilder : IPipelineProcessBuilder
     {
+        private readonly PipelineProcessFactory factory;
         private readonly ILoggerFactory loggerFactory;
         private readonly ILogger logger;
 
@@ -132,6 +193,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         private string? pipelineId;
         private StepConfig? stepConfig;
         private List<ProcessConfig>? processes;
+        private IReadOnlyDictionary<string, Type>? stepResultTypes;
         private string? pipelineDirectory;
         private Guid jobId;
 
@@ -142,16 +204,19 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// <remarks>Use this constructor to configure the PipelineProcessBuilder with all required
         /// dependencies for plugin-based pipeline processing. Supplying appropriate assemblies and load contexts allows
         /// for flexible plugin management and versioning.</remarks>
+        /// <param name="factory">The factory that created this builder; used to resolve process types.</param>
         /// <param name="processorPluginAssemblies">A set of assemblies that contain processor plugins to be included in the pipeline.</param>
         /// <param name="loggerFactory">The factory used to create loggers for pipeline processing operations.</param>
         /// <param name="pipelineOptions">The options that configure the behavior and execution parameters of the pipeline.</param>
         /// <param name="ilitoolsWrapperChannel">The gRPC channel used for communication with the ilitools-wrapper service.</param>
         public PipelineProcessBuilder(
+            PipelineProcessFactory factory,
             HashSet<Assembly> processorPluginAssemblies,
             ILoggerFactory loggerFactory,
             PipelineOptions pipelineOptions,
             GrpcChannel ilitoolsWrapperChannel)
         {
+            this.factory = factory;
             this.processorPluginAssemblies = processorPluginAssemblies;
             this.loggerFactory = loggerFactory;
             this.logger = loggerFactory.CreateLogger<PipelineProcessBuilder>();
@@ -181,6 +246,13 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
 
         /// <inheritdoc />
+        public IPipelineProcessBuilder StepResultTypes(IReadOnlyDictionary<string, Type> stepResultTypes)
+        {
+            this.stepResultTypes = stepResultTypes;
+            return this;
+        }
+
+        /// <inheritdoc />
         public IPipelineProcessBuilder PipelineDirectory(string pipelineDirectory)
         {
             this.pipelineDirectory = pipelineDirectory;
@@ -192,6 +264,163 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         {
             this.jobId = jobId;
             return this;
+        }
+
+        /// <summary>
+        /// Validates a step's output actions against its process result type at load time: each
+        /// <c>output_actions.property</c> must be a readable property of the result type, and each action
+        /// must be compatible with that property's type. Returns one message per problem; empty when valid
+        /// or when a single result type cannot be resolved.
+        /// </summary>
+        private static List<string> ValidateOutputActions(Type processType, List<OutputActionConfig>? outputActions)
+        {
+            if (outputActions is null || outputActions.Count == 0)
+                return new List<string>();
+
+            var errors = new List<string>();
+
+            var resultType = ProcessReflection.ResolveResultType(processType);
+            if (resultType is null)
+                return errors;
+
+            foreach (var outputAction in outputActions)
+            {
+                if (outputAction.Actions is null)
+                    continue;
+
+                var property = resultType.GetProperty(outputAction.Property);
+
+                if (property is null || !property.CanRead)
+                {
+                    errors.Add($"output action references property '{outputAction.Property}', which is not a readable property of the result type <{resultType.Name}> of process <{processType.Name}>.");
+                    continue;
+                }
+
+                foreach (var action in outputAction.Actions)
+                {
+                    if (!IsTypeCompatible(action, property.PropertyType))
+                        errors.Add($"output action property '{outputAction.Property}' of process <{processType.Name}> cannot be used with action {action}: its type <{property.PropertyType.Name}> is not compatible.");
+                }
+            }
+
+            return errors;
+        }
+
+        /// <summary>
+        /// Whether a result property of the given type may be tagged with <paramref name="action"/>:
+        /// <c>Download</c>/<c>Delivery</c> require an <c>IPipelineFile</c> or a collection of them,
+        /// <c>StatusMessage</c> a <c>LocalizedText</c> or a string-to-string dictionary (<c>IReadOnlyDictionary</c>
+        /// or <c>IDictionary</c>, kept for backward compatibility to mirror what
+        /// <c>PipelineStep.NormalizeStatusMessage</c> accepts at run time), and <c>Visualization</c> an
+        /// <c>IVisualization</c>. Actions without a type rule are accepted.
+        /// </summary>
+        private static bool IsTypeCompatible(OutputAction action, Type propertyType)
+        {
+            bool Is<T>() => typeof(T).IsAssignableFrom(propertyType);
+
+            if (action is OutputAction.Download or OutputAction.Delivery)
+                return Is<IPipelineFile>() || Is<IEnumerable<IPipelineFile>>();
+            if (action == OutputAction.StatusMessage)
+                return Is<LocalizedText>() || Is<IReadOnlyDictionary<string, string>>() || Is<IDictionary<string, string>>();
+            if (action == OutputAction.Visualization)
+                return Is<IVisualization>();
+
+            return true;
+        }
+
+        /// <summary>
+        /// Validates a step's condition expressions against the result types of the steps they reference at
+        /// load time: each <c>stepId.property</c> parameter must name a readable property of that step's result
+        /// type. Expression syntax and reference scope are already enforced by
+        /// <c>ValidExpressionParameterReferencesAttribute</c> in an earlier pass, so this only adds the property
+        /// check. References to steps whose result type cannot be resolved are left unchecked rather than
+        /// reported as errors, matching the input reference validator.
+        /// </summary>
+        private static List<string> ValidateConditions(StepConfig stepConfig, IReadOnlyDictionary<string, Type> stepResultTypes)
+        {
+            var errors = new List<string>();
+
+            foreach (var expression in CollectConditionExpressions(stepConfig))
+            {
+                var runner = ConditionEvaluator.CreateRunner(expression, NullLogger.Instance);
+
+                List<string> parameterNames;
+                try
+                {
+                    parameterNames = runner.GetParameterNames();
+                }
+                catch (NCalcException ex)
+                {
+                    errors.Add($"condition '{expression}' is not a valid expression: {ex.Message}");
+                    continue;
+                }
+
+                foreach (var parameterName in parameterNames)
+                {
+                    if (!TryGetStepProperty(parameterName, out var stepId, out var propertyName))
+                        continue;
+
+                    if (!stepResultTypes.TryGetValue(stepId, out var resultType))
+                        continue;
+
+                    var property = resultType.GetProperty(propertyName);
+                    if (property is null || !property.CanRead)
+                        errors.Add($"condition '{expression}' references property '{propertyName}', which is not a readable property of the result type <{resultType.Name}> of step <{stepId}>.");
+                }
+            }
+
+            return errors;
+        }
+
+        /// <summary>
+        /// Yields every non-empty condition expression of a step across all condition kinds
+        /// (pre skip/fail and post fail/warn/restrict-delivery).
+        /// </summary>
+        private static IEnumerable<string> CollectConditionExpressions(StepConfig stepConfig)
+        {
+            var conditions = stepConfig.Conditions;
+            if (conditions is null)
+                yield break;
+
+            var conditionLists = new[]
+            {
+                conditions.Pre?.SkipConditions,
+                conditions.Pre?.FailConditions,
+                conditions.Post?.FailConditions,
+                conditions.Post?.WarnConditions,
+                conditions.Post?.RestrictDeliveryConditions,
+            };
+
+            foreach (var conditionList in conditionLists)
+            {
+                if (conditionList is null)
+                    continue;
+
+                foreach (var condition in conditionList)
+                {
+                    if (!string.IsNullOrEmpty(condition.Expression))
+                        yield return condition.Expression;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Splits an NCalc parameter name of the form <c>stepId.property</c> into its two parts. Returns
+        /// <see langword="false"/> for anything else (e.g. the <c>null</c> literal), so such parameters are
+        /// skipped rather than treated as a step-output reference.
+        /// </summary>
+        private static bool TryGetStepProperty(string parameterName, out string stepId, out string propertyName)
+        {
+            stepId = string.Empty;
+            propertyName = string.Empty;
+
+            var parts = parameterName.Split('.');
+            if (parts.Length != 2 || parts[0].Length == 0 || parts[1].Length == 0)
+                return false;
+
+            stepId = parts[0];
+            propertyName = parts[1];
+            return true;
         }
 
         /// <inheritdoc />
@@ -222,10 +451,14 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 ValidateParameter(parameterInfo, processParameterization);
             }
 
-            var inputErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot);
-            if (inputErrors.Count > 0)
+            var stepResultTypes = this.stepResultTypes ?? new Dictionary<string, Type>();
+            var validationErrors = InputBindingValidator.Validate(objectType, stepConfig.Input, resourcesRoot, stepResultTypes)
+                .Concat(ValidateOutputActions(objectType, stepConfig.OutputActions))
+                .Concat(ValidateConditions(stepConfig, stepResultTypes))
+                .ToList();
+            if (validationErrors.Count > 0)
             {
-                throw new InvalidOperationException(string.Join(Environment.NewLine, inputErrors));
+                throw new InvalidOperationException(string.Join(Environment.NewLine, validationErrors));
             }
         }
 
@@ -245,7 +478,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             if (processConfig == null)
                 throw new InvalidOperationException($"No process config found for process ID <{stepConfig.ProcessId}>.");
 
-            var objectType = GetProcessorType(processConfig.Implementation) ?? throw new InvalidOperationException($"Process <{processConfig.Implementation}> is unknown");
+            var objectType = factory.GetProcessorType(processConfig.Implementation) ?? throw new InvalidOperationException($"Process <{processConfig.Implementation}> is unknown");
 
             var constructors = objectType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
             if (constructors.Length != 1)
@@ -329,30 +562,6 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
             var genericName = type.Name[..type.Name.IndexOf('`')];
             return $"{genericName}<{string.Join(", ", type.GetGenericArguments().Select(FormatTypeName))}>";
-        }
-
-        private Type? GetProcessorType(string implementation)
-        {
-            if (implementation.StartsWith("Geopilot.Pipeline.Processes", StringComparison.Ordinal))
-            {
-                return AppDomain.CurrentDomain.GetAssemblies()
-                    .Select(a => a.GetType(implementation))
-                    .FirstOrDefault(t => t != null);
-            }
-            else if (this.processorPluginAssemblies.Count > 0)
-            {
-                foreach (var assembly in this.processorPluginAssemblies)
-                {
-                    var type = assembly.GetType(implementation);
-                    if (type != null)
-                    {
-                        return type;
-                    }
-                }
-            }
-
-            logger.LogWarning($"For process implementation '{implementation}' no processor plugin configured. Cannot load process.");
-            return null;
         }
 
         private object? GenerateParameter(ParameterInfo parameterInfo, Type processType, Parameterization processConfig, string pipelineDirectory, Guid jobId)
