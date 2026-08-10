@@ -150,7 +150,11 @@ Ein typisches Beispiel für die Konfiguration könnte wie folgt aussehen:
 
 ## Integrationstests im Plugin-Repository
 
-Ein Plugin kann seine Prozessoren gegen die echte Pipeline-Runtime testen, ohne geopilot ausgecheckt zu haben. Dazu referenziert das Testprojekt zusätzlich das NuGet-Paket `GeoWerkstatt.Geopilot.Pipeline` und baut die Pipeline aus der eigenen Definitionsdatei:
+Ein Prozessor wird vom Framework auf zwei Wegen versorgt, und beide sind Reflexion über eine Pipeline-Definition: die **Konstruktor-Injektion** löst die Parameter aus der zusammengeführten Konfiguration auf, die **Run-Methoden-Injektion** bindet die Parameter der `[PipelineProcessRun]`-Methode an die `input`-Einträge des Schritts. Beides lässt sich nicht sinnvoll nachbauen, ohne die Runtime nachzubauen.
+
+**Ein Integrationstest führt einen Prozessor deshalb immer über eine Pipeline aus.** Die Pipeline-Klassen selbst sind nicht Teil der öffentlichen API; ein Schritt kann nicht von Hand zusammengesteckt werden. Der Einstieg ist `PipelineFactory`, gespeist aus einer Definition. Was ein Test damit prüft, ist genau das, was in Produktion schiefgehen kann: ein Konstruktor, der nicht zur Konfiguration passt, und eine Run-Methode, deren Parameter nicht zu den `input`-Einträgen passen.
+
+Dazu referenziert das Testprojekt zusätzlich das NuGet-Paket `GeoWerkstatt.Geopilot.Pipeline` und baut die Pipeline aus der eigenen Definitionsdatei:
 
 ```csharp
 var processFactory = new PipelineProcessFactory(
@@ -203,6 +207,10 @@ var factory = PipelineFactory.Builder()
 ```
 
 Ein Test gegen die produktive Definition prüft die Verdrahtung, wie sie beim Kunden läuft; ein Test gegen eine Minimaldefinition prüft einen Prozessor für sich. Beides ist sinnvoll, die Wahl hängt vom Szenario ab.
+
+Hat der zu testende Schritt höchstens einen Datei-Input, lässt er sich aus dem Upload speisen (`someInput: "${upload()}"`) und über `pipeline.Run(uploadFiles, ct)` ausführen. Dann muss gar kein Ergebnis eines Vorgängerschritts gestellt werden. Bei mehreren Datei-Inputs geht das nicht, weil `${upload()}` allen verdrahteten Parametern dieselbe Liste reicht; dort führt `${file(...)}` mit einem auf die Testfixtures gesetzten `ResourcesDirectory` zum selben Ziel.
+
+Zu beachten bleibt: solange der erzeugende Schritt nicht mitläuft, deckt kein Test ab, ob ein `${step_output(...)}` noch auf eine existierende Eigenschaft des echten Result-Typs zeigt. Wer diese Abweichung ausschliessen will, muss die beteiligten Schritte gemeinsam ausführen.
 
 **Prozessoren werden in einen eigenen `AssemblyLoadContext` geladen.** Der Typ einer Prozessor-Instanz ist deshalb *nicht identisch* mit dem direkt referenzierten Typ, obwohl Typname und DLL-Pfad übereinstimmen. `is`-Prüfungen und Casts schlagen fehl:
 
