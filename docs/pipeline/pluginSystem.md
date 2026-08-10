@@ -147,3 +147,54 @@ Ein typisches Beispiel für die Konfiguration könnte wie folgt aussehen:
   }
 }
 ```
+
+## Integrationstests im Plugin-Repository
+
+Ein Plugin kann seine Prozessoren gegen die echte Pipeline-Runtime testen, ohne geopilot ausgecheckt zu haben. Dazu referenziert das Testprojekt zusätzlich das NuGet-Paket `GeoWerkstatt.Geopilot.Pipeline` und baut die Pipeline aus der eigenen Definitionsdatei:
+
+```csharp
+var processFactory = new PipelineProcessFactory(
+    Options.Create(new PipelineOptions { Plugins = [pathToPluginDll] }),
+    Options.Create(new IlitoolsOptions { IlitoolsWrapperAddress = "http://localhost:5555" }),
+    NullLoggerFactory.Instance);
+
+var factory = PipelineFactory.Builder()
+    .File("Pipelines/myPipeline.yaml")
+    .PipelineProcessFactory(processFactory)
+    .LoggerFactory(NullLoggerFactory.Instance)
+    .PipelineTempDirectory(workingDirectory)
+    .ResourcesDirectory(resourcesDirectory)
+    .Build();
+
+using var pipeline = factory.CreatePipeline("my_pipeline", Guid.NewGuid());
+var context = await pipeline.Run(uploadFiles, CancellationToken.None);
+```
+
+Damit laufen die Konstruktor-Injektion, die Auflösung der `${...}`-Ausdrücke und die in geopilot eingebauten Prozessoren so, wie sie es zur Laufzeit tun. Ein einzelner Schritt lässt sich über `pipeline.Steps` herausgreifen und mit `step.Run(context, ct)` isoliert ausführen; die Ergebnisse vorangehender Schritte werden dann über `PipelineContext.StepResults` gestellt.
+
+Drei Punkte, die dabei regelmässig überraschen:
+
+**Es werden immer alle Schritte konstruiert**, auch wenn nur einer ausgeführt wird. Die Konfigurationsschicht muss deshalb jeden Prozessor der Definition befriedigen, nicht nur den getesteten. Parameter, die nicht aus der `default_config` der Definition stammen, kommen in Produktion aus `Pipeline:ProcessConfigs` und müssen im Test entsprechend gesetzt werden.
+
+**Prozessoren werden in einen eigenen `AssemblyLoadContext` geladen.** Der Typ einer Prozessor-Instanz ist deshalb *nicht identisch* mit dem direkt referenzierten Typ, obwohl Typname und DLL-Pfad übereinstimmen. `is`-Prüfungen und Casts schlagen fehl:
+
+```csharp
+step.Process is MyProcess               // false
+step.Process.GetType() == typeof(MyProcess)  // false
+```
+
+Auf Ergebnisse wird darum über den Namen zugegriffen, nicht über einen Cast:
+
+```csharp
+var value = stepResult.ExtractProperty(nameof(MyProcessResult.MyOutput));
+```
+
+**Externe Abhängigkeiten werden nach der Konstruktion ersetzt.** Die Runtime erzeugt die Prozessoren selbst und bietet dafür keine vorgesehene Naht. Ein Test, der einen `HttpClient` oder einen `IIli2GpkgClient` durch ein Test-Double ersetzen will, greift über `IPipelineStep.Process` per Reflection auf das private Feld zu. Aus dem vorigen Punkt folgt, dass das über den Laufzeittyp geschehen muss:
+
+```csharp
+step.Process.GetType()
+    .GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)!
+    .SetValue(step.Process, testHttpClient);
+```
+
+Das ist bewusst als Behelf dokumentiert und kein stabiler Vertrag. Ob dafür eine gestaltete Schnittstelle entsteht, wird in [Issue #665](https://github.com/geowerkstatt/geopilot/issues/665) evaluiert.
