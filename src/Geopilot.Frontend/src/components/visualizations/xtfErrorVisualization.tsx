@@ -7,6 +7,7 @@ import { IconButton } from "../../components/buttons";
 import { GeopilotBox } from "../../components/styledComponents";
 import { useLocalized } from "../../hooks/useLocalized";
 import { stopStepSwipePropagation } from "../../hooks/useStepSwipe";
+import { ScrollMarginProvider } from "../scrollMargin/ScrollMarginProvider";
 import { FilterBar } from "./filterBar";
 import { MapVisualization } from "./map/mapVisualization";
 import { MapVisualizationProvider, MapZoomRequest } from "./map/mapVisualizationProvider";
@@ -161,23 +162,25 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
       )}
       {config.map && fullscreen ? (
         <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
-          <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
-            {map}
-            {config.tree && (
-              <GeopilotBox
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  m: 2,
-                  width: "400px",
-                  maxHeight: `calc(100% - ${theme.spacing(4)})`,
-                }}>
-                {filter}
-                {tree}
-              </GeopilotBox>
-            )}
-          </Box>
+          <ScrollMarginProvider scrollMarginTop="0px" scrollMarginBottom="0px">
+            <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
+              {map}
+              {config.tree && (
+                <GeopilotBox
+                  sx={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    m: 2,
+                    width: "400px",
+                    maxHeight: `calc(100% - ${theme.spacing(4)})`,
+                  }}>
+                  {filter}
+                  {tree}
+                </GeopilotBox>
+              )}
+            </Box>
+          </ScrollMarginProvider>
         </Modal>
       ) : (
         <Stack sx={{ width: "100%" }}>
