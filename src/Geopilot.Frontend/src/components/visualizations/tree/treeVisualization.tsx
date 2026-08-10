@@ -18,6 +18,8 @@ interface TreeVisualizationProps {
   selectedId: string | null;
   /** Called with the structural node id when the selection changes (null when cleared). */
   onSelect: (nodeId: string | null) => void;
+  /** A token that can be used to scroll to the selected node. */
+  selectionToken?: unknown;
   /** Whether a filter is active: expands every match, shows the no-results hint, and switches the header count. */
   filterActive?: boolean;
   /** Total number of errors across all items, shown in the header. */
@@ -86,6 +88,7 @@ export const TreeVisualization = ({
   nodes,
   selectedId,
   onSelect,
+  selectionToken,
   filterActive = false,
   totalCount,
   shownCount,
@@ -195,7 +198,7 @@ export const TreeVisualization = ({
     return () => {
       tree.removeEventListener("transitionend", scrollToPanel);
     };
-  }, [expandedItems, items, calculatePanelTop]);
+  }, [expandedItems, items, calculatePanelTop, selectionToken]);
 
   if (nodes.length === 0 && !filterActive) return null;
 

@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo, useState } from "react";
+import { FC, Reducer, useCallback, useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, useTheme } from "@mui/material";
@@ -32,13 +32,26 @@ interface XtfErrorVisualizationProps {
   config: XtfErrorVisualizationConfig;
 }
 
+interface NodeSelectionState {
+  selectedNodeId: string | null;
+  selectionToken: number;
+}
+
 export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }) => {
   const { t } = useTranslation();
   const localize = useLocalized();
   const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
   const [fieldFilters, setFieldFilters] = useState<FieldFilters>({});
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [{ selectedNodeId, selectionToken }, setSelectedNodeId] = useReducer<
+    Reducer<NodeSelectionState, string | null>
+  >(
+    (state, nodeId) => ({
+      selectedNodeId: nodeId,
+      selectionToken: state.selectionToken + 1, // automatically increment the token every time setSelectedNodeId is called, so the tree can scroll to the new selection
+    }),
+    { selectedNodeId: null, selectionToken: 0 },
+  );
   const [fullscreen, setFullscreen] = useState(false);
   const [zoomRequest, setZoomRequest] = useState<MapZoomRequest | null>(null);
 
@@ -127,6 +140,7 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
     <TreeVisualization
       nodes={nodes}
       selectedId={selectedNodeId}
+      selectionToken={selectionToken}
       onSelect={setSelectedNodeId}
       onZoom={handleZoomToNode}
       zoomableNodeIds={zoomableNodeIds}
