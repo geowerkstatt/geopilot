@@ -41,7 +41,10 @@ const Delivery: FC<DeliveryProps> = ({ stepSwipeRef }) => {
   return (
     <CenteredContent data-cy="delivery" maxWidth="1400px">
       {applicationTitle && (
-        <Typography variant="h1" zIndex={10} data-cy="delivery-title">
+        <Typography
+          variant="h1"
+          data-cy="delivery-title"
+          sx={{ position: "relative", zIndex: 11, transform: "translateZ(0)" }}>
           {applicationTitle}
         </Typography>
       )}
