@@ -176,8 +176,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
         />
       )}
       {config.map && fullscreen ? (
-        <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
-          <ScrollMarginProvider scrollMarginTop="0px" scrollMarginBottom="0px">
+        <ScrollMarginProvider scrollMarginTop="0px" scrollMarginBottom="0px">
+          <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
             <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
               {map}
               {config.tree && (
@@ -195,8 +195,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
                 </GeopilotBox>
               )}
             </Box>
-          </ScrollMarginProvider>
-        </Modal>
+          </Modal>
+        </ScrollMarginProvider>
       ) : (
         <Stack sx={{ width: "100%" }}>
           {filter}

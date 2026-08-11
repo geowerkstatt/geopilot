@@ -114,10 +114,9 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
         ? [
             <Tooltip title={t("delete")} key={`delete-${id}`}>
               <GridActionsCellItem
-                icon={<DeleteOutlinedIcon />}
+                icon={<DeleteOutlinedIcon color="error" />}
                 label={t("delete")}
                 onClick={() => confirmDelete(id)}
-                color="error"
               />
             </Tooltip>,
           ]

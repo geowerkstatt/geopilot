@@ -49,7 +49,7 @@ interface RenderTreeOptions {
   zoomableNodeIds?: ReadonlySet<string>;
 }
 
-export const renderTreeItems = (nodes: TreeNode[], prefix = "n", options?: RenderTreeOptions): ReactNode =>
+export const renderTreeItems = (nodes: TreeNode[], prefix = "n", options?: RenderTreeOptions, depth = 0): ReactNode =>
   nodes.flatMap((node, index) => {
     const id = nodeId(prefix, index);
     const hasChildren = node.values && node.values.length > 0;
@@ -73,14 +73,20 @@ export const renderTreeItems = (nodes: TreeNode[], prefix = "n", options?: Rende
       ) : null;
     const item = (
       <TreeItem key={id} itemId={id} label={renderLabel(node, zoomButton)}>
-        {hasChildren ? renderTreeItems(node.values!, id, options) : null}
+        {hasChildren ? renderTreeItems(node.values!, id, options, depth + 1) : null}
       </TreeItem>
     );
 
     if (options?.inlinePanel && options.selectedId === id) {
       return [
         item,
-        <Box key={`${id}-panel`} sx={{ pl: 4, py: 1 }}>
+        <Box
+          key={`${id}-panel`}
+          sx={{
+            pl: theme =>
+              `calc(${theme.spacing(4)} + var(--TreeView-itemChildrenIndentation, ${theme.spacing(1.5)}) * ${depth})`,
+            py: 1,
+          }}>
           {options.inlinePanel}
         </Box>,
       ];

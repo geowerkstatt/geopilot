@@ -4,8 +4,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import { Box, Stack, Tooltip } from "@mui/material";
 import { styled } from "@mui/system";
-import { DataGrid, DataGridProps, GridColDef, GridRenderCellParams, GridRowSelectionModel } from "@mui/x-data-grid";
-import { GridRowId } from "@mui/x-data-grid/models/gridRows";
+import { DataGrid, DataGridProps, GridColDef, GridRenderCellParams, GridRowId, GridRowParams } from "@mui/x-data-grid";
 import { Button } from "../buttons.tsx";
 
 interface GeopilotDataGridProps extends DataGridProps {
@@ -94,9 +93,9 @@ const withCellTooltips = (columns: readonly GridColDef[]): GridColDef[] =>
 
 const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
   const tooltipColumns = useMemo(() => withCellTooltips(props.columns), [props.columns]);
-  const handleRowSelection = (newRowSelectionModel: GridRowSelectionModel) => {
-    if (props.onSelect && newRowSelectionModel.length > 0) {
-      props.onSelect(newRowSelectionModel[0]);
+  const handleRowClick = (params: GridRowParams) => {
+    if (props.onSelect) {
+      props.onSelect(params.id);
     }
   };
 
@@ -117,7 +116,7 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
         autoPageSize
         disableColumnSelector
         hideFooterSelectedRowCount
-        onRowSelectionModelChange={handleRowSelection}
+        onRowClick={handleRowClick}
         {...props}
         columns={tooltipColumns}
       />
@@ -128,7 +127,7 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
       autoPageSize
       disableColumnSelector
       hideFooterSelectedRowCount
-      onRowSelectionModelChange={handleRowSelection}
+      onRowClick={handleRowClick}
       {...props}
       columns={tooltipColumns}
     />
