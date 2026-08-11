@@ -31,7 +31,7 @@ const useFetch = () => {
             } else {
               errorResponse = errorObject.title;
             }
-          } catch (e) {
+          } catch {
             errorResponse = await response.text();
           }
           throw new ApiError(errorResponse, response.status);
@@ -61,7 +61,7 @@ const useFetch = () => {
           return response;
         }
         throw new Error("Language-specific markdown not found");
-      } catch (error) {
+      } catch {
         try {
           return await fetchApi<string>(`/${markdown}.md`, { responseType: ContentType.Markdown });
         } catch (fallbackError) {
