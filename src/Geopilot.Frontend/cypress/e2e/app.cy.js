@@ -88,6 +88,7 @@ describe("General app tests", () => {
       // Extract the application settings from the intercepted response
       const settings = interception.response.body;
       const localNames = settings.application.localName;
+      expect(Object.keys(localNames)).to.have.length.greaterThan(0);
 
       // Test each available language
       Object.entries(localNames).forEach(([language, expectedName]) => {
@@ -114,6 +115,7 @@ describe("General app tests", () => {
 
     cy.wait("@clientSettings").then(interception => {
       const localTitle = interception.response.body.application.localTitle;
+      expect(Object.keys(localTitle)).to.have.length.greaterThan(0);
 
       Object.entries(localTitle).forEach(([language, expectedTitle]) => {
         if (!["en", "de", "fr", "it"].includes(language)) return;
@@ -121,6 +123,18 @@ describe("General app tests", () => {
         selectLanguage(language);
         cy.dataCy("delivery-title").should("be.visible").and("contain", expectedTitle);
       });
+    });
+  });
+
+  it("resolves the delivery title for a region-specific locale (de-CH)", () => {
+    cy.setCookie("i18next", "de-CH");
+    cy.intercept("**/client-settings.json").as("clientSettings");
+
+    cy.visit("/");
+
+    cy.wait("@clientSettings").then(interception => {
+      const germanTitle = interception.response.body.application.localTitle.de;
+      cy.dataCy("delivery-title").should("be.visible").and("contain", germanTitle);
     });
   });
 
