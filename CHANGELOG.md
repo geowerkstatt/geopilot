@@ -14,6 +14,7 @@
 - A configured pipeline-process parameter whose value cannot be converted to the parameter type now fails startup validation and process creation instead of being silently ignored. Enum-valued parameters accept their member names case-insensitively, also inside lists. Pipeline definitions should be re-checked on upgrade, since a previously ignored typo now prevents the application from starting.
 - The name of a mandate is localized (was `string` is now `LocalizedText`). The name can be defined for the different languages in the mandate administration.
 - The title shown on the delivery page is configured per environment in `client-settings.json` under `application.localTitle` (a language-code to text map) instead of a fixed built-in translation, so each deployment can present a title tailored to the customer. It is shown in the active language, falls back to another configured language, and is hidden only when no title is configured at all.
+- The application name shown in the header is resolved from `application.localName` in `client-settings.json` with cross-language fallback; the non-localized `application.name` default has been removed, so a deployment that configured only `name` must move that value into `localName`.
 
 ### Added
 

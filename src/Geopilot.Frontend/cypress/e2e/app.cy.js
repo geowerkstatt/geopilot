@@ -140,27 +140,24 @@ describe("General app tests", () => {
     cy.dataCy("delivery-title").should("not.exist");
   });
 
-  it("falls back to default application name when localNames are not available", () => {
-    // Intercept and modify the client-settings response to remove localName
+  it("falls back to another configured language for the application name", () => {
+    const fallbackName = "geowerkstatt Fallback DE";
+
+    // Configure the application name only in German, so the other languages must fall back to it.
     cy.intercept("**/client-settings.json", req => {
       req.continue(res => {
         const modifiedBody = { ...res.body };
-        delete modifiedBody.application.localName;
+        modifiedBody.application.localName = { de: fallbackName };
         res.send({ body: modifiedBody });
       });
     }).as("settings");
 
     cy.visit("/");
+    cy.wait("@settings");
 
-    cy.wait("@settings").then(({ response }) => {
-      const defaultName = response.body.application.name;
-
-      // Test each language
-      ["en", "de", "fr", "it"].forEach(language => {
-        selectLanguage(language);
-        cy.contains(defaultName).should("be.visible");
-        cy.log(`Verified fallback in ${language}: ${defaultName}`);
-      });
+    ["en", "fr", "it", "de"].forEach(language => {
+      selectLanguage(language);
+      cy.contains(fallbackName).should("be.visible");
     });
   });
 });

@@ -55,7 +55,7 @@ export const AppSettingsProvider: FC<PropsWithChildren> = ({ children }) => {
 
   useEffect(() => {
     const application = clientSettings?.application;
-    const applicationName = localized(application?.localName, application?.name);
+    const applicationName = localized(application?.localName);
     document.title = applicationName ? `geopilot ${applicationName}` : "geopilot";
   }, [clientSettings?.application, localized]);
 
