@@ -121,7 +121,6 @@ services:
       PUID: 1000
       PGID: 1000
     volumes:
-      - ./src/Geopilot.Api/Uploads:/uploads
       - ./src/Geopilot.Api/Downloads:/downloads
       - ./src/Geopilot.Api/Persistent:/assets
       - ./src/Geopilot.Api/Resources:/resources

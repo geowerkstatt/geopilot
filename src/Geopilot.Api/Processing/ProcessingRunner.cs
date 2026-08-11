@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Visualization;
@@ -63,11 +64,8 @@ public class ProcessingRunner : BackgroundService
 
             // Persist each step's downloadable files the moment the step finishes, so the supplier can
             // download them while later steps run (and so they survive a later step failing or timing out).
-            pipeline.OnStepCompleted = (step, stepResult, stepCancellationToken) =>
-            {
-                ExtractStepDownloads(pipeline.JobId, step, stepResult);
-                return Task.CompletedTask;
-            };
+            pipeline.OnStepCompleted = (step, stepResult, stepCancellationToken)
+                => ExtractStepDownloadsAsync(pipeline.JobId, step, stepResult, stepCancellationToken);
 
             try
             {
@@ -78,7 +76,7 @@ public class ProcessingRunner : BackgroundService
                 // non-deliverable payloads (a failed/aborted pipeline, or a step that restricts delivery)
                 // out of the asset store.
                 if (pipeline.State.IsDeliverable())
-                    ExtractDeliveryFiles(pipeline, pipelineContext);
+                    await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 
                 jobStore.PipelineFinished(pipeline.JobId, pipeline.State);
             }
@@ -104,9 +102,12 @@ public class ProcessingRunner : BackgroundService
             finally
             {
                 // Free process-owned resources (e.g. HttpClient) immediately. Pipeline state, step
-                // states, status-message dictionaries, and PersistedDownloads survive disposal —
-                // only the pipeline's temp directory is removed, which we no longer need.
+                // states, status-message dictionaries and PersistedDownloads survive disposal; what
+                // goes is the pipeline's temp directory, including the uploaded files fetched into it
+                // during the run.
                 pipeline.Dispose();
+
+                await ReleaseUploadIfNotDeliverableAsync(pipeline.JobId);
             }
         });
     }
@@ -118,7 +119,7 @@ public class ProcessingRunner : BackgroundService
     /// <see cref="OutputAction.Visualization"/> are serialized to JSON in the visualization store and recorded
     /// on <see cref="IPipelineStep.Visualizations"/>.
     /// </summary>
-    internal void ExtractStepDownloads(Guid jobId, IPipelineStep step, StepResult stepResult)
+    internal async Task ExtractStepDownloadsAsync(Guid jobId, IPipelineStep step, StepResult stepResult, CancellationToken cancellationToken = default)
     {
         // A skipped or pre-failed step produces no process result
         if (stepResult.Result is null)
@@ -151,7 +152,7 @@ public class ProcessingRunner : BackgroundService
                 foreach (var transferFile in ResolveFiles(data))
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedDownloadNames);
-                    CopyTo(downloadFileStore, jobId, fileName, transferFile);
+                    await CopyToAsync(downloadFileStore, jobId, fileName, transferFile, cancellationToken);
                     step.AddDownload(new PersistedFile(transferFile.OriginalFileName, fileName));
                 }
             }
@@ -184,7 +185,7 @@ public class ProcessingRunner : BackgroundService
     /// sharing an original file name within one step, which is harmless because the download endpoint serves only
     /// from the download store.
     /// </summary>
-    internal void ExtractDeliveryFiles(IPipeline pipeline, PipelineContext context)
+    internal async Task ExtractDeliveryFilesAsync(IPipeline pipeline, PipelineContext context, CancellationToken cancellationToken = default)
     {
         using var scope = serviceScopeFactory.CreateScope();
         var assetFileStore = scope.ServiceProvider.GetRequiredService<IAssetFileStore>();
@@ -207,11 +208,30 @@ public class ProcessingRunner : BackgroundService
                 foreach (var transferFile in ResolveFiles(data))
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
-                    CopyTo(assetFileStore, pipeline.JobId, fileName, transferFile);
+                    await CopyToAsync(assetFileStore, pipeline.JobId, fileName, transferFile, cancellationToken);
                     step.AddDeliveryFile(new PersistedFile(transferFile.OriginalFileName, fileName));
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Drops the job's uploaded blobs as soon as they can no longer be needed. A run that cannot be
+    /// delivered will never archive its originals, so they go right away. A deliverable run keeps them
+    /// until the job is retired, because declaring the delivery archives every original as primary data.
+    /// A job still in <see cref="ProcessingState.Running"/> was interrupted by a host shutdown, so its
+    /// blobs stay: the in-memory job does not survive the restart, and the age-based sweep in
+    /// CloudCleanupService is what eventually collects them.
+    /// </summary>
+    private async Task ReleaseUploadIfNotDeliverableAsync(Guid jobId)
+    {
+        var job = jobStore.GetJob(jobId);
+        if (job is null || job.State == ProcessingState.Running || job.State.IsDeliverable())
+            return;
+
+        using var scope = serviceScopeFactory.CreateScope();
+        var cloudOrchestrationService = scope.ServiceProvider.GetRequiredService<ICloudOrchestrationService>();
+        await cloudOrchestrationService.ReleaseUploadAsync(job.UploadId);
     }
 
     private static IEnumerable<IPipelineFile> ResolveFiles(object? data) => data switch
@@ -254,10 +274,17 @@ public class ProcessingRunner : BackgroundService
         outStream.Write(json);
     }
 
-    private static void CopyTo(IJobFileStore store, Guid jobId, string fileName, IPipelineFile source)
+    /// <summary>
+    /// Copies a step output into a job file store. The source may still have to be fetched from remote
+    /// storage (a matcher passes an uploaded file through unchanged, so a matcher output tagged for
+    /// download or delivery can trigger the very first fetch here), which is why the job's token has to
+    /// reach this far: the caller is awaited inside <see cref="IPipeline.Run"/>, so a fetch that cannot
+    /// be cancelled would outlive both the job timeout and a host shutdown.
+    /// </summary>
+    private static async Task CopyToAsync(IJobFileStore store, Guid jobId, string fileName, IPipelineFile source, CancellationToken cancellationToken)
     {
         using var outStream = store.CreateFile(jobId, fileName);
-        using var inStream = source.OpenReadFileStream();
-        inStream.CopyTo(outStream);
+        using var inStream = await source.OpenReadAsync(cancellationToken);
+        await inStream.CopyToAsync(outStream, cancellationToken);
     }
 }

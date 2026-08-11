@@ -20,10 +20,14 @@ public class ProcessingJobStore : IProcessingJobStore
     public ProcessingJob? GetJob(Guid jobId) => jobs.TryGetValue(jobId, out var job) ? job : null;
 
     /// <inheritdoc/>
-    public ProcessingJob CreateJob()
+    public IReadOnlyCollection<Guid> GetJobIds() => jobs.Keys.ToList();
+
+    /// <inheritdoc/>
+    public ProcessingJob CreateJob(Guid uploadId)
     {
         var newJob = new ProcessingJob(
             Id: Guid.NewGuid(),
+            UploadId: uploadId,
             Files: new List<ProcessingJobFile>(),
             MandateId: null,
             CreatedAt: DateTime.UtcNow);
@@ -33,7 +37,7 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
-    public ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName)
+    public ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName, string cloudKey)
     {
         return jobs.AddOrUpdate(
             jobId,
@@ -41,7 +45,7 @@ public class ProcessingJobStore : IProcessingJobStore
             (id, currentJob) =>
             {
                 EnsureJobIsPending(id, currentJob, "add file");
-                currentJob.Files.Add(new ProcessingJobFile(originalFileName, tempFileName));
+                currentJob.Files.Add(new ProcessingJobFile(originalFileName, tempFileName, cloudKey));
                 return currentJob;
             });
     }

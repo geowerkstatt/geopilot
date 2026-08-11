@@ -6,9 +6,6 @@ namespace Geopilot.Api.FileAccess;
 public class DirectoryProvider : IDirectoryProvider
 {
     /// <inheritdoc/>
-    public string UploadDirectory { get; }
-
-    /// <inheritdoc/>
     public string DownloadDirectory { get; }
 
     /// <inheritdoc/>
@@ -33,17 +30,12 @@ public class DirectoryProvider : IDirectoryProvider
 
         var fileAccess = fileAccessOptions.Value;
 
-        UploadDirectory = fileAccess.UploadDirectory;
         DownloadDirectory = fileAccess.DownloadDirectory;
         VisualizationDirectory = fileAccess.VisualizationDirectory;
         AssetDirectory = fileAccess.AssetsDirectory;
         PipelineDirectory = fileAccess.PipelineDirectory;
         ResourcesDirectory = fileAccess.ResourcesDirectory;
     }
-
-    /// <inheritdoc/>
-    public string GetUploadDirectoryPath(Guid jobId)
-        => Path.Combine(UploadDirectory, jobId.ToString());
 
     /// <inheritdoc/>
     public string GetDownloadDirectoryPath(Guid jobId)

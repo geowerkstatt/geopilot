@@ -43,14 +43,41 @@ internal class PipelineFileManager : IPipelineFileManager
     }
 
     /// <inheritdoc />
-    public IPipelineFile CreateWritableCopy(IPipelineFile source, string name)
+    public async Task<IPipelineFile> CreateWritableCopyAsync(IPipelineFile source, string name, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
         var target = GeneratePipelineFile(source.OriginalRelativePath, name, source.FileExtension);
-        using var sourceStream = source.OpenReadFileStream();
-        using var targetStream = target.OpenWriteFileStream();
-        sourceStream.CopyTo(targetStream);
+        var targetPath = await target.GetLocalPathAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            using var sourceStream = await source.OpenReadAsync(cancellationToken).ConfigureAwait(false);
+            using var targetStream = target.OpenWriteFileStream();
+            await sourceStream.CopyToAsync(targetStream, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            // A write that failed leaves no file: the caller never receives the target, so an incomplete
+            // copy would only sit there until the pipeline directory is removed.
+            TryDeleteIncompleteFile(targetPath);
+            throw;
+        }
+
         return target;
+    }
+
+    private static void TryDeleteIncompleteFile(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     /// <summary>

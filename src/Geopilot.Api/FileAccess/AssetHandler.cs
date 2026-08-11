@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Services;
 using Microsoft.AspNetCore.StaticFiles;
 using System.Security.Cryptography;
 
@@ -8,14 +9,14 @@ namespace Geopilot.Api.FileAccess;
 /// <summary>
 /// Provides functionality to record, delete and download asset files. Pipeline outputs
 /// flagged for delivery already live in the asset directory; this handler only needs to
-/// migrate the originals over from the upload directory and write the corresponding
+/// fetch the uploaded originals from cloud storage and write the corresponding
 /// <see cref="Asset"/> rows.
 /// </summary>
 public class AssetHandler : IAssetHandler
 {
     private readonly ILogger<AssetHandler> logger;
     private readonly IProcessingService processingService;
-    private readonly IUploadFileStore uploadFileStore;
+    private readonly ICloudStorageService cloudStorageService;
     private readonly IAssetFileStore assetFileStore;
     private readonly IDirectoryProvider directoryProvider;
     private readonly IContentTypeProvider fileContentTypeProvider;
@@ -23,18 +24,18 @@ public class AssetHandler : IAssetHandler
     /// <summary>
     /// Initializes a new instance of the <see cref="AssetHandler"/> class.
     /// </summary>
-    public AssetHandler(ILogger<AssetHandler> logger, IProcessingService processingService, IUploadFileStore uploadFileStore, IAssetFileStore assetFileStore, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
+    public AssetHandler(ILogger<AssetHandler> logger, IProcessingService processingService, ICloudStorageService cloudStorageService, IAssetFileStore assetFileStore, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
     {
         this.logger = logger;
         this.processingService = processingService;
-        this.uploadFileStore = uploadFileStore;
+        this.cloudStorageService = cloudStorageService;
         this.assetFileStore = assetFileStore;
         this.directoryProvider = directoryProvider;
         this.fileContentTypeProvider = fileContentTypeProvider;
     }
 
     /// <inheritdoc/>
-    public IEnumerable<Asset> PersistJobAssets(Guid jobId)
+    public async Task<IEnumerable<Asset>> PersistJobAssetsAsync(Guid jobId, CancellationToken cancellationToken = default)
     {
         var job = processingService.GetJob(jobId);
 
@@ -44,7 +45,7 @@ public class AssetHandler : IAssetHandler
         var assets = new List<Asset>();
         Directory.CreateDirectory(directoryProvider.GetAssetDirectoryPath(jobId));
 
-        assets.AddRange(PersistPrimaryJobAsset(job));
+        assets.AddRange(await PersistPrimaryJobAssetsAsync(job, cancellationToken));
         assets.AddRange(RecordStepDeliveryAssets(job));
 
         return assets;
@@ -83,7 +84,7 @@ public class AssetHandler : IAssetHandler
         }
     }
 
-    private List<Asset> PersistPrimaryJobAsset(ProcessingJob job)
+    private async Task<List<Asset>> PersistPrimaryJobAssetsAsync(ProcessingJob job, CancellationToken cancellationToken)
     {
         if (job.Files == null || job.Files.Count == 0)
             throw new InvalidOperationException($"Processing job <{job.Id}> does not have a correctly defined primary data files.");
@@ -91,21 +92,13 @@ public class AssetHandler : IAssetHandler
         var assets = new List<Asset>();
         foreach (var f in job.Files)
         {
-            using (var stream = uploadFileStore.OpenFile(job.Id, f.TempFileName))
+            assets.Add(new Asset()
             {
-                var asset = new Asset()
-                {
-                    AssetType = AssetType.PrimaryData,
-                    OriginalFilename = f.OriginalFileName,
-                    SanitizedFilename = f.TempFileName,
-                    FileHash = SHA256.HashData(stream),
-                };
-                assets.Add(asset);
-            }
-
-            // Originals live in the volatile upload directory; move them over so they
-            // survive cleanup alongside the rest of the asset payload.
-            CopyUploadToAssetStore(job.Id, f.TempFileName);
+                AssetType = AssetType.PrimaryData,
+                OriginalFilename = f.OriginalFileName,
+                SanitizedFilename = f.TempFileName,
+                FileHash = await CopyUploadToAssetStoreAsync(job.Id, f, cancellationToken),
+            });
         }
 
         return assets;
@@ -137,18 +130,32 @@ public class AssetHandler : IAssetHandler
         return assets;
     }
 
-    private void CopyUploadToAssetStore(Guid jobId, string fileName)
+    /// <summary>
+    /// Streams an uploaded original from cloud storage into the asset store, hashing it on the way, so the
+    /// delivery keeps its own durable copy. The originals live in cloud storage until the job is retired,
+    /// so that is where the delivery has to fetch them from.
+    /// </summary>
+    /// <returns>The SHA256 hash of the file contents.</returns>
+    private async Task<byte[]> CopyUploadToAssetStoreAsync(Guid jobId, ProcessingJobFile file, CancellationToken cancellationToken)
     {
-        var sourceFileName = uploadFileStore.GetPath(jobId, fileName);
-        var destFileName = Path.Combine(directoryProvider.GetAssetDirectoryPath(jobId), fileName);
         try
         {
-            logger.LogInformation("Copying file from {SourceFileName} to {DestFileName}", sourceFileName, destFileName);
-            File.Copy(sourceFileName, destFileName);
+            logger.LogInformation("Copying uploaded file <{OriginalFileName}> of job <{JobId}> into the asset store.", file.OriginalFileName, jobId);
+
+            using var source = await cloudStorageService.OpenReadAsync(file.CloudKey, cancellationToken);
+            using var target = assetFileStore.CreateFile(jobId, file.TempFileName);
+            using var hashAlgorithm = SHA256.Create();
+            using (var hashing = new CryptoStream(target, hashAlgorithm, CryptoStreamMode.Write, leaveOpen: true))
+            {
+                await source.CopyToAsync(hashing, cancellationToken);
+            }
+
+            return hashAlgorithm.Hash
+                ?? throw new InvalidOperationException($"Hashing the uploaded file <{file.OriginalFileName}> of job <{jobId}> produced no result.");
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Failed to copy <{SourceFileName}> to <{DestinationFileName}>.", sourceFileName, destFileName);
+            logger.LogError(e, "Failed to copy uploaded file <{OriginalFileName}> of job <{JobId}> into the asset store.", file.OriginalFileName, jobId);
             throw;
         }
     }

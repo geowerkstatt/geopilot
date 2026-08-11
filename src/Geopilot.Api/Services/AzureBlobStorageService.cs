@@ -86,19 +86,19 @@ public class AzureBlobStorageService : ICloudStorageService
     }
 
     /// <inheritdoc/>
-    public async Task DownloadAsync(string key, Stream destination)
+    public async Task DownloadAsync(string key, Stream destination, CancellationToken cancellationToken = default)
     {
         var blobClient = containerClient.GetBlobClient(key);
         logger.LogInformation("Downloading blob {Key}.", key);
-        await blobClient.DownloadToAsync(destination);
+        await blobClient.DownloadToAsync(destination, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task<Stream> OpenReadAsync(string key)
+    public async Task<Stream> OpenReadAsync(string key, CancellationToken cancellationToken = default)
     {
         var blobClient = containerClient.GetBlobClient(key);
         logger.LogInformation("Opening read stream for blob {Key}.", key);
-        return await blobClient.OpenReadAsync();
+        return await blobClient.OpenReadAsync(cancellationToken: cancellationToken);
     }
 
     /// <inheritdoc/>

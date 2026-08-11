@@ -5,7 +5,7 @@ namespace Geopilot.Pipeline;
 /// <summary>
 /// Wraps an <see cref="IPipelineFile"/> that a step received as input (from another step or from the
 /// upload) so the consuming step can read it freely but never mutates the original. The first time a
-/// writable local path is requested via <see cref="GetLocalPath"/>, the content is copied into the
+/// writable local path is requested via <see cref="GetLocalPathAsync"/>, the content is copied into the
 /// consuming step's working directory and all further access uses that private copy. This is how
 /// geopilot guarantees that process inputs are isolated, without the process copying anything itself.
 /// </summary>
@@ -14,6 +14,8 @@ internal sealed class CopyOnWriteFile : IPipelineFile
     private readonly IPipelineFile inner;
     private readonly string pipelineDirectory;
     private readonly string stepId;
+    private readonly object copyGate = new();
+    private Task<IPipelineFile>? copyTask;
     private IPipelineFile? localCopy;
 
     /// <summary>
@@ -47,28 +49,40 @@ internal sealed class CopyOnWriteFile : IPipelineFile
     private IPipelineFile Current => this.localCopy ?? this.inner;
 
     /// <inheritdoc/>
-    public FileStream OpenReadFileStream() => this.Current.OpenReadFileStream();
+    public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) => this.Current.OpenReadAsync(cancellationToken);
 
     /// <inheritdoc/>
-    public string GetLocalPath() => this.EnsureLocalCopy().GetLocalPath();
+    public async Task<string> GetLocalPathAsync(CancellationToken cancellationToken = default)
+    {
+        var copy = await this.EnsureLocalCopyAsync(cancellationToken).ConfigureAwait(false);
+        return await copy.GetLocalPathAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     /// <inheritdoc/>
     public FileStream OpenWriteFileStream()
         => throw new NotSupportedException(
-            "Cannot stream-write an input file. Read it via OpenReadFileStream, mutate it in place via GetLocalPath, or create a new output with IPipelineFileManager.GeneratePipelineFile.");
+            "Cannot stream-write an input file. Read it via OpenReadAsync, mutate it in place via GetLocalPathAsync, or create a new output with IPipelineFileManager.GeneratePipelineFile.");
 
     /// <summary>
-    /// Materializes the private copy in the consuming step's working directory on first use.
+    /// Materializes the private copy in the consuming step's working directory on first use. Concurrent
+    /// callers share the one copy operation; the token of whoever triggers it governs that copy.
     /// </summary>
     /// <returns>The private, owned copy of the wrapped input.</returns>
-    private IPipelineFile EnsureLocalCopy()
+    private Task<IPipelineFile> EnsureLocalCopyAsync(CancellationToken cancellationToken)
     {
-        if (this.localCopy is null)
+        lock (this.copyGate)
         {
-            var stepFileManager = new PipelineFileManager(this.pipelineDirectory, this.stepId);
-            this.localCopy = stepFileManager.CreateWritableCopy(this.inner, this.inner.OriginalFileNameWithoutExtension);
+            return this.copyTask ??= this.CopyIntoConsumingStepAsync(cancellationToken);
         }
+    }
 
-        return this.localCopy;
+    private async Task<IPipelineFile> CopyIntoConsumingStepAsync(CancellationToken cancellationToken)
+    {
+        var stepFileManager = new PipelineFileManager(this.pipelineDirectory, this.stepId);
+        var copy = await stepFileManager.CreateWritableCopyAsync(this.inner, this.inner.OriginalFileNameWithoutExtension, cancellationToken).ConfigureAwait(false);
+
+        // Further reads go through the owned copy, so a step that mutated it in place sees its own changes.
+        this.localCopy = copy;
+        return copy;
     }
 }

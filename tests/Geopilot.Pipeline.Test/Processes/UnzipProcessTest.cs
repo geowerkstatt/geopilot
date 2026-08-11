@@ -36,7 +36,7 @@ public class UnzipProcessTest
         });
 
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
-        var result = await process.RunAsync(zipFile);
+        var result = await process.RunAsync(zipFile, CancellationToken.None);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.StatusMessage);
@@ -50,7 +50,7 @@ public class UnzipProcessTest
             extracted.Select(f => f.OriginalFileName).ToArray());
 
         var readme = extracted.Single(f => f.OriginalFileName == "readme.txt");
-        using (var reader = new StreamReader(readme.OpenReadFileStream()))
+        using (var reader = new StreamReader(await readme.OpenReadAsync()))
         {
             Assert.AreEqual("hello", reader.ReadToEnd());
         }
@@ -73,7 +73,7 @@ public class UnzipProcessTest
         var zipFile = CreateZipFile("empty.zip", Array.Empty<(string, string)>());
 
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
-        var result = await process.RunAsync(zipFile);
+        var result = await process.RunAsync(zipFile, CancellationToken.None);
 
         var extracted = result.ExtractedFiles;
         Assert.IsNotNull(extracted);
@@ -108,7 +108,7 @@ public class UnzipProcessTest
 
         var zipFile = new PipelineFile(zipPath, "with-dirs.zip");
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
-        var result = await process.RunAsync(zipFile);
+        var result = await process.RunAsync(zipFile, CancellationToken.None);
 
         var extracted = result.ExtractedFiles;
         Assert.IsNotNull(extracted);
@@ -125,7 +125,7 @@ public class UnzipProcessTest
         });
 
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
-        var result = await process.RunAsync(zipFile);
+        var result = await process.RunAsync(zipFile, CancellationToken.None);
 
         var extracted = result.ExtractedFiles;
         Assert.IsNotNull(extracted);
@@ -144,7 +144,7 @@ public class UnzipProcessTest
         });
 
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
-        var result = await process.RunAsync(zipFile);
+        var result = await process.RunAsync(zipFile, CancellationToken.None);
 
         var extracted = result.ExtractedFiles;
         Assert.IsNotNull(extracted);
@@ -164,7 +164,7 @@ public class UnzipProcessTest
         Assert.HasCount(3, Directory.GetFiles(stepDirectory));
         Assert.HasCount(0, Directory.GetDirectories(stepDirectory));
 
-        using var reader = new StreamReader(deep.OpenReadFileStream());
+        using var reader = new StreamReader(await deep.OpenReadAsync());
         Assert.AreEqual("deep-content", reader.ReadToEnd());
     }
 
@@ -188,7 +188,7 @@ public class UnzipProcessTest
         var zipFile = new PipelineFile(zipPath, "evil.zip");
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
 
-        await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(zipFile));
+        await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(zipFile, CancellationToken.None));
     }
 
     [TestMethod]
@@ -207,7 +207,7 @@ public class UnzipProcessTest
         var zipFile = new PipelineFile(zipPath, "rooted.zip");
         var process = new UnzipProcess(new PipelineFileManager(testDirectory, "UnzipProcess"), Mock.Of<ILogger<UnzipProcessTest>>());
 
-        await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(zipFile));
+        await Assert.ThrowsAsync<ArgumentException>(() => process.RunAsync(zipFile, CancellationToken.None));
     }
 
     private PipelineFile CreateZipFile(string archiveName, IReadOnlyCollection<(string Path, string Content)> entries)

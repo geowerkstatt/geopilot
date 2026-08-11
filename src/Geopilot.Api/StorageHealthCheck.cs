@@ -4,7 +4,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace Geopilot.Api
 {
     /// <summary>
-    /// Health check for the upload and assets storage.
+    /// Health check for the local storage directories.
     /// </summary>
     public class StorageHealthCheck : IHealthCheck
     {
@@ -24,8 +24,7 @@ namespace Geopilot.Api
             try
             {
                 // Simply check if all configured storage directories exist.
-                if (!Directory.Exists(directoryProvider.UploadDirectory)
-                    || !Directory.Exists(directoryProvider.DownloadDirectory)
+                if (!Directory.Exists(directoryProvider.DownloadDirectory)
                     || !Directory.Exists(directoryProvider.AssetDirectory)
                     || !Directory.Exists(directoryProvider.PipelineDirectory))
                 {

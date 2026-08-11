@@ -61,11 +61,14 @@
 - Per-mandate option to allow or disallow deliveries.
 - Admins can activate and deactivate users.
 - Strict Content-Security-Policy with a per-request nonce for the application and STAC Browser.
-- `IPipelineFile.GetLocalPath()` and `IPipelineFileManager.CreateWritableCopy(...)` in the PipelineCore API, letting a process hand a file to external tools by path and obtain an owned, writable copy without copying it by hand.
+- `IPipelineFile.GetLocalPathAsync()` and `IPipelineFileManager.CreateWritableCopyAsync(...)` in the PipelineCore API, letting a process hand a file to external tools by path and obtain an owned, writable copy without copying it by hand.
 - Users can view and delete their own uploaded deliveries when logged in. The permission to delete deliveries can be configured to be disabled for all users or restricted to a time duration or interval.
 
 ### Changed
 
+- Uploaded files are no longer downloaded before the job starts. A file is fetched from the object storage the first time a pipeline step reads it and reused from there, so a job starts without waiting for the whole upload and a file that a matcher filters out is not fetched while the pipeline runs. The uploaded files are kept in the object storage until the job is cleaned up, or until it ends in a state that cannot be delivered; declaring the delivery archives every uploaded file as primary data, including the ones no step read, so a delivered job transfers all of them eventually. `CloudStorage:CleanupAgeHours` must therefore exceed `Processing:JobRetention` plus `Processing:JobTimeout`; the application logs a warning on start if it does not.
+- The `Storage:UploadDirectory` setting and the `/uploads` volume are gone. Uploaded files are now held in the object storage and materialized inside the pipeline working directory, which is removed with the job. Remove the setting and the volume mount from your deployment.
+- A pipeline process reads a file with `await file.OpenReadAsync(cancellationToken)` instead of `OpenReadFileStream()`, and takes a local path with `await file.GetLocalPathAsync(cancellationToken)` instead of `GetLocalPath()`. Both accept the job's cancellation token, so a cancelled job also cancels a file that is still being fetched. Plugins built against `GeoWerkstatt.Geopilot.PipelineCore` must be rebuilt against the new version.
 - File upload and processing are now decoupled: uploading files returns an upload id, and a separate request starts the processing job for that upload.
 - Cloud upload (Azure Blob Storage) is now the single upload mechanism; the previous direct multipart upload and the `CloudStorage:Enabled` configuration switch were removed.
 - `GeoWerkstatt.Geopilot.Pipeline` 2.0.0 (breaking): upload files are now passed to `IPipeline.Run` (and `IPipelineFactory.CreatePipeline` no longer takes them) instead of being held on the pipeline instance.
