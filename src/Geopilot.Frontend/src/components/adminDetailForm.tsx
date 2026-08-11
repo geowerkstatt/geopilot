@@ -49,42 +49,33 @@ const AdminDetailForm = <T extends { id: number }>({
   const navigate = useNavigate();
   const { showPrompt } = useContext(PromptContext);
   const dataIdRef = useRef<number | undefined>(data?.id);
-  const isSavingRef = useRef<boolean>(false);
 
   const saveData = useCallback(
     async (formData: FieldValues, reloadAfterSave = true) => {
-      if (isSavingRef.current) {
-        return;
-      }
-      isSavingRef.current = true;
-      try {
-        const id = dataIdRef.current || 0;
-        const dataToSave = prepareDataForSave(formData);
-        dataToSave.id = id;
-        const response = await fetchApi(apiEndpoint, {
-          method: id === 0 ? "POST" : "PUT",
-          body: JSON.stringify(dataToSave),
-          errorMessageLabel: saveErrorLabel,
-        });
-        const savedData = response as T;
-        const newFormData = prepareDataAfterSave ? prepareDataAfterSave(savedData) : savedData;
+      const id = dataIdRef.current || 0;
+      const dataToSave = prepareDataForSave(formData);
+      dataToSave.id = id;
+      const response = await fetchApi(apiEndpoint, {
+        method: id === 0 ? "POST" : "PUT",
+        body: JSON.stringify(dataToSave),
+        errorMessageLabel: saveErrorLabel,
+      });
+      const savedData = response as T;
+      const newFormData = prepareDataAfterSave ? prepareDataAfterSave(savedData) : savedData;
 
-        if (reloadAfterSave) {
-          onSaveSuccess(savedData);
-          formMethods.reset(newFormData, resetOptions);
+      if (reloadAfterSave) {
+        onSaveSuccess(savedData);
+        formMethods.reset(newFormData, resetOptions);
 
-          if (id === 0) {
-            const newPath = `${basePath}/${savedData.id}`;
-            navigate(newPath, { replace: true });
-            unregisterCheckIsDirty(`${basePath}/0`);
-            registerCheckIsDirty(newPath);
-          }
+        if (id === 0) {
+          const newPath = `${basePath}/${savedData.id}`;
+          navigate(newPath, { replace: true });
+          unregisterCheckIsDirty(`${basePath}/0`);
+          registerCheckIsDirty(newPath);
         }
-
-        return savedData;
-      } finally {
-        isSavingRef.current = false;
       }
+
+      return savedData;
     },
     [
       apiEndpoint,
@@ -101,12 +92,8 @@ const AdminDetailForm = <T extends { id: number }>({
     ],
   );
 
-  const submitForm = (data: FieldValues) => {
-    formMethods.trigger().then(isValid => {
-      if (isValid) {
-        saveData(data, true);
-      }
-    });
+  const submitForm = async (data: FieldValues) => {
+    await saveData(data, true);
   };
 
   useEffect(() => {
@@ -164,7 +151,7 @@ const AdminDetailForm = <T extends { id: number }>({
         </Stack>
       ) : (
         <FormProvider {...formMethods}>
-          <form onSubmit={formMethods.handleSubmit(submitForm)}>
+          <form onSubmit={event => formMethods.handleSubmit(submitForm)(event)}>
             <Stack>
               {children}
               <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -176,7 +163,7 @@ const AdminDetailForm = <T extends { id: number }>({
                 <Button
                   variant="contained"
                   disabled={
-                    isSavingRef.current ||
+                    formMethods.formState.isSubmitting ||
                     !formMethods.formState.isDirty ||
                     (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
                   }
