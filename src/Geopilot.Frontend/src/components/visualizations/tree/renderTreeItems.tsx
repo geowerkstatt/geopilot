@@ -1,5 +1,5 @@
 import { ComponentType, ReactNode } from "react";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { Box, Stack, SvgIconProps, Typography } from "@mui/material";
