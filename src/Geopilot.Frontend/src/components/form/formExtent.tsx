@@ -43,7 +43,7 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, required, disabled,
     onFieldChange: (index: number, key: "x" | "y", e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void,
     showError: boolean,
   ) => (
-    <Stack sx={{ width: "100%" }} gap={1}>
+    <Stack sx={{ width: "100%" }} spacing={1}>
       <Stack>
         <FormContainer>
           <TextField

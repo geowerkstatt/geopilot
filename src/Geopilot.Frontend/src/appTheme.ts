@@ -435,7 +435,7 @@ export const geopilotTheme = createTheme({
         },
       },
     },
-    MuiStack: { defaultProps: { gap: 2 } },
+    MuiStack: { defaultProps: { spacing: 2, useFlexGap: true } },
     MuiAlert: {
       defaultProps: {
         iconMapping: {

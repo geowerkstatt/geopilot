@@ -101,12 +101,12 @@ export const Licenses = () => {
           {t("licenseInformation")}
         </Typography>
       )}
-      <Stack gap={0}>
+      <Stack spacing={0}>
         {licenseGroups.map((group, index) => (
           <Accordion key={group.groupName + index} slotProps={{ transition: { timeout: 200 } }}>
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Stack direction="row" sx={{ alignItems: "center" }}>
-                <Typography variant="h4" m={0}>
+                <Typography variant="h4" sx={{ m: 0 }}>
                   {group.groupName}
                 </Typography>
                 <Typography>{group.packages.length > 1 ? `${group.packages.length} ${t("licenses")}` : ""}</Typography>
@@ -114,7 +114,7 @@ export const Licenses = () => {
             </AccordionSummary>
             <AccordionDetails>
               {group.packages.map(pkg => (
-                <Stack key={pkg.name + pkg.version} gap={1}>
+                <Stack key={pkg.name + pkg.version} spacing={1}>
                   <Typography variant="h5">
                     {pkg.name}
                     {pkg.version && ` (${t("version")} ${pkg.version})`}

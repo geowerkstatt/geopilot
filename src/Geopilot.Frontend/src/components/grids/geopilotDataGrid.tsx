@@ -112,7 +112,7 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
         <Button startIcon={<AddIcon />} onClick={handleAddClick} label={props.addLabel} />
       </Box>
       <StyledDataGrid
-        data-cy={`${props.name}-grid`}
+        slotProps={{ root: { "data-cy": `${props.name}-grid` } }}
         sx={{ flex: "1" }}
         autoPageSize
         disableColumnSelector
@@ -124,7 +124,7 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
     </Stack>
   ) : (
     <StyledDataGrid
-      data-cy={`${props.name}-grid`}
+      slotProps={{ root: { "data-cy": `${props.name}-grid` } }}
       autoPageSize
       disableColumnSelector
       hideFooterSelectedRowCount

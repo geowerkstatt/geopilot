@@ -121,7 +121,12 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
     <DeliveryContentGrid>
       <DeliveryContentBox>
         <ContentBox ref={contentRef} sx={{ overflow: "auto" }}>
-          <Typography variant="h4" m={0} sx={{ display: { xs: "none", md: hideBox ? "none" : "block" } }}>
+          <Typography
+            variant="h4"
+            sx={{
+              m: 0,
+              display: { xs: "none", md: hideBox ? "none" : "block" },
+            }}>
             {t(title)}
           </Typography>
           {subtitle && <Typography variant="body1">{t(subtitle)}</Typography>}

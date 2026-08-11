@@ -145,8 +145,8 @@ export const FormAutocomplete = <T,>({
       value={value}
       {...inputControl}
       onChange={handleChange}
-      renderTags={(tagValue, getTagProps) => (
-        <OverflowChips value={tagValue.map(toChipLabel)} getTagProps={getTagProps} />
+      renderValue={(tagValue, getItemProps) => (
+        <OverflowChips value={tagValue.map(toChipLabel)} getItemProps={getItemProps} />
       )}
       renderInput={params => (
         <TextField

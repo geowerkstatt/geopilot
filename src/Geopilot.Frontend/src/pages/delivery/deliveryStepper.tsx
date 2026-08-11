@@ -107,7 +107,7 @@ export const DeliveryStepper = () => {
     <StepperViewport>
       <StepperStack
         direction={{ xs: "row", md: "column" }}
-        gap={stepperStackGap}
+        spacing={stepperStackGap}
         style={{
           left: isMobile ? `calc(${activeStep} * (-100% - ${theme.spacing(stepperStackGap)}))` : undefined,
           transition: isMobile ? `left ${SLIDE_TRANSITION_MS}ms ease` : undefined,
@@ -147,12 +147,12 @@ export const DeliveryStepper = () => {
               }}>
               <Stack direction="row" sx={{ alignItems: "center" }}>
                 <StepIcon step={index + 1} state={stepState} variant="contained" />
-                <Typography variant="h4" color={isEnabled(index) ? "text.primary" : "text.secondary"} m={0}>
+                <Typography variant="h4" sx={{ color: isEnabled(index) ? "text.primary" : "text.secondary", m: 0 }}>
                   {t(step.label)}
                 </Typography>
               </Stack>
               {step.labelAddition && (
-                <StepDetailTypography color="primary.main">
+                <StepDetailTypography sx={{ color: "primary.main" }}>
                   {t(step.labelAddition)
                     .split("\n")
                     .map((line, idx) => (
@@ -161,7 +161,7 @@ export const DeliveryStepper = () => {
                 </StepDetailTypography>
               )}
               {step.messages && step.messages.length > 0 && (
-                <StepDetailTypography color={messageColor}>
+                <StepDetailTypography sx={{ color: messageColor }}>
                   {step.messages.map((message, idx) => (
                     <Box component="span" key={idx} sx={{ display: "block" }}>
                       {typeof message === "string" ? t(message) : localized(message)}

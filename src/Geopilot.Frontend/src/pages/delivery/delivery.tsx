@@ -40,10 +40,10 @@ const Delivery: FC<DeliveryProps> = ({ stepSwipeRef }) => {
 
   return (
     <CenteredContent data-cy="delivery" maxWidth="1400px">
-      <Typography variant="h1" zIndex={10}>
+      <Typography variant="h1" sx={{ zIndex: 10 }}>
         {t("deliveryTitle")}
       </Typography>
-      <DeliveryContainer direction={{ xs: "column", md: "row" }} m={{ xs: 0, md: 0 }}>
+      <DeliveryContainer direction={{ xs: "column", md: "row" }} sx={{ m: { xs: 0, md: 0 } }}>
         <DeliveryStepper />
         <DeliveryContentCarousel />
       </DeliveryContainer>

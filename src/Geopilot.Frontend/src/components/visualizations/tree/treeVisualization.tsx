@@ -203,11 +203,11 @@ export const TreeVisualization = ({
   if (nodes.length === 0 && !filterActive) return null;
 
   return (
-    <Stack ref={measureContainer} sx={{ width: "100%", minHeight: 0 }} gap={1}>
+    <Stack ref={measureContainer} sx={{ width: "100%", minHeight: 0 }} spacing={1}>
       <Stack
         direction="row"
         sx={{ alignItems: "center", justifyContent: expandableIds.length > 0 ? "space-between" : "flex-start" }}>
-        <Typography variant="body2" m={0}>
+        <Typography variant="body2" sx={{ m: 0 }}>
           {filterActive
             ? t("treeErrorCountFiltered", { count: totalCount, shown: shownCount })
             : t("treeErrorCount", { count: totalCount })}

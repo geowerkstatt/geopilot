@@ -22,7 +22,7 @@ export const DetailPanel = ({ item }: DetailPanelProps) => {
         gap: 1,
         backgroundColor: geopilotTheme.palette.primary.states.selected,
       }}>
-      <Typography variant="h6" m={0}>
+      <Typography variant="h6" sx={{ m: 0 }}>
         {t("treeVisualizationMetadataTitle")}
       </Typography>
       <Table size="small" sx={{ tableLayout: "fixed" }}>

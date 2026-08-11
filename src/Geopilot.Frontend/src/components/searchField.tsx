@@ -22,20 +22,22 @@ export const SearchField: FC<SearchFieldProps> = ({ value, onChange, placeholder
       value={value}
       onChange={event => onChange(event.target.value)}
       sx={sx}
-      inputProps={{ "aria-label": t(placeholder) }}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon fontSize="small" sx={{ color: "primary.main" }} />
-          </InputAdornment>
-        ),
-        endAdornment: value ? (
-          <InputAdornment position="end">
-            <IconButton size="small" edge="end" icon={<CloseIcon />} label="clear" onClick={() => onChange("")} />
-          </InputAdornment>
-        ) : undefined,
-      }}
       data-cy={dataCy}
+      slotProps={{
+        input: {
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon fontSize="small" sx={{ color: "primary.main" }} />
+            </InputAdornment>
+          ),
+          endAdornment: value ? (
+            <InputAdornment position="end">
+              <IconButton size="small" edge="end" icon={<CloseIcon />} label="clear" onClick={() => onChange("")} />
+            </InputAdornment>
+          ) : undefined,
+        },
+        htmlInput: { "aria-label": t(placeholder) },
+      }}
     />
   );
 };

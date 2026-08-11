@@ -63,7 +63,7 @@ export function LanguagePopup() {
         sx={{ mt: 0.5 }}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        MenuListProps={{ sx: { py: 0 } }}>
+        slotProps={{ list: { sx: { py: 0 } } }}>
         {languages.map(language => {
           const isSelected = selectedLanguage === language;
           return (
@@ -75,7 +75,7 @@ export function LanguagePopup() {
               data-cy={`language-${language}`}
               sx={{ "&:hover": { backgroundColor: geopilotTheme.palette.primary.states.hover } }}>
               <ListItemIcon sx={{ minWidth: "20px" }}>{isSelected && <CheckIcon fontSize="small" />}</ListItemIcon>
-              <ListItemText primaryTypographyProps={{ variant: "body2" }} sx={{ textAlign: "right" }}>
+              <ListItemText sx={{ textAlign: "right" }} slotProps={{ primary: { variant: "body2" } }}>
                 {language.toUpperCase()}
               </ListItemText>
             </MenuItem>
