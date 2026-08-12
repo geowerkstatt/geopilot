@@ -2,6 +2,10 @@
 
 namespace Geopilot.Pipeline.Processes.XtfErrorVisualization;
 
+// The types in this file stay public although they are implementation details of an internal process:
+// XtfLogParser deserializes them with XmlSerializer, which refuses non-public types at run time.
+// Making them internal builds fine and fails only when a log is parsed.
+
 /// <summary>
 /// Represents the root element of an INTERLIS 2.3 transfer file, containing the data section and associated metadata.
 /// </summary>

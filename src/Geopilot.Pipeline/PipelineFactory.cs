@@ -106,9 +106,18 @@ public class PipelineFactory : IPipelineFactory
             .Build();
     }
 
-    internal static PipelineFactoryBuilder Builder() => new PipelineFactoryBuilder();
+    /// <summary>
+    /// Creates a builder for a <see cref="PipelineFactory"/>. This is the entry point for creating
+    /// pipelines outside the host, for example from a plugin's integration tests.
+    /// </summary>
+    /// <returns>A new <see cref="PipelineFactoryBuilder"/>.</returns>
+    public static PipelineFactoryBuilder Builder() => new PipelineFactoryBuilder();
 
-    internal class PipelineFactoryBuilder
+    /// <summary>
+    /// Fluent builder for a <see cref="PipelineFactory"/>. The pipeline definition, the process factory,
+    /// the logger factory and the pipeline working directory are required; the resources root is optional.
+    /// </summary>
+    public class PipelineFactoryBuilder
     {
         private PipelineProcessConfig? pipelineProcessConfig;
         private IPipelineProcessFactory? pipelineProcessFactory;
@@ -116,6 +125,11 @@ public class PipelineFactory : IPipelineFactory
         private string? resourcesDirectory;
         private ILoggerFactory? loggerFactory;
 
+        /// <summary>
+        /// Supplies the pipeline definition as YAML text.
+        /// </summary>
+        /// <param name="processDefinition">The YAML pipeline definition.</param>
+        /// <returns>The same builder instance.</returns>
         public PipelineFactoryBuilder Yaml(string processDefinition)
         {
             var deserializer = new DeserializerBuilder()
@@ -126,36 +140,66 @@ public class PipelineFactory : IPipelineFactory
             return this;
         }
 
+        /// <summary>
+        /// Supplies the pipeline definition by reading it from a YAML file.
+        /// </summary>
+        /// <param name="path">Path to the YAML pipeline definition.</param>
+        /// <returns>The same builder instance.</returns>
         public PipelineFactoryBuilder File(string path)
         {
             var yaml = System.IO.File.ReadAllText(path);
             return Yaml(yaml);
         }
 
+        /// <summary>
+        /// Supplies the process factory used to instantiate the process of each step.
+        /// </summary>
+        /// <param name="pipelineProcessFactory">The process factory.</param>
+        /// <returns>The same builder instance.</returns>
         public PipelineFactoryBuilder PipelineProcessFactory(IPipelineProcessFactory pipelineProcessFactory)
         {
             this.pipelineProcessFactory = pipelineProcessFactory;
             return this;
         }
 
+        /// <summary>
+        /// Supplies the logger factory used for pipeline and step logging.
+        /// </summary>
+        /// <param name="loggerFactory">The logger factory.</param>
+        /// <returns>The same builder instance.</returns>
         public PipelineFactoryBuilder LoggerFactory(ILoggerFactory loggerFactory)
         {
             this.loggerFactory = loggerFactory;
             return this;
         }
 
+        /// <summary>
+        /// Supplies the root directory under which the per-job pipeline working directories are created.
+        /// </summary>
+        /// <param name="pipelineTempDirectory">The pipeline working directory root.</param>
+        /// <returns>The same builder instance.</returns>
         public PipelineFactoryBuilder PipelineTempDirectory(string pipelineTempDirectory)
         {
             this.pipelineTempDirectory = pipelineTempDirectory;
             return this;
         }
 
+        /// <summary>
+        /// Supplies the root directory that <c>${file(path)}</c> references resolve against.
+        /// </summary>
+        /// <param name="resourcesDirectory">The resources root, or <see langword="null"/> when the definition uses no file references.</param>
+        /// <returns>The same builder instance.</returns>
         public PipelineFactoryBuilder ResourcesDirectory(string? resourcesDirectory)
         {
             this.resourcesDirectory = resourcesDirectory;
             return this;
         }
 
+        /// <summary>
+        /// Builds the configured <see cref="PipelineFactory"/>.
+        /// </summary>
+        /// <returns>The configured factory.</returns>
+        /// <exception cref="InvalidOperationException">A required part was not supplied.</exception>
         public PipelineFactory Build()
         {
             if (this.pipelineProcessFactory == null)

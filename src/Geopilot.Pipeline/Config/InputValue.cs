@@ -6,7 +6,7 @@
 /// binds process parameters. A value is either a literal written in the definition or a reference
 /// that is resolved when the step runs.
 /// </summary>
-public abstract record InputValue
+internal abstract record InputValue
 {
     /// <summary>
     /// A scalar written literally in the definition. The value is kept as text because the

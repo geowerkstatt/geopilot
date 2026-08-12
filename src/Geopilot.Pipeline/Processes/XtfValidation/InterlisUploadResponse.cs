@@ -3,7 +3,7 @@
 /// <summary>
 /// Result of a successful upload to interlis-check-service at /api/v1/upload.
 /// </summary>
-public class InterlisUploadResponse
+internal class InterlisUploadResponse
 {
     /// <summary>
     /// Id of the validation job.

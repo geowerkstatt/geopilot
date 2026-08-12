@@ -8,7 +8,7 @@ namespace Geopilot.Pipeline.Processes.XtfValidation;
 /// Result of interlis-check-service for malformed requests (400 Bad Request).
 /// </summary>
 /// <remarks>The actual return type is Microsoft.AspNetCore.Mvc.ValidationProblemDetails. This is a stub.</remarks>
-public class InterlisBadRequestResponse
+internal class InterlisBadRequestResponse
 {
     /// <summary>
     /// A human-readable explanation specific to this occurrence of the problem.

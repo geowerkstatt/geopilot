@@ -1,9 +1,10 @@
 import { CSSProperties, FC, useCallback, useEffect, useMemo, useState } from "react";
-import { FileRejection, useDropzone } from "react-dropzone";
+import { FileError, FileRejection, useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 import { Box, Link, Stack, Typography } from "@mui/material";
 import { geopilotTheme } from "../appTheme";
 import { FileUploadStatus } from "../pages/delivery/deliveryInterfaces.tsx";
+import { isIosDevice } from "../utils/platform.ts";
 import { FileListItem } from "./fileListItem.tsx";
 
 const defaultMaxFileSizeMB = 100;
@@ -56,7 +57,8 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
       }
       if (fileRejections.length > 0) {
         let errorKey: string;
-        const errorCode = fileRejections[0].errors[0].code;
+        const { errors } = fileRejections[0];
+        const errorCode = errors.find(e => e.code === "file-invalid-type")?.code ?? errors[0].code;
 
         switch (errorCode) {
           case "file-invalid-type":
@@ -87,15 +89,29 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
     [error, addFiles, selectedFiles, maxFiles],
   );
 
+  const validateExtension = useCallback(
+    (file: File): FileError | null => {
+      if (acceptsAllFileTypes) return null;
+      const fileName = file.name.toLowerCase();
+      const isSupported = (fileExtensions ?? []).some(ext => fileName.endsWith(ext.toLowerCase()));
+      return isSupported ? null : { code: "file-invalid-type", message: "File type not supported" };
+    },
+    [acceptsAllFileTypes, fileExtensions],
+  );
+
+  // iOS/iPadOS greys out files with unknown extensions (e.g. .xtf) whenever the native file input
+  // carries an `accept` attribute, so we drop it there and let `validateExtension` reject bad types
+  // after selection instead. On desktop we keep the attribute for its file-dialog pre-filtering.
+  // The related Issue can be found here: 'https://github.com/mdn/browser-compat-data/issues/26043'
+  // This workaround can be removed/adjusted should the Issue be closed.
+  const restrictNativePicker = !acceptsAllFileTypes && !isIosDevice();
+
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
     maxFiles,
     maxSize: maxFileSizeMB * 1024 * 1024,
-    accept: acceptsAllFileTypes
-      ? undefined
-      : {
-          "application/x-geopilot-files": fileExtensions ?? [],
-        },
+    accept: restrictNativePicker ? { "application/x-geopilot-files": fileExtensions ?? [] } : undefined,
+    validator: restrictNativePicker ? undefined : validateExtension,
     disabled,
   });
 

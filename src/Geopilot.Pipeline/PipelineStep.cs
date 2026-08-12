@@ -10,7 +10,7 @@ namespace Geopilot.Pipeline;
 /// <summary>
 /// Represents a single step in a pipeline.
 /// </summary>
-public sealed class PipelineStep : IPipelineStep
+internal sealed class PipelineStep : IPipelineStep
 {
     private bool disposed;
 
@@ -32,7 +32,9 @@ public sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public LocalizedText DisplayName { get; }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// The compiled input values for this step, keyed by the target process parameter name.
+    /// </summary>
     public IReadOnlyDictionary<string, InputValue> Inputs { get; }
 
     /// <inheritdoc/>
@@ -441,7 +443,7 @@ public sealed class PipelineStep : IPipelineStep
     /// <summary>
     /// Returns a new builder to create instances of a <see cref="PipelineStep"/>.
     /// </summary>
-    public static PipelineStepBuilder Builder()
+    internal static PipelineStepBuilder Builder()
     {
         return new PipelineStepBuilder();
     }
@@ -449,7 +451,7 @@ public sealed class PipelineStep : IPipelineStep
     /// <summary>
     /// Builder to create instances of a <see cref="PipelineStep"/>.
     /// </summary>
-    public class PipelineStepBuilder
+    internal class PipelineStepBuilder
     {
         private string? id;
         private LocalizedText? displayName;

@@ -18,6 +18,7 @@
 
 ### Added
 
+- A plugin test project can build a pipeline from its own definition file with `PipelineFactory.Builder()` in `GeoWerkstatt.Geopilot.Pipeline`, run it and inspect the result, instead of assembling steps and their inputs by hand. A test therefore covers the definition it ships: the same file, the same `${...}` input expressions and the same built-in processes that the host uses at run time.
 - Validation errors can be explored visually in the delivery view: when a validation step fails, its errors are shown on an interactive map and in an error tree.
 - `Visualization` output action in the `GeoWerkstatt.Geopilot.Pipeline` runtime: a pipeline step can tag an output as a self-describing visualization config (a `{ type, data }` envelope), which the runtime serves to the frontend to render based on its `type`. Enum values in visualization payloads are serialized as camelCase strings.
 - A pipeline step `input` value can reference a file shipped with the deployment via `${file(path)}` (relative to the configured `Storage:ResourcesDirectory`), injecting a constant resource such as a template or lookup table into a process without a preceding step.
@@ -31,6 +32,7 @@
 
 ### Removed
 
+- The runtime types a plugin test does not need are no longer part of the public API of `GeoWerkstatt.Geopilot.Pipeline`: `Pipeline`, `PipelineStep` and its builder, `PipelineFile`, `PipelineFileManager`, `ConditionEvaluator`, `IConditionEvaluator`, `ProcessingStateExtensions`, the compiled `InputValue` kinds and the response types of the built-in XTF validation are now internal. Steps are no longer assembled by hand. A test builds its pipeline from the definition file with `PipelineFactory.Builder()` (see Added) and picks the step it executes out of it.
 - The `[UploadFiles]` attribute has been removed from the `GeoWerkstatt.Geopilot.PipelineCore` API. A process parameter that receives the uploaded delivery files must now be wired explicitly with `${upload()}` in the pipeline definition (see Added). Pipeline definitions and plugins that relied on the attribute must be updated.
 - The built-in ZIP packaging process no longer has a separate uploaded-files parameter or the `includeUploadFiles` configuration; the files to archive are passed through its single `input` parameter.
 - The `ili2gpkg-worker` container and its shared job directory have been removed. ili2gpkg operations now run exclusively through the [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) service configured with `Ilitools:IlitoolsWrapperAddress`. Deployments must drop the `ili2gpkg-worker` service and the `/shared/ili2gpkg` mount from their compose file; pipeline definitions must drop the `jobsDirectory` configuration of processes that used the worker.
@@ -38,7 +40,9 @@
 
 ### Fixed
 
+- The error map in fullscreen can be moved with a single finger and zoomed by scrolling without holding Ctrl (⌘ on macOS). Inline the map keeps asking for two fingers and the modifier key so that it does not swallow the page scroll.
 - Processing job and upload timestamps are now recorded in UTC, so the cleanup retention windows (job, download and visualization) are honored regardless of the container time zone. Previously, with the image default `TZ=Europe/Zurich`, expired downloads and visualizations lingered up to two hours longer than configured.
+- Files can now be selected for upload on iPhone and iPad. When a mandate limits the accepted file types, iOS and iPadOS browsers previously greyed out the matching files (for example `.xtf`) in the native file picker, so a delivery could not be started from those devices.
 
 ## v3.0.341 - 2026-06-17
 

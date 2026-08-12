@@ -8,7 +8,7 @@ namespace Geopilot.Pipeline;
 /// </summary>
 /// <remarks>A pipeline consists of an ordered collection of steps, each of which performs a specific operation.
 /// Optionally, parameters can be provided to configure the behavior of the pipeline or its steps.</remarks>
-public sealed class Pipeline : IPipeline
+internal sealed class Pipeline : IPipeline
 {
     private bool disposed;
 

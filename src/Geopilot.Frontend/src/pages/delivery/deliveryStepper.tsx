@@ -11,7 +11,7 @@ import { useLocalized } from "../../hooks/useLocalized";
 import { SLIDE_TRANSITION_MS } from "./deliveryContentCarousel";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
-import { STEPPER_HEIGHT, STICKY_TOP_POSITION_DEFAULT, STICKY_TOP_POSITION_XS } from "./deliveryUtils";
+import { STEPPER_HEIGHT, stepperTopPosition } from "./deliveryUtils";
 
 const getStateColors = (state: StepState, active: boolean) => {
   switch (state) {
@@ -48,7 +48,7 @@ const StepperViewport = styled(Box)(({ theme }) => ({
   minWidth: 300,
   flex: 0,
   position: "sticky",
-  top: `${STICKY_TOP_POSITION_DEFAULT}px`,
+  top: `${stepperTopPosition.default}px`,
   zIndex: 10,
   [theme.breakpoints.down("md")]: {
     overflowX: "hidden",
@@ -62,7 +62,7 @@ const StepperViewport = styled(Box)(({ theme }) => ({
     padding: `0 ${pageContentPadding.default}`,
   },
   [theme.breakpoints.down("sm")]: {
-    top: `${STICKY_TOP_POSITION_XS}px`,
+    top: `${stepperTopPosition.xs}px`,
     margin: `0 -${pageContentPadding.xs} !important`,
     padding: `0 ${pageContentPadding.xs}`,
   },

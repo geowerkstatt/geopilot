@@ -5,7 +5,7 @@ namespace Geopilot.Pipeline.Processes.XtfValidation;
 /// <summary>
 /// Result of a status query of interlis-check-service at /api/v1/status/{jobId}.
 /// </summary>
-public class InterlisStatusResponse
+internal class InterlisStatusResponse
 {
     /// <summary>
     /// The job identification.

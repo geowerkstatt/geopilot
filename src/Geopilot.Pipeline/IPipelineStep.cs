@@ -19,11 +19,6 @@ public interface IPipelineStep : IDisposable
     LocalizedText DisplayName { get; }
 
     /// <summary>
-    /// The compiled input values for this step, keyed by the target process parameter name.
-    /// </summary>
-    public IReadOnlyDictionary<string, InputValue> Inputs { get; }
-
-    /// <summary>
     /// The output actions for this step: which result properties are tagged with which actions.
     /// </summary>
     IReadOnlyList<OutputActionConfig> OutputActions { get; }

@@ -19,7 +19,7 @@ const renderIcon = (node: TreeNode): ReactNode => {
 };
 
 const renderLabel = (node: TreeNode, action?: ReactNode): ReactNode => (
-  <Stack direction="row" sx={{ alignItems: "flex-start", gap: 0.5, minWidth: 0 }}>
+  <Stack direction="row" sx={{ alignItems: "center", gap: 0.5, minWidth: 0 }}>
     {renderIcon(node)}
     <Typography variant="body2" sx={{ wordBreak: "break-word", minWidth: 0 }}>
       {node.message}
