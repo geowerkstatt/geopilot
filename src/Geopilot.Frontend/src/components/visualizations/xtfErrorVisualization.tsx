@@ -1,4 +1,4 @@
-import { FC, Reducer, useCallback, useMemo, useReducer, useState } from "react";
+import { FC, useCallback, useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, useTheme } from "@mui/material";
@@ -43,10 +43,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
   const [fieldFilters, setFieldFilters] = useState<FieldFilters>({});
-  const [{ selectedNodeId, selectionToken }, setSelectedNodeId] = useReducer<
-    Reducer<NodeSelectionState, string | null>
-  >(
-    (state, nodeId) => ({
+  const [{ selectedNodeId, selectionToken }, setSelectedNodeId] = useReducer(
+    (state: NodeSelectionState, nodeId: string | null): NodeSelectionState => ({
       selectedNodeId: nodeId,
       selectionToken: state.selectionToken + 1, // automatically increment the token every time setSelectedNodeId is called, so the tree can scroll to the new selection
     }),

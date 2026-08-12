@@ -80,7 +80,6 @@ const StepDetailTypography = styled(Typography)(({ theme }) => ({
     display: "block",
   },
 }));
-StepDetailTypography.defaultProps = { variant: "body2" };
 
 export const DeliveryStepper = () => {
   const { t } = useTranslation();
@@ -152,7 +151,7 @@ export const DeliveryStepper = () => {
                 </Typography>
               </Stack>
               {step.labelAddition && (
-                <StepDetailTypography sx={{ color: "primary.main" }}>
+                <StepDetailTypography variant="body2" sx={{ color: "primary.main" }}>
                   {t(step.labelAddition)
                     .split("\n")
                     .map((line, idx) => (
@@ -161,7 +160,7 @@ export const DeliveryStepper = () => {
                 </StepDetailTypography>
               )}
               {step.messages && step.messages.length > 0 && (
-                <StepDetailTypography sx={{ color: messageColor }}>
+                <StepDetailTypography variant="body2" sx={{ color: messageColor }}>
                   {step.messages.map((message, idx) => (
                     <Box component="span" key={idx} sx={{ display: "block" }}>
                       {typeof message === "string" ? t(message) : localized(message)}
