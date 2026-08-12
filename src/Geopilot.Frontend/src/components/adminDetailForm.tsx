@@ -71,7 +71,15 @@ const AdminDetailForm = <T extends { id: number }>({
 
       return savedData;
     },
-    [apiEndpoint, fetchApi, formMethods, onSaveSuccess, prepareDataForSave, prepareDataAfterSave, saveErrorLabel],
+    [
+      apiEndpoint,
+      fetchApi,
+      formMethods,
+      onSaveSuccess,
+      prepareDataForSave,
+      prepareDataAfterSave,
+      saveErrorLabel
+    ],
   );
 
   const submitForm = async (data: FieldValues) => {
