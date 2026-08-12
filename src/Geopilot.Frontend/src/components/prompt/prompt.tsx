@@ -18,7 +18,7 @@ export const Prompt = () => {
             key={index}
             label={action.label}
             onClick={() => {
-              !!action.action && action.action();
+              action.action?.();
               closePrompt();
             }}
             startIcon={action.icon}
