@@ -18,7 +18,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void CreateJob()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
 
         Assert.IsNotNull(job);
         Assert.HasCount(0, job.Files);
@@ -31,7 +31,7 @@ public class ProcessingJobStoreTest
     public void CreateJobSetsUtcCreatedAt()
     {
         var before = DateTime.UtcNow;
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         var after = DateTime.UtcNow;
 
         Assert.AreEqual(DateTimeKind.Utc, job.CreatedAt.Kind);
@@ -42,7 +42,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void GetJob()
     {
-        var created = store.CreateJob();
+        var created = store.CreateJob(Guid.NewGuid());
         var fetched = store.GetJob(created.Id);
 
         Assert.IsNotNull(fetched);
@@ -58,8 +58,8 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void AddFileToJob()
     {
-        var job = store.CreateJob();
-        store.AddFileToJob(job.Id, "original.txt", "temp.txt");
+        var job = store.CreateJob(Guid.NewGuid());
+        store.AddFileToJob(job.Id, "original.txt", "temp.txt", "uploads/upload/" + "original.txt");
         var updated = store.GetJob(job.Id);
 
         Assert.IsNotNull(updated);
@@ -71,17 +71,17 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void AddFileToJobThrowsIfJobNotFound()
     {
-        Assert.ThrowsExactly<ArgumentException>(() => store.AddFileToJob(Guid.NewGuid(), "a", "b"));
+        Assert.ThrowsExactly<ArgumentException>(() => store.AddFileToJob(Guid.NewGuid(), "a", "b", "uploads/upload/a"));
     }
 
     [TestMethod]
     public void AddFileToJobSucceedsWhileStillPendingAfterPipelineAttached()
     {
-        var job = store.CreateJob();
-        store.AddFileToJob(job.Id, "a", "b");
+        var job = store.CreateJob(Guid.NewGuid());
+        store.AddFileToJob(job.Id, "a", "b", "uploads/upload/" + "a");
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
 
-        var updated = store.AddFileToJob(job.Id, "a2", "b2");
+        var updated = store.AddFileToJob(job.Id, "a2", "b2", "uploads/upload/" + "a2");
 
         Assert.HasCount(2, updated.Files);
     }
@@ -89,18 +89,18 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void AddFileToJobThrowsAfterEnqueued()
     {
-        var job = store.CreateJob();
-        store.AddFileToJob(job.Id, "a", "b");
+        var job = store.CreateJob(Guid.NewGuid());
+        store.AddFileToJob(job.Id, "a", "b", "uploads/upload/" + "a");
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.AddFileToJob(job.Id, "a2", "b2"));
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.AddFileToJob(job.Id, "a2", "b2", "uploads/upload/" + "a2"));
     }
 
     [TestMethod]
     public void AttachPipeline()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
 
         var pipeline = new Mock<IPipeline>().Object;
         var mandateId = 123;
@@ -126,7 +126,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void AttachPipelineThrowsIfPipelineAlreadyAssociated()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         var pipeline = new Mock<IPipeline>().Object;
         store.AttachPipeline(job.Id, pipeline, 0);
 
@@ -136,7 +136,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void AttachPipelineThrowsIfJobFailed()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         store.MarkAsFailed(job.Id);
 
         Assert.ThrowsExactly<InvalidOperationException>(() => store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 0));
@@ -145,7 +145,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void EnqueueForProcessingQueuesPipelineWithFiles()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         var pipeline = new Mock<IPipeline>().Object;
         store.AttachPipeline(job.Id, pipeline, 1);
 
@@ -166,7 +166,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void EnqueueForProcessingSetsStateToRunning()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
 
         var updated = store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
@@ -177,7 +177,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void EnqueueForProcessingThrowsIfNoPipelineAttached()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
 
         Assert.ThrowsExactly<InvalidOperationException>(() => store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>()));
     }
@@ -185,7 +185,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void EnqueueForProcessingThrowsIfNotPending()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 
@@ -200,7 +200,7 @@ public class ProcessingJobStoreTest
     [DataRow(ProcessingState.Cancelled)]
     public void PipelineFinishedTransitionsFromRunning(ProcessingState pipelineState)
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
         var updated = store.PipelineFinished(job.Id, pipelineState);
@@ -211,7 +211,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void PipelineFinishedThrowsIfNotRunning()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
 
         Assert.ThrowsExactly<InvalidOperationException>(() => store.PipelineFinished(job.Id, ProcessingState.Success));
     }
@@ -221,7 +221,7 @@ public class ProcessingJobStoreTest
     [DataRow(ProcessingState.Running)]
     public void PipelineFinishedThrowsIfPipelineStateIsNotTerminal(ProcessingState pipelineState)
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 
@@ -231,7 +231,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void MarkAsFailedSetsState()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         var updated = store.MarkAsFailed(job.Id);
 
         Assert.AreEqual(ProcessingState.Failed, updated.State);
@@ -240,7 +240,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void MarkAsFailedThrowsIfAlreadyTerminal()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
         store.PipelineFinished(job.Id, ProcessingState.Success);
@@ -257,7 +257,7 @@ public class ProcessingJobStoreTest
     [TestMethod]
     public void RemoveJobDisposesPipeline()
     {
-        var job = store.CreateJob();
+        var job = store.CreateJob(Guid.NewGuid());
         var pipelineMock = new Mock<IPipeline>();
         store.AttachPipeline(job.Id, pipelineMock.Object, 0);
 

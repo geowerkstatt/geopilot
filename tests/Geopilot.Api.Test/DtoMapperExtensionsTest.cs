@@ -108,7 +108,7 @@ public class DtoMapperExtensionsTest
     }
 
     private static ProcessingJob BuildJob(ProcessingState state, IPipeline? pipeline) =>
-        new(Guid.NewGuid(), new List<ProcessingJobFile>(), 1, DateTime.Now) { Pipeline = pipeline, State = state };
+        new(Guid.NewGuid(), Guid.NewGuid(), new List<ProcessingJobFile>(), 1, DateTime.Now) { Pipeline = pipeline, State = state };
 
     private static IPipeline BuildPipeline(ProcessingState state, params string[] stepIds)
     {

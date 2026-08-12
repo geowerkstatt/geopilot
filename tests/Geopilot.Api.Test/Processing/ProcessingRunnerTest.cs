@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Visualization;
@@ -23,6 +24,7 @@ public class ProcessingRunnerTest
     private PhysicalDownloadFileStore downloadStore;
     private PhysicalAssetFileStore assetStore;
     private PhysicalVisualizationFileStore visualizationStore;
+    private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
     private IServiceScopeFactory scopeFactory;
 
     [TestInitialize]
@@ -31,11 +33,14 @@ public class ProcessingRunnerTest
         downloadStore = new PhysicalDownloadFileStore(AssemblyInitialize.TestDirectoryProvider);
         assetStore = new PhysicalAssetFileStore(AssemblyInitialize.TestDirectoryProvider);
         visualizationStore = new PhysicalVisualizationFileStore(AssemblyInitialize.TestDirectoryProvider);
+        cloudOrchestrationServiceMock = new Mock<ICloudOrchestrationService>();
+        cloudOrchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
 
         var serviceProvider = new Mock<IServiceProvider>();
         serviceProvider.Setup(p => p.GetService(typeof(IDownloadFileStore))).Returns(downloadStore);
         serviceProvider.Setup(p => p.GetService(typeof(IAssetFileStore))).Returns(assetStore);
         serviceProvider.Setup(p => p.GetService(typeof(IVisualizationFileStore))).Returns(visualizationStore);
+        serviceProvider.Setup(p => p.GetService(typeof(ICloudOrchestrationService))).Returns(cloudOrchestrationServiceMock.Object);
 
         var scope = new Mock<IServiceScope>();
         scope.SetupGet(s => s.ServiceProvider).Returns(serviceProvider.Object);
@@ -117,15 +122,42 @@ public class ProcessingRunnerTest
         public string Data { get; init; }
     }
 
+    /// <summary>
+    /// Stands in for a file that still has to be fetched from remote storage and never becomes ready.
+    /// It only completes when the token it was handed is cancelled, so a caller that drops the token
+    /// hangs instead of failing.
+    /// </summary>
+    private sealed class NeverReadyFile : IPipelineFile
+    {
+        public string OriginalFileName => "never-ready.log";
+
+        public string OriginalFileNameWithoutExtension => "never-ready";
+
+        public string FileExtension => "log";
+
+        public string OriginalRelativePath => string.Empty;
+
+        public async Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            throw new InvalidOperationException("unreachable");
+        }
+
+        public FileStream OpenWriteFileStream() => throw new NotSupportedException();
+
+        public Task<string> GetLocalPathAsync(CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+    }
+
     [TestMethod]
-    public void ExtractStepDownloadsWritesDownloadFileToDownloadStoreOnly()
+    public async Task ExtractStepDownloadsWritesDownloadFileToDownloadStoreOnly()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
         var step = BuildBareStep("step_1", OutputAction.Download);
         var stepResult = FileStepResult("result.log", "log-content");
 
-        runner.ExtractStepDownloads(jobId, step, stepResult);
+        await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
 
         Assert.HasCount(1, step.Downloads);
         var persisted = step.Downloads[0];
@@ -137,7 +169,7 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public void ExtractStepDownloadsWritesEachFileWhenDownloadOutputIsAFileCollection()
+    public async Task ExtractStepDownloadsWritesEachFileWhenDownloadOutputIsAFileCollection()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
@@ -150,7 +182,7 @@ public class ProcessingRunnerTest
 
         var stepResult = ObjectStepResult(files);
 
-        runner.ExtractStepDownloads(jobId, step, stepResult);
+        await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
 
         Assert.HasCount(2, step.Downloads);
         var persistedFirst = step.Downloads[0];
@@ -170,7 +202,7 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public void ExtractStepDownloadsWritesVisualizationToVisualizationStoreOnly()
+    public async Task ExtractStepDownloadsWritesVisualizationToVisualizationStoreOnly()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
@@ -178,7 +210,7 @@ public class ProcessingRunnerTest
         Visualization<TestVisualizationConfig> visualization = new("testViz", new TestVisualizationConfig { Data = "Hello World." });
         var stepResult = ObjectStepResult(visualization);
 
-        runner.ExtractStepDownloads(jobId, step, stepResult);
+        await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
 
         Assert.HasCount(1, step.Visualizations);
         var persisted = step.Visualizations[0];
@@ -193,49 +225,49 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public void ExtractStepDownloadsIgnoresStepThatDidNotRun()
+    public async Task ExtractStepDownloadsIgnoresStepThatDidNotRun()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
         var step = BuildBareStep("step_1", OutputAction.Download, OutputAction.Visualization);
         var stepResult = new StepResult();
 
-        runner.ExtractStepDownloads(jobId, step, stepResult);
+        await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
 
         Assert.IsEmpty(step.Downloads);
         Assert.IsEmpty(step.Visualizations);
     }
 
     [TestMethod]
-    public void ExtractStepDownloadsFailsWhenVisualizationOutputIsNotAnEnvelope()
+    public async Task ExtractStepDownloadsFailsWhenVisualizationOutputIsNotAnEnvelope()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
         var step = BuildBareStep("step_1", OutputAction.Visualization);
         var stepResult = ObjectStepResult("not a visualization");
 
-        var exception = Assert.ThrowsExactly<PipelineRunException>(() => runner.ExtractStepDownloads(jobId, step, stepResult));
+        var exception = await Assert.ThrowsExactlyAsync<PipelineRunException>(() => runner.ExtractStepDownloadsAsync(jobId, step, stepResult));
 
         Assert.Contains("Visualization", exception.Message);
         Assert.IsEmpty(step.Visualizations);
     }
 
     [TestMethod]
-    public void ExtractStepDownloadsFailsWhenDownloadOutputIsNotAFile()
+    public async Task ExtractStepDownloadsFailsWhenDownloadOutputIsNotAFile()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
         var step = BuildBareStep("step_1", OutputAction.Download);
         var stepResult = ObjectStepResult("not a file");
 
-        var exception = Assert.ThrowsExactly<PipelineRunException>(() => runner.ExtractStepDownloads(jobId, step, stepResult));
+        var exception = await Assert.ThrowsExactlyAsync<PipelineRunException>(() => runner.ExtractStepDownloadsAsync(jobId, step, stepResult));
 
         Assert.Contains("Download", exception.Message);
         Assert.IsEmpty(step.Downloads);
     }
 
     [TestMethod]
-    public void ExtractStepDownloadsFailsWhenPropertyDoesNotExistOnResult()
+    public async Task ExtractStepDownloadsFailsWhenPropertyDoesNotExistOnResult()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
@@ -251,11 +283,11 @@ public class ProcessingRunnerTest
             .Build();
         var stepResult = ObjectStepResult("some_data");
 
-        Assert.ThrowsExactly<ArgumentException>(() => runner.ExtractStepDownloads(jobId, step, stepResult));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(() => runner.ExtractStepDownloadsAsync(jobId, step, stepResult));
     }
 
     [TestMethod]
-    public void ExtractDeliveryFilesWritesDeliveryFileToAssetStoreOnly()
+    public async Task ExtractDeliveryFilesWritesDeliveryFileToAssetStoreOnly()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
@@ -264,7 +296,7 @@ public class ProcessingRunnerTest
         using var pipeline = BuildPipeline(jobId, step);
         var context = ContextWith(step, stepResult);
 
-        runner.ExtractDeliveryFiles(pipeline, context);
+        await runner.ExtractDeliveryFilesAsync(pipeline, context);
 
         Assert.HasCount(1, step.DeliveryFiles);
         var persisted = step.DeliveryFiles[0];
@@ -276,7 +308,7 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
-    public void FileTaggedDownloadAndDeliveryIsWrittenToBothStoresUnderTheSameName()
+    public async Task FileTaggedDownloadAndDeliveryIsWrittenToBothStoresUnderTheSameName()
     {
         var jobId = NewJob();
         using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
@@ -285,8 +317,8 @@ public class ProcessingRunnerTest
         using var pipeline = BuildPipeline(jobId, step);
         var context = ContextWith(step, stepResult);
 
-        runner.ExtractStepDownloads(jobId, step, stepResult);
-        runner.ExtractDeliveryFiles(pipeline, context);
+        await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
+        await runner.ExtractDeliveryFilesAsync(pipeline, context);
 
         Assert.HasCount(1, step.Downloads);
         Assert.HasCount(1, step.DeliveryFiles);
@@ -307,7 +339,7 @@ public class ProcessingRunnerTest
         var step1 = BuildEmittingStep("step_1", "log", "first.log", "first-content", OutputAction.Download);
         var step2 = BuildBlockingStep("step_2", gate.Task);
         using var pipeline = BuildPipeline(jobId, step1, step2);
-        var job = new ProcessingJob(jobId, new List<ProcessingJobFile>(), 1, DateTime.UtcNow) { Pipeline = pipeline };
+        var job = new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>(), 1, DateTime.UtcNow) { Pipeline = pipeline };
 
         var (runner, store) = CreateRunnerWithStore(pipeline);
 
@@ -391,6 +423,111 @@ public class ProcessingRunnerTest
         Assert.HasCount(1, step1.Downloads);
         Assert.IsTrue(downloadStore.Exists(jobId, step1.Downloads[0].PersistedFileName), "Pre-timeout step's download must survive the job timeout.");
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task ExtractStepDownloadsPassesTheJobsTokenToTheFetch()
+    {
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+        var step = BuildBareStep("step_1", OutputAction.Download);
+        var stepResult = ObjectStepResult(new NeverReadyFile());
+
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        // A matcher hands the uploaded file on unchanged, so a matcher output tagged for download can
+        // trigger the first fetch right here. Without the token that fetch waits forever, and because
+        // Pipeline.Run awaits this callback the job would outlive its timeout and the host shutdown.
+        await AssertObservesCancellationAsync(runner.ExtractStepDownloadsAsync(jobId, step, stepResult, cts.Token));
+    }
+
+    [TestMethod]
+    public async Task ExtractDeliveryFilesPassesTheJobsTokenToTheFetch()
+    {
+        var jobId = NewJob();
+        using var runner = CreateRunner(Mock.Of<IProcessingJobStore>());
+        var step = BuildBareStep("step_1", OutputAction.Delivery);
+        var stepResult = ObjectStepResult(new NeverReadyFile());
+        using var pipeline = BuildPipeline(jobId, step);
+        var context = ContextWith(step, stepResult);
+
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await AssertObservesCancellationAsync(runner.ExtractDeliveryFilesAsync(pipeline, context, cts.Token));
+    }
+
+    /// <summary>
+    /// Asserts that an extraction fed an already-cancelled token gives up instead of waiting on a fetch
+    /// that never completes. Races the call against a deadline rather than relying on a test timeout, so
+    /// a regression fails with this message instead of wedging the whole test run.
+    /// </summary>
+    private static async Task AssertObservesCancellationAsync(Task extraction)
+    {
+        var finished = await Task.WhenAny(extraction, Task.Delay(TimeSpan.FromSeconds(5)));
+
+        Assert.AreSame(extraction, finished, "the fetch did not observe the job's cancellation token and kept waiting");
+        await Assert.ThrowsAsync<OperationCanceledException>(() => extraction);
+    }
+
+    [TestMethod]
+    public async Task UploadIsReleasedWhenTheRunCannotBeDelivered()
+    {
+        var jobId = NewJob();
+        var uploadId = Guid.NewGuid();
+        var step = BuildThrowingStep("step_1");
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Failed));
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        // The originals will never be archived, so they can go right away.
+        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task UploadIsKeptWhenTheRunWasInterruptedByAHostShutdown()
+    {
+        var jobId = NewJob();
+        var uploadId = Guid.NewGuid();
+        var step = BuildThrowingStep("step_1");
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        // A host shutdown leaves the job in Running: nobody has decided yet whether it mattered, so the
+        // originals have to survive. CloudCleanupService's age-based sweep is what collects them.
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Running));
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task UploadIsKeptWhenTheRunCanStillBeDelivered()
+    {
+        var jobId = NewJob();
+        var uploadId = Guid.NewGuid();
+        var step = BuildEmittingStep("step_1", "payload", "data.xtf", "delivery-content", OutputAction.Delivery);
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Success));
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        // Declaring the delivery archives every original as primary data, so they must stay reachable.
+        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -501,6 +638,9 @@ public class ProcessingRunnerTest
             jobStore,
             scopeFactory,
             Options.Create(new ProcessingOptions { JobTimeout = jobTimeout ?? TimeSpan.FromMinutes(5) }));
+
+    private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state)
+        => new ProcessingJob(jobId, uploadId, new List<ProcessingJobFile>(), 1, DateTime.UtcNow) { State = state };
 
     private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null)
     {

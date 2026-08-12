@@ -1,11 +1,12 @@
 ﻿using Geopilot.Api.Contracts;
 using Geopilot.Api.Exceptions;
-using Geopilot.Api.Processing;
+using Geopilot.PipelineCore.Pipeline;
 
 namespace Geopilot.Api.Services;
 
 /// <summary>
-/// Orchestrates cloud upload sessions including initiation, preflight checks, and local staging.
+/// Orchestrates cloud upload sessions including initiation, preflight checks, and handing the uploaded
+/// files to a processing job.
 /// </summary>
 public interface ICloudOrchestrationService
 {
@@ -24,10 +25,19 @@ public interface ICloudOrchestrationService
     Task RunPreflightChecksAsync(Guid uploadId);
 
     /// <summary>
-    /// Downloads the upload's cloud files to local storage and registers them on the job.
+    /// Registers the upload's cloud files on the job and returns them as pipeline files. Nothing is
+    /// transferred here: each file is fetched from cloud storage the first time a step reads it.
     /// </summary>
-    /// <param name="uploadId">The upload ID to stage files from.</param>
-    /// <param name="jobId">The job ID to register the staged files on.</param>
-    /// <returns>The updated processing job.</returns>
-    Task<ProcessingJob> StageFilesLocallyAsync(Guid uploadId, Guid jobId);
+    /// <param name="uploadId">The upload ID to take the files from.</param>
+    /// <param name="jobId">The job ID to register the files on.</param>
+    /// <returns>The files of the upload, in upload order.</returns>
+    IReadOnlyList<IPipelineFile> RegisterJobFiles(Guid uploadId, Guid jobId);
+
+    /// <summary>
+    /// Deletes the upload's blobs and forgets the upload session. Called once the files can no longer be
+    /// needed: after a failed preflight, after a run that cannot be delivered, or when the job is retired.
+    /// Errors are logged, not thrown, so a failed cleanup never breaks the caller's own flow.
+    /// </summary>
+    /// <param name="uploadId">The upload to release.</param>
+    Task ReleaseUploadAsync(Guid uploadId);
 }

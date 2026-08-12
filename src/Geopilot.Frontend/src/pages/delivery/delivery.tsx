@@ -1,8 +1,8 @@
 import { FC, MutableRefObject, useContext, useEffect } from "react";
-import { useTranslation } from "react-i18next";
 import { Stack, Typography } from "@mui/material";
 import { styled } from "@mui/system";
 import { CenteredContent } from "../../components/styledComponents.ts";
+import { useApplicationTitle } from "../../hooks/useApplicationTitle.ts";
 import { StepSwipeHandlers, useStepSwipe } from "../../hooks/useStepSwipe.ts";
 import { DeliveryContentCarousel, SLIDE_TRANSITION_MS } from "./deliveryContentCarousel.tsx";
 import { DeliveryContext } from "./deliveryContext.tsx";
@@ -21,8 +21,8 @@ interface DeliveryProps {
 }
 
 const Delivery: FC<DeliveryProps> = ({ stepSwipeRef }) => {
-  const { t } = useTranslation();
   const { steps, activeStep, showCompletedOrNextStep } = useContext(DeliveryContext);
+  const applicationTitle = useApplicationTitle();
 
   const swipeHandlers = useStepSwipe({
     activeStep,
@@ -40,9 +40,14 @@ const Delivery: FC<DeliveryProps> = ({ stepSwipeRef }) => {
 
   return (
     <CenteredContent data-cy="delivery" maxWidth="1400px">
-      <Typography variant="h1" zIndex={10}>
-        {t("deliveryTitle")}
-      </Typography>
+      {applicationTitle && (
+        <Typography
+          variant="h1"
+          data-cy="delivery-title"
+          sx={{ position: "relative", zIndex: 11, transform: "translateZ(0)" }}>
+          {applicationTitle}
+        </Typography>
+      )}
       <DeliveryContainer direction={{ xs: "column", md: "row" }} m={{ xs: 0, md: 0 }}>
         <DeliveryStepper />
         <DeliveryContentCarousel />

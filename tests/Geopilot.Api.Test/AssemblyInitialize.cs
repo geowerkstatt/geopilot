@@ -15,7 +15,6 @@ public sealed class AssemblyInitialize
     {
         DbFixture = new TestDatabaseFixture();
 
-        var uploadDirectory = Path.Combine(testContext.DeploymentDirectory, "Uploads");
         var downloadDirectory = Path.Combine(testContext.DeploymentDirectory, "Downloads");
         var visualizationDirectory = Path.Combine(testContext.DeploymentDirectory, "Visualizations");
         var assetDirectory = Path.Combine(testContext.DeploymentDirectory, "Asset");
@@ -24,7 +23,6 @@ public sealed class AssemblyInitialize
 
         var fileAccessOptions = new FileAccessOptions()
         {
-            UploadDirectory = uploadDirectory,
             DownloadDirectory = downloadDirectory,
             VisualizationDirectory = visualizationDirectory,
             AssetsDirectory = assetDirectory,
@@ -33,7 +31,6 @@ public sealed class AssemblyInitialize
         };
 
         TestDirectoryProvider = new DirectoryProvider(Options.Create(fileAccessOptions));
-        Console.WriteLine($"UploadDirectory: {uploadDirectory}");
         Console.WriteLine($"DownloadDirectory: {downloadDirectory}");
         Console.WriteLine($"AssetDirectory: {assetDirectory}");
         Console.WriteLine($"PipelineDirectory: {pipelineDirectory}");

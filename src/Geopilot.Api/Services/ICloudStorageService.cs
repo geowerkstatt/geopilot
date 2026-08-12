@@ -19,14 +19,16 @@ public interface ICloudStorageService
     /// </summary>
     /// <param name="key">The storage key of the file to download.</param>
     /// <param name="destination">The stream to write the file contents to.</param>
-    Task DownloadAsync(string key, Stream destination);
+    /// <param name="cancellationToken">Cancels the download.</param>
+    Task DownloadAsync(string key, Stream destination, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Opens a readable stream to a file in cloud storage without buffering the entire file in memory.
     /// The caller is responsible for disposing the returned stream.
     /// </summary>
     /// <param name="key">The storage key of the file to read.</param>
-    Task<Stream> OpenReadAsync(string key);
+    /// <param name="cancellationToken">Cancels opening the stream.</param>
+    Task<Stream> OpenReadAsync(string key, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Lists files in cloud storage matching the specified prefix.

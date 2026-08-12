@@ -206,7 +206,6 @@ builder.Services.AddTransient<IProcessingService, ProcessingService>();
 builder.Services.AddTransient<IPipelineService, PipelineService>();
 builder.Services.AddTransient<IMandateService, MandateService>();
 builder.Services.AddTransient<IDirectoryProvider, DirectoryProvider>();
-builder.Services.AddTransient<IUploadFileStore, PhysicalUploadFileStore>();
 builder.Services.AddTransient<IAssetFileStore, PhysicalAssetFileStore>();
 builder.Services.AddTransient<IDownloadFileStore, PhysicalDownloadFileStore>();
 builder.Services.AddTransient<IVisualizationFileStore, PhysicalVisualizationFileStore>();

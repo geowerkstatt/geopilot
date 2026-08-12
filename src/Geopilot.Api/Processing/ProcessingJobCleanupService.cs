@@ -1,4 +1,6 @@
 ﻿using Geopilot.Api.FileAccess;
+using Geopilot.Api.Services;
+using Geopilot.Pipeline;
 using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api.Processing;
@@ -41,7 +43,7 @@ public class ProcessingJobCleanupService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            RunCleanup();
+            await RunCleanupAsync();
             await Task.Delay(processingOptions.JobCleanupInterval, stoppingToken);
         }
     }
@@ -57,7 +59,7 @@ public class ProcessingJobCleanupService : BackgroundService
     /// <summary>
     /// Performs the cleanup of old or orphaned processing jobs and their associated files.
     /// </summary>
-    public void RunCleanup()
+    public async Task RunCleanupAsync()
     {
         if (!cleanupSemaphore.Wait(0))
         {
@@ -69,6 +71,7 @@ public class ProcessingJobCleanupService : BackgroundService
         {
             using var scope = serviceScopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<Context>();
+            var cloudOrchestrationService = scope.ServiceProvider.GetRequiredService<ICloudOrchestrationService>();
             var now = DateTime.UtcNow;
             int cleanedDownloads = 0;
             int cleanedVisualizations = 0;
@@ -98,22 +101,44 @@ public class ProcessingJobCleanupService : BackgroundService
                 }
             }
 
-            // Uploads + the in-memory job entry age out on JobRetention. The asset directory
+            // The in-memory job entry and the uploaded blobs age out on JobRetention. The asset directory
             // is the long-term archive; for a job whose run was never submitted as a delivery
             // we wipe its asset directory too so dead data doesn't accumulate. Submitted
             // deliveries survive cleanup and are only removed via DeliveryController.Delete.
             // Pipeline working directories are normally removed by Pipeline.Dispose, but survive
             // a hard restart (nothing gets disposed), so they count as retirement candidates too.
-            var retiredCandidates = EnumerateJobIds(directoryProvider.UploadDirectory);
-            retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.AssetDirectory));
+            var retiredCandidates = EnumerateJobIds(directoryProvider.AssetDirectory);
             retiredCandidates.UnionWith(EnumerateJobIds(directoryProvider.PipelineDirectory));
+            retiredCandidates.UnionWith(jobStore.GetJobIds());
             foreach (var jobId in retiredCandidates)
             {
                 var job = jobStore.GetJob(jobId);
                 if (job != null && now - job.CreatedAt <= processingOptions.JobRetention)
                     continue;
 
+                // A job still pending or running past its retention is stuck, not stale: its preflight or
+                // its pipeline is hanging. Retiring it would delete the uploaded blobs, the only remaining
+                // copy of the upload, from under a run that may yet continue, and dispose its pipeline
+                // along with the working directory. Leave it and let CloudCleanupService's age-based sweep
+                // be the backstop.
+                if (job != null && job.State is ProcessingState.Pending or ProcessingState.Running)
+                {
+                    logger.LogWarning(
+                        "Job <{JobId}> is still <{State}> after {Age} and past the retention of {Retention}; not retiring it. Check whether preflight or the pipeline is stuck.",
+                        jobId,
+                        job.State,
+                        now - job.CreatedAt,
+                        processingOptions.JobRetention);
+                    continue;
+                }
+
                 var hasDelivery = dbContext.Deliveries.Any(d => d.JobId == jobId);
+
+                // Only a known job carries the upload id; an orphaned directory from a hard restart
+                // leaves its blobs to the age-based sweep in CloudCleanupService.
+                if (job != null)
+                    await cloudOrchestrationService.ReleaseUploadAsync(job.UploadId);
+
                 if (RetireJob(jobId, hasDelivery))
                     retiredJobs++;
             }
@@ -148,7 +173,6 @@ public class ProcessingJobCleanupService : BackgroundService
     {
         try
         {
-            DeleteIfExists(directoryProvider.GetUploadDirectoryPath(jobId));
             DeleteIfExists(directoryProvider.GetDownloadDirectoryPath(jobId));
             DeleteIfExists(directoryProvider.GetVisualizationDirectoryPath(jobId));
             DeleteIfExists(directoryProvider.GetPipelineDirectoryPath(jobId));

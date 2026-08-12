@@ -12,6 +12,7 @@ public class CloudCleanupService : BackgroundService
     private readonly IUploadStore uploadStore;
     private readonly ILogger<CloudCleanupService> logger;
     private readonly CloudStorageOptions options;
+    private readonly ProcessingOptions processingOptions;
     private readonly SemaphoreSlim cleanupSemaphore = new SemaphoreSlim(1);
 
     /// <summary>
@@ -21,14 +22,17 @@ public class CloudCleanupService : BackgroundService
         ICloudStorageService cloudStorageService,
         IUploadStore uploadStore,
         ILogger<CloudCleanupService> logger,
-        IOptions<CloudStorageOptions> options)
+        IOptions<CloudStorageOptions> options,
+        IOptions<ProcessingOptions> processingOptions)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(processingOptions);
 
         this.cloudStorageService = cloudStorageService;
         this.uploadStore = uploadStore;
         this.logger = logger;
         this.options = options.Value;
+        this.processingOptions = processingOptions.Value;
     }
 
     /// <summary>
@@ -40,6 +44,18 @@ public class CloudCleanupService : BackgroundService
     {
         var interval = TimeSpan.FromMinutes(options.CleanupIntervalMinutes);
         logger.LogInformation("CloudCleanupService started. Cleanup interval: {Interval}.", interval);
+
+        // Uploaded files are fetched only when a step reads them, so their blobs have to outlive the job
+        // that may still need them. This sweep would otherwise pull them away mid-job.
+        var maxAge = TimeSpan.FromHours(options.CleanupAgeHours);
+        var longestJobLifetime = processingOptions.JobRetention + processingOptions.JobTimeout;
+        if (maxAge <= longestJobLifetime)
+        {
+            logger.LogWarning(
+                "CloudStorage:CleanupAgeHours ({CleanupAge}) does not cover the longest job lifetime ({JobLifetime} = Processing:JobRetention + Processing:JobTimeout). Uploaded files may be deleted while a job or its delivery still needs them.",
+                maxAge,
+                longestJobLifetime);
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {

@@ -52,13 +52,16 @@ internal class UnzipProcess
     /// downstream consumers that need a flat view simply ignore that property.
     /// </summary>
     /// <param name="zipFile">The ZIP archive to extract. Cannot be null.</param>
+    /// <param name="cancellationToken">Cancels the extraction.</param>
     /// <returns>An <see cref="UnzipResult"/> with the extracted files and a localized status message.</returns>
     [PipelineProcessRun]
-    public async Task<UnzipResult> RunAsync(IPipelineFile zipFile)
+    public async Task<UnzipResult> RunAsync(IPipelineFile zipFile, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(zipFile);
+
         var extracted = new List<IPipelineFile>();
 
-        using (var zipStream = zipFile.OpenReadFileStream())
+        using (var zipStream = await zipFile.OpenReadAsync(cancellationToken))
         using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Read, leaveOpen: false))
         {
             foreach (var entry in archive.Entries)
@@ -78,7 +81,7 @@ internal class UnzipProcess
                 using (var entryStream = entry.Open())
                 using (var outputStream = outputFile.OpenWriteFileStream())
                 {
-                    await entryStream.CopyToAsync(outputStream);
+                    await entryStream.CopyToAsync(outputStream, cancellationToken);
                 }
 
                 extracted.Add(outputFile);

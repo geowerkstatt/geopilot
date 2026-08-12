@@ -9,9 +9,8 @@ umask 0002
 groupmod -o -g ${PGID:-1654} app && \
   usermod -o -u ${PUID:-1654} app &> /dev/null
 
-# Change owner for our uploads folder
+# Change owner for our mounted data folders
 echo -n "Fix permissions for mounted volumes ..." && \
-  chown -R app:app $Storage__UploadDirectory && \
   chown -R app:app $Storage__DownloadDirectory && \
   chown -R app:app $Storage__AssetsDirectory && \
   chown -R app:app $Storage__PipelineDirectory && \
@@ -20,7 +19,6 @@ echo -n "Fix permissions for mounted volumes ..." && \
   chown -R app:app $PublicAssetsOverride && \
 
   # Sets group permission and sticky bit at the end, which makes all children inherit group ownership
-  chmod -R g+rwXs $Storage__UploadDirectory && \
   chmod -R g+rwXs $Storage__DownloadDirectory && \
   chmod -R g+rwXs $Storage__AssetsDirectory && \
   chmod -R g+rwXs $Storage__PipelineDirectory && \

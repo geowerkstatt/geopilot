@@ -62,11 +62,13 @@ internal class XtfErrorVisualizationProcess
     /// Builds the composite visualization from the given error-log XTF.
     /// </summary>
     /// <param name="xtfLog">The error-log XTF produced by the validation.</param>
+    /// <param name="cancellationToken">Cancels reading the log.</param>
     /// <returns>The output map with the composite visualization envelope and a status message.</returns>
     [PipelineProcessRun]
-    public Task<XtfErrorVisualizationResult> RunAsync(IPipelineFile xtfLog)
+    public async Task<XtfErrorVisualizationResult> RunAsync(IPipelineFile xtfLog, CancellationToken cancellationToken)
     {
-        var errors = XtfLogParser.Parse(xtfLog)
+        var parsed = await XtfLogParser.ParseAsync(xtfLog, cancellationToken);
+        var errors = parsed
             .Select((error, index) => new IndexedError($"e{index}", error))
             .ToList();
 
@@ -79,11 +81,11 @@ internal class XtfErrorVisualizationProcess
             FilterBy = includeTree ? filterBy : null,
         };
 
-        return Task.FromResult(result: new XtfErrorVisualizationResult
+        return new XtfErrorVisualizationResult
         {
             Visualization = config.ToVisualization(),
 
             StatusMessage = SuccessfulStatusMessage,
-        });
+        };
     }
 }

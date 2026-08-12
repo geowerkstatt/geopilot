@@ -5,6 +5,7 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -25,7 +26,6 @@ public class CloudUploadPollingTest
     private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
     private Mock<ICloudStorageService> cloudStorageServiceMock;
     private Mock<IMandateService> mandateServiceMock;
-    private Mock<IUploadFileStore> uploadFileStoreMock;
     private Mock<IPipelineFactory> pipelineFactoryMock;
     private Context context;
 
@@ -35,7 +35,6 @@ public class CloudUploadPollingTest
         cloudOrchestrationServiceMock = new Mock<ICloudOrchestrationService>(MockBehavior.Strict);
         cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
-        uploadFileStoreMock = new Mock<IUploadFileStore>(MockBehavior.Strict);
         pipelineFactoryMock = new Mock<IPipelineFactory>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
 
@@ -57,7 +56,6 @@ public class CloudUploadPollingTest
         serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudOrchestrationService))).Returns(cloudOrchestrationServiceMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudStorageService))).Returns(cloudStorageServiceMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IMandateService))).Returns(mandateServiceMock.Object);
-        serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadFileStore))).Returns(uploadFileStoreMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IPipelineFactory))).Returns(pipelineFactoryMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(Context))).Returns(context);
 
@@ -116,8 +114,8 @@ public class CloudUploadPollingTest
         cloudOrchestrationServiceMock
             .Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new CloudUploadPreflightException(reason, "Preflight check failed."));
-        cloudStorageServiceMock
-            .Setup(x => x.DeletePrefixAsync($"uploads/{uploadId}/"))
+        cloudOrchestrationServiceMock
+            .Setup(x => x.ReleaseUploadAsync(uploadId))
             .Returns(Task.CompletedTask);
 
         var request = await preflightChannel.Reader.ReadAsync();
@@ -137,8 +135,8 @@ public class CloudUploadPollingTest
         cloudOrchestrationServiceMock
             .Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new InvalidOperationException("Unexpected error during processing."));
-        cloudStorageServiceMock
-            .Setup(x => x.DeletePrefixAsync($"uploads/{uploadId}/"))
+        cloudOrchestrationServiceMock
+            .Setup(x => x.ReleaseUploadAsync(uploadId))
             .Returns(Task.CompletedTask);
 
         var request = await preflightChannel.Reader.ReadAsync();
@@ -158,8 +156,8 @@ public class CloudUploadPollingTest
         cloudOrchestrationServiceMock
             .Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.ThreatDetected, "Threat detected."));
-        cloudStorageServiceMock
-            .Setup(x => x.DeletePrefixAsync($"uploads/{uploadId}/"))
+        cloudOrchestrationServiceMock
+            .Setup(x => x.ReleaseUploadAsync(uploadId))
             .ThrowsAsync(new InvalidOperationException("Storage unavailable."));
 
         var request = await preflightChannel.Reader.ReadAsync();
@@ -200,13 +198,11 @@ public class CloudUploadPollingTest
     private void SetupSuccessfulPreflight(Guid jobId, Guid uploadId, Mandate mandate, User user)
     {
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).Returns(Task.CompletedTask);
-        cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(uploadId, jobId))
+        cloudOrchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId))
             .Returns(() =>
             {
-                var stagedJob = jobStore.AddFileToJob(jobId, "test.xtf", "random.xtf");
-                return Task.FromResult(stagedJob);
+                jobStore.AddFileToJob(jobId, "test.xtf", "test.xtf", $"uploads/{uploadId}/test.xtf");
+                return new List<IPipelineFile> { new Mock<IPipelineFile>().Object };
             });
-        uploadFileStoreMock.Setup(x => x.Exists(jobId, "random.xtf")).Returns(true);
-        uploadFileStoreMock.Setup(x => x.GetPath(jobId, "random.xtf")).Returns("path/to/random.xtf");
     }
 }

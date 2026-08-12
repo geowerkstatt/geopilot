@@ -38,10 +38,10 @@ public class ProcessingService : IProcessingService
         if (mandate?.PipelineId == null)
             throw new InvalidOperationException($"The upload <{uploadId}> could not be started with mandate <{mandateId}>.");
 
-        var job = jobStore.CreateJob();
+        var job = jobStore.CreateJob(uploadId);
 
         // Instantiate the pipeline up front (without files) and attach it to the job, so the status response
-        // can render the pipeline's steps while preflight runs. The pipeline is started later, after staging.
+        // can render the pipeline's steps while preflight runs. The pipeline is started once preflight passes.
         var pipeline = pipelineFactory.CreatePipeline(mandate.PipelineId, job.Id);
         jobStore.AttachPipeline(job.Id, pipeline, mandateId);
 

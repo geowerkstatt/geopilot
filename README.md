@@ -200,6 +200,8 @@ Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. 
 
 Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID den Verarbeitungsjob.
 
+Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Ein Job startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Job in einem nicht lieferbaren Zustand endet, sonst mit dem Aufräumen des Jobs (`Processing:JobRetention`). Die Lieferung archiviert jede hochgeladene Datei als `PrimaryData`, auch die von keinem Schritt gelesenen; bei einer Lieferung wandern also am Ende doch alle Dateien über die Leitung, nur später und ausserhalb der Startlatenz. `CloudStorage:CleanupAgeHours` muss deshalb länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
+
 ### Entwicklung
 
 Azurite und ClamAV sind in der [docker-compose.yml](./docker-compose.yml) vorkonfiguriert. Azurite verwendet die gleichen HTTPS-Zertifikate wie die Applikation. ClamAV braucht beim ersten Start ca. 1-2 Minuten für Virendefinitionen.

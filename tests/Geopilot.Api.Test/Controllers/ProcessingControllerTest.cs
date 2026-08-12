@@ -62,7 +62,7 @@ public sealed class ProcessingControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("BIZARRESCAN.xtf", "TEMP.xtf") }, mandateId, DateTime.Now));
+            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>() { new ProcessingJobFile("BIZARRESCAN.xtf", "TEMP.xtf", "uploads/upload/" + "BIZARRESCAN.xtf") }, mandateId, DateTime.Now));
 
         var response = controller.GetStatus(jobId) as OkObjectResult;
         var jobResponse = response?.Value as ProcessingJobResponse;
@@ -164,7 +164,8 @@ public sealed class ProcessingControllerTest
 
         var processingJob = new ProcessingJob(
             jobId,
-            new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf") },
+            Guid.NewGuid(),
+            new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf", "uploads/upload/" + "test.xtf") },
             mandate.Id,
             DateTime.Now);
 
@@ -215,7 +216,8 @@ public sealed class ProcessingControllerTest
 
         var processingJob = new ProcessingJob(
             jobId,
-            new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf") },
+            Guid.NewGuid(),
+            new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf", "uploads/upload/" + "test.xtf") },
             publicMandate.Entity.Id,
             DateTime.Now);
 
@@ -350,6 +352,6 @@ public sealed class ProcessingControllerTest
         stepMock.SetupGet(s => s.DeliveryFiles).Returns(deliveryFiles);
         var pipelineMock = new Mock<IPipeline>();
         pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep> { stepMock.Object });
-        return new ProcessingJob(jobId, new List<ProcessingJobFile>(), null, DateTime.Now) { Pipeline = pipelineMock.Object };
+        return new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>(), null, DateTime.Now) { Pipeline = pipelineMock.Object };
     }
 }
