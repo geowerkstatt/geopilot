@@ -7,21 +7,22 @@ import {
   StepResult,
   StepState,
 } from "../../api/apiInterfaces";
+import { themeSpacing } from "../../appTheme.ts";
 
-const APP_HEADER_HEIGHT = 60;
-export const STEPPER_HEIGHT = 62;
+const APP_HEADER_HEIGHT = "60px";
+export const STEPPER_HEIGHT = "62px";
 
 /** Top position of the delivery stepper for different screen sizes. */
 export const stepperTopPosition = {
-  default: APP_HEADER_HEIGHT + 40,
-  xs: APP_HEADER_HEIGHT + 8,
+  default: `calc(${APP_HEADER_HEIGHT} + ${themeSpacing(5)})`,
+  xs: `calc(${APP_HEADER_HEIGHT} + ${themeSpacing(1)})`,
 };
 
 /** Top position of the delivery content for different screen sizes. */
 export const contentTopPosition = {
   default: stepperTopPosition.default,
-  sm: stepperTopPosition.default + STEPPER_HEIGHT + 16,
-  xs: stepperTopPosition.xs + STEPPER_HEIGHT + 8,
+  sm: `calc(${stepperTopPosition.default} + ${STEPPER_HEIGHT} + ${themeSpacing(2)})`,
+  xs: `calc(${stepperTopPosition.xs} + ${STEPPER_HEIGHT} + ${themeSpacing(1)})`,
 };
 
 /** Gets the current top position of the delivery content based on the screen size. */

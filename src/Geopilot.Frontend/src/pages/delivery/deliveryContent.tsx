@@ -22,27 +22,27 @@ const DeliveryContentGrid = styled(Box)({
 const Overlay = styled(Box)(({ theme }) => ({
   gridArea: "1 / 1",
   position: "sticky",
-  top: `${contentTopPosition.default}px`,
+  top: contentTopPosition.default,
   [theme.breakpoints.down("md")]: {
-    top: `${contentTopPosition.sm}px`,
+    top: contentTopPosition.sm,
   },
   [theme.breakpoints.down("sm")]: {
-    top: `${contentTopPosition.xs}px`,
+    top: contentTopPosition.xs,
   },
 }));
 
 // hide the scrolled content
 const ScrollContentOverlay = styled(Overlay)(({ theme }) => ({
   background: theme.palette.background.base,
-  height: `${contentTopPosition.default}px`,
+  height: contentTopPosition.default,
   transform: "translateY(-100%)",
   margin: `0 -${theme.spacing(1)}`,
   zIndex: 7,
   [theme.breakpoints.down("md")]: {
-    height: `${contentTopPosition.sm}px`,
+    height: contentTopPosition.sm,
   },
   [theme.breakpoints.down("sm")]: {
-    height: `${contentTopPosition.xs}px`,
+    height: contentTopPosition.xs,
   },
 }));
 

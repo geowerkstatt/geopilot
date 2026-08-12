@@ -114,7 +114,7 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, isFirst }: LayerRowPr
           fontSize: px2rem(14),
           backgroundColor: "background.base",
           color: "text.disabled",
-          width: "20px",
+          width: px2rem(20),
           flexShrink: 0,
         }}>
         <DragIndicatorIcon fontSize="inherit" titleAccess={t("dragToReorderLayer")} />
@@ -133,7 +133,7 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, isFirst }: LayerRowPr
             wrapLabel
             sx={{ flex: 1, minWidth: 0 }}
           />
-          <Box sx={{ width: "30px", flexShrink: 0 }}>
+          <Box sx={{ width: px2rem(30), flexShrink: 0 }}>
             {isGroup && (
               <IconButton
                 size="small"
@@ -172,7 +172,7 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, isFirst }: LayerRowPr
             }}
             sx={{ flex: 1, minWidth: 0 }}
           />
-          <Box sx={{ width: "30px", flexShrink: 0 }} />
+          <Box sx={{ width: px2rem(30), flexShrink: 0 }} />
         </Stack>
         {open && isGroup && (
           <Box>

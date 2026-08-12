@@ -8,7 +8,7 @@ import { themePalette } from "./appPalette";
 const defaultTheme = createTheme();
 
 const themeShadows: Shadows = [...defaultTheme.shadows];
-const themeSpacing: Spacing = defaultTheme.spacing;
+export const themeSpacing: Spacing = createTheme({ spacing: (factor: number) => 8 * factor }).spacing;
 
 export const NEOGEO_LETTERSPACING = "0.05em";
 export const NEOGEO_FONTWEIGHT_REGULAR = 400;
@@ -282,7 +282,7 @@ export const geopilotTheme = createTheme({
         colorPrimaryOutlined: {
           color: themePalette.primary.main,
           backgroundColor: themePalette.primary.contrast,
-          padding: "7px",
+          padding: `calc(${themeSpacing(1)} - 1px)`,
           border: `1px solid ${themePalette.primary.light}`,
           borderRadius: themeRadius.default,
           "&:hover": {
@@ -366,7 +366,7 @@ export const geopilotTheme = createTheme({
     MuiStepContent: {
       styleOverrides: {
         root: {
-          padding: "24px 0 0 40px",
+          padding: `${themeSpacing(3)} 0 0 ${themeSpacing(5)}`,
         },
       },
     },

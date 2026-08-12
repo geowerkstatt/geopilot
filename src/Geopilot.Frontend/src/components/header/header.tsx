@@ -129,7 +129,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               {applicationName && (
                 <Typography
                   sx={{
-                    pt: { xs: "2px", md: 0 },
+                    pt: { xs: 0.25, md: 0 },
                     typography: { xs: "h6", md: "h1" },
                     m: "0 !important",
                     textOverflow: "ellipsis",
