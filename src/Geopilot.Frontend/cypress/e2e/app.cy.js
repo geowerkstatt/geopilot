@@ -129,8 +129,7 @@ describe("General app tests", () => {
   it("keeps the delivery title visible for a region-specific locale (de-CH)", () => {
     // A region-specific locale must still resolve to a configured language via i18n.resolvedLanguage,
     // so the title stays visible instead of blanking out. Known limitation, not intended behaviour:
-    // de-CH currently falls back to English rather than de (tracked in a separate i18n issue). This
-    // test stays valid after that fix, since the title is then German but still visible and non-empty.
+    // de-CH currently falls back to English rather than de.
     cy.setCookie("i18next", "de-CH");
 
     cy.visit("/");
