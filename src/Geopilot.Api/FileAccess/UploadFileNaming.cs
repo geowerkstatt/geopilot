@@ -1,22 +1,25 @@
 ﻿namespace Geopilot.Api.FileAccess;
 
 /// <summary>
-/// Builds the on-disk name used by <see cref="IUploadFileStore"/> for a user-supplied file.
-/// The user's original name is preserved so the upload directory is human-readable; if a job
-/// already has a file under that name, a numeric suffix disambiguates without overwriting.
+/// Builds the on-disk name used for a user-supplied file. The user's original name is preserved so the
+/// job's files stay human-readable; if the job already uses that name, a numeric suffix disambiguates
+/// without overwriting.
 /// </summary>
 public static class UploadFileNaming
 {
     /// <summary>
-    /// Returns a sanitized file name for the upload that is unique within the job's
-    /// upload directory.
+    /// Returns a sanitized file name that is unique among <paramref name="usedNames"/> and adds it there.
+    /// Names are assigned up front for the whole upload, before any file exists on disk, because an
+    /// uploaded file is only fetched once a step reads it.
     /// </summary>
-    public static string MakeUnique(Guid jobId, string originalFileName, IUploadFileStore store)
+    /// <param name="originalFileName">The name the user uploaded.</param>
+    /// <param name="usedNames">The names already handed out for this job. The returned name is added to it.</param>
+    public static string MakeUnique(string originalFileName, ISet<string> usedNames)
     {
-        ArgumentNullException.ThrowIfNull(store);
+        ArgumentNullException.ThrowIfNull(usedNames);
 
         var baseName = originalFileName.SanitizeFileName();
-        if (!store.Exists(jobId, baseName))
+        if (usedNames.Add(baseName))
             return baseName;
 
         var stem = Path.GetFileNameWithoutExtension(baseName);
@@ -24,11 +27,11 @@ public static class UploadFileNaming
         for (var counter = 2; counter < int.MaxValue; counter++)
         {
             var candidate = $"{stem}_{counter}{extension}";
-            if (!store.Exists(jobId, candidate))
+            if (usedNames.Add(candidate))
                 return candidate;
         }
 
         throw new InvalidOperationException(
-            $"Could not generate a unique upload name for <{originalFileName}> in job <{jobId}>.");
+            $"Could not generate a unique upload name for <{originalFileName}>.");
     }
 }

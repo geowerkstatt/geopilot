@@ -25,16 +25,23 @@ public interface IProcessingJobStore
     ProcessingJob? GetJob(Guid jobId);
 
     /// <summary>
-    /// Creates and stores a new <see cref="ProcessingJob"/>.
+    /// Returns the ids of all known jobs. Used by the cleanup service, which cannot rely on a job
+    /// leaving a directory behind: an uploaded file is only fetched once a step reads it.
     /// </summary>
-    ProcessingJob CreateJob();
+    IReadOnlyCollection<Guid> GetJobIds();
 
     /// <summary>
-    /// Adds the specified staged file to the job. Allowed only while the job is still pending (before it is queued).
+    /// Creates and stores a new <see cref="ProcessingJob"/> for the specified cloud upload.
+    /// </summary>
+    /// <param name="uploadId">The upload whose files the job processes.</param>
+    ProcessingJob CreateJob(Guid uploadId);
+
+    /// <summary>
+    /// Adds the specified uploaded file to the job. Allowed only while the job is still pending (before it is queued).
     /// </summary>
     /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
     /// <exception cref="InvalidOperationException">If the job is no longer pending.</exception>
-    ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName);
+    ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName, string cloudKey);
 
     /// <summary>
     /// Marks the specified job as failed (e.g. cloud preflight failure before a pipeline could be created).

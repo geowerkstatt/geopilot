@@ -3,21 +3,29 @@ using Geopilot.Api.Enums;
 using Geopilot.Api.Exceptions;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
+using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
 using System.Collections.Immutable;
 
 namespace Geopilot.Api.Services;
 
 /// <summary>
-/// Orchestrates cloud upload sessions including initiation, preflight checks, and local staging.
+/// Orchestrates cloud upload sessions including initiation, preflight checks, and handing the uploaded
+/// files to a processing job.
 /// </summary>
 public class CloudOrchestrationService : ICloudOrchestrationService
 {
+    /// <summary>
+    /// Subdirectory of the job's pipeline working directory that uploaded files are fetched into.
+    /// It is removed together with the rest of the working directory when the pipeline is disposed.
+    /// </summary>
+    private const string UploadWorkingDirectoryName = "upload";
+
     private readonly ICloudStorageService cloudStorageService;
     private readonly ICloudScanService cloudScanService;
     private readonly IProcessingJobStore jobStore;
     private readonly IUploadStore uploadStore;
-    private readonly IUploadFileStore uploadFileStore;
+    private readonly IDirectoryProvider directoryProvider;
     private readonly IOptions<CloudStorageOptions> options;
     private readonly ILogger<CloudOrchestrationService> logger;
 
@@ -29,7 +37,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         ICloudScanService cloudScanService,
         IProcessingJobStore jobStore,
         IUploadStore uploadStore,
-        IUploadFileStore uploadFileStore,
+        IDirectoryProvider directoryProvider,
         IOptions<CloudStorageOptions> options,
         ILogger<CloudOrchestrationService> logger)
     {
@@ -37,7 +45,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         this.cloudScanService = cloudScanService;
         this.jobStore = jobStore;
         this.uploadStore = uploadStore;
-        this.uploadFileStore = uploadFileStore;
+        this.directoryProvider = directoryProvider;
         this.options = options;
         this.logger = logger;
     }
@@ -125,35 +133,49 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     }
 
     /// <inheritdoc/>
-    public async Task<ProcessingJob> StageFilesLocallyAsync(Guid uploadId, Guid jobId)
+    public IReadOnlyList<IPipelineFile> RegisterJobFiles(Guid uploadId, Guid jobId)
     {
         var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
-        var job = jobStore.GetJob(jobId) ?? throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId));
+
+        if (jobStore.GetJob(jobId) is null)
+            throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId));
 
         if (upload.Files.Count == 0)
-            throw new InvalidOperationException($"Upload <{uploadId}> has no cloud files to stage.");
+            throw new InvalidOperationException($"Upload <{uploadId}> has no cloud files to register.");
 
-        logger.LogInformation("Staging cloud files for upload <{UploadId}> locally on job <{JobId}>.", uploadId, jobId);
+        var materializationDirectory = Path.Combine(directoryProvider.GetPipelineDirectoryPath(jobId), UploadWorkingDirectoryName);
 
-        ProcessingJob updatedJob = job;
+        // Case-insensitive, because the name becomes a file name on the host and in the asset store.
+        // On Windows and macOS two names differing only in case address the same file.
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pipelineFiles = new List<IPipelineFile>(upload.Files.Count);
+
         foreach (var file in upload.Files)
         {
-            var stagedName = UploadFileNaming.MakeUnique(jobId, file.FileName, uploadFileStore);
-
-            using (var stream = uploadFileStore.CreateFile(jobId, stagedName))
-            {
-                await cloudStorageService.DownloadAsync(file.CloudKey, stream);
-            }
-
-            updatedJob = jobStore.AddFileToJob(jobId, file.FileName, stagedName);
+            var localName = UploadFileNaming.MakeUnique(file.FileName, usedNames);
+            jobStore.AddFileToJob(jobId, file.FileName, localName, file.CloudKey);
+            pipelineFiles.Add(new CloudPipelineFile(cloudStorageService, file.CloudKey, file.FileName, materializationDirectory, localName));
         }
 
-        await cloudStorageService.DeletePrefixAsync($"uploads/{uploadId}/");
-        uploadStore.RemoveUpload(uploadId);
+        logger.LogInformation("Registered {FileCount} cloud file(s) of upload <{UploadId}> on job <{JobId}>.", pipelineFiles.Count, uploadId, jobId);
 
-        logger.LogInformation("Cloud files for upload <{UploadId}> staged on job <{JobId}> and cleaned up.", uploadId, jobId);
+        return pipelineFiles;
+    }
 
-        return updatedJob;
+    /// <inheritdoc/>
+    public async Task ReleaseUploadAsync(Guid uploadId)
+    {
+        try
+        {
+            await cloudStorageService.DeletePrefixAsync($"uploads/{uploadId}/");
+            uploadStore.RemoveUpload(uploadId);
+            logger.LogInformation("Released cloud files of upload <{UploadId}>.", uploadId);
+        }
+        catch (Exception ex)
+        {
+            // The age-based sweep in CloudCleanupService picks the blobs up later.
+            logger.LogError(ex, "Failed to release cloud files of upload <{UploadId}>.", uploadId);
+        }
     }
 
     private void ValidateRequest(CloudUploadRequest request)

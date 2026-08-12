@@ -58,12 +58,15 @@ internal class ZipPackageProcess
     /// <see cref="ZipPackageResult"/>.
     /// </summary>
     /// <param name="input">An array of input files to include in the ZIP archive. Each file must implement the IPipelineFile interface.</param>
+    /// <param name="cancellationToken">Cancels the packaging.</param>
     /// <returns>A <see cref="ZipPackageResult"/> whose <see cref="ZipPackageResult.ZipPackage"/> is the generated ZIP file,
     /// or null if no valid input files were provided.</returns>
     /// <exception cref="ArgumentException">Thrown if no input files are provided.</exception>
     [PipelineProcessRun]
-    public async Task<ZipPackageResult> RunAsync(params IPipelineFile?[] input)
+    public async Task<ZipPackageResult> RunAsync(IPipelineFile?[] input, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(input);
+
         if (input.Length == 0)
         {
             var errorMessage = $"ZipPackageProcess: No input files provided.";
@@ -108,8 +111,8 @@ internal class ZipPackageProcess
                 {
                     var zipEntry = zipArchive.CreateEntry(EntryName(file));
                     using var zipEntryStream = zipEntry.Open();
-                    using var fileStream = file.OpenReadFileStream();
-                    fileStream.CopyTo(zipEntryStream);
+                    using var fileStream = await file.OpenReadAsync(cancellationToken);
+                    await fileStream.CopyToAsync(zipEntryStream, cancellationToken);
                 }
             }
 

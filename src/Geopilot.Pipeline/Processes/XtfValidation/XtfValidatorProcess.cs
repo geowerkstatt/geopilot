@@ -112,7 +112,7 @@ internal class XtfValidatorProcess : IDisposable
 
     private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
     {
-        using var fileStream = file.OpenReadFileStream() ?? throw new ArgumentException("Invalid input ILI file stream.");
+        using var fileStream = await file.OpenReadAsync(cancellationToken) ?? throw new ArgumentException("Invalid input ILI file stream.");
         using var streamContent = new StreamContent(fileStream);
         using var profileStringContent = new StringContent(interlisValidationProfile ?? string.Empty);
         using var formData = new MultipartFormDataContent
@@ -197,7 +197,7 @@ internal class XtfValidatorProcess : IDisposable
         using (Stream logDownloadStream = await this.httpClient.GetStreamAsync(url, cancellationToken))
         using (FileStream fileStream = transferFile.OpenWriteFileStream())
         {
-            logDownloadStream.CopyTo(fileStream);
+            await logDownloadStream.CopyToAsync(fileStream, cancellationToken);
         }
 
         return new KeyValuePair<LogType, IPipelineFile>(logType, transferFile);

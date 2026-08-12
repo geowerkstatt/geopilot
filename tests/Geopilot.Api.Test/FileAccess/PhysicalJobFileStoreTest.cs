@@ -51,25 +51,18 @@ public sealed class PhysicalJobFileStoreTest
     }
 
     [TestMethod]
-    public void UploadAssetAndDownloadStoresUseSeparateRoots()
+    public void AssetAndDownloadStoresUseSeparateRoots()
     {
-        var uploadStore = new PhysicalUploadFileStore(AssemblyInitialize.TestDirectoryProvider);
         var assetStore = new PhysicalAssetFileStore(AssemblyInitialize.TestDirectoryProvider);
         var downloadStore = new PhysicalDownloadFileStore(AssemblyInitialize.TestDirectoryProvider);
         var jobId = Guid.NewGuid();
 
-        using (var stream = uploadStore.CreateFile(jobId, "upload.xtf")) stream.WriteByte(0x99);
         using (var stream = assetStore.CreateFile(jobId, "delivery.xtf")) stream.WriteByte(0xAA);
         using (var stream = downloadStore.CreateFile(jobId, "download.log")) stream.WriteByte(0xBB);
 
-        Assert.IsTrue(uploadStore.Exists(jobId, "upload.xtf"));
-        Assert.IsFalse(uploadStore.Exists(jobId, "delivery.xtf"));
-        Assert.IsFalse(uploadStore.Exists(jobId, "download.log"));
         Assert.IsTrue(assetStore.Exists(jobId, "delivery.xtf"));
-        Assert.IsFalse(assetStore.Exists(jobId, "upload.xtf"));
         Assert.IsFalse(assetStore.Exists(jobId, "download.log"));
         Assert.IsTrue(downloadStore.Exists(jobId, "download.log"));
-        Assert.IsFalse(downloadStore.Exists(jobId, "upload.xtf"));
         Assert.IsFalse(downloadStore.Exists(jobId, "delivery.xtf"));
     }
 

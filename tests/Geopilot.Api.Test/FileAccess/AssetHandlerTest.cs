@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Logging;
@@ -12,41 +13,38 @@ namespace Geopilot.Api.FileAccess;
 [TestClass]
 public class AssetHandlerTest
 {
+    private const string FileContent = "Some Content";
+
     private Mock<ILogger<AssetHandler>> loggerMock;
     private Mock<IProcessingService> validationServiceMock;
-    private Mock<IUploadFileStore> uploadFileStoreMock;
+    private Mock<ICloudStorageService> cloudStorageServiceMock;
     private Mock<IAssetFileStore> assetFileStoreMock;
     private AssetHandler assetHandler;
     private ProcessingJob job;
-    private string uploadDirectory;
     private string assetDirectory;
 
     [TestInitialize]
     public void Initialize()
     {
-        job = new ProcessingJob(Guid.NewGuid(), new List<ProcessingJobFile>() { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now);
-        uploadDirectory = AssemblyInitialize.TestDirectoryProvider.GetUploadDirectoryPath(job.Id);
+        job = CreateJob();
         assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(job.Id);
         loggerMock = new Mock<ILogger<AssetHandler>>();
         validationServiceMock = new Mock<IProcessingService>();
-        uploadFileStoreMock = new Mock<IUploadFileStore>();
+        cloudStorageServiceMock = new Mock<ICloudStorageService>();
         assetFileStoreMock = new Mock<IAssetFileStore>();
-        assetHandler = new AssetHandler(loggerMock.Object, validationServiceMock.Object, uploadFileStoreMock.Object, assetFileStoreMock.Object, AssemblyInitialize.TestDirectoryProvider, new Mock<IContentTypeProvider>().Object);
+        assetHandler = new AssetHandler(loggerMock.Object, validationServiceMock.Object, cloudStorageServiceMock.Object, assetFileStoreMock.Object, AssemblyInitialize.TestDirectoryProvider, new Mock<IContentTypeProvider>().Object);
 
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(job);
     }
 
     [TestMethod]
-    public void PersistValidationJobAssetsShouldCopyPrimaryFiles()
+    public async Task PersistValidationJobAssetsFetchesPrimaryFilesFromCloudStorage()
     {
-        var fileContent = "Some Content";
-        Directory.CreateDirectory(uploadDirectory);
-        File.WriteAllText(Path.Combine(uploadDirectory, "TempFileName"), fileContent);
-        uploadFileStoreMock.Setup(x => x.OpenFile(job.Id, "TempFileName")).Returns(() => new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
-        uploadFileStoreMock.Setup(x => x.GetPath(job.Id, "TempFileName")).Returns(Path.Combine(uploadDirectory, "TempFileName"));
+        SetupCloudFile("uploads/key/OriginalName", FileContent);
+        SetupAssetStoreWritesToDisk();
 
         Assert.IsFalse(Directory.Exists(assetDirectory));
-        var assets = assetHandler.PersistJobAssets(job.Id);
+        var assets = await assetHandler.PersistJobAssetsAsync(job.Id);
 
         Assert.IsNotNull(assets);
         var primaryAsset = assets.FirstOrDefault(a => a.AssetType == AssetType.PrimaryData);
@@ -54,33 +52,30 @@ public class AssetHandlerTest
         Assert.AreEqual(AssetType.PrimaryData, primaryAsset.AssetType);
         Assert.AreEqual("TempFileName", primaryAsset.SanitizedFilename);
         Assert.AreEqual("OriginalName", primaryAsset.OriginalFilename);
-        Assert.AreEqual(fileContent, File.ReadAllText(Path.Combine(assetDirectory, "TempFileName")));
-        CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(fileContent)), primaryAsset.FileHash);
+        Assert.AreEqual(FileContent, File.ReadAllText(Path.Combine(assetDirectory, "TempFileName")));
+        CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(FileContent)), primaryAsset.FileHash);
+        cloudStorageServiceMock.Verify(x => x.OpenReadAsync("uploads/key/OriginalName", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
-    public void PersistValidationJobAssetsRecordsStepDeliveryFilesInPlace()
+    public async Task PersistValidationJobAssetsRecordsStepDeliveryFilesInPlace()
     {
-        var fileContent = "Some Content";
-        Directory.CreateDirectory(uploadDirectory);
         Directory.CreateDirectory(assetDirectory);
-
-        File.WriteAllText(Path.Combine(uploadDirectory, "TempFileName"), fileContent);
-        uploadFileStoreMock.Setup(x => x.OpenFile(job.Id, "TempFileName")).Returns(() => new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
-        uploadFileStoreMock.Setup(x => x.GetPath(job.Id, "TempFileName")).Returns(Path.Combine(uploadDirectory, "TempFileName"));
+        SetupCloudFile("uploads/key/OriginalName", FileContent);
+        SetupAssetStoreWritesToDisk();
 
         // Step delivery files were written directly into the asset store by the pipeline
-        // runner, so the handler should hash them in place — no copy.
-        File.WriteAllText(Path.Combine(assetDirectory, "mylogfile"), fileContent);
-        assetFileStoreMock.Setup(x => x.OpenFile(job.Id, "mylogfile")).Returns(() => new MemoryStream(Encoding.UTF8.GetBytes(fileContent)));
+        // runner, so the handler should hash them in place, no copy.
+        File.WriteAllText(Path.Combine(assetDirectory, "mylogfile"), FileContent);
+        assetFileStoreMock.Setup(x => x.OpenFile(job.Id, "mylogfile")).Returns(() => new MemoryStream(Encoding.UTF8.GetBytes(FileContent)));
 
-        var jobWithDownloads = new ProcessingJob(job.Id, new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now)
+        var jobWithDownloads = CreateJob(job.Id) with
         {
             Pipeline = BuildPipelineWithDeliveryFiles("myStep", new List<PersistedFile> { new PersistedFile("mylogfile.log", "mylogfile") }),
         };
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithDownloads);
 
-        var assets = assetHandler.PersistJobAssets(job.Id);
+        var assets = await assetHandler.PersistJobAssetsAsync(job.Id);
 
         Assert.IsTrue(File.Exists(Path.Combine(assetDirectory, "mylogfile")));
         var logfileAsset = assets.FirstOrDefault(a => a.AssetType == AssetType.ValidationReport);
@@ -88,25 +83,50 @@ public class AssetHandlerTest
         Assert.AreEqual(AssetType.ValidationReport, logfileAsset.AssetType);
         Assert.AreEqual("mylogfile", logfileAsset.SanitizedFilename);
         Assert.AreEqual("myStep_mylogfile.log", logfileAsset.OriginalFilename);
-        Assert.AreEqual(fileContent, File.ReadAllText(Path.Combine(assetDirectory, "mylogfile")));
-        CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(fileContent)), logfileAsset.FileHash);
+        Assert.AreEqual(FileContent, File.ReadAllText(Path.Combine(assetDirectory, "mylogfile")));
+        CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(FileContent)), logfileAsset.FileHash);
 
         // The handler must not call GetPath on the asset store — there's no copy step for delivery files.
         assetFileStoreMock.Verify(x => x.GetPath(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
-    public void PersistValidationJobAssetsFailsWithoutJobDirectory()
+    public async Task PersistValidationJobAssetsFailsWhenTheUploadIsGone()
     {
-        var jobWithDownloads = new ProcessingJob(job.Id, new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName") }, null, DateTime.Now)
+        var jobWithDownloads = CreateJob(job.Id) with
         {
             Pipeline = BuildPipelineWithDeliveryFiles("myStep", new List<PersistedFile> { new PersistedFile("mylogfile.log", "mylogfile") }),
         };
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithDownloads);
-        uploadFileStoreMock.Setup(x => x.OpenFile(job.Id, "TempFileName")).Throws(new FileNotFoundException());
+        cloudStorageServiceMock
+            .Setup(x => x.OpenReadAsync("uploads/key/OriginalName", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new FileNotFoundException());
 
-        Assert.ThrowsExactly<FileNotFoundException>(() => assetHandler.PersistJobAssets(job.Id));
+        await Assert.ThrowsExactlyAsync<FileNotFoundException>(() => assetHandler.PersistJobAssetsAsync(job.Id));
     }
+
+    [TestMethod]
+    public async Task PersistValidationJobAssetsFailsWithoutJobFiles()
+    {
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => assetHandler.PersistJobAssetsAsync(Guid.NewGuid()));
+    }
+
+    [TestMethod]
+    public void DeleteJobAssets()
+    {
+        Directory.CreateDirectory(assetDirectory);
+        File.WriteAllText(Path.Combine(assetDirectory, "TempFileName"), FileContent);
+        assetHandler.DeleteJobAssets(job.Id);
+        Assert.IsFalse(Directory.Exists(assetDirectory));
+    }
+
+    private static ProcessingJob CreateJob(Guid? jobId = null)
+        => new ProcessingJob(
+            jobId ?? Guid.NewGuid(),
+            Guid.NewGuid(),
+            new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName", "uploads/key/OriginalName") },
+            null,
+            DateTime.Now);
 
     private static IPipeline BuildPipelineWithDeliveryFiles(string stepId, List<PersistedFile> deliveryFiles)
     {
@@ -119,18 +139,18 @@ public class AssetHandlerTest
         return pipelineMock.Object;
     }
 
-    [TestMethod]
-    public void PersistValidationJobAssetsFailsWithoutJobFiles()
-    {
-        Assert.ThrowsExactly<InvalidOperationException>(() => assetHandler.PersistJobAssets(Guid.NewGuid()));
-    }
+    private void SetupCloudFile(string cloudKey, string content)
+        => cloudStorageServiceMock
+            .Setup(x => x.OpenReadAsync(cloudKey, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => new MemoryStream(Encoding.UTF8.GetBytes(content)));
 
-    [TestMethod]
-    public void DeleteJobAssets()
-    {
-        Directory.CreateDirectory(assetDirectory);
-        File.WriteAllText(Path.Combine(assetDirectory, "TempFileName"), "Some Content");
-        assetHandler.DeleteJobAssets(job.Id);
-        Assert.IsFalse(Directory.Exists(assetDirectory));
-    }
+    private void SetupAssetStoreWritesToDisk()
+        => assetFileStoreMock
+            .Setup(x => x.CreateFile(job.Id, It.IsAny<string>()))
+            .Returns((Guid jobId, string fileName) =>
+            {
+                var directory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(jobId);
+                Directory.CreateDirectory(directory);
+                return File.Create(Path.Combine(directory, fileName));
+            });
 }

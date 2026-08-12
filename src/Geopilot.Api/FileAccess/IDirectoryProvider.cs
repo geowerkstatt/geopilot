@@ -7,11 +7,6 @@
 public interface IDirectoryProvider
 {
     /// <summary>
-    /// Gets the root directory for files uploaded by the user (the originals fed into the pipeline).
-    /// </summary>
-    string UploadDirectory { get; }
-
-    /// <summary>
     /// Gets the root directory for downloadable files produced by pipeline steps.
     /// </summary>
     string DownloadDirectory { get; }
@@ -22,9 +17,8 @@ public interface IDirectoryProvider
     string VisualizationDirectory { get; }
 
     /// <summary>
-    /// Gets the root directory for persisted assets — pipeline outputs marked as part
-    /// of the delivery payload land here directly, and originals from the upload
-    /// directory are copied here on submission.
+    /// Gets the root directory for persisted assets: pipeline outputs marked as part of the delivery
+    /// payload land here directly, and the uploaded originals are fetched here on submission.
     /// </summary>
     string AssetDirectory { get; }
 
@@ -38,11 +32,6 @@ public interface IDirectoryProvider
     /// <c>${file(path)}</c>. Provided by the deployment; not created by the application.
     /// </summary>
     string ResourcesDirectory { get; }
-
-    /// <summary>
-    /// Gets the per-job upload directory for the specified <paramref name="jobId"/>.
-    /// </summary>
-    string GetUploadDirectoryPath(Guid jobId);
 
     /// <summary>
     /// Gets the per-job download directory for the specified <paramref name="jobId"/>.

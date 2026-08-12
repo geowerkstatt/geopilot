@@ -15,7 +15,7 @@ public class XtfErrorVisualizationProcessTest
         var process = new XtfErrorVisualizationProcess();
         var xtfLog = new PipelineFile(XtfLogPath, "errorLogWithErrors.xtf");
 
-        var processResult = await process.RunAsync(xtfLog).ConfigureAwait(false);
+        var processResult = await process.RunAsync(xtfLog, CancellationToken.None).ConfigureAwait(false);
         Assert.IsNotNull(processResult);
         Assert.IsNotNull(processResult.Visualization);
         Assert.IsNotNull(processResult.StatusMessage);
@@ -87,7 +87,7 @@ public class XtfErrorVisualizationProcessTest
         var process = new XtfErrorVisualizationProcess(include: ["map"]);
         var xtfLog = new PipelineFile(XtfLogPath, "errorLogWithErrors.xtf");
 
-        var processResult = await process.RunAsync(xtfLog).ConfigureAwait(false);
+        var processResult = await process.RunAsync(xtfLog, CancellationToken.None).ConfigureAwait(false);
 
         var visualization = processResult.Visualization;
         Assert.IsNotNull(visualization);
@@ -101,7 +101,7 @@ public class XtfErrorVisualizationProcessTest
         var process = new XtfErrorVisualizationProcess(include: ["tree"]);
         var xtfLog = new PipelineFile(XtfLogPath, "errorLogWithErrors.xtf");
 
-        var processResult = await process.RunAsync(xtfLog).ConfigureAwait(false);
+        var processResult = await process.RunAsync(xtfLog, CancellationToken.None).ConfigureAwait(false);
 
         var visualization = processResult.Visualization;
         Assert.IsNotNull(visualization);
@@ -115,7 +115,7 @@ public class XtfErrorVisualizationProcessTest
         var process = new XtfErrorVisualizationProcess(include: ["tree"], groupBy: [TreeField.Class]);
         var xtfLog = new PipelineFile(XtfLogPath, "errorLogWithErrors.xtf");
 
-        var processResult = await process.RunAsync(xtfLog).ConfigureAwait(false);
+        var processResult = await process.RunAsync(xtfLog, CancellationToken.None).ConfigureAwait(false);
 
         var visualization = processResult.Visualization;
         Assert.IsNotNull(visualization);
@@ -129,7 +129,7 @@ public class XtfErrorVisualizationProcessTest
         var process = new XtfErrorVisualizationProcess(include: ["tree"], filterBy: [TreeField.Class, TreeField.ErrorType]);
         var xtfLog = new PipelineFile(XtfLogPath, "errorLogWithErrors.xtf");
 
-        var processResult = await process.RunAsync(xtfLog).ConfigureAwait(false);
+        var processResult = await process.RunAsync(xtfLog, CancellationToken.None).ConfigureAwait(false);
 
         var visualization = processResult.Visualization;
         Assert.IsNotNull(visualization);

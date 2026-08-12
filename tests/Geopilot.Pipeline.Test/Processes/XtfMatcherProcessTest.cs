@@ -21,7 +21,7 @@ public class XtfMatcherProcessTest
 
     private static async Task<(IPipelineFile[] Files, LocalizedText StatusMessage)> RunAsync(XtfMatcherProcess process, IPipelineFile[] files)
     {
-        var result = await process.RunAsync(files);
+        var result = await process.RunAsync(files, CancellationToken.None);
         var xtfFiles = result.XtfFiles;
         var statusMessage = result.StatusMessage;
         return (xtfFiles, statusMessage);

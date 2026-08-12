@@ -47,7 +47,7 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var modelFile = GetTestPipelineFile("model.ili");
         var gpkgFile = GetTestPipelineFile("schema_import.gpkg");
-        DeleteIfExists(gpkgFile);
+        await DeleteIfExistsAsync(gpkgFile);
 
         var args = new Ili2GpkgArgs
         {
@@ -60,7 +60,7 @@ public partial class Ili2GpkgClientIntegrationTest
         Assert.IsNotEmpty(result.Log);
         Assert.IsTrue(result.Success, "Schema import failed. Log: " + result.Log);
 
-        using var stream = gpkgFile.OpenReadFileStream();
+        using var stream = await gpkgFile.OpenReadAsync();
         Assert.IsGreaterThan(0, stream.Length, "Resulting GPKG file is empty.");
     }
 
@@ -70,7 +70,7 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var modelFile = GetTestPipelineFile("invalid_model.ili");
         var gpkgFile = GetTestPipelineFile("schema_import_invalid.gpkg");
-        DeleteIfExists(gpkgFile);
+        await DeleteIfExistsAsync(gpkgFile);
 
         var args = new Ili2GpkgArgs();
         var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, gpkgFile, TestContext.CancellationToken);
@@ -80,7 +80,7 @@ public partial class Ili2GpkgClientIntegrationTest
         Assert.IsNotEmpty(result.Log);
         Assert.IsFalse(result.Success, "Schema import should have failed. Log: " + result.Log);
 
-        Assert.IsFalse(File.Exists(gpkgFile.GetLocalPath()), "GPKG file should not have been created for an invalid model.");
+        Assert.IsFalse(File.Exists(await gpkgFile.GetLocalPathAsync()), "GPKG file should not have been created for an invalid model.");
     }
 
     [TestMethod]
@@ -90,7 +90,7 @@ public partial class Ili2GpkgClientIntegrationTest
         var inputFile = GetTestPipelineFile("schema.gpkg");
         var outputFile = GetTestPipelineFile("import.gpkg");
         var transferFile = GetTestPipelineFile("transfer.xtf");
-        DeleteIfExists(outputFile);
+        await DeleteIfExistsAsync(outputFile);
 
         var args = new Ili2GpkgArgs
         {
@@ -103,8 +103,8 @@ public partial class Ili2GpkgClientIntegrationTest
         Assert.IsNotEmpty(result.Log);
         Assert.IsTrue(result.Success, "Import failed. Log: " + result.Log);
 
-        using var inputFileStream = inputFile.OpenReadFileStream();
-        using var outputFileStream = outputFile.OpenReadFileStream();
+        using var inputFileStream = await inputFile.OpenReadAsync();
+        using var outputFileStream = await outputFile.OpenReadAsync();
         Assert.IsGreaterThan(0, outputFileStream.Length, "Resulting GPKG file is empty.");
         Assert.IsGreaterThanOrEqualTo(inputFileStream.Length, outputFileStream.Length, "Resulting GPKG file is smaller than the input file.");
     }
@@ -115,7 +115,7 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var inputFile = GetTestPipelineFile("schema.gpkg");
         var outputFile = GetTestPipelineFile("import_invalid.gpkg");
-        DeleteIfExists(outputFile);
+        await DeleteIfExistsAsync(outputFile);
 
         var args = new Ili2GpkgArgs();
 
@@ -125,7 +125,7 @@ public partial class Ili2GpkgClientIntegrationTest
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
-        Assert.IsFalse(File.Exists(outputFile.GetLocalPath()), "GPKG file should not have been created for an invalid model.");
+        Assert.IsFalse(File.Exists(await outputFile.GetLocalPathAsync()), "GPKG file should not have been created for an invalid model.");
     }
 
     [TestMethod]
@@ -134,7 +134,7 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var dbFile = GetTestPipelineFile("data.gpkg");
         var transferFile = GetTestPipelineFile("export.xtf");
-        DeleteIfExists(transferFile);
+        await DeleteIfExistsAsync(transferFile);
 
         var args = new Ili2GpkgArgs
         {
@@ -157,7 +157,7 @@ public partial class Ili2GpkgClientIntegrationTest
         var inputFile = GetTestPipelineFile("data.gpkg");
         var outputFile = GetTestPipelineFile("update.gpkg");
         var transferFile = GetTestPipelineFile("transfer.xtf");
-        DeleteIfExists(outputFile);
+        await DeleteIfExistsAsync(outputFile);
 
         var args = new Ili2GpkgArgs
         {
@@ -170,8 +170,8 @@ public partial class Ili2GpkgClientIntegrationTest
         Assert.IsNotEmpty(result.Log);
         Assert.IsTrue(result.Success, "Update failed. Log: " + result.Log);
 
-        using var inputFileStream = inputFile.OpenReadFileStream();
-        using var outputFileStream = outputFile.OpenReadFileStream();
+        using var inputFileStream = await inputFile.OpenReadAsync();
+        using var outputFileStream = await outputFile.OpenReadAsync();
         Assert.IsGreaterThan(0, outputFileStream.Length, "Resulting GPKG file is empty.");
         Assert.IsGreaterThanOrEqualTo(inputFileStream.Length, outputFileStream.Length, "Resulting GPKG file is smaller than the input file.");
     }
@@ -182,7 +182,7 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var inputFile = GetTestPipelineFile("data.gpkg");
         var outputFile = GetTestPipelineFile("update_invalid.gpkg");
-        DeleteIfExists(outputFile);
+        await DeleteIfExistsAsync(outputFile);
 
         var args = new Ili2GpkgArgs
         {
@@ -195,7 +195,7 @@ public partial class Ili2GpkgClientIntegrationTest
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
-        Assert.IsFalse(File.Exists(outputFile.GetLocalPath()), "GPKG file should not have been created.");
+        Assert.IsFalse(File.Exists(await outputFile.GetLocalPathAsync()), "GPKG file should not have been created.");
     }
 
     [TestMethod]
@@ -204,7 +204,7 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var inputFile = GetTestPipelineFile("data.gpkg");
         var xtfLogFile = GetTestPipelineFile("log_success.xtf");
-        DeleteIfExists(xtfLogFile);
+        await DeleteIfExistsAsync(xtfLogFile);
 
         var args = new Ili2GpkgArgs
         {
@@ -227,7 +227,7 @@ public partial class Ili2GpkgClientIntegrationTest
     {
         var inputFile = GetTestPipelineFile("data_error.gpkg"); // contains a name that is too short
         var xtfLogFile = GetTestPipelineFile("log_error.xtf");
-        DeleteIfExists(xtfLogFile);
+        await DeleteIfExistsAsync(xtfLogFile);
 
         var args = new Ili2GpkgArgs
         {
@@ -245,11 +245,12 @@ public partial class Ili2GpkgClientIntegrationTest
         await AssertIsInterlisTransferAsync(xtfLogFile, InterlisVersion.Ili2_3);
     }
 
-    private void DeleteIfExists(PipelineFile file)
+    private async Task DeleteIfExistsAsync(PipelineFile file)
     {
-        if (File.Exists(file.GetLocalPath()))
+        var path = await file.GetLocalPathAsync();
+        if (File.Exists(path))
         {
-            File.Delete(file.GetLocalPath());
+            File.Delete(path);
         }
     }
 
@@ -260,7 +261,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
     private async Task AssertIsInterlisTransferAsync(PipelineFile transferFile, InterlisVersion version)
     {
-        using var stream = transferFile.OpenReadFileStream();
+        using var stream = await transferFile.OpenReadAsync();
         Assert.IsGreaterThan(0, stream.Length, "Resulting XTF file is empty.");
 
         var document = await XDocument.LoadAsync(stream, LoadOptions.None, TestContext.CancellationToken);
