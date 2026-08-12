@@ -136,6 +136,13 @@ describe("Organisations tests", () => {
     cy.dataCy("save-button").click();
     cy.wait("@saveNew");
     cy.location().should(location => {
+      expect(location.pathname).to.eq(`/admin/organisations`);
+    });
+    cy.dataCy("organisations-grid").find(".MuiDataGrid-row").contains(randomOrganisationName).should("exist");
+
+    // Re-open the organisation to verify that discarding changes via the "reset" prompt does not persist them.
+    cy.dataCy("organisations-grid").find(".MuiDataGrid-row").contains(randomOrganisationName).click();
+    cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/organisations\/[1-9]\d*/);
     });
     cy.dataCy("reset-button").should("be.disabled");
@@ -211,13 +218,10 @@ describe("Organisations tests", () => {
 
     cy.dataCy("save-button").click();
     cy.wait("@updateOrganisation");
+    // After saving we are redirected to the list, where the changes are visible.
     cy.location().should(location => {
-      expect(location.pathname).to.match(/\/admin\/organisations\/[1-9]\d*/);
+      expect(location.pathname).to.eq(`/admin/organisations`);
     });
-    cy.dataCy("reset-button").should("be.disabled");
-    cy.dataCy("save-button").should("be.disabled");
-
-    cy.dataCy("backToOrganisations-button").click();
     cy.dataCy("organisations-grid").last().contains(randomOrganisationName);
     // Check mandates separately because they're not always in the same order
     cy.dataCy("organisations-grid").last().contains("Fantastic Fresh Tuna");

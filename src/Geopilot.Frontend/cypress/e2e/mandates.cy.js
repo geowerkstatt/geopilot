@@ -225,19 +225,22 @@ describe("Mandate tests", () => {
     setSelect("evaluatePartial", 1, 2);
     setSelect("evaluateComment", 1, 3);
 
-    // Save the mandate and check that we stay on the detail page of the new mandate.
+    // Save the mandate and check that we are redirected to the list with the new mandate shown.
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("save-button").click();
     cy.wait("@saveNew");
     cy.location().should(location => {
+      expect(location.pathname).to.eq(`/admin/mandates`);
+    });
+    getGridRowThatContains("mandates-grid", randomMandateName).should("exist");
+
+    // Re-open the mandate: both saved names are kept, the form is clean, and switching the language does not dirty it.
+    getGridRowThatContains("mandates-grid", randomMandateName).click();
+    cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/mandates\/[1-9]\d*/);
     });
-
-    // Buttons should be disabled again after save.
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
-
-    // Both saved names are kept, and switching the language does not dirty the form.
     evaluateInput("name.en", randomMandateName);
     setFormLanguage("de");
     evaluateInput("name.de", `${randomMandateName}-de`);
@@ -318,16 +321,12 @@ describe("Mandate tests", () => {
     // Change other fields as well.
     setSelect("evaluatePartial", 0, 2);
 
-    // Save
+    // Save; after saving we are redirected to the list, where the changes are visible.
     cy.dataCy("save-button").click();
     cy.wait("@updateMandate");
-    cy.wait(500); // Wait for the form to reset.
-    cy.dataCy("reset-button").should("be.disabled");
-    cy.dataCy("save-button").should("be.disabled");
-
-    // Go back to list and check that changes are saved.
-    cy.dataCy("backToMandates-button").click();
-    isPromptVisible(false);
+    cy.location().should(location => {
+      expect(location.pathname).to.eq(`/admin/mandates`);
+    });
     cy.wait("@getMandates");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Schumm, Runte and Macejkovic");
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains("Brown and Sons");

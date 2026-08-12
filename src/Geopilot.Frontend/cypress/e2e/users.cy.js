@@ -72,10 +72,10 @@ describe("Users tests", () => {
     setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
     toggleCheckbox("isAdmin");
     cy.dataCy("save-button").click();
-    cy.dataCy("reset-button").should("be.disabled");
-    cy.dataCy("save-button").should("be.disabled");
-    cy.dataCy("backToUsers-button").click();
-    isPromptVisible(false);
+    // After saving we are redirected to the list, where the saved changes are visible.
+    cy.location().should(location => {
+      expect(location.pathname).to.eq(`/admin/users`);
+    });
     getGridRowThatContains("users-grid", "Bobbie Waelchi").contains("Brown and Sons");
     getGridRowThatContains("users-grid", "Bobbie Waelchi")
       .find('[data-field="isAdmin"] [data-testid="CheckIcon"]')

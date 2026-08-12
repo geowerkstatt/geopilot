@@ -13,6 +13,7 @@
 - Post-conditions (`fail_conditions`, `warn_conditions`, `restrict_delivery_conditions`) may reference the current step's own output and earlier steps, but no longer a later step: a reference to a step that runs afterwards is now rejected when the pipeline definition is loaded (it was previously accepted but had no value at runtime). Pre-conditions remain restricted to earlier steps.
 - A configured pipeline-process parameter whose value cannot be converted to the parameter type now fails startup validation and process creation instead of being silently ignored. Enum-valued parameters accept their member names case-insensitively, also inside lists. Pipeline definitions should be re-checked on upgrade, since a previously ignored typo now prevents the application from starting.
 - The name of a mandate is localized (was `string` is now `LocalizedText`). The name can be defined for the different languages in the mandate administration.
+- Saving a user, mandate or organisation in the administration now returns to the corresponding overview list instead of staying on the edit form. While the save is in progress, the form is covered by a loading overlay so it cannot be edited.
 
 ### Added
 

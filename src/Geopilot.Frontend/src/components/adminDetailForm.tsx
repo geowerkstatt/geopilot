@@ -3,7 +3,8 @@ import { FieldValues, FormProvider, KeepStateOptions, useForm } from "react-hook
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "@mui/icons-material";
-import { CircularProgress, Stack, Typography } from "@mui/material";
+import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import useFetch from "../hooks/useFetch.ts";
 import { Button } from "./buttons.tsx";
 import { useControlledNavigate } from "./controlledNavigate";
@@ -66,34 +67,16 @@ const AdminDetailForm = <T extends { id: number }>({
       if (reloadAfterSave) {
         onSaveSuccess(savedData);
         formMethods.reset(newFormData, resetOptions);
-
-        if (id === 0) {
-          const newPath = `${basePath}/${savedData.id}`;
-          navigate(newPath, { replace: true });
-          unregisterCheckIsDirty(`${basePath}/0`);
-          registerCheckIsDirty(newPath);
-        }
       }
 
       return savedData;
     },
-    [
-      apiEndpoint,
-      basePath,
-      fetchApi,
-      formMethods,
-      navigate,
-      onSaveSuccess,
-      prepareDataForSave,
-      prepareDataAfterSave,
-      registerCheckIsDirty,
-      saveErrorLabel,
-      unregisterCheckIsDirty,
-    ],
+    [apiEndpoint, fetchApi, formMethods, onSaveSuccess, prepareDataForSave, prepareDataAfterSave, saveErrorLabel],
   );
 
   const submitForm = async (data: FieldValues) => {
-    await saveData(data, true);
+    await saveData(data, false);
+    navigate(basePath);
   };
 
   useEffect(() => {
@@ -151,28 +134,45 @@ const AdminDetailForm = <T extends { id: number }>({
         </Stack>
       ) : (
         <FormProvider {...formMethods}>
-          <form onSubmit={event => formMethods.handleSubmit(submitForm)(event)}>
-            <Stack>
-              {children}
-              <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                <Button
-                  disabled={!formMethods.formState.isDirty}
-                  onClick={() => formMethods.reset(data, resetOptions)}
-                  label={"reset"}
-                />
-                <Button
-                  variant="contained"
-                  disabled={
-                    formMethods.formState.isSubmitting ||
-                    !formMethods.formState.isDirty ||
-                    (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
-                  }
-                  onClick={() => formMethods.handleSubmit(submitForm)()}
-                  label={"save"}
-                />
+          <Box sx={{ position: "relative" }}>
+            <form onSubmit={event => formMethods.handleSubmit(submitForm)(event)}>
+              <Stack>
+                {children}
+                <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <Button
+                    disabled={!formMethods.formState.isDirty}
+                    onClick={() => formMethods.reset(data, resetOptions)}
+                    label={"reset"}
+                  />
+                  <Button
+                    variant="contained"
+                    disabled={
+                      formMethods.formState.isSubmitting ||
+                      !formMethods.formState.isDirty ||
+                      (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
+                    }
+                    onClick={() => formMethods.handleSubmit(submitForm)()}
+                    label={"save"}
+                  />
+                </Stack>
               </Stack>
-            </Stack>
-          </form>
+            </form>
+            {formMethods.formState.isSubmitting && (
+              <Box
+                data-cy="form-saving-overlay"
+                sx={theme => ({
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: alpha(theme.palette.background.content, 0.6),
+                  zIndex: 1,
+                })}>
+                <CircularProgress />
+              </Box>
+            )}
+          </Box>
         </FormProvider>
       )}
     </Stack>
