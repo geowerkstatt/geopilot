@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import { Stack, Tooltip } from "@mui/material";
-import { GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
+import { GridActionsCell, GridActionsCellItem, GridColDef, GridRenderCellParams, GridRowId } from "@mui/x-data-grid";
 import {
   AvailablePipelinesResponse,
   LocalizedText,
@@ -121,16 +121,20 @@ const Mandates = () => {
       flex: 0,
       resizable: false,
       cellClassName: "actions",
-      getActions: ({ id }) => [
-        <Tooltip title={t("edit")} key={`edit-${id}`}>
+      renderCell: params => (
+        <GridActionsCell {...params}>
           <GridActionsCellItem
-            icon={<EditOutlinedIcon />}
+            icon={
+              <Tooltip title={t("edit")} key={`edit-${params.id}`}>
+                <EditOutlinedIcon />
+              </Tooltip>
+            }
             label={t("edit")}
-            onClick={() => startEditing(id)}
+            onClick={() => startEditing(params.id)}
             color="inherit"
           />
-        </Tooltip>,
-      ],
+        </GridActionsCell>
+      ),
     },
   ];
 

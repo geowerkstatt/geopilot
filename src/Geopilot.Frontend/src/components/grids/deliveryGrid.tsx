@@ -2,7 +2,7 @@ import { FC, useCallback, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { Tooltip } from "@mui/material";
-import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
+import { GridActionsCell, GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { ApiError, Delivery, LocalizedText } from "../../api/apiInterfaces";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
@@ -109,18 +109,21 @@ export const DeliveryGrid: FC<DeliveryGridProps> = ({ fetchUrl, columns }) => {
     flex: 0,
     resizable: false,
     cellClassName: "actions",
-    getActions: ({ id, row }) =>
-      row.canDelete !== false
-        ? [
-            <Tooltip title={t("delete")} key={`delete-${id}`}>
-              <GridActionsCellItem
-                icon={<DeleteOutlinedIcon data-cy="delete" color="error" />}
-                label={t("delete")}
-                onClick={() => confirmDelete(id)}
-              />
-            </Tooltip>,
-          ]
-        : [],
+    renderCell: params => (
+      <GridActionsCell {...params}>
+        {params.row.canDelete !== false && (
+          <GridActionsCellItem
+            icon={
+              <Tooltip title={t("delete")} key={`delete-${params.id}`}>
+                <DeleteOutlinedIcon data-cy="delete" color="error" />
+              </Tooltip>
+            }
+            label={t("delete")}
+            onClick={() => confirmDelete(params.id)}
+          />
+        )}
+      </GridActionsCell>
+    ),
   });
 
   return <GeopilotDataGrid name="deliveryOverview" loading={isLoading} rows={deliveries} columns={columnDefs} />;
