@@ -1,6 +1,5 @@
 ﻿using Geopilot.Api.Enums;
 using Geopilot.Api.Exceptions;
-using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
@@ -16,10 +15,7 @@ namespace Geopilot.Api.Test.Services;
 public class PreflightBackgroundServiceTest
 {
     private Mock<IProcessingJobStore> jobStoreMock;
-    private Mock<IUploadStore> uploadStoreMock;
     private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
-    private Mock<ICloudStorageService> cloudStorageServiceMock;
-    private Mock<IUploadFileStore> uploadFileStoreMock;
     private Mock<ILogger<PreflightBackgroundService>> loggerMock;
     private PreflightBackgroundService service;
 
@@ -27,18 +23,12 @@ public class PreflightBackgroundServiceTest
     public void Initialize()
     {
         jobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Strict);
-        uploadStoreMock = new Mock<IUploadStore>(MockBehavior.Strict);
         cloudOrchestrationServiceMock = new Mock<ICloudOrchestrationService>(MockBehavior.Strict);
-        cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
-        uploadFileStoreMock = new Mock<IUploadFileStore>(MockBehavior.Strict);
         loggerMock = new Mock<ILogger<PreflightBackgroundService>>();
 
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IProcessingJobStore))).Returns(jobStoreMock.Object);
-        serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadStore))).Returns(uploadStoreMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudOrchestrationService))).Returns(cloudOrchestrationServiceMock.Object);
-        serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudStorageService))).Returns(cloudStorageServiceMock.Object);
-        serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadFileStore))).Returns(uploadFileStoreMock.Object);
 
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.SetupGet(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
@@ -55,33 +45,25 @@ public class PreflightBackgroundServiceTest
     {
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
-        var mandateId = 1;
+        var pendingJob = CreatePendingJob(jobId, uploadId, new Mock<IPipeline>(MockBehavior.Strict).Object);
 
-        var pipeline = new Mock<IPipeline>(MockBehavior.Strict);
-
-        var pendingJob = new ProcessingJob(jobId, new List<ProcessingJobFile>(), mandateId, DateTime.Now)
-        {
-            Pipeline = pipeline.Object,
-        };
-        var stagedJob = new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "random.xtf") }, mandateId, DateTime.Now)
-        {
-            Pipeline = pipeline.Object,
-        };
+        var registeredFiles = new List<IPipelineFile> { PipelineFileNamed("test.xtf") };
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).Returns(Task.CompletedTask);
-        cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(uploadId, jobId)).ReturnsAsync(stagedJob);
-        uploadFileStoreMock.Setup(x => x.Exists(jobId, "random.xtf")).Returns(true);
-        uploadFileStoreMock.Setup(x => x.GetPath(jobId, "random.xtf")).Returns("path/to/random.xtf");
+        cloudOrchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId)).Returns(registeredFiles);
         jobStoreMock
-            .Setup(x => x.EnqueueForProcessing(jobId, It.Is<IReadOnlyList<IPipelineFile>>(files => files.Any(f => f.OriginalFileName == "test.xtf"))))
-            .Returns(stagedJob with { State = ProcessingState.Running });
+            .Setup(x => x.EnqueueForProcessing(jobId, registeredFiles))
+            .Returns(pendingJob with { State = ProcessingState.Running });
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
         cloudOrchestrationServiceMock.Verify(x => x.RunPreflightChecksAsync(uploadId), Times.Once);
-        cloudOrchestrationServiceMock.Verify(x => x.StageFilesLocallyAsync(uploadId, jobId), Times.Once);
-        jobStoreMock.Verify(x => x.EnqueueForProcessing(jobId, It.Is<IReadOnlyList<IPipelineFile>>(files => files.Any(f => f.OriginalFileName == "test.xtf"))), Times.Once);
+        cloudOrchestrationServiceMock.Verify(x => x.RegisterJobFiles(uploadId, jobId), Times.Once);
+        jobStoreMock.Verify(x => x.EnqueueForProcessing(jobId, registeredFiles), Times.Once);
+
+        // Nothing is transferred and the blobs stay: the files are fetched when a step reads them.
+        cloudOrchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -90,23 +72,18 @@ public class PreflightBackgroundServiceTest
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
         var pipeline = new Mock<IPipeline>();
-        var pendingJob = new ProcessingJob(jobId, new List<ProcessingJobFile>(), 1, DateTime.Now)
-        {
-            Pipeline = pipeline.Object,
-        };
+        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, "File missing."));
-        cloudStorageServiceMock.Setup(x => x.DeletePrefixAsync($"uploads/{uploadId}/")).Returns(Task.CompletedTask);
-        uploadStoreMock.Setup(x => x.RemoveUpload(uploadId)).Returns(true);
+        cloudOrchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
         jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(pendingJob with { State = ProcessingState.Failed });
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
         jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
-        cloudStorageServiceMock.Verify(x => x.DeletePrefixAsync($"uploads/{uploadId}/"), Times.Once);
-        uploadStoreMock.Verify(x => x.RemoveUpload(uploadId), Times.Once);
+        cloudOrchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(uploadId), Times.Once);
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
 
@@ -116,23 +93,41 @@ public class PreflightBackgroundServiceTest
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
         var pipeline = new Mock<IPipeline>();
-        var pendingJob = new ProcessingJob(jobId, new List<ProcessingJobFile>(), 1, DateTime.Now)
-        {
-            Pipeline = pipeline.Object,
-        };
+        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new InvalidOperationException("Network timeout"));
-        cloudStorageServiceMock.Setup(x => x.DeletePrefixAsync($"uploads/{uploadId}/")).Returns(Task.CompletedTask);
-        uploadStoreMock.Setup(x => x.RemoveUpload(uploadId)).Returns(true);
+        cloudOrchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
         jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(pendingJob with { State = ProcessingState.Failed });
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
         jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
-        cloudStorageServiceMock.Verify(x => x.DeletePrefixAsync($"uploads/{uploadId}/"), Times.Once);
-        uploadStoreMock.Verify(x => x.RemoveUpload(uploadId), Times.Once);
+        cloudOrchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(uploadId), Times.Once);
+        pipeline.Verify(p => p.Dispose(), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task ProcessRequestAsyncSetsFailedWhenRegisteringTheFilesFails()
+    {
+        var jobId = Guid.NewGuid();
+        var uploadId = Guid.NewGuid();
+        var pipeline = new Mock<IPipeline>();
+        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
+
+        jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
+        cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).Returns(Task.CompletedTask);
+        cloudOrchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId))
+            .Throws(new InvalidOperationException($"Upload <{uploadId}> has no cloud files to register."));
+        cloudOrchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
+        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(pendingJob with { State = ProcessingState.Failed });
+
+        await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
+
+        jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
+        jobStoreMock.Verify(x => x.EnqueueForProcessing(It.IsAny<Guid>(), It.IsAny<IReadOnlyList<IPipelineFile>>()), Times.Never);
+        cloudOrchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(uploadId), Times.Once);
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
 
@@ -142,54 +137,18 @@ public class PreflightBackgroundServiceTest
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
         var pipeline = new Mock<IPipeline>();
-        var pendingJob = new ProcessingJob(jobId, new List<ProcessingJobFile>(), 1, DateTime.Now)
-        {
-            Pipeline = pipeline.Object,
-        };
+        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
         cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, "File missing."));
-        cloudStorageServiceMock.Setup(x => x.DeletePrefixAsync($"uploads/{uploadId}/"))
+        cloudOrchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId))
             .ThrowsAsync(new InvalidOperationException("Storage unavailable."));
         jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(pendingJob with { State = ProcessingState.Failed });
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
         jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
-        cloudStorageServiceMock.Verify(x => x.DeletePrefixAsync($"uploads/{uploadId}/"), Times.Once);
-        pipeline.Verify(p => p.Dispose(), Times.Once);
-    }
-
-    [TestMethod]
-    public async Task ProcessRequestAsyncSetsFailedWhenNoFilesStaged()
-    {
-        var jobId = Guid.NewGuid();
-        var uploadId = Guid.NewGuid();
-        var pipeline = new Mock<IPipeline>();
-
-        var pendingJob = new ProcessingJob(jobId, new List<ProcessingJobFile>(), 1, DateTime.Now)
-        {
-            Pipeline = pipeline.Object,
-        };
-        var stagedJob = new ProcessingJob(jobId, new List<ProcessingJobFile>(), 1, DateTime.Now)
-        {
-            Pipeline = pipeline.Object,
-        };
-
-        jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
-        cloudOrchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).Returns(Task.CompletedTask);
-        cloudOrchestrationServiceMock.Setup(x => x.StageFilesLocallyAsync(uploadId, jobId)).ReturnsAsync(stagedJob);
-        cloudStorageServiceMock.Setup(x => x.DeletePrefixAsync($"uploads/{uploadId}/")).Returns(Task.CompletedTask);
-        uploadStoreMock.Setup(x => x.RemoveUpload(uploadId)).Returns(true);
-        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(pendingJob with { State = ProcessingState.Failed });
-
-        await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
-
-        cloudStorageServiceMock.Verify(x => x.DeletePrefixAsync($"uploads/{uploadId}/"), Times.Once);
-        uploadStoreMock.Verify(x => x.RemoveUpload(uploadId), Times.Once);
-        jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
-        jobStoreMock.Verify(x => x.EnqueueForProcessing(It.IsAny<Guid>(), It.IsAny<IReadOnlyList<IPipelineFile>>()), Times.Never);
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
 
@@ -198,9 +157,8 @@ public class PreflightBackgroundServiceTest
     {
         var jobId = Guid.NewGuid();
         var uploadId = Guid.NewGuid();
-        var alreadyProcessingJob = new ProcessingJob(jobId, new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "random.xtf") }, 1, DateTime.Now)
+        var alreadyProcessingJob = CreatePendingJob(jobId, uploadId, new Mock<IPipeline>().Object) with
         {
-            Pipeline = new Mock<IPipeline>().Object,
             State = ProcessingState.Running,
         };
 
@@ -222,5 +180,15 @@ public class PreflightBackgroundServiceTest
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
         cloudOrchestrationServiceMock.Verify(x => x.RunPreflightChecksAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    private static ProcessingJob CreatePendingJob(Guid jobId, Guid uploadId, IPipeline pipeline)
+        => new ProcessingJob(jobId, uploadId, new List<ProcessingJobFile>(), 1, DateTime.Now) { Pipeline = pipeline };
+
+    private static IPipelineFile PipelineFileNamed(string originalFileName)
+    {
+        var fileMock = new Mock<IPipelineFile>();
+        fileMock.SetupGet(f => f.OriginalFileName).Returns(originalFileName);
+        return fileMock.Object;
     }
 }

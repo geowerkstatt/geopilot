@@ -29,11 +29,15 @@ public interface IPipelineFile
     string OriginalRelativePath { get; }
 
     /// <summary>
-    /// Opens a filestream to read the contents of the file associated with the current object.
+    /// Opens a stream to read the contents of the file associated with the current object. The file may be
+    /// backed by remote storage, in which case it is fetched on first access and reused for further reads.
+    /// The returned stream supports seeking, so it can be handed to readers that need it (for example
+    /// <see cref="System.IO.Compression.ZipArchive"/>).
     /// </summary>
-    /// <returns>A filestream for reading the file contents.</returns>
+    /// <param name="cancellationToken">Cancels a pending fetch of a remotely backed file.</param>
+    /// <returns>A stream for reading the file contents. The caller owns and disposes it.</returns>
     /// <exception cref="DirectoryNotFoundException">Thrown if the file does not exist.</exception>
-    FileStream OpenReadFileStream();
+    Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Opens a filestream  to write the file.
@@ -48,8 +52,9 @@ public interface IPipelineFile
     /// For a file received from another step the runtime creates a content-identical copy in the consuming
     /// step's working directory on first access and returns that copy's path; the originating step's file is
     /// never exposed or modified. For a file created by the current step the path is returned directly.
-    /// Reading via <see cref="OpenReadFileStream"/> stays cheap and never copies.
+    /// Reading via <see cref="OpenReadAsync"/> stays cheap and never copies.
     /// </summary>
+    /// <param name="cancellationToken">Cancels a pending copy or fetch.</param>
     /// <returns>The local filesystem path of a copy that is safe to read and modify in place.</returns>
-    string GetLocalPath();
+    Task<string> GetLocalPathAsync(CancellationToken cancellationToken = default);
 }

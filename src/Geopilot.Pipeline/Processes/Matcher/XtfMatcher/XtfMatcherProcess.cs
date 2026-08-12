@@ -53,8 +53,10 @@ internal class XtfMatcherProcess
     }
 
     [PipelineProcessRun]
-    public Task<XtfMatcherResult> RunAsync(IPipelineFile[] files)
+    public async Task<XtfMatcherResult> RunAsync(IPipelineFile[] files, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(files);
+
         IEnumerable<IPipelineFile> filtered = files;
 
         // Keep only files whose extension matches any of the configured extensions.
@@ -67,9 +69,19 @@ internal class XtfMatcherProcess
             filtered = filtered.WithMatchingName(string.Join("|", fileNamePatterns.Select(p => $"({p})")));
 
         // Keep only files that declare at least one of the configured ILI models in their XTF header.
-        // Files that cannot be parsed as XTF are excluded.
+        // Files that cannot be parsed as XTF are excluded. This is the only filter that reads content,
+        // so it runs last: everything the cheap metadata filters dropped is never opened.
         if (iliModels.Count > 0)
-            filtered = filtered.Where(file => iliModels.Overlaps(ExtractIliModels(file)));
+        {
+            var withMatchingModel = new List<IPipelineFile>();
+            foreach (var file in filtered)
+            {
+                if (iliModels.Overlaps(await ExtractIliModelsAsync(file, cancellationToken)))
+                    withMatchingModel.Add(file);
+            }
+
+            filtered = withMatchingModel;
+        }
 
         var matchedFiles = filtered.ToArray();
         var totalCount = files.Length;
@@ -77,11 +89,11 @@ internal class XtfMatcherProcess
             ? NoMatchStatusMessage
             : StatusMessageFormat.Map(msg => string.Format(CultureInfo.InvariantCulture, msg, matchedFiles.Length, totalCount));
 
-        return Task.FromResult(result: new XtfMatcherResult
+        return new XtfMatcherResult
         {
             XtfFiles = matchedFiles,
             StatusMessage = statusMessage,
-        });
+        };
     }
 
     /// <summary>
@@ -93,11 +105,11 @@ internal class XtfMatcherProcess
     /// </list>
     /// Returns an empty set if the file cannot be parsed or matches neither format.
     /// </summary>
-    private static HashSet<string> ExtractIliModels(IPipelineFile file)
+    private static async Task<HashSet<string>> ExtractIliModelsAsync(IPipelineFile file, CancellationToken cancellationToken)
     {
         try
         {
-            using var stream = file.OpenReadFileStream();
+            using var stream = await file.OpenReadAsync(cancellationToken);
             var doc = XDocument.Load(stream);
             var root = doc.Root;
             if (root == null)
@@ -125,8 +137,9 @@ internal class XtfMatcherProcess
                 .OfType<string>()
                 .ToHashSet() ?? new HashSet<string>();
         }
-        catch
+        catch (Exception e) when (e is not OperationCanceledException)
         {
+            // A file that is not readable as XTF simply does not match; a cancelled job must still cancel.
             return new HashSet<string>();
         }
     }

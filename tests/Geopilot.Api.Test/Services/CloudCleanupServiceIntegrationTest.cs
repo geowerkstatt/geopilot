@@ -49,7 +49,8 @@ public class CloudCleanupServiceIntegrationTest
             storageService,
             uploadStore,
             new Mock<ILogger<CloudCleanupService>>().Object,
-            optionsMock.Object);
+            optionsMock.Object,
+            Options.Create(new ProcessingOptions { JobRetention = TimeSpan.FromHours(24), JobTimeout = TimeSpan.FromMinutes(30) }));
     }
 
     [TestCleanup]

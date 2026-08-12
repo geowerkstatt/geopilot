@@ -7,8 +7,10 @@ export interface ClientSettings {
     storeAuthStateInCookie: boolean;
   };
   application: {
-    name?: string;
     localName?: {
+      [languageCode: string]: string;
+    };
+    localTitle?: {
       [languageCode: string]: string;
     };
     logo: string;

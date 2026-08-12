@@ -3,7 +3,7 @@
 namespace Geopilot.Pipeline;
 
 /// <summary>
-/// Represents a test implementation of the IPilelineTransferFile interface.
+/// An <see cref="IPipelineFile"/> backed by a file that already lies on the local filesystem.
 /// </summary>
 internal class PipelineFile : IPipelineFile
 {
@@ -64,9 +64,9 @@ internal class PipelineFile : IPipelineFile
     }
 
     /// <inheritdoc/>
-    public FileStream OpenReadFileStream()
+    public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default)
     {
-        return File.OpenRead(this.filePath);
+        return Task.FromResult<Stream>(File.OpenRead(this.filePath));
     }
 
     /// <inheritdoc/>
@@ -76,8 +76,8 @@ internal class PipelineFile : IPipelineFile
     }
 
     /// <inheritdoc/>
-    public string GetLocalPath()
+    public Task<string> GetLocalPathAsync(CancellationToken cancellationToken = default)
     {
-        return this.filePath;
+        return Task.FromResult(this.filePath);
     }
 }

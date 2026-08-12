@@ -146,7 +146,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
         };
         await requestStream.WriteAsync(fileStart, cancellationToken);
 
-        using var stream = file.OpenReadFileStream();
+        using var stream = await file.OpenReadAsync(cancellationToken);
 
         while (true)
         {

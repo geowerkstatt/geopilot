@@ -315,7 +315,7 @@ namespace Geopilot.Api.Controllers
             pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
             pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
 
-            var processingJob = new ProcessingJob(guid, new List<ProcessingJobFile>() { new ProcessingJobFile("ORIGINAL.zip", "TEMP.zip") }, mandateToUpdate.Id, DateTime.Now)
+            var processingJob = new ProcessingJob(guid, Guid.NewGuid(), new List<ProcessingJobFile>() { new ProcessingJobFile("ORIGINAL.zip", "TEMP.zip", "uploads/upload/" + "ORIGINAL.zip") }, mandateToUpdate.Id, DateTime.Now)
             {
                 Pipeline = pipelineMock.Object,
             };
@@ -325,8 +325,8 @@ namespace Geopilot.Api.Controllers
                 .Returns(processingJob);
             var assetHandlerMock = new Mock<IAssetHandler>();
             assetHandlerMock
-                .Setup(p => p.PersistJobAssets(guid))
-                .Returns(new List<Asset> { new Asset(), new Asset() });
+                .Setup(p => p.PersistJobAssetsAsync(guid, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<Asset> { new Asset(), new Asset() });
 
             var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
             deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });

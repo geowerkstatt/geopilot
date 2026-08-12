@@ -193,7 +193,7 @@ public class PipelineIntegrationTest
         // The zip step aggregates three prior outputs (the matched XTF file and both validation logs)
         // into its single array parameter. Asserting the entry count guards against a regression where
         // only the first source is packaged.
-        using var zipStream = zipFile.OpenReadFileStream();
+        using var zipStream = await zipFile.OpenReadAsync();
         using var zipArchive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Read);
         Assert.HasCount(3, zipArchive.Entries, "ZIP should contain the matched XTF file plus both validation logs");
 
@@ -277,7 +277,7 @@ public class PipelineIntegrationTest
         var zipFile = context.StepResults["zip_package"].ExtractProperty("ZipPackage") as IPipelineFile;
         Assert.IsNotNull(zipFile, "No ZIP file in output");
 
-        using var zipStream = zipFile.OpenReadFileStream();
+        using var zipStream = await zipFile.OpenReadAsync();
         using var zipArchive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Read);
         Assert.HasCount(1, zipArchive.Entries, "ZIP should contain the referenced resource file");
         Assert.AreEqual("sample.txt", zipArchive.Entries[0].Name);

@@ -72,12 +72,12 @@ public class ProcessingServiceTest
         var user = new User { Id = 2, FullName = nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight), AuthIdentifier = "auth-123" };
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
-        var job = new ProcessingJob(jobId, new List<ProcessingJobFile>(), null, DateTime.Now);
+        var job = new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>(), null, DateTime.Now);
         var pipeline = new Mock<IPipeline>().Object;
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
-        processingJobStoreMock.Setup(x => x.CreateJob()).Returns(job);
+        processingJobStoreMock.Setup(x => x.CreateJob(uploadId)).Returns(job);
         pipelineFactoryMock.Setup(x => x.CreatePipeline(pipelineId, jobId)).Returns(pipeline);
         processingJobStoreMock.Setup(x => x.AttachPipeline(jobId, pipeline, mandate.Id)).Returns(job);
         processingJobStoreMock.Setup(x => x.GetJob(jobId)).Returns(job);
@@ -87,7 +87,7 @@ public class ProcessingServiceTest
 
         // Assert
         Assert.AreEqual(job, result);
-        processingJobStoreMock.Verify(x => x.CreateJob(), Times.Once);
+        processingJobStoreMock.Verify(x => x.CreateJob(uploadId), Times.Once);
         pipelineFactoryMock.Verify(x => x.CreatePipeline(pipelineId, jobId), Times.Once);
         processingJobStoreMock.Verify(x => x.AttachPipeline(jobId, pipeline, mandate.Id), Times.Once);
 

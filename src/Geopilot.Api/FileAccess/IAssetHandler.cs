@@ -11,8 +11,9 @@ namespace Geopilot.Api.FileAccess
         /// Migrates all log files for a validation job into a persistent storage.
         /// </summary>
         /// <param name="jobId">The validation job id.</param>
+        /// <param name="cancellationToken">Cancels fetching the uploaded originals.</param>
         /// <returns>List of <see cref="Asset" /> representing the validation job assets in persistent storage.</returns>
-        IEnumerable<Asset> PersistJobAssets(Guid jobId);
+        Task<IEnumerable<Asset>> PersistJobAssetsAsync(Guid jobId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Deletes all log files for a validation job from persistent storage.

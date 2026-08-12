@@ -38,10 +38,13 @@ internal static class XtfLogParser
     /// re-implement the file handling.
     /// </summary>
     /// <param name="xtfLog">The XTF log file to parse.</param>
+    /// <param name="cancellationToken">Cancels a pending fetch of a remotely backed file.</param>
     /// <returns>The entries of the log basket.</returns>
-    public static List<LogError> Parse(IPipelineFile xtfLog)
+    public static async Task<List<LogError>> ParseAsync(IPipelineFile xtfLog, CancellationToken cancellationToken = default)
     {
-        using var stream = xtfLog.OpenReadFileStream();
+        ArgumentNullException.ThrowIfNull(xtfLog);
+
+        using var stream = await xtfLog.OpenReadAsync(cancellationToken);
         using var reader = new StreamReader(stream);
         return Parse(reader);
     }
