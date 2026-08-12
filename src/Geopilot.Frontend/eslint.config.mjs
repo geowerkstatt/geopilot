@@ -7,6 +7,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import noHardcodedColors from "./eslint-rules/no-hardcoded-colors.cjs";
+import requirePx2rem from "./eslint-rules/require-px2rem.cjs";
 import requireThemeRadius from "./eslint-rules/require-theme-radius.cjs";
 
 const buttonImportRestriction = {
@@ -31,6 +32,7 @@ const localRules = {
   rules: {
     "no-hardcoded-colors": noHardcodedColors,
     "require-theme-radius": requireThemeRadius,
+    "require-px2rem": requirePx2rem,
   },
 };
 
@@ -55,6 +57,7 @@ export default defineConfig([
       "react/display-name": "off",
       "local-rules/no-hardcoded-colors": "warn",
       "local-rules/require-theme-radius": "warn",
+      "local-rules/require-px2rem": "warn",
       "no-restricted-imports": ["warn", { paths: [muiWrapperImportRestriction] }],
     },
   },

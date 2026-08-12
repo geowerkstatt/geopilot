@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { AutocompleteRenderGetTagProps, Box, Chip } from "@mui/material";
+import { px2rem } from "../../appTheme";
 
 interface OverflowChipsProps {
   /** The selected option labels, in order. */
@@ -57,7 +58,7 @@ export const OverflowChips = ({ value, getTagProps }: OverflowChipsProps) => {
         key={key}
         size="small"
         label={option}
-        sx={{ "& .MuiChip-deleteIcon": { fontSize: "18px" } }}
+        sx={{ "& .MuiChip-deleteIcon": { fontSize: px2rem(18) } }}
         {...tagProps}
       />
     );

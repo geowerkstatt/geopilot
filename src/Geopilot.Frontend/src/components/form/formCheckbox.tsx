@@ -3,6 +3,7 @@ import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Box, Checkbox, FormControlLabel, SxProps } from "@mui/material";
 import { formControlLabelClasses } from "@mui/material/FormControlLabel";
+import { px2rem } from "../../appTheme.ts";
 import { OverflowTooltipLabel } from "./overflowTooltipLabel";
 
 export interface FormCheckboxProps {
@@ -56,7 +57,7 @@ export const FormCheckbox: FC<FormCheckboxProps> = ({
       sx={{
         [`& .${formControlLabelClasses.label}`]: {
           opacity: 1,
-          ...(size === "small" && { fontSize: "14px" }),
+          ...(size === "small" && { fontSize: px2rem(14) }),
           ...(truncateLabel && { minWidth: 0 }),
         },
         ...sx,

@@ -21,6 +21,7 @@ import { buildFeatureLayer, buildWmtsLayer, fitToFeatures, fitToLayers } from ".
 import { LayerSwitcherProperties } from "./layerSwitcherProps";
 import { MapVisualizationContext, MapVisualizationContextInterface } from "./mapVisualizationContext";
 import "ol/ol.css";
+import { px2rem } from "../../../appTheme.ts";
 
 const ZOOM_TO_NODE_MAX_ZOOM = 13;
 const ZOOM_TO_NODE_DURATION = 400;
@@ -64,7 +65,7 @@ const createSelectionOverlay = (theme: Theme): [Overlay, (text: string) => void]
     borderRadius: theme.radius.default,
     padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
     maxWidth: "300px",
-    fontSize: "0.875rem",
+    fontSize: px2rem(14),
     pointerEvents: "none",
   } satisfies Partial<CSSStyleDeclaration>);
   const popupContent = document.createElement("div");
@@ -99,7 +100,7 @@ const createInteractionHint = (
     justifyContent: "center",
     textAlign: "center",
     padding: theme.spacing(2),
-    fontSize: "1.25rem",
+    fontSize: px2rem(20),
     color: theme.palette.map.hintText,
     backgroundColor: theme.palette.map.hintBackground,
     opacity: "0",

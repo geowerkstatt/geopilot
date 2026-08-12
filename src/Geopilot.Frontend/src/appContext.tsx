@@ -9,7 +9,7 @@ import { frFR as gridFr } from "@mui/x-data-grid/locales/frFR";
 import { itIT as gridIt } from "@mui/x-data-grid/locales/itIT";
 import App from "./app.tsx";
 import { Language } from "./appInterfaces.ts";
-import { geopilotTheme } from "./appTheme.ts";
+import { geopilotTheme, NEOGEO_LETTERSPACING, px2rem } from "./appTheme.ts";
 import { GeopilotAuthProvider } from "./auth/geopilotAuthProvider.tsx";
 import { AlertBanner } from "./components/alert/alertBanner.tsx";
 import { AlertProvider } from "./components/alert/alertProvider.tsx";
@@ -66,8 +66,8 @@ export const AppContext = () => {
           styles={{
             ":root": {
               fontFamily: '"NeoGeo", sans-serif',
-              fontSize: "16px",
-              letterSpacing: "0.05em",
+              fontSize: px2rem(16),
+              letterSpacing: NEOGEO_LETTERSPACING,
             },
           }}
         />
