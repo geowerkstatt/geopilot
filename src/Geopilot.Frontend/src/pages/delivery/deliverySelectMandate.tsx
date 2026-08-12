@@ -118,7 +118,12 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
         {description && (
           <>
             <Divider />
-            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "pre-line" }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                whiteSpace: "pre-line",
+              }}>
               {description}
             </Typography>
           </>

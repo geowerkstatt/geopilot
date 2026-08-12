@@ -99,7 +99,7 @@ export const FormSelect: FC<FormSelectProps> = ({
         onChange={e => onChange(e.target.value)}
         disabled={disabled ?? false}
         data-cy={dataCy ?? (fieldName ? fieldName + "-formSelect" : undefined)}
-        SelectProps={{ MenuProps: swipeSafeMenuProps }}>
+        slotProps={{ select: { MenuProps: swipeSafeMenuProps } }}>
         {renderMenuItems()}
       </TextField>
     );
@@ -138,7 +138,7 @@ export const FormSelect: FC<FormSelectProps> = ({
           value={field.value ?? ""}
           disabled={disabled ?? false}
           data-cy={dataCy ?? fieldName + "-formSelect"}
-          SelectProps={{ MenuProps: swipeSafeMenuProps }}>
+          slotProps={{ select: { MenuProps: swipeSafeMenuProps } }}>
           {renderMenuItems()}
         </TextField>
       )}

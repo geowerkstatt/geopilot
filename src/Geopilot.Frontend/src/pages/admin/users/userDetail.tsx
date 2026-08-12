@@ -71,7 +71,7 @@ const UserDetail = () => {
         prepareDataAfterSave={prepareUserForForm}
         onSaveSuccess={setEditableUser}>
         <GeopilotBox>
-          <Typography variant={"h3"} margin={0}>
+          <Typography variant={"h3"} sx={{ margin: 0 }}>
             {t("description")}
           </Typography>
           <FormContainer>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { Tooltip } from "@mui/material";
-import { GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
+import { GridActionsCell, GridActionsCellItem, GridColDef, GridRowId } from "@mui/x-data-grid";
 import { Mandate, Organisation, User } from "../../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../../auth";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
@@ -72,16 +72,20 @@ const Organisations = () => {
       flex: 0,
       resizable: false,
       cellClassName: "actions",
-      getActions: ({ id }) => [
-        <Tooltip title={t("edit")} key={`edit-${id}`}>
+      renderCell: params => (
+        <GridActionsCell {...params}>
           <GridActionsCellItem
-            icon={<EditOutlinedIcon />}
+            icon={
+              <Tooltip title={t("edit")} key={`edit-${params.id}`}>
+                <EditOutlinedIcon />
+              </Tooltip>
+            }
             label={t("edit")}
-            onClick={() => startEditing(id)}
+            onClick={() => startEditing(params.id)}
             color="inherit"
           />
-        </Tooltip>,
-      ],
+        </GridActionsCell>
+      ),
     },
   ];
 

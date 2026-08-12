@@ -155,14 +155,18 @@ export const FileDropzone: FC<FileDropzoneProps> = ({
         {fileExtensions && fileExtensions.length > 0 && (
           <Typography
             variant="caption"
-            color="text.secondary"
             component="div"
-            className={disabled ? "Mui-disabled" : ""}>
+            className={disabled ? "Mui-disabled" : ""}
+            sx={{
+              color: "text.secondary",
+            }}>
             <Stack
               direction={{ xs: "column", sm: "row" }}
-              alignItems="center"
-              gap={{ xs: 0, sm: 1 }}
-              divider={<Box sx={{ display: { xs: "none", sm: "block" } }}>|</Box>}>
+              spacing={{ xs: 0, sm: 1 }}
+              divider={<Box sx={{ display: { xs: "none", sm: "block" } }}>|</Box>}
+              sx={{
+                alignItems: "center",
+              }}>
               <Box>{fileCountText}</Box>
               <Box>{maxPerFileText}</Box>
               <Box>{maxTotalSizeText}</Box>

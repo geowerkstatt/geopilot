@@ -1,6 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-
 import { FC } from "react";
 import ReactMarkdown from "react-markdown";
 import { Link, Typography } from "@mui/material";

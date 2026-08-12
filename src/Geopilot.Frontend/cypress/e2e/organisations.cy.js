@@ -234,7 +234,7 @@ describe("Organisations tests", () => {
 
   it("should maintain chip values in autocomplete fields after reset", () => {
     // Navigate to an existing organization
-    cy.dataCy("organisations-grid").find(".MuiDataGrid-row").first().click();
+    cy.dataCy("organisations-grid").find(".MuiDataGrid-row:not(.MuiDataGrid-rowSkeleton)").first().click();
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/organisations\/[1-9]\d*/);
     });
