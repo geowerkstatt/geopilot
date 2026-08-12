@@ -1,5 +1,3 @@
-import type {} from "@mui/x-data-grid/themeAugmentation";
-
 declare module "@mui/material/IconButton" {
   interface IconButtonPropsColorOverrides {
     primaryContained: true;
@@ -50,10 +48,12 @@ declare module "@mui/material/styles" {
 
   interface Palette {
     map: PaletteMap;
+    tooltip: { background: string };
   }
 
   interface PaletteOptions {
     map?: PaletteMap;
+    tooltip?: { background: string };
   }
 
   interface Theme {

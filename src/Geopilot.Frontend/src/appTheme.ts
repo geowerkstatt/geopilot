@@ -436,14 +436,14 @@ export const geopilotTheme = createTheme({
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: defaultTheme.palette.grey[700],
+          backgroundColor: themePalette.tooltip.background,
           color: themePalette.primary.contrast,
           borderRadius: themeRadius.default,
           fontSize: px2rem(10),
           lineHeight: px2rem(14),
         },
         arrow: {
-          color: defaultTheme.palette.grey[700],
+          color: themePalette.tooltip.background,
         },
       },
     },

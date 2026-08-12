@@ -60,7 +60,7 @@ const createSelectionOverlay = (theme: Theme): [Overlay, (text: string) => void]
   const popupElement = document.createElement("div");
   Object.assign(popupElement.style, {
     position: "relative",
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.palette.background.content,
     border: `1px solid ${theme.palette.primary.light}`,
     borderRadius: theme.radius.default,
     padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
@@ -71,7 +71,7 @@ const createSelectionOverlay = (theme: Theme): [Overlay, (text: string) => void]
   const popupContent = document.createElement("div");
   popupElement.appendChild(popupContent);
   popupElement.appendChild(createPopupArrow(8, theme.palette.primary.light, "100%"));
-  popupElement.appendChild(createPopupArrow(7, theme.palette.background.paper, "calc(100% - 1px)"));
+  popupElement.appendChild(createPopupArrow(7, theme.palette.background.content, "calc(100% - 1px)"));
   const overlay = new Overlay({
     element: popupElement,
     positioning: "bottom-center",
