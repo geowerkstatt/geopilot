@@ -144,7 +144,10 @@ public class CloudOrchestrationService : ICloudOrchestrationService
             throw new InvalidOperationException($"Upload <{uploadId}> has no cloud files to register.");
 
         var materializationDirectory = Path.Combine(directoryProvider.GetPipelineDirectoryPath(jobId), UploadWorkingDirectoryName);
-        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+
+        // Case-insensitive, because the name becomes a file name on the host and in the asset store.
+        // On Windows and macOS two names differing only in case address the same file.
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var pipelineFiles = new List<IPipelineFile>(upload.Files.Count);
 
         foreach (var file in upload.Files)

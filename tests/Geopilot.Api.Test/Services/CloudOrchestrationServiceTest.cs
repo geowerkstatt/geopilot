@@ -261,6 +261,23 @@ public class CloudOrchestrationServiceTest
     }
 
     [TestMethod]
+    public void RegisterJobFilesDisambiguatesNamesThatDifferOnlyInCase()
+    {
+        var upload = CreateUpload(("Data.xtf", 1024), ("data.xtf", 2048));
+        var job = jobStore.CreateJob(upload.Id);
+
+        service.RegisterJobFiles(upload.Id, job.Id);
+
+        // The name is used as a file name twice, when materializing and in the asset store. On Windows and
+        // macOS both spellings address the same file, so without disambiguation the second upload would
+        // overwrite the first in the pipeline run and in the delivery.
+        var registered = jobStore.GetJob(job.Id)?.Files ?? throw new InvalidOperationException("job disappeared");
+        Assert.HasCount(2, registered);
+        Assert.AreEqual("Data.xtf", registered[0].TempFileName);
+        Assert.AreEqual("data_2.xtf", registered[1].TempFileName);
+    }
+
+    [TestMethod]
     public void RegisterJobFilesThrowsForUnknownUpload()
     {
         var job = jobStore.CreateJob(Guid.NewGuid());
