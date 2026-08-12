@@ -1,3 +1,8 @@
+// This import makes the file a module so the `declare module` blocks below augment
+// MUI's types instead of replacing them. It also pulls in the x-data-grid theme
+// augmentation required to type the MuiDataGrid entry in appTheme.ts.
+import type {} from "@mui/x-data-grid/themeAugmentation";
+
 declare module "@mui/material/IconButton" {
   interface IconButtonPropsColorOverrides {
     primaryContained: true;
