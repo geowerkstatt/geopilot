@@ -88,6 +88,7 @@ describe("General app tests", () => {
       // Extract the application settings from the intercepted response
       const settings = interception.response.body;
       const localNames = settings.application.localName;
+      expect(Object.keys(localNames)).to.have.length.greaterThan(0);
 
       // Test each available language
       Object.entries(localNames).forEach(([language, expectedName]) => {
@@ -107,27 +108,69 @@ describe("General app tests", () => {
     });
   });
 
-  it("falls back to default application name when localNames are not available", () => {
-    // Intercept and modify the client-settings response to remove localName
+  it("displays the configured localized delivery title when language changes", () => {
+    cy.intercept("**/client-settings.json").as("clientSettings");
+
+    cy.visit("/");
+
+    cy.wait("@clientSettings").then(interception => {
+      const localTitle = interception.response.body.application.localTitle;
+      expect(Object.keys(localTitle)).to.have.length.greaterThan(0);
+
+      Object.entries(localTitle).forEach(([language, expectedTitle]) => {
+        if (!["en", "de", "fr", "it"].includes(language)) return;
+
+        selectLanguage(language);
+        cy.dataCy("delivery-title").should("be.visible").and("contain", expectedTitle);
+      });
+    });
+  });
+
+  it("keeps the delivery title visible for a region-specific locale (de-CH)", () => {
+    // A region-specific locale must still resolve to a configured language via i18n.resolvedLanguage,
+    // so the title stays visible instead of blanking out. Known limitation, not intended behaviour:
+    // de-CH currently falls back to English rather than de.
+    cy.setCookie("i18next", "de-CH");
+
+    cy.visit("/");
+
+    cy.dataCy("delivery-title").should("be.visible").and("not.be.empty");
+  });
+
+  it("hides the delivery title when none is configured", () => {
     cy.intercept("**/client-settings.json", req => {
       req.continue(res => {
         const modifiedBody = { ...res.body };
-        delete modifiedBody.application.localName;
+        delete modifiedBody.application.localTitle;
         res.send({ body: modifiedBody });
       });
     }).as("settings");
 
     cy.visit("/");
 
-    cy.wait("@settings").then(({ response }) => {
-      const defaultName = response.body.application.name;
+    cy.wait("@settings");
+    cy.dataCy("delivery").should("exist");
+    cy.dataCy("delivery-title").should("not.exist");
+  });
 
-      // Test each language
-      ["en", "de", "fr", "it"].forEach(language => {
-        selectLanguage(language);
-        cy.contains(defaultName).should("be.visible");
-        cy.log(`Verified fallback in ${language}: ${defaultName}`);
+  it("falls back to another configured language for the application name", () => {
+    const fallbackName = "geowerkstatt Fallback DE";
+
+    // Configure the application name only in German, so the other languages must fall back to it.
+    cy.intercept("**/client-settings.json", req => {
+      req.continue(res => {
+        const modifiedBody = { ...res.body };
+        modifiedBody.application.localName = { de: fallbackName };
+        res.send({ body: modifiedBody });
       });
+    }).as("settings");
+
+    cy.visit("/");
+    cy.wait("@settings");
+
+    ["en", "fr", "it", "de"].forEach(language => {
+      selectLanguage(language);
+      cy.contains(fallbackName).should("be.visible");
     });
   });
 });

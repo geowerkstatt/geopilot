@@ -51,7 +51,6 @@
   "deliveryOverviewDeleteIdError": "Beim Löschen der Lieferung mit ID {{id}} ist ein Fehler aufgetreten.",
   "deliveryOverviewDeleteIdNotExistError": "Die Lieferung mit der ID {{id}} existiert nicht und kann daher nicht gelöscht werden.",
   "deliveryOverviewLoadingError": "Beim Laden der Lieferungen ist ein Fehler aufgetreten: {{error}}",
-  "deliveryTitle": "Online Verarbeitung von Geodaten",
   "description": "Beschreibung",
   "development": "Entwicklung",
   "disconnect": "Verbindungen trennen",
