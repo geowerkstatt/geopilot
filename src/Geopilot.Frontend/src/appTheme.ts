@@ -11,6 +11,8 @@ const themeShadows: Shadows = [...defaultTheme.shadows];
 const themeSpacing: Spacing = defaultTheme.spacing;
 
 export const NEOGEO_LETTERSPACING = "0.05em";
+export const NEOGEO_FONTWEIGHT_REGULAR = 400;
+export const NEOGEO_FONTWEIGHT_BOLD = 600;
 export const px2rem = (pxValue: number) => `${pxValue / 16}rem`;
 
 const DEFAULT_BORDER_RADIUS = 4;
@@ -63,42 +65,42 @@ export const geopilotTheme = createTheme({
     },
     h1: {
       fontSize: px2rem(28),
-      fontWeight: 600,
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
       lineHeight: 1.17,
       marginTop: px2rem(16),
       marginBottom: px2rem(8),
     },
     h2: {
       fontSize: px2rem(24),
-      fontWeight: 600,
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
       lineHeight: 1.2,
       marginTop: px2rem(16),
       marginBottom: px2rem(8),
     },
     h3: {
       fontSize: px2rem(20),
-      fontWeight: 600,
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
       lineHeight: 1.17,
       marginTop: px2rem(16),
       marginBottom: px2rem(8),
     },
     h4: {
       fontSize: px2rem(18),
-      fontWeight: 600,
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
       lineHeight: 1.235,
       marginTop: px2rem(16),
       marginBottom: px2rem(8),
     },
     h5: {
       fontSize: px2rem(16),
-      fontWeight: 600,
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
       lineHeight: 1.334,
       marginTop: px2rem(16),
       marginBottom: px2rem(8),
     },
     h6: {
       fontSize: px2rem(14),
-      fontWeight: 600,
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
       lineHeight: 1.16,
       marginTop: px2rem(16),
       marginBottom: px2rem(8),
@@ -353,10 +355,10 @@ export const geopilotTheme = createTheme({
           fontSize: px2rem(16),
           letterSpacing: NEOGEO_LETTERSPACING,
           "&.Mui-active": {
-            fontWeight: 600,
+            fontWeight: NEOGEO_FONTWEIGHT_BOLD,
           },
           "&.Mui-completed": {
-            fontWeight: 600,
+            fontWeight: NEOGEO_FONTWEIGHT_BOLD,
           },
         },
       },
@@ -404,7 +406,7 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           fontSize: px2rem(24),
-          fontWeight: 600,
+          fontWeight: NEOGEO_FONTWEIGHT_BOLD,
           letterSpacing: NEOGEO_LETTERSPACING,
           padding: "0",
           paddingBottom: themeSpacing(1),

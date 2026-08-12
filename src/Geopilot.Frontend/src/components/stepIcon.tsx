@@ -11,7 +11,7 @@ import WarningIcon from "@mui/icons-material/Warning";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { CircularProgress, Stack, useTheme } from "@mui/material";
 import { StepState } from "../api/apiInterfaces.ts";
-import { px2rem } from "../appTheme.ts";
+import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../appTheme.ts";
 
 type StepIconVariant = "contained" | "outlined";
 
@@ -69,7 +69,7 @@ export const StepIcon: FC<StepIconProps> = ({ step, state, variant }) => {
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: px2rem(14),
-                fontWeight: isOutlined ? 600 : 400,
+                fontWeight: isOutlined ? NEOGEO_FONTWEIGHT_BOLD : NEOGEO_FONTWEIGHT_REGULAR,
                 lineHeight: 1,
                 borderRadius: theme.radius.full,
                 backgroundColor: isOutlined ? theme.palette.primary.contrast : baseColor,
