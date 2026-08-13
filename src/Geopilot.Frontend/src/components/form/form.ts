@@ -1,5 +1,4 @@
-import { Merge } from "react-hook-form";
-import { FieldError, FieldErrorsImpl } from "react-hook-form/dist/types/errors";
+import { FieldError, FieldErrorsImpl, Merge } from "react-hook-form";
 import { Stack } from "@mui/material";
 import { styled } from "@mui/system";
 
