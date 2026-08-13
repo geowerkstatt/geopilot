@@ -16,12 +16,11 @@ import { register } from "ol/proj/proj4";
 import View, { FitOptions } from "ol/View";
 import proj4 from "proj4";
 import { LocalizedText, MapVisualizationConfig } from "../../../api/apiInterfaces";
+import { px2rem } from "../../../appTheme.ts";
 import { useLocalized } from "../../../hooks/useLocalized";
 import { buildFeatureLayer, buildWmtsLayer, fitToFeatures, fitToLayers } from "./layers";
 import { LayerSwitcherProperties } from "./layerSwitcherProps";
 import { MapVisualizationContext, MapVisualizationContextInterface } from "./mapVisualizationContext";
-import "ol/ol.css";
-import { px2rem } from "../../../appTheme.ts";
 
 const ZOOM_TO_NODE_MAX_ZOOM = 13;
 const ZOOM_TO_NODE_DURATION = 400;
@@ -237,7 +236,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
 
     const map = new Map({
       overlays: [selectionOverlay],
-      controls: defaultControls({ zoom: false, attribution: false }),
+      controls: defaultControls({ zoom: false, rotate: false, attribution: false }),
       interactions,
       view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
     });
