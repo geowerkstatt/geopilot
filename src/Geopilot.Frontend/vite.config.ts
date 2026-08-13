@@ -1,7 +1,7 @@
-import fs from "fs";
+import fs from "node:fs";
+import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, URL } from "node:url";
-import path from "path";
 import react from "@vitejs/plugin-react";
 import mime from "mime-types";
 import { defineConfig } from "vite";
@@ -12,7 +12,7 @@ const baseFolder =
     : `${process.env.HOME}/.aspnet/https`;
 
 const certificateArg = process.argv.map(arg => arg.match(/--name=(?<value>.+)/i)).filter(Boolean)[0];
-const certificateName = certificateArg ? certificateArg.groups.value : process.env.npm_package_name;
+const certificateName = certificateArg?.groups?.value ?? process.env.npm_package_name;
 
 if (!certificateName) {
   console.error(
@@ -87,8 +87,8 @@ export default defineConfig({
     },
     port: 5173,
     https: {
-      key: fs.existsSync(keyFilePath) ? fs.readFileSync(keyFilePath) : null,
-      cert: fs.existsSync(certFilePath) ? fs.readFileSync(certFilePath) : null,
+      key: fs.existsSync(keyFilePath) ? fs.readFileSync(keyFilePath) : undefined,
+      cert: fs.existsSync(certFilePath) ? fs.readFileSync(certFilePath) : undefined,
     },
   },
   // Placeholder is replaced with a per-request nonce in Program.cs
