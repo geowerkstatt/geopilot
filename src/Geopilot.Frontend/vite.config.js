@@ -5,7 +5,6 @@ import path from "path";
 import react from "@vitejs/plugin-react";
 import mime from "mime-types";
 import { defineConfig } from "vite";
-import viteTsconfigPaths from "vite-tsconfig-paths";
 
 const baseFolder =
   process.env.APPDATA !== undefined && process.env.APPDATA !== ""
@@ -30,7 +29,6 @@ const keyFilePath = path.join(baseFolder, `${certificateName}.key`);
 export default defineConfig({
   plugins: [
     react(),
-    viteTsconfigPaths(),
     // Simple middleware to serve markdown files from src/assets/docs
     {
       name: "devPublic",
@@ -67,6 +65,7 @@ export default defineConfig({
     },
   ],
   resolve: {
+    tsconfigPaths: true,
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
