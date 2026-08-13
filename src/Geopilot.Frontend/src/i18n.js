@@ -23,6 +23,7 @@ i18n
       useSuspense: false,
       transSupportBasicHtmlNodes: true,
     },
+    load: "languageOnly",
     fallbackLng: Language.EN,
     supportedLngs: Object.values(Language),
     ns: ["common"],

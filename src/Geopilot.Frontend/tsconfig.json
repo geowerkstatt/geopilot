@@ -4,7 +4,7 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "jsx": "react-jsx",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "types": ["vite/client"],
     "allowImportingTsExtensions": true,
     "allowJs": true,
@@ -15,5 +15,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "exclude": ["src/Geopilot.Frontend/cypress"]
+  "exclude": ["./cypress", "cypress.config.js", "vite.config.ts"]
 }

@@ -63,6 +63,7 @@ describe("General app tests", () => {
   it("updates the language when the user selects a different language", () => {
     cy.visit("/");
 
+    selectLanguage("en");
     cy.contains("EN");
     cy.contains("Click to select");
 
@@ -126,15 +127,26 @@ describe("General app tests", () => {
     });
   });
 
-  it("keeps the delivery title visible for a region-specific locale (de-CH)", () => {
-    // A region-specific locale must still resolve to a configured language via i18n.resolvedLanguage,
-    // so the title stays visible instead of blanking out. Known limitation, not intended behaviour:
-    // de-CH currently falls back to English rather than de.
-    cy.setCookie("i18next", "de-CH");
+  it("normalises region-specific browser locales to their base language", () => {
+    // Make sure a browser locale like de-CH resolves to de instead of falling back
+    // to English.
+    cy.intercept("**/client-settings.json").as("clientSettings");
 
-    cy.visit("/");
+    [
+      { locale: "de-CH", base: "de" },
+      { locale: "fr-CH", base: "fr" },
+      { locale: "it-CH", base: "it" },
+      { locale: "en-US", base: "en" },
+    ].forEach(({ locale, base }) => {
+      cy.setCookie("i18next", locale);
 
-    cy.dataCy("delivery-title").should("be.visible").and("not.be.empty");
+      cy.visit("/");
+
+      cy.wait("@clientSettings").then(interception => {
+        const expectedTitle = interception.response.body.application.localTitle[base];
+        cy.dataCy("delivery-title").should("be.visible").and("contain", expectedTitle);
+      });
+    });
   });
 
   it("hides the delivery title when none is configured", () => {
