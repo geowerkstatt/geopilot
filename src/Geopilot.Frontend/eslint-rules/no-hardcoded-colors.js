@@ -1,5 +1,3 @@
-"use strict";
-
 // Matches 3, 4, 6 and 8 digit hex colors (e.g. #fff, #ffff, #124A4F, #124A4F33).
 const HEX_COLOR_REGEX = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/;
 // Matches rgb() and rgba() colors (e.g. rgb(18, 74, 79), rgba(18, 74, 79, 0.5)).
@@ -148,4 +146,4 @@ const rule = {
   },
 };
 
-module.exports = rule;
+export default rule;

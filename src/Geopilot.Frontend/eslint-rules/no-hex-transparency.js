@@ -1,5 +1,3 @@
-"use strict";
-
 // Flags hex colors that carry an alpha channel (8-digit #RRGGBBAA or 4-digit #RGBA shorthand) and
 // points to alpha() from @mui/material/styles instead. Deriving transparency from a base color with
 // alpha() keeps the base swappable and the opacity readable, rather than baking an opaque alpha byte
@@ -63,4 +61,4 @@ const rule = {
   },
 };
 
-module.exports = rule;
+export default rule;

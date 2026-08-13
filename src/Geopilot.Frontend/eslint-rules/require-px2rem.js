@@ -1,5 +1,3 @@
-"use strict";
-
 // Matches a rem length inside a string, e.g. "1rem", "0.5rem", ".5rem", "16rem" and composite
 // values like "0 0.5rem". A digit (or leading dot) must sit right before "rem" so unrelated words
 // that merely contain the letters "rem" are never flagged.
@@ -103,4 +101,4 @@ const rule = {
   },
 };
 
-module.exports = rule;
+export default rule;

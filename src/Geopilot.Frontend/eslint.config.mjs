@@ -6,11 +6,11 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import { defineConfig, globalIgnores } from "eslint/config";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import noHardcodedColors from "./eslint-rules/no-hardcoded-colors.cjs";
-import noHexTransparency from "./eslint-rules/no-hex-transparency.cjs";
-import noUndefinedPaletteColors from "./eslint-rules/no-undefined-palette-colors.cjs";
-import requirePx2rem from "./eslint-rules/require-px2rem.cjs";
-import requireThemeRadius from "./eslint-rules/require-theme-radius.cjs";
+import noHardcodedColors from "./eslint-rules/no-hardcoded-colors.js";
+import noHexTransparency from "./eslint-rules/no-hex-transparency.js";
+import noUndefinedPaletteColors from "./eslint-rules/no-undefined-palette-colors.js";
+import requirePx2rem from "./eslint-rules/require-px2rem.js";
+import requireThemeRadius from "./eslint-rules/require-theme-radius.js";
 
 const buttonImportRestriction = {
   name: "@mui/material",

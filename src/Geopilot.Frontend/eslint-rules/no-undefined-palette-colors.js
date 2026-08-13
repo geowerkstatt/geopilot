@@ -1,8 +1,6 @@
-"use strict";
-
-const fs = require("fs");
-const path = require("path");
-const ts = require("typescript");
+import fs from "fs";
+import { fileURLToPath } from "url";
+import ts from "typescript";
 
 // Enforces that every explicit palette access (theme.palette.X member access and MUI sx string
 // shorthands such as color: "text.primary") refers to a path actually defined in appPalette.ts. MUI
@@ -19,7 +17,7 @@ const IGNORED_ROOTS = new Set(["mode", "contrastThreshold", "tonalOffset", "getC
 // without hardcoding any list of group names; the allowed paths come solely from themePalette.
 const PALETTE_TOKEN = /^[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9]+)+$/;
 
-const APP_PALETTE_PATH = path.resolve(__dirname, "..", "src", "appPalette.ts");
+const APP_PALETTE_PATH = fileURLToPath(new URL("../src/appPalette.ts", import.meta.url));
 
 // Reads appPalette.ts, finds the `themePalette` object literal, and returns the set of every dotted
 // path in it (intermediate and leaf), e.g. "primary", "primary.states", "primary.states.hover".
@@ -179,4 +177,4 @@ const rule = {
   },
 };
 
-module.exports = rule;
+export default rule;

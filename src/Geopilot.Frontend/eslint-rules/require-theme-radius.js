@@ -1,5 +1,3 @@
-"use strict";
-
 // A property sets a border radius when its (camelCase) name starts with "border" and ends in
 // "radius": borderRadius, the four corner properties (borderTopLeftRadius, ...) and the CSS logical
 // variants (borderStartStartRadius, ...). The "border" prefix requirement avoids flagging unrelated
@@ -113,4 +111,4 @@ const rule = {
   },
 };
 
-module.exports = rule;
+export default rule;
