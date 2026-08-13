@@ -67,9 +67,7 @@ const UserDetail = () => {
         data={editableUser ? prepareUserForForm(editableUser) : undefined}
         apiEndpoint="/api/v1/user"
         saveErrorLabel="userSaveError"
-        prepareDataForSave={prepareUserForSave}
-        prepareDataAfterSave={prepareUserForForm}
-        onSaveSuccess={setEditableUser}>
+        prepareDataForSave={prepareUserForSave}>
         <GeopilotBox>
           <Typography variant={"h3"} sx={{ margin: 0 }}>
             {t("description")}

@@ -3,7 +3,8 @@ import { FieldValues, FormProvider, KeepStateOptions, useForm } from "react-hook
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "@mui/icons-material";
-import { CircularProgress, Stack, Typography } from "@mui/material";
+import { Box, CircularProgress, Stack, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import useFetch from "../hooks/useFetch.ts";
 import { Button } from "./buttons.tsx";
 import { useControlledNavigate } from "./controlledNavigate";
@@ -25,8 +26,6 @@ interface AdminDetailFormProps<T> {
   apiEndpoint: string;
   saveErrorLabel: string;
   prepareDataForSave: (data: FieldValues) => T;
-  prepareDataAfterSave?: (data: T) => T;
-  onSaveSuccess: (savedData: T) => void;
   children: ReactNode;
 }
 
@@ -37,8 +36,6 @@ const AdminDetailForm = <T extends { id: number }>({
   apiEndpoint,
   saveErrorLabel,
   prepareDataForSave,
-  prepareDataAfterSave,
-  onSaveSuccess,
   children,
 }: AdminDetailFormProps<T>) => {
   const { t } = useTranslation();
@@ -51,49 +48,22 @@ const AdminDetailForm = <T extends { id: number }>({
   const dataIdRef = useRef<number | undefined>(data?.id);
 
   const saveData = useCallback(
-    async (formData: FieldValues, reloadAfterSave = true) => {
+    async (formData: FieldValues) => {
       const id = dataIdRef.current || 0;
       const dataToSave = prepareDataForSave(formData);
       dataToSave.id = id;
-      const response = await fetchApi(apiEndpoint, {
+      await fetchApi(apiEndpoint, {
         method: id === 0 ? "POST" : "PUT",
         body: JSON.stringify(dataToSave),
         errorMessageLabel: saveErrorLabel,
       });
-      const savedData = response as T;
-      const newFormData = prepareDataAfterSave ? prepareDataAfterSave(savedData) : savedData;
-
-      if (reloadAfterSave) {
-        onSaveSuccess(savedData);
-        formMethods.reset(newFormData, resetOptions);
-
-        if (id === 0) {
-          const newPath = `${basePath}/${savedData.id}`;
-          navigate(newPath, { replace: true });
-          unregisterCheckIsDirty(`${basePath}/0`);
-          registerCheckIsDirty(newPath);
-        }
-      }
-
-      return savedData;
     },
-    [
-      apiEndpoint,
-      basePath,
-      fetchApi,
-      formMethods,
-      navigate,
-      onSaveSuccess,
-      prepareDataForSave,
-      prepareDataAfterSave,
-      registerCheckIsDirty,
-      saveErrorLabel,
-      unregisterCheckIsDirty,
-    ],
+    [apiEndpoint, fetchApi, prepareDataForSave, saveErrorLabel],
   );
 
   const submitForm = async (data: FieldValues) => {
-    await saveData(data, true);
+    await saveData(data);
+    navigate(basePath);
   };
 
   useEffect(() => {
@@ -123,7 +93,7 @@ const AdminDetailForm = <T extends { id: number }>({
               label: "save",
               variant: "contained",
               action: () => {
-                saveData(formMethods.getValues(), false).then(() => leaveEditingPage(true));
+                formMethods.handleSubmit(data => saveData(data).then(() => leaveEditingPage(true)))();
               },
             });
           }
@@ -151,28 +121,44 @@ const AdminDetailForm = <T extends { id: number }>({
         </Stack>
       ) : (
         <FormProvider {...formMethods}>
-          <form onSubmit={event => formMethods.handleSubmit(submitForm)(event)}>
-            <Stack>
-              {children}
-              <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                <Button
-                  disabled={!formMethods.formState.isDirty}
-                  onClick={() => formMethods.reset(data, resetOptions)}
-                  label={"reset"}
-                />
-                <Button
-                  variant="contained"
-                  disabled={
-                    formMethods.formState.isSubmitting ||
-                    !formMethods.formState.isDirty ||
-                    (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
-                  }
-                  onClick={() => formMethods.handleSubmit(submitForm)()}
-                  label={"save"}
-                />
+          <Box sx={{ position: "relative" }}>
+            <form onSubmit={event => formMethods.handleSubmit(submitForm)(event)}>
+              <Stack>
+                {children}
+                <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <Button
+                    disabled={!formMethods.formState.isDirty}
+                    onClick={() => formMethods.reset(data, resetOptions)}
+                    label={"reset"}
+                  />
+                  <Button
+                    variant="contained"
+                    disabled={
+                      formMethods.formState.isSubmitting ||
+                      !formMethods.formState.isDirty ||
+                      (formMethods.formState.errors && Object.keys(formMethods.formState.errors).length > 0)
+                    }
+                    onClick={() => formMethods.handleSubmit(submitForm)()}
+                    label={"save"}
+                  />
+                </Stack>
               </Stack>
-            </Stack>
-          </form>
+            </form>
+            {formMethods.formState.isSubmitting && (
+              <Stack
+                data-cy="form-saving-overlay"
+                sx={theme => ({
+                  position: "absolute",
+                  inset: 0,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: alpha(theme.palette.background.content, 0.6),
+                  zIndex: 1,
+                })}>
+                <CircularProgress />
+              </Stack>
+            )}
+          </Box>
         </FormProvider>
       )}
     </Stack>
