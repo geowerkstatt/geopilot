@@ -265,7 +265,7 @@ describe("Delivery tests", () => {
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     uploadFile();
 
-    cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
+    cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
     cy.wait("@getMandates");
 
     selectMandate(1);

@@ -31,6 +31,16 @@ export interface Coordinate {
   y: number | undefined;
 }
 
+export interface MandateSummary {
+  id: number;
+  name: LocalizedText;
+  description: LocalizedText;
+  allowDelivery: boolean;
+  evaluatePrecursorDelivery: FieldEvaluationType;
+  evaluatePartial: FieldEvaluationType;
+  evaluateComment: FieldEvaluationType;
+}
+
 export interface Mandate {
   id: number;
   name: LocalizedText;

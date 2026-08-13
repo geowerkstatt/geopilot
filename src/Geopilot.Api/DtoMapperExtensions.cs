@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
@@ -124,5 +125,20 @@ internal static class DtoMapperExtensions
             step.ConditionMessage,
             downloads,
             visualizations);
+    }
+
+    /// <summary>
+    /// Maps a <see cref="Mandate"/> to a <see cref="MandateSummary"/>.
+    /// </summary>
+    public static MandateSummary ToSummary(this Mandate mandate)
+    {
+        return new MandateSummary(
+            mandate.Id,
+            mandate.Name,
+            mandate.Description,
+            mandate.AllowDelivery,
+            mandate.EvaluatePrecursorDelivery,
+            mandate.EvaluatePartial,
+            mandate.EvaluateComment);
     }
 }

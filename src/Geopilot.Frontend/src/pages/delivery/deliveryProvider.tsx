@@ -2,7 +2,7 @@ import { FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useStat
 import {
   ApiError,
   LocalizedText,
-  Mandate,
+  MandateSummary,
   ProcessingJobResponse,
   RawProcessingJobResponse,
   StartJobRequest,
@@ -75,7 +75,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [processingStarted, setProcessingStarted] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileUploadStatus, setFileUploadStatus] = useState<Map<string, FileUploadStatus>>(new Map());
-  const [selectedMandate, setSelectedMandate] = useState<Mandate>();
+  const [selectedMandate, setSelectedMandate] = useState<MandateSummary>();
   const [uploadId, setUploadId] = useState<string>();
   const [jobId, setJobId] = useState<string>();
   const [processingResponse, setProcessingResponse] = useState<ProcessingJobResponse>();
@@ -297,7 +297,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       });
   };
 
-  const startProcessing = (mandate: Mandate) => {
+  const startProcessing = (mandate: MandateSummary) => {
     if (!uploadId || isLoading) return;
 
     setSteps(prevSteps => {

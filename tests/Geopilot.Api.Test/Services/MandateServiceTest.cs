@@ -161,23 +161,9 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesAsNonAdminUser()
-    {
-        var result = await mandateService.GetMandatesAsync(editUser);
-
-        ContainsMandate(result, unrestrictedMandate);
-        ContainsMandate(result, noDeliveryMandate);
-        ContainsMandate(result, xtfMandate);
-        ContainsMandate(result, publicCsvMandate);
-        DoesNotContainMandate(result, noOrganisationsMandate);
-        DoesNotContainMandate(result, noPermissionMandate);
-        ContainsMandate(result, missingPipelineMandate);
-    }
-
-    [TestMethod]
     public async Task GetMandatesAsAdminUser()
     {
-        var result = await mandateService.GetMandatesAsync(adminUser);
+        var result = await mandateService.GetMandatesAsync();
 
         ContainsMandate(result, unrestrictedMandate);
         ContainsMandate(result, noDeliveryMandate);
@@ -217,20 +203,6 @@ public class MandateServiceTest
         ContainsMandate(result, noPermissionMandate);
         DoesNotContainMandate(result, noOrganisationsMandate);
         DoesNotContainMandate(result, publicCsvMandate);
-        DoesNotContainMandate(result, missingPipelineMandate);
-    }
-
-    [TestMethod]
-    public async Task GetMandatesAsUnauthenticated()
-    {
-        var result = await mandateService.GetMandatesAsync(null);
-
-        ContainsMandate(result, publicCsvMandate);
-        DoesNotContainMandate(result, xtfMandate);
-        DoesNotContainMandate(result, unrestrictedMandate);
-        DoesNotContainMandate(result, noDeliveryMandate);
-        DoesNotContainMandate(result, noOrganisationsMandate);
-        DoesNotContainMandate(result, noPermissionMandate);
         DoesNotContainMandate(result, missingPipelineMandate);
     }
 
