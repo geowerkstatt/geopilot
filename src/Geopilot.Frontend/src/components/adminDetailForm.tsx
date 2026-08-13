@@ -93,7 +93,7 @@ const AdminDetailForm = <T extends { id: number }>({
               label: "save",
               variant: "contained",
               action: () => {
-                saveData(formMethods.getValues()).then(() => leaveEditingPage(true));
+                formMethods.handleSubmit(data => saveData(data).then(() => leaveEditingPage(true)))();
               },
             });
           }
