@@ -158,19 +158,18 @@ const AdminDetailForm = <T extends { id: number }>({
               </Stack>
             </form>
             {formMethods.formState.isSubmitting && (
-              <Box
+              <Stack
                 data-cy="form-saving-overlay"
                 sx={theme => ({
                   position: "absolute",
                   inset: 0,
-                  display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: alpha(theme.palette.background.content, 0.6),
                   zIndex: 1,
                 })}>
                 <CircularProgress />
-              </Box>
+              </Stack>
             )}
           </Box>
         </FormProvider>
