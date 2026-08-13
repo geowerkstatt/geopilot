@@ -63,6 +63,7 @@ describe("General app tests", () => {
   it("updates the language when the user selects a different language", () => {
     cy.visit("/");
 
+    selectLanguage("en");
     cy.contains("EN");
     cy.contains("Click to select");
 
@@ -126,19 +127,26 @@ describe("General app tests", () => {
     });
   });
 
-  it("resolves a region-specific locale (de-CH) to English", () => {
-    // Premise under test: a de-CH browser locale falls back to English. If this assertion fails,
-    // de-CH resolved to another language (see the logged cookie), so the premise is wrong.
-    cy.setCookie("i18next", "de-CH");
+  it("normalises region-specific browser locales to their base language", () => {
+    // With load: "languageOnly", a browser locale like de-CH resolves to de instead of falling back
+    // to English. We assert the rendered title (the resolved language); the raw i18next cookie keeps
+    // the region code, so it is not a reliable check here. Covered for all four supported languages.
     cy.intercept("**/client-settings.json").as("clientSettings");
 
-    cy.visit("/");
+    [
+      { locale: "de-CH", base: "de" },
+      { locale: "fr-CH", base: "fr" },
+      { locale: "it-CH", base: "it" },
+      { locale: "en-US", base: "en" },
+    ].forEach(({ locale, base }) => {
+      cy.setCookie("i18next", locale);
 
-    cy.wait("@clientSettings").then(interception => {
-      const englishTitle = interception.response.body.application.localTitle.en;
-      cy.dataCy("delivery-title").should("be.visible");
-      cy.getCookie("i18next").then(cookie => cy.log(`resolved i18next cookie = ${cookie && cookie.value}`));
-      cy.dataCy("delivery-title").should("contain", englishTitle);
+      cy.visit("/");
+
+      cy.wait("@clientSettings").then(interception => {
+        const expectedTitle = interception.response.body.application.localTitle[base];
+        cy.dataCy("delivery-title").should("be.visible").and("contain", expectedTitle);
+      });
     });
   });
 
