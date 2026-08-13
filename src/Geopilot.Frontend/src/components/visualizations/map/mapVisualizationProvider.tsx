@@ -1,7 +1,6 @@
 import { FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Theme, useTheme } from "@mui/material/styles";
-import { defaults as defaultControls } from "ol/control";
 import { Condition, platformModifierKeyOnly } from "ol/events/condition";
 import { Extent, getCenter } from "ol/extent";
 import { MAC } from "ol/has";
@@ -236,7 +235,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
 
     const map = new Map({
       overlays: [selectionOverlay],
-      controls: defaultControls({ zoom: false, rotate: false, attribution: false }),
+      controls: [],
       interactions,
       view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
     });
