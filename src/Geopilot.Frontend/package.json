@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "ts": "tsc --noEmit",
+    "ts": "tsc --noEmit && tsc --noEmit --project cypress/tsconfig.json",
     "lint": "eslint . --ext .json --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext .json --report-unused-disable-directives --max-warnings 0 --fix",
     "knip": "knip",

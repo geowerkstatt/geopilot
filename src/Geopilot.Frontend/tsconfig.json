@@ -15,5 +15,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "exclude": ["src/Geopilot.Frontend/cypress"]
+  "exclude": ["./cypress", "cypress.config.js", "vite.config.ts"]
 }
