@@ -70,8 +70,7 @@ const OrganisationDetail = () => {
       data={organisation}
       apiEndpoint="/api/v1/organisation"
       saveErrorLabel="organisationSaveError"
-      prepareDataForSave={prepareOrganisationForSave}
-      onSaveSuccess={setOrganisation}>
+      prepareDataForSave={prepareOrganisationForSave}>
       <GeopilotBox>
         <Typography variant={"h3"} margin={0}>
           {t("description")}

@@ -26,8 +26,6 @@ interface AdminDetailFormProps<T> {
   apiEndpoint: string;
   saveErrorLabel: string;
   prepareDataForSave: (data: FieldValues) => T;
-  prepareDataAfterSave?: (data: T) => T;
-  onSaveSuccess: (savedData: T) => void;
   children: ReactNode;
 }
 
@@ -38,8 +36,6 @@ const AdminDetailForm = <T extends { id: number }>({
   apiEndpoint,
   saveErrorLabel,
   prepareDataForSave,
-  prepareDataAfterSave,
-  onSaveSuccess,
   children,
 }: AdminDetailFormProps<T>) => {
   const { t } = useTranslation();
@@ -52,30 +48,21 @@ const AdminDetailForm = <T extends { id: number }>({
   const dataIdRef = useRef<number | undefined>(data?.id);
 
   const saveData = useCallback(
-    async (formData: FieldValues, reloadAfterSave = true) => {
+    async (formData: FieldValues) => {
       const id = dataIdRef.current || 0;
       const dataToSave = prepareDataForSave(formData);
       dataToSave.id = id;
-      const response = await fetchApi(apiEndpoint, {
+      await fetchApi(apiEndpoint, {
         method: id === 0 ? "POST" : "PUT",
         body: JSON.stringify(dataToSave),
         errorMessageLabel: saveErrorLabel,
       });
-      const savedData = response as T;
-      const newFormData = prepareDataAfterSave ? prepareDataAfterSave(savedData) : savedData;
-
-      if (reloadAfterSave) {
-        onSaveSuccess(savedData);
-        formMethods.reset(newFormData, resetOptions);
-      }
-
-      return savedData;
     },
-    [apiEndpoint, fetchApi, formMethods, onSaveSuccess, prepareDataForSave, prepareDataAfterSave, saveErrorLabel],
+    [apiEndpoint, fetchApi, prepareDataForSave, saveErrorLabel],
   );
 
   const submitForm = async (data: FieldValues) => {
-    await saveData(data, false);
+    await saveData(data);
     navigate(basePath);
   };
 
@@ -106,7 +93,7 @@ const AdminDetailForm = <T extends { id: number }>({
               label: "save",
               variant: "contained",
               action: () => {
-                saveData(formMethods.getValues(), false).then(() => leaveEditingPage(true));
+                saveData(formMethods.getValues()).then(() => leaveEditingPage(true));
               },
             });
           }

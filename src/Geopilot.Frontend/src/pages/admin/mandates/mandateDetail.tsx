@@ -103,8 +103,7 @@ const MandateDetail = () => {
       data={mandate}
       apiEndpoint="/api/v1/mandate"
       saveErrorLabel="mandateSaveError"
-      prepareDataForSave={prepareMandateForSave}
-      onSaveSuccess={setMandate}>
+      prepareDataForSave={prepareMandateForSave}>
       <GeopilotBox>
         <Stack direction="row" justifyContent="space-between">
           <Typography variant={"h3"} marginTop={0}>
