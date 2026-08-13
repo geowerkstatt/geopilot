@@ -71,7 +71,16 @@ export const OverflowChips = ({ value, getItemProps }: OverflowChipsProps) => {
       <Box
         ref={measureRef}
         aria-hidden
-        sx={{ position: "absolute", top: 0, left: 0, display: "flex", visibility: "hidden", pointerEvents: "none" }}>
+        sx={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          overflow: "hidden", // Prevents scrollbars, but child elements keep their natural width for measurement.
+          display: "flex",
+          visibility: "hidden",
+          pointerEvents: "none",
+        }}>
         {value.map((option, index) => renderChip(option, index))}
       </Box>
     </>
