@@ -30,7 +30,7 @@ const GeopilotAuthContextMerger: FC<PropsWithChildren> = ({ children }) => {
 
   const getLoginFunction = () => {
     if (!auth) return () => {};
-    if (window.Cypress) {
+    if ("Cypress" in window && window.Cypress) {
       return auth.signinRedirect;
     } else {
       return auth.signinPopup;

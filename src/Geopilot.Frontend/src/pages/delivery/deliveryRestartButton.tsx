@@ -1,5 +1,5 @@
 import { forwardRef, useContext } from "react";
-import { ButtonProps as MuiButtonProps } from "@mui/material/Button/Button";
+import { ButtonProps as MuiButtonProps } from "@mui/material/Button";
 import { Button } from "../../components/buttons";
 import { PromptContext } from "../../components/prompt/promptContext";
 import { PromptAction } from "../../components/prompt/promptInterfaces";
