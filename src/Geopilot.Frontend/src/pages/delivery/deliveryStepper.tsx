@@ -143,7 +143,7 @@ export const DeliveryStepper = () => {
                   width: "100%",
                   height: STEPPER_HEIGHT,
                   flexShrink: 0,
-                  pY: 0,
+                  py: 0,
                   justifyContent: "center",
                 },
               }}>
