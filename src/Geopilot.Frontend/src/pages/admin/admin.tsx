@@ -107,11 +107,15 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           <>
             <Stack
               direction="row"
-              py={1}
-              px={2}
-              sx={{ alignItems: "center", flexWrap: "wrap", cursor: "pointer" }}
               onClick={() => {
                 navigate("/");
+              }}
+              sx={{
+                py: 1,
+                px: 2,
+                alignItems: "center",
+                flexWrap: "wrap",
+                cursor: "pointer",
               }}>
               {clientSettings?.application?.logo && (
                 <Box>

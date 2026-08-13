@@ -14,15 +14,15 @@ const Footer = () => {
     <Stack sx={{ paddingLeft: "calc(100vw - 100%)" }}>
       <Stack
         direction="row"
-        pb={1}
-        px={3}
+        className="footer"
         sx={{
+          pb: 1,
+          px: 3,
           alignItems: "center",
           justifyContent: "center",
           flexWrap: "wrap",
           marginLeft: { xs: "0", md: marginLeft },
-        }}
-        className="footer">
+        }}>
         <Button
           size={isXs ? "small" : "medium"}
           variant="text"

@@ -106,8 +106,8 @@ const MandateDetail = () => {
       prepareDataForSave={prepareMandateForSave}
       onSaveSuccess={setMandate}>
       <GeopilotBox>
-        <Stack direction="row" justifyContent="space-between">
-          <Typography variant={"h3"} marginTop={0}>
+        <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+          <Typography variant={"h3"} sx={{ marginTop: 0 }}>
             {t("general")}
           </Typography>
           <FormLanguageTabs language={activeLanguage} onLanguageChange={setActiveLanguage} />
@@ -135,13 +135,13 @@ const MandateDetail = () => {
         </FormContainer>
       </GeopilotBox>
       <GeopilotBox>
-        <Typography variant={"h3"} marginTop={0}>
+        <Typography variant={"h3"} sx={{ marginTop: 0 }}>
           {t("configuration")}
         </Typography>
         <MandateConfigurationFields mandate={mandate} organisations={organisations} pipelines={pipelines} />
       </GeopilotBox>
       <GeopilotBox>
-        <Typography variant={"h3"} marginTop={0}>
+        <Typography variant={"h3"} sx={{ marginTop: 0 }}>
           {t("deliveryForm")}
         </Typography>
         <FormContainer>
@@ -183,7 +183,7 @@ const MandateDetail = () => {
       </GeopilotBox>
       <GeopilotBox>
         <Stack direction="row">
-          <Typography variant={"h3"} marginTop={0}>
+          <Typography variant={"h3"} sx={{ marginTop: 0 }}>
             {t("spatialExtent")}
           </Typography>
           <FormHelperText>{t("spatialExtentHelperText")}</FormHelperText>

@@ -203,11 +203,11 @@ export const TreeVisualization = ({
   if (nodes.length === 0 && !filterActive) return null;
 
   return (
-    <Stack ref={measureContainer} sx={{ width: "100%", minHeight: 0 }} gap={1}>
+    <Stack ref={measureContainer} sx={{ width: "100%", minHeight: 0 }} spacing={1}>
       <Stack
         direction="row"
         sx={{ alignItems: "center", justifyContent: expandableIds.length > 0 ? "space-between" : "flex-start" }}>
-        <Typography variant="body2" m={0}>
+        <Typography variant="body2" sx={{ m: 0 }}>
           {filterActive
             ? t("treeErrorCountFiltered", { count: totalCount, shown: shownCount })
             : t("treeErrorCount", { count: totalCount })}
@@ -239,11 +239,10 @@ export const TreeVisualization = ({
             <SimpleTreeView
               ref={treeRef}
               selectedItems={selectedId}
-              onSelectedItemsChange={(_: SyntheticEvent, itemId: string | null) => onSelect(itemId)}
+              onSelectedItemsChange={(_: SyntheticEvent | null, itemId: string | null) => onSelect(itemId)}
               expandedItems={expandedItems}
-              onExpandedItemsChange={(_: SyntheticEvent, itemIds: string[]) => setExpandedItems(itemIds)}
+              onExpandedItemsChange={(_: SyntheticEvent | null, itemIds: string[]) => setExpandedItems(itemIds)}
               sx={{
-                "& .MuiTreeItem-content": { pl: 0 },
                 "& .tree-zoom-button": { opacity: 0, transition: "opacity 0.1s ease" },
                 "& .MuiTreeItem-content:hover .tree-zoom-button": { opacity: 1 },
                 // Keyboard focus of the button and touch devices (no hover) still reveal it; selection alone

@@ -1,5 +1,5 @@
 import { ComponentType, ReactNode } from "react";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlineOutlined";
 import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { Box, Stack, SvgIconProps, Typography } from "@mui/material";
@@ -25,7 +25,14 @@ const renderLabel = (node: TreeNode, action?: ReactNode): ReactNode => (
       {node.message}
     </Typography>
     {node.count > 0 && (
-      <Typography variant="body2" color="text.secondary" ml={1} sx={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          ml: 1,
+          flexShrink: 0,
+          whiteSpace: "nowrap",
+        }}>
         ( {node.count} )
       </Typography>
     )}
@@ -42,7 +49,7 @@ interface RenderTreeOptions {
   zoomableNodeIds?: ReadonlySet<string>;
 }
 
-export const renderTreeItems = (nodes: TreeNode[], prefix = "n", options?: RenderTreeOptions): ReactNode =>
+export const renderTreeItems = (nodes: TreeNode[], prefix = "n", options?: RenderTreeOptions, depth = 0): ReactNode =>
   nodes.flatMap((node, index) => {
     const id = nodeId(prefix, index);
     const hasChildren = node.values && node.values.length > 0;
@@ -66,14 +73,20 @@ export const renderTreeItems = (nodes: TreeNode[], prefix = "n", options?: Rende
       ) : null;
     const item = (
       <TreeItem key={id} itemId={id} label={renderLabel(node, zoomButton)}>
-        {hasChildren ? renderTreeItems(node.values!, id, options) : null}
+        {hasChildren ? renderTreeItems(node.values!, id, options, depth + 1) : null}
       </TreeItem>
     );
 
     if (options?.inlinePanel && options.selectedId === id) {
       return [
         item,
-        <Box key={`${id}-panel`} sx={{ pl: 4, py: 1 }}>
+        <Box
+          key={`${id}-panel`}
+          sx={{
+            pl: theme =>
+              `calc(${theme.spacing(4)} + var(--TreeView-itemChildrenIndentation, ${theme.spacing(1.5)}) * ${depth})`,
+            py: 1,
+          }}>
           {options.inlinePanel}
         </Box>,
       ];

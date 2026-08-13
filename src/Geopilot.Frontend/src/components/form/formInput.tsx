@@ -94,7 +94,7 @@ export const FormInput: FC<FormInputProps> = ({
         onChange={e => onChange(e.target.value)}
         disabled={disabled || false}
         data-cy={dataCy ?? (fieldName ? fieldName + "-formInput" : undefined)}
-        InputProps={{ ...inputProps }}
+        slotProps={{ input: { ...inputProps } }}
       />
     );
   }
@@ -138,7 +138,7 @@ export const FormInput: FC<FormInputProps> = ({
       defaultValue={getDefaultValue(value)}
       disabled={disabled || false}
       data-cy={dataCy ?? fieldName + "-formInput"}
-      InputProps={{ ...inputProps }}
+      slotProps={{ input: { ...inputProps } }}
     />
   );
 };

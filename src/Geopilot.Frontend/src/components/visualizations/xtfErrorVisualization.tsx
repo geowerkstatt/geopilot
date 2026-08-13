@@ -1,4 +1,4 @@
-import { FC, Reducer, useCallback, useMemo, useReducer, useState } from "react";
+import { FC, useCallback, useMemo, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { Box, Modal, Stack, useTheme } from "@mui/material";
@@ -43,10 +43,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
   const theme = useTheme();
   const [messageQuery, setMessageQuery] = useState("");
   const [fieldFilters, setFieldFilters] = useState<FieldFilters>({});
-  const [{ selectedNodeId, selectionToken }, setSelectedNodeId] = useReducer<
-    Reducer<NodeSelectionState, string | null>
-  >(
-    (state, nodeId) => ({
+  const [{ selectedNodeId, selectionToken }, setSelectedNodeId] = useReducer(
+    (state: NodeSelectionState, nodeId: string | null): NodeSelectionState => ({
       selectedNodeId: nodeId,
       selectionToken: state.selectionToken + 1, // automatically increment the token every time setSelectedNodeId is called, so the tree can scroll to the new selection
     }),
@@ -176,8 +174,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
         />
       )}
       {config.map && fullscreen ? (
-        <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
-          <ScrollMarginProvider scrollMarginTop="0px" scrollMarginBottom="0px">
+        <ScrollMarginProvider scrollMarginTop="0px" scrollMarginBottom="0px">
+          <Modal open onClose={() => setFullscreen(false)} sx={{ padding: 4 }}>
             <Box {...stopStepSwipePropagation} sx={{ width: "100%", height: "100%", position: "relative" }}>
               {map}
               {config.tree && (
@@ -195,8 +193,8 @@ export const XtfErrorVisualization: FC<XtfErrorVisualizationProps> = ({ config }
                 </GeopilotBox>
               )}
             </Box>
-          </ScrollMarginProvider>
-        </Modal>
+          </Modal>
+        </ScrollMarginProvider>
       ) : (
         <Stack sx={{ width: "100%" }}>
           {filter}

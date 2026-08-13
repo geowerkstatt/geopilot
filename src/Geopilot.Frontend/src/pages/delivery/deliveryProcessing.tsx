@@ -120,7 +120,9 @@ export const DeliveryProcessing = () => {
         return (
           <Accordion
             key={step.id}
-            ref={el => (stepRefs.current[step.id] = el)}
+            ref={el => {
+              stepRefs.current[step.id] = el;
+            }}
             expanded={isExpanded}
             onChange={isExpandable ? handleAccordionChange(step.id) : undefined}
             slotProps={{ transition: { onEntered: handleStepExpanded(step.id) } }}

@@ -1,11 +1,11 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { AutocompleteRenderGetTagProps, Box, Chip } from "@mui/material";
+import { AutocompleteGetItemProps, Box, Chip } from "@mui/material";
 
 interface OverflowChipsProps {
   /** The selected option labels, in order. */
   value: string[];
-  /** MUI's per-tag prop factory from Autocomplete's renderTags. */
-  getTagProps: AutocompleteRenderGetTagProps;
+  /** MUI's per-item prop factory from Autocomplete's renderValue. */
+  getItemProps: AutocompleteGetItemProps<true>;
 }
 
 /**
@@ -14,7 +14,7 @@ interface OverflowChipsProps {
  * their natural width, so the count adapts to the field width and the chips' actual widths (short values stay
  * visible where a fixed limit would hide them). The output does not depend on focus, so the field never jumps.
  */
-export const OverflowChips = ({ value, getTagProps }: OverflowChipsProps) => {
+export const OverflowChips = ({ value, getItemProps }: OverflowChipsProps) => {
   const measureRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(value.length);
   // A stable key so the fit is only recomputed when the selection changes, not on every render.
@@ -51,14 +51,14 @@ export const OverflowChips = ({ value, getTagProps }: OverflowChipsProps) => {
   const hidden = value.length - visibleCount;
 
   const renderChip = (option: string, index: number) => {
-    const { key, ...tagProps } = getTagProps({ index });
+    const { key, ...itemProps } = getItemProps({ index });
     return (
       <Chip
         key={key}
         size="small"
         label={option}
         sx={{ "& .MuiChip-deleteIcon": { fontSize: "18px" } }}
-        {...tagProps}
+        {...itemProps}
       />
     );
   };

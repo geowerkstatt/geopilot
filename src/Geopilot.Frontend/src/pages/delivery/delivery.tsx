@@ -48,7 +48,7 @@ const Delivery: FC<DeliveryProps> = ({ stepSwipeRef }) => {
           {applicationTitle}
         </Typography>
       )}
-      <DeliveryContainer direction={{ xs: "column", md: "row" }} m={{ xs: 0, md: 0 }}>
+      <DeliveryContainer direction={{ xs: "column", md: "row" }} sx={{ m: { xs: 0, md: 0 } }}>
         <DeliveryStepper />
         <DeliveryContentCarousel />
       </DeliveryContainer>

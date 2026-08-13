@@ -40,7 +40,7 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
           />
         </FormContainerHalfWidth>
       </FormContainer>
-      <FormContainer alignItems="center">
+      <FormContainer sx={{ alignItems: "center" }}>
         <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
         {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
       </FormContainer>

@@ -73,7 +73,7 @@ const OrganisationDetail = () => {
       prepareDataForSave={prepareOrganisationForSave}
       onSaveSuccess={setOrganisation}>
       <GeopilotBox>
-        <Typography variant={"h3"} margin={0}>
+        <Typography variant={"h3"} sx={{ margin: 0 }}>
           {t("description")}
         </Typography>
         <FormContainer>

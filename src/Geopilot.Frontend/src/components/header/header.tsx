@@ -140,7 +140,7 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
               )}
             </Box>
           </Stack>
-          <Stack direction="row" alignItems="center">
+          <Stack direction="row" sx={{ alignItems: "center" }}>
             <LanguagePopup />
             {authLoaded &&
               (user ? (
@@ -160,8 +160,8 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
       </AppBar>
       <Drawer anchor={"right"} open={userMenuOpen} onClose={toggleUserMenu(false)} data-cy="tool-navigation">
         <Stack
-          py={2}
           sx={{
+            py: 2,
             justifyContent: "space-between",
             height: "100%",
           }}>

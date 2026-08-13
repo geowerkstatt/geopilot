@@ -95,9 +95,11 @@ export const geopilotTheme = createTheme({
   },
   components: {
     MuiTypography: {
+      defaultProps: {
+        color: "textPrimary",
+      },
       styleOverrides: {
         root: {
-          color: themePalette.text.primary,
           "&.Mui-disabled": {
             opacity: "60%",
             cursor: "default",
@@ -435,7 +437,7 @@ export const geopilotTheme = createTheme({
         },
       },
     },
-    MuiStack: { defaultProps: { gap: 2 } },
+    MuiStack: { defaultProps: { spacing: 2, useFlexGap: true } },
     MuiAlert: {
       defaultProps: {
         iconMapping: {

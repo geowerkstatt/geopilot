@@ -38,10 +38,22 @@ export const FileListItem: FC<FileListItemProps> = ({ file, status, disabled, on
           pb: status?.state !== "neutral" ? 1 : 1.5,
           justifyContent: "space-between",
         }}>
-        <Stack gap={0.5} flex={1}>
-          <Typography variant="body1" color="primary.main" sx={{ wordBreak: "break-word", lineBreak: "anywhere" }}>
+        <Stack spacing={0.5} sx={{ flex: 1 }}>
+          <Typography
+            variant="body1"
+            sx={{
+              color: "primary.main",
+              wordBreak: "break-word",
+              lineBreak: "anywhere",
+            }}>
             {file.name}{" "}
-            <Typography variant="caption" color="primary.light" sx={{ verticalAlign: "middle", whiteSpace: "nowrap" }}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "primary.light",
+                verticalAlign: "middle",
+                whiteSpace: "nowrap",
+              }}>
               ({formatFileSize(file.size)})
             </Typography>
           </Typography>
