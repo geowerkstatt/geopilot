@@ -58,7 +58,7 @@ export const MapVisualization = ({
         border: theme => `1px solid ${fullscreen ? theme.palette.primary.main : theme.palette.primary.light}`,
         borderRadius: theme.radius.default,
         overflow: "hidden",
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: theme.palette.background.content,
       }}>
       <Box
         ref={mapContainerRef}
@@ -78,7 +78,7 @@ export const MapVisualization = ({
             px: 0.75,
             py: 0.25,
             maxWidth: "100%",
-            backgroundColor: alpha(theme.palette.background.paper, 0.7),
+            backgroundColor: alpha(theme.palette.background.content, 0.7),
             borderTopRightRadius: theme.radius.default,
             lineHeight: 1.2,
           }}>

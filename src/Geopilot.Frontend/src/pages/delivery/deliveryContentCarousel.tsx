@@ -50,7 +50,7 @@ export const DeliveryContentCarousel: FC = () => {
     // Mark the destination step live while keeping any steps already mounted for the
     // in-flight animation, so the outgoing box slides out and the incoming box slides
     // in with real content. handleTransitionEnd prunes back to the active step once the
-    // slide settles, leaving the neighbouring boxes unmounted (no peek) at rest.
+    // slide settles, leaving the neighboring boxes unmounted (no peek) at rest.
     setLiveIndices(prev => new Set(prev).add(activeStep));
     setAnimate(true);
   }, [activeStep, isMobile]);
@@ -67,7 +67,7 @@ export const DeliveryContentCarousel: FC = () => {
   // out exactly as a single static panel.
   return (
     <ScrollMarginProvider
-      scrollMarginTop={`calc(${contentTop}px + ${theme.spacing(4)})`}
+      scrollMarginTop={`calc(${contentTop} + ${theme.spacing(4)})`}
       scrollMarginBottom={theme.spacing(4)}>
       <CarouselViewport
         data-cy="delivery-content-carousel"

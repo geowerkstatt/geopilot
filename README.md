@@ -114,6 +114,13 @@ Beim Arbeiten im [Geopilot.Frontend](./src/Geopilot.Frontend/) gelten folgende K
 - Ausschliesslich Farben aus der Theme-Palette verwenden (`theme.palette`), keine Hex-Werte im Code.
 - Fehlt eine benötigte Farbe, einen neuen Eintrag in [`appPalette.ts`](./src/Geopilot.Frontend/src/appPalette.ts) ergänzen und diesen verwenden.
 
+### Grössen
+
+- Für Schriftgrössen (und Grössen generell) rem verwenden, damit die Oberfläche mit der Schriftgrösseneinstellung des Browsers skaliert. Das ist für die Barrierefreiheit wichtig.
+- Keine `rem`-Literale hartcodieren, sondern den Wert in Pixeln über die Hilfsfunktion `px2rem()` in [`appTheme.ts`](./src/Geopilot.Frontend/src/appTheme.ts) ausdrücken (z. B. `px2rem(16)` statt `"1rem"`). In Pixeln zu denken hält den Code lesbar, während trotzdem rem ausgegeben wird.
+- Jede `fontSize` muss über `px2rem()` laufen: kein roher `px`-String (`"16px"`) und keine blosse Zahl (`16`). MUI-Icon-Grössentokens (`fontSize="small"`, `"inherit"`, ...) sind keine CSS-Grössen und ausgenommen.
+- Die ESLint-Regel `local-rules/require-px2rem` setzt beides durch.
+
 ### Vor dem Commit
 
 Die CI schlägt bei Typ- oder Lint-Warnungen fehl sowie bei ungenutztem Code oder ungenutzten Exports. Diese Probleme idealerweise vor dem Commit beheben:

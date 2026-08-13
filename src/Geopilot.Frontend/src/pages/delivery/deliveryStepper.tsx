@@ -4,6 +4,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { StepState } from "../../api/apiInterfaces";
 import { themePalette } from "../../appPalette.ts";
+import { px2rem } from "../../appTheme.ts";
 import { MiddleTruncate } from "../../components/middleTruncate";
 import { StepIcon } from "../../components/stepIcon";
 import { GeopilotBox, pageContentPadding } from "../../components/styledComponents";
@@ -48,7 +49,7 @@ const StepperViewport = styled(Box)(({ theme }) => ({
   minWidth: 300,
   flex: 0,
   position: "sticky",
-  top: `${stepperTopPosition.default}px`,
+  top: stepperTopPosition.default,
   zIndex: 10,
   [theme.breakpoints.down("md")]: {
     overflowX: "hidden",
@@ -56,13 +57,13 @@ const StepperViewport = styled(Box)(({ theme }) => ({
     scrollbarWidth: "none",
     touchAction: "pan-y",
     overscrollBehaviorX: "contain",
-    flex: `0 0 ${STEPPER_HEIGHT}px`,
+    flex: `0 0 ${STEPPER_HEIGHT}`,
     alignItems: "flex-start",
     margin: `0 -${pageContentPadding.default} !important`,
     padding: `0 ${pageContentPadding.default}`,
   },
   [theme.breakpoints.down("sm")]: {
-    top: `${stepperTopPosition.xs}px`,
+    top: stepperTopPosition.xs,
     margin: `0 -${pageContentPadding.xs} !important`,
     padding: `0 ${pageContentPadding.xs}`,
   },
@@ -74,7 +75,7 @@ const StepperStack = styled(Stack)({
 
 const StepDetailTypography = styled(Typography)(({ theme }) => ({
   display: "none",
-  paddingLeft: theme.spacing(5.5),
+  paddingLeft: `calc(${px2rem(28)} + ${theme.spacing(2)})`,
   maxWidth: "100%",
   [theme.breakpoints.up("md")]: {
     display: "block",
@@ -140,8 +141,10 @@ export const DeliveryStepper = () => {
                 [theme.breakpoints.down("md")]: {
                   scrollSnapAlign: "center",
                   width: "100%",
-                  height: `${STEPPER_HEIGHT}px`,
+                  height: STEPPER_HEIGHT,
                   flexShrink: 0,
+                  py: 0,
+                  justifyContent: "center",
                 },
               }}>
               <Stack direction="row" sx={{ alignItems: "center" }}>

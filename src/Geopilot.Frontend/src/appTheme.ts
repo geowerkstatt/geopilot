@@ -8,10 +8,14 @@ import { themePalette } from "./appPalette";
 const defaultTheme = createTheme();
 
 const themeShadows: Shadows = [...defaultTheme.shadows];
-const themeSpacing: Spacing = defaultTheme.spacing;
+export const themeSpacing: Spacing = createTheme({ spacing: (factor: number) => 8 * factor }).spacing;
+
+export const NEOGEO_LETTERSPACING = "0.05em";
+export const NEOGEO_FONTWEIGHT_REGULAR = 400;
+export const NEOGEO_FONTWEIGHT_BOLD = 600;
+export const px2rem = (pxValue: number) => `${pxValue / 16}rem`;
 
 const DEFAULT_BORDER_RADIUS = 4;
-
 const themeRadius: ThemeOptions["radius"] = {
   none: "0px",
   default: `${DEFAULT_BORDER_RADIUS}px`,
@@ -35,62 +39,71 @@ export const geopilotTheme = createTheme({
   },
   typography: {
     fontFamily: "NeoGeo, sans-serif",
+    allVariants: {
+      letterSpacing: NEOGEO_LETTERSPACING,
+    },
     body1: {
-      fontSize: "16px",
-      letterSpacing: "0.05em",
+      fontSize: px2rem(16),
+      lineHeight: 1.5,
     },
     body2: {
-      fontSize: "14px",
-      letterSpacing: "0.05em",
+      fontSize: px2rem(14),
+      lineHeight: 1.43,
     },
     caption: {
+      fontSize: px2rem(12),
+      lineHeight: 1.66,
       letterSpacing: "0.1em",
     },
-    button: {
-      fontSize: "16px",
-      letterSpacing: "0.05em",
+    subtitle1: {
+      fontSize: px2rem(16),
+      lineHeight: 1.75,
+    },
+    subtitle2: {
+      fontSize: px2rem(14),
+      lineHeight: 1.57,
     },
     h1: {
-      fontSize: "28px",
-      fontWeight: 600,
-      letterSpacing: "0.05em",
-      marginTop: "1rem",
-      marginBottom: "0.5rem",
+      fontSize: px2rem(28),
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
+      lineHeight: 1.17,
+      marginTop: px2rem(16),
+      marginBottom: px2rem(8),
     },
     h2: {
-      fontSize: "24px",
-      fontWeight: 600,
-      letterSpacing: "0.05em",
-      marginTop: "1rem",
-      marginBottom: "0.5rem",
+      fontSize: px2rem(24),
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
+      lineHeight: 1.2,
+      marginTop: px2rem(16),
+      marginBottom: px2rem(8),
     },
     h3: {
-      fontSize: "20px",
-      fontWeight: 600,
-      letterSpacing: "0.05em",
-      marginTop: "1rem",
-      marginBottom: "0.5rem",
+      fontSize: px2rem(20),
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
+      lineHeight: 1.17,
+      marginTop: px2rem(16),
+      marginBottom: px2rem(8),
     },
     h4: {
-      fontSize: "18px",
-      fontWeight: 600,
-      letterSpacing: "0.05em",
-      marginTop: "1rem",
-      marginBottom: "0.5rem",
+      fontSize: px2rem(18),
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
+      lineHeight: 1.235,
+      marginTop: px2rem(16),
+      marginBottom: px2rem(8),
     },
     h5: {
-      fontSize: "16px",
-      fontWeight: 600,
-      letterSpacing: "0.05em",
-      marginTop: "1rem",
-      marginBottom: "0.5rem",
+      fontSize: px2rem(16),
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
+      lineHeight: 1.334,
+      marginTop: px2rem(16),
+      marginBottom: px2rem(8),
     },
     h6: {
-      fontSize: "14px",
-      fontWeight: 600,
-      letterSpacing: "0.05em",
-      marginTop: "1rem",
-      marginBottom: "0.5rem",
+      fontSize: px2rem(14),
+      fontWeight: NEOGEO_FONTWEIGHT_BOLD,
+      lineHeight: 1.16,
+      marginTop: px2rem(16),
+      marginBottom: px2rem(8),
     },
   },
   components: {
@@ -113,6 +126,8 @@ export const geopilotTheme = createTheme({
         root: {
           backgroundColor: themePalette.primary.main,
           color: themePalette.primary.contrast,
+          fontSize: px2rem(20),
+          lineHeight: px2rem(20),
         },
       },
     },
@@ -149,6 +164,12 @@ export const geopilotTheme = createTheme({
       defaultProps: {
         shrink: true,
       },
+      styleOverrides: {
+        root: {
+          fontSize: px2rem(16),
+          lineHeight: px2rem(16),
+        },
+      },
     },
     MuiOutlinedInput: {
       defaultProps: {
@@ -157,6 +178,10 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         notchedOutline: {
           borderColor: themePalette.primary.light,
+        },
+        input: {
+          fontSize: px2rem(16),
+          lineHeight: px2rem(24),
         },
         root: {
           "&:hover .MuiOutlinedInput-notchedOutline": {
@@ -209,6 +234,21 @@ export const geopilotTheme = createTheme({
               borderColor: themePalette.primary.states.disabledBackground,
             },
           },
+          "&.MuiButton-sizeSmall .MuiButton-icon > :nth-of-type(1)": { fontSize: px2rem(18) },
+          "&.MuiButton-sizeMedium .MuiButton-icon > :nth-of-type(1)": { fontSize: px2rem(20) },
+          "&.MuiButton-sizeLarge .MuiButton-icon > :nth-of-type(1)": { fontSize: px2rem(22) },
+        },
+        sizeSmall: {
+          fontSize: px2rem(14),
+          lineHeight: px2rem(22),
+        },
+        sizeMedium: {
+          fontSize: px2rem(16),
+          lineHeight: px2rem(24),
+        },
+        sizeLarge: {
+          fontSize: px2rem(16),
+          lineHeight: px2rem(26),
         },
       },
     },
@@ -244,7 +284,7 @@ export const geopilotTheme = createTheme({
         colorPrimaryOutlined: {
           color: themePalette.primary.main,
           backgroundColor: themePalette.primary.contrast,
-          padding: "7px",
+          padding: `calc(${themeSpacing(1)} - 1px)`,
           border: `1px solid ${themePalette.primary.light}`,
           borderRadius: themeRadius.default,
           "&:hover": {
@@ -289,6 +329,8 @@ export const geopilotTheme = createTheme({
       styleOverrides: {
         root: {
           fontStyle: "italic",
+          fontSize: px2rem(12),
+          lineHeight: 1.66,
         },
       },
     },
@@ -312,13 +354,13 @@ export const geopilotTheme = createTheme({
     MuiStepLabel: {
       styleOverrides: {
         label: {
-          fontSize: "16px",
-          letterSpacing: "0.05em",
+          fontSize: px2rem(16),
+          letterSpacing: NEOGEO_LETTERSPACING,
           "&.Mui-active": {
-            fontWeight: 600,
+            fontWeight: NEOGEO_FONTWEIGHT_BOLD,
           },
           "&.Mui-completed": {
-            fontWeight: 600,
+            fontWeight: NEOGEO_FONTWEIGHT_BOLD,
           },
         },
       },
@@ -326,7 +368,7 @@ export const geopilotTheme = createTheme({
     MuiStepContent: {
       styleOverrides: {
         root: {
-          padding: "24px 0 0 40px",
+          padding: `${themeSpacing(3)} 0 0 ${themeSpacing(5)}`,
         },
       },
     },
@@ -365,9 +407,9 @@ export const geopilotTheme = createTheme({
     MuiDialogTitle: {
       styleOverrides: {
         root: {
-          fontSize: "24px",
-          fontWeight: 600,
-          letterSpacing: "0.05em",
+          fontSize: px2rem(24),
+          fontWeight: NEOGEO_FONTWEIGHT_BOLD,
+          letterSpacing: NEOGEO_LETTERSPACING,
           padding: "0",
           paddingBottom: themeSpacing(1),
           margin: "0",
@@ -396,12 +438,14 @@ export const geopilotTheme = createTheme({
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: defaultTheme.palette.grey[700],
+          backgroundColor: themePalette.tooltip.background,
           color: themePalette.primary.contrast,
           borderRadius: themeRadius.default,
+          fontSize: px2rem(10),
+          lineHeight: px2rem(14),
         },
         arrow: {
-          color: defaultTheme.palette.grey[700],
+          color: themePalette.tooltip.background,
         },
       },
     },
@@ -417,6 +461,26 @@ export const geopilotTheme = createTheme({
               color: alpha(themePalette.primary.main, 0.6),
             },
           },
+        },
+        label: {
+          fontSize: px2rem(13),
+          lineHeight: px2rem(18),
+        },
+      },
+    },
+    MuiBadge: {
+      styleOverrides: {
+        badge: {
+          fontSize: px2rem(12),
+          lineHeight: px2rem(20),
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          fontSize: px2rem(16),
+          lineHeight: 1.5,
         },
       },
     },
@@ -435,6 +499,18 @@ export const geopilotTheme = createTheme({
             backgroundColor: themePalette.primary.states.selected,
           },
         },
+        sizeSmall: {
+          fontSize: px2rem(14),
+          lineHeight: px2rem(22),
+        },
+        sizeMedium: {
+          fontSize: px2rem(16),
+          lineHeight: px2rem(24),
+        },
+        sizeLarge: {
+          fontSize: px2rem(16),
+          lineHeight: px2rem(26),
+        },
       },
     },
     MuiStack: { defaultProps: { spacing: 2, useFlexGap: true } },
@@ -452,6 +528,10 @@ export const geopilotTheme = createTheme({
             backgroundColor: paletteColor.background,
             borderColor: paletteColor.main,
           };
+        },
+        message: {
+          fontSize: px2rem(14),
+          lineHeight: 1.43,
         },
       },
     },

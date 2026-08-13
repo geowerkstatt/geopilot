@@ -1,7 +1,6 @@
 import { FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Theme, useTheme } from "@mui/material/styles";
-import { defaults as defaultControls } from "ol/control";
 import { Condition, platformModifierKeyOnly } from "ol/events/condition";
 import { Extent, getCenter } from "ol/extent";
 import { MAC } from "ol/has";
@@ -16,11 +15,11 @@ import { register } from "ol/proj/proj4";
 import View, { FitOptions } from "ol/View";
 import proj4 from "proj4";
 import { LocalizedText, MapVisualizationConfig } from "../../../api/apiInterfaces";
+import { px2rem } from "../../../appTheme.ts";
 import { useLocalized } from "../../../hooks/useLocalized";
 import { buildFeatureLayer, buildWmtsLayer, fitToFeatures, fitToLayers } from "./layers";
 import { LayerSwitcherProperties } from "./layerSwitcherProps";
 import { MapVisualizationContext, MapVisualizationContextInterface } from "./mapVisualizationContext";
-import "ol/ol.css";
 
 const ZOOM_TO_NODE_MAX_ZOOM = 13;
 const ZOOM_TO_NODE_DURATION = 400;
@@ -59,18 +58,18 @@ const createSelectionOverlay = (theme: Theme): [Overlay, (text: string) => void]
   const popupElement = document.createElement("div");
   Object.assign(popupElement.style, {
     position: "relative",
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.palette.background.content,
     border: `1px solid ${theme.palette.primary.light}`,
     borderRadius: theme.radius.default,
     padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
     maxWidth: "300px",
-    fontSize: "0.875rem",
+    fontSize: px2rem(14),
     pointerEvents: "none",
   } satisfies Partial<CSSStyleDeclaration>);
   const popupContent = document.createElement("div");
   popupElement.appendChild(popupContent);
   popupElement.appendChild(createPopupArrow(8, theme.palette.primary.light, "100%"));
-  popupElement.appendChild(createPopupArrow(7, theme.palette.background.paper, "calc(100% - 1px)"));
+  popupElement.appendChild(createPopupArrow(7, theme.palette.background.content, "calc(100% - 1px)"));
   const overlay = new Overlay({
     element: popupElement,
     positioning: "bottom-center",
@@ -99,7 +98,7 @@ const createInteractionHint = (
     justifyContent: "center",
     textAlign: "center",
     padding: theme.spacing(2),
-    fontSize: "1.25rem",
+    fontSize: px2rem(20),
     color: theme.palette.map.hintText,
     backgroundColor: theme.palette.map.hintBackground,
     opacity: "0",
@@ -236,7 +235,7 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
 
     const map = new Map({
       overlays: [selectionOverlay],
-      controls: defaultControls({ zoom: false, attribution: false }),
+      controls: [],
       interactions,
       view: new View({ projection: SWISS_PROJECTION, extent: SWISS_EXTENT }),
     });

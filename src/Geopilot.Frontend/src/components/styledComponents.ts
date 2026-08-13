@@ -1,4 +1,5 @@
 import { Stack, styled } from "@mui/material";
+import { themeSpacing } from "../appTheme";
 
 export const FullPageStack = styled(Stack)({
   height: "100vh", // fallback for older browsers
@@ -14,8 +15,8 @@ export const ScrollableContent = styled(Stack)(({ theme }) => ({
 }));
 
 export const pageContentPadding = {
-  default: "40px",
-  xs: "16px",
+  default: themeSpacing(5),
+  xs: themeSpacing(2),
 };
 
 export const PageContent = styled(Stack)(({ theme }) => ({

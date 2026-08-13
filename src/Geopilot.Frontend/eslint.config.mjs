@@ -6,8 +6,11 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import { defineConfig, globalIgnores } from "eslint/config";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import noHardcodedColors from "./eslint-rules/no-hardcoded-colors.cjs";
-import requireThemeRadius from "./eslint-rules/require-theme-radius.cjs";
+import noHardcodedColors from "./eslint-rules/no-hardcoded-colors.js";
+import noHexTransparency from "./eslint-rules/no-hex-transparency.js";
+import noUndefinedPaletteColors from "./eslint-rules/no-undefined-palette-colors.js";
+import requirePx2rem from "./eslint-rules/require-px2rem.js";
+import requireThemeRadius from "./eslint-rules/require-theme-radius.js";
 
 const buttonImportRestriction = {
   name: "@mui/material",
@@ -30,7 +33,10 @@ const muiWrapperImportRestriction = {
 const localRules = {
   rules: {
     "no-hardcoded-colors": noHardcodedColors,
+    "no-hex-transparency": noHexTransparency,
+    "no-undefined-palette-colors": noUndefinedPaletteColors,
     "require-theme-radius": requireThemeRadius,
+    "require-px2rem": requirePx2rem,
   },
 };
 
@@ -54,7 +60,10 @@ export default defineConfig([
       "react/prop-types": "off",
       "react/display-name": "off",
       "local-rules/no-hardcoded-colors": "warn",
+      "local-rules/no-hex-transparency": "warn",
+      "local-rules/no-undefined-palette-colors": "warn",
       "local-rules/require-theme-radius": "warn",
+      "local-rules/require-px2rem": "warn",
       "no-restricted-imports": ["warn", { paths: [muiWrapperImportRestriction] }],
     },
   },
@@ -83,6 +92,14 @@ export default defineConfig([
   {
     files: ["src/appPalette.ts", "cypress/**"],
     rules: { "local-rules/no-hardcoded-colors": "off" },
+  },
+  {
+    files: ["src/appPalette.ts", "cypress/**"],
+    rules: { "local-rules/no-undefined-palette-colors": "off" },
+  },
+  {
+    files: ["cypress/**"],
+    rules: { "local-rules/no-hex-transparency": "off" },
   },
   {
     files: ["src/appTheme.ts", "cypress/**"],

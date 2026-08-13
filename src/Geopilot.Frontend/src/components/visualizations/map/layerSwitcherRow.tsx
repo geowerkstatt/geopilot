@@ -13,6 +13,7 @@ import LayerGroup from "ol/layer/Group";
 import OlMap from "ol/Map";
 import { ObjectEvent } from "ol/Object";
 import { unByKey } from "ol/Observable";
+import { px2rem } from "../../../appTheme.ts";
 import { IconButton } from "../../buttons";
 import { FormCheckbox } from "../../form/formCheckbox";
 import { LayerSwitcherCollection } from "./layerSwitcherCollection";
@@ -110,10 +111,10 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, isFirst }: LayerRowPr
           justifyContent: "center",
           alignItems: "center",
           cursor: "grab",
-          fontSize: "0.8em",
+          fontSize: px2rem(14),
           backgroundColor: "background.base",
           color: "text.disabled",
-          width: "20px",
+          width: px2rem(20),
           flexShrink: 0,
         }}>
         <DragIndicatorIcon fontSize="inherit" titleAccess={t("dragToReorderLayer")} />
@@ -132,7 +133,7 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, isFirst }: LayerRowPr
             wrapLabel
             sx={{ flex: 1, minWidth: 0 }}
           />
-          <Box sx={{ width: "30px", flexShrink: 0 }}>
+          <Box sx={{ width: px2rem(30), flexShrink: 0 }}>
             {isGroup && (
               <IconButton
                 size="small"
@@ -171,7 +172,7 @@ export const LayerSwitcherRow = ({ layer, map, rootLayers, isFirst }: LayerRowPr
             }}
             sx={{ flex: 1, minWidth: 0 }}
           />
-          <Box sx={{ width: "30px", flexShrink: 0 }} />
+          <Box sx={{ width: px2rem(30), flexShrink: 0 }} />
         </Stack>
         {open && isGroup && (
           <Box>

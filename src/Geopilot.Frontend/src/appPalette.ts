@@ -30,7 +30,7 @@ export const themePalette = {
     light: "#4CAF50",
     contrastText: "#1E4620",
     background: "#EDF7ED",
-    hover: "#4caf510D",
+    hover: alpha("#4caf51", 0.05),
   },
   info: {
     main: "#0288D1",
@@ -45,8 +45,8 @@ export const themePalette = {
     light: "#FFB74D",
     contrastText: "#663C00",
     background: "#FFF4E5",
-    selected: "#fd99032E",
-    hover: "#fd99030D",
+    selected: alpha("#fd9903", 0.18),
+    hover: alpha("#fd9903", 0.05),
   },
   error: {
     main: "#e53835",
@@ -54,15 +54,18 @@ export const themePalette = {
     light: "#EF5350",
     contrastText: "#5F2120",
     background: "#FDEDED",
-    selected: "#e538352E",
-    hover: "#e538350D",
+    selected: alpha("#e53835", 0.18),
+    hover: alpha("#e53835", 0.05),
   },
   map: {
     fill: "#e53835",
     stroke: "#ffffff",
     highlight: "#980303",
-    hintBackground: "#00000099",
+    hintBackground: alpha("#000000", 0.6),
     hintText: "#ffffff",
   },
   divider: alpha("#124A4F", 0.2),
+  tooltip: {
+    background: "#424242",
+  },
 } satisfies PaletteOptions;

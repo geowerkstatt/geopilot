@@ -1,6 +1,6 @@
+import "./app.css";
 import { FC, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import "./app.css";
 import { CircularProgress } from "@mui/material";
 import { useGeopilotAuth } from "./auth";
 import { ControlledNavigateProvider } from "./components/controlledNavigate/controlledNavigateProvider.tsx";

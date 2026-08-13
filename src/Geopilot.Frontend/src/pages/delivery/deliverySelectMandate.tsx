@@ -20,9 +20,6 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
     borderLeft: `1px solid ${theme.palette.primary.light}`,
     paddingLeft: theme.spacing(3),
     paddingRight: theme.spacing(3),
-    [`&.${toggleButtonClasses.disabled}`]: {
-      borderLeftColor: theme.palette.action.disabledBackground,
-    },
   },
 }));
 

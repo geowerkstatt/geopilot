@@ -11,6 +11,7 @@ import WarningIcon from "@mui/icons-material/Warning";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { CircularProgress, Stack, useTheme } from "@mui/material";
 import { StepState } from "../api/apiInterfaces.ts";
+import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../appTheme.ts";
 
 type StepIconVariant = "contained" | "outlined";
 
@@ -63,12 +64,12 @@ export const StepIcon: FC<StepIconProps> = ({ step, state, variant }) => {
           <>
             <Stack
               sx={{
-                width: 20,
-                height: 20,
+                width: px2rem(20),
+                height: px2rem(20),
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: "14px",
-                fontWeight: isOutlined ? 600 : 400,
+                fontSize: px2rem(14),
+                fontWeight: isOutlined ? NEOGEO_FONTWEIGHT_BOLD : NEOGEO_FONTWEIGHT_REGULAR,
                 lineHeight: 1,
                 borderRadius: theme.radius.full,
                 backgroundColor: isOutlined ? theme.palette.primary.contrast : baseColor,
@@ -79,7 +80,7 @@ export const StepIcon: FC<StepIconProps> = ({ step, state, variant }) => {
             </Stack>
             {state === StepState.Running && (
               <CircularProgress
-                size={28}
+                size={px2rem(28)}
                 color="primary"
                 aria-hidden
                 data-cy="stepIcon-loading"
@@ -98,8 +99,8 @@ export const StepIcon: FC<StepIconProps> = ({ step, state, variant }) => {
       aria-label={t(stateLabelKey[state])}
       data-cy={`stepIcon-${state}`}
       sx={{
-        width: "28px",
-        height: "28px",
+        width: px2rem(28),
+        height: px2rem(28),
         position: "relative",
         direction: "row",
         alignItems: "center",

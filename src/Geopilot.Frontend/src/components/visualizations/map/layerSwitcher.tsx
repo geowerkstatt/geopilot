@@ -159,7 +159,7 @@ export const LayerSwitcher = ({ map }: LayerSwitcherProps) => {
             width: "360px",
             maxWidth: "100%",
             p: { xs: 1, sm: 2 },
-            pb: 0,
+            pb: { xs: 0, sm: 1 },
             gap: { xs: 0, sm: 1 },
             overflow: "hidden",
             backgroundColor: "background.content",
