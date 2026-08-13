@@ -128,9 +128,8 @@ describe("General app tests", () => {
   });
 
   it("normalises region-specific browser locales to their base language", () => {
-    // With load: "languageOnly", a browser locale like de-CH resolves to de instead of falling back
-    // to English. We assert the rendered title (the resolved language); the raw i18next cookie keeps
-    // the region code, so it is not a reliable check here. Covered for all four supported languages.
+    // Make sure a browser locale like de-CH resolves to de instead of falling back
+    // to English.
     cy.intercept("**/client-settings.json").as("clientSettings");
 
     [
