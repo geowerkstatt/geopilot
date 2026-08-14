@@ -1,8 +1,10 @@
 import { FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Theme, useTheme } from "@mui/material/styles";
+import { Coordinate } from "ol/coordinate";
 import { Condition, platformModifierKeyOnly } from "ol/events/condition";
-import { Extent, getCenter } from "ol/extent";
+import { Extent, getCenter, getHeight, getWidth } from "ol/extent";
 import { MAC } from "ol/has";
 import { defaults as defaultInteractions, DragPan, MouseWheelZoom } from "ol/interaction";
 import BaseLayer from "ol/layer/Base";
@@ -17,11 +19,21 @@ import proj4 from "proj4";
 import { LocalizedText, MapVisualizationConfig } from "../../../api/apiInterfaces";
 import { px2rem } from "../../../appTheme.ts";
 import { useLocalized } from "../../../hooks/useLocalized";
-import { buildFeatureLayer, buildWmtsLayer, fitToFeatures, fitToLayers } from "./layers";
+import {
+  buildFeatureLayer,
+  buildWmtsLayer,
+  fitToFeatures,
+  fitToLayers,
+  getClusterMembers,
+  getFeaturesExtent,
+  refreshFeatureLayer,
+} from "./layers";
 import { LayerSwitcherProperties } from "./layerSwitcherProps";
+import { MapSelectionPopup, SelectionEntry } from "./mapSelectionPopup";
 import { MapVisualizationContext, MapVisualizationContextInterface } from "./mapVisualizationContext";
 
 const ZOOM_TO_NODE_MAX_ZOOM = 13;
+const ZOOM_TO_CLUSTER_MAX_ZOOM = 18;
 const ZOOM_TO_NODE_DURATION = 400;
 
 const LOCALIZABLE_TITLE_PROPERTY = "localizableTitle";
@@ -38,51 +50,32 @@ proj4.defs(
 register(proj4);
 getProjection(SWISS_PROJECTION)?.setExtent(SWISS_EXTENT);
 
-const createPopupArrow = (size: number, color: string, top: string): HTMLDivElement => {
-  const arrow = document.createElement("div");
-  Object.assign(arrow.style, {
-    position: "absolute",
-    top,
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "0",
-    height: "0",
-    borderLeft: `${size}px solid transparent`,
-    borderRight: `${size}px solid transparent`,
-    borderTop: `${size}px solid ${color}`,
-  });
-  return arrow;
-};
-
-const createSelectionOverlay = (theme: Theme): [Overlay, (text: string) => void] => {
-  const popupElement = document.createElement("div");
-  Object.assign(popupElement.style, {
-    position: "relative",
-    backgroundColor: theme.palette.background.content,
-    border: `1px solid ${theme.palette.primary.light}`,
-    borderRadius: theme.radius.default,
-    padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
-    maxWidth: "300px",
-    fontSize: px2rem(14),
-    pointerEvents: "none",
-  } satisfies Partial<CSSStyleDeclaration>);
-  const popupContent = document.createElement("div");
-  popupElement.appendChild(popupContent);
-  popupElement.appendChild(createPopupArrow(8, theme.palette.primary.light, "100%"));
-  popupElement.appendChild(createPopupArrow(7, theme.palette.background.content, "calc(100% - 1px)"));
+/**
+ * Creates the overlay that anchors the selection popup to a marker. It only owns the positioning and the
+ * host element, its content is rendered into that element with React (see MapSelectionPopup).
+ */
+const createSelectionOverlay = (): [Overlay, HTMLDivElement] => {
+  const element = document.createElement("div");
+  // The popup itself decides whether it takes clicks, so the host stays out of the way.
+  element.style.pointerEvents = "none";
+  // Scrolling a long list must not reach the viewport, which would answer with the zoom gesture hint.
+  element.addEventListener("wheel", event => event.stopPropagation());
   const overlay = new Overlay({
-    element: popupElement,
+    element,
     positioning: "bottom-center",
     offset: [0, -12],
-    stopEvent: false,
+    // The rows of a list are clickable, so the map must not act on events coming from the popup: it derives
+    // its own click from pointerup and would close the popup before the row is ever selected.
+    stopEvent: true,
   });
-  return [
-    overlay,
-    (text: string) => {
-      popupContent.textContent = text;
-    },
-  ];
+  return [overlay, element];
 };
+
+/** What the selection popup currently shows, and the coordinate it is anchored to. */
+interface MapSelection {
+  entries: SelectionEntry[];
+  position: Coordinate;
+}
 
 const createInteractionHint = (
   theme: Theme,
@@ -185,7 +178,23 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     fitOptions.current = options;
   }, []);
 
-  const [selectionOverlay, setSelectionOverlayText] = useMemo(() => createSelectionOverlay(theme), [theme]);
+  const [selection, setSelection] = useState<MapSelection | null>(null);
+  const [selectionOverlay, selectionOverlayElement] = useMemo(() => createSelectionOverlay(), []);
+
+  // A changed filter re-clusters the markers, so the popup drops the errors the filter removed and closes
+  // once none is left. Derived rather than reset, so picking a row (which changes the selection, not the
+  // filter) leaves the popup open. Entries without an id are kept, as the feature style function does.
+  const shownSelection = useMemo<MapSelection | null>(() => {
+    if (!selection) return null;
+    const entries = selection.entries.filter(
+      entry => !visibleFeatureIds || !entry.id || visibleFeatureIds.has(entry.id),
+    );
+    return entries.length > 0 ? { ...selection, entries } : null;
+  }, [selection, visibleFeatureIds]);
+
+  useEffect(() => {
+    selectionOverlay.setPosition(shownSelection?.position);
+  }, [shownSelection, selectionOverlay]);
 
   const zoomToExtent = useCallback(() => {
     if (!map) return;
@@ -326,15 +335,45 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     if (!map) return;
 
     const handler = map.on("click", event => {
-      const feature = map?.forEachFeatureAtPixel(event.pixel, f => f);
+      const clicked = map?.forEachFeatureAtPixel(event.pixel, f => f);
+      const members = clicked ? getClusterMembers(clicked) : [];
+
+      // If the clicked feature is a cluster, zoom into it
+      if (members.length > 1) {
+        const membersExtent = getFeaturesExtent(members);
+        const zoom = map.getView().getZoom() ?? 0;
+        const separable = getWidth(membersExtent) > 0 || getHeight(membersExtent) > 0;
+        if (separable && zoom < ZOOM_TO_CLUSTER_MAX_ZOOM) {
+          setSelection(null);
+          fitToFeatures(map, new Set(members.map(member => member.getId()?.toString() ?? "")), {
+            padding: fitOptions.current.padding,
+            maxZoom: ZOOM_TO_CLUSTER_MAX_ZOOM,
+            duration: ZOOM_TO_NODE_DURATION,
+          });
+          return;
+        }
+
+        setSelection({
+          entries: members.map(member => ({
+            id: member.getId()?.toString() ?? "",
+            text: (member.get("info") as string | undefined) ?? "",
+          })),
+          position: getCenter(membersExtent),
+        });
+        return;
+      }
+
+      const feature = members[0];
       const info = feature?.get("info") as string | undefined;
       const featureId = feature?.getId()?.toString();
       if (showMapSelectionPopup && feature && info) {
-        setSelectionOverlayText(info);
         const geometry = feature.getGeometry();
-        selectionOverlay.setPosition(geometry ? getCenter(geometry.getExtent()) : event.coordinate);
+        setSelection({
+          entries: [{ id: featureId ?? "", text: info }],
+          position: geometry ? getCenter(geometry.getExtent()) : event.coordinate,
+        });
       } else {
-        selectionOverlay.setPosition(undefined);
+        setSelection(null);
       }
       if (featureId) onSelectFeature?.(featureId);
     });
@@ -342,13 +381,12 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     return () => {
       unByKey(handler);
     };
-  }, [map, onSelectFeature, selectionOverlay, setSelectionOverlayText, showMapSelectionPopup]);
+  }, [map, onSelectFeature, showMapSelectionPopup]);
 
   useEffect(() => {
     visibleIdsRef.current = visibleFeatureIds;
     highlightedIdsRef.current = highlightedFeatureIds;
-    // Trigger a re-render of the style function
-    featureLayers.forEach(layer => layer.changed());
+    featureLayers.forEach(refreshFeatureLayer);
   }, [visibleFeatureIds, highlightedFeatureIds, featureLayers]);
 
   useEffect(() => {
@@ -365,5 +403,19 @@ export const MapVisualizationProvider: FC<PropsWithChildren<MapVisualizationProv
     () => ({ map, zoomToExtent, zoomBy, setFitOptions }),
     [map, zoomToExtent, zoomBy, setFitOptions],
   );
-  return <MapVisualizationContext.Provider value={contextValue}>{children}</MapVisualizationContext.Provider>;
+  return (
+    <MapVisualizationContext.Provider value={contextValue}>
+      {children}
+      {shownSelection &&
+        createPortal(
+          <MapSelectionPopup
+            entries={shownSelection.entries}
+            onSelect={featureId => {
+              if (featureId) onSelectFeature?.(featureId);
+            }}
+          />,
+          selectionOverlayElement,
+        )}
+    </MapVisualizationContext.Provider>
+  );
 };
