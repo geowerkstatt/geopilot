@@ -127,6 +127,16 @@ StatusMessage = new LocalizedText(new Dictionary<string, string>
 
 Ein `Dictionary<string, string>` (Key = Sprachcode) wird aus Gründen der Abwärtskompatibilität weiterhin akzeptiert, sodass bestehende Prozessoren ohne Anpassung weiterlaufen.
 
+## Visualisierungen sind eingebauten Prozessoren vorbehalten
+
+Die Ausgabeaktion `Visualization` (siehe [Pipelines](Pipelines.md)) steht Plugins **nicht** zur Verfügung. Ein Plugin-Prozessor kann keine Visualisierung liefern.
+
+Der Grund liegt darin, dass eine Visualisierung aus zwei Hälften besteht. Die eine ist der Envelope, den der Prozessor zurückgibt; sein Markierungs-Typ `IVisualization` ist bewusst nicht Teil des Plugin-Vertrags in `GeoWerkstatt.Geopilot.PipelineCore`. Die andere ist die Komponente, die den Envelope darstellt, und die liegt im geopilot-Frontend: welche Komponente für welchen `type` zuständig ist, steht dort zur Übersetzungszeit fest. Ein Plugin könnte also eine Nutzlast erzeugen, für die es keine Darstellung gibt.
+
+Verwendet ein Prozessor die Ausgabeaktion trotzdem, schlägt der Schritt zur Laufzeit fehl.
+
+Wird eine Visualisierung für einen fachlichen Anwendungsfall gebraucht, ist der Weg eine Absprache mit der geowerkstatt: sie entsteht dann als eingebauter Visualisierungstyp und steht danach allen Installationen zur Verfügung.
+
 ## Einbinden des Plugins in geopilot
 
 Die Appsettings von geopilot bieten die Möglichkeit, die zu ladenden Pipeline-Prozessor-Plugins zu definieren. Hierzu werden die Namen der Assemblies angegeben, welche die Prozessoren enthalten. Die Plugins werden im Abschnitt `Pipeline:Plugins` definiert. Hier erwarten wir eine Liste von Strings, welche die Namen der zu ladenden Assemblies enthalten.
