@@ -30,7 +30,7 @@ public class PipelineFactoryTest
                 {
                     "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess", new Parameterization()
                     {
-                        { "modelDirs", new List<object> { modelDir } },
+                        { "modelDirs", modelDir },
                     }
                 },
             },

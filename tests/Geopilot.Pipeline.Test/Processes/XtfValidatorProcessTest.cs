@@ -48,7 +48,7 @@ public class XtfValidatorProcessTest
     {
         // The tool exits like a failed validation, so only its log tells the two apart.
         var log = $"Info: dataFile <file1.xtf>\nError: {XtfValidatorProcess.MetaConfigNotFoundMarker} <ilidata:PROFILE-A>\n";
-        var process = CreateProcess("PROFILE-A", ["https://models.example.com/"], success: false, logContent: log);
+        var process = CreateProcess("PROFILE-A", "https://models.example.com/", success: false, logContent: log);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), CancellationToken.None));
 
@@ -76,13 +76,26 @@ public class XtfValidatorProcessTest
     [TestMethod]
     public async Task PassesModelReposAndProfileToTheTool()
     {
-        var process = CreateProcess("PROFILE-A", ["https://models.example.com/", "%ITF_DIR"], success: true);
+        var process = CreateProcess("PROFILE-A", "https://models.example.com/;%ITF_DIR", success: true);
 
         await process.RunAsync(CreateTransferFile(), CancellationToken.None);
 
         Assert.AreEqual("ilidata:PROFILE-A", capturedArgs?.MetaConfig);
 
         // The order of the repositories decides which model wins, so it must survive unchanged.
+        Assert.AreEqual(2, capturedArgs?.ModelDirs?.Count);
+        Assert.AreEqual("https://models.example.com/", capturedArgs?.ModelDirs?[0]);
+        Assert.AreEqual("%ITF_DIR", capturedArgs?.ModelDirs?[1]);
+    }
+
+    [TestMethod]
+    public async Task TrimsTheConfiguredModelRepositories()
+    {
+        // Hand written configuration, so blanks around the separator and a trailing one are expected.
+        var process = CreateProcess(null, " https://models.example.com/ ; %ITF_DIR ; ", success: true);
+
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
         Assert.AreEqual(2, capturedArgs?.ModelDirs?.Count);
         Assert.AreEqual("https://models.example.com/", capturedArgs?.ModelDirs?[0]);
         Assert.AreEqual("%ITF_DIR", capturedArgs?.ModelDirs?[1]);
@@ -127,7 +140,7 @@ public class XtfValidatorProcessTest
         return new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
     }
 
-    private XtfValidatorProcess CreateProcess(string? validationProfile, IReadOnlyList<string>? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null)
+    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null)
     {
         ilivalidatorClientMock
             .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<CancellationToken>()))

@@ -44,16 +44,16 @@ internal class XtfValidatorProcess
     /// Create a new instance of the <see cref="XtfValidatorProcess"/> class.
     /// </summary>
     /// <param name="validationProfile">Optional validation profile, given as the dataset id that indexes it in one of the <paramref name="modelDirs"/>. An <c>ilidata:</c> prefix may be included.</param>
-    /// <param name="modelDirs">Optional INTERLIS model repositories, searched in the given order. Replaces the default of the tool entirely.</param>
+    /// <param name="modelDirs">Optional INTERLIS model repositories as a semicolon separated list, searched in the given order. Replaces the default of the tool entirely.</param>
     /// <param name="allObjectsAccessible">Whether a reference to an object outside the validated file is an error. Defaults to true.</param>
     /// <param name="ilivalidatorClient">Client of the ilitools-wrapper that runs the validation.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
-    public XtfValidatorProcess(string? validationProfile, IReadOnlyList<string>? modelDirs, bool? allObjectsAccessible, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
+    public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
     {
         this.validatorArgs = new IlivalidatorArgs
         {
-            ModelDirs = modelDirs,
+            ModelDirs = SplitModelDirs(modelDirs),
             MetaConfig = BuildMetaConfig(validationProfile),
 
             // The interlis-check-service replaced an empty profile with its bundled DEFAULT profile and that profile
@@ -121,6 +121,22 @@ internal class XtfValidatorProcess
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Splits the configured repositories on the separator the tool itself uses for <c>--modeldir</c>. A single value
+    /// is what makes the parameter usable in the appsettings base configuration, where a pipeline definition cannot
+    /// override it; the wrapper rejects an entry that contains the separator, so nothing is lost by splitting here.
+    /// </summary>
+    private static string[]? SplitModelDirs(string? modelDirs)
+    {
+        if (string.IsNullOrWhiteSpace(modelDirs))
+            return null;
+
+        var entries = modelDirs
+            .Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+        return entries.Length > 0 ? entries : null;
     }
 
     private static string? BuildMetaConfig(string? validationProfile)

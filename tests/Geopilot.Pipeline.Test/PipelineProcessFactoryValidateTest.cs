@@ -408,13 +408,11 @@ public class PipelineProcessFactoryValidateTest
                 .StepConfig(ValidationStep())
                 .Processes(ValidationProcesses(new Parameterization
                 {
-                    // A scalar where the process expects a list, the mistake appsettings invites because it
-                    // cannot express a list at all.
-                    ["modelDirs"] = "abc",
+                    ["allObjectsAccessible"] = "abc",
                 }))
                 .Validate());
 
-        Assert.Contains("modelDirs", exception.Message);
+        Assert.Contains("allObjectsAccessible", exception.Message);
         Assert.Contains("abc", exception.Message);
     }
 

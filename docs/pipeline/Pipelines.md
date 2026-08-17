@@ -84,9 +84,6 @@ processes:
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile: DEFAULT
-      modelDirs:
-        - https://models.example.com/
-        - https://models.interlis.ch/
 pipelines:
   - id: xtf_validation
     display_name:
@@ -194,13 +191,15 @@ Ein Beispiel für die Konfiguration eines Pipeline-Prozessors in den Appsettings
 {
   "Pipeline": {
     "ProcessConfigs": {
-      "Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess": {
-        "baseMapWmtsCapabilitiesUrl": "https://wmts.example.com/1.0.0/WMTSCapabilities.xml"
+      "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess": {
+        "modelDirs": "https://models.example.com/;https://models.interlis.ch/"
       }
     }
   }
 }
 ```
+
+Das ist auch das typische Beispiel für die Wahl der Schicht: die Modell-Repositories bestimmen, wogegen validiert wird, gelten pro Umgebung und sollen von einer Pipeline nicht verändert werden können. Sie gehören deshalb in die Basis-Konfiguration und nicht in die Pipeline-Definition.
 
 #### Pipeline-Definition
 
@@ -243,7 +242,7 @@ Für das Überschreiben von Konfigurationsparametern gelten folgende Einschränk
 
 ### Beispiel einer Instanziierung eines Prozessors mit Konfigurationsparametern
 
-Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess` welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `modelDirs` und `allObjectsAccessible` übergeben, alle optional: das Profil, anhand dessen die Validierung durchgeführt wird, die Modell-Repositories, aus denen Modelle und Profil aufgelöst werden, und ob Verweise auf Objekte ausserhalb der geprüften Datei als Fehler gelten. Ein Listen-Parameter wie `modelDirs` lässt sich nur in einer Pipeline-Definition setzen, weil die Appsettings-Konfiguration nur Einzelwerte kennt.
+Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess` welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `modelDirs` und `allObjectsAccessible` übergeben, alle optional: das Profil, anhand dessen die Validierung durchgeführt wird, die Modell-Repositories, aus denen Modelle und Profil aufgelöst werden, und ob Verweise auf Objekte ausserhalb der geprüften Datei als Fehler gelten. Alle drei sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` als semikolon-getrennter Wert.
 
 Der `logger` ist nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um innerhalb des Prozesses wichtige Informationen zu loggen. Es wird empfohlen den Logger von geopilot zu verwenden, anstatt einen eigenen Logger zu erstellen, um die Konsistenz der Logs zu gewährleisten und die Logs korrekt in die Log-Management-Lösung von geopilot zu integrieren.
 
@@ -252,7 +251,7 @@ Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wi
 Der `ilivalidatorClient` wird ebenso von geopilot bereitgestellt und ruft den konfigurierten ilitools-wrapper auf. Prozessoren, welche INTERLIS-Werkzeuge brauchen, fordern einen solchen Client im Konstruktor an, anstatt selbst einen Dienst anzusprechen.
 
 ```csharp
-public XtfValidatorProcess(string? validationProfile, IReadOnlyList<string>? modelDirs, bool? allObjectsAccessible, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
+public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
 {
 }
 ```

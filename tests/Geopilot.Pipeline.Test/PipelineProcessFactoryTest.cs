@@ -40,7 +40,7 @@ public class PipelineProcessFactoryTest
         // Base config (lowest priority) - defined in PipelineOptions.ProcessConfigs
         var baseConfig = new Parameterization()
         {
-            { "modelDirs", new List<object> { "https://base.test/" } }, // defines a parameter only in base config
+            { "modelDirs", "https://base.test/" }, // defines a parameter only in base config
         };
 
         // Default config (medium priority) - defined in ProcessConfig.DefaultConfig
