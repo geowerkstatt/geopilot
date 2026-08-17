@@ -112,14 +112,13 @@ describe("Users tests", () => {
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("save-button").click();
 
-    // The request must keep the current admin/active values instead of the
-    // disabled, unsubmitted fields, otherwise the admin would lock themselves out.
-    cy.wait("@updateUser")
-      .its("request.body")
-      .should(body => {
-        expect(body.isAdmin).to.eq(true);
-        expect(body.state).to.eq("active");
-      });
+    // The saved user (server response) must still be an active administrator; saving your own account
+    // must neither drop your admin rights nor deactivate you.
+    cy.wait("@updateUser").then(({ response }) => {
+      expect(response.statusCode).to.eq(200);
+      expect(response.body.isAdmin).to.eq(true);
+      expect(response.body.state).to.eq("active");
+    });
 
     // After the redirect to the list, the user is still an administrator.
     cy.location().should(location => {

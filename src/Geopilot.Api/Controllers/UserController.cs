@@ -119,8 +119,17 @@ public class UserController : ControllerBase
             if (existingUser == null)
                 return NotFound();
 
-            existingUser.IsAdmin = user.IsAdmin;
-            existingUser.State = user.State;
+            await using var transaction = await context.Database.BeginTransactionAsync().ConfigureAwait(false);
+
+            // A user must not change their own admin rights or active state, otherwise an administrator
+            // could lock themselves out. These fields are disabled in the frontend for the current user;
+            // enforce the same here so the existing values are kept regardless of the request payload.
+            var currentUser = await context.GetUserByPrincipalAsync(User);
+            if (currentUser.Id != existingUser.Id)
+            {
+                existingUser.IsAdmin = user.IsAdmin;
+                existingUser.State = user.State;
+            }
 
             var organisationIds = user.Organisations.Select(o => o.Id).ToList();
             var organisations = await context.Organisations
@@ -133,6 +142,23 @@ public class UserController : ControllerBase
             }
 
             await context.SaveChangesAsync().ConfigureAwait(false);
+
+            // The system must always retain at least one active administrator. The check runs inside the
+            // transaction after saving, so it reflects the pending change; if the update would remove the
+            // last active administrator, roll it back and reject the request.
+            var activeAdminCount = await context.Users
+                .CountAsync(u => u.IsAdmin && u.State == UserState.Active)
+                .ConfigureAwait(false);
+            if (activeAdminCount == 0)
+            {
+                await transaction.RollbackAsync().ConfigureAwait(false);
+                logger.LogWarning("Rejected update of user {UserId}: it would leave the system without an active administrator.", user.Id);
+                return Problem(
+                    detail: "The update would leave the system without an active administrator.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            await transaction.CommitAsync().ConfigureAwait(false);
 
             var result = await context.UsersWithIncludes
                 .AsNoTracking()
