@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Models;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,18 +31,18 @@ public class MandateService : IMandateService
     }
 
     /// <inheritdoc/>
-    public async Task<List<Mandate>> GetMandatesAsync(User? user, Guid uploadId)
+    public async Task<List<MandateSummary>> GetMandateSummariesAsync(User? user, Guid uploadId)
     {
-        var mandates = context.MandatesWithIncludes.AsNoTracking();
+        var mandates = context.Mandates.AsNoTracking();
         mandates = FilterMandatesByUser(mandates, user);
         mandates = FilterMandatesByUpload(mandates, uploadId);
-        return await mandates.ToListAsync();
+        return await mandates.ToSummaries().ToListAsync();
     }
 
     /// <inheritdoc/>
     public async Task<Mandate?> GetMandateForUser(int mandateId, User? user)
     {
-        var mandates = FilterMandatesByUser(context.MandatesWithIncludes.AsNoTracking(), user);
+        var mandates = FilterMandatesByUser(context.Mandates.AsNoTracking(), user);
         return await mandates.SingleOrDefaultAsync(m => m.Id == mandateId);
     }
 

@@ -42,26 +42,25 @@ public class MandateController : ControllerBase
     }
 
     /// <summary>
-    /// Gets a summarized list of all mandates that the current user has access to and match all filter criteria.
+    /// Gets a list of all mandates that the current user has access to and match all filter criteria.
     /// </summary>
     /// <param name="uploadId">Only mandates that accept the uploaded files' extensions are returned.</param>
     /// <returns>List of mandates matching the filter criteria.</returns>
     [HttpGet("summary")]
     [AllowAnonymous]
-    [SwaggerResponse(StatusCodes.Status200OK, "Gets a summarized list of all mandates that the current user has access to and match all filter criteria.", typeof(IEnumerable<MandateSummary>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandates that the current user has access to and match all filter criteria.", typeof(IEnumerable<MandateSummary>), "application/json")]
     public async Task<IActionResult> GetSummary(
         [FromQuery, SwaggerParameter("Filter mandates matching the uploaded files' extensions.")]
         Guid uploadId)
     {
-        logger.LogInformation("Getting summary of mandates for upload with id <{UploadId}>.", uploadId);
+        logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}>.", uploadId);
 
         var user = User?.Identity?.IsAuthenticated == true
             ? await context.GetUserByPrincipalAsync(User)
             : null;
 
-        var mandate = await mandateService.GetMandatesAsync(user, uploadId);
-        var result = mandate.Select(m => m.ToSummary()).ToList();
-        logger.LogInformation("Getting summary of mandates for upload with id <{UploadId}> resulted in <{ResultCount}> matching mandates.", uploadId, result.Count);
+        var result = await mandateService.GetMandateSummariesAsync(user, uploadId);
+        logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}> resulted in <{ResultCount}> matching mandates.", uploadId, result.Count);
         return Ok(result);
     }
 

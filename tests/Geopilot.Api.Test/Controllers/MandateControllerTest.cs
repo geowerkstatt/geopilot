@@ -118,15 +118,15 @@ namespace Geopilot.Api.Controllers
             var uploadId = Guid.NewGuid();
             mandateController.SetupTestUser(editUser);
             mandateServiceMock
-                .Setup(m => m.GetMandatesAsync(It.Is<User>(u => u.Id == editUser.Id), uploadId))
-                .ReturnsAsync(new List<Mandate> { xtfMandate });
+                .Setup(m => m.GetMandateSummariesAsync(It.Is<User>(u => u.Id == editUser.Id), uploadId))
+                .ReturnsAsync(new List<MandateSummary> { xtfMandate.ToSummary() });
 
             var result = (await mandateController.GetSummary(uploadId)) as OkObjectResult;
             var mandates = Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value).ToList();
 
             Assert.IsNotNull(mandates);
             Assert.HasCount(1, mandates);
-            mandateServiceMock.Verify(m => m.GetMandatesAsync(It.Is<User>(u => u.Id == editUser.Id), uploadId), Times.Once);
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(It.Is<User>(u => u.Id == editUser.Id), uploadId), Times.Once);
         }
 
         [TestMethod]
@@ -134,15 +134,15 @@ namespace Geopilot.Api.Controllers
         {
             var uploadId = Guid.NewGuid();
             mandateServiceMock
-                .Setup(m => m.GetMandatesAsync(null, uploadId))
-                .ReturnsAsync(new List<Mandate> { publicCsvMandate });
+                .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
+                .ReturnsAsync(new List<MandateSummary> { publicCsvMandate.ToSummary() });
 
             var result = (await mandateController.GetSummary(uploadId)) as OkObjectResult;
             var mandates = Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value).ToList();
 
             Assert.IsNotNull(mandates);
             Assert.HasCount(1, mandates);
-            mandateServiceMock.Verify(m => m.GetMandatesAsync(null, uploadId), Times.Once);
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(null, uploadId), Times.Once);
         }
 
         [TestMethod]
