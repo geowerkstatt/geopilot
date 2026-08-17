@@ -240,11 +240,31 @@ Für das Überschreiben von Konfigurationsparametern gelten folgende Einschränk
 - Basis-Konfigurationen, welche in den Appsettings definiert sind, können nicht von der Pipeline-Definition überschrieben werden. Ein in der Basis-Konfiguration definierter Wert ist somit fix und unveränderbar. Ein Beispiel für einen solchen Konfigurationsparameter ist die Basis-URL eines Drittanbieter-Services, welcher für die gesamte Umgebung gilt (Development, Acceptance, Prod, ...). Um die gleiche Pipeline auf den verschiedenen Umgebungen mit unterschiedlichen Basis-URLs verwenden zu können, sollte dieser Parameter in den Appsettings definiert werden und nicht in der Pipeline-Definition.
 - Das Überschreiben von Konfigurations-Parameter wird in den Schritten unter `pipelines[X].steps[X].process_config_overwrites` vorgenommen. Um ein Konfigurationsparameter zu überschreiben muss dieser Parameter auf der Standard-Konfiguration des Prozesses definiert sein (`processes[X].default_config`). Es ist somit nicht möglich, neue Konfigurationsparameter in den Schritten zu definieren, welche nicht bereits in der Standard-Konfiguration definiert sind.
 
+Zu den Typen: Listen können nur in der Pipeline-Definition angegeben werden, die Appsettings-Ebene trägt nur Einzelwerte. Ein Parameter, der unveränderbar sein soll und trotzdem mehrere Werte braucht, wird deshalb als Einzelwert entworfen (der Prozessor `xtf_validator` nimmt seine Modell-Repositories zum Beispiel als semikolon-getrennten Wert).
+
+#### Dateien als Konfiguration
+
+Ein Konfigurationsparameter vom Typ `IPipelineFile` nennt eine **Datei, die das Deployment mitbringt**. Konfiguriert wird ihr Pfad relativ zum Ressourcen-Verzeichnis (Appsettings `Storage:ResourcesDirectory`), also derselben Wurzel, gegen die eine `${file(...)}`-Referenz im `input` auflöst:
+
+```json
+{
+  "Pipeline": {
+    "ProcessConfigs": {
+      "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess": {
+        "modelRepository": "model-repository.zip"
+      }
+    }
+  }
+}
+```
+
+Der Pfad muss innerhalb der Wurzel liegen und eine existierende Datei nennen, sonst startet die Applikation nicht. Der Unterschied zum `${file(...)}`-Input ist nicht die Datei, sondern wer sie bestimmt: als Konfiguration lässt sie sich in der Basis-Konfiguration unveränderbar festlegen, als Input wählt sie der Autor der Pipeline-Definition pro Schritt. Für eine konstante Datei, die nicht aus dem Ergebnis eines vorherigen Schrittes stammen kann, ist die Konfiguration der richtige Ort.
+
 ### Beispiel einer Instanziierung eines Prozessors mit Konfigurationsparametern
 
 Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess` welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `modelDirs` und `allObjectsAccessible` übergeben, alle optional: das Profil, anhand dessen die Validierung durchgeführt wird, die Modell-Repositories, aus denen Modelle und Profil aufgelöst werden, und ob Verweise auf Objekte ausserhalb der geprüften Datei als Fehler gelten. Alle drei sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` als semikolon-getrennter Wert.
 
-Der vierte Konfigurationsparameter, `modelRepository`, ist ein Sonderfall: sein Typ ist `IPipelineFile`, und konfiguriert wird der **Pfad einer Datei, die das Deployment mitbringt**, relativ zum Ressourcen-Verzeichnis (`Storage:ResourcesDirectory`), also derselben Wurzel, gegen die eine `${file(...)}`-Referenz auflöst. Ein Pfad, der aus dieser Wurzel herausführt oder keine existierende Datei nennt, lässt die Applikation beim Start scheitern. Ein solcher Parameter ist Konfiguration und kein Input, weil er nicht vom Ergebnis eines vorherigen Schrittes abhängt, und weil er damit in der Basis-Konfiguration unveränderbar hinterlegt werden kann.
+Der vierte, `modelRepository`, ist vom Typ `IPipelineFile` und nennt eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
 
 Der `logger` ist nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um innerhalb des Prozesses wichtige Informationen zu loggen. Es wird empfohlen den Logger von geopilot zu verwenden, anstatt einen eigenen Logger zu erstellen, um die Konsistenz der Logs zu gewährleisten und die Logs korrekt in die Log-Management-Lösung von geopilot zu integrieren.
 

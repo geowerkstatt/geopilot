@@ -53,6 +53,8 @@ Die PipelineCore-Bibliothek beinhaltet die folgenden Definitionen:
   - `ILogger`: Logger-Instanz für das Logging innerhalb des Prozessors.
   - `IPipelineFileManager`: Instanz zum Verwalten von Dateien innerhalb der Pipeline.
   - `IIli2GpkgClient`: Client für ili2gpkg-Operationen (Schema-Import, Daten-Import, Export) gegen den ilitools-wrapper-Service. Die Adresse des Services wird von geopilot konfiguriert; das Plugin benötigt dazu keine eigene Konfiguration.
+  - `IIlivalidatorClient`: Client für Validierungen mit ilivalidator gegen denselben Service, ebenfalls ohne eigene Konfiguration.
+  - `IPipelineFile` und `IPipelineFile?`: Eine Datei, die das Deployment mitbringt. Konfiguriert wird ihr **Pfad relativ zum Ressourcen-Verzeichnis** (Appsettings `Storage:ResourcesDirectory`), also derselben Wurzel, gegen die eine `${file(...)}`-Referenz im `input` auflöst. Der Pfad muss innerhalb dieser Wurzel liegen und eine existierende Datei nennen, sonst startet die Applikation nicht. Damit gehören konstante Dateien wie eine Vorlage, eine Nachschlagetabelle oder ein Modell-Repository in die Konfiguration eines Prozessors, statt in jedem Schritt als Input verdrahtet zu werden, und lassen sich in der Basis-Konfiguration unveränderbar festlegen.
   - `int` und `int?`: Ganzzahlige Werte, welche in der Pipeline-Definition als Konfiguration angegeben werden können.
   - `double` und `double?`: Gleitkommazahlen, welche in der Pipeline-Definition als Konfiguration angegeben werden können.
   - `string` und `string?`: Zeichenfolgen, welche in der Pipeline-Definition als Konfiguration angegeben werden können.
