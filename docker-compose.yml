@@ -145,7 +145,7 @@ services:
     command: start-dev --import-realm
 
   ilitools-wrapper:
-    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.0.6
+    image: ghcr.io/geowerkstatt/ilitools-wrapper:v1.0.7
     restart: unless-stopped
     ports:
       - 5555:5555

@@ -152,6 +152,74 @@ public partial class Ili2GpkgClientIntegrationTest
 
     [TestMethod]
     [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ExportAsyncWithModelDirs()
+    {
+        var dbFile = GetTestPipelineFile("data.gpkg");
+        var transferFile = GetTestPipelineFile("export_modeldirs.xtf");
+        await DeleteIfExistsAsync(transferFile);
+
+        // Model dirs replace the default of the tool, so the model has to come from the GeoPackage itself.
+        var args = new Ili2GpkgArgs
+        {
+            Models = ["SimpleModel"],
+            ModelDirs = ["%ILI_FROM_DB", "%XTF_DIR"],
+        };
+        var result = await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, TestContext.CancellationToken);
+
+        Assert.IsNotNull(result);
+        Assert.IsTrue(result.Success, "Export with model dirs failed. Log: " + result.Log);
+
+        await AssertIsInterlisTransferAsync(transferFile, InterlisVersion.Ili2_4);
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ExportAsyncFailsWithLocalPathAsModelDir()
+    {
+        var dbFile = GetTestPipelineFile("data.gpkg");
+        var transferFile = GetTestPipelineFile("export_invalid_modeldir.xtf");
+        await DeleteIfExistsAsync(transferFile);
+
+        // Only http(s) URLs and the tool placeholders are accepted, so the wrapper has to reject a local path.
+        var args = new Ili2GpkgArgs
+        {
+            Models = ["SimpleModel"],
+            ModelDirs = ["/etc/models"],
+        };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ExportAsyncFailsWithMetaConfigFilePath()
+    {
+        var dbFile = GetTestPipelineFile("data.gpkg");
+        var transferFile = GetTestPipelineFile("export_invalid_metaconfig.xtf");
+        await DeleteIfExistsAsync(transferFile);
+
+        // Only the repository indexed form ilidata:<DatasetId> is accepted, not a file path.
+        var args = new Ili2GpkgArgs
+        {
+            Models = ["SimpleModel"],
+            MetaConfig = "profile.toml",
+        };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
     public async Task UpdateAsync()
     {
         var inputFile = GetTestPipelineFile("data.gpkg");
