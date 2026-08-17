@@ -141,4 +141,12 @@ internal static class DtoMapperExtensions
             mandate.EvaluatePartial,
             mandate.EvaluateComment);
     }
+
+    /// <summary>
+    /// Maps the <see cref="Delivery"/> entries to <see cref="DeliverySummary"/>.
+    /// </summary>
+    public static IQueryable<DeliverySummary> ToSummaries(this IQueryable<Delivery> deliveries)
+    {
+        return deliveries.Select(d => new DeliverySummary(d.Id, d.Date));
+    }
 }

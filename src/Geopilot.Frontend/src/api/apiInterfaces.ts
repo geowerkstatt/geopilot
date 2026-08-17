@@ -64,6 +64,11 @@ export interface Organisation {
   users: User[];
 }
 
+export interface DeliverySummary {
+  id: number;
+  date: string;
+}
+
 export interface Delivery {
   id: number;
   date: string;

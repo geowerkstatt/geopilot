@@ -75,7 +75,7 @@ describe("Delivery tests", () => {
 
   // Skip test as starting the processing currently results in a 500 when running in the github action
   it.skip("can submit delivery", () => {
-    cy.intercept("/api/v1/delivery?mandateId=*").as("precursors");
+    cy.intercept("/api/v1/delivery/summary?mandateId=*").as("precursors");
 
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_valid.xtf", true);

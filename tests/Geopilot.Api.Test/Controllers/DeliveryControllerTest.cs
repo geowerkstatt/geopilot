@@ -642,32 +642,7 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task GetAsUserReturnsListFilteredByOrganisations()
-    {
-        var user = context.Users.First(u => !u.IsAdmin);
-        deliveryController.SetupTestUser(user);
-
-        var response = (await deliveryController.Get()) as ObjectResult;
-        var list = response?.Value as List<Delivery>;
-
-        var accessibleDeliveries = context.Users
-            .Include(u => u.Organisations)
-            .ThenInclude(o => o.Mandates)
-            .ThenInclude(m => m.Deliveries)
-            .First(u => u.Id == user.Id)
-            .Organisations
-            .SelectMany(o => o.Mandates)
-            .SelectMany(m => m.Deliveries)
-            .ToList();
-
-        Assert.IsNotNull(list);
-        Assert.AreNotEqual(0, accessibleDeliveries.Count);
-        Assert.HasCount(accessibleDeliveries.Count, list);
-        CollectionAssert.AllItemsAreUnique(list);
-    }
-
-    [TestMethod]
-    public async Task GetAsAdminReturnsListFilteredByMandateId()
+    public async Task GetSummaryAsAdminReturnsListFilteredByMandateId()
     {
         var admin = context.Users.First(u => u.IsAdmin);
         admin.Organisations.Clear();
@@ -678,15 +653,15 @@ public class DeliveryControllerTest
             .First()
             .Id;
 
-        var response = (await deliveryController.Get(mandateId)) as ObjectResult;
-        var list = response?.Value as List<Delivery>;
+        var response = (await deliveryController.GetSummary(mandateId)) as ObjectResult;
+        var list = Assert.IsInstanceOfType<List<DeliverySummary>>(response?.Value);
 
         Assert.IsNotNull(list);
         Assert.HasCount(context.Deliveries.Where(d => d.Mandate != null && d.Mandate.Id == mandateId).Count(), list);
     }
 
     [TestMethod]
-    public async Task GetAsUserReturnsNotFoundForUnauthorizedMandate()
+    public async Task GetSummaryAsUserReturnsNotFoundForUnauthorizedMandate()
     {
         var user = context.Users.First(u => !u.IsAdmin);
         deliveryController.SetupTestUser(user);
@@ -695,13 +670,13 @@ public class DeliveryControllerTest
             .First()
             .Id;
 
-        var response = await deliveryController.Get(mandateId);
+        var response = await deliveryController.GetSummary(mandateId);
 
         Assert.IsInstanceOfType<NotFoundResult>(response);
     }
 
     [TestMethod]
-    public async Task GetAsUserReturnsListFilteredByOrganisationsAndMandateId()
+    public async Task GetSummaryAsUserReturnsListFilteredByOrganisationsAndMandateId()
     {
         var user = context.Users.First(u => !u.IsAdmin);
         deliveryController.SetupTestUser(user);
@@ -710,8 +685,8 @@ public class DeliveryControllerTest
             .First()
             .Id;
 
-        var response = (await deliveryController.Get(mandateId)) as ObjectResult;
-        var list = response?.Value as List<Delivery>;
+        var response = (await deliveryController.GetSummary(mandateId)) as ObjectResult;
+        var list = Assert.IsInstanceOfType<List<DeliverySummary>>(response?.Value);
 
         var deliveris = context.Mandates
             .Include(m => m.Deliveries)

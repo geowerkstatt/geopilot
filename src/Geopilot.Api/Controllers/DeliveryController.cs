@@ -163,39 +163,49 @@ public class DeliveryController : ControllerBase
     /// <summary>
     /// Gets a filtered list of deliveries accessible for the user.
     /// </summary>
-    /// <param name="mandateId">Optional. Filter deliveries for given mandate.</param>
-    /// <returns>A list of <see cref="Delivery"/>.</returns>
-    [HttpGet]
+    /// <param name="mandateId">Filter deliveries for given mandate.</param>
+    /// <returns>A list of <see cref="DeliverySummary"/>.</returns>
+    [HttpGet("summary")]
     [Authorize(Policy = GeopilotPolicies.User)]
-    [SwaggerResponse(StatusCodes.Status200OK, "A list matching filter criteria.", typeof(List<Delivery>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list matching filter criteria.", typeof(List<DeliverySummary>), "application/json")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Failed to find mandate.")]
-    public async Task<IActionResult> Get([FromQuery] int? mandateId = null)
+    public async Task<IActionResult> GetSummary([FromQuery] int mandateId)
     {
         var user = await context.GetUserByPrincipalAsync(User);
 
-        logger.LogInformation(
-            "User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>",
-            user.AuthIdentifier,
-            mandateId?.ToString(CultureInfo.InvariantCulture).ReplaceLineEndings(string.Empty));
+        logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>", user.AuthIdentifier, mandateId);
 
-        var userMandatesIds = context.Mandates
-            .Where(m => user.IsAdmin || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))
-            .Select(m => m.Id)
-            .ToList();
+        var authorizedForMandate = await context.Mandates
+            .Where(m => m.Id == mandateId && (user.IsAdmin || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id)))
+            .AnyAsync();
 
-        if (mandateId.HasValue && !userMandatesIds.Contains(mandateId.Value))
+        if (!authorizedForMandate)
             return NotFound();
 
-        var result = context.DeliveriesWithIncludes
+        var deliveries = context.Deliveries
             .AsNoTracking()
-            .Where(d => userMandatesIds.Contains(d.Mandate!.Id));
+            .Where(d => d.Mandate != null && d.Mandate.Id == mandateId);
 
-        if (mandateId.HasValue)
-        {
-            result = result.Where(d => d.Mandate != null && d.Mandate.Id == mandateId.Value);
-        }
+        var result = await deliveries.ToSummaries().ToListAsync();
+        return Ok(result);
+    }
 
-        return Ok(result.ToList());
+    /// <summary>
+    /// Gets a list of all deliveries.
+    /// </summary>
+    /// <returns>A list of all <see cref="Delivery"/>.</returns>
+    [HttpGet]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list of all deliveries.", typeof(List<Delivery>), "application/json")]
+    public async Task<IActionResult> Get()
+    {
+        var user = await context.GetUserByPrincipalAsync(User);
+        logger.LogInformation("User <{UserId}> accessed the list of all deliveries", user.AuthIdentifier);
+
+        var result = context.DeliveriesWithIncludes
+            .AsNoTracking();
+
+        return Ok(await result.ToListAsync());
     }
 
     /// <summary>

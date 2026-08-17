@@ -2,7 +2,7 @@ import { FC, useContext, useEffect, useState } from "react";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Alert, Stack, Typography } from "@mui/material";
-import { Delivery, FieldEvaluationType } from "../../api/apiInterfaces.ts";
+import { DeliverySummary, FieldEvaluationType } from "../../api/apiInterfaces.ts";
 import { Button } from "../../components/buttons.tsx";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
 import useFetch from "../../hooks/useFetch.ts";
@@ -15,7 +15,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
   const { isLoading, submitDelivery, selectedMandate, submittedData } = useContext(DeliveryContext);
-  const [previousDeliveries, setPreviousDeliveries] = useState<Delivery[]>([]);
+  const [previousDeliveries, setPreviousDeliveries] = useState<DeliverySummary[]>([]);
   const formMethods = useForm({ mode: "all", defaultValues: submittedData, disabled: completed });
 
   const submitForm = (data: FieldValues) => {
@@ -28,8 +28,8 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
   // Fetch previous deliveries for the selected mandate
   useEffect(() => {
     if (selectedMandate) {
-      fetchApi<Delivery[]>(
-        "/api/v1/delivery?" + new URLSearchParams({ mandateId: selectedMandate.id.toString() }),
+      fetchApi<DeliverySummary[]>(
+        "/api/v1/delivery/summary?" + new URLSearchParams({ mandateId: selectedMandate.id.toString() }),
       ).then(setPreviousDeliveries);
     }
   }, [fetchApi, selectedMandate]);
