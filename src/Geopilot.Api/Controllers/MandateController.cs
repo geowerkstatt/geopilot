@@ -55,6 +55,11 @@ public class MandateController : ControllerBase
     {
         logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}>.", uploadId);
 
+        if (uploadId == default)
+        {
+            return BadRequest("Upload id is required.");
+        }
+
         var user = User?.Identity?.IsAuthenticated == true
             ? await context.GetUserByPrincipalAsync(User)
             : null;

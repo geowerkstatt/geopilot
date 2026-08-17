@@ -146,6 +146,16 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task GetSummaryWithDefaultUploadIdReturnsBadRequest()
+        {
+            var uploadId = default(Guid);
+
+            Assert.IsInstanceOfType<BadRequestObjectResult>(await mandateController.GetSummary(uploadId));
+
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(It.IsAny<User>(), It.IsAny<Guid>()), Times.Never);
+        }
+
+        [TestMethod]
         public async Task GetSetsCoordinatesOnResults()
         {
             mandateController.SetupTestUser(adminUser);
