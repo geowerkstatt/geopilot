@@ -125,13 +125,9 @@ public class UserControllerTest
     [TestMethod]
     public async Task EditUser()
     {
-        // Editing runs as a different admin, so the guard preventing changes to your own admin/active
-        // state does not interfere, and an active administrator always remains after the edit.
-        var currentAdmin = CreateUser(Guid.NewGuid().ToString(), "Current Admin", "current@admin.com", isAdmin: true);
         var testUser = CreateUser(Guid.NewGuid().ToString(), "FLEA XI", "flea@xi.com", isAdmin: false, state: UserState.Inactive);
-        context.Users.AddRange(currentAdmin, testUser);
+        context.Users.Add(testUser);
         context.SaveChanges();
-        userController.SetupTestUser(currentAdmin);
 
         var userResult = await userController.GetById(testUser.Id) as OkObjectResult;
         var user = userResult?.Value as User;

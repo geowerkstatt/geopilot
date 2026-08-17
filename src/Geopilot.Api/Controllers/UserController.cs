@@ -119,15 +119,8 @@ public class UserController : ControllerBase
             if (existingUser == null)
                 return NotFound();
 
-            // A user must not change their own admin rights or active state, otherwise an administrator
-            // could lock themselves out. These fields are disabled in the frontend for the current user;
-            // enforce the same here so the existing values are kept regardless of the request payload.
-            var currentUser = await context.GetUserByPrincipalAsync(User);
-            if (currentUser.Id != existingUser.Id)
-            {
-                existingUser.IsAdmin = user.IsAdmin;
-                existingUser.State = user.State;
-            }
+            existingUser.IsAdmin = user.IsAdmin;
+            existingUser.State = user.State;
 
             var organisationIds = user.Organisations.Select(o => o.Id).ToList();
             var organisations = await context.Organisations
