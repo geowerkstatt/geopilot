@@ -99,6 +99,7 @@
   "mandates": "Mandates",
   "mandatesLoadingError": "An error occurred while loading the mandates: {{error}}",
   "mapCopyrightPrefix": "© Data:",
+  "mapFeatureWithoutMessage": "Error without message",
   "mapInteractionHintScroll": "Use {{key}} + scroll to zoom",
   "mapInteractionHintTouch": "Use two fingers to move the map",
   "mapVisualizationFeatureLayer": "Features",

@@ -1,17 +1,19 @@
 import { MutableRefObject } from "react";
 import { alpha } from "@mui/material";
 import { createEmpty, extend as extendExtent, Extent, isEmpty as isExtentEmpty } from "ol/extent";
-import Feature from "ol/Feature";
+import Feature, { FeatureLike } from "ol/Feature";
 import WKT from "ol/format/WKT";
 import WMTSCapabilities from "ol/format/WMTSCapabilities";
+import Point from "ol/geom/Point";
 import BaseLayer from "ol/layer/Base";
 import LayerGroup from "ol/layer/Group";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import Map from "ol/Map";
+import Cluster from "ol/source/Cluster";
 import VectorSource from "ol/source/Vector";
 import WMTS, { optionsFromCapabilities } from "ol/source/WMTS";
-import { Circle, Fill, Stroke, Style } from "ol/style";
+import { Circle, Fill, Stroke, Style, Text } from "ol/style";
 import { FitOptions } from "ol/View";
 import { LocalizedText, MapLayer } from "../../../api/apiInterfaces";
 
@@ -98,6 +100,19 @@ interface MapFeatureColors {
   highlight: string;
 }
 
+/** Pixel distance within which point features are merged into one cluster marker. */
+const CLUSTER_DISTANCE = 40;
+
+/** Pixel distance kept between two cluster markers so their counts stay readable. */
+const CLUSTER_MIN_DISTANCE = 24;
+
+/** The property under which a cluster feature carries the features it stands for. */
+const CLUSTER_MEMBERS_PROPERTY = "features";
+
+/** Returns the features a cluster contains, or the feature itself, if its not a cluster. */
+export const getClusterMembers = (feature: FeatureLike): Feature[] =>
+  (feature.get(CLUSTER_MEMBERS_PROPERTY) as Feature[] | undefined) ?? [feature as Feature];
+
 export const buildFeatureLayer = (
   layer: MapLayer,
   colors: MapFeatureColors,
@@ -121,6 +136,25 @@ export const buildFeatureLayer = (
     }
   }
 
+  const isVisible = (feature: Feature): boolean => {
+    const id = feature.getId()?.toString();
+    const visible = visibleIdsRef.current;
+    return id === undefined || visible === undefined || visible.has(id);
+  };
+
+  // Clustering keeps markers of nearby errors from covering each other. It reduces every feature to a
+  // point, so a layer holding any other geometry is left unclustered instead of losing those shapes.
+  const clusterable = source.getFeatures().every(feature => feature.getGeometry() instanceof Point);
+  const layerSource = clusterable
+    ? new Cluster({
+        source,
+        distance: CLUSTER_DISTANCE,
+        minDistance: CLUSTER_MIN_DISTANCE,
+        // Filtered out features contribute no point, which keeps them out of the clusters and their counts.
+        geometryFunction: feature => (isVisible(feature) ? (feature.getGeometry() as Point) : null),
+      })
+    : source;
+
   const defaultStyle = new Style({
     image: new Circle({
       radius: 6,
@@ -141,29 +175,76 @@ export const buildFeatureLayer = (
     // Highlighted features are drawn on top so nearby unselected markers cannot cover them.
     zIndex: 1,
   });
+  const buildClusterStyle = (color: string, zIndex: number) =>
+    new Style({
+      image: new Circle({
+        radius: 12,
+        fill: new Fill({ color }),
+        stroke: new Stroke({ color: colors.stroke, width: 2 }),
+      }),
+      text: new Text({ font: "bold 12px sans-serif", fill: new Fill({ color: colors.stroke }) }),
+      zIndex,
+    });
+  const defaultClusterStyle = buildClusterStyle(colors.fill, 0);
+  const highlightClusterStyle = buildClusterStyle(colors.highlight, 1);
 
   return new VectorLayer({
-    source,
+    source: layerSource,
     properties: { [LOCALIZABLE_TITLE_PROPERTY]: title },
     // A style function (not a static style): filtering hides non-matching features and selection emphasizes
     // highlighted ones. It reads the current sets from refs, which the map's update effect keeps in sync,
     // so changing filter/selection only restyles the existing layer instead of rebuilding the map.
     style: feature => {
-      const id = feature.getId()?.toString();
-      const visible = visibleIdsRef.current;
-      if (id !== undefined && visible !== undefined && !visible.has(id)) return undefined;
-      return id !== undefined && highlightedIdsRef.current.has(id) ? highlightStyle : defaultStyle;
+      const members = getClusterMembers(feature).filter(isVisible);
+      if (members.length === 0) return undefined;
+      const highlighted = members.some(member => {
+        const id = member.getId()?.toString();
+        return id !== undefined && highlightedIdsRef.current.has(id);
+      });
+      if (members.length === 1) return highlighted ? highlightStyle : defaultStyle;
+
+      const clusterStyle = highlighted ? highlightClusterStyle : defaultClusterStyle;
+      clusterStyle.getText()?.setText(members.length.toString());
+      return clusterStyle;
     },
   });
+};
+
+/** The source holding the individual features: the wrapped source of a clustering layer, its own otherwise. */
+const getFeatureSource = (layer: BaseLayer): VectorSource | null => {
+  if (!(layer instanceof VectorLayer)) return null;
+  const source = layer.getSource();
+  return source instanceof Cluster ? source.getSource() : source;
+};
+
+/**
+ * Re-applies the current filter and selection to a feature layer. A clustering layer has to re-cluster,
+ * because the filter decides which features take part in a cluster and its count.
+ */
+export const refreshFeatureLayer = (layer: BaseLayer) => {
+  const source = layer instanceof VectorLayer ? layer.getSource() : null;
+  if (source instanceof Cluster) {
+    source.refresh();
+  } else {
+    layer.changed();
+  }
+};
+
+/** The combined extent of the specified features; empty when none of them has a geometry. */
+export const getFeaturesExtent = (features: Feature[]): Extent => {
+  const extent = createEmpty();
+  for (const feature of features) {
+    const geometry = feature.getGeometry();
+    if (geometry) extendExtent(extent, geometry.getExtent());
+  }
+  return extent;
 };
 
 const getFitExtent = (featureLayers: BaseLayer[], fallback: Extent): Extent => {
   const featureExtent = createEmpty();
   for (const featureLayer of featureLayers) {
-    if (featureLayer instanceof VectorLayer) {
-      const extent = featureLayer.getSource()?.getExtent();
-      if (extent) extendExtent(featureExtent, extent);
-    }
+    const extent = getFeatureSource(featureLayer)?.getExtent();
+    if (extent) extendExtent(featureExtent, extent);
   }
   return isExtentEmpty(featureExtent) ? fallback : featureExtent;
 };
@@ -176,21 +257,14 @@ export const fitToLayers = (map: Map, options: FitOptions, fallback: Extent) => 
 };
 
 const getExtentForFeatureIds = (featureLayers: BaseLayer[], featureIds: ReadonlySet<string>): Extent => {
-  const extent = createEmpty();
+  const matching: Feature[] = [];
   for (const featureLayer of featureLayers) {
-    if (!(featureLayer instanceof VectorLayer)) continue;
-
-    for (const feature of featureLayer.getSource()?.getFeatures() ?? []) {
+    for (const feature of getFeatureSource(featureLayer)?.getFeatures() ?? []) {
       const id = feature.getId()?.toString();
-      if (id !== undefined && featureIds.has(id)) {
-        const geometry = feature.getGeometry();
-        if (geometry) {
-          extendExtent(extent, geometry.getExtent());
-        }
-      }
+      if (id !== undefined && featureIds.has(id)) matching.push(feature);
     }
   }
-  return extent;
+  return getFeaturesExtent(matching);
 };
 
 /** Fits the map view to the combined extent of the specified feature IDs, doing nothing if there are no matching features. */
