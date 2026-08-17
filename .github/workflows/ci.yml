@@ -64,7 +64,7 @@ jobs:
         uses: ./.github/actions/setup-dev-certs
 
       - name: Start test environment
-        run: docker compose up -d --wait --wait-timeout 120 db azurite clamav ilitools-wrapper
+        run: docker compose up -d --wait --wait-timeout 120 db azurite clamav ilitools-wrapper interlis-models
 
       - name: Test
         run: dotnet test Geopilot.slnx -c Release --no-build --verbosity normal
