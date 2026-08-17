@@ -142,6 +142,20 @@ services:
     restart: unless-stopped
     ports:
       - 5555:5555
+    environment:
+      # The model repository below is reachable under a container address, which the wrapper rejects by default.
+      MODELDIR_ALLOW_PRIVATE_NETWORKS: true
+
+  # Serves TestData/XtfErrorVisualization/ili-repository as an INTERLIS model repository, so a checkout has models
+  # and a validation profile to work with. Its ilisite.xml chains to models.interlis.ch, so the public models stay
+  # available through it.
+  interlis-models:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - 3081:80
+    volumes:
+      - ./TestData/XtfErrorVisualization/ili-repository:/usr/share/nginx/html:ro
 
 volumes:
   geopilot-db:

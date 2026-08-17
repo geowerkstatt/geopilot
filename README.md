@@ -77,6 +77,7 @@ volumes:
 | http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
 | https://localhost:10000 | Azurite Blob Storage (in docker-compose)      | -                                                                         |
 | http://localhost:3310  | ClamAV clamd (in docker-compose)               | -                                                                         |
+| http://localhost:3081  | interlis-models (in docker-compose)           | -                                                                         |
 | http://localhost:4011  | Keycloak Server Administration                | -                                                                         |
 | http://localhost:5555  | ilitools-wrapper service                      | -                                                                         |
 

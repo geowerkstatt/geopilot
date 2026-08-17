@@ -11,6 +11,15 @@
     <Content Include="TestData\**">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+
+    <!-- The transfer files that belong to the model repository the interlis-models service serves. Linked instead of
+         copied so the fixture stays in one place for the local dev setup and for these tests. -->
+    <Content Include="..\..\TestData\XtfErrorVisualization\AllErrors23-ok.xtf" Link="TestData\ModelRepository\AllErrors23-ok.xtf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\TestData\XtfErrorVisualization\AllErrors23-errors.xtf" Link="TestData\ModelRepository\AllErrors23-errors.xtf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 	<ItemGroup>

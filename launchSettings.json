@@ -8,7 +8,9 @@
         "pgadmin": "StartWithoutDebugging",
         "geopilot": "DoNotStart",
         "stac-browser": "StartWithoutDebugging",
-        "keycloak":  "StartWithoutDebugging"
+        "keycloak":  "StartWithoutDebugging",
+        "ilitools-wrapper": "StartWithoutDebugging",
+        "interlis-models": "StartWithoutDebugging"
       }
     }
   }
