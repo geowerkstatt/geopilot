@@ -43,13 +43,19 @@ const UserDetail = () => {
   }, [id, loadOrganisations, loadUser]);
 
   const prepareUserForSave = (formData: FieldValues): User => {
-    const user = formData as User;
-    user.organisations = formData["organisations"]?.map(
+    const editedUser = formData as User;
+    editedUser.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
-    user.state = formData["isActive"] ? UserState.Active : UserState.Inactive;
-    delete user.deliveries;
-    return user;
+    editedUser.state = formData["isActive"] ? UserState.Active : UserState.Inactive;
+
+    if (!user || user.id === editableUser?.id) {
+      editedUser.isAdmin = editableUser?.isAdmin ?? false;
+      editedUser.state = editableUser?.state ?? UserState.Inactive;
+    }
+
+    delete editedUser.deliveries;
+    return editedUser;
   };
 
   const prepareUserForForm = (user: User): User => {
