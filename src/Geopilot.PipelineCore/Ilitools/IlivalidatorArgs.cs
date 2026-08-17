@@ -21,4 +21,11 @@ public sealed record IlivalidatorArgs
     /// Maps to the ilivalidator option <c>--metaConfig</c>.
     /// </summary>
     public string? MetaConfig { get; init; }
+
+    /// <summary>
+    /// Whether the validator may assume that every object it needs is contained in the validated file. A reference
+    /// to an object outside it is then an error instead of a check the validator skips.
+    /// Maps to the ilivalidator option <c>--allObjectsAccessible</c>.
+    /// </summary>
+    public bool AllObjectsAccessible { get; init; }
 }

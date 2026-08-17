@@ -49,6 +49,7 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         var info = new ValidateRequestInfo
         {
             MetaConfig = args.MetaConfig ?? string.Empty,
+            AllObjectsAccessible = args.AllObjectsAccessible,
         };
 
         if (args.ModelDirs != null)

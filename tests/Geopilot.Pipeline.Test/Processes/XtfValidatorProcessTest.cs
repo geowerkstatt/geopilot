@@ -93,6 +93,19 @@ public class XtfValidatorProcessTest
 
         Assert.IsNull(capturedArgs?.MetaConfig, "A blank profile must not reach the tool as an empty meta config.");
         Assert.IsNull(capturedArgs?.ModelDirs);
+
+        // The check service applied this option to every validation, so an unconfigured pipeline has to keep it.
+        Assert.IsTrue(capturedArgs?.AllObjectsAccessible, "Missing configuration must not weaken the validation.");
+    }
+
+    [TestMethod]
+    public async Task AcceptsTurningOffAllObjectsAccessible()
+    {
+        var process = CreateProcess(null, modelDirs: null, success: true, allObjectsAccessible: false);
+
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        Assert.IsFalse(capturedArgs?.AllObjectsAccessible);
     }
 
     private static PipelineFile CreateTransferFile()
@@ -100,7 +113,7 @@ public class XtfValidatorProcessTest
         return new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
     }
 
-    private XtfValidatorProcess CreateProcess(string? validationProfile, IReadOnlyList<string>? modelDirs, bool success)
+    private XtfValidatorProcess CreateProcess(string? validationProfile, IReadOnlyList<string>? modelDirs, bool success, bool? allObjectsAccessible = null)
     {
         ilivalidatorClientMock
             .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<CancellationToken>()))
@@ -112,6 +125,6 @@ public class XtfValidatorProcessTest
             .ReturnsAsync(new IlivalidatorResult(success));
 
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
-        return new XtfValidatorProcess(validationProfile, modelDirs, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+        return new XtfValidatorProcess(validationProfile, modelDirs, allObjectsAccessible, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
     }
 }
