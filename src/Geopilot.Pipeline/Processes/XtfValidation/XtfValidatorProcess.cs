@@ -12,6 +12,13 @@ internal class XtfValidatorProcess
 {
     private const string MetaConfigPrefix = "ilidata:";
 
+    /// <summary>
+    /// What the tool writes into its log when it cannot resolve the configured meta configuration. It then exits with
+    /// the same code as a failed validation, so recognizing this line is what keeps a broken configuration from being
+    /// reported as invalid data. Pinned by <c>IlivalidatorClientIntegrationTest</c> against the installed tool.
+    /// </summary>
+    internal const string MetaConfigNotFoundMarker = "failed to get local copy of meta-config file";
+
     private static readonly LocalizedText SuccessStatusMessage = new Dictionary<string, string>
     {
         { "de", "Die Validierung war erfolgreich." },
@@ -80,6 +87,15 @@ internal class XtfValidatorProcess
 
         logger.LogInformation($"Validation of transfer file <{iliFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
 
+        if (!result.Success && validatorArgs.MetaConfig != null && await LogReportsUnresolvedMetaConfigAsync(errorLog, cancellationToken))
+        {
+            var repositories = validatorArgs.ModelDirs is { Count: > 0 }
+                ? string.Join(';', validatorArgs.ModelDirs)
+                : "the default repositories of the tool";
+            throw new InvalidOperationException(
+                $"The validation profile <{validatorArgs.MetaConfig}> could not be resolved from <{repositories}>, so the transfer file was not validated. Check the validationProfile and modelDirs configuration of this process.");
+        }
+
         // ilivalidator writes both logs whenever it runs, and a tool that does not run surfaces as a failed call,
         // so both files are always handed on.
         return new XtfValidatorResult
@@ -89,6 +105,22 @@ internal class XtfValidatorProcess
             ErrorLog = errorLog,
             XtfLog = xtfLog,
         };
+    }
+
+    private static async Task<bool> LogReportsUnresolvedMetaConfigAsync(IPipelineFile logFile, CancellationToken cancellationToken)
+    {
+        var path = await logFile.GetLocalPathAsync(cancellationToken);
+        if (!File.Exists(path))
+            return false;
+
+        using var reader = new StreamReader(path);
+        while (await reader.ReadLineAsync(cancellationToken) is { } line)
+        {
+            if (line.Contains(MetaConfigNotFoundMarker, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
     }
 
     private static string? BuildMetaConfig(string? validationProfile)

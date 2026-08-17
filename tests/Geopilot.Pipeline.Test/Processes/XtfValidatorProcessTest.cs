@@ -44,9 +44,23 @@ public class XtfValidatorProcessTest
     }
 
     [TestMethod]
+    public async Task ThrowsWhenTheProfileCannotBeResolved()
+    {
+        // The tool exits like a failed validation, so only its log tells the two apart.
+        var log = $"Info: dataFile <file1.xtf>\nError: {XtfValidatorProcess.MetaConfigNotFoundMarker} <ilidata:PROFILE-A>\n";
+        var process = CreateProcess("PROFILE-A", ["https://models.example.com/"], success: false, logContent: log);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), CancellationToken.None));
+
+        Assert.Contains("ilidata:PROFILE-A", exception.Message);
+        Assert.Contains("https://models.example.com/", exception.Message);
+    }
+
+    [TestMethod]
     public async Task ReportsFailedValidation()
     {
-        var process = CreateProcess(validationProfile: null, modelDirs: null, success: false);
+        // A log without the marker is an ordinary failed validation and must not throw.
+        var process = CreateProcess("PROFILE-A", modelDirs: null, success: false, logContent: "Error: Attribute Hoehengenauigkeit requires a value\n");
 
         var result = await process.RunAsync(CreateTransferFile(), CancellationToken.None);
 
@@ -113,14 +127,21 @@ public class XtfValidatorProcessTest
         return new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
     }
 
-    private XtfValidatorProcess CreateProcess(string? validationProfile, IReadOnlyList<string>? modelDirs, bool success, bool? allObjectsAccessible = null)
+    private XtfValidatorProcess CreateProcess(string? validationProfile, IReadOnlyList<string>? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null)
     {
         ilivalidatorClientMock
             .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<CancellationToken>()))
-            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, CancellationToken>((args, transferFile, _, _, _) =>
+            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, CancellationToken>((args, transferFile, logFile, _, _) =>
             {
                 capturedArgs = args;
                 capturedTransferFile = transferFile;
+
+                if (logContent != null)
+                {
+                    using var stream = logFile.OpenWriteFileStream();
+                    using var writer = new StreamWriter(stream);
+                    writer.Write(logContent);
+                }
             })
             .ReturnsAsync(new IlivalidatorResult(success));
 

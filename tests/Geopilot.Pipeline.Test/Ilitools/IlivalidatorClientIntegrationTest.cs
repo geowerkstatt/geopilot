@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline.Ilitools;
+using Geopilot.Pipeline.Processes.XtfValidation;
 using Geopilot.PipelineCore.Ilitools;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -68,6 +69,30 @@ public class IlivalidatorClientIntegrationTest
         // The XTF log repeats every log message, so only its transfer file structure tells the two apart.
         var xtfLog = await File.ReadAllTextAsync(await xtfLogFile.GetLocalPathAsync(), TestContext.CancellationToken);
         Assert.Contains("IliVErrors", xtfLog, "The XTF log should be an INTERLIS error log.");
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncReportsAnUnresolvableProfileInTheLog()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var logFile = GetTestPipelineFile("validation_unknown_profile.log");
+        var xtfLogFile = GetTestPipelineFile("validation_unknown_profile.xtf");
+        await DeleteIfExistsAsync(logFile);
+        await DeleteIfExistsAsync(xtfLogFile);
+
+        // Only the session directory as model dir, so the tool fails on the profile without asking a remote repository.
+        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR"], MetaConfig = "ilidata:DOESNOTEXIST" };
+
+        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, TestContext.CancellationToken);
+
+        Assert.IsFalse(result.Success);
+
+        // XtfValidatorProcess turns this line into an error of its own, because the tool exits like a failed
+        // validation. If a tool update rewords it, this assertion is what says so.
+        var log = await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(), TestContext.CancellationToken);
+        Assert.Contains(XtfValidatorProcess.MetaConfigNotFoundMarker, log);
+        Assert.Contains("DOESNOTEXIST", log);
     }
 
     [TestMethod]
