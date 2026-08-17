@@ -119,11 +119,17 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
             ImportTid = args.ImportTid,
             StrokeArcs = args.StrokeArcs,
             Dataset = args.Dataset ?? string.Empty,
+            MetaConfig = args.MetaConfig ?? string.Empty,
         };
 
         if (args.Models != null)
         {
             info.Models.AddRange(args.Models);
+        }
+
+        if (args.ModelDirs != null)
+        {
+            info.ModelDirs.AddRange(args.ModelDirs);
         }
 
         return new ConvertRequest
