@@ -25,7 +25,9 @@ public sealed record IlivalidatorArgs
     /// <summary>
     /// Whether the validator may assume that every object it needs is contained in the validated file. A reference
     /// to an object outside it is then an error instead of a check the validator skips.
-    /// Maps to the ilivalidator option <c>--allObjectsAccessible</c>.
+    /// Maps to the ilivalidator option <c>--allObjectsAccessible</c>, a switch without a counterpart: setting this
+    /// can only add the behaviour, never remove it. It takes effect as soon as either this or the meta configuration
+    /// asks for it, so <see langword="false"/> leaves the decision to the meta configuration.
     /// </summary>
     public bool AllObjectsAccessible { get; init; }
 }
