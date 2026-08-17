@@ -3,6 +3,7 @@ using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.Matcher.XtfMatcher;
 using Geopilot.Pipeline.Processes.XtfValidation;
+using Geopilot.PipelineCore.Ilitools;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -13,7 +14,7 @@ namespace Geopilot.Pipeline.Test;
 [TestClass]
 public class PipelineFactoryTest
 {
-    private static string interlisCheckServiceBaseUrl = "http://localhost:3080/";
+    private static string modelDir = "https://models.example.com/";
     private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
     private PipelineProcessFactory pipelineProcessFactory;
     private Mock<ILoggerFactory> loggerFactory;
@@ -29,7 +30,7 @@ public class PipelineFactoryTest
                 {
                     "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess", new Parameterization()
                     {
-                        { "checkServiceBaseUrl", interlisCheckServiceBaseUrl },
+                        { "modelDirs", new List<object> { modelDir } },
                     }
                 },
             },
@@ -110,18 +111,12 @@ public class PipelineFactoryTest
         AssertOutputAction(validationExpectedOutputAction_0, validationOutputAction_0);
         object validationProcess = validationStep.Process;
         Assert.IsNotNull(validationProcess, "validation step process not created");
-        var configuratedValidationProfile = typeof(XtfValidatorProcess)
-            ?.GetField("validationProfile", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(validationProcess) as string;
-        var configuratedHttpClient = typeof(XtfValidatorProcess)
-            ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(validationProcess) as HttpClient;
-        var configuratedPollInterval = typeof(XtfValidatorProcess)
-            ?.GetField("pollInterval", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(validationProcess);
-        Assert.AreEqual("PROFILE-A", configuratedValidationProfile, "configurated validation profile not as expected");
-        Assert.AreEqual("http://localhost:3080/", configuratedHttpClient?.BaseAddress?.ToString(), "configurated HTTP client base address not as expected");
-        Assert.AreEqual(TimeSpan.FromSeconds(2), configuratedPollInterval, "configurated poll interval not as expected");
+        var configuratedArgs = typeof(XtfValidatorProcess)
+            ?.GetField("validatorArgs", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(validationProcess) as IlivalidatorArgs;
+        Assert.IsNotNull(configuratedArgs, "validator arguments not built");
+        Assert.AreEqual("ilidata:PROFILE-A", configuratedArgs.MetaConfig, "configurated validation profile not as expected");
+        Assert.AreEqual(modelDir, configuratedArgs.ModelDirs?.Single(), "configurated model directory not as expected");
         Assert.IsNotNull(validationProcess as XtfValidatorProcess, "process is not of type ILI Validator");
     }
 

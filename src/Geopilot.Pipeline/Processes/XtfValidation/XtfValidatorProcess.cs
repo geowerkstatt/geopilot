@@ -1,212 +1,98 @@
-﻿using Geopilot.PipelineCore.Pipeline;
+﻿using Geopilot.PipelineCore.Ilitools;
+using Geopilot.PipelineCore.Pipeline;
 using Geopilot.PipelineCore.Pipeline.Process;
 using Microsoft.Extensions.Logging;
-using System.Collections.Immutable;
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Geopilot.Pipeline.Processes.XtfValidation;
 
 /// <summary>
-/// Process for validating ILI files.
+/// Process for validating INTERLIS transfer files with ilivalidator through the ilitools-wrapper.
 /// </summary>
-internal class XtfValidatorProcess : IDisposable
+internal class XtfValidatorProcess
 {
-    private enum LogType
+    private const string MetaConfigPrefix = "ilidata:";
+
+    private static readonly LocalizedText SuccessStatusMessage = new Dictionary<string, string>
     {
-        XtfLog,
-        ErrorLog,
-    }
+        { "de", "Die Validierung war erfolgreich." },
+        { "fr", "La validation a réussi." },
+        { "it", "La validazione è riuscita." },
+        { "en", "Validation successful." },
+    };
 
-    private const string UploadUrl = "/api/v1/upload";
-
-    private static readonly JsonSerializerOptions JsonOptions;
-
-    private ILogger logger;
-
-    private HttpClient httpClient = new();
-
-    private string validationProfile;
-    private TimeSpan pollInterval;
-    private IPipelineFileManager pipelineFileManager;
-
-    static XtfValidatorProcess()
+    private static readonly LocalizedText FailureStatusMessage = new Dictionary<string, string>
     {
-        JsonOptions = new()
-        {
-            PropertyNameCaseInsensitive = true,
-        };
-        JsonOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-    }
+        { "de", "Die Validierung hat Fehler ergeben. Details stehen im Validierungsprotokoll." },
+        { "fr", "La validation a détecté des erreurs. Les détails figurent dans le journal de validation." },
+        { "it", "La validazione ha rilevato errori. I dettagli sono riportati nel protocollo di validazione." },
+        { "en", "Validation found errors. See the validation log for details." },
+    };
+
+    private readonly IlivalidatorArgs validatorArgs;
+    private readonly IIlivalidatorClient ilivalidatorClient;
+    private readonly IPipelineFileManager pipelineFileManager;
+    private readonly ILogger logger;
 
     /// <summary>
     /// Create a new instance of the <see cref="XtfValidatorProcess"/> class.
     /// </summary>
-    /// <param name="checkServiceBaseUrl">Base URL for the Interlis check service.</param>
-    /// <param name="validationProfile">Optional validation profile to use for the validation process.</param>
-    /// <param name="pollInterval">Optional polling interval in milliseconds for checking the validation status. If not provided, a default of 2000ms will be used.</param>
+    /// <param name="validationProfile">Optional validation profile, given as the dataset id that indexes it in one of the <paramref name="modelDirs"/>. An <c>ilidata:</c> prefix may be included.</param>
+    /// <param name="modelDirs">Optional INTERLIS model repositories, searched in the given order. Replaces the default of the tool entirely.</param>
+    /// <param name="ilivalidatorClient">Client of the ilitools-wrapper that runs the validation.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
-    public XtfValidatorProcess(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, IPipelineFileManager pipelineFileManager, ILogger logger)
+    public XtfValidatorProcess(string? validationProfile, IReadOnlyList<string>? modelDirs, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
     {
-        this.httpClient.BaseAddress = new Uri(checkServiceBaseUrl);
-        this.httpClient.DefaultRequestHeaders.Accept.Clear();
-        this.httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        this.validatorArgs = new IlivalidatorArgs
+        {
+            ModelDirs = modelDirs,
+            MetaConfig = BuildMetaConfig(validationProfile),
+        };
 
-        if (!string.IsNullOrEmpty(validationProfile))
-            this.validationProfile = validationProfile;
-        else
-            this.validationProfile = string.Empty;
-
-        if (pollInterval != null)
-            this.pollInterval = TimeSpan.FromMilliseconds((double)pollInterval);
-        else
-            this.pollInterval = TimeSpan.FromSeconds(2);
-
-        this.logger = logger;
+        this.ilivalidatorClient = ilivalidatorClient;
         this.pipelineFileManager = pipelineFileManager;
+        this.logger = logger;
     }
 
     /// <summary>
-    /// Disposes the resources used by the <see cref="XtfValidatorProcess"/>.
+    /// Runs the validation process for the specified transfer file.
     /// </summary>
-    public void Dispose()
-    {
-        this.httpClient.Dispose();
-    }
-
-    /// <summary>
-    /// Runs the validation process for the specified ILI file.
-    /// </summary>
-    /// <param name="iliFile">The ILI file to validate. Cannot be null.</param>
-    /// <param name="cancellationToken">Cancellation token to canclel the operation.</param>
-    /// <returns>A ProcessData instance containing the results of the validation process.</returns>
-    /// <exception cref="ArgumentException">Thrown if the input ILI file is invalid.</exception>
+    /// <param name="iliFile">The transfer file to validate. Cannot be null.</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
+    /// <returns>A <see cref="XtfValidatorResult"/> instance containing the results of the validation process.</returns>
     [PipelineProcessRun]
     public async Task<XtfValidatorResult> RunAsync(IPipelineFile iliFile, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(iliFile);
+
         logger.LogInformation($"Validating transfer file <{iliFile.OriginalFileName}>...");
-        var uploadResponse = await UploadTransferFileAsync(iliFile, iliFile.OriginalFileName, this.validationProfile, cancellationToken);
-        var statusResponse = await PollStatusAsync(uploadResponse.StatusUrl!, cancellationToken);
-        var logFiles = await DownloadLogFilesAsync(statusResponse, cancellationToken);
 
-        LocalizedText statusMessage = new Dictionary<string, string>
-        {
-            { "de", statusResponse.StatusMessage ?? string.Empty },
-            { "fr", statusResponse.StatusMessage ?? string.Empty },
-            { "it", statusResponse.StatusMessage ?? string.Empty },
-            { "en", statusResponse.StatusMessage ?? string.Empty },
-        };
+        var errorLog = pipelineFileManager.GeneratePipelineFile("errorLog", "log");
+        var xtfLog = pipelineFileManager.GeneratePipelineFile("xtfLog", "xtf");
 
+        var result = await ilivalidatorClient.ValidateAsync(validatorArgs, iliFile, errorLog, xtfLog, cancellationToken);
+
+        logger.LogInformation($"Validation of transfer file <{iliFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
+
+        // ilivalidator writes both logs whenever it runs, and a tool that does not run surfaces as a failed call,
+        // so both files are always handed on.
         return new XtfValidatorResult
         {
-            ValidationSuccessful = statusResponse.Status == InterlisStatusResponseStatus.Completed,
-            StatusMessage = statusMessage,
-            ErrorLog = logFiles.GetValueOrDefault(LogType.ErrorLog),
-            XtfLog = logFiles.GetValueOrDefault(LogType.XtfLog),
+            ValidationSuccessful = result.Success,
+            StatusMessage = result.Success ? SuccessStatusMessage : FailureStatusMessage,
+            ErrorLog = errorLog,
+            XtfLog = xtfLog,
         };
     }
 
-    private async Task<InterlisUploadResponse> UploadTransferFileAsync(IPipelineFile file, string transferFile, string? interlisValidationProfile, CancellationToken cancellationToken)
+    private static string? BuildMetaConfig(string? validationProfile)
     {
-        using var fileStream = await file.OpenReadAsync(cancellationToken) ?? throw new ArgumentException("Invalid input ILI file stream.");
-        using var streamContent = new StreamContent(fileStream);
-        using var profileStringContent = new StringContent(interlisValidationProfile ?? string.Empty);
-        using var formData = new MultipartFormDataContent
-        {
-            { streamContent, "file", transferFile },
-            { profileStringContent, "profile" },
-        };
+        if (string.IsNullOrWhiteSpace(validationProfile))
+            return null;
 
-        using var response = await this.httpClient.PostAsync(UploadUrl, formData, cancellationToken);
-        if (response.StatusCode == HttpStatusCode.BadRequest)
-        {
-            var problemDetails = await response.Content.ReadFromJsonAsync<InterlisBadRequestResponse>(JsonOptions, cancellationToken);
-            logger.LogError($"Upload of transfer file <{transferFile}> to interlis-check-service failed.");
-            throw new ValidationFailedException(problemDetails?.Detail ?? "Invalid transfer file");
-        }
-
-        logger.LogInformation($"Uploaded transfer file <{transferFile}> to interlis-check-service. Status code <{response.StatusCode}>.");
-
-        return await ReadSuccessResponseJsonAsync<InterlisUploadResponse>(response, cancellationToken);
-    }
-
-    private async Task<InterlisStatusResponse> PollStatusAsync(string statusUrl, CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            using var response = await this.httpClient.GetAsync(statusUrl, cancellationToken);
-            var statusResponse = await ReadSuccessResponseJsonAsync<InterlisStatusResponse>(response, cancellationToken);
-
-            if (statusResponse.Status == InterlisStatusResponseStatus.Completed
-                || statusResponse.Status == InterlisStatusResponseStatus.CompletedWithErrors
-                || statusResponse.Status == InterlisStatusResponseStatus.Failed)
-            {
-                return statusResponse;
-            }
-
-            await Task.Delay(this.pollInterval, cancellationToken);
-        }
-
-        throw new OperationCanceledException();
-    }
-
-    private async Task<Dictionary<LogType, IPipelineFile>> DownloadLogFilesAsync(InterlisStatusResponse statusResponse, CancellationToken cancellationToken)
-    {
-        var tasks = new List<Task<KeyValuePair<LogType, IPipelineFile>>>();
-
-        if (statusResponse.LogUrl != null)
-        {
-            tasks.Add(DownloadLogAsFileAsync(statusResponse.LogUrl.ToString(), LogType.ErrorLog, cancellationToken));
-        }
-
-        if (statusResponse.XtfLogUrl != null)
-        {
-            tasks.Add(DownloadLogAsFileAsync(statusResponse.XtfLogUrl.ToString(), LogType.XtfLog, cancellationToken));
-        }
-
-        var logFiles = await Task.WhenAll(tasks);
-        if (logFiles != null)
-        {
-            return logFiles.ToDictionary();
-        }
-        else
-        {
-            throw new InvalidOperationException("No log files available for download.");
-        }
-    }
-
-    private async Task<KeyValuePair<LogType, IPipelineFile>> DownloadLogAsFileAsync(string url, LogType logType, CancellationToken cancellationToken)
-    {
-        IPipelineFile transferFile;
-        switch (logType)
-        {
-            case LogType.ErrorLog:
-                transferFile = pipelineFileManager.GeneratePipelineFile("errorLog", "log");
-                break;
-            case LogType.XtfLog:
-                transferFile = pipelineFileManager.GeneratePipelineFile("xtfLog", "xtf");
-                break;
-            default:
-                throw new InvalidOperationException($"Unsupported log type: {logType}");
-        }
-
-        using (Stream logDownloadStream = await this.httpClient.GetStreamAsync(url, cancellationToken))
-        using (FileStream fileStream = transferFile.OpenWriteFileStream())
-        {
-            await logDownloadStream.CopyToAsync(fileStream, cancellationToken);
-        }
-
-        return new KeyValuePair<LogType, IPipelineFile>(logType, transferFile);
-    }
-
-    private async Task<T> ReadSuccessResponseJsonAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken);
-        return result ?? throw new InvalidOperationException("Invalid response from interlis-check-service");
+        // The tool resolves the profile through the repository index, so the configured value is a dataset id.
+        return validationProfile.StartsWith(MetaConfigPrefix, StringComparison.OrdinalIgnoreCase)
+            ? validationProfile
+            : MetaConfigPrefix + validationProfile;
     }
 }

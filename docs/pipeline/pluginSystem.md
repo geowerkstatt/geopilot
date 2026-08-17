@@ -155,8 +155,8 @@ Ein typisches Beispiel für die Konfiguration könnte wie folgt aussehen:
       "directory/myProcessorPluginA.dll"
     ],
     "ProcessConfigs": {
-      "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess": {
-        "checkServiceBaseUrl": "http://localhost:3080/"
+      "Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess": {
+        "baseMapWmtsCapabilitiesUrl": "https://wmts.example.com/1.0.0/WMTSCapabilities.xml"
       }
     }
   }

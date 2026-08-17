@@ -15,7 +15,6 @@ processes:
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile: DEFAULT
-      pollInterval: 1000
   - id: xtf_error_visualizer
     implementation: Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess
     default_config:

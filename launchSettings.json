@@ -7,7 +7,6 @@
         "db": "StartWithoutDebugging",
         "pgadmin": "StartWithoutDebugging",
         "geopilot": "DoNotStart",
-        "interlis-check-service": "StartWithoutDebugging",
         "stac-browser": "StartWithoutDebugging",
         "keycloak":  "StartWithoutDebugging"
       }

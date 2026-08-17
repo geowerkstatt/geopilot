@@ -1,8 +1,6 @@
 # XTF Validierung
 
-Validiert ein XTF-File anhand eines konfigurierbaren Profils. Dabei wird IliCop als REST-Service verwendet, um die Validierung durchzuführen.
-
-Die Basis-URL für den IliCop-Service wird über den Pflichtparameter `checkServiceBaseUrl` definiert (siehe [Konfiguration eines Pipeline-Prozessors](../Pipelines.md#konfiguration-eines-pipeline-prozessors)). Da diese URL pro Umgebung gilt, wird sie üblicherweise als nicht überschreibbare Basis-Konfiguration in den Appsettings unter `Pipeline:ProcessConfigs` für diesen Prozessor hinterlegt.
+Validiert ein XTF-File anhand eines konfigurierbaren Profils. Die Validierung führt `ilivalidator` durch, aufgerufen über den [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper). Die Adresse des Wrappers gilt pro Umgebung und wird nicht am Prozessor, sondern zentral unter `Ilitools:IlitoolsWrapperAddress` konfiguriert.
 
 ## Implementierung
 
@@ -10,9 +8,8 @@ Ein XTF Validator Prozess muss unter `processes[X].implementation` den Wert `Geo
 
 ## Konfiguration
 
-- `checkServiceBaseUrl`: Pflichtparameter, welcher die Basis URL des IliCop-Services definiert, welcher für die Validierung verwendet wird.
-- `validationProfile`: Optionaler Parameter, welcher das Profil definiert, anhand dessen die Validierung durchgeführt wird. Die möglichen Werte müssen in der Dokumentation von IliCop nachgeschlagen werden.
-- `pollInterval`: Optionaler Parameter, welcher das Intervall definiert, in welchem der Prozess den Status der Validierung abfragt. Der Wert wird in Millisekunden angegeben. Der Standardwert ist zwei Sekunden.
+- `modelDirs`: Optionale Liste von INTERLIS-Modell-Repositories, aus denen die Modelle und das Validierungs-Profil aufgelöst werden. Erlaubt sind `http(s)`-URLs und der Platzhalter `%ITF_DIR` (das Verzeichnis der Transferdatei). Die Reihenfolge entscheidet: gesucht wird von links nach rechts, der erste Treffer gewinnt, ein früherer Eintrag verdeckt also gleichnamige Modelle eines späteren. Ist der Parameter gesetzt, ersetzt er die Voreinstellung des Werkzeugs vollständig, `https://models.interlis.ch/` muss dann also selbst aufgeführt werden. Weil es eine Liste ist, lässt sich der Parameter nur in einer Pipeline-Definition setzen, nicht in den Appsettings.
+- `validationProfile`: Optionaler Parameter, welcher das Profil definiert, anhand dessen die Validierung durchgeführt wird. Der Wert ist die Dataset-Id, unter der das Profil in einem der `modelDirs` indexiert ist (`ilidata.xml`); das Präfix `ilidata:` darf angegeben werden, wird aber sonst ergänzt. Ohne Angabe validiert `ilivalidator` ohne Profil.
 
 ## Input
 
@@ -24,7 +21,9 @@ Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipel
 
 Die öffentlichen Result-Properties des Prozesses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen (PascalCase) zur Verfügung und werden über `${step_output(stepId.PropertyName)}` referenziert. Soll eine Property zusätzlich behandelt werden (Download, Lieferung, Statusnachricht oder Visualisierung), wird sie in `pipelines[X].steps[X].output_actions` getaggt.
 
-- `ErrorLog`: Ein Output-File vom Typ `IPipelineFile?`, welches das Error-Log der Validierung enthält. Dieses Log enthält alle Fehler, welche bei der Validierung aufgetreten sind. Kann `null` sein, wenn die Validierung bereits vor der Validierung mit dem IliValidator fehlschlägt. Weitere Informationen können in diesem Fall von `StatusMessage` entnommen werden.
-- `XtfLog`: Ein Output-File vom Typ `IPipelineFile?`, welches das XTF-Log der Validierung enthält. Dieses Log enthält alle Informationen über die Validierung, wie z.B. die Anzahl der validierten Objekte, die Anzahl der Fehler, etc. Kann `null` sein, wenn die Validierung bereits vor der Validierung mit dem IliValidator fehlschlägt. Weitere Informationen können in diesem Fall von `StatusMessage` entnommen werden.
-- `StatusMessage`: Eine lokalisierte Status-Nachricht der Validierung vom Typ `LocalizedText`, welche über den Status der Validierung informiert. Die Status-Nachricht kann auch ein leerer String sein.
+- `ErrorLog`: Ein Output-File vom Typ `IPipelineFile?`, welches das Error-Log der Validierung enthält. Dieses Log enthält alle Fehler, welche bei der Validierung aufgetreten sind.
+- `XtfLog`: Ein Output-File vom Typ `IPipelineFile?`, welches das XTF-Log der Validierung enthält. Dieses Log enthält alle Informationen über die Validierung, wie z.B. die Anzahl der validierten Objekte, die Anzahl der Fehler, etc.
+- `StatusMessage`: Eine lokalisierte Status-Nachricht der Validierung vom Typ `LocalizedText`, welche über den Status der Validierung informiert.
 - `ValidationSuccessful`: Wert vom Typ `bool`. Ist `true`, wenn das Input-File erfolgreich validiert werden konnte und valide ist. Ist `false`, wenn das Input-file nicht erfolgreich validiert werden konnte oder invalide ist.
+
+Kann der Wrapper die Validierung gar nicht starten, etwa weil ein Eintrag in `modelDirs` abgelehnt wird, schlägt der Schritt mit einem Fehler fehl und liefert keine Logs.

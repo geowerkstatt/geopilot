@@ -40,20 +40,19 @@ public class PipelineProcessFactoryTest
         // Base config (lowest priority) - defined in PipelineOptions.ProcessConfigs
         var baseConfig = new Parameterization()
         {
-            { "checkServiceBaseUrl", "http://base.test/" }, // Required parameter for XtfValidatorProcess
+            { "modelDirs", new List<object> { "https://base.test/" } }, // defines a parameter only in base config
         };
 
         // Default config (medium priority) - defined in ProcessConfig.DefaultConfig
         var defaultConfig = new Parameterization()
         {
-            { "pollInterval", "2000" }, // Can override (exists in default config)
-            { "validationProfile", "DEFAULT_PROFILE" },  // defines a parameter only in default config
+            { "validationProfile", "DEFAULT_PROFILE" }, // Can override (exists in default config)
         };
 
         // Overwrites (highest priority) - can only override keys present in default config
         var overwrites = new Parameterization()
         {
-            { "pollInterval", "1000" }, // Can override (exists in default config)
+            { "validationProfile", "PROFILE-A" }, // Can override (exists in default config)
         };
 
         Assembly executingAssembly = Assembly.GetExecutingAssembly();
@@ -106,20 +105,12 @@ public class PipelineProcessFactoryTest
         Assert.IsInstanceOfType<XtfValidatorProcess>(process, "Process should be of type XtfValidatorProcess");
 
         // Use reflection to access the private config field
-        var configuredHttpClient = typeof(XtfValidatorProcess)
-            ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(process) as HttpClient;
-        Assert.AreEqual("http://base.test/", configuredHttpClient?.BaseAddress?.ToString(), "Check Service Base Url not as expected");
-
-        var configuredValidationProfile = typeof(XtfValidatorProcess)
-            ?.GetField("validationProfile", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(process) as string;
-        Assert.AreEqual("DEFAULT_PROFILE", configuredValidationProfile, "Check Service validation profile not as expected");
-
-        var configuredPollInterval = typeof(XtfValidatorProcess)
-            ?.GetField("pollInterval", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(process);
-        Assert.AreEqual(TimeSpan.FromMilliseconds(1000.0), configuredPollInterval, "Check Service poll intervall not as expected");
+        var configuredArgs = typeof(XtfValidatorProcess)
+            ?.GetField("validatorArgs", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(process) as IlivalidatorArgs;
+        Assert.IsNotNull(configuredArgs, "Validator arguments not built from the merged configuration");
+        Assert.AreEqual("ilidata:PROFILE-A", configuredArgs.MetaConfig, "Overwritten validation profile not as expected");
+        Assert.AreEqual("https://base.test/", configuredArgs.ModelDirs?.Single(), "Model directory from the base config not as expected");
     }
 
     public abstract class InitialzationDataSourceAttribute : Attribute

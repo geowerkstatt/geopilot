@@ -75,7 +75,6 @@ volumes:
 | https://localhost:5173 | Geopilot.Api (in docker-compose mit Frontend) | `/browser` zu http://localhost:8080 (der `/browser`-Prefix wird entfernt) |
 | http://localhost:8080  | stac-browser (in docker-compose)              | -                                                                         |
 | http://localhost:3001  | PgAdmin (in docker-compose)                   | -                                                                         |
-| http://localhost:3080  | interlis-check-service (in docker-compose)    | -                                                                         |
 | https://localhost:10000 | Azurite Blob Storage (in docker-compose)      | -                                                                         |
 | http://localhost:3310  | ClamAV clamd (in docker-compose)               | -                                                                         |
 | http://localhost:4011  | Keycloak Server Administration                | -                                                                         |

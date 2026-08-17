@@ -11,10 +11,12 @@ namespace Geopilot.Pipeline.Test.Ilitools;
 /// running locally.
 /// </summary>
 /// <remarks>
-/// A successful validation cannot be covered from here: the test data references the local model SimpleModel, which
-/// no reachable repository indexes, and the client cannot send a model file because the validate contract of the
-/// wrapper has no file type for it (see geopilot#683). What these tests cover is the round trip including both log
-/// files, and that the model repository options reach the wrapper.
+/// A successful validation is not covered here, because it needs a model the tool can resolve: the test data
+/// references the local model SimpleModel, the client cannot send a model file (the validate contract of the wrapper
+/// has no file type for it, see geopilot#683), and a published model would make the suite depend on
+/// models.interlis.ch. Serving a repository to the wrapper instead is no way around it either, since the container
+/// would have to reach the test host through a private address, which the wrapper rejects by default. What these
+/// tests cover is the round trip including both log files, and that the model repository options reach the wrapper.
 /// </remarks>
 [TestClass]
 [TestCategory("Integration")]

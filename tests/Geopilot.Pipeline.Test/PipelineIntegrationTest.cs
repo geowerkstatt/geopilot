@@ -2,13 +2,11 @@
 using Geopilot.Pipeline.Ilitools;
 using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.XtfValidation;
+using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Moq.Protected;
-using System.Net;
-using System.Net.Http.Json;
 using System.Reflection;
 
 namespace Geopilot.Pipeline.Test;
@@ -16,9 +14,7 @@ namespace Geopilot.Pipeline.Test;
 [TestClass]
 public class PipelineIntegrationTest
 {
-    private static Guid jobId = Guid.Parse("b98559c5-b374-4cbc-a797-1b5a13a297e7");
-    private static string interlisCheckServiceBaseUrl = "http://localhost/";
-    private Mock<HttpMessageHandler> interlisValidatorMessageHandlerMock;
+    private Mock<IIlivalidatorClient> ilivalidatorClientMock;
     private Mock<IOptions<PipelineOptions>> pipelineOptionsMock;
     private PipelineProcessFactory pipelineProcessFactory;
     private Mock<ILogger> loggerMock;
@@ -27,22 +23,13 @@ public class PipelineIntegrationTest
     [TestInitialize]
     public void SetUp()
     {
-        interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
-        interlisValidatorMessageHandlerMock.Protected().Setup("Dispose", ItExpr.IsAny<bool>());
+        ilivalidatorClientMock = new Mock<IIlivalidatorClient>();
 
         var pipelineOptions = new PipelineOptions()
         {
             Definition = "myPipeline.yaml",
             Plugins = new List<string>(),
-            ProcessConfigs = new Dictionary<string, Parameterization>()
-            {
-                {
-                    "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess", new Parameterization()
-                    {
-                        { "checkServiceBaseUrl", interlisCheckServiceBaseUrl },
-                    }
-                },
-            },
+            ProcessConfigs = new Dictionary<string, Parameterization>(),
         };
 
         pipelineOptionsMock = new Mock<IOptions<PipelineOptions>>();
@@ -81,81 +68,8 @@ public class PipelineIntegrationTest
             };
         using var pipeline = factory.CreatePipeline("two_steps_roadsexdm2ien", Guid.NewGuid());
 
-        using HttpResponseMessage uploadMockResponse = new()
-        {
-            StatusCode = HttpStatusCode.Created,
-            Content = JsonContent.Create(new InterlisUploadResponse()
-            {
-                JobId = jobId,
-                StatusUrl = "/api/v1/status/" + jobId.ToString(),
-            }),
-        };
-        interlisValidatorMessageHandlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/upload"),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(uploadMockResponse);
-        using HttpResponseMessage getStatusMockResponse = new()
-        {
-            StatusCode = HttpStatusCode.OK,
-            Content = JsonContent.Create(new InterlisStatusResponse()
-            {
-                JobId = jobId,
-                LogUrl = "/api/v1/download?jobId=" + jobId.ToString() + "&logType=log",
-                XtfLogUrl = "/api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf",
-                Status = InterlisStatusResponseStatus.Completed,
-                StatusMessage = "Validation successful",
-            }),
-        };
-        interlisValidatorMessageHandlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/status/" + jobId.ToString()),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(getStatusMockResponse);
-        using FileStream appLogFile = File.Open(@"TestData/DownloadFiles/ilicop/log.log", FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
-        using HttpResponseMessage getAppLogMockResponse = new()
-        {
-            StatusCode = HttpStatusCode.OK,
-            Content = new StreamContent(appLogFile),
-        };
-        interlisValidatorMessageHandlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=log"),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(getAppLogMockResponse);
-        using FileStream xtfLogFile = File.Open(@"TestData/DownloadFiles/ilicop/log.xtf", FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
-        using HttpResponseMessage getXtfLogMockResponse = new()
-        {
-            StatusCode = HttpStatusCode.OK,
-            Content = new StreamContent(xtfLogFile),
-        };
-        interlisValidatorMessageHandlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf"),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(getXtfLogMockResponse);
-
-        pipeline.Steps
-            .Select(s => s.Process)
-            .Where(p => p is XtfValidatorProcess)
-            .Cast<XtfValidatorProcess>()
-            .ToList()
-            .ForEach(p =>
-            {
-                var httpClient = new HttpClient(interlisValidatorMessageHandlerMock.Object);
-                httpClient.BaseAddress = new Uri(interlisCheckServiceBaseUrl);
-                typeof(XtfValidatorProcess)
-                    ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
-                    ?.SetValue(p, httpClient);
-            });
+        SetUpIlivalidatorClient(validationSuccessful: true);
+        InjectIlivalidatorClient(pipeline);
 
         Assert.IsNotNull(pipeline, "pipeline not created");
         Assert.HasCount(3, pipeline.Steps);
@@ -197,7 +111,6 @@ public class PipelineIntegrationTest
         using var zipArchive = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Read);
         Assert.HasCount(3, zipArchive.Entries, "ZIP should contain the matched XTF file plus both validation logs");
 
-        interlisValidatorMessageHandlerMock.Verify();
         pipelineOptionsMock.Verify();
     }
 
@@ -306,6 +219,38 @@ public class PipelineIntegrationTest
         Assert.IsNotNull(matched, "matcher did not output XtfFiles");
         Assert.HasCount(1, matched);
         Assert.AreEqual("RoadsExdm2ien.xtf", matched[0].OriginalFileName);
+    }
+
+    // The validation logs are the input of the zip step, so the client double has to produce them the way the
+    // real one does: written into the files the process handed it.
+    private void SetUpIlivalidatorClient(bool validationSuccessful)
+    {
+        ilivalidatorClientMock
+            .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<CancellationToken>()))
+            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, CancellationToken>((_, _, logFile, xtfLogFile, _) =>
+            {
+                CopyInto("TestData/DownloadFiles/ilicop/log.log", logFile);
+                CopyInto("TestData/DownloadFiles/ilicop/log.xtf", xtfLogFile);
+            })
+            .ReturnsAsync(new IlivalidatorResult(validationSuccessful));
+    }
+
+    private void InjectIlivalidatorClient(IPipeline pipeline)
+    {
+        var clientField = typeof(XtfValidatorProcess).GetField("ilivalidatorClient", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.IsNotNull(clientField, "XtfValidatorProcess no longer holds the ilivalidator client in a field named <ilivalidatorClient>.");
+
+        foreach (var process in pipeline.Steps.Select(s => s.Process).OfType<XtfValidatorProcess>())
+        {
+            clientField.SetValue(process, ilivalidatorClientMock.Object);
+        }
+    }
+
+    private static void CopyInto(string sourcePath, IPipelineFile target)
+    {
+        using var source = File.OpenRead(sourcePath);
+        using var destination = target.OpenWriteFileStream();
+        source.CopyTo(destination);
     }
 
     private PipelineFactory CreatePipelineFactory(string filename, string? resourcesDirectory = null)
