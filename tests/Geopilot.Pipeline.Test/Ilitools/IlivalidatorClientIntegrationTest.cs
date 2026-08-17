@@ -50,7 +50,12 @@ public class IlivalidatorClientIntegrationTest
         await DeleteIfExistsAsync(logFile);
         await DeleteIfExistsAsync(xtfLogFile);
 
-        var result = await ilivalidatorClient.ValidateAsync(new IlivalidatorArgs(), transferFile, logFile, xtfLogFile, TestContext.CancellationToken);
+        // %ITF_DIR is the session directory of the wrapper, which holds nothing but the file just sent. Naming it
+        // replaces the tool default, so the tool cannot reach any remote repository and gives up at once. Without
+        // this the runtime depends on how long the default repositories take to answer, which timed out in CI.
+        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR"] };
+
+        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsFalse(result.Success, "Validation should fail because the model of the transfer file is not reachable.");
