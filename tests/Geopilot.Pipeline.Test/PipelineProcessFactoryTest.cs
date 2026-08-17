@@ -168,7 +168,7 @@ public class PipelineProcessFactoryTest
                 },
                 new Parameterization() { },
                 new Parameterization() { },
-                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", null, 123, null, 123.456, null, true, null, Mock.Of<IIli2GpkgClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>())
+                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", null, 123, null, 123.456, null, true, null, Mock.Of<IIli2GpkgClient>(), Mock.Of<IIlivalidatorClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>())
             ];
             yield return [
                 "default config with mandatory fields",
@@ -181,7 +181,7 @@ public class PipelineProcessFactoryTest
                     { "mandatoryBoolean", "true" },
                 },
                 new Parameterization() { },
-                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", null, 123, null, 123.456, null, true, null, Mock.Of<IIli2GpkgClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
+                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", null, 123, null, 123.456, null, true, null, Mock.Of<IIli2GpkgClient>(), Mock.Of<IIlivalidatorClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
             ];
             yield return [
                 "default config with mandatory fields overwritten in overwrite config",
@@ -200,7 +200,7 @@ public class PipelineProcessFactoryTest
                     { "mandatoryDouble", "456.789" },
                     { "mandatoryBoolean", "false" },
                 },
-                new ManyDifferentInitialzationAttributesTestProcess("overwritten mandatory string value", null, 456, null, 456.789, null, false, null, Mock.Of<IIli2GpkgClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
+                new ManyDifferentInitialzationAttributesTestProcess("overwritten mandatory string value", null, 456, null, 456.789, null, false, null, Mock.Of<IIli2GpkgClient>(), Mock.Of<IIlivalidatorClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
             ];
             yield return [
                 "default config with all fields",
@@ -217,7 +217,7 @@ public class PipelineProcessFactoryTest
                     { "optionalBoolean", "true" },
                 },
                 new Parameterization() { },
-                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", "optional string value", 123, 234, 345.678, 456.789, true, true, Mock.Of<IIli2GpkgClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
+                new ManyDifferentInitialzationAttributesTestProcess("mandatory string value", "optional string value", 123, 234, 345.678, 456.789, true, true, Mock.Of<IIli2GpkgClient>(), Mock.Of<IIlivalidatorClient>(), Mock.Of<ILogger<ManyDifferentInitialzationAttributesTestProcess>>()),
             ];
         }
     }
@@ -281,6 +281,7 @@ public class PipelineProcessFactoryTest
 
         var logger = process.GetType().GetProperty("Logger")?.GetValue(process);
         var ili2GpkgClient = process.GetType().GetProperty("Ili2GpkgClient")?.GetValue(process);
+        var ilivalidatorClient = process.GetType().GetProperty("IlivalidatorClient")?.GetValue(process);
         var mandatoryString = process.GetType().GetProperty("MandatoryString")?.GetValue(process);
         var optionalString = process.GetType().GetProperty("OptionalString")?.GetValue(process);
         var mandatoryInt = process.GetType().GetProperty("MandatoryInt")?.GetValue(process);
@@ -292,6 +293,7 @@ public class PipelineProcessFactoryTest
 
         Assert.IsNotNull(logger, "Logger not defined");
         Assert.IsInstanceOfType<IIli2GpkgClient>(ili2GpkgClient, "Ili2GpkgClient not injected");
+        Assert.IsInstanceOfType<IIlivalidatorClient>(ilivalidatorClient, "IlivalidatorClient not injected");
         Assert.AreEqual(expected.MandatoryString, mandatoryString, "Mandatory String not as expected");
         Assert.AreEqual(expected.OptionalString, optionalString, "Optional String not as expected");
         Assert.AreEqual(expected.MandatoryInt, mandatoryInt, "Mandatory Int not as expected");

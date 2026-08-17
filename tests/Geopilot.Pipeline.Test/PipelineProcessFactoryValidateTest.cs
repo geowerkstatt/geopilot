@@ -435,6 +435,31 @@ public class PipelineProcessFactoryValidateTest
         Assert.Contains("Error type", exception.Message);
     }
 
+    [TestMethod]
+    public void AcceptsProcessWithInjectedIlitoolsClients()
+    {
+        using var factory = CreateFactoryWithTestProcesses();
+
+        // Both clients are supplied by the runtime, so validation must not demand a configured value for them.
+        factory.Builder()
+            .StepConfig(IlitoolsClientsStep())
+            .Processes(IlitoolsClientsProcesses())
+            .Validate();
+    }
+
+    private static StepConfig IlitoolsClientsStep() => new()
+    {
+        Id = "ilitools_clients",
+        DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "Ilitools clients" }),
+        ProcessId = "ilitools_clients_process",
+        Input = new InputConfig(),
+    };
+
+    private static List<ProcessConfig> IlitoolsClientsProcesses() => new()
+    {
+        new ProcessConfig { Id = "ilitools_clients_process", Implementation = "Geopilot.Pipeline.Test.Processes.IlitoolsClientsTestProcess" },
+    };
+
     private static PipelineProcessFactory CreateFactory()
     {
         var options = new Mock<IOptions<PipelineOptions>>();

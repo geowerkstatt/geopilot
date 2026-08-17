@@ -503,7 +503,8 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             // their constructors at startup.
             if (parameterInfo.ParameterType == typeof(ILogger) ||
                 parameterInfo.ParameterType == typeof(IPipelineFileManager) ||
-                parameterInfo.ParameterType == typeof(IIli2GpkgClient))
+                parameterInfo.ParameterType == typeof(IIli2GpkgClient) ||
+                parameterInfo.ParameterType == typeof(IIlivalidatorClient))
             {
                 return;
             }
@@ -583,6 +584,10 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             else if (parameterInfo.ParameterType == typeof(IIli2GpkgClient))
             {
                 return new Ili2GpkgClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<Ili2GpkgClient>());
+            }
+            else if (parameterInfo.ParameterType == typeof(IIlivalidatorClient))
+            {
+                return new IlivalidatorClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<IlivalidatorClient>());
             }
             else if (TryGetConfiguredValue(parameterInfo, processConfig, out var convertedValue))
             {
