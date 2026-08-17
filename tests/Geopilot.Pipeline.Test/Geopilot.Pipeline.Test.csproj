@@ -20,6 +20,11 @@
     <Content Include="..\..\TestData\XtfErrorVisualization\AllErrors23-errors.xtf" Link="TestData\ModelRepository\AllErrors23-errors.xtf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+
+    <!-- The same repository as an archive, the resource a pipeline hands to the process as modelRepository. -->
+    <Content Include="..\..\src\Geopilot.Api\Resources\model-repository.zip" Link="TestData\ModelRepository\model-repository.zip">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 	<ItemGroup>

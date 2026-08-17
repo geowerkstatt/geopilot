@@ -31,6 +31,7 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         IPipelineFile transferFile,
         IPipelineFile logFile,
         IPipelineFile xtfLogFile,
+        IPipelineFile? modelRepositoryArchive = null,
         CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting ilivalidator validation of {FileName}.", transferFile.OriginalFileName);
@@ -39,6 +40,13 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
 
         await call.RequestStream.WriteAsync(CreateValidateRequest(args), cancellationToken);
         await SendFileAsync(call.RequestStream, IlivalidatorFileType.TransferFile, transferFile, cancellationToken);
+
+        if (modelRepositoryArchive != null)
+        {
+            logger.LogInformation("Sending model repository archive {FileName}.", modelRepositoryArchive.OriginalFileName);
+            await SendFileAsync(call.RequestStream, IlivalidatorFileType.RepositoryArchive, modelRepositoryArchive, cancellationToken);
+        }
+
         await call.RequestStream.CompleteAsync();
 
         return await ReceiveResponseAsync(call.ResponseStream, logFile, xtfLogFile, cancellationToken);

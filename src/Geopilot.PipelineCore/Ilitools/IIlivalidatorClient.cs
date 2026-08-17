@@ -16,6 +16,12 @@ public interface IIlivalidatorClient
     /// <param name="transferFile">INTERLIS transfer file to validate.</param>
     /// <param name="logFile">File to write the ilivalidator log to.</param>
     /// <param name="xtfLogFile">File to write the XTF validation log to.</param>
+    /// <param name="modelRepositoryArchive">
+    /// Optional ZIP archive of an INTERLIS model repository. The service unpacks it next to the transfer file, so
+    /// <see cref="IlivalidatorArgs.ModelDirs"/> reaches its content through the placeholder <c>%ITF_DIR</c>. This is
+    /// how a repository that is not published can be used, and its content is trusted as configuration: it can define
+    /// models, carry a validation profile and point at further repositories.
+    /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="IlivalidatorResult"/> indicating whether the validation succeeded.</returns>
     Task<IlivalidatorResult> ValidateAsync(
@@ -23,5 +29,6 @@ public interface IIlivalidatorClient
         IPipelineFile transferFile,
         IPipelineFile logFile,
         IPipelineFile xtfLogFile,
+        IPipelineFile? modelRepositoryArchive = null,
         CancellationToken cancellationToken = default);
 }

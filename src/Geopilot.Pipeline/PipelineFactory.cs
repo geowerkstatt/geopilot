@@ -94,6 +94,7 @@ public class PipelineFactory : IPipelineFactory
                 .StepConfig(stepConfig)
                 .Processes(PipelineProcessConfig.Processes)
                 .PipelineDirectory(pipelineTempDirectory)
+                .ResourcesDirectory(resourcesDirectory)
                 .JobId(jobId)
                 .Build())
             .Logger(PipelineLogger

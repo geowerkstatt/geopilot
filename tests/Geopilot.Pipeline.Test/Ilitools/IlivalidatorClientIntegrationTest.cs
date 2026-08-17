@@ -56,7 +56,7 @@ public class IlivalidatorClientIntegrationTest
         // this the runtime depends on how long the default repositories take to answer, which timed out in CI.
         var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR"] };
 
-        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, TestContext.CancellationToken);
+        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsFalse(result.Success, "Validation should fail because the model of the transfer file is not reachable.");
@@ -84,7 +84,7 @@ public class IlivalidatorClientIntegrationTest
         // Only the session directory as model dir, so the tool fails on the profile without asking a remote repository.
         var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR"], MetaConfig = "ilidata:DOESNOTEXIST" };
 
-        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, TestContext.CancellationToken);
+        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsFalse(result.Success);
 
@@ -108,7 +108,7 @@ public class IlivalidatorClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, TestContext.CancellationToken);
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -127,7 +127,7 @@ public class IlivalidatorClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, TestContext.CancellationToken);
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);

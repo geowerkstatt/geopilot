@@ -244,6 +244,8 @@ Für das Überschreiben von Konfigurationsparametern gelten folgende Einschränk
 
 Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess` welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `modelDirs` und `allObjectsAccessible` übergeben, alle optional: das Profil, anhand dessen die Validierung durchgeführt wird, die Modell-Repositories, aus denen Modelle und Profil aufgelöst werden, und ob Verweise auf Objekte ausserhalb der geprüften Datei als Fehler gelten. Alle drei sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` als semikolon-getrennter Wert.
 
+Der vierte Konfigurationsparameter, `modelRepository`, ist ein Sonderfall: sein Typ ist `IPipelineFile`, und konfiguriert wird der **Pfad einer Datei, die das Deployment mitbringt**, relativ zum Ressourcen-Verzeichnis (`Storage:ResourcesDirectory`), also derselben Wurzel, gegen die eine `${file(...)}`-Referenz auflöst. Ein Pfad, der aus dieser Wurzel herausführt oder keine existierende Datei nennt, lässt die Applikation beim Start scheitern. Ein solcher Parameter ist Konfiguration und kein Input, weil er nicht vom Ergebnis eines vorherigen Schrittes abhängt, und weil er damit in der Basis-Konfiguration unveränderbar hinterlegt werden kann.
+
 Der `logger` ist nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um innerhalb des Prozesses wichtige Informationen zu loggen. Es wird empfohlen den Logger von geopilot zu verwenden, anstatt einen eigenen Logger zu erstellen, um die Konsistenz der Logs zu gewährleisten und die Logs korrekt in die Log-Management-Lösung von geopilot zu integrieren.
 
 Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um das Erstellen von Dateien innerhalb der Pipeline zu ermöglichen. Dabei wir sichergestellt, dass Dateien, welche mit dem `pipelineFileManager` erstellt wurden, nach dem Terminieren der Pipeline wieder abgeräumt werden.
@@ -251,7 +253,7 @@ Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wi
 Der `ilivalidatorClient` wird ebenso von geopilot bereitgestellt und ruft den konfigurierten ilitools-wrapper auf. Prozessoren, welche INTERLIS-Werkzeuge brauchen, fordern einen solchen Client im Konstruktor an, anstatt selbst einen Dienst anzusprechen.
 
 ```csharp
-public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
+public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, IPipelineFile? modelRepository, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
 {
 }
 ```

@@ -446,6 +446,110 @@ public class PipelineProcessFactoryValidateTest
             .Validate();
     }
 
+    [TestMethod]
+    public void AcceptsAConfiguredResourceFile()
+    {
+        using var factory = CreateFactoryWithTestProcesses();
+        var resources = CreateResourcesDirectory();
+
+        factory.Builder()
+            .StepConfig(ResourceFileStep())
+            .Processes(ResourceFileProcesses(new Parameterization { ["resource"] = "example.zip" }))
+            .ResourcesDirectory(resources)
+            .Validate();
+    }
+
+    [TestMethod]
+    public void AcceptsNoConfiguredResourceFile()
+    {
+        using var factory = CreateFactoryWithTestProcesses();
+
+        // The parameter is nullable, so a process that ships no resource stays valid.
+        factory.Builder()
+            .StepConfig(ResourceFileStep())
+            .Processes(ResourceFileProcesses(new Parameterization()))
+            .ResourcesDirectory(CreateResourcesDirectory())
+            .Validate();
+    }
+
+    [TestMethod]
+    public void RejectsAResourceFileThatDoesNotExist()
+    {
+        using var factory = CreateFactoryWithTestProcesses();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            factory.Builder()
+                .StepConfig(ResourceFileStep())
+                .Processes(ResourceFileProcesses(new Parameterization { ["resource"] = "missing.zip" }))
+                .ResourcesDirectory(CreateResourcesDirectory())
+                .Validate());
+
+        Assert.Contains("missing.zip", exception.Message);
+    }
+
+    [TestMethod]
+    public void RejectsAResourceFileOutsideTheResourcesDirectory()
+    {
+        using var factory = CreateFactoryWithTestProcesses();
+
+        // The path decides which file a validation is carried out with, so escaping the root must not be possible.
+        var exception = Assert.Throws<PipelineRunException>(() =>
+            factory.Builder()
+                .StepConfig(ResourceFileStep())
+                .Processes(ResourceFileProcesses(new Parameterization { ["resource"] = "../example.zip" }))
+                .ResourcesDirectory(CreateResourcesDirectory())
+                .Validate());
+
+        Assert.Contains("outside the resources directory", exception.Message);
+    }
+
+    [TestMethod]
+    public void RejectsAResourceFileWithoutAResourcesDirectory()
+    {
+        using var factory = CreateFactoryWithTestProcesses();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            factory.Builder()
+                .StepConfig(ResourceFileStep())
+                .Processes(ResourceFileProcesses(new Parameterization { ["resource"] = "example.zip" }))
+                .Validate());
+
+        Assert.Contains("no resources directory is configured", exception.Message);
+    }
+
+    /// <summary>
+    /// A resources root holding <c>example.zip</c>, plus the same name one level above it so that a test escaping the
+    /// root fails on the confinement and not on a missing file.
+    /// </summary>
+    private static string CreateResourcesDirectory()
+    {
+        // Unique per call, because the assembly runs test methods in parallel.
+        var parent = Path.Combine(Path.GetTempPath(), $"geopilot-resources-{Guid.NewGuid()}");
+        var root = Path.Combine(parent, "resources");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "example.zip"), "not a real archive");
+        File.WriteAllText(Path.Combine(parent, "example.zip"), "not a real archive");
+        return root;
+    }
+
+    private static StepConfig ResourceFileStep() => new()
+    {
+        Id = "resource_file",
+        DisplayName = new LocalizedText(new Dictionary<string, string> { ["en"] = "Resource file" }),
+        ProcessId = "resource_file_process",
+        Input = new InputConfig(),
+    };
+
+    private static List<ProcessConfig> ResourceFileProcesses(Parameterization defaultConfig) => new()
+    {
+        new ProcessConfig
+        {
+            Id = "resource_file_process",
+            Implementation = "Geopilot.Pipeline.Test.Processes.ResourceFileTestProcess",
+            DefaultConfig = defaultConfig,
+        },
+    };
+
     private static StepConfig IlitoolsClientsStep() => new()
     {
         Id = "ilitools_clients",

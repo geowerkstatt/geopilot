@@ -12,12 +12,14 @@ public class XtfValidatorProcessTest
     private Mock<IIlivalidatorClient> ilivalidatorClientMock;
     private IlivalidatorArgs? capturedArgs;
     private IPipelineFile? capturedTransferFile;
+    private IPipelineFile? capturedArchive;
 
     [TestInitialize]
     public void SetUp()
     {
         capturedArgs = null;
         capturedTransferFile = null;
+        capturedArchive = null;
         ilivalidatorClientMock = new Mock<IIlivalidatorClient>();
     }
 
@@ -126,6 +128,27 @@ public class XtfValidatorProcessTest
     }
 
     [TestMethod]
+    public async Task PassesTheModelRepositoryArchiveOn()
+    {
+        var archive = new PipelineFile(Path.Combine("TestData", "ModelRepository", "model-repository.zip"), "model-repository.zip");
+        var process = CreateProcess(null, "%ITF_DIR", success: true, modelRepository: archive);
+
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        Assert.AreSame(archive, capturedArchive, "The configured archive has to reach the client unchanged.");
+    }
+
+    [TestMethod]
+    public async Task SendsNoArchiveWhenNoneIsConfigured()
+    {
+        var process = CreateProcess(null, modelDirs: null, success: true);
+
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        Assert.IsNull(capturedArchive);
+    }
+
+    [TestMethod]
     public async Task AcceptsTurningOffAllObjectsAccessible()
     {
         var process = CreateProcess(null, modelDirs: null, success: true, allObjectsAccessible: false);
@@ -140,14 +163,15 @@ public class XtfValidatorProcessTest
         return new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
     }
 
-    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null)
+    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null)
     {
         ilivalidatorClientMock
-            .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<CancellationToken>()))
-            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, CancellationToken>((args, transferFile, logFile, _, _) =>
+            .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<CancellationToken>()))
+            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile?, CancellationToken>((args, transferFile, logFile, _, archive, _) =>
             {
                 capturedArgs = args;
                 capturedTransferFile = transferFile;
+                capturedArchive = archive;
 
                 if (logContent != null)
                 {
@@ -159,6 +183,6 @@ public class XtfValidatorProcessTest
             .ReturnsAsync(new IlivalidatorResult(success));
 
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
-        return new XtfValidatorProcess(validationProfile, modelDirs, allObjectsAccessible, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+        return new XtfValidatorProcess(validationProfile, modelDirs, allObjectsAccessible, modelRepository, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
     }
 }

@@ -36,6 +36,7 @@ internal class XtfValidatorProcess
     };
 
     private readonly IlivalidatorArgs validatorArgs;
+    private readonly IPipelineFile? modelRepository;
     private readonly IIlivalidatorClient ilivalidatorClient;
     private readonly IPipelineFileManager pipelineFileManager;
     private readonly ILogger logger;
@@ -46,11 +47,13 @@ internal class XtfValidatorProcess
     /// <param name="validationProfile">Optional validation profile, given as the dataset id that indexes it in one of the <paramref name="modelDirs"/>. An <c>ilidata:</c> prefix may be included.</param>
     /// <param name="modelDirs">Optional INTERLIS model repositories as a semicolon separated list, searched in the given order. Replaces the default of the tool entirely.</param>
     /// <param name="allObjectsAccessible">Whether a reference to an object outside the validated file is an error. Defaults to true.</param>
+    /// <param name="modelRepository">Optional ZIP archive of a model repository, given as the path of a file the deployment ships. It is unpacked next to the transfer file, so <paramref name="modelDirs"/> reaches its content through <c>%ITF_DIR</c>.</param>
     /// <param name="ilivalidatorClient">Client of the ilitools-wrapper that runs the validation.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
-    public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
+    public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, IPipelineFile? modelRepository, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
     {
+        this.modelRepository = modelRepository;
         this.validatorArgs = new IlivalidatorArgs
         {
             ModelDirs = SplitModelDirs(modelDirs),
@@ -83,7 +86,7 @@ internal class XtfValidatorProcess
         var errorLog = pipelineFileManager.GeneratePipelineFile("errorLog", "log");
         var xtfLog = pipelineFileManager.GeneratePipelineFile("xtfLog", "xtf");
 
-        var result = await ilivalidatorClient.ValidateAsync(validatorArgs, iliFile, errorLog, xtfLog, cancellationToken);
+        var result = await ilivalidatorClient.ValidateAsync(validatorArgs, iliFile, errorLog, xtfLog, modelRepository, cancellationToken);
 
         logger.LogInformation($"Validation of transfer file <{iliFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
 
