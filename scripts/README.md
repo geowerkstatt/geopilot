@@ -35,8 +35,8 @@ Beispiele:
 
 1. Sucht `appsettings.<Profile>.json` im Nachbar-Plugin-Repository (Build-Ausgabe unter `bin`/`obj` wird ignoriert).
 2. Erstellt einen **Symlink** `src/Geopilot.Api/appsettings.Local[.<Name>].json`, der auf diese Datei zeigt.
-3. Stellt sicher, dass der Link git-ignoriert ist: fehlt ein passender Eintrag, wird das Muster `**/appsettings.Local*.json` in die `.gitignore` geschrieben (ein Eintrag deckt alle Overlays ab).
-4. geopilot lädt **jede** `appsettings.Local*.json` als optionales Konfig-Overlay, als letzte Schicht, sodass die Plugin-Einstellungen die Basis-Appsettings überschreiben (siehe `src/Geopilot.Api/Program.cs`).
+3. Der Link ist über das Muster `**/appsettings.Local*.json` in der `.gitignore` abgedeckt und erscheint deshalb nie in `git status`.
+4. geopilot lädt **jede** `appsettings.Local*.json` als optionales Konfig-Overlay (siehe `src/Geopilot.Api/ConfigurationBuilderExtensions.cs`). Die Overlays greifen **nur in der Development-Umgebung** und liegen in der Konfigurationsreihenfolge nach den Appsettings, aber vor den Umgebungsvariablen: sie überschreiben also `appsettings.json` und `appsettings.Development.json`, verlieren aber gegen Umgebungsvariablen und Kommandozeilen-Argumente.
 
 ## Mehrere Plugins gleichzeitig
 
@@ -49,7 +49,8 @@ Gib jedem Link einen `Name`. Alle `appsettings.Local.<name>.json` werden zusamme
 
 ## Gut zu wissen
 
-- **geopilot neu starten** nach dem Verlinken. Konfig-Overlays und Plugins werden beim Start gelesen.
+- **geopilot neu starten** nach dem Verlinken und nach jeder Änderung an der verlinkten Datei. Konfig-Overlays und Plugins werden beim Start gelesen, es gibt kein automatisches Neuladen.
+- Findet das Skript **mehrere** `appsettings.<Profile>.json` im Plugin (z.B. Plugin- und Testprojekt), bricht es mit der Trefferliste ab, statt eine beliebige zu verlinken.
 - Der Link ist **git-ignoriert**: er erscheint nie in `git status` und ist im Visual-Studio-Solution-Explorer standardmässig ausgeblendet. Das ist so gewollt.
 - Halte die `appsettings.<Profile>.json` im Plugin **dünn** (nur plugin-relevante Schlüssel) und nutze Pfade, die aus geopilots Sicht gültig sind.
 - **Editor-Tabs können einseitig wirken:** bearbeitest du den Link, aktualisiert sich die Plugin-Datei; bearbeitest du die Plugin-Datei, frischt sich der Tab des Links evtl. erst nach erneutem Öffnen auf. Auf der Platte ist es immer ein und dieselbe Datei.

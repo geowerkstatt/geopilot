@@ -25,13 +25,8 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Optional, git-ignored developer overlays, layered last so they win over the appsettings files.
-// Loads appsettings.Local.json plus any appsettings.Local.<name>.json, so several plugins can be
-// linked at once. Populated by scripts/link-plugin-config.ps1 as symlinks; never committed.
-foreach (var overlay in Directory.EnumerateFiles(builder.Environment.ContentRootPath, "appsettings.Local*.json").OrderBy(f => f))
-{
-    builder.Configuration.AddJsonFile(Path.GetFileName(overlay), optional: true, reloadOnChange: true);
-}
+// Optional git-ignored developer overlays (appsettings.Local*.json) for local plugin development.
+builder.AddDeveloperOverlays();
 
 builder.Services.AddCors(options =>
 {

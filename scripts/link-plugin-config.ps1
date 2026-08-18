@@ -49,27 +49,24 @@ $linkPath = Join-Path $geopilotRoot "src\Geopilot.Api\$linkFileName"
 $pluginRoot = Join-Path (Split-Path -Parent $geopilotRoot) $Plugin
 if (-not (Test-Path $pluginRoot)) { throw "Plugin repository not found: $pluginRoot" }
 
-# Find the requested profile config in the plugin, ignoring build output
-$target = Get-ChildItem -Path $pluginRoot -Recurse -File -Filter "appsettings.$Profile.json" |
+# Find the requested profile config in the plugin, ignoring build output.
+# Abort on multiple matches (e.g. plugin project plus test project) instead of picking one silently.
+$candidates = @(Get-ChildItem -Path $pluginRoot -Recurse -File -Filter "appsettings.$Profile.json" |
     Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' } |
-    Select-Object -First 1 -ExpandProperty FullName
-if (-not $target) { throw "No appsettings.$Profile.json found under $pluginRoot" }
+    Select-Object -ExpandProperty FullName)
+if ($candidates.Count -eq 0) { throw "No appsettings.$Profile.json found under $pluginRoot" }
+if ($candidates.Count -gt 1) {
+    throw "Multiple appsettings.$Profile.json found under ${pluginRoot}:`n$($candidates -join "`n")"
+}
+$target = $candidates[0]
 
-# (Re)create the symbolic link
-if (Test-Path $linkPath) { Remove-Item -Force $linkPath }
+# (Re)create the symbolic link. Delete any existing or dangling link first: File.Delete is a no-op when
+# the path is absent and removes a stale link that Test-Path can miss. mklink is used deliberately because
+# it honors Windows Developer Mode, whereas New-Item -ItemType SymbolicLink requires elevation on Windows
+# PowerShell 5.1.
+[System.IO.File]::Delete($linkPath)
 & cmd.exe /c "mklink `"$linkPath`" `"$target`"" | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    throw "mklink failed (exit code $LASTEXITCODE). Symlinks need Administrator rights or enabled Developer Mode (Settings > For developers > Developer Mode)."
+    throw "mklink failed (exit code $LASTEXITCODE). On Windows this needs Administrator rights or enabled Developer Mode (Settings > For developers > Developer Mode)."
 }
 Write-Host "Linked $linkPath -> $target"
-
-# Make sure the link is git-ignored. If nothing covers it yet, add the shared glob so every
-# appsettings.Local*.json is ignored with a single entry (idempotent across runs and names).
-git -C $geopilotRoot check-ignore -q -- $linkPath
-if ($LASTEXITCODE -ne 0) {
-    Add-Content -Path (Join-Path $geopilotRoot '.gitignore') -Value "`r`n# Local developer overlays (symlinks created by scripts/link-plugin-config.ps1)`r`n**/appsettings.Local*.json"
-    Write-Host "Added **/appsettings.Local*.json to .gitignore"
-}
-else {
-    Write-Host "Already git-ignored"
-}
