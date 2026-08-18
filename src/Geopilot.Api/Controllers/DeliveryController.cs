@@ -3,6 +3,7 @@ using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,17 +24,19 @@ public class DeliveryController : ControllerBase
     private readonly ILogger<DeliveryController> logger;
     private readonly Context context;
     private readonly IProcessingService processingService;
+    private readonly IMandateService mandateService;
     private readonly IAssetHandler assetHandler;
     private readonly IOptions<DeliveryOptions> deliveryOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IProcessingService processingService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IProcessingService processingService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions)
     {
         this.logger = logger;
         this.context = context;
         this.processingService = processingService;
+        this.mandateService = mandateService;
         this.assetHandler = assetHandler;
         this.deliveryOptions = deliveryOptions;
     }
@@ -74,13 +77,9 @@ public class DeliveryController : ControllerBase
         }
 
         var user = await context.GetUserByPrincipalAsync(User);
-        var mandate = context.Mandates
-            .Include(m => m.Organisations)
-            .ThenInclude(o => o.Users)
-            .Include(m => m.Deliveries)
-            .SingleOrDefault(m => m.Id == job.MandateId);
+        var mandate = job.MandateId == null ? null : await mandateService.GetMandateForUser(job.MandateId.Value, user);
 
-        if (mandate is null || !mandate.AllowDelivery || (!mandate.IsPublic && !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id)))
+        if (mandate is null || !mandate.AllowDelivery)
         {
             logger.LogTrace($"Mandate with id <{job.MandateId}> not found.");
             return NotFound($"Mandate with id <{job.MandateId}> not found.");
@@ -175,11 +174,8 @@ public class DeliveryController : ControllerBase
 
         logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>", user.AuthIdentifier, mandateId);
 
-        var authorizedForMandate = await context.Mandates
-            .Where(m => m.Id == mandateId && (user.IsAdmin || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id)))
-            .AnyAsync();
-
-        if (!authorizedForMandate)
+        var mandate = await mandateService.GetMandateForUser(mandateId, user);
+        if (mandate == null)
             return NotFound();
 
         var deliveries = context.Deliveries

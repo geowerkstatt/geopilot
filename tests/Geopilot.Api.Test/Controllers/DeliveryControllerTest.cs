@@ -2,6 +2,7 @@
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.AspNetCore.Http;
@@ -19,6 +20,7 @@ namespace Geopilot.Api.Controllers;
 public class DeliveryControllerTest
 {
     private Mock<IProcessingService> processingServiceMock;
+    private Mock<IMandateService> mandateServiceMock;
     private Mock<IAssetHandler> assetHandlerMock;
     private Mock<ILogger<DeliveryController>> loggerMock;
     private Mock<IOptions<DeliveryOptions>> deliveryOptionsMock;
@@ -30,17 +32,19 @@ public class DeliveryControllerTest
     {
         loggerMock = new Mock<ILogger<DeliveryController>>();
         processingServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
+        mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         assetHandlerMock = new Mock<IAssetHandler>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
         deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
         deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
-        deliveryController = new DeliveryController(loggerMock.Object, context, processingServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
+        deliveryController = new DeliveryController(loggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
         processingServiceMock.VerifyAll();
+        mandateServiceMock.VerifyAll();
         assetHandlerMock.VerifyAll();
         loggerMock.VerifyAll();
         context.Dispose();
@@ -92,9 +96,12 @@ public class DeliveryControllerTest
     {
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
         var addedMandate = context.Mandates.Add(new Mandate() { IsPublic = publicMandate });
-        var guid = SetupProcessingJob(addedMandate.Entity.Id);
         context.SaveChanges();
+        var guid = SetupProcessingJob(addedMandate.Entity.Id);
         deliveryController.SetupTestUser(user.Entity);
+        mandateServiceMock
+            .Setup(s => s.GetMandateForUser(addedMandate.Entity.Id, user.Entity))
+            .ReturnsAsync(publicMandate ? addedMandate.Entity : null);
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
 
@@ -119,6 +126,7 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(user.Entity);
         var jobId = SetupProcessingJob(publicMandate.Entity.Id);
         SetupJobPersistence(jobId);
+        mandateServiceMock.Setup(s => s.GetMandateForUser(publicMandate.Entity.Id, user.Entity)).ReturnsAsync(publicMandate.Entity);
 
         var request = new DeliveryRequest
         {
@@ -145,6 +153,7 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(user.Entity);
         var jobId = SetupProcessingJob(publicMandate.Entity.Id, ProcessingState.Warning);
         SetupJobPersistence(jobId);
+        mandateServiceMock.Setup(s => s.GetMandateForUser(publicMandate.Entity.Id, user.Entity)).ReturnsAsync(publicMandate.Entity);
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = jobId })) as ObjectResult;
 
@@ -165,6 +174,7 @@ public class DeliveryControllerTest
         context.SaveChanges();
         deliveryController.SetupTestUser(user.Entity);
         var jobId = SetupProcessingJob(publicMandate.Entity.Id);
+        mandateServiceMock.Setup(s => s.GetMandateForUser(publicMandate.Entity.Id, user.Entity)).ReturnsAsync(publicMandate.Entity);
 
         var request = new DeliveryRequest
         {
@@ -181,7 +191,7 @@ public class DeliveryControllerTest
     public async Task CreateMinimalDelivery()
     {
         var startTime = DateTime.Now;
-        var (user, mandate) = context.AddMandateWithUserOrganisation(
+        var (user, mandate) = SetupMandateWithUserOrganisation(
             new Mandate
             {
                 Name = TestHelpers.Localized(nameof(CreateMinimalDelivery)),
@@ -241,7 +251,7 @@ public class DeliveryControllerTest
     [DataRow(FieldEvaluationType.Required, "Lorem Ipsum", typeof(Delivery), "Lorem Ipsum")]
     public async Task CreateValidatesComment(FieldEvaluationType evaluaton, string comment, Type responseValueType, string dbValue)
     {
-        var (user, mandate) = context.AddMandateWithUserOrganisation(
+        var (user, mandate) = SetupMandateWithUserOrganisation(
             new Mandate
             {
                 Name = TestHelpers.Localized(nameof(CreateValidatesComment)),
@@ -283,7 +293,7 @@ public class DeliveryControllerTest
     [DataRow(FieldEvaluationType.Required, false, typeof(Delivery), false)]
     public async Task CreateValidatesPartialDelivery(FieldEvaluationType evaluaton, bool? partialDelivery, Type responseValueType, bool? dbValue)
     {
-        var (user, mandate) = context.AddMandateWithUserOrganisation(
+        var (user, mandate) = SetupMandateWithUserOrganisation(
             new Mandate
             {
                 Name = TestHelpers.Localized(nameof(CreateValidatesPartialDelivery)),
@@ -325,7 +335,7 @@ public class DeliveryControllerTest
     [DataRow(FieldEvaluationType.Required, false, typeof(ValidationProblemDetails))]
     public async Task CreateValidatesPrecursorDelivery(FieldEvaluationType evaluaton, bool setPrecursor, Type responseValueType)
     {
-        var (user, mandate) = context.AddMandateWithUserOrganisation(
+        var (user, mandate) = SetupMandateWithUserOrganisation(
             new Mandate
             {
                 Name = TestHelpers.Localized(nameof(CreateValidatesPrecursorDelivery)),
@@ -357,7 +367,7 @@ public class DeliveryControllerTest
     public async Task CreateFailsPrecursorFromOtherMandate()
     {
         var deliveriesCount = context.Deliveries.Count();
-        var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsPrecursorFromOtherMandate)), AllowDelivery = true, });
+        var (user, mandate) = SetupMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsPrecursorFromOtherMandate)), AllowDelivery = true, });
         deliveryController.SetupTestUser(user);
         var guid = SetupProcessingJob(mandate.Id);
         mandate.EvaluatePrecursorDelivery = FieldEvaluationType.Required;
@@ -380,7 +390,7 @@ public class DeliveryControllerTest
     public async Task CreateFailsPrecursorNotFound()
     {
         var deliveriesCount = context.Deliveries.Count();
-        var (user, mandate) = context.AddMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsPrecursorNotFound)), AllowDelivery = true, });
+        var (user, mandate) = SetupMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsPrecursorNotFound)), AllowDelivery = true, });
         deliveryController.SetupTestUser(user);
         var guid = SetupProcessingJob(mandate.Id);
         mandate.EvaluatePrecursorDelivery = FieldEvaluationType.Required;
@@ -648,16 +658,16 @@ public class DeliveryControllerTest
         admin.Organisations.Clear();
         context.SaveChanges();
         deliveryController.SetupTestUser(admin);
-        var mandateId = context.Mandates
+        var mandate = context.Mandates
             .Where(m => m.Deliveries.Count != 0)
-            .First()
-            .Id;
+            .First();
+        mandateServiceMock.Setup(s => s.GetMandateForUser(mandate.Id, admin)).ReturnsAsync(mandate);
 
-        var response = (await deliveryController.GetSummary(mandateId)) as ObjectResult;
+        var response = (await deliveryController.GetSummary(mandate.Id)) as ObjectResult;
         var list = Assert.IsInstanceOfType<List<DeliverySummary>>(response?.Value);
 
         Assert.IsNotNull(list);
-        Assert.HasCount(context.Deliveries.Where(d => d.Mandate != null && d.Mandate.Id == mandateId).Count(), list);
+        Assert.HasCount(context.Deliveries.Where(d => d.Mandate != null && d.Mandate.Id == mandate.Id).Count(), list);
     }
 
     [TestMethod]
@@ -669,6 +679,7 @@ public class DeliveryControllerTest
             .Where(m => !m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))
             .First()
             .Id;
+        mandateServiceMock.Setup(s => s.GetMandateForUser(mandateId, user)).ReturnsAsync((Mandate?)null);
 
         var response = await deliveryController.GetSummary(mandateId);
 
@@ -680,22 +691,22 @@ public class DeliveryControllerTest
     {
         var user = context.Users.First(u => !u.IsAdmin);
         deliveryController.SetupTestUser(user);
-        var mandateId = context.Mandates
+        var mandate = context.Mandates
             .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id) && m.Deliveries.Count != 0)
-            .First()
-            .Id;
+            .First();
+        mandateServiceMock.Setup(s => s.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
 
-        var response = (await deliveryController.GetSummary(mandateId)) as ObjectResult;
+        var response = (await deliveryController.GetSummary(mandate.Id)) as ObjectResult;
         var list = Assert.IsInstanceOfType<List<DeliverySummary>>(response?.Value);
 
-        var deliveris = context.Mandates
+        var deliveries = context.Mandates
             .Include(m => m.Deliveries)
-            .First(m => m.Id == mandateId)
+            .First(m => m.Id == mandate.Id)
             .Deliveries;
 
         Assert.IsNotNull(list);
-        Assert.AreNotEqual(0, deliveris.Count);
-        Assert.HasCount(deliveris.Count, list);
+        Assert.AreNotEqual(0, deliveries.Count);
+        Assert.HasCount(deliveries.Count, list);
         CollectionAssert.AllItemsAreUnique(list);
     }
 
@@ -723,5 +734,14 @@ public class DeliveryControllerTest
         Assert.IsTrue(dbDelivery.Assets.All(a => !a.Deleted));
 
         assetHandlerMock.Verify(h => h.DeleteJobAssets(It.IsAny<Guid>()), Times.Never());
+    }
+
+    private (User User, Mandate Mandate) SetupMandateWithUserOrganisation(Mandate mandate)
+    {
+        var (user, createdMandate) = context.AddMandateWithUserOrganisation(mandate);
+        mandateServiceMock
+            .Setup(s => s.GetMandateForUser(createdMandate.Id, user))
+            .ReturnsAsync(createdMandate);
+        return (user, createdMandate);
     }
 }
