@@ -9,6 +9,8 @@ public class ManyDifferentInitialzationAttributesTestProcess
 
     public IIli2GpkgClient? Ili2GpkgClient { get; set; }
 
+    public IIlivalidatorClient? IlivalidatorClient { get; set; }
+
     public string MandatoryString { get; set; }
 
     public string? OptionalString { get; set; }
@@ -35,10 +37,12 @@ public class ManyDifferentInitialzationAttributesTestProcess
         bool mandatoryBoolean,
         bool? optionalBoolean,
         IIli2GpkgClient ili2GpkgClient,
+        IIlivalidatorClient ilivalidatorClient,
         ILogger logger)
     {
         this.Logger = logger;
         this.Ili2GpkgClient = ili2GpkgClient;
+        this.IlivalidatorClient = ilivalidatorClient;
         this.MandatoryString = mandatoryString;
         this.OptionalString = optionalString;
         this.MandatoryInt = mandatoryInt;

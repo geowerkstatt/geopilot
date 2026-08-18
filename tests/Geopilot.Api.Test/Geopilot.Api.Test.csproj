@@ -24,4 +24,13 @@
     <ProjectReference Include="..\..\src\Geopilot.Api\Geopilot.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The development settings configure this archive for the XTF validation, and a configured resource has to
+         exist when the pipeline definition is validated at startup. The test host is a deployment like any other,
+         so it ships the file in the resources directory AssemblyInitialize points at. -->
+    <Content Include="..\..\src\Geopilot.Api\Resources\model-repository.zip" Link="Resources\model-repository.zip">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

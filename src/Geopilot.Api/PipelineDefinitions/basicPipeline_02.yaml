@@ -13,9 +13,6 @@ processes:
       fileNamePatterns:
   - id: xtf_validator
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
-    default_config:
-      validationProfile: DEFAULT
-      pollInterval: 1000
   - id: xtf_error_visualizer
     implementation: Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess
     default_config:
@@ -157,8 +154,6 @@ pipelines:
                   en: "Validation was not successful. Delivery is not possible."
                   fr: "La validation n'a pas réussi. La livraison n'est pas possible."
                   it: "La validazione non è riuscita. La consegna non è possibile."
-        process_config_overwrites:
-          validationProfile: null
         input:
           iliFile: "${step_output(xtf_matching.XtfFiles)}"
         output_actions:
