@@ -12,12 +12,10 @@ namespace Geopilot.Pipeline.Test.Ilitools;
 /// running locally.
 /// </summary>
 /// <remarks>
-/// A successful validation is not covered here, because it needs a model the tool can resolve: the test data
-/// references the local model SimpleModel, the client cannot send a model file (the validate contract of the wrapper
-/// has no file type for it, see geopilot#683), and a published model would make the suite depend on
-/// models.interlis.ch. Serving a repository to the wrapper instead is no way around it either, since the container
-/// would have to reach the test host through a private address, which the wrapper rejects by default. What these
-/// tests cover is the round trip including both log files, and that the model repository options reach the wrapper.
+/// These tests use a transfer file whose model no reachable repository indexes, so they cover the error paths: the
+/// round trip including both log files, the rejection of an invalid model repository option, and the marker the
+/// process needs to recognize an unresolvable profile. A validation that runs to a verdict is covered by
+/// <see cref="IlivalidatorRepositoryIntegrationTest"/>, against the model repository the compose file serves.
 /// </remarks>
 [TestClass]
 [TestCategory("Integration")]

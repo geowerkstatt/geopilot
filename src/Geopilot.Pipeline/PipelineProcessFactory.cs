@@ -533,13 +533,6 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         }
 
         /// <summary>
-        /// Resolves the configured value for a constructor parameter. Returns false when the
-        /// parameter is not configured. A configured value that cannot be converted to the
-        /// parameter type is a configuration error and throws, even for a nullable parameter:
-        /// silently falling back to null would hide typos in the pipeline definition. A
-        /// configured null counts as convertible only for nullable parameter types.
-        /// </summary>
-        /// <summary>
         /// Whether the parameter is configured with the relative path of a file the deployment ships. A file valued
         /// configuration parameter carries a path and not a value, so it is read raw here: the conversion of
         /// <see cref="TryGetConfiguredValue"/> would reject a string for an <see cref="IPipelineFile"/> target.
@@ -573,6 +566,13 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             return fullPath;
         }
 
+        /// <summary>
+        /// Resolves the configured value for a constructor parameter. Returns false when the
+        /// parameter is not configured. A configured value that cannot be converted to the
+        /// parameter type is a configuration error and throws, even for a nullable parameter:
+        /// silently falling back to null would hide typos in the pipeline definition. A
+        /// configured null counts as convertible only for nullable parameter types.
+        /// </summary>
         private static bool TryGetConfiguredValue(ParameterInfo parameterInfo, Parameterization processConfig, out object? convertedValue)
         {
             convertedValue = null;

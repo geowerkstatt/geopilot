@@ -85,9 +85,8 @@ public class XtfValidatorProcessTest
         Assert.AreEqual("ilidata:PROFILE-A", capturedArgs?.MetaConfig);
 
         // The order of the repositories decides which model wins, so it must survive unchanged.
-        Assert.AreEqual(2, capturedArgs?.ModelDirs?.Count);
-        Assert.AreEqual("https://models.example.com/", capturedArgs?.ModelDirs?[0]);
-        Assert.AreEqual("%ITF_DIR", capturedArgs?.ModelDirs?[1]);
+        string[] expectedModelDirs = ["https://models.example.com/", "%ITF_DIR"];
+        CollectionAssert.AreEqual(expectedModelDirs, capturedArgs?.ModelDirs?.ToList());
     }
 
     [TestMethod]
@@ -98,9 +97,8 @@ public class XtfValidatorProcessTest
 
         await process.RunAsync(CreateTransferFile(), CancellationToken.None);
 
-        Assert.AreEqual(2, capturedArgs?.ModelDirs?.Count);
-        Assert.AreEqual("https://models.example.com/", capturedArgs?.ModelDirs?[0]);
-        Assert.AreEqual("%ITF_DIR", capturedArgs?.ModelDirs?[1]);
+        string[] expectedModelDirs = ["https://models.example.com/", "%ITF_DIR"];
+        CollectionAssert.AreEqual(expectedModelDirs, capturedArgs?.ModelDirs?.ToList());
     }
 
     [TestMethod]
