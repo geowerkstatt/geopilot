@@ -25,6 +25,9 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Optional git-ignored developer overlays (appsettings.Local*.json) for local plugin development.
+builder.AddDeveloperOverlays();
+
 builder.Services.AddCors(options =>
 {
     // DotNetStac.Api uses the "All" policy for access in the STAC browser.
