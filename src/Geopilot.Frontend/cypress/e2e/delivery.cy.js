@@ -143,7 +143,7 @@ describe("Delivery tests", () => {
       ),
     ]);
 
-    cy.intercept("GET", "/api/v1/delivery?mandateId=*", { statusCode: 200, body: [] }).as("precursors");
+    cy.intercept("GET", "/api/v1/delivery/summary?mandateId=*", { statusCode: 200, body: [] }).as("precursors");
     runMockedProcessingJob(successJob, [deliverableMandate(1, "Test Mandate"), deliverableMandate(2, "Other Mandate")]);
 
     resultStepHasIcon("validation", "success");

@@ -122,16 +122,10 @@ export const deliverableMandate = (id, name) => ({
   id,
   name,
   description: {},
-  isPublic: true,
   allowDelivery: true,
-  fileTypes: [".xtf"],
-  coordinates: [],
-  organisations: [],
-  deliveries: [],
   evaluatePrecursorDelivery: "notEvaluated",
   evaluatePartial: "notEvaluated",
   evaluateComment: "notEvaluated",
-  pipelineId: "ili_validation",
 });
 
 /**
