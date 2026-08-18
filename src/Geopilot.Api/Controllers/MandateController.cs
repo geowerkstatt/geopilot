@@ -49,6 +49,7 @@ public class MandateController : ControllerBase
     [HttpGet("summary")]
     [AllowAnonymous]
     [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandates that the current user has access to and match all filter criteria.", typeof(IEnumerable<MandateSummary>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The request is missing an uploadId.")]
     public async Task<IActionResult> GetSummary(
         [FromQuery, SwaggerParameter("Filter mandates matching the uploaded files' extensions.")]
         Guid uploadId)

@@ -167,9 +167,15 @@ public class DeliveryController : ControllerBase
     [HttpGet("summary")]
     [Authorize(Policy = GeopilotPolicies.User)]
     [SwaggerResponse(StatusCodes.Status200OK, "A list matching filter criteria.", typeof(List<DeliverySummary>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The request is missing a mandateId.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Failed to find mandate.")]
     public async Task<IActionResult> GetSummary([FromQuery] int mandateId)
     {
+        if (mandateId == default)
+        {
+            return BadRequest("Mandate id is required.");
+        }
+
         var user = await context.GetUserByPrincipalAsync(User);
 
         logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>", user.AuthIdentifier, mandateId);
