@@ -169,7 +169,7 @@ export const TreeVisualization = ({
       return 0;
     }
     const wrapper = treeWrapperRef.current;
-    const selected = wrapper?.querySelector<HTMLElement>("[data-selected]");
+    const selected = wrapper?.querySelector<HTMLElement>(".MuiTreeItem-content[data-selected]");
     if (!wrapper || !selected) {
       return 0;
     }
@@ -197,7 +197,7 @@ export const TreeVisualization = ({
       scrollTimeout = setTimeout(scrollToPanel, SCROLL_DEBOUNCE_MS);
     };
 
-    scheduleScroll();
+    scrollToPanel();
 
     const observer = new ResizeObserver(() => scheduleScroll());
     observer.observe(tree);
