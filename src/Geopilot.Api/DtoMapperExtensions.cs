@@ -128,21 +128,6 @@ internal static class DtoMapperExtensions
     }
 
     /// <summary>
-    /// Maps a <see cref="Mandate"/> to a <see cref="MandateSummary"/>.
-    /// </summary>
-    public static MandateSummary ToSummary(this Mandate mandate)
-    {
-        return new MandateSummary(
-            mandate.Id,
-            mandate.Name,
-            mandate.Description,
-            mandate.AllowDelivery,
-            mandate.EvaluatePrecursorDelivery,
-            mandate.EvaluatePartial,
-            mandate.EvaluateComment);
-    }
-
-    /// <summary>
     /// Maps the <see cref="Mandate"/> entries to <see cref="MandateSummary"/>.
     /// </summary>
     public static IQueryable<MandateSummary> ToSummaries(this IQueryable<Mandate> mandates)

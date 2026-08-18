@@ -119,7 +119,7 @@ namespace Geopilot.Api.Controllers
             mandateController.SetupTestUser(editUser);
             mandateServiceMock
                 .Setup(m => m.GetMandateSummariesAsync(It.Is<User>(u => u.Id == editUser.Id), uploadId))
-                .ReturnsAsync(new List<MandateSummary> { xtfMandate.ToSummary() });
+                .ReturnsAsync(new List<MandateSummary> { ToSummary(xtfMandate) });
 
             var result = (await mandateController.GetSummary(uploadId)) as OkObjectResult;
             var mandates = Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value).ToList();
@@ -135,7 +135,7 @@ namespace Geopilot.Api.Controllers
             var uploadId = Guid.NewGuid();
             mandateServiceMock
                 .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
-                .ReturnsAsync(new List<MandateSummary> { publicCsvMandate.ToSummary() });
+                .ReturnsAsync(new List<MandateSummary> { ToSummary(publicCsvMandate) });
 
             var result = (await mandateController.GetSummary(uploadId)) as OkObjectResult;
             var mandates = Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value).ToList();
@@ -441,6 +441,18 @@ namespace Geopilot.Api.Controllers
                 Assert.AreEqual(expected.Organisations[i].Id, actual.Organisations[i].Id);
                 Assert.AreEqual(expected.Organisations[i].Name, actual.Organisations[i].Name);
             }
+        }
+
+        private static MandateSummary ToSummary(Mandate mandate)
+        {
+            return new MandateSummary(
+                mandate.Id,
+                mandate.Name,
+                mandate.Description,
+                mandate.AllowDelivery,
+                mandate.EvaluatePrecursorDelivery,
+                mandate.EvaluatePartial,
+                mandate.EvaluateComment);
         }
     }
 }

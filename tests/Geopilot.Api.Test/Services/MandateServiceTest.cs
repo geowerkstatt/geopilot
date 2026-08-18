@@ -162,7 +162,7 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesAsAdminUser()
+    public async Task GetMandatesReturnsAll()
     {
         var result = await mandateService.GetMandatesAsync();
 
@@ -215,6 +215,22 @@ public class MandateServiceTest
         var result = await mandateService.GetMandateSummariesAsync(null, uploadId);
 
         DoesNotContainMandate(result, publicCsvMandate);
+        DoesNotContainMandate(result, unrestrictedMandate);
+        DoesNotContainMandate(result, noDeliveryMandate);
+        DoesNotContainMandate(result, xtfMandate);
+        DoesNotContainMandate(result, noOrganisationsMandate);
+        DoesNotContainMandate(result, noPermissionMandate);
+        DoesNotContainMandate(result, missingPipelineMandate);
+    }
+
+    [TestMethod]
+    public async Task GetMandateSummariesWithUploadIdAsUnauthenticatedReturnsPublic()
+    {
+        var uploadId = CreateUpload("Original.csv");
+
+        var result = await mandateService.GetMandateSummariesAsync(null, uploadId);
+
+        ContainsMandate(result, publicCsvMandate);
         DoesNotContainMandate(result, unrestrictedMandate);
         DoesNotContainMandate(result, noDeliveryMandate);
         DoesNotContainMandate(result, xtfMandate);
