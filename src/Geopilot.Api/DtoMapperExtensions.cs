@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
@@ -124,5 +125,28 @@ internal static class DtoMapperExtensions
             step.ConditionMessage,
             downloads,
             visualizations);
+    }
+
+    /// <summary>
+    /// Maps the <see cref="Mandate"/> entries to <see cref="MandateSummary"/>.
+    /// </summary>
+    public static IQueryable<MandateSummary> ToSummaries(this IQueryable<Mandate> mandates)
+    {
+        return mandates.Select(m => new MandateSummary(
+            m.Id,
+            m.Name,
+            m.Description,
+            m.AllowDelivery,
+            m.EvaluatePrecursorDelivery,
+            m.EvaluatePartial,
+            m.EvaluateComment));
+    }
+
+    /// <summary>
+    /// Maps the <see cref="Delivery"/> entries to <see cref="DeliverySummary"/>.
+    /// </summary>
+    public static IQueryable<DeliverySummary> ToSummaries(this IQueryable<Delivery> deliveries)
+    {
+        return deliveries.Select(d => new DeliverySummary(d.Id, d.Date));
     }
 }

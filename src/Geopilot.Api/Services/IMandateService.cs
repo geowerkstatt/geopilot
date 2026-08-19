@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Models;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Models;
 
 namespace Geopilot.Api.Services;
 
@@ -8,12 +9,18 @@ namespace Geopilot.Api.Services;
 public interface IMandateService
 {
     /// <summary>
-    /// Gets all mandates, optionally filtered by user and/or upload.
+    /// Gets all mandates.
     /// </summary>
-    /// <param name="user">If provided, only mandates this user can make deliveries for are returned.</param>
-    /// <param name="uploadId">If provided, only mandates that accept the uploaded files' extensions are returned.</param>
-    /// <returns>List of <see cref="Mandate"/> deliverable by the user for the upload.</returns>
-    Task<List<Mandate>> GetMandatesAsync(User? user = null, Guid? uploadId = null);
+    /// <returns>List of all <see cref="Mandate"/>.</returns>
+    Task<List<Mandate>> GetMandatesAsync();
+
+    /// <summary>
+    /// Gets all mandates, filtered by user and upload.
+    /// </summary>
+    /// <param name="user">Only mandates this user can make deliveries for are returned.</param>
+    /// <param name="uploadId">Only mandates that accept the uploaded files' extensions are returned.</param>
+    /// <returns>List of <see cref="MandateSummary"/> deliverable by the user for the upload.</returns>
+    Task<List<MandateSummary>> GetMandateSummariesAsync(User? user, Guid uploadId);
 
     /// <summary>
     /// Retrieves the mandate with the specified id, if the specified user is allowed to access it.

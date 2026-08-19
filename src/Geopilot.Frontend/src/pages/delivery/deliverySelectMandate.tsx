@@ -2,7 +2,7 @@ import { FC, useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CircularProgress, Divider, Stack, styled, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { toggleButtonClasses } from "@mui/material/ToggleButton";
-import { Mandate, StepState } from "../../api/apiInterfaces";
+import { MandateSummary, StepState } from "../../api/apiInterfaces";
 import { useGeopilotAuth } from "../../auth";
 import { Button } from "../../components/buttons";
 import useFetch from "../../hooks/useFetch";
@@ -24,7 +24,7 @@ const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
 }));
 
 interface MandateToggleButtonProps {
-  mandate: Mandate;
+  mandate: MandateSummary;
 }
 
 const MandateToggleButton: FC<MandateToggleButtonProps> = ({ mandate }) => {
@@ -42,15 +42,15 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const { language } = useLocalized();
-  const [selected, setSelected] = useState<Mandate | null>(null);
-  const [mandates, setMandates] = useState<Mandate[] | null>(null);
+  const [selected, setSelected] = useState<MandateSummary | null>(null);
+  const [mandates, setMandates] = useState<MandateSummary[] | null>(null);
 
   useEffect(() => {
     if (selectedMandate) {
       setMandates([selectedMandate]);
     } else if (uploadId) {
       setStepStatus(DeliveryStepEnum.Mandate, undefined);
-      fetchApi<Mandate[]>("/api/v1/mandate?" + new URLSearchParams({ uploadId })).then(mandates => {
+      fetchApi<MandateSummary[]>("/api/v1/mandate/summary?" + new URLSearchParams({ uploadId })).then(mandates => {
         if (mandates.length === 0) {
           setStepStatus(DeliveryStepEnum.Mandate, StepState.Error, ["noMandatesFound"]);
         }
@@ -71,7 +71,7 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
     }
   };
 
-  const handleSelectMandate = (mandate: Mandate | null) => {
+  const handleSelectMandate = (mandate: MandateSummary | null) => {
     if (!completed && mandate) {
       setSelected(mandate);
     }

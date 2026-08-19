@@ -75,7 +75,7 @@ describe("Delivery tests", () => {
 
   // Skip test as starting the processing currently results in a 500 when running in the github action
   it.skip("can submit delivery", () => {
-    cy.intercept("/api/v1/delivery?mandateId=*").as("precursors");
+    cy.intercept("/api/v1/delivery/summary?mandateId=*").as("precursors");
 
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
@@ -143,7 +143,7 @@ describe("Delivery tests", () => {
       ),
     ]);
 
-    cy.intercept("GET", "/api/v1/delivery?mandateId=*", { statusCode: 200, body: [] }).as("precursors");
+    cy.intercept("GET", "/api/v1/delivery/summary?mandateId=*", { statusCode: 200, body: [] }).as("precursors");
     runMockedProcessingJob(successJob, [deliverableMandate(1, "Test Mandate"), deliverableMandate(2, "Other Mandate")]);
 
     resultStepHasIcon("validation", "success");
@@ -265,7 +265,7 @@ describe("Delivery tests", () => {
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     uploadFile();
 
-    cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
+    cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
     cy.wait("@getMandates");
 
     selectMandate(1);

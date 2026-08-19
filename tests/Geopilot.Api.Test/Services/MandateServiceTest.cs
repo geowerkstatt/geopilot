@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Models;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline.Config;
@@ -161,23 +162,9 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesAsNonAdminUser()
+    public async Task GetMandatesReturnsAll()
     {
-        var result = await mandateService.GetMandatesAsync(editUser);
-
-        ContainsMandate(result, unrestrictedMandate);
-        ContainsMandate(result, noDeliveryMandate);
-        ContainsMandate(result, xtfMandate);
-        ContainsMandate(result, publicCsvMandate);
-        DoesNotContainMandate(result, noOrganisationsMandate);
-        DoesNotContainMandate(result, noPermissionMandate);
-        ContainsMandate(result, missingPipelineMandate);
-    }
-
-    [TestMethod]
-    public async Task GetMandatesAsAdminUser()
-    {
-        var result = await mandateService.GetMandatesAsync(adminUser);
+        var result = await mandateService.GetMandatesAsync();
 
         ContainsMandate(result, unrestrictedMandate);
         ContainsMandate(result, noDeliveryMandate);
@@ -189,11 +176,11 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesWithUploadIdAsNonAdmin()
+    public async Task GetMandateSummariesWithUploadIdAsNonAdmin()
     {
         var uploadId = CreateUpload("Original.xtf");
 
-        var result = await mandateService.GetMandatesAsync(editUser, uploadId);
+        var result = await mandateService.GetMandateSummariesAsync(editUser, uploadId);
 
         ContainsMandate(result, unrestrictedMandate);
         ContainsMandate(result, noDeliveryMandate);
@@ -205,11 +192,11 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesWithUploadIdAsAdmin()
+    public async Task GetMandateSummariesWithUploadIdAsAdmin()
     {
         var uploadId = CreateUpload("Original.xtf");
 
-        var result = await mandateService.GetMandatesAsync(adminUser, uploadId);
+        var result = await mandateService.GetMandateSummariesAsync(adminUser, uploadId);
 
         ContainsMandate(result, unrestrictedMandate);
         ContainsMandate(result, noDeliveryMandate);
@@ -221,25 +208,11 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesAsUnauthenticated()
-    {
-        var result = await mandateService.GetMandatesAsync(null);
-
-        ContainsMandate(result, publicCsvMandate);
-        DoesNotContainMandate(result, xtfMandate);
-        DoesNotContainMandate(result, unrestrictedMandate);
-        DoesNotContainMandate(result, noDeliveryMandate);
-        DoesNotContainMandate(result, noOrganisationsMandate);
-        DoesNotContainMandate(result, noPermissionMandate);
-        DoesNotContainMandate(result, missingPipelineMandate);
-    }
-
-    [TestMethod]
-    public async Task GetMandatesWithUploadIdAsUnauthenticated()
+    public async Task GetMandateSummariesWithUploadIdAsUnauthenticated()
     {
         var uploadId = CreateUpload("Original.xtf");
 
-        var result = await mandateService.GetMandatesAsync(null, uploadId);
+        var result = await mandateService.GetMandateSummariesAsync(null, uploadId);
 
         DoesNotContainMandate(result, publicCsvMandate);
         DoesNotContainMandate(result, unrestrictedMandate);
@@ -251,11 +224,27 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesWithUploadIdIgnoresCase()
+    public async Task GetMandateSummariesWithUploadIdAsUnauthenticatedReturnsPublic()
+    {
+        var uploadId = CreateUpload("Original.csv");
+
+        var result = await mandateService.GetMandateSummariesAsync(null, uploadId);
+
+        ContainsMandate(result, publicCsvMandate);
+        DoesNotContainMandate(result, unrestrictedMandate);
+        DoesNotContainMandate(result, noDeliveryMandate);
+        DoesNotContainMandate(result, xtfMandate);
+        DoesNotContainMandate(result, noOrganisationsMandate);
+        DoesNotContainMandate(result, noPermissionMandate);
+        DoesNotContainMandate(result, missingPipelineMandate);
+    }
+
+    [TestMethod]
+    public async Task GetMandateSummariesWithUploadIdIgnoresCase()
     {
         var uploadId = CreateUpload("Original.XTF");
 
-        var result = await mandateService.GetMandatesAsync(editUser, uploadId);
+        var result = await mandateService.GetMandateSummariesAsync(editUser, uploadId);
 
         ContainsMandate(result, unrestrictedMandate);
         ContainsMandate(result, noDeliveryMandate);
@@ -266,19 +255,25 @@ public class MandateServiceTest
     }
 
     [TestMethod]
-    public async Task GetMandatesWithUnknownUploadIdThrows()
+    public async Task GetMandateSummariesWithUnknownUploadIdThrows()
     {
         var unknownUploadId = Guid.NewGuid();
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await mandateService.GetMandatesAsync(editUser, unknownUploadId));
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await mandateService.GetMandateSummariesAsync(editUser, unknownUploadId));
     }
 
     [TestMethod]
-    public async Task GetMandatesWithUploadWithoutFileExtensionsThrows()
+    public async Task GetMandateSummariesWithDefaultUploadIdThrows()
+    {
+        await Assert.ThrowsExactlyAsync<ArgumentException>(async () => await mandateService.GetMandateSummariesAsync(editUser, default));
+    }
+
+    [TestMethod]
+    public async Task GetMandateSummariesWithUploadWithoutFileExtensionsThrows()
     {
         var uploadId = CreateUpload("noextension");
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await mandateService.GetMandatesAsync(editUser, uploadId));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await mandateService.GetMandateSummariesAsync(editUser, uploadId));
     }
 
     private Guid CreateUpload(params string[] fileNames)
@@ -297,7 +292,13 @@ public class MandateServiceTest
         Assert.IsNotNull(found, $"mandate with id '{mandate.Id}' and name '{mandate.Name}' not found");
     }
 
-    private void DoesNotContainMandate(IEnumerable<Mandate> mandates, Mandate mandate)
+    private void ContainsMandate(IEnumerable<MandateSummary> mandates, Mandate mandate)
+    {
+        var found = mandates.FirstOrDefault(m => m.Id == mandate.Id);
+        Assert.IsNotNull(found, $"mandate with id '{mandate.Id}' and name '{mandate.Name}' not found");
+    }
+
+    private void DoesNotContainMandate(IEnumerable<MandateSummary> mandates, Mandate mandate)
     {
         var found = mandates.FirstOrDefault(m => m.Id == mandate.Id);
         Assert.IsNull(found);

@@ -1,5 +1,11 @@
 import { ReactNode } from "react";
-import { LocalizedText, Mandate, ProcessingJobResponse, StepState, UploadSettings } from "../../api/apiInterfaces.ts";
+import {
+  LocalizedText,
+  MandateSummary,
+  ProcessingJobResponse,
+  StepState,
+  UploadSettings,
+} from "../../api/apiInterfaces.ts";
 
 export enum DeliveryStepEnum {
   Files = "files",
@@ -47,7 +53,7 @@ export interface DeliveryContextInterface {
   addFiles: (files: File[]) => void;
   removeFile: (file: File) => void;
   fileUploadStatus: Map<string, FileUploadStatus>;
-  selectedMandate?: Mandate;
+  selectedMandate?: MandateSummary;
   uploadId?: string;
   jobId?: string;
   uploadSettings?: UploadSettings;
@@ -55,7 +61,7 @@ export interface DeliveryContextInterface {
   isLoading: boolean;
   isProcessing: boolean;
   uploadFile: () => void;
-  startProcessing: (mandate: Mandate) => void;
+  startProcessing: (mandate: MandateSummary) => void;
   submitDelivery: (data: DeliverySubmitData) => void;
   resetDelivery: () => void;
   continueToNextStep: () => void;

@@ -3,6 +3,7 @@ using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
+using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,17 +24,19 @@ public class DeliveryController : ControllerBase
     private readonly ILogger<DeliveryController> logger;
     private readonly Context context;
     private readonly IProcessingService processingService;
+    private readonly IMandateService mandateService;
     private readonly IAssetHandler assetHandler;
     private readonly IOptions<DeliveryOptions> deliveryOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IProcessingService processingService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IProcessingService processingService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions)
     {
         this.logger = logger;
         this.context = context;
         this.processingService = processingService;
+        this.mandateService = mandateService;
         this.assetHandler = assetHandler;
         this.deliveryOptions = deliveryOptions;
     }
@@ -74,13 +77,14 @@ public class DeliveryController : ControllerBase
         }
 
         var user = await context.GetUserByPrincipalAsync(User);
-        var mandate = context.Mandates
-            .Include(m => m.Organisations)
-            .ThenInclude(o => o.Users)
-            .Include(m => m.Deliveries)
-            .SingleOrDefault(m => m.Id == job.MandateId);
 
-        if (mandate is null || !mandate.AllowDelivery || (!mandate.IsPublic && !mandate.Organisations.SelectMany(u => u.Users).Any(u => u.Id == user.Id)))
+        // Do not reuse the mandate returned from GetMandateForUser, because it is not tracked and has no includes.
+        var hasMandatePermission = job.MandateId != null && await mandateService.GetMandateForUser(job.MandateId.Value, user) != null;
+        var mandate = hasMandatePermission
+            ? await context.Mandates.Include(m => m.Deliveries).FirstOrDefaultAsync(m => m.Id == job.MandateId)
+            : null;
+
+        if (!hasMandatePermission || mandate is null || !mandate.AllowDelivery)
         {
             logger.LogTrace($"Mandate with id <{job.MandateId}> not found.");
             return NotFound($"Mandate with id <{job.MandateId}> not found.");
@@ -163,39 +167,52 @@ public class DeliveryController : ControllerBase
     /// <summary>
     /// Gets a filtered list of deliveries accessible for the user.
     /// </summary>
-    /// <param name="mandateId">Optional. Filter deliveries for given mandate.</param>
-    /// <returns>A list of <see cref="Delivery"/>.</returns>
-    [HttpGet]
+    /// <param name="mandateId">Filter deliveries for given mandate.</param>
+    /// <returns>A list of <see cref="DeliverySummary"/>.</returns>
+    [HttpGet("summary")]
     [Authorize(Policy = GeopilotPolicies.User)]
-    [SwaggerResponse(StatusCodes.Status200OK, "A list matching filter criteria.", typeof(List<Delivery>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list matching filter criteria.", typeof(List<DeliverySummary>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The request is missing a mandateId.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Failed to find mandate.")]
-    public async Task<IActionResult> Get([FromQuery] int? mandateId = null)
+    public async Task<IActionResult> GetSummary([FromQuery] int mandateId)
     {
-        var user = await context.GetUserByPrincipalAsync(User);
-
-        logger.LogInformation(
-            "User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>",
-            user.AuthIdentifier,
-            mandateId?.ToString(CultureInfo.InvariantCulture).ReplaceLineEndings(string.Empty));
-
-        var userMandatesIds = context.Mandates
-            .Where(m => user.IsAdmin || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))
-            .Select(m => m.Id)
-            .ToList();
-
-        if (mandateId.HasValue && !userMandatesIds.Contains(mandateId.Value))
-            return NotFound();
-
-        var result = context.DeliveriesWithIncludes
-            .AsNoTracking()
-            .Where(d => userMandatesIds.Contains(d.Mandate!.Id));
-
-        if (mandateId.HasValue)
+        if (mandateId == default)
         {
-            result = result.Where(d => d.Mandate != null && d.Mandate.Id == mandateId.Value);
+            return BadRequest("Mandate id is required.");
         }
 
-        return Ok(result.ToList());
+        var user = await context.GetUserByPrincipalAsync(User);
+
+        logger.LogInformation("User <{UserId}> accessed list of deliveries filtered by mandateId <{MandateId}>", user.AuthIdentifier, mandateId);
+
+        var mandate = await mandateService.GetMandateForUser(mandateId, user);
+        if (mandate == null)
+            return NotFound();
+
+        var deliveries = context.Deliveries
+            .AsNoTracking()
+            .Where(d => d.Mandate != null && d.Mandate.Id == mandateId);
+
+        var result = await deliveries.ToSummaries().ToListAsync();
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Gets a list of all deliveries.
+    /// </summary>
+    /// <returns>A list of all <see cref="Delivery"/>.</returns>
+    [HttpGet]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "A list of all deliveries.", typeof(List<Delivery>), "application/json")]
+    public async Task<IActionResult> Get()
+    {
+        var user = await context.GetUserByPrincipalAsync(User);
+        logger.LogInformation("User <{UserId}> accessed the list of all deliveries", user.AuthIdentifier);
+
+        var result = context.DeliveriesWithIncludes
+            .AsNoTracking();
+
+        return Ok(await result.ToListAsync());
     }
 
     /// <summary>

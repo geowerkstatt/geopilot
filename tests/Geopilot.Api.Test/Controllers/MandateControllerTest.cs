@@ -101,7 +101,7 @@ namespace Geopilot.Api.Controllers
         {
             mandateController.SetupTestUser(editUser);
             mandateServiceMock
-                .Setup(m => m.GetMandatesAsync(It.Is<User>(u => u.Id == editUser.Id), null))
+                .Setup(m => m.GetMandatesAsync())
                 .ReturnsAsync(new List<Mandate> { xtfMandate });
 
             var result = (await mandateController.Get()) as OkObjectResult;
@@ -109,39 +109,50 @@ namespace Geopilot.Api.Controllers
 
             Assert.IsNotNull(mandates);
             Assert.HasCount(1, mandates);
-            mandateServiceMock.Verify(m => m.GetMandatesAsync(It.Is<User>(u => u.Id == editUser.Id), null), Times.Once);
+            mandateServiceMock.Verify(m => m.GetMandatesAsync(), Times.Once);
         }
 
         [TestMethod]
-        public async Task GetWithJobIdDelegatesToMandateService()
+        public async Task GetSummaryDelegatesToMandateService()
         {
-            var jobId = Guid.NewGuid();
+            var uploadId = Guid.NewGuid();
             mandateController.SetupTestUser(editUser);
             mandateServiceMock
-                .Setup(m => m.GetMandatesAsync(It.Is<User>(u => u.Id == editUser.Id), jobId))
-                .ReturnsAsync(new List<Mandate> { xtfMandate });
+                .Setup(m => m.GetMandateSummariesAsync(It.Is<User>(u => u.Id == editUser.Id), uploadId))
+                .ReturnsAsync(new List<MandateSummary> { ToSummary(xtfMandate) });
 
-            var result = (await mandateController.Get(jobId)) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+            var result = (await mandateController.GetSummary(uploadId)) as OkObjectResult;
+            var mandates = Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value).ToList();
 
             Assert.IsNotNull(mandates);
             Assert.HasCount(1, mandates);
-            mandateServiceMock.Verify(m => m.GetMandatesAsync(It.Is<User>(u => u.Id == editUser.Id), jobId), Times.Once);
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(It.Is<User>(u => u.Id == editUser.Id), uploadId), Times.Once);
         }
 
         [TestMethod]
-        public async Task GetAsUnauthenticatedPassesNullUser()
+        public async Task GetSummaryAsUnauthenticatedPassesNullUser()
         {
+            var uploadId = Guid.NewGuid();
             mandateServiceMock
-                .Setup(m => m.GetMandatesAsync(null, null))
-                .ReturnsAsync(new List<Mandate> { publicCsvMandate });
+                .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
+                .ReturnsAsync(new List<MandateSummary> { ToSummary(publicCsvMandate) });
 
-            var result = (await mandateController.Get()) as OkObjectResult;
-            var mandates = (result?.Value as IEnumerable<Mandate>)?.ToList();
+            var result = (await mandateController.GetSummary(uploadId)) as OkObjectResult;
+            var mandates = Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value).ToList();
 
             Assert.IsNotNull(mandates);
             Assert.HasCount(1, mandates);
-            mandateServiceMock.Verify(m => m.GetMandatesAsync(null, null), Times.Once);
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(null, uploadId), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task GetSummaryWithDefaultUploadIdReturnsBadRequest()
+        {
+            var uploadId = default(Guid);
+
+            Assert.IsInstanceOfType<BadRequestObjectResult>(await mandateController.GetSummary(uploadId));
+
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(It.IsAny<User>(), It.IsAny<Guid>()), Times.Never);
         }
 
         [TestMethod]
@@ -149,7 +160,7 @@ namespace Geopilot.Api.Controllers
         {
             mandateController.SetupTestUser(adminUser);
             mandateServiceMock
-                .Setup(m => m.GetMandatesAsync(It.IsAny<User>(), null))
+                .Setup(m => m.GetMandatesAsync())
                 .ReturnsAsync(new List<Mandate> { xtfMandate });
 
             var result = await mandateController.Get() as OkObjectResult;
@@ -162,13 +173,6 @@ namespace Geopilot.Api.Controllers
             Assert.AreEqual(47.388181, xtfMandateDto.Coordinates[0].Y);
             Assert.AreEqual(8.057055, xtfMandateDto.Coordinates[1].X);
             Assert.AreEqual(47.392423, xtfMandateDto.Coordinates[1].Y);
-        }
-
-        [TestMethod]
-        public async Task GetWithoutValidDbUserThrowsException()
-        {
-            mandateController.SetupTestUser(new User { AuthIdentifier = "NotRegisteredUserId" });
-            await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await mandateController.Get());
         }
 
         [TestMethod]
@@ -330,8 +334,9 @@ namespace Geopilot.Api.Controllers
 
             var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
             deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
-            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, processingServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
+            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
             deliveryController.SetupTestUser(editUser);
+            mandateServiceMock.Setup(s => s.GetMandateForUser(mandateToUpdate.Id, editUser)).ReturnsAsync(() => context.Mandates.First(m => m.Id == mandateToUpdate.Id));
 
             var request = new DeliveryRequest
             {
@@ -436,6 +441,18 @@ namespace Geopilot.Api.Controllers
                 Assert.AreEqual(expected.Organisations[i].Id, actual.Organisations[i].Id);
                 Assert.AreEqual(expected.Organisations[i].Name, actual.Organisations[i].Name);
             }
+        }
+
+        private static MandateSummary ToSummary(Mandate mandate)
+        {
+            return new MandateSummary(
+                mandate.Id,
+                mandate.Name,
+                mandate.Description,
+                mandate.AllowDelivery,
+                mandate.EvaluatePrecursorDelivery,
+                mandate.EvaluatePartial,
+                mandate.EvaluateComment);
         }
     }
 }

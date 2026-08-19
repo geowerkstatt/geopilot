@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Authorization;
+using Geopilot.Api.Contracts;
 using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -43,25 +44,45 @@ public class MandateController : ControllerBase
     /// <summary>
     /// Gets a list of all mandates that the current user has access to and match all filter criteria.
     /// </summary>
-    /// <param name="uploadId">Optional. When specified, only mandates that accept the uploaded files' extensions are returned.</param>
-    /// <returns>List of mandates matching optional filter criteria.</returns>
-    [HttpGet]
+    /// <param name="uploadId">Only mandates that accept the uploaded files' extensions are returned.</param>
+    /// <returns>List of mandates matching the filter criteria.</returns>
+    [HttpGet("summary")]
     [AllowAnonymous]
-    [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandates that the current user has access to and match all filter criteria.", typeof(IEnumerable<Mandate>), "application/json")]
-    public async Task<IActionResult> Get(
+    [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandates that the current user has access to and match all filter criteria.", typeof(IEnumerable<MandateSummary>), "application/json")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, "The request is missing an uploadId.")]
+    public async Task<IActionResult> GetSummary(
         [FromQuery, SwaggerParameter("Filter mandates matching the uploaded files' extensions.")]
-        Guid uploadId = default)
+        Guid uploadId)
     {
-        logger.LogInformation("Getting mandates for upload with id <{UploadId}>.", uploadId);
+        logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}>.", uploadId);
+
+        if (uploadId == default)
+        {
+            return BadRequest("Upload id is required.");
+        }
 
         var user = User?.Identity?.IsAuthenticated == true
             ? await context.GetUserByPrincipalAsync(User)
             : null;
 
-        var result = await mandateService.GetMandatesAsync(user, uploadId != default ? uploadId : null);
+        var result = await mandateService.GetMandateSummariesAsync(user, uploadId);
+        logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}> resulted in <{ResultCount}> matching mandates.", uploadId, result.Count);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Gets a list of all mandates.
+    /// </summary>
+    /// <returns>List of mandates.</returns>
+    [HttpGet]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandates.", typeof(IEnumerable<Mandate>), "application/json")]
+    public async Task<IActionResult> Get()
+    {
+        var result = await mandateService.GetMandatesAsync();
         result.ForEach(m => m.SetCoordinateListFromPolygon());
 
-        logger.LogInformation("Getting mandates for upload with id <{UploadId}> resulted in <{ResultCount}> matching mandates.", uploadId, result.Count);
+        logger.LogInformation("Getting all mandates resulted in <{ResultCount}> matching mandates.", result.Count);
         return Ok(result);
     }
 

@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Models;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,25 +23,26 @@ public class MandateService : IMandateService
     }
 
     /// <inheritdoc/>
-    public async Task<List<Mandate>> GetMandatesAsync(User? user = null, Guid? uploadId = null)
+    public async Task<List<Mandate>> GetMandatesAsync()
     {
-        return await GetMandatesQuery(user, uploadId).ToListAsync();
+        return await context.MandatesWithIncludes
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    /// <inheritdoc/>
+    public async Task<List<MandateSummary>> GetMandateSummariesAsync(User? user, Guid uploadId)
+    {
+        var mandates = context.Mandates.AsNoTracking();
+        mandates = FilterMandatesByUser(mandates, user);
+        mandates = FilterMandatesByUpload(mandates, uploadId);
+        return await mandates.ToSummaries().ToListAsync();
     }
 
     /// <inheritdoc/>
     public async Task<Mandate?> GetMandateForUser(int mandateId, User? user)
     {
-        var mandates = context.Mandates.AsNoTracking();
-
-        if (user != null)
-        {
-            mandates = mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
-        }
-        else
-        {
-            mandates = mandates.Where(m => m.IsPublic);
-        }
-
+        var mandates = FilterMandatesByUser(context.Mandates.AsNoTracking(), user);
         return await mandates.SingleOrDefaultAsync(m => m.Id == mandateId);
     }
 
@@ -55,23 +57,11 @@ public class MandateService : IMandateService
             .ToHashSet();
     }
 
-    private IQueryable<Mandate> GetMandatesQuery(User? user = null, Guid? uploadId = null)
+    private IQueryable<Mandate> FilterMandatesByUser(IQueryable<Mandate> mandates, User? user)
     {
-        var mandates = context.MandatesWithIncludes.AsNoTracking();
-
-        if (user == null)
-        {
-            mandates = mandates.Where(m => m.IsPublic);
-        }
-        else if (!user.IsAdmin || uploadId != null)
-        {
-            mandates = mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
-        }
-
-        if (uploadId != null)
-            mandates = FilterMandatesByUpload(mandates, uploadId.Value);
-
-        return mandates;
+        return user == null
+            ? mandates.Where(m => m.IsPublic)
+            : mandates.Where(m => m.IsPublic || m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id));
     }
 
     private IQueryable<Mandate> FilterMandatesByUpload(IQueryable<Mandate> mandates, Guid uploadId)

@@ -120,18 +120,12 @@ export const processingJob = (jobId, state, steps) => ({
  */
 export const deliverableMandate = (id, name) => ({
   id,
-  name,
+  name: typeof name === "string" ? { en: name, de: name } : name,
   description: {},
-  isPublic: true,
   allowDelivery: true,
-  fileTypes: [".xtf"],
-  coordinates: [],
-  organisations: [],
-  deliveries: [],
   evaluatePrecursorDelivery: "notEvaluated",
   evaluatePartial: "notEvaluated",
   evaluateComment: "notEvaluated",
-  pipelineId: "ili_validation",
 });
 
 /**
@@ -145,11 +139,16 @@ export const runMockedProcessingJob = (job, mandates) => {
   uploadFile();
 
   if (mandates) {
-    cy.intercept("GET", "/api/v1/mandate?uploadId=*", { statusCode: 200, body: mandates }).as("getMandates");
+    cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*", { statusCode: 200, body: mandates }).as("getMandates");
   } else {
-    cy.intercept("GET", "/api/v1/mandate?uploadId=*").as("getMandates");
+    cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
   }
   cy.wait("@getMandates");
+  if (mandates) {
+    for (const mandate of mandates) {
+      cy.dataCy("mandate-selection-group").contains(mandate.name.en).should("exist");
+    }
+  }
   selectMandate(1);
 
   cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: job }).as("startProcessing");
