@@ -73,7 +73,7 @@ pipelines:
                   fr: "La validation n'a pas réussi."
                   it: "La validazione non è riuscita."
         input:
-          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
         output_actions:
           - property: ErrorLog
             actions:
@@ -155,7 +155,7 @@ pipelines:
                   fr: "La validation n'a pas réussi."
                   it: "La validazione non è riuscita."
         input:
-          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
         output_actions:
           - property: ErrorLog
             actions:
@@ -254,7 +254,7 @@ pipelines:
                   fr: "La validation n'a pas réussi."
                   it: "La validazione non è riuscita."
         input:
-          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
         output_actions:
           - property: ErrorLog
             actions:

@@ -36,7 +36,7 @@ pipelines:
             skip_conditions:
               - expression: "Length([matcher.XtfFiles]) != 1"
         input:
-          iliFile: "${step_output(matcher.XtfFiles)}"
+          transferFile: "${step_output(matcher.XtfFiles)}"
         output_actions:
           - property: XtfLog
             actions:
@@ -76,7 +76,7 @@ pipelines:
           en: XTF Validation
         process_id: xtf_validator
         input:
-          iliFile: "${step_output(matcher.XtfFiles)}"
+          transferFile: "${step_output(matcher.XtfFiles)}"
         output_actions:
           - property: XtfLog
             actions:

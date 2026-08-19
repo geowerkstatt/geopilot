@@ -11,4 +11,4 @@ pipelines:
           en: XTF Validation
         process_id: xtf_validator
         input:
-          iliFile: "${step_output(invalidUploadStep.ili_file)}"
+          transferFile: "${step_output(invalidUploadStep.ili_file)}"

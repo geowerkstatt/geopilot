@@ -73,22 +73,22 @@ internal class XtfValidatorProcess
     /// <summary>
     /// Runs the validation process for the specified transfer file.
     /// </summary>
-    /// <param name="iliFile">The transfer file to validate. Cannot be null.</param>
+    /// <param name="transferFile">The transfer file to validate. Cannot be null.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>A <see cref="XtfValidatorResult"/> instance containing the results of the validation process.</returns>
     [PipelineProcessRun]
-    public async Task<XtfValidatorResult> RunAsync(IPipelineFile iliFile, CancellationToken cancellationToken)
+    public async Task<XtfValidatorResult> RunAsync(IPipelineFile transferFile, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(iliFile);
+        ArgumentNullException.ThrowIfNull(transferFile);
 
-        logger.LogInformation($"Validating transfer file <{iliFile.OriginalFileName}>...");
+        logger.LogInformation($"Validating transfer file <{transferFile.OriginalFileName}>...");
 
         var errorLog = pipelineFileManager.GeneratePipelineFile("errorLog", "log");
         var xtfLog = pipelineFileManager.GeneratePipelineFile("xtfLog", "xtf");
 
-        var result = await ilivalidatorClient.ValidateAsync(validatorArgs, iliFile, errorLog, xtfLog, modelRepository, cancellationToken);
+        var result = await ilivalidatorClient.ValidateAsync(validatorArgs, transferFile, errorLog, xtfLog, modelRepository, cancellationToken);
 
-        logger.LogInformation($"Validation of transfer file <{iliFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
+        logger.LogInformation($"Validation of transfer file <{transferFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
 
         if (!result.Success && validatorArgs.MetaConfig != null && await LogReportsUnresolvedMetaConfigAsync(errorLog, cancellationToken))
         {

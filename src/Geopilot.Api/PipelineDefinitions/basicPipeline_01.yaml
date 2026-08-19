@@ -71,7 +71,7 @@ pipelines:
                   it: "La validazione non è riuscita."
         process_config_overwrites:
         input:
-          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
         output_actions:
           - property: ErrorLog
             actions:

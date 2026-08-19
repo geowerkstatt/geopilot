@@ -29,4 +29,4 @@ pipelines:
             fail_conditions:
               - expression: "[upload.foo] != null"
         input:
-          iliFile: "${step_output(xtf_matching.xtf_files)}"
+          transferFile: "${step_output(xtf_matching.xtf_files)}"
