@@ -134,7 +134,7 @@ public class PipelineIntegrationTest
 
         var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipeline.Run(pipelineFiles, CancellationToken.None));
         Assert.IsNotNull(exception);
-        Assert.AreEqual("Input for parameter 'iliFile' resolved to 2 values, but a single value is required.", exception.Message);
+        Assert.AreEqual("Input for parameter 'transferFile' resolved to 2 values, but a single value is required.", exception.Message);
     }
 
     [TestMethod]

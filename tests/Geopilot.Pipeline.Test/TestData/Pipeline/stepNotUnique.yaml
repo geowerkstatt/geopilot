@@ -16,7 +16,7 @@ pipelines:
         process_id: xtf_validator
         process_config_overwrites:
         input:
-          iliFile: "${step_output(upload.ili_file)}"
+          transferFile: "${step_output(upload.ili_file)}"
       - id: not_unique
         display_name:
           en: ZIP Package Step

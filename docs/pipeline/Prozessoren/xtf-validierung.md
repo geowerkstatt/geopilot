@@ -17,7 +17,7 @@ Ein XTF Validator Prozess muss unter `processes[X].implementation` den Wert `Geo
 
 Der Name des Inputs, welcher als Schlüssel im `input`-Map des Schrittes (`pipelines[X].steps[X].input`) verwendet werden muss.
 
-- `iliFile`: Ein Input-File vom Typ `IPipelineFile`. Dieses File muss die XTF-Datei enthalten, welche validiert werden soll.
+- `transferFile`: Ein Input-File vom Typ `IPipelineFile`. Dieses File muss die XTF-Datei enthalten, welche validiert werden soll.
 
 ## Output
 

@@ -100,7 +100,7 @@ public class PipelineFactoryTest
         Assert.AreEqual("validation", validationStep.Id, "validation step name not as expected");
         var validationInputs = ((PipelineStep)validationStep).Inputs;
         Assert.HasCount(1, validationInputs);
-        Assert.AreEqual(new InputValue.StepOutputReference("xtf_matching", "XtfFiles"), validationInputs["iliFile"]);
+        Assert.AreEqual(new InputValue.StepOutputReference("xtf_matching", "XtfFiles"), validationInputs["transferFile"]);
         Assert.HasCount(1, validationStep.OutputActions);
         var validationOutputAction_0 = validationStep.OutputActions.ElementAt(0);
         OutputActionConfig validationExpectedOutputAction_0 = new OutputActionConfig()

@@ -33,7 +33,7 @@ pipelines:
             fail_conditions:
               - expression: "[zip_package_process.archive] != null"
         input:
-          iliFile: "${step_output(xtf_matching.xtf_files)}"
+          transferFile: "${step_output(xtf_matching.xtf_files)}"
       - id: zip_package
         display_name:
           en: Zip Package

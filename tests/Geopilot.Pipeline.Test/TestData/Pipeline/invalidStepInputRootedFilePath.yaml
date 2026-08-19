@@ -11,4 +11,4 @@ pipelines:
           en: XTF Validation
         process_id: xtf_validator
         input:
-          iliFile: "${file(/templates/header.xtf)}"
+          transferFile: "${file(/templates/header.xtf)}"

@@ -109,7 +109,7 @@ pipelines:
         process_config_overwrites:
           validationProfile: PROFILE-A
         input:
-          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
         output_actions:
           - property: ErrorLog
             actions:
@@ -131,8 +131,8 @@ pipelines:
     - `pipelines[0].steps[X].display_name`: Anzeigename des Schrittes, der in der Benutzeroberfläche verwendet wird. Wir übersetzen üblicherweise die folgenden Sprachen: Deutsch 'de', Englisch 'en', Französisch 'fr' und Italienisch 'it'.
     - `pipelines[0].steps[X].process_id`: Referenz auf die ID des Prozesses, welche die Logik des Schrittes definiert. In diesem Beispiel wird im Validierungsschritt (`steps[1]`) der Prozess `xtf_validator` verwendet, welcher in der Liste der Prozesse definiert ist (siehe `processes[1].id`).
     - `pipelines[0].steps[X].process_config_overwrites`: Überschreibt die Standard-Konfiguration des Prozesses, um spezifisches Verhalten für diesen Schritt zu definieren. In diesem Beispiel wird im Validierungsschritt (`steps[1]`) das `validationProfile` auf 'PROFILE-A' geändert.
-    - `pipelines[0].steps[X].input`: Definiert, wie der Schritt an seine Eingabedaten kommt. Der Input ist eine Zuordnung (Map) von Prozessparameter-Namen zu Werten: Der Schlüssel ist der Name des Run-Methoden-Parameters, dem der Wert übergeben wird, der Wert ist die Quelle für diesen Parameter. Es können mehrere Parameter definiert werden, welche alle in der Dokumentation des verwendeten Prozessors beschrieben sein müssen. In diesem Beispiel wird im Validierungsschritt (`steps[1]`) der Parameter `iliFile` gesetzt, welcher den Output `XtfFiles` des Schrittes `xtf_matching` bezieht.
-      - Schlüssel (im Beispiel `iliFile`): der Name des Prozessparameters, dem der Wert übergeben wird. Dieser Name muss der Dokumentation des verwendeten Prozesses entnommen werden und einen Parameter der Run-Methode treffen, sonst schlägt die Validierung beim Laden fehl.
+    - `pipelines[0].steps[X].input`: Definiert, wie der Schritt an seine Eingabedaten kommt. Der Input ist eine Zuordnung (Map) von Prozessparameter-Namen zu Werten: Der Schlüssel ist der Name des Run-Methoden-Parameters, dem der Wert übergeben wird, der Wert ist die Quelle für diesen Parameter. Es können mehrere Parameter definiert werden, welche alle in der Dokumentation des verwendeten Prozessors beschrieben sein müssen. In diesem Beispiel wird im Validierungsschritt (`steps[1]`) der Parameter `transferFile` gesetzt, welcher den Output `XtfFiles` des Schrittes `xtf_matching` bezieht.
+      - Schlüssel (im Beispiel `transferFile`): der Name des Prozessparameters, dem der Wert übergeben wird. Dieser Name muss der Dokumentation des verwendeten Prozesses entnommen werden und einen Parameter der Run-Methode treffen, sonst schlägt die Validierung beim Laden fehl.
       - Wert: entweder ein Literal (ein direkt geschriebener Wert wie `PROFILE-A`), oder eine Referenz auf den Output eines vorherigen Schrittes in der Form `${step_output(stepId.PropertyName)}`. Dabei ist `stepId` die ID eines Schrittes, welcher sich in der gleichen Pipeline vor dem aktuellen Schritt befindet, und `PropertyName` der Name der Result-Property (PascalCase) dieses Schrittes. Damit der Prozess den Wert korrekt verarbeiten kann, müssen Name und Typ übereinstimmen.
       - Mehrere Quellen auf denselben Parameter: Als Wert kann eine YAML-Liste von Einträgen (Referenzen und/oder Literale) angegeben werden, welche zu einem einzigen Parameter zusammengeführt werden. Voraussetzung ist, dass der Prozessparameter dafür ausgelegt ist (z.B. ein Array- bzw. `params`-Parameter).
       - Datei-Referenz: Als Wert kann eine Datei aus dem konfigurierten Ressourcen-Verzeichnis in der Form `${file(pfad)}` referenziert werden. Der Pfad ist relativ zum Ressourcen-Verzeichnis (Appsettings `Storage:ResourcesDirectory`), muss innerhalb dieses Verzeichnisses liegen (kein absoluter Pfad, keine `..`-Segmente) und wird dem Prozessparameter als `IPipelineFile` übergeben. Damit lässt sich eine konstante Datei (z.B. eine Vorlage oder eine Nachschlagetabelle) direkt injizieren, ohne dass ein vorheriger Schritt sie bereitstellen muss. Das Ressourcen-Verzeichnis wird vom Deployment bereitgestellt (z.B. als Volume gemountet).
@@ -316,7 +316,7 @@ pipelines:
                   de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
                   en: "Validation was not successful. Delivery is not possible."
         input:
-          iliFile: "${step_output(xtf_matching.XtfFiles)}"
+          transferFile: "${step_output(xtf_matching.XtfFiles)}"
       - id: zip_package
         display_name:
           en: Zip Package
