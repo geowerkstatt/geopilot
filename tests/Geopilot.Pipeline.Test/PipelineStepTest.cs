@@ -91,6 +91,21 @@ public class PipelineStepTest
         }
     }
 
+    private class MockPipelineProcessObjectInput
+    {
+        public object? ReceivedData { get; private set; }
+
+        public CancellationToken ReceivedToken { get; private set; }
+
+        [PipelineProcessRun]
+        public Task<MockPipelineProcessSingleInputResult> RunAsync(object data, CancellationToken cancellationToken)
+        {
+            ReceivedData = data;
+            ReceivedToken = cancellationToken;
+            return Task.FromResult(new MockPipelineProcessSingleInputResult());
+        }
+    }
+
     private class MockPipelineProcessException
     {
         public int NumberOfRunInvoced { get; set; }
@@ -129,6 +144,33 @@ public class PipelineStepTest
 
         [PipelineProcessRun]
         public Task<MockMultiOutputResult> RunAsync() => Task.FromResult(this.result);
+    }
+
+    [TestMethod]
+    public async Task StepRunBindsObjectParameterFromInputAndInjectsCancellationToken()
+    {
+        var inputs = new Dictionary<string, InputValue>
+        {
+            ["data"] = new InputValue.Literal("value_from_definition"),
+        };
+        var processMock = new MockPipelineProcessObjectInput();
+        using var cancellationTokenSource = new CancellationTokenSource();
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(ContextWith(), cancellationTokenSource.Token).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Success, pipelineStep.State);
+        Assert.AreEqual("value_from_definition", processMock.ReceivedData);
+        Assert.AreEqual(cancellationTokenSource.Token, processMock.ReceivedToken);
     }
 
     [TestMethod]
