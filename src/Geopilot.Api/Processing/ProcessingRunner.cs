@@ -221,11 +221,10 @@ public class ProcessingRunner : BackgroundService
 
     /// <summary>
     /// Drops the job's uploaded blobs as soon as they can no longer be needed. A run that cannot be
-    /// delivered will never archive its originals, so they go right away. A deliverable run keeps them
-    /// until the job is retired, because declaring the delivery archives every original as primary data.
-    /// A job still in <see cref="ProcessingState.Running"/> was interrupted by a host shutdown, so its
-    /// blobs stay: the in-memory job does not survive the restart, and the age-based sweep in
-    /// UploadCleanupService is what eventually collects them.
+    /// delivered will never be declared, so its uploads go right away. A deliverable run keeps them until
+    /// the job is retired. A job still in <see cref="ProcessingState.Running"/> was interrupted by a host
+    /// shutdown, so its blobs stay: the in-memory job does not survive the restart, and the age-based sweep
+    /// in UploadCleanupService is what eventually collects them.
     /// </summary>
     private async Task ReleaseUploadIfNotDeliverableAsync(Guid jobId)
     {

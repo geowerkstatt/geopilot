@@ -409,8 +409,8 @@ public class DeliveryControllerTest
     private void SetupJobPersistence(Guid jobId)
     {
         assetHandlerMock
-            .Setup(p => p.PersistJobAssetsAsync(jobId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<Asset> { new Asset(), new Asset() });
+            .Setup(p => p.PersistJobAssets(jobId))
+            .Returns(new List<Asset> { new Asset(), new Asset() });
     }
 
     private Guid SetupProcessingJob(int? mandateId = null, ProcessingState pipelineState = ProcessingState.Success)
