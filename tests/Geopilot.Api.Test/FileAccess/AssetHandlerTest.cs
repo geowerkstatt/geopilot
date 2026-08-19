@@ -78,9 +78,9 @@ public class AssetHandlerTest
         var assets = await assetHandler.PersistJobAssetsAsync(job.Id);
 
         Assert.IsTrue(File.Exists(Path.Combine(assetDirectory, "mylogfile")));
-        var logfileAsset = assets.FirstOrDefault(a => a.AssetType == AssetType.ValidationReport);
+        var logfileAsset = assets.FirstOrDefault(a => a.AssetType == AssetType.ProcessedData);
         Assert.IsNotNull(logfileAsset);
-        Assert.AreEqual(AssetType.ValidationReport, logfileAsset.AssetType);
+        Assert.AreEqual(AssetType.ProcessedData, logfileAsset.AssetType);
         Assert.AreEqual("mylogfile", logfileAsset.SanitizedFilename);
         Assert.AreEqual("myStep_mylogfile.log", logfileAsset.OriginalFilename);
         Assert.AreEqual(FileContent, File.ReadAllText(Path.Combine(assetDirectory, "mylogfile")));

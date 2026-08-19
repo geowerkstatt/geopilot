@@ -119,7 +119,7 @@ public class AssetHandler : IAssetHandler
                 using var stream = assetFileStore.OpenFile(job.Id, persisted.PersistedFileName);
                 assets.Add(new Asset()
                 {
-                    AssetType = AssetType.ValidationReport,
+                    AssetType = AssetType.ProcessedData,
                     OriginalFilename = $"{step.Id}_{persisted.OriginalFileName}",
                     SanitizedFilename = persisted.PersistedFileName,
                     FileHash = SHA256.HashData(stream),
