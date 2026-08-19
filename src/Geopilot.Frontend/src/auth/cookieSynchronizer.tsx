@@ -2,11 +2,11 @@ import { FC, useEffect } from "react";
 import { useAuth } from "react-oidc-context";
 
 const setCookie = (access_token: string) => {
-  document.cookie = `geopilot.auth=${access_token};Path=/;Secure`;
+  document.cookie = `geopilot.auth=${access_token};Path=/;Secure;SameSite=Strict`;
 };
 
 const clearCookie = () => {
-  document.cookie = "geopilot.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure";
+  document.cookie = "geopilot.auth=;expires=Thu, 01 Jan 1970 00:00:00 GMT;Path=/;Secure;SameSite=Strict";
 };
 
 export const CookieSynchronizer: FC = () => {
