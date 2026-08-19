@@ -120,7 +120,7 @@ export const processingJob = (jobId, state, steps) => ({
  */
 export const deliverableMandate = (id, name) => ({
   id,
-  name,
+  name: typeof name === "string" ? { en: name, de: name } : name,
   description: {},
   allowDelivery: true,
   evaluatePrecursorDelivery: "notEvaluated",
@@ -145,6 +145,11 @@ export const runMockedProcessingJob = (job, mandates) => {
   }
   cy.wait("@getMandates");
   selectMandate(1);
+  if (mandates) {
+    for (const mandate of mandates) {
+      cy.dataCy("mandate-selection-group").contains(mandate.name.en).should("exist");
+    }
+  }
 
   cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: job }).as("startProcessing");
   cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: job }).as("jobStatus");
