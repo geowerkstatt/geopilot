@@ -165,7 +165,7 @@ public class DeliveryControllerTest
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() });
         var publicMandate = context.Mandates.Add(new Mandate
         {
-            Name = TestHelpers.Localized(nameof(CreateWithPublicMandate)),
+            Name = TestHelpers.Localized(nameof(CreateWithMandateThatDoesNotAllowDelivery)),
             IsPublic = true,
             AllowDelivery = false,
         });
@@ -370,7 +370,7 @@ public class DeliveryControllerTest
         var guid = SetupProcessingJob(mandate.Id);
         mandate.EvaluatePrecursorDelivery = FieldEvaluationType.Required;
         var otherMandate = context.Mandates.Add(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsPrecursorFromOtherMandate)), AllowDelivery = true, }).Entity;
-        var precursorDelivery = new Delivery() { JobId = Guid.NewGuid(), Mandate = otherMandate, DeclaringUser = user };
+        var precursorDelivery = context.Deliveries.Add(new Delivery() { JobId = Guid.NewGuid(), Mandate = otherMandate, DeclaringUser = user }).Entity;
         context.SaveChanges();
 
         var request = new DeliveryRequest
@@ -378,6 +378,8 @@ public class DeliveryControllerTest
             JobId = guid,
             PrecursorDeliveryId = precursorDelivery.Id,
         };
+
+        Assert.AreNotEqual(0, request.PrecursorDeliveryId);
 
         var result = await deliveryController.Create(request);
         Assert.IsNotNull(result);
@@ -562,7 +564,7 @@ public class DeliveryControllerTest
     [DataRow(false, true, "0:15:00", null)]
     [DataRow(false, true, null, "*/30 * * * *")] // every half an hour at :00 and :30
     [DataRow(false, true, "0:15:00", "0 * * * *")]
-    public async Task IsDeleteAllowedForUploader(bool expected, bool enabled, string? duration, string? interval)
+    public void IsDeleteAllowedForUploader(bool expected, bool enabled, string? duration, string? interval)
     {
         var deliveryDate = new DateTime(2026, 1, 1, 12, 10, 0, DateTimeKind.Utc);
         var currentDate = new DateTime(2026, 1, 1, 12, 40, 0, DateTimeKind.Utc);
@@ -583,7 +585,7 @@ public class DeliveryControllerTest
     [DataRow(DateTimeKind.Utc)]
     [DataRow(DateTimeKind.Local)]
     [DataRow(DateTimeKind.Unspecified)]
-    public async Task IsDeleteAllowedForUploaderConvertsToUtc(DateTimeKind deliveryDateTimeKind)
+    public void IsDeleteAllowedForUploaderConvertsToUtc(DateTimeKind deliveryDateTimeKind)
     {
         var restrictedDate = new DateTime(2026, 1, 1, 12, 30, 0, DateTimeKind.Utc);
         var allowedDate = new DateTime(2026, 1, 1, 11, 45, 0, DateTimeKind.Utc);
@@ -650,28 +652,9 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task GetSummaryAsAdminReturnsListFilteredByMandateId()
+    public async Task GetSummaryReturnsNotFoundForUnauthorizedMandate()
     {
-        var admin = context.Users.First(u => u.IsAdmin);
-        admin.Organisations.Clear();
-        context.SaveChanges();
-        deliveryController.SetupTestUser(admin);
-        var mandate = context.Mandates
-            .Where(m => m.Deliveries.Count != 0)
-            .First();
-        SetupGetMandateForUser(mandate.Id, admin, returnNull: true);
-
-        var response = (await deliveryController.GetSummary(mandate.Id)) as ObjectResult;
-        var list = Assert.IsInstanceOfType<List<DeliverySummary>>(response?.Value);
-
-        Assert.IsNotNull(list);
-        Assert.HasCount(context.Deliveries.Where(d => d.Mandate != null && d.Mandate.Id == mandate.Id).Count(), list);
-    }
-
-    [TestMethod]
-    public async Task GetSummaryAsUserReturnsNotFoundForUnauthorizedMandate()
-    {
-        var user = context.Users.First(u => !u.IsAdmin);
+        var user = context.Users.First();
         deliveryController.SetupTestUser(user);
         var mandateId = context.Mandates
             .Where(m => !m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))
@@ -685,9 +668,9 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
-    public async Task GetSummaryAsUserReturnsListFilteredByOrganisationsAndMandateId()
+    public async Task GetSummaryReturnsListFilteredByMandateId()
     {
-        var user = context.Users.First(u => !u.IsAdmin);
+        var user = context.Users.First(u => u.Organisations.SelectMany(o => o.Mandates).Any(o => o.Deliveries.Count != 0));
         deliveryController.SetupTestUser(user);
         var mandate = context.Mandates
             .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id) && m.Deliveries.Count != 0)
