@@ -77,9 +77,14 @@ public class DeliveryController : ControllerBase
         }
 
         var user = await context.GetUserByPrincipalAsync(User);
-        var mandate = job.MandateId == null ? null : await mandateService.GetMandateForUser(job.MandateId.Value, user);
 
-        if (mandate is null || !mandate.AllowDelivery)
+        // Do not reuse the mandate returned from GetMandateForUser, because it is not tracked and has no includes.
+        var hasMandatePermission = job.MandateId != null && await mandateService.GetMandateForUser(job.MandateId.Value, user) != null;
+        var mandate = hasMandatePermission
+            ? await context.Mandates.Include(m => m.Deliveries).FirstOrDefaultAsync(m => m.Id == job.MandateId)
+            : null;
+
+        if (!hasMandatePermission || mandate is null || !mandate.AllowDelivery)
         {
             logger.LogTrace($"Mandate with id <{job.MandateId}> not found.");
             return NotFound($"Mandate with id <{job.MandateId}> not found.");

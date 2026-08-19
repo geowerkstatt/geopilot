@@ -99,9 +99,7 @@ public class DeliveryControllerTest
         context.SaveChanges();
         var guid = SetupProcessingJob(addedMandate.Entity.Id);
         deliveryController.SetupTestUser(user.Entity);
-        mandateServiceMock
-            .Setup(s => s.GetMandateForUser(addedMandate.Entity.Id, user.Entity))
-            .ReturnsAsync(publicMandate ? addedMandate.Entity : null);
+        SetupGetMandateForUser(addedMandate.Entity.Id, user.Entity, returnNull: !publicMandate);
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
 
@@ -126,7 +124,7 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(user.Entity);
         var jobId = SetupProcessingJob(publicMandate.Entity.Id);
         SetupJobPersistence(jobId);
-        mandateServiceMock.Setup(s => s.GetMandateForUser(publicMandate.Entity.Id, user.Entity)).ReturnsAsync(publicMandate.Entity);
+        SetupGetMandateForUser(publicMandate.Entity.Id, user.Entity);
 
         var request = new DeliveryRequest
         {
@@ -153,7 +151,7 @@ public class DeliveryControllerTest
         deliveryController.SetupTestUser(user.Entity);
         var jobId = SetupProcessingJob(publicMandate.Entity.Id, ProcessingState.Warning);
         SetupJobPersistence(jobId);
-        mandateServiceMock.Setup(s => s.GetMandateForUser(publicMandate.Entity.Id, user.Entity)).ReturnsAsync(publicMandate.Entity);
+        SetupGetMandateForUser(publicMandate.Entity.Id, user.Entity);
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = jobId })) as ObjectResult;
 
@@ -174,7 +172,7 @@ public class DeliveryControllerTest
         context.SaveChanges();
         deliveryController.SetupTestUser(user.Entity);
         var jobId = SetupProcessingJob(publicMandate.Entity.Id);
-        mandateServiceMock.Setup(s => s.GetMandateForUser(publicMandate.Entity.Id, user.Entity)).ReturnsAsync(publicMandate.Entity);
+        SetupGetMandateForUser(publicMandate.Entity.Id, user.Entity);
 
         var request = new DeliveryRequest
         {
@@ -661,7 +659,7 @@ public class DeliveryControllerTest
         var mandate = context.Mandates
             .Where(m => m.Deliveries.Count != 0)
             .First();
-        mandateServiceMock.Setup(s => s.GetMandateForUser(mandate.Id, admin)).ReturnsAsync(mandate);
+        SetupGetMandateForUser(mandate.Id, admin, returnNull: true);
 
         var response = (await deliveryController.GetSummary(mandate.Id)) as ObjectResult;
         var list = Assert.IsInstanceOfType<List<DeliverySummary>>(response?.Value);
@@ -679,7 +677,7 @@ public class DeliveryControllerTest
             .Where(m => !m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id))
             .First()
             .Id;
-        mandateServiceMock.Setup(s => s.GetMandateForUser(mandateId, user)).ReturnsAsync((Mandate?)null);
+        SetupGetMandateForUser(mandateId, user, returnNull: true);
 
         var response = await deliveryController.GetSummary(mandateId);
 
@@ -694,7 +692,7 @@ public class DeliveryControllerTest
         var mandate = context.Mandates
             .Where(m => m.Organisations.SelectMany(o => o.Users).Any(u => u.Id == user.Id) && m.Deliveries.Count != 0)
             .First();
-        mandateServiceMock.Setup(s => s.GetMandateForUser(mandate.Id, user)).ReturnsAsync(mandate);
+        SetupGetMandateForUser(mandate.Id, user);
 
         var response = (await deliveryController.GetSummary(mandate.Id)) as ObjectResult;
         var list = Assert.IsInstanceOfType<List<DeliverySummary>>(response?.Value);
@@ -739,9 +737,19 @@ public class DeliveryControllerTest
     private (User User, Mandate Mandate) SetupMandateWithUserOrganisation(Mandate mandate)
     {
         var (user, createdMandate) = context.AddMandateWithUserOrganisation(mandate);
-        mandateServiceMock
-            .Setup(s => s.GetMandateForUser(createdMandate.Id, user))
-            .ReturnsAsync(createdMandate);
+        SetupGetMandateForUser(createdMandate.Id, user);
         return (user, createdMandate);
+    }
+
+    private void SetupGetMandateForUser(int mandateId, User user, bool returnNull = false)
+    {
+        // return a mandate loaded with AsNoTracking, like the MandateService
+        var detachedMandate = returnNull
+            ? null
+            : context.Mandates.AsNoTracking().First(m => m.Id == mandateId);
+
+        mandateServiceMock
+            .Setup(s => s.GetMandateForUser(mandateId, user))
+            .ReturnsAsync(detachedMandate);
     }
 }
