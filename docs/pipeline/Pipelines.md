@@ -84,7 +84,6 @@ processes:
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile: DEFAULT
-      pollInterval: 1000
 pipelines:
   - id: xtf_validation
     display_name:
@@ -108,7 +107,6 @@ pipelines:
           it: XTF Validazione
         process_id: xtf_validator
         process_config_overwrites:
-          pollInterval: 500
           validationProfile: PROFILE-A
         input:
           iliFile: "${step_output(xtf_matching.XtfFiles)}"
@@ -132,7 +130,7 @@ pipelines:
     - `pipelines[0].steps[X].id`: ID des Schrittes. Diese ID muss für jeden Schritt innerhalb einer Pipeline eindeutig sein. In diesem Beispiel ist die ID des Matcher-Schrittes `xtf_matching` und die ID des Validierungsschrittes `validation`.
     - `pipelines[0].steps[X].display_name`: Anzeigename des Schrittes, der in der Benutzeroberfläche verwendet wird. Wir übersetzen üblicherweise die folgenden Sprachen: Deutsch 'de', Englisch 'en', Französisch 'fr' und Italienisch 'it'.
     - `pipelines[0].steps[X].process_id`: Referenz auf die ID des Prozesses, welche die Logik des Schrittes definiert. In diesem Beispiel wird im Validierungsschritt (`steps[1]`) der Prozess `xtf_validator` verwendet, welcher in der Liste der Prozesse definiert ist (siehe `processes[1].id`).
-    - `pipelines[0].steps[X].process_config_overwrites`: Überschreibt die Standard-Konfiguration des Prozesses, um spezifisches Verhalten für diesen Schritt zu definieren. In diesem Beispiel wird im Validierungsschritt (`steps[1]`) das `pollInterval` auf 500ms verkürzt und das `validationProfile` auf 'PROFILE-A' geändert.
+    - `pipelines[0].steps[X].process_config_overwrites`: Überschreibt die Standard-Konfiguration des Prozesses, um spezifisches Verhalten für diesen Schritt zu definieren. In diesem Beispiel wird im Validierungsschritt (`steps[1]`) das `validationProfile` auf 'PROFILE-A' geändert.
     - `pipelines[0].steps[X].input`: Definiert, wie der Schritt an seine Eingabedaten kommt. Der Input ist eine Zuordnung (Map) von Prozessparameter-Namen zu Werten: Der Schlüssel ist der Name des Run-Methoden-Parameters, dem der Wert übergeben wird, der Wert ist die Quelle für diesen Parameter. Es können mehrere Parameter definiert werden, welche alle in der Dokumentation des verwendeten Prozessors beschrieben sein müssen. In diesem Beispiel wird im Validierungsschritt (`steps[1]`) der Parameter `iliFile` gesetzt, welcher den Output `XtfFiles` des Schrittes `xtf_matching` bezieht.
       - Schlüssel (im Beispiel `iliFile`): der Name des Prozessparameters, dem der Wert übergeben wird. Dieser Name muss der Dokumentation des verwendeten Prozesses entnommen werden und einen Parameter der Run-Methode treffen, sonst schlägt die Validierung beim Laden fehl.
       - Wert: entweder ein Literal (ein direkt geschriebener Wert wie `PROFILE-A`), oder eine Referenz auf den Output eines vorherigen Schrittes in der Form `${step_output(stepId.PropertyName)}`. Dabei ist `stepId` die ID eines Schrittes, welcher sich in der gleichen Pipeline vor dem aktuellen Schritt befindet, und `PropertyName` der Name der Result-Property (PascalCase) dieses Schrittes. Damit der Prozess den Wert korrekt verarbeiten kann, müssen Name und Typ übereinstimmen.
@@ -194,12 +192,14 @@ Ein Beispiel für die Konfiguration eines Pipeline-Prozessors in den Appsettings
   "Pipeline": {
     "ProcessConfigs": {
       "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess": {
-        "checkServiceBaseUrl": "http://localhost:3080/"
+        "modelDirs": "https://models.example.com/;https://models.interlis.ch/"
       }
     }
   }
 }
 ```
+
+Das ist auch das typische Beispiel für die Wahl der Schicht: die Modell-Repositories bestimmen, wogegen validiert wird, gelten pro Umgebung und sollen von einer Pipeline nicht verändert werden können. Sie gehören deshalb in die Basis-Konfiguration und nicht in die Pipeline-Definition.
 
 #### Pipeline-Definition
 
@@ -214,7 +214,6 @@ processes:
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile: DEFAULT
-      pollInterval: 1000
 pipelines:
   - id: xtf_validation
     display_name:
@@ -241,16 +240,40 @@ Für das Überschreiben von Konfigurationsparametern gelten folgende Einschränk
 - Basis-Konfigurationen, welche in den Appsettings definiert sind, können nicht von der Pipeline-Definition überschrieben werden. Ein in der Basis-Konfiguration definierter Wert ist somit fix und unveränderbar. Ein Beispiel für einen solchen Konfigurationsparameter ist die Basis-URL eines Drittanbieter-Services, welcher für die gesamte Umgebung gilt (Development, Acceptance, Prod, ...). Um die gleiche Pipeline auf den verschiedenen Umgebungen mit unterschiedlichen Basis-URLs verwenden zu können, sollte dieser Parameter in den Appsettings definiert werden und nicht in der Pipeline-Definition.
 - Das Überschreiben von Konfigurations-Parameter wird in den Schritten unter `pipelines[X].steps[X].process_config_overwrites` vorgenommen. Um ein Konfigurationsparameter zu überschreiben muss dieser Parameter auf der Standard-Konfiguration des Prozesses definiert sein (`processes[X].default_config`). Es ist somit nicht möglich, neue Konfigurationsparameter in den Schritten zu definieren, welche nicht bereits in der Standard-Konfiguration definiert sind.
 
+Zu den Typen: Listen können nur in der Pipeline-Definition angegeben werden, die Appsettings-Ebene trägt nur Einzelwerte. Ein Parameter, der unveränderbar sein soll und trotzdem mehrere Werte braucht, wird deshalb als Einzelwert entworfen (der Prozessor `xtf_validator` nimmt seine Modell-Repositories zum Beispiel als semikolon-getrennten Wert).
+
+#### Dateien als Konfiguration
+
+Ein Konfigurationsparameter vom Typ `IPipelineFile` nennt eine **Datei, die das Deployment mitbringt**. Konfiguriert wird ihr Pfad relativ zum Ressourcen-Verzeichnis (Appsettings `Storage:ResourcesDirectory`), also derselben Wurzel, gegen die eine `${file(...)}`-Referenz im `input` auflöst:
+
+```json
+{
+  "Pipeline": {
+    "ProcessConfigs": {
+      "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess": {
+        "modelRepository": "model-repository.zip"
+      }
+    }
+  }
+}
+```
+
+Der Pfad muss innerhalb der Wurzel liegen und eine existierende Datei nennen, sonst startet die Applikation nicht. Der Unterschied zum `${file(...)}`-Input ist nicht die Datei, sondern wer sie bestimmt: als Konfiguration lässt sie sich in der Basis-Konfiguration unveränderbar festlegen, als Input wählt sie der Autor der Pipeline-Definition pro Schritt. Für eine konstante Datei, die nicht aus dem Ergebnis eines vorherigen Schrittes stammen kann, ist die Konfiguration der richtige Ort.
+
 ### Beispiel einer Instanziierung eines Prozessors mit Konfigurationsparametern
 
-Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess` welcher mit geopilot ausgeliefert wird. Es werden die  Konfigurationsparameter `checkServiceBaseUrl`, `validationProfile` und `pollInterval` übergeben. Dabei handelt es sich bei dem Parameter `checkServiceBaseUrl` um einen Pflichtparameter, welcher die Basis-URL des IliCop-Services definiert. Die Parameter `validationProfile` und `pollInterval` sind optionale Parameter, welche das Profil definieren, anhand dessen die Validierung durchgeführt wird, bzw. das Intervall definieren, in welchem der Prozess den Status der Validierung abfragt.
+Das folgende Beispiel zeigt die Initialisierung des `XtfValidatorProcess` welcher mit geopilot ausgeliefert wird. Es werden die Konfigurationsparameter `validationProfile`, `modelDirs` und `allObjectsAccessible` übergeben, alle optional: das Profil, anhand dessen die Validierung durchgeführt wird, die Modell-Repositories, aus denen Modelle und Profil aufgelöst werden, und ob Verweise auf Objekte ausserhalb der geprüften Datei als Fehler gelten. Alle drei sind Einzelwerte und lassen sich damit in beiden Schichten setzen, `modelDirs` als semikolon-getrennter Wert.
+
+Der vierte, `modelRepository`, ist vom Typ `IPipelineFile` und nennt eine Datei des Deployments, siehe [Dateien als Konfiguration](#dateien-als-konfiguration).
 
 Der `logger` ist nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um innerhalb des Prozesses wichtige Informationen zu loggen. Es wird empfohlen den Logger von geopilot zu verwenden, anstatt einen eigenen Logger zu erstellen, um die Konsistenz der Logs zu gewährleisten und die Logs korrekt in die Log-Management-Lösung von geopilot zu integrieren.
 
 Der `pipelineFileManager` ist ebenfalls nicht Teil der Konfiguration, sondern wird von geopilot bereitgestellt, um das Erstellen von Dateien innerhalb der Pipeline zu ermöglichen. Dabei wir sichergestellt, dass Dateien, welche mit dem `pipelineFileManager` erstellt wurden, nach dem Terminieren der Pipeline wieder abgeräumt werden.
 
+Der `ilivalidatorClient` wird ebenso von geopilot bereitgestellt und ruft den konfigurierten ilitools-wrapper auf. Prozessoren, welche INTERLIS-Werkzeuge brauchen, fordern einen solchen Client im Konstruktor an, anstatt selbst einen Dienst anzusprechen.
+
 ```csharp
-public XtfValidatorProcess(string checkServiceBaseUrl, string? validationProfile, int? pollInterval, IPipelineFileManager pipelineFileManager, ILogger logger)
+public XtfValidatorProcess(string? validationProfile, string? modelDirs, bool? allObjectsAccessible, IPipelineFile? modelRepository, IIlivalidatorClient ilivalidatorClient, IPipelineFileManager pipelineFileManager, ILogger logger)
 {
 }
 ```

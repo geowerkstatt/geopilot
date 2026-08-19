@@ -95,4 +95,37 @@ describe("Users tests", () => {
     isCheckboxDisabled("isAdmin", true);
     isDisabled("organisation", false);
   });
+
+  it("keeps own admin rights and active state when saving a self-edit", () => {
+    cy.intercept({ url: "/api/v1/user", method: "PUT" }).as("updateUser");
+
+    // Open your own account. "Admin" and "Active" are disabled here, so they are not submitted.
+    getGridRowThatContains("users-grid", "Andreas Admin").click();
+    cy.location().should(location => {
+      expect(location.pathname).to.match(/\/admin\/users\/(?!0\b)\d+/);
+    });
+    isCheckboxDisabled("isAdmin", true);
+    evaluateCheckbox("isAdmin", true);
+
+    // Change the only editable field (organisations) so the form becomes dirty and can be saved.
+    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
+    cy.dataCy("save-button").should("be.enabled");
+    cy.dataCy("save-button").click();
+
+    // The saved user (server response) must still be an active administrator; saving your own account
+    // must neither drop your admin rights nor deactivate you.
+    cy.wait("@updateUser").then(({ response }) => {
+      expect(response.statusCode).to.eq(200);
+      expect(response.body.isAdmin).to.eq(true);
+      expect(response.body.state).to.eq("active");
+    });
+
+    // After the redirect to the list, the user is still an administrator.
+    cy.location().should(location => {
+      expect(location.pathname).to.eq(`/admin/users`);
+    });
+    getGridRowThatContains("users-grid", "Andreas Admin")
+      .find('[data-field="isAdmin"] [aria-label="yes"]')
+      .should("exist");
+  });
 });

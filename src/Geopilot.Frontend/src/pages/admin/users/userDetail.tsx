@@ -20,6 +20,9 @@ const UserDetail = () => {
   const [editableUser, setEditableUser] = useState<User>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
 
+  // Admin rights and active state cannot be edited for your own account (would risk locking yourself out).
+  const isOwnUser = !user || user?.id === editableUser?.id;
+
   const loadUser = useCallback(
     async (id: string) => {
       const user = await fetchApi<User>(`/api/v1/user/${id}`, { errorMessageLabel: "userLoadingError" });
@@ -43,13 +46,21 @@ const UserDetail = () => {
   }, [id, loadOrganisations, loadUser]);
 
   const prepareUserForSave = (formData: FieldValues): User => {
-    const user = formData as User;
-    user.organisations = formData["organisations"]?.map(
+    const editedUser = formData as User;
+    editedUser.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
-    user.state = formData["isActive"] ? UserState.Active : UserState.Inactive;
-    delete user.deliveries;
-    return user;
+    editedUser.state = formData["isActive"] ? UserState.Active : UserState.Inactive;
+
+    // The admin and active fields are disabled for your own account and are not submitted, so keep the
+    // current values instead of the empty ones (the backend enforces this too).
+    if (isOwnUser) {
+      editedUser.isAdmin = editableUser?.isAdmin ?? false;
+      editedUser.state = editableUser?.state ?? UserState.Inactive;
+    }
+
+    delete editedUser.deliveries;
+    return editedUser;
   };
 
   const prepareUserForForm = (user: User): User => {
@@ -81,13 +92,13 @@ const UserDetail = () => {
               fieldName={"isAdmin"}
               label={"isAdmin"}
               checked={editableUser?.isAdmin ?? false}
-              disabled={!user || user?.id === editableUser?.id}
+              disabled={isOwnUser}
             />
             <FormCheckbox
               fieldName={"isActive"}
               label={"active"}
               checked={editableUser?.state === UserState.Active}
-              disabled={!user || user?.id === editableUser?.id}
+              disabled={isOwnUser}
             />
           </FormContainer>
           <FormContainer>

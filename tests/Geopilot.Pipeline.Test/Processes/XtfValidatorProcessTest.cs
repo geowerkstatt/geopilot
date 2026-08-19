@@ -1,193 +1,186 @@
 ﻿using Geopilot.Pipeline.Processes.XtfValidation;
+using Geopilot.PipelineCore.Ilitools;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Moq.Protected;
-using System.Net;
-using System.Net.Http.Json;
-using System.Reflection;
 
 namespace Geopilot.Pipeline.Test.Processes;
 
 [TestClass]
 public class XtfValidatorProcessTest
 {
-    private static Guid jobId = Guid.Parse("b98559c5-b374-4cbc-a797-1b5a13a297e7");
+    private Mock<IIlivalidatorClient> ilivalidatorClientMock;
+    private IlivalidatorArgs? capturedArgs;
+    private IPipelineFile? capturedTransferFile;
+    private IPipelineFile? capturedArchive;
 
-    [TestMethod]
-    public void SunnyDay()
+    [TestInitialize]
+    public void SetUp()
     {
-        using HttpResponseMessage uploadMockResponse = new()
-        {
-            StatusCode = HttpStatusCode.Created,
-            Content = JsonContent.Create(new InterlisUploadResponse()
-            {
-                JobId = jobId,
-                StatusUrl = "/api/v1/status/" + jobId.ToString(),
-            }),
-        };
-        using HttpResponseMessage getStatusMockResponse = new()
-        {
-            StatusCode = HttpStatusCode.OK,
-            Content = JsonContent.Create(new InterlisStatusResponse()
-            {
-                JobId = jobId,
-                LogUrl = "/api/v1/download?jobId=" + jobId.ToString() + "&logType=log",
-                XtfLogUrl = "/api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf",
-                Status = InterlisStatusResponseStatus.Completed,
-                StatusMessage = "Validation successful",
-            }),
-        };
-        using FileStream appLogFile = File.Open(@"TestData/DownloadFiles/ilicop/log.log", FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
-        using HttpResponseMessage getAppLogMockResponse = new()
-        {
-            StatusCode = HttpStatusCode.OK,
-            Content = new StreamContent(appLogFile),
-        };
-        using FileStream xtfLogFile = File.Open(@"TestData/DownloadFiles/ilicop/log.xtf", FileMode.Open, System.IO.FileAccess.Read, FileShare.Read);
-        using HttpResponseMessage getXtfLogMockResponse = new()
-        {
-            StatusCode = HttpStatusCode.OK,
-            Content = new StreamContent(xtfLogFile),
-        };
-        using var process = XtfValidatorProcessBuilder.Create()
-            .InterlisCheckServiceBaseUrl("http://localhost/")
-            .UploadMockResponse(uploadMockResponse)
-            .GetStatusMockResponse(getStatusMockResponse)
-            .GetAppLogMockResponse(getAppLogMockResponse)
-            .GetXtfLogMockResponse(getXtfLogMockResponse)
-            .Build();
-        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
-
-        var processResult = Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult();
-        Assert.IsNotNull(processResult);
-        var appLogData = processResult.ErrorLog;
-        Assert.IsNotNull(appLogData);
-        var appLog = appLogData;
-        Assert.IsNotNull(appLog);
-        Assert.AreEqual("errorLog.log", appLog.OriginalFileName);
-        var xtfLogData = processResult.XtfLog;
-        Assert.IsNotNull(xtfLogData);
-        var xtfLog = xtfLogData;
-        Assert.IsNotNull(xtfLog);
-        Assert.AreEqual("xtfLog.xtf", xtfLog.OriginalFileName);
-        var statusMessageData = processResult.StatusMessage;
-        var statusMessage = statusMessageData;
-        Assert.IsNotNull(statusMessage);
-        LocalizedText expectedStatusMessage = new Dictionary<string, string>() { { "de", "Validation successful" }, { "fr", "Validation successful" }, { "it", "Validation successful" }, { "en", "Validation successful" } };
-        Assert.AreEqual(expectedStatusMessage, statusMessage);
-        var validationSuccessfulData = processResult.ValidationSuccessful;
-        var validationSuccessful = validationSuccessfulData as bool?;
-        Assert.IsTrue(validationSuccessful);
+        capturedArgs = null;
+        capturedTransferFile = null;
+        capturedArchive = null;
+        ilivalidatorClientMock = new Mock<IIlivalidatorClient>();
     }
 
     [TestMethod]
-    public void UploadFailed()
+    public async Task ReportsSuccessfulValidation()
     {
-        using HttpResponseMessage uploadMockResponse = new()
+        var process = CreateProcess(validationProfile: null, modelDirs: null, success: true);
+
+        var result = await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        Assert.IsTrue(result.ValidationSuccessful);
+        Assert.AreEqual("RoadsExdm2ien.xtf", capturedTransferFile?.OriginalFileName);
+        Assert.AreEqual("errorLog.log", result.ErrorLog?.OriginalFileName);
+        Assert.AreEqual("xtfLog.xtf", result.XtfLog?.OriginalFileName);
+
+        LocalizedText expected = new Dictionary<string, string>
         {
-            StatusCode = HttpStatusCode.BadRequest,
-            Content = JsonContent.Create(new InterlisUploadResponse()
-            {
-                JobId = jobId,
-                StatusUrl = "/api/v1/status/" + jobId.ToString(),
-            }),
+            { "de", "Die Validierung war erfolgreich." },
+            { "fr", "La validation a réussi." },
+            { "it", "La validazione è riuscita." },
+            { "en", "Validation successful." },
         };
-        using var process = XtfValidatorProcessBuilder.Create()
-            .InterlisCheckServiceBaseUrl("http://localhost/")
-            .UploadMockResponse(uploadMockResponse)
-            .Build();
-        var uploadFile = new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
-        var exception = Assert.Throws<ValidationFailedException>(() => Task.Run(() => process.RunAsync(uploadFile, CancellationToken.None)).GetAwaiter().GetResult());
-        Assert.AreEqual("Invalid transfer file", exception.Message);
+        Assert.AreEqual(expected, result.StatusMessage);
     }
 
-    private class XtfValidatorProcessBuilder
+    [TestMethod]
+    public async Task ThrowsWhenTheProfileCannotBeResolved()
     {
-        private string interlisCheckServiceBaseUrl;
-        private string validationProfile = "DEFAULT";
-        private int pollInterval = 500;
-        private HttpResponseMessage uploadMockResponse;
-        private HttpResponseMessage getStatusMockResponse;
-        private HttpResponseMessage getAppLogMockResponse;
-        private HttpResponseMessage getXtfLogMockResponse;
+        // The tool exits like a failed validation, so only its log tells the two apart.
+        var log = $"Info: dataFile <file1.xtf>\nError: {XtfValidatorProcess.MetaConfigNotFoundMarker} <ilidata:PROFILE-A>\n";
+        var process = CreateProcess("PROFILE-A", "https://models.example.com/", success: false, logContent: log);
 
-        public static XtfValidatorProcessBuilder Create()
-        {
-            return new XtfValidatorProcessBuilder();
-        }
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), CancellationToken.None));
 
-        public XtfValidatorProcessBuilder InterlisCheckServiceBaseUrl(string interlisCheckServiceBaseUrl)
-        {
-            this.interlisCheckServiceBaseUrl = interlisCheckServiceBaseUrl;
-            return this;
-        }
+        Assert.Contains("ilidata:PROFILE-A", exception.Message);
+        Assert.Contains("https://models.example.com/", exception.Message);
+    }
 
-        public XtfValidatorProcessBuilder UploadMockResponse(HttpResponseMessage uploadMockResponse)
-        {
-            this.uploadMockResponse = uploadMockResponse;
-            return this;
-        }
+    [TestMethod]
+    public async Task ReportsFailedValidation()
+    {
+        // A log without the marker is an ordinary failed validation and must not throw.
+        var process = CreateProcess("PROFILE-A", modelDirs: null, success: false, logContent: "Error: Attribute Hoehengenauigkeit requires a value\n");
 
-        public XtfValidatorProcessBuilder GetStatusMockResponse(HttpResponseMessage getStatusMockResponse)
-        {
-            this.getStatusMockResponse = getStatusMockResponse;
-            return this;
-        }
+        var result = await process.RunAsync(CreateTransferFile(), CancellationToken.None);
 
-        public XtfValidatorProcessBuilder GetAppLogMockResponse(HttpResponseMessage getAppLogMockResponse)
-        {
-            this.getAppLogMockResponse = getAppLogMockResponse;
-            return this;
-        }
+        Assert.IsFalse(result.ValidationSuccessful);
 
-        public XtfValidatorProcessBuilder GetXtfLogMockResponse(HttpResponseMessage getXtfLogMockResponse)
-        {
-            this.getXtfLogMockResponse = getXtfLogMockResponse;
-            return this;
-        }
+        // The failed validation is a result, not an error: the logs still have to reach the caller.
+        Assert.AreEqual("errorLog.log", result.ErrorLog?.OriginalFileName);
+        Assert.AreEqual("xtfLog.xtf", result.XtfLog?.OriginalFileName);
+        Assert.HasCount(4, result.StatusMessage.Languages, "The status message has to stay available in every supported language.");
+        Assert.Contains("Fehler", result.StatusMessage["de"]);
+    }
 
-        public XtfValidatorProcess Build()
-        {
-            var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
-            var process = new XtfValidatorProcess(this.interlisCheckServiceBaseUrl, this.validationProfile, this.pollInterval, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+    [TestMethod]
+    public async Task PassesModelReposAndProfileToTheTool()
+    {
+        var process = CreateProcess("PROFILE-A", "https://models.example.com/;%ITF_DIR", success: true);
 
-            var interlisValidatorMessageHandlerMock = new Mock<HttpMessageHandler>();
-            interlisValidatorMessageHandlerMock
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Post && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/upload"),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(this.uploadMockResponse);
-            interlisValidatorMessageHandlerMock
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/status/" + jobId.ToString()),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(this.getStatusMockResponse);
-            interlisValidatorMessageHandlerMock
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=log"),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(this.getAppLogMockResponse);
-            interlisValidatorMessageHandlerMock
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get && req.RequestUri != null && req.RequestUri.ToString() == interlisCheckServiceBaseUrl + "api/v1/download?jobId=" + jobId.ToString() + "&logType=xtf"),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(this.getXtfLogMockResponse);
-            #pragma warning disable CA2000 // Dispose objects before losing scope
-            var httpClient = new HttpClient(interlisValidatorMessageHandlerMock.Object) { BaseAddress = new Uri(interlisCheckServiceBaseUrl) };
-            #pragma warning restore CA2000 // Dispose objects before losing scope
-            typeof(XtfValidatorProcess)
-                ?.GetField("httpClient", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?.SetValue(process, httpClient);
-            return process;
-        }
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        Assert.AreEqual("ilidata:PROFILE-A", capturedArgs?.MetaConfig);
+
+        // The order of the repositories decides which model wins, so it must survive unchanged.
+        string[] expectedModelDirs = ["https://models.example.com/", "%ITF_DIR"];
+        CollectionAssert.AreEqual(expectedModelDirs, capturedArgs?.ModelDirs?.ToList());
+    }
+
+    [TestMethod]
+    public async Task TrimsTheConfiguredModelRepositories()
+    {
+        // Hand written configuration, so blanks around the separator and a trailing one are expected.
+        var process = CreateProcess(null, " https://models.example.com/ ; %ITF_DIR ; ", success: true);
+
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        string[] expectedModelDirs = ["https://models.example.com/", "%ITF_DIR"];
+        CollectionAssert.AreEqual(expectedModelDirs, capturedArgs?.ModelDirs?.ToList());
+    }
+
+    [TestMethod]
+    public async Task KeepsAnAlreadyPrefixedProfile()
+    {
+        var process = CreateProcess("ilidata:PROFILE-A", modelDirs: null, success: true);
+
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        Assert.AreEqual("ilidata:PROFILE-A", capturedArgs?.MetaConfig);
+    }
+
+    [TestMethod]
+    public async Task OmitsTheProfileWhenNoneIsConfigured()
+    {
+        var process = CreateProcess("   ", modelDirs: null, success: true);
+
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        Assert.IsNull(capturedArgs?.MetaConfig, "A blank profile must not reach the tool as an empty meta config.");
+        Assert.IsNull(capturedArgs?.ModelDirs);
+
+        // The check service applied this option to every validation, so an unconfigured pipeline has to keep it.
+        Assert.IsTrue(capturedArgs?.AllObjectsAccessible, "Missing configuration must not weaken the validation.");
+    }
+
+    [TestMethod]
+    public async Task PassesTheModelRepositoryArchiveOn()
+    {
+        var archive = new PipelineFile(Path.Combine("TestData", "ModelRepository", "model-repository.zip"), "model-repository.zip");
+        var process = CreateProcess(null, "%ITF_DIR", success: true, modelRepository: archive);
+
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        Assert.AreSame(archive, capturedArchive, "The configured archive has to reach the client unchanged.");
+    }
+
+    [TestMethod]
+    public async Task SendsNoArchiveWhenNoneIsConfigured()
+    {
+        var process = CreateProcess(null, modelDirs: null, success: true);
+
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        Assert.IsNull(capturedArchive);
+    }
+
+    [TestMethod]
+    public async Task AcceptsTurningOffAllObjectsAccessible()
+    {
+        var process = CreateProcess(null, modelDirs: null, success: true, allObjectsAccessible: false);
+
+        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+
+        Assert.IsFalse(capturedArgs?.AllObjectsAccessible);
+    }
+
+    private static PipelineFile CreateTransferFile()
+    {
+        return new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
+    }
+
+    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null)
+    {
+        ilivalidatorClientMock
+            .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<CancellationToken>()))
+            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile?, CancellationToken>((args, transferFile, logFile, _, archive, _) =>
+            {
+                capturedArgs = args;
+                capturedTransferFile = transferFile;
+                capturedArchive = archive;
+
+                if (logContent != null)
+                {
+                    using var stream = logFile.OpenWriteFileStream();
+                    using var writer = new StreamWriter(stream);
+                    writer.Write(logContent);
+                }
+            })
+            .ReturnsAsync(new IlivalidatorResult(success));
+
+        var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
+        return new XtfValidatorProcess(validationProfile, modelDirs, allObjectsAccessible, modelRepository, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
     }
 }

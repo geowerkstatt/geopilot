@@ -41,6 +41,8 @@ const PANEL_GAP = 16;
 const MIN_TREE_WIDTH = 400;
 const SIDE_BY_SIDE_THRESHOLD = MIN_TREE_WIDTH + PANEL_GAP + PANEL_WIDTH;
 
+const SCROLL_DEBOUNCE_MS = 100;
+
 // Ancestor structural ids of a node id, e.g. "n-0-2" -> ["n-0"]. The root prefix "n" alone is not a node.
 const ancestorIds = (id: string): string[] => {
   const segments = id.split("-");
@@ -167,7 +169,7 @@ export const TreeVisualization = ({
       return 0;
     }
     const wrapper = treeWrapperRef.current;
-    const selected = wrapper?.querySelector<HTMLElement>(".Mui-selected");
+    const selected = wrapper?.querySelector<HTMLElement>(".MuiTreeItem-content[data-selected]");
     if (!wrapper || !selected) {
       return 0;
     }
@@ -181,10 +183,7 @@ export const TreeVisualization = ({
     const tree = treeRef.current;
     if (!tree) return;
 
-    const scrollToPanel = (event: TransitionEvent | null) => {
-      // include height transitions of child nodes in the tree
-      if (event && event.propertyName !== "height") return;
-
+    const scrollToPanel = () => {
       if (panelRef.current) {
         panelRef.current.style.marginTop = `${calculatePanelTop()}px`;
         panelRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -192,11 +191,19 @@ export const TreeVisualization = ({
       inlinePanelRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     };
 
-    scrollToPanel(null);
+    let scrollTimeout: number | undefined;
+    const scheduleScroll = () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(scrollToPanel, SCROLL_DEBOUNCE_MS);
+    };
 
-    tree.addEventListener("transitionend", scrollToPanel);
+    scrollToPanel();
+
+    const observer = new ResizeObserver(() => scheduleScroll());
+    observer.observe(tree);
     return () => {
-      tree.removeEventListener("transitionend", scrollToPanel);
+      clearTimeout(scrollTimeout);
+      observer.disconnect();
     };
   }, [expandedItems, items, calculatePanelTop, selectionToken]);
 
@@ -254,16 +261,21 @@ export const TreeVisualization = ({
             </SimpleTreeView>
           </Box>
           <Box
-            ref={panelRef}
             sx={{
               display: sideBySide ? "block" : "none",
               flexShrink: 0,
               width: PANEL_WIDTH,
               maxWidth: "100%",
-              scrollMarginTop,
-              scrollMarginBottom,
             }}>
-            {sideBySide && selectedItem && <DetailPanel item={selectedItem} />}
+            <Box
+              ref={panelRef}
+              sx={{
+                display: selectedItem ? "block" : "none",
+                scrollMarginTop,
+                scrollMarginBottom,
+              }}>
+              {sideBySide && selectedItem && <DetailPanel item={selectedItem} />}
+            </Box>
           </Box>
         </Stack>
       )}

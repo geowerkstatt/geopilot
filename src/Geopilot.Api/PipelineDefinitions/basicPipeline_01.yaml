@@ -12,7 +12,6 @@ processes:
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
       validationProfile: ""
-      pollInterval: 1000
   - id: xtf_error_visualizer
     implementation: Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess
     default_config:
@@ -66,10 +65,10 @@ pipelines:
             restrict_delivery_conditions:
               - expression: "!([validation.ValidationSuccessful])"
                 message:
-                  de: "Die Validierung war nicht erfolgreich. Datenlieferung nicht möglich."
-                  en: "Validation was not successful. Delivery is not possible."
-                  fr: "La validation n'a pas réussi. La livraison n'est pas possible."
-                  it: "La validazione non è riuscita. La consegna non è possibile."
+                  de: "Die Validierung war nicht erfolgreich."
+                  en: "Validation was not successful."
+                  fr: "La validation n'a pas réussi."
+                  it: "La validazione non è riuscita."
         process_config_overwrites:
         input:
           iliFile: "${step_output(xtf_matching.XtfFiles)}"

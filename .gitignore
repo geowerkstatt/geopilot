@@ -412,3 +412,6 @@ certs/
 
 # Local environment variables
 .env
+
+# Local developer overlays (symlinks created by scripts/link-plugin-config.ps1)
+**/appsettings.Local*.json

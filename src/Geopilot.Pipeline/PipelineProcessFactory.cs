@@ -195,6 +195,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         private List<ProcessConfig>? processes;
         private IReadOnlyDictionary<string, Type>? stepResultTypes;
         private string? pipelineDirectory;
+        private string? resourcesDirectory;
         private Guid jobId;
 
         /// <summary>
@@ -263,6 +264,13 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         public IPipelineProcessBuilder JobId(Guid jobId)
         {
             this.jobId = jobId;
+            return this;
+        }
+
+        /// <inheritdoc />
+        public IPipelineProcessBuilder ResourcesDirectory(string? resourcesDirectory)
+        {
+            this.resourcesDirectory = resourcesDirectory;
             return this;
         }
 
@@ -448,7 +456,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             var (objectType, constructor, processParameterization) = PrepareProcessDescriptor();
             foreach (var parameterInfo in constructor.GetParameters())
             {
-                ValidateParameter(parameterInfo, processParameterization);
+                ValidateParameter(parameterInfo, processParameterization, resourcesRoot ?? resourcesDirectory);
             }
 
             var stepResultTypes = this.stepResultTypes ?? new Dictionary<string, Type>();
@@ -496,15 +504,22 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
         /// no value conversion kept). Throws with the same message <see cref="GenerateParameter"/>
         /// would for an unsatisfiable non-nullable parameter.
         /// </summary>
-        private static void ValidateParameter(ParameterInfo parameterInfo, Parameterization processConfig)
+        private static void ValidateParameter(ParameterInfo parameterInfo, Parameterization processConfig, string? resourcesRoot)
         {
             // Framework-provided dependencies are always satisfiable by Build (logger, file
             // manager, optional container runner). Skipping them here is how we avoid invoking
             // their constructors at startup.
             if (parameterInfo.ParameterType == typeof(ILogger) ||
                 parameterInfo.ParameterType == typeof(IPipelineFileManager) ||
-                parameterInfo.ParameterType == typeof(IIli2GpkgClient))
+                parameterInfo.ParameterType == typeof(IIli2GpkgClient) ||
+                parameterInfo.ParameterType == typeof(IIlivalidatorClient))
             {
+                return;
+            }
+
+            if (parameterInfo.ParameterType == typeof(IPipelineFile) && TryGetResourcePath(parameterInfo, processConfig, out var resourcePath))
+            {
+                ResolveResourceFullPath(parameterInfo, resourcePath, resourcesRoot);
                 return;
             }
 
@@ -515,6 +530,40 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 return;
 
             throw new InvalidOperationException($"Process initialization: No suitable parameter found for parameter of type <{parameterInfo.ParameterType.Name}> and name <{parameterInfo.Name}>. Parameter is not nullable, cannot initialize process.");
+        }
+
+        /// <summary>
+        /// Whether the parameter is configured with the relative path of a file the deployment ships. A file valued
+        /// configuration parameter carries a path and not a value, so it is read raw here: the conversion of
+        /// <see cref="TryGetConfiguredValue"/> would reject a string for an <see cref="IPipelineFile"/> target.
+        /// </summary>
+        private static bool TryGetResourcePath(ParameterInfo parameterInfo, Parameterization processConfig, out string resourcePath)
+        {
+            resourcePath = string.Empty;
+            if (string.IsNullOrEmpty(parameterInfo.Name) || !processConfig.TryGetValue(parameterInfo.Name, out var rawValue) || rawValue is null)
+                return false;
+
+            if (rawValue is not string path || string.IsNullOrWhiteSpace(path))
+                throw new InvalidOperationException($"Process initialization: The configured value <{FormatRawValue(rawValue)}> for parameter <{parameterInfo.Name}> is not the path of a file below the resources directory.");
+
+            resourcePath = path;
+            return true;
+        }
+
+        /// <summary>
+        /// Resolves a configured resource path against the resources root, with the same confinement a
+        /// <c>${file(path)}</c> input reference gets, and refuses a path that names no existing file.
+        /// </summary>
+        private static string ResolveResourceFullPath(ParameterInfo parameterInfo, string resourcePath, string? resourcesRoot)
+        {
+            if (string.IsNullOrWhiteSpace(resourcesRoot))
+                throw new InvalidOperationException($"Process initialization: Parameter <{parameterInfo.Name}> references file <{resourcePath}>, but no resources directory is configured.");
+
+            var fullPath = ResourceFileResolver.ResolveFullPath(resourcesRoot, resourcePath);
+            if (!File.Exists(fullPath))
+                throw new InvalidOperationException($"Process initialization: Parameter <{parameterInfo.Name}> references file <{resourcePath}>, which does not exist below the resources directory.");
+
+            return fullPath;
         }
 
         /// <summary>
@@ -583,6 +632,15 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             else if (parameterInfo.ParameterType == typeof(IIli2GpkgClient))
             {
                 return new Ili2GpkgClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<Ili2GpkgClient>());
+            }
+            else if (parameterInfo.ParameterType == typeof(IIlivalidatorClient))
+            {
+                return new IlivalidatorClient(ilitoolsWrapperChannel, loggerFactory.CreateLogger<IlivalidatorClient>());
+            }
+            else if (parameterInfo.ParameterType == typeof(IPipelineFile) && TryGetResourcePath(parameterInfo, processConfig, out var resourcePath))
+            {
+                var fullPath = ResolveResourceFullPath(parameterInfo, resourcePath, resourcesDirectory);
+                return new PipelineFile(fullPath, Path.GetFileName(fullPath));
             }
             else if (TryGetConfiguredValue(parameterInfo, processConfig, out var convertedValue))
             {

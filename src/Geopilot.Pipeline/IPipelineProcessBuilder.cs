@@ -58,6 +58,15 @@ public interface IPipelineProcessBuilder
     IPipelineProcessBuilder JobId(Guid jobId);
 
     /// <summary>
+    /// Sets the resources root that a file valued configuration parameter resolves against, the same root a
+    /// <c>${file(path)}</c> input reference uses. Such a parameter names a file the deployment ships, so it belongs
+    /// to the configuration of a process and not to the input of a step.
+    /// </summary>
+    /// <param name="resourcesDirectory">The configured resources directory, or null when the deployment ships none.</param>
+    /// <returns>An instance of IPipelineProcessBuilder that can be used to further configure the pipeline.</returns>
+    IPipelineProcessBuilder ResourcesDirectory(string? resourcesDirectory);
+
+    /// <summary>
     /// Supplies the map from step id to process result type that <see cref="Validate"/> uses to type check
     /// cross-step references (<c>${step_output(stepId.output)}</c> in inputs and <c>[stepId.Property]</c> in
     /// conditions). Typically built once per pipeline by the factory. When not supplied, cross-step
