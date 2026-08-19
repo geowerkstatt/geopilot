@@ -85,6 +85,18 @@ public class ProcessingRunnerTest
         public required IPipelineFile Result { get; init; }
     }
 
+    private sealed class PassthroughProcess
+    {
+        [PipelineProcessRun]
+        public Task<PassthroughProcessResult> RunAsync(IPipelineFile[] files)
+            => Task.FromResult(new PassthroughProcessResult { Result = files });
+    }
+
+    private sealed class PassthroughProcessResult
+    {
+        public required IPipelineFile[] Result { get; init; }
+    }
+
     private sealed class BlockingProcess
     {
         private readonly Task gate;
@@ -296,7 +308,7 @@ public class ProcessingRunnerTest
         using var pipeline = BuildPipeline(jobId, step);
         var context = ContextWith(step, stepResult);
 
-        await runner.ExtractDeliveryFilesAsync(pipeline, context);
+        await runner.ExtractDeliveryFilesAsync(pipeline, context, []);
 
         Assert.HasCount(1, step.DeliveryFiles);
         var persisted = step.DeliveryFiles[0];
@@ -305,6 +317,31 @@ public class ProcessingRunnerTest
         Assert.IsTrue(assetStore.Exists(jobId, persisted.PersistedFileName));
         Assert.IsFalse(downloadStore.Exists(jobId, persisted.PersistedFileName), "Delivery files must not be written to the download store.");
         Assert.IsEmpty(step.Downloads);
+    }
+
+    [TestMethod]
+    public async Task DeliveryFilesSetFromUploadPerFile()
+    {
+        var jobId = NewJob();
+        var upload = new PipelineFile(WriteTempFile("upload-content"), "uploaded.xtf");
+
+        var passthrough = BuildUploadPassthroughStep("passthrough");
+        var producer = BuildEmittingStep("producer", "payload", "report.log", "report-content", OutputAction.Delivery);
+        using var pipeline = BuildPipeline(jobId, passthrough, producer);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline, uploads: [upload]);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        Assert.IsTrue(
+            passthrough.DeliveryFiles.Single().FromUpload,
+            "A delivered upload forwarded by a step must be marked as coming from the upload.");
+        Assert.IsFalse(
+            producer.DeliveryFiles.Single().FromUpload,
+            "A delivered file produced by a step must not be marked as coming from the upload.");
     }
 
     [TestMethod]
@@ -318,7 +355,7 @@ public class ProcessingRunnerTest
         var context = ContextWith(step, stepResult);
 
         await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
-        await runner.ExtractDeliveryFilesAsync(pipeline, context);
+        await runner.ExtractDeliveryFilesAsync(pipeline, context, []);
 
         Assert.HasCount(1, step.Downloads);
         Assert.HasCount(1, step.DeliveryFiles);
@@ -455,7 +492,7 @@ public class ProcessingRunnerTest
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        await AssertObservesCancellationAsync(runner.ExtractDeliveryFilesAsync(pipeline, context, cts.Token));
+        await AssertObservesCancellationAsync(runner.ExtractDeliveryFilesAsync(pipeline, context, [], cts.Token));
     }
 
     /// <summary>
@@ -642,10 +679,10 @@ public class ProcessingRunnerTest
     private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state)
         => new ProcessingJob(jobId, uploadId, new List<ProcessingJobFile>(), 1, DateTime.UtcNow) { State = state };
 
-    private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null)
+    private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null, IReadOnlyList<IPipelineFile>? uploads = null)
     {
         var channel = Channel.CreateUnbounded<ProcessingWorkItem>();
-        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, Array.Empty<IPipelineFile>()));
+        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, uploads ?? Array.Empty<IPipelineFile>()));
         channel.Writer.Complete();
 
         var store = new Mock<IProcessingJobStore>();
@@ -692,6 +729,17 @@ public class ProcessingRunnerTest
             .Inputs(new Dictionary<string, InputValue>())
             .OutputActions([new OutputActionConfig { Property = "Result", Actions = new HashSet<OutputAction>(actions) }])
             .Process(new FileEmittingProcess(WriteTempFile(content), originalFileName))
+            .Logger(pipelineLogger)
+            .Build();
+
+    private PipelineStep BuildUploadPassthroughStep(string id) =>
+        PipelineStep
+            .Builder()
+            .Id(id)
+            .DisplayName(LocalizedText.Empty)
+            .Inputs(new Dictionary<string, InputValue> { ["files"] = new InputValue.UploadReference() })
+            .OutputActions([new OutputActionConfig { Property = "Result", Actions = new HashSet<OutputAction>(new[] { OutputAction.Delivery }) }])
+            .Process(new PassthroughProcess())
             .Logger(pipelineLogger)
             .Build();
 
