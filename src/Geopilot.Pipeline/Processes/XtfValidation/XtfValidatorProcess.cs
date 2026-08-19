@@ -58,10 +58,6 @@ internal class XtfValidatorProcess
         {
             ModelDirs = SplitModelDirs(modelDirs),
             MetaConfig = BuildMetaConfig(validationProfile),
-
-            // The interlis-check-service replaced an empty profile with its bundled DEFAULT profile and that profile
-            // set this option, so every validation ran with it. Keeping it on by default is what preserves the
-            // previous behaviour; a pipeline that delivers parts of a dataset can turn it off.
             AllObjectsAccessible = allObjectsAccessible ?? true,
         };
 
