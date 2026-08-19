@@ -2,7 +2,7 @@ import { FC, useMemo, useRef, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import { Box, Stack, Tooltip } from "@mui/material";
+import { Box, Stack, Tooltip, useTheme } from "@mui/material";
 import { styled } from "@mui/system";
 import { DataGrid, DataGridProps, GridColDef, GridRenderCellParams, GridRowId, GridRowParams } from "@mui/x-data-grid";
 import { Button } from "../buttons.tsx";
@@ -93,6 +93,7 @@ const withCellTooltips = (columns: readonly GridColDef[]): GridColDef[] =>
 
 const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
   const tooltipColumns = useMemo(() => withCellTooltips(props.columns), [props.columns]);
+  const theme = useTheme();
   const handleRowClick = (params: GridRowParams) => {
     if (props.onSelect) {
       props.onSelect(params.id);
@@ -105,14 +106,17 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
     }
   };
 
+  const nonce = document.querySelector<HTMLMetaElement>('meta[property="csp-nonce"]')?.nonce;
+
   return props.addLabel && props.onSelect ? (
     <Stack sx={{ height: "100%" }}>
       <Box sx={{ flex: "0" }}>
         <Button startIcon={<AddIcon />} onClick={handleAddClick} label={props.addLabel} />
       </Box>
       <StyledDataGrid
+        nonce={nonce}
         slotProps={{ root: { "data-cy": `${props.name}-grid` } }}
-        sx={{ flex: "1" }}
+        sx={{ flex: "1", borderRadius: theme.radius.default }}
         autoPageSize
         disableColumnSelector
         hideFooterSelectedRowCount
@@ -123,7 +127,9 @@ const GeopilotDataGrid: FC<GeopilotDataGridProps> = props => {
     </Stack>
   ) : (
     <StyledDataGrid
+      nonce={nonce}
       slotProps={{ root: { "data-cy": `${props.name}-grid` } }}
+      sx={{ borderRadius: theme.radius.default }}
       autoPageSize
       disableColumnSelector
       hideFooterSelectedRowCount
