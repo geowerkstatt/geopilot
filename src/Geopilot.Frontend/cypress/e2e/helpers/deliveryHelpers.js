@@ -144,12 +144,12 @@ export const runMockedProcessingJob = (job, mandates) => {
     cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
   }
   cy.wait("@getMandates");
-  selectMandate(1);
   if (mandates) {
     for (const mandate of mandates) {
       cy.dataCy("mandate-selection-group").contains(mandate.name.en).should("exist");
     }
   }
+  selectMandate(1);
 
   cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: job }).as("startProcessing");
   cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: job }).as("jobStatus");
