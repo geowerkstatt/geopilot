@@ -125,7 +125,10 @@ export const FormExtent: FC<FormExtentProps> = ({ fieldName, required, disabled,
         renderFields(
           field.value,
           (index, key, e) =>
-            setValue(fieldName!, updateCoordinate(field.value, index, key, e), { shouldValidate: true }),
+            setValue(fieldName!, updateCoordinate(field.value, index, key, e), {
+              shouldValidate: true,
+              shouldDirty: true,
+            }),
           getFormFieldError(fieldName, formState.errors),
         )
       }

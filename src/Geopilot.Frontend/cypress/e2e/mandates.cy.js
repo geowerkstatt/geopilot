@@ -290,6 +290,11 @@ describe("Mandate tests", () => {
     cy.dataCy("reset-button").should("be.disabled");
     cy.dataCy("save-button").should("be.disabled");
 
+    // Editing only the spatial extent must enable the buttons on its own, without touching any other field.
+    setInput("extent-upper-right-latitude", "47.47");
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
+
     // Make change and check if buttons are now enabled after change.
     setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Schumm, Runte and Macejkovic", "Brown and Sons"]);
