@@ -342,7 +342,7 @@ internal sealed class PipelineStep : IPipelineStep
     private object? GenerateParameter(ParameterInfo parameterInfo, PipelineContext context, CancellationToken cancellationToken)
     {
         // The pipeline's cancellation token is injected directly, never bound from step input.
-        if (parameterInfo.ParameterType.IsAssignableFrom(cancellationToken.GetType()))
+        if (parameterInfo.ParameterType == typeof(CancellationToken))
             return cancellationToken;
 
         var input = parameterInfo.Name != null ? Inputs.GetValueOrDefault(parameterInfo.Name) : null;
