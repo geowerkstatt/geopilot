@@ -6,9 +6,9 @@ namespace Geopilot.Api.Processing;
 /// <summary>
 /// An <see cref="IPipelineFile"/> backed by an uploaded file in cloud storage. The content is fetched into
 /// the job's pipeline working directory on first access and reused from there, so an uploaded file that no
-/// step reads is not fetched during the run and a job starts without waiting for the whole upload.
-/// Declaring a delivery archives every uploaded file afterwards, including those, so this saves the
-/// transfer only for a job that is never delivered.
+/// step reads is not fetched during the run and a job starts without waiting for the whole upload. Only the
+/// files a pipeline step tags for delivery are archived, so an upload no step routes to delivery is never
+/// fetched at all.
 /// Steps see this file through the runtime's copy-on-write view, so the fetched copy is never modified.
 /// </summary>
 internal sealed class CloudPipelineFile : IPipelineFile
