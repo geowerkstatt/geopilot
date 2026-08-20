@@ -273,6 +273,14 @@ if (context.Database.GetPendingMigrations().Any())
     context.MigrateDatabase();
 }
 
+// The seed no longer runs in this process, so an empty database reads like a broken setup. This points
+// at where the data comes from, without the API depending on the seed project.
+if (app.Environment.IsDevelopment() && !context.Mandates.Any())
+{
+    app.Logger.LogInformation(
+        "The database contains no mandates. Local test data comes from the Geopilot.Api.SeedData container, which only fills an empty database.");
+}
+
 // Validate pipeline configuration on startup and crash if configuration is invalid
 app.ValidatePipelineConfiguration();
 
@@ -305,9 +313,6 @@ app.UseRouting();
 if (app.Environment.IsDevelopment())
 {
     app.UseCors("All");
-
-    if (!context.Mandates.Any())
-        context.SeedTestData();
 }
 else
 {

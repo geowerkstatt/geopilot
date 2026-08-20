@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Geopilot.Api\Geopilot.Api.csproj" />
+    <ProjectReference Include="..\..\src\Geopilot.Api.SeedData\Geopilot.Api.SeedData.csproj" />
   </ItemGroup>
 
   <ItemGroup>

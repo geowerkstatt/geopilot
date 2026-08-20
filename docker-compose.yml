@@ -126,6 +126,23 @@ services:
       db:
         condition: service_healthy
 
+  # Creates the local test data. Waits until the migrations are applied and then exits, so it works
+  # whether the API runs in the geopilot container or on the host from Visual Studio. No depends_on
+  # for geopilot: that service is set to DoNotStart in launchSettings.json and must stay that way.
+  seed:
+    build:
+      context: .
+      target: seed
+      args:
+        GITHUB_ACTOR: ${GITHUB_ACTOR}
+      secrets:
+        - github_token
+    environment:
+      ConnectionStrings__Context: Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
+    depends_on:
+      db:
+        condition: service_healthy
+
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     environment:
