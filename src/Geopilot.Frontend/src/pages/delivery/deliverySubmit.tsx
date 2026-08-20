@@ -1,7 +1,7 @@
 import { FC, useContext, useEffect, useState } from "react";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Alert, Stack, Typography } from "@mui/material";
+import { Alert, Divider, Stack, Typography } from "@mui/material";
 import { DeliverySummary, FieldEvaluationType } from "../../api/apiInterfaces.ts";
 import { Button } from "../../components/buttons.tsx";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
@@ -14,7 +14,7 @@ import { DeliveryStepProps, DeliverySubmitData } from "./deliveryInterfaces.tsx"
 export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
-  const { isLoading, submitDelivery, selectedMandate, submittedData } = useContext(DeliveryContext);
+  const { isLoading, submitDelivery, selectedMandate, submittedData, processingResponse } = useContext(DeliveryContext);
   const [previousDeliveries, setPreviousDeliveries] = useState<DeliverySummary[]>([]);
   const formMethods = useForm({ mode: "all", defaultValues: submittedData, disabled: completed });
 
@@ -34,6 +34,8 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
     }
   }, [fetchApi, selectedMandate]);
 
+  const deliveryFiles = processingResponse?.steps.flatMap(step => step.deliveries) ?? [];
+
   const buttons = (
     <>
       <DeliveryBackButton />
@@ -43,7 +45,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
         <Button
           variant="contained"
           label="createDelivery"
-          disabled={!formMethods.formState.isValid || isLoading}
+          disabled={!formMethods.formState.isValid || isLoading || deliveryFiles.length === 0}
           onClick={() => formMethods.handleSubmit(submitForm)()}
         />
       )}
@@ -95,6 +97,26 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
           </Stack>
         </form>
       </FormProvider>
+      {deliveryFiles.length === 0 ? (
+        <Alert severity="error">{t("deliveryFilesEmpty")}</Alert>
+      ) : (
+        <Stack spacing={1}>
+          <Typography variant="h5">{t("deliveryFiles")}</Typography>
+          <Stack
+            spacing={0}
+            divider={<Divider aria-hidden="true" />}
+            sx={theme => ({
+              border: `1px solid ${theme.palette.primary.light}`,
+              borderRadius: theme.radius.default,
+            })}>
+            {deliveryFiles.map(deliveryFile => (
+              <Typography key={deliveryFile} color="primary" sx={{ wordBreak: "break-word", p: 1 }}>
+                {deliveryFile}
+              </Typography>
+            ))}
+          </Stack>
+        </Stack>
+      )}
       {completed && <Alert severity="success">{t("deliveryCompleted")}</Alert>}
     </DeliveryContent>
   );
