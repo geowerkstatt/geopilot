@@ -77,6 +77,7 @@ internal static class DtoMapperExtensions
             statusMessage,
             ConditionMessage: null,
             Downloads: new List<StepDownload>(),
+            Deliveries: new List<string>(),
             Visualizations: new List<StepVisualizationResponse>());
     }
 
@@ -111,6 +112,10 @@ internal static class DtoMapperExtensions
                 buildDownloadUrl(jobId, pd.PersistedFileName)))
             .ToList();
 
+        var deliveries = step.DeliveryFiles
+            .Select(df => df.OriginalFileName)
+            .ToList();
+
         var visualizations = step.Visualizations
             .Select(v => new StepVisualizationResponse(
                 v.OriginalFileName,
@@ -124,6 +129,7 @@ internal static class DtoMapperExtensions
             step.StatusMessage,
             step.ConditionMessage,
             downloads,
+            deliveries,
             visualizations);
     }
 

@@ -400,6 +400,7 @@ public class ProcessingRunnerTest
             var step1Response = response.Steps.Single(s => s.Id == "step_1");
             Assert.HasCount(1, step1Response.Downloads);
             Assert.AreEqual("first.log", step1Response.Downloads[0].OriginalFileName);
+            Assert.HasCount(0, step1Response.Deliveries);
 
             gate.SetResult();
             await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
@@ -413,6 +414,34 @@ public class ProcessingRunnerTest
             gate.TrySetResult();
             await runner.StopAsync(CancellationToken.None);
         }
+    }
+
+    [TestMethod]
+    public async Task StepResponseContainsDelivery()
+    {
+        var jobId = NewJob();
+        var step1 = BuildEmittingStep("step_1", "log", "first.log", "first-content", OutputAction.Delivery);
+        using var pipeline = BuildPipeline(jobId, step1);
+        var job = new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>(), 1, DateTime.UtcNow) { Pipeline = pipeline };
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        var response = job.ToResponse(
+            (id, file) => new Uri($"https://localhost/api/v2/processing/{id}/files/{file}"),
+            (id, file) => new Uri($"https://localhost/api/v2/processing/{id}/visualizations/{file}"));
+
+        Assert.HasCount(2, response.Steps);
+        Assert.AreEqual("preflight", response.Steps[0].Id);
+        var step1Response = response.Steps[1];
+        Assert.AreEqual("step_1", step1Response.Id);
+        Assert.HasCount(0, step1Response.Downloads);
+        Assert.HasCount(1, step1Response.Deliveries);
+        Assert.AreEqual("first.log", step1Response.Deliveries[0]);
+        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
     [TestMethod]

@@ -202,6 +202,7 @@ export interface StepResult {
   statusMessage?: LocalizedText;
   conditionMessage?: LocalizedText;
   downloads: StepDownload[];
+  deliveries: string[];
   visualizations: StepVisualization[];
 }
 
