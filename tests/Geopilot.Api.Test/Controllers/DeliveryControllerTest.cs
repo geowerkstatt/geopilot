@@ -406,6 +406,24 @@ public class DeliveryControllerTest
         AssertResponseValueType(typeof(ValidationProblemDetails), result);
     }
 
+    [TestMethod]
+    public async Task CreateFailsWithoutFiles()
+    {
+        var (user, mandate) = SetupMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsWithoutFiles)), AllowDelivery = true, });
+        deliveryController.SetupTestUser(user);
+        var jobId = SetupProcessingJob(mandate.Id);
+        var request = new DeliveryRequest
+        {
+            JobId = jobId,
+        };
+        assetHandlerMock.Setup(a => a.PersistJobAssets(jobId)).Returns(new List<Asset>());
+
+        var result = await deliveryController.Create(request);
+
+        var objectResult = Assert.IsInstanceOfType<ObjectResult>(result);
+        Assert.AreEqual(StatusCodes.Status400BadRequest, objectResult.StatusCode);
+    }
+
     private void SetupJobPersistence(Guid jobId)
     {
         assetHandlerMock

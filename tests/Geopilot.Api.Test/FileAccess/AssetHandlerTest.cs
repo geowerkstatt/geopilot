@@ -84,14 +84,6 @@ public class AssetHandlerTest
     }
 
     [TestMethod]
-    public void PersistJobAssetsNoDeliveryFilesThrows()
-    {
-        SetJobPipeline();
-
-        Assert.ThrowsExactly<InvalidOperationException>(() => assetHandler.PersistJobAssets(job.Id));
-    }
-
-    [TestMethod]
     public void PersistJobAssetsJobNotFoundThrows()
     {
         Assert.ThrowsExactly<InvalidOperationException>(() => assetHandler.PersistJobAssets(Guid.NewGuid()));

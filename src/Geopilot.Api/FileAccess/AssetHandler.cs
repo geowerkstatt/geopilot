@@ -41,15 +41,7 @@ public class AssetHandler : IAssetHandler
 
         Directory.CreateDirectory(directoryProvider.GetAssetDirectoryPath(jobId));
 
-        var assets = RecordStepDeliveryAssets(job);
-        if (assets.Count == 0)
-        {
-            throw new InvalidOperationException(
-                $"Delivery of job <{job.Id}> is empty: pipeline <{job.Pipeline?.Id}> declared no files for delivery. " +
-                "Tag at least one pipeline output with the 'Delivery' output action.");
-        }
-
-        return assets;
+        return RecordStepDeliveryAssets(job);
     }
 
     /// <inheritdoc/>
