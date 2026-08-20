@@ -145,8 +145,14 @@ public class DeliveryController : ControllerBase
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Error while persisting assets for job whith id <{JobId}>.", declaration.JobId);
-            return Problem($"Error while persisting assets for job whith id <{declaration.JobId}>.");
+            logger.LogError(e, "Error while persisting assets for job with id <{JobId}>.", declaration.JobId);
+            return Problem($"Error while persisting assets for job with id <{declaration.JobId}>.");
+        }
+
+        if (delivery.Assets.Count == 0)
+        {
+            logger.LogTrace("No assets found for job with id <{JobId}>.", declaration.JobId);
+            return BadRequest($"No assets found for job with id <{declaration.JobId}>.");
         }
 
         var entityEntry = context.Deliveries.Add(delivery);
