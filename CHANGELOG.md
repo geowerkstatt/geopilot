@@ -17,7 +17,8 @@
 - The name of a mandate is localized (was `string` is now `LocalizedText`). The name can be defined for the different languages in the mandate administration.
 - The title shown on the delivery page is configured per environment in `client-settings.json` under `application.localTitle` (a language-code to text map) instead of a fixed built-in translation, so each deployment can present a title tailored to the customer. It is shown in the active language, falls back to another configured language, and is hidden only when no title is configured at all.
 - The application name shown in the header is resolved from `application.localName` in `client-settings.json` with cross-language fallback; the non-localized `application.name` default has been removed, so a deployment that configured only `name` must move that value into `localName`.
-- STAC asset type `ValidationReport` has been renamed to `ProcessedData`.
+- STAC asset type `ValidationReport` has been renamed to `ProcessedData`. A file that entered the pipeline as an upload is stored as `PrimaryData`, a file produced inside the pipeline as `ProcessedData`.
+- A delivery now only contains the files a pipeline step tags with the `Delivery` output action. Uploaded files are no longer added automatically, so an upload only reaches the delivery when a step provides it through a `Delivery`-tagged output (for example a matcher wired to `${upload()}` that tags its matched files, or its new `UnmatchedFiles`, as `Delivery`). Existing pipeline definitions must be updated to tag the outputs that make up the delivery.
 
 ### Added
 
@@ -35,6 +36,8 @@
 - Mandates can have a localized description. The description is shown to the users when they choose a mandate before processing.
 - The documentation of the pipeline definition format, of the processors shipped with geopilot and of the plugin system is now published with the code under [`docs/pipeline/`](docs/pipeline/Pipelines.md).
 - Pipeline steps can end in a `Warning` state through a post `warn_conditions` list: the step ran and reported issues but the pipeline continues, shown with a warning icon in the delivery view. A run whose only non-successful steps are warnings is reported as a warning overall, and a warning does not block delivery on its own.
+- The XTF Matcher and File Matcher processes expose an `UnmatchedFiles` output containing the input files that did not match the configured filters (the complement of `MatchedFiles`/`XtfFiles`, in input order), so the sorted-out files can be processed further or included in the delivery via `output_actions`.
+- The delivery submit step lists the files that will be delivered and blocks submission with an error if the delivery contains no files.
 
 ### Removed
 
