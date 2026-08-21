@@ -27,9 +27,11 @@ if (!await WaitForSchemaAsync(context, TimeSpan.FromMinutes(10)))
 
 // Signing in creates a user row, and the seed data contains those same accounts. Seeding on top of
 // them would produce duplicates, so only an untouched database is seeded.
-if (context.Users.Any() || context.Mandates.Any())
+var userCount = context.Users.Count();
+var mandateCount = context.Mandates.Count();
+if (userCount > 0 || mandateCount > 0)
 {
-    Console.WriteLine("Seed skipped: the database already contains data. Recreate the database volume to seed again.");
+    Console.WriteLine($"Seed skipped: the database already contains {userCount} users and {mandateCount} mandates. Run 'docker compose down -v' to recreate the volume and seed again.");
     return 0;
 }
 
