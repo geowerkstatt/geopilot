@@ -51,6 +51,7 @@ public static class WebApplicationExtensions
                     // other per-process resources for every restart.
                     pipelineProcessFactory
                         .Builder()
+                        .PipelineId(pipeline.Id)
                         .StepConfig(step)
                         .StepResultTypes(stepResultTypes)
                         .Processes(processes)
