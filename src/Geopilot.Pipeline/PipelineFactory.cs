@@ -72,6 +72,51 @@ public class PipelineFactory : IPipelineFactory
         }
     }
 
+    /// <inheritdoc />
+    public PipelineDefinitionValidationResult ValidateDefinition()
+    {
+        var definitionErrors = PipelineProcessConfig.Validate();
+        if (definitionErrors.HasErrors)
+        {
+            return new PipelineDefinitionValidationResult(
+                $"errors in pipeline definition:{Environment.NewLine}{definitionErrors.ErrorMessage}");
+        }
+
+        var processErrors = new HashSet<string>();
+        var processes = PipelineProcessConfig.Processes;
+        foreach (var pipeline in PipelineProcessConfig.Pipelines)
+        {
+            var stepResultTypes = pipelineProcessFactory.BuildStepResultTypes(pipeline.Steps, processes);
+            foreach (var step in pipeline.Steps)
+            {
+                try
+                {
+                    // Use Validate() rather than Build() so validation does not actually construct processes.
+                    // Invoking constructors here would leak per-step directories under $TEMP and allocate
+                    // HttpClients and other per-process resources on every restart.
+                    pipelineProcessFactory
+                        .Builder()
+                        .StepConfig(step)
+                        .StepResultTypes(stepResultTypes)
+                        .Processes(processes)
+                        .Validate(resourcesDirectory);
+                }
+                catch (Exception ex)
+                {
+                    processErrors.Add($"pipeline {pipeline.Id}, step {step.Id}, process {step.ProcessId}, error: {ex.Message}");
+                }
+            }
+        }
+
+        if (processErrors.Count > 0)
+        {
+            return new PipelineDefinitionValidationResult(
+                $"Invalid pipeline processes found:{Environment.NewLine}{string.Join(Environment.NewLine, processErrors)}");
+        }
+
+        return PipelineDefinitionValidationResult.Valid;
+    }
+
     private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, string pipelineTempDirectory, Guid jobId)
     {
         return pipelineConfig.Steps
