@@ -98,11 +98,11 @@ services:
       Auth__ApiOrigin: https://localhost:5173
       Auth__FullScope: "profile email openid geopilot.api"
       Auth__ApiServerScope: "geopilot.api"
-      CloudStorage__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://localhost:10000/devstoreaccount1;"
-      CloudStorage__BucketName: uploads
-      CloudStorage__BlobEndpoint: https://localhost:10000
-      CloudStorage__AutoCreateContainer: true
-      CloudStorage__AllowedOrigins__0: https://localhost:5173
+      Upload__Cloud__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://localhost:10000/devstoreaccount1;"
+      Upload__Cloud__BucketName: uploads
+      Upload__Cloud__BlobEndpoint: https://localhost:10000
+      Upload__Cloud__AutoCreateContainer: true
+      Upload__Cloud__AllowedOrigins__0: https://localhost:5173
       ClamAV__Enabled: true
       ClamAV__Host: clamav
       ClamAV__Port: 3310

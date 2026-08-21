@@ -12,50 +12,50 @@ using System.Collections.Immutable;
 namespace Geopilot.Api.Test.Services;
 
 [TestClass]
-public class CloudOrchestrationServiceTest
+public class UploadOrchestrationServiceTest
 {
-    private Mock<ICloudStorageService> cloudStorageServiceMock;
-    private Mock<ICloudScanService> cloudScanServiceMock;
+    private Mock<IUploadStorage> uploadStorageMock;
+    private Mock<IUploadScanService> scanServiceMock;
     private Mock<IDirectoryProvider> directoryProviderMock;
-    private Mock<IOptions<CloudStorageOptions>> optionsMock;
-    private Mock<ILogger<CloudOrchestrationService>> loggerMock;
+    private Mock<IOptions<UploadOptions>> optionsMock;
+    private Mock<ILogger<UploadOrchestrationService>> loggerMock;
     private ProcessingJobStore jobStore;
     private UploadStore uploadStore;
-    private CloudOrchestrationService service;
+    private UploadOrchestrationService service;
     private string pipelineRoot;
 
     [TestInitialize]
     public void Initialize()
     {
-        cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
-        cloudScanServiceMock = new Mock<ICloudScanService>(MockBehavior.Strict);
+        uploadStorageMock = new Mock<IUploadStorage>(MockBehavior.Strict);
+        scanServiceMock = new Mock<IUploadScanService>(MockBehavior.Strict);
 
         // Own root per test instance: the methods of this class run in parallel, so a shared root
         // would have one test's cleanup delete files another test is still writing.
-        pipelineRoot = Path.Combine(Path.GetTempPath(), "CloudOrchestrationServiceTest_" + Guid.NewGuid());
+        pipelineRoot = Path.Combine(Path.GetTempPath(), "UploadOrchestrationServiceTest_" + Guid.NewGuid());
         directoryProviderMock = new Mock<IDirectoryProvider>();
         directoryProviderMock
             .Setup(d => d.GetPipelineDirectoryPath(It.IsAny<Guid>()))
             .Returns((Guid jobId) => Path.Combine(pipelineRoot, jobId.ToString()));
-        loggerMock = new Mock<ILogger<CloudOrchestrationService>>();
+        loggerMock = new Mock<ILogger<UploadOrchestrationService>>();
 
-        optionsMock = new Mock<IOptions<CloudStorageOptions>>();
-        optionsMock.SetupGet(o => o.Value).Returns(new CloudStorageOptions
+        optionsMock = new Mock<IOptions<UploadOptions>>();
+        optionsMock.SetupGet(o => o.Value).Returns(new UploadOptions
         {
             MaxFileSizeMB = 2048,
             MaxFilesPerJob = 12,
             MaxJobSizeMB = 10240,
             MaxGlobalActiveSizeMB = 204800,
             MaxActiveJobs = 100,
-            PresignedUrlExpiryMinutes = 60,
+            UploadUrlExpiryMinutes = 60,
         });
 
         jobStore = new ProcessingJobStore();
         uploadStore = new UploadStore();
 
-        service = new CloudOrchestrationService(
-            cloudStorageServiceMock.Object,
-            cloudScanServiceMock.Object,
+        service = new UploadOrchestrationService(
+            uploadStorageMock.Object,
+            scanServiceMock.Object,
             jobStore,
             uploadStore,
             directoryProviderMock.Object,
@@ -66,8 +66,8 @@ public class CloudOrchestrationServiceTest
     [TestCleanup]
     public void Cleanup()
     {
-        cloudStorageServiceMock.VerifyAll();
-        cloudScanServiceMock.VerifyAll();
+        uploadStorageMock.VerifyAll();
+        scanServiceMock.VerifyAll();
 
         if (Directory.Exists(pipelineRoot))
             Directory.Delete(pipelineRoot, recursive: true);
@@ -76,12 +76,12 @@ public class CloudOrchestrationServiceTest
     [TestMethod]
     public async Task InitiateUploadAsyncCreatesUploadAndReturnsPresignedUrls()
     {
-        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
 
         SetupGlobalLimitChecks();
 
-        cloudStorageServiceMock
-            .Setup(s => s.GeneratePresignedUploadUrlAsync(It.IsAny<string>(), null, It.IsAny<TimeSpan>()))
+        uploadStorageMock
+            .Setup(s => s.GenerateUploadUrlAsync(It.IsAny<string>(), null, It.IsAny<TimeSpan>()))
             .ReturnsAsync("https://storage.example.com/presigned-url");
 
         var response = await service.InitiateUploadAsync(request);
@@ -107,21 +107,21 @@ public class CloudOrchestrationServiceTest
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsForEmptyFiles()
     {
-        var request = new CloudUploadRequest { Files = [] };
+        var request = new InitiateUploadRequest { Files = [] };
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.InitiateUploadAsync(request));
     }
 
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsForZeroFileSize()
     {
-        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 0)] };
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", 0)] };
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.InitiateUploadAsync(request));
     }
 
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsForNegativeFileSize()
     {
-        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", -1)] };
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", -1)] };
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.InitiateUploadAsync(request));
     }
 
@@ -129,7 +129,7 @@ public class CloudOrchestrationServiceTest
     public async Task InitiateUploadAsyncThrowsForOversizedFile()
     {
         var maxBytes = (long)optionsMock.Object.Value.MaxFileSizeMB * 1024 * 1024;
-        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", maxBytes + 1)] };
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", maxBytes + 1)] };
         await Assert.ThrowsExactlyAsync<ArgumentException>(() => service.InitiateUploadAsync(request));
     }
 
@@ -138,11 +138,11 @@ public class CloudOrchestrationServiceTest
     {
         var upload = CreateUpload("test.xtf", 1024);
 
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{upload.Id}/test.xtf", 1024, DateTime.UtcNow) });
 
-        cloudScanServiceMock
+        scanServiceMock
             .Setup(s => s.CheckFilesAsync(It.IsAny<IReadOnlyList<string>>()))
             .ReturnsAsync(new ScanResult(true));
 
@@ -156,11 +156,11 @@ public class CloudOrchestrationServiceTest
     {
         var upload = CreateUpload("test.xtf", 1024);
 
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)>());
 
-        var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(upload.Id));
+        var ex = await Assert.ThrowsExactlyAsync<UploadPreflightException>(() => service.RunPreflightChecksAsync(upload.Id));
         Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
     }
 
@@ -169,11 +169,11 @@ public class CloudOrchestrationServiceTest
     {
         var upload = CreateUpload("test.xtf", 1024);
 
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{upload.Id}/test.xtf", 512, DateTime.UtcNow) });
 
-        var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(upload.Id));
+        var ex = await Assert.ThrowsExactlyAsync<UploadPreflightException>(() => service.RunPreflightChecksAsync(upload.Id));
         Assert.AreEqual(PreflightFailureReason.IncompleteUpload, ex.FailureReason);
     }
 
@@ -182,15 +182,15 @@ public class CloudOrchestrationServiceTest
     {
         var upload = CreateUpload("test.xtf", 1024);
 
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{upload.Id}/test.xtf", 1024, DateTime.UtcNow) });
 
-        cloudScanServiceMock
+        scanServiceMock
             .Setup(s => s.CheckFilesAsync(It.IsAny<IReadOnlyList<string>>()))
             .ReturnsAsync(new ScanResult(false, "Malware found"));
 
-        var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(upload.Id));
+        var ex = await Assert.ThrowsExactlyAsync<UploadPreflightException>(() => service.RunPreflightChecksAsync(upload.Id));
         Assert.AreEqual(PreflightFailureReason.ThreatDetected, ex.FailureReason);
     }
 
@@ -201,7 +201,7 @@ public class CloudOrchestrationServiceTest
     }
 
     [TestMethod]
-    public void RegisterJobFilesRecordsCloudKeysWithoutTransferringAnything()
+    public void RegisterJobFilesRecordsStorageKeysWithoutTransferringAnything()
     {
         var upload = CreateUpload("test.xtf", 1024);
         var job = jobStore.CreateJob(upload.Id);
@@ -215,7 +215,7 @@ public class CloudOrchestrationServiceTest
         Assert.HasCount(1, registered);
         Assert.AreEqual("test.xtf", registered[0].OriginalFileName);
         Assert.AreEqual("test.xtf", registered[0].TempFileName);
-        Assert.AreEqual($"uploads/{upload.Id}/test.xtf", registered[0].CloudKey);
+        Assert.AreEqual($"uploads/{upload.Id}/test.xtf", registered[0].StorageKey);
 
         // The strict storage mock has no setup at all, so any transfer or deletion would have thrown.
         Assert.IsNotNull(uploadStore.GetUpload(upload.Id), "the upload must stay available until the job is done with it");
@@ -227,7 +227,7 @@ public class CloudOrchestrationServiceTest
         var upload = CreateUpload("test.xtf", 1024);
         var job = jobStore.CreateJob(upload.Id);
 
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(s => s.DownloadAsync($"uploads/{upload.Id}/test.xtf", It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -296,13 +296,13 @@ public class CloudOrchestrationServiceTest
     {
         var upload = CreateUpload("test.xtf", 1024);
 
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(s => s.DeletePrefixAsync($"uploads/{upload.Id}/"))
             .Returns(Task.CompletedTask);
 
         await service.ReleaseUploadAsync(upload.Id);
 
-        cloudStorageServiceMock.Verify(s => s.DeletePrefixAsync($"uploads/{upload.Id}/"), Times.Once);
+        uploadStorageMock.Verify(s => s.DeletePrefixAsync($"uploads/{upload.Id}/"), Times.Once);
         Assert.IsNull(uploadStore.GetUpload(upload.Id));
     }
 
@@ -311,7 +311,7 @@ public class CloudOrchestrationServiceTest
     {
         var upload = CreateUpload("test.xtf", 1024);
 
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(s => s.DeletePrefixAsync($"uploads/{upload.Id}/"))
             .ThrowsAsync(new InvalidOperationException("storage down"));
 
@@ -324,23 +324,23 @@ public class CloudOrchestrationServiceTest
     {
         var upload = CreateUpload("test.xtf", 1024);
 
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{upload.Id}/test.xtf", 2048, DateTime.UtcNow) });
 
-        var ex = await Assert.ThrowsExactlyAsync<CloudUploadPreflightException>(() => service.RunPreflightChecksAsync(upload.Id));
+        var ex = await Assert.ThrowsExactlyAsync<UploadPreflightException>(() => service.RunPreflightChecksAsync(upload.Id));
         Assert.AreEqual(PreflightFailureReason.SizeExceeded, ex.FailureReason);
     }
 
     [TestMethod]
     public async Task InitiateUploadAsyncSanitizesFileName()
     {
-        var request = new CloudUploadRequest { Files = [new FileMetadata("../../etc/passwd", 1024)] };
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("../../etc/passwd", 1024)] };
 
         SetupGlobalLimitChecks();
 
-        cloudStorageServiceMock
-            .Setup(s => s.GeneratePresignedUploadUrlAsync(It.Is<string>(k => k.EndsWith("/passwd")), null, It.IsAny<TimeSpan>()))
+        uploadStorageMock
+            .Setup(s => s.GenerateUploadUrlAsync(It.Is<string>(k => k.EndsWith("/passwd")), null, It.IsAny<TimeSpan>()))
             .ReturnsAsync("https://storage.example.com/presigned-url");
 
         var response = await service.InitiateUploadAsync(request);
@@ -350,19 +350,19 @@ public class CloudOrchestrationServiceTest
         var upload = uploadStore.GetUpload(response.UploadId);
         Assert.IsNotNull(upload);
         Assert.AreEqual("passwd", upload.Files[0].FileName);
-        Assert.EndsWith("/passwd", upload.Files[0].CloudKey);
+        Assert.EndsWith("/passwd", upload.Files[0].StorageKey);
     }
 
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsWhenMaxActiveUploadsReached()
     {
-        var opts = new CloudStorageOptions { MaxFileSizeMB = 2048, MaxFilesPerJob = 12, MaxJobSizeMB = 10240, MaxActiveJobs = 1 };
+        var opts = new UploadOptions { MaxFileSizeMB = 2048, MaxFilesPerJob = 12, MaxJobSizeMB = 10240, MaxActiveJobs = 1 };
         optionsMock.SetupGet(o => o.Value).Returns(opts);
 
         // Create one upload to hit the limit.
-        uploadStore.CreateUpload(Guid.NewGuid(), ImmutableList.Create(new CloudFileInfo("f.xtf", "uploads/f.xtf", 100)));
+        uploadStore.CreateUpload(Guid.NewGuid(), ImmutableList.Create(new UploadedFileInfo("f.xtf", "uploads/f.xtf", 100)));
 
-        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.InitiateUploadAsync(request));
     }
@@ -370,14 +370,14 @@ public class CloudOrchestrationServiceTest
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsWhenGlobalSizeLimitExceeded()
     {
-        var opts = new CloudStorageOptions { MaxFileSizeMB = 2048, MaxFilesPerJob = 12, MaxJobSizeMB = 10240, MaxActiveJobs = 100, MaxGlobalActiveSizeMB = 1 };
+        var opts = new UploadOptions { MaxFileSizeMB = 2048, MaxFilesPerJob = 12, MaxJobSizeMB = 10240, MaxActiveJobs = 100, MaxGlobalActiveSizeMB = 1 };
         optionsMock.SetupGet(o => o.Value).Returns(opts);
 
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(s => s.GetTotalSizeAsync("uploads/"))
             .ReturnsAsync(1L * 1024 * 1024);
 
-        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
 
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => service.InitiateUploadAsync(request));
     }
@@ -388,15 +388,15 @@ public class CloudOrchestrationServiceTest
     private UploadInfo CreateUpload(params (string FileName, long Size)[] files)
     {
         var uploadId = Guid.NewGuid();
-        var cloudFiles = files
-            .Select(f => new CloudFileInfo(f.FileName, $"uploads/{uploadId}/{f.FileName}", f.Size))
+        var uploadedFiles = files
+            .Select(f => new UploadedFileInfo(f.FileName, $"uploads/{uploadId}/{f.FileName}", f.Size))
             .ToImmutableList();
-        return uploadStore.CreateUpload(uploadId, cloudFiles);
+        return uploadStore.CreateUpload(uploadId, uploadedFiles);
     }
 
     private void SetupGlobalLimitChecks()
     {
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(s => s.GetTotalSizeAsync("uploads/"))
             .ReturnsAsync(0L);
     }

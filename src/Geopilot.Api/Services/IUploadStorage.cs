@@ -1,21 +1,21 @@
 ﻿namespace Geopilot.Api.Services;
 
 /// <summary>
-/// Provides cloud storage operations for file uploads via presigned URLs.
+/// The storage backend uploaded files are written to and read from, addressed by storage key.
 /// </summary>
-public interface ICloudStorageService
+public interface IUploadStorage
 {
     /// <summary>
-    /// Generates a presigned URL for uploading a file to cloud storage.
+    /// Generates the URL the client uploads the file content to.
     /// </summary>
     /// <param name="key">The storage key for the file.</param>
     /// <param name="contentType">The content type of the file.</param>
     /// <param name="expiresIn">The duration for which the URL is valid.</param>
-    /// <returns>The presigned upload URL.</returns>
-    Task<string> GeneratePresignedUploadUrlAsync(string key, string? contentType, TimeSpan expiresIn);
+    /// <returns>The upload URL.</returns>
+    Task<string> GenerateUploadUrlAsync(string key, string? contentType, TimeSpan expiresIn);
 
     /// <summary>
-    /// Downloads a file from cloud storage to a local stream.
+    /// Downloads a file from the upload storage to a local stream.
     /// </summary>
     /// <param name="key">The storage key of the file to download.</param>
     /// <param name="destination">The stream to write the file contents to.</param>
@@ -23,7 +23,7 @@ public interface ICloudStorageService
     Task DownloadAsync(string key, Stream destination, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Opens a readable stream to a file in cloud storage without buffering the entire file in memory.
+    /// Opens a readable stream to a file in the upload storage without buffering the entire file in memory.
     /// The caller is responsible for disposing the returned stream.
     /// </summary>
     /// <param name="key">The storage key of the file to read.</param>
@@ -31,14 +31,14 @@ public interface ICloudStorageService
     Task<Stream> OpenReadAsync(string key, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lists files in cloud storage matching the specified prefix.
+    /// Lists files in the upload storage matching the specified prefix.
     /// </summary>
     /// <param name="prefix">The key prefix to filter by.</param>
     /// <returns>A list of keys, sizes, and last modified timestamps.</returns>
     Task<IReadOnlyList<(string Key, long Size, DateTime LastModified)>> ListFilesAsync(string prefix);
 
     /// <summary>
-    /// Deletes a single file from cloud storage.
+    /// Deletes a single file from the upload storage.
     /// </summary>
     /// <param name="key">The storage key of the file to delete.</param>
     Task DeleteAsync(string key);

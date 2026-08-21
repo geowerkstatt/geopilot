@@ -9,7 +9,7 @@ using System.Collections.Immutable;
 namespace Geopilot.Api.Test.Services;
 
 [TestClass]
-public class CloudCleanupServiceIntegrationTest
+public class UploadCleanupServiceIntegrationTest
 {
     private const string AzuriteConnectionString =
         "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;" +
@@ -17,9 +17,9 @@ public class CloudCleanupServiceIntegrationTest
         "BlobEndpoint=https://localhost:10000/devstoreaccount1;";
 
     private BlobContainerClient containerClient;
-    private AzureBlobStorageService storageService;
+    private AzureBlobUploadStorage storageService;
     private UploadStore uploadStore;
-    private CloudCleanupService cleanupService;
+    private UploadCleanupService cleanupService;
     private string containerName;
 
     [TestInitialize]
@@ -27,29 +27,30 @@ public class CloudCleanupServiceIntegrationTest
     {
         containerName = $"test-{Guid.NewGuid():N}";
 
-        var storageOptions = new CloudStorageOptions
+        var cloudOptions = new UploadCloudOptions
         {
             ConnectionString = AzuriteConnectionString,
             BucketName = containerName,
+        };
+
+        var uploadOptions = new UploadOptions
+        {
             CleanupAgeHours = 48,
             MaxFileSizeMB = 1,
         };
-
-        var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
-        optionsMock.Setup(o => o.Value).Returns(storageOptions);
 
         var blobServiceClient = new BlobServiceClient(AzuriteConnectionString);
         containerClient = blobServiceClient.GetBlobContainerClient(containerName);
         containerClient.CreateIfNotExists();
 
-        storageService = new AzureBlobStorageService(optionsMock.Object, Mock.Of<ILogger<AzureBlobStorageService>>());
+        storageService = new AzureBlobUploadStorage(Options.Create(cloudOptions), Mock.Of<ILogger<AzureBlobUploadStorage>>());
         uploadStore = new UploadStore();
 
-        cleanupService = new CloudCleanupService(
+        cleanupService = new UploadCleanupService(
             storageService,
             uploadStore,
-            new Mock<ILogger<CloudCleanupService>>().Object,
-            optionsMock.Object,
+            new Mock<ILogger<UploadCleanupService>>().Object,
+            Options.Create(uploadOptions),
             Options.Create(new ProcessingOptions { JobRetention = TimeSpan.FromHours(24), JobTimeout = TimeSpan.FromMinutes(30) }));
     }
 
@@ -64,10 +65,10 @@ public class CloudCleanupServiceIntegrationTest
     public async Task RunCleanupAsyncDeletesOversizedBlobsAndRemovesUpload()
     {
         var uploadId = Guid.NewGuid();
-        var cloudKey = $"uploads/{uploadId}/large.xtf";
-        var upload = uploadStore.CreateUpload(uploadId, CloudFiles("large.xtf", cloudKey));
+        var storageKey = $"uploads/{uploadId}/large.xtf";
+        var upload = uploadStore.CreateUpload(uploadId, UploadedFiles("large.xtf", storageKey));
         var oversizedContent = new byte[(1 * 1024 * 1024) + 1];
-        await UploadTestBlobAsync(cloudKey, oversizedContent);
+        await UploadTestBlobAsync(storageKey, oversizedContent);
 
         await cleanupService.RunCleanupAsync();
 
@@ -92,9 +93,9 @@ public class CloudCleanupServiceIntegrationTest
     public async Task RunCleanupAsyncPreservesRecentValidBlobs()
     {
         var uploadId = Guid.NewGuid();
-        var cloudKey = $"uploads/{uploadId}/valid.xtf";
-        var upload = uploadStore.CreateUpload(uploadId, CloudFiles("valid.xtf", cloudKey));
-        await UploadTestBlobAsync(cloudKey, "small valid file");
+        var storageKey = $"uploads/{uploadId}/valid.xtf";
+        var upload = uploadStore.CreateUpload(uploadId, UploadedFiles("valid.xtf", storageKey));
+        await UploadTestBlobAsync(storageKey, "small valid file");
 
         await cleanupService.RunCleanupAsync();
 
@@ -107,9 +108,9 @@ public class CloudCleanupServiceIntegrationTest
     public async Task RunCleanupAsyncDeletesBlobsOutsideUploadsPrefix()
     {
         var uploadId = Guid.NewGuid();
-        var cloudKey = $"uploads/{uploadId}/valid.xtf";
-        uploadStore.CreateUpload(uploadId, CloudFiles("valid.xtf", cloudKey));
-        await UploadTestBlobAsync(cloudKey, "keep me");
+        var storageKey = $"uploads/{uploadId}/valid.xtf";
+        uploadStore.CreateUpload(uploadId, UploadedFiles("valid.xtf", storageKey));
+        await UploadTestBlobAsync(storageKey, "keep me");
         await UploadTestBlobAsync("rogue/file.txt", "delete me");
 
         await cleanupService.RunCleanupAsync();
@@ -129,8 +130,8 @@ public class CloudCleanupServiceIntegrationTest
         Assert.IsEmpty(remaining);
     }
 
-    private static ImmutableList<CloudFileInfo> CloudFiles(string fileName, string cloudKey) =>
-        ImmutableList.Create(new CloudFileInfo(fileName, cloudKey, 0));
+    private static ImmutableList<UploadedFileInfo> UploadedFiles(string fileName, string storageKey) =>
+        ImmutableList.Create(new UploadedFileInfo(fileName, storageKey, 0));
 
     private async Task UploadTestBlobAsync(string key, string content)
     {

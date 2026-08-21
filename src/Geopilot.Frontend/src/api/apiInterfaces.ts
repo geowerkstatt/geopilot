@@ -261,7 +261,7 @@ export interface UploadSettings {
   maxJobSizeMB: number;
 }
 
-export interface CloudUploadResponse {
+export interface InitiateUploadResponse {
   uploadId: string;
   files: { fileName: string; uploadUrl: string }[];
   expiresAt: string;

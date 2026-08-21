@@ -7,7 +7,7 @@ using Moq;
 namespace Geopilot.Api.Test.Services;
 
 [TestClass]
-public class AzureBlobStorageServiceTest
+public class AzureBlobUploadStorageTest
 {
     private const string AzuriteConnectionString =
         "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;" +
@@ -15,7 +15,7 @@ public class AzureBlobStorageServiceTest
         "BlobEndpoint=https://localhost:10000/devstoreaccount1;";
 
     private BlobContainerClient containerClient;
-    private AzureBlobStorageService service;
+    private AzureBlobUploadStorage service;
     private string containerName;
 
     [TestInitialize]
@@ -23,20 +23,20 @@ public class AzureBlobStorageServiceTest
     {
         containerName = $"test-{Guid.NewGuid():N}";
 
-        var options = new CloudStorageOptions
+        var options = new UploadCloudOptions
         {
             ConnectionString = AzuriteConnectionString,
             BucketName = containerName,
         };
 
-        var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
+        var optionsMock = new Mock<IOptions<UploadCloudOptions>>();
         optionsMock.Setup(o => o.Value).Returns(options);
 
         var blobServiceClient = new BlobServiceClient(AzuriteConnectionString);
         containerClient = blobServiceClient.GetBlobContainerClient(containerName);
         containerClient.CreateIfNotExists();
 
-        service = new AzureBlobStorageService(optionsMock.Object, Mock.Of<ILogger<AzureBlobStorageService>>());
+        service = new AzureBlobUploadStorage(optionsMock.Object, Mock.Of<ILogger<AzureBlobUploadStorage>>());
     }
 
     [TestCleanup]
@@ -48,21 +48,21 @@ public class AzureBlobStorageServiceTest
     [TestMethod]
     public void ConstructorThrowsWhenConnectionStringMissing()
     {
-        var options = new CloudStorageOptions { ConnectionString = "", BucketName = "test" };
-        var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
+        var options = new UploadCloudOptions { ConnectionString = "", BucketName = "test" };
+        var optionsMock = new Mock<IOptions<UploadCloudOptions>>();
         optionsMock.Setup(o => o.Value).Returns(options);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => new AzureBlobStorageService(optionsMock.Object, Mock.Of<ILogger<AzureBlobStorageService>>()));
+        Assert.ThrowsExactly<InvalidOperationException>(() => new AzureBlobUploadStorage(optionsMock.Object, Mock.Of<ILogger<AzureBlobUploadStorage>>()));
     }
 
     [TestMethod]
     public void ConstructorThrowsWhenBucketNameMissing()
     {
-        var options = new CloudStorageOptions { ConnectionString = AzuriteConnectionString, BucketName = "" };
-        var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
+        var options = new UploadCloudOptions { ConnectionString = AzuriteConnectionString, BucketName = "" };
+        var optionsMock = new Mock<IOptions<UploadCloudOptions>>();
         optionsMock.Setup(o => o.Value).Returns(options);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => new AzureBlobStorageService(optionsMock.Object, Mock.Of<ILogger<AzureBlobStorageService>>()));
+        Assert.ThrowsExactly<InvalidOperationException>(() => new AzureBlobUploadStorage(optionsMock.Object, Mock.Of<ILogger<AzureBlobUploadStorage>>()));
     }
 
     [TestMethod]
@@ -71,7 +71,7 @@ public class AzureBlobStorageServiceTest
         var key = "uploads/test-file.xtf";
         var expiresIn = TimeSpan.FromMinutes(10);
 
-        var url = await service.GeneratePresignedUploadUrlAsync(key, null, expiresIn);
+        var url = await service.GenerateUploadUrlAsync(key, null, expiresIn);
 
         Assert.IsNotNull(url);
         Assert.Contains(key, url);

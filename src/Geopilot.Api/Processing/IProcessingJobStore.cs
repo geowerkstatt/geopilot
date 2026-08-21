@@ -31,7 +31,7 @@ public interface IProcessingJobStore
     IReadOnlyCollection<Guid> GetJobIds();
 
     /// <summary>
-    /// Creates and stores a new <see cref="ProcessingJob"/> for the specified cloud upload.
+    /// Creates and stores a new <see cref="ProcessingJob"/> for the specified upload.
     /// </summary>
     /// <param name="uploadId">The upload whose files the job processes.</param>
     ProcessingJob CreateJob(Guid uploadId);
@@ -41,10 +41,10 @@ public interface IProcessingJobStore
     /// </summary>
     /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
     /// <exception cref="InvalidOperationException">If the job is no longer pending.</exception>
-    ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName, string cloudKey);
+    ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName, string storageKey);
 
     /// <summary>
-    /// Marks the specified job as failed (e.g. cloud preflight failure before a pipeline could be created).
+    /// Marks the specified job as failed (e.g. preflight failure before a pipeline could be created).
     /// </summary>
     /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
     /// <exception cref="InvalidOperationException">If the job is already in a terminal state.</exception>

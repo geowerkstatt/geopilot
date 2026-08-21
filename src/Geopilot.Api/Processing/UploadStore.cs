@@ -11,7 +11,7 @@ public class UploadStore : IUploadStore
     private readonly ConcurrentDictionary<Guid, UploadInfo> uploads = new();
 
     /// <inheritdoc/>
-    public UploadInfo CreateUpload(Guid id, ImmutableList<CloudFileInfo> files)
+    public UploadInfo CreateUpload(Guid id, ImmutableList<UploadedFileInfo> files)
     {
         ArgumentNullException.ThrowIfNull(files);
 

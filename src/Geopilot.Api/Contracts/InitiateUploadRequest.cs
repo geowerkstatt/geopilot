@@ -3,9 +3,9 @@
 namespace Geopilot.Api.Contracts;
 
 /// <summary>
-/// Request to initiate a cloud upload session.
+/// Request to initiate a upload session.
 /// </summary>
-public class CloudUploadRequest
+public class InitiateUploadRequest
 {
     /// <summary>
     /// The files to upload.

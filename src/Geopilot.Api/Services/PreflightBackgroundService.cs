@@ -5,9 +5,9 @@ using System.Threading.Channels;
 namespace Geopilot.Api.Services;
 
 /// <summary>
-/// Background worker that processes cloud upload preflight checks.
+/// Background worker that processes upload preflight checks.
 /// Reads <see cref="PreflightRequest"/> messages from the channel and runs
-/// verify, scan and queue for processing for each job. The uploaded files stay in cloud storage;
+/// verify, scan and queue for processing for each job. The uploaded files stay in the upload storage;
 /// each one is fetched the first time a step reads it.
 /// </summary>
 public class PreflightBackgroundService : BackgroundService
@@ -48,7 +48,7 @@ public class PreflightBackgroundService : BackgroundService
 
         using var scope = serviceScopeFactory.CreateScope();
         var jobStore = scope.ServiceProvider.GetRequiredService<IProcessingJobStore>();
-        var cloudOrchestrationService = scope.ServiceProvider.GetRequiredService<ICloudOrchestrationService>();
+        var orchestrationService = scope.ServiceProvider.GetRequiredService<IUploadOrchestrationService>();
 
         var job = jobStore.GetJob(request.JobId);
         if (job == null || job.State != ProcessingState.Pending)
@@ -59,11 +59,11 @@ public class PreflightBackgroundService : BackgroundService
 
         try
         {
-            await cloudOrchestrationService.RunPreflightChecksAsync(request.UploadId);
+            await orchestrationService.RunPreflightChecksAsync(request.UploadId);
 
-            // Nothing is transferred here: each file is fetched from cloud storage the first time a step
+            // Nothing is transferred here: each file is fetched from the upload storage the first time a step
             // reads it, so the job starts without waiting for the whole upload.
-            var pipelineFiles = cloudOrchestrationService.RegisterJobFiles(request.UploadId, request.JobId);
+            var pipelineFiles = orchestrationService.RegisterJobFiles(request.UploadId, request.JobId);
 
             jobStore.EnqueueForProcessing(request.JobId, pipelineFiles);
 
@@ -87,13 +87,13 @@ public class PreflightBackgroundService : BackgroundService
 
             try
             {
-                await cloudOrchestrationService.ReleaseUploadAsync(request.UploadId);
+                await orchestrationService.ReleaseUploadAsync(request.UploadId);
             }
             catch (Exception cleanupEx)
             {
                 // This method is the body of the channel loop: letting anything escape here would stop
                 // the background service and leave every later upload stuck in Pending.
-                logger.LogError(cleanupEx, "Failed to release cloud files of upload <{UploadId}>.", request.UploadId);
+                logger.LogError(cleanupEx, "Failed to release the files of upload <{UploadId}>.", request.UploadId);
             }
         }
     }
