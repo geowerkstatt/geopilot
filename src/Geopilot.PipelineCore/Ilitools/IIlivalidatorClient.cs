@@ -22,6 +22,14 @@ public interface IIlivalidatorClient
     /// how a repository that is not published can be used, and its content is trusted as configuration: it can define
     /// models, carry a validation profile and point at further repositories.
     /// </param>
+    /// <param name="modelFiles">
+    /// Optional single INTERLIS model files (<c>.ili</c>) delivered alongside the transfer file. The service stores
+    /// them next to the transfer file under names of its own, so a repository index (<c>ilidata.xml</c>,
+    /// <c>ilisite.xml</c>, <c>ilimodels.xml</c>) cannot be smuggled in, which makes this the channel for models from
+    /// an unreviewed source such as an upload. They become visible through the placeholder <c>%ITF_DIR</c> in
+    /// <see cref="IlivalidatorArgs.ModelDirs"/> (or through the tool default when no model dirs are set); its
+    /// position decides the precedence against the configured repositories, unreviewed content belongs at the end.
+    /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="IlivalidatorResult"/> indicating whether the validation succeeded.</returns>
     Task<IlivalidatorResult> ValidateAsync(
@@ -30,5 +38,6 @@ public interface IIlivalidatorClient
         IPipelineFile logFile,
         IPipelineFile xtfLogFile,
         IPipelineFile? modelRepositoryArchive = null,
+        IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default);
 }

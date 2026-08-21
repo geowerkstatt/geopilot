@@ -125,8 +125,8 @@ public class IlivalidatorRepositoryIntegrationTest
         await DeleteIfExistsAsync(logFile);
         await DeleteIfExistsAsync(xtfLogFile);
 
-        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, archive, TestContext.CancellationToken);
-        var log = await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(), TestContext.CancellationToken);
+        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, archive, cancellationToken: TestContext.CancellationToken);
+        var log = await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(), cancellationToken: TestContext.CancellationToken);
 
         return (result.Success, log);
     }

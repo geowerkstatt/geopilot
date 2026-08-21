@@ -71,6 +71,49 @@ public class IlivalidatorClientIntegrationTest
 
     [TestMethod]
     [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncResolvesDeliveredModel()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var modelFile = GetTestPipelineFile("model.ili");
+        var logFile = GetTestPipelineFile("validation_delivered_model.log");
+        var xtfLogFile = GetTestPipelineFile("validation_delivered_model.xtf");
+        await DeleteIfExistsAsync(logFile);
+        await DeleteIfExistsAsync(xtfLogFile);
+
+        // The delivered model lands next to the transfer file in the session directory of the wrapper, so
+        // %ITF_DIR is all it takes to resolve it; no repository is asked.
+        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR"] };
+
+        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, modelFiles: [modelFile], cancellationToken: TestContext.CancellationToken);
+
+        Assert.IsTrue(result.Success, "The transfer file should validate against the delivered model.");
+
+        var log = await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(), TestContext.CancellationToken);
+        Assert.Contains("validation done", log, "The tool log should report a successful validation.");
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncAppliesInterlis1SemanticsForItf()
+    {
+        var transferFile = GetTestPipelineFile("transfer_interlis1.itf");
+        var modelFile = GetTestPipelineFile("model_interlis1.ili");
+        var logFile = GetTestPipelineFile("validation_interlis1.log");
+        var xtfLogFile = GetTestPipelineFile("validation_interlis1.xtf");
+        await DeleteIfExistsAsync(logFile);
+        await DeleteIfExistsAsync(xtfLogFile);
+
+        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR"] };
+
+        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, modelFiles: [modelFile], cancellationToken: TestContext.CancellationToken);
+
+        // The fixture reuses a TID across two tables, which is legal in ITF but fails under an xtf name, so this
+        // only passes when the itf extension of the transfer file reaches the tool through the wrapper.
+        Assert.IsTrue(result.Success, "The ITF should validate against the delivered INTERLIS 1 model.");
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
     public async Task ValidateAsyncReportsAnUnresolvableProfileInTheLog()
     {
         var transferFile = GetTestPipelineFile("transfer.xtf");

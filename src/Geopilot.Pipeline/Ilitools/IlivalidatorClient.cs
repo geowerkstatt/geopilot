@@ -32,6 +32,7 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         IPipelineFile logFile,
         IPipelineFile xtfLogFile,
         IPipelineFile? modelRepositoryArchive = null,
+        IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting ilivalidator validation of {FileName}.", transferFile.OriginalFileName);
@@ -39,17 +40,33 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         using var call = client.Validate(cancellationToken: cancellationToken);
 
         await call.RequestStream.WriteAsync(CreateValidateRequest(args), cancellationToken);
-        await SendFileAsync(call.RequestStream, IlivalidatorFileType.TransferFile, transferFile, cancellationToken);
+        await SendFileAsync(call.RequestStream, IlivalidatorFileType.TransferFile, transferFile, TransferFileExtension(transferFile), cancellationToken);
+
+        foreach (var modelFile in modelFiles ?? [])
+        {
+            logger.LogInformation("Sending delivered model file {FileName}.", modelFile.OriginalFileName);
+            await SendFileAsync(call.RequestStream, IlivalidatorFileType.ModelFile, modelFile, string.Empty, cancellationToken);
+        }
 
         if (modelRepositoryArchive != null)
         {
             logger.LogInformation("Sending model repository archive {FileName}.", modelRepositoryArchive.OriginalFileName);
-            await SendFileAsync(call.RequestStream, IlivalidatorFileType.RepositoryArchive, modelRepositoryArchive, cancellationToken);
+            await SendFileAsync(call.RequestStream, IlivalidatorFileType.RepositoryArchive, modelRepositoryArchive, string.Empty, cancellationToken);
         }
 
         await call.RequestStream.CompleteAsync();
 
         return await ReceiveResponseAsync(call.ResponseStream, logFile, xtfLogFile, cancellationToken);
+    }
+
+    /// <summary>
+    /// The file extension declared to the wrapper for the transfer file. The tool switches to its INTERLIS 1
+    /// semantics only when the data file ends in .itf, so that extension has to survive the transfer; everything
+    /// else stays with the wrapper default.
+    /// </summary>
+    internal static string TransferFileExtension(IPipelineFile transferFile)
+    {
+        return string.Equals(transferFile.FileExtension, "itf", StringComparison.OrdinalIgnoreCase) ? "itf" : string.Empty;
     }
 
     private static ValidateRequest CreateValidateRequest(IlivalidatorArgs args)
@@ -71,7 +88,7 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         };
     }
 
-    private static async Task SendFileAsync(IClientStreamWriter<ValidateRequest> requestStream, IlivalidatorFileType fileType, IPipelineFile file, CancellationToken cancellationToken)
+    private static async Task SendFileAsync(IClientStreamWriter<ValidateRequest> requestStream, IlivalidatorFileType fileType, IPipelineFile file, string fileExtension, CancellationToken cancellationToken)
     {
         const int ChunkSize = 10 * 1024 * 1024;
         using var buffer = MemoryPool<byte>.Shared.Rent(ChunkSize);
@@ -81,6 +98,7 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
             FileStart = new IlivalidatorFileStart
             {
                 Type = fileType,
+                FileExtension = fileExtension,
             },
         };
         await requestStream.WriteAsync(fileStart, cancellationToken);

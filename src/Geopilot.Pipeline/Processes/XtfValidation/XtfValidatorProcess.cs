@@ -70,19 +70,31 @@ internal class XtfValidatorProcess
     /// Runs the validation process for the specified transfer file.
     /// </summary>
     /// <param name="transferFile">The transfer file to validate. Cannot be null.</param>
+    /// <param name="modelFiles">
+    /// The delivered model files (<c>.ili</c>) to pass on to the validation, handed on verbatim. The pipeline decides
+    /// what counts as a model, typically by wiring the output of a matcher that selects the <c>.ili</c> files of the
+    /// upload. They only take part in the validation when <c>modelDirs</c> reaches them through <c>%ITF_DIR</c> (or
+    /// is not set at all). Unwired, no models are sent.
+    /// </param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>A <see cref="XtfValidatorResult"/> instance containing the results of the validation process.</returns>
     [PipelineProcessRun]
-    public async Task<XtfValidatorResult> RunAsync(IPipelineFile transferFile, CancellationToken cancellationToken)
+    public async Task<XtfValidatorResult> RunAsync(IPipelineFile transferFile, IPipelineFile[] modelFiles, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(transferFile);
+        ArgumentNullException.ThrowIfNull(modelFiles);
 
         logger.LogInformation($"Validating transfer file <{transferFile.OriginalFileName}>...");
 
         var errorLog = pipelineFileManager.GeneratePipelineFile("errorLog", "log");
         var xtfLog = pipelineFileManager.GeneratePipelineFile("xtfLog", "xtf");
 
-        var result = await ilivalidatorClient.ValidateAsync(validatorArgs, transferFile, errorLog, xtfLog, modelRepository, cancellationToken);
+        if (modelFiles.Length > 0)
+        {
+            logger.LogInformation($"Forwarding {modelFiles.Length} delivered model file(s) to the validation.");
+        }
+
+        var result = await ilivalidatorClient.ValidateAsync(validatorArgs, transferFile, errorLog, xtfLog, modelRepository, modelFiles, cancellationToken);
 
         logger.LogInformation($"Validation of transfer file <{transferFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
 

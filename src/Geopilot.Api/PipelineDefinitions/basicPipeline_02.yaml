@@ -48,6 +48,20 @@ pipelines:
         process_id: xtf_matcher
         input:
           files: "${upload()}"
+      # Selektiert die mitgelieferten Modelle der Lieferung; die Pipeline entscheidet damit explizit,
+      # was als Modell an die Validierung geht.
+      - id: ili_matching
+        display_name:
+          en: Model Matching
+          de: Modell Zuordnung
+          fr: Correspondance des modèles
+          it: Corrispondenza dei modelli
+        process_id: file_matcher
+        process_config_overwrites:
+          fileExtensions:
+            - ili
+        input:
+          files: "${upload()}"
       - id: validation
         display_name:
           en: XTF Validation
@@ -74,6 +88,7 @@ pipelines:
                   it: "La validazione non è riuscita."
         input:
           transferFile: "${step_output(xtf_matching.XtfFiles)}"
+          modelFiles: "${step_output(ili_matching.MatchedFiles)}"
         output_actions:
           - property: ErrorLog
             actions:
