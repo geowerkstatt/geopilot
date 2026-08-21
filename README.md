@@ -219,10 +219,18 @@ docker compose up -d azurite clamav
 
 ### Konfiguration
 
-Die `Upload:Cloud`-Konfiguration ist erforderlich; ohne `ConnectionString` und `BucketName` startet die Applikation nicht.
+`Upload:Backend` wählt, wohin hochgeladene Dateien geschrieben werden:
+
+- **`Cloud` (Standard):** Der Browser lädt die Dateien über presigned URLs direkt in einen Azure-Blob-kompatiblen Object Storage. Die API sieht die Datei-Bytes nie.
+- **`Direct`:** Die Dateien laufen über einen Upload-Endpunkt der API in ein lokales Verzeichnis. Für Installationen ohne Object Storage.
+
+Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `UploadUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) gelten in beiden Modi und werden direkt unter `Upload` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `UploadCleanupService` bereinigt. Es wird nur die Sektion des gewählten Backends gelesen und validiert.
+
+**Cloud:** Ohne `ConnectionString` und `BucketName` startet die Applikation nicht.
 
 ```json5
 "Upload": {
+    "Backend": "Cloud",
     "Cloud": {
         "ConnectionString": "...",
         "BucketName": "uploads",
@@ -238,7 +246,36 @@ Die `Upload:Cloud`-Konfiguration ist erforderlich; ohne `ConnectionString` und `
 }
 ```
 
-Weitere Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `UploadUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) werden direkt unter `Upload` in `appsettings.json` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `UploadCleanupService` bereinigt.
+**Direct:** Ohne `Directory` startet die Applikation nicht.
+
+```json5
+"Upload": {
+    "Backend": "Direct",
+    "Direct": {
+        "Directory": "/uploads" // Gehört exklusiv dem Upload-Backend; kein Job-Arbeitsverzeichnis
+    }
+}
+```
+
+> [!WARNING]
+> Im direkten Modus ist der Upload-Endpunkt **ohne Anmeldung erreichbar**, wie es die presigned URLs im Cloud-Modus sind (öffentliche Mandate erlauben anonyme Lieferungen). Wer die Applikation im Netz erreicht, kann Upload-Sessions eröffnen und bis zu den konfigurierten Limiten Dateien auf das Dateisystem schreiben. Eine Direct-Installation gehört deshalb nicht ungeschützt ins Internet: die vorgelagerte Absicherung (VPN, Reverse Proxy mit Authentisierung, IP-Beschränkung, Cloudflare) liegt in der Verantwortung der Installation.
+
+Für den direkten Modus gilt:
+
+- **Der Upload-Endpunkt prüft jede Anfrage gegen die Upload-Session:** er nimmt nur bei der Initiierung angemeldete Dateien an, das Schreibziel stammt aus der Session statt aus der URL, die Session läuft nach `UploadUrlExpiryMinutes` ab und der Inhalt muss der deklarierten Grösse entsprechen.
+- **Die maximale Dateigrösse kommt aus `Upload:MaxFileSizeMB`.** Der Upload-Endpunkt hebt sein Request-Limit selbst auf die deklarierte Dateigrösse; alle übrigen Endpunkte behalten die globale Obergrenze von 100 MB pro Request. Ein vorgeschalteter Reverse Proxy bringt seine eigene Grössenbeschränkung mit und muss entsprechend konfiguriert werden.
+- **Die Virenprüfung hängt wie im Cloud-Modus an `ClamAV:Enabled`** und läuft im Preflight, bevor ein Job verarbeitet wird.
+- **geopilot bewirtschaftet keinen Plattenschutz** für das Upload-Verzeichnis (keine Quota, kein Aufräumen bei Füllstand über die konfigurierte Bereinigung hinaus). Die Überwachung des Dateisystems gehört zur Infrastruktur der Installation.
+
+In `docker-compose` wird der direkte Modus über Umgebungsvariablen konfiguriert, das Verzeichnis als Volume gemountet:
+
+```yaml
+environment:
+  Upload__Backend: Direct
+  Upload__Direct__Directory: /uploads
+volumes:
+  - ./uploads:/uploads
+```
 
 - **ClamAV deaktiviert (Standard):** Uploads werden ohne Virenprüfung verarbeitet. Pro Upload wird eine Warnung geloggt.
 - **ClamAV aktiviert:** Virenprüfung vor der Verarbeitung.
