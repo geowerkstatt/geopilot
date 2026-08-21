@@ -46,4 +46,22 @@ internal static class ConfigurationBuilderExtensions
             });
         }
     }
+
+    /// <summary>
+    /// Fails fast when the configuration still contains the pre-split CloudStorage section. Its values no
+    /// longer bind anywhere and would silently fall back to defaults, so an unmigrated deployment must not start.
+    /// </summary>
+    /// <param name="configuration">The application configuration to check.</param>
+    /// <exception cref="InvalidOperationException">A CloudStorage section is present.</exception>
+    public static void EnsureNoLegacyCloudStorageSection(this IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        if (configuration.GetSection("CloudStorage").Exists())
+        {
+            throw new InvalidOperationException(
+                "The CloudStorage configuration section was replaced: shared upload limits and cleanup moved to Upload, "
+                + "Azure-specific settings to Upload:Cloud. Migrate the remaining CloudStorage values and remove the section.");
+        }
+    }
 }

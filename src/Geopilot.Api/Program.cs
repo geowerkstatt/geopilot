@@ -171,6 +171,8 @@ builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("Processing"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
+
+builder.Configuration.EnsureNoLegacyCloudStorageSection();
 builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
 builder.Services.Configure<UploadCloudOptions>(builder.Configuration.GetSection(UploadCloudOptions.SectionName));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
