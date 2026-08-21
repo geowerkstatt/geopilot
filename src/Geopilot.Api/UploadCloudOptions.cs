@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Geopilot.Api;
 
 /// <summary>
 /// Settings of the cloud upload backend: the Azure Blob Storage connection and the
@@ -14,12 +16,14 @@ public class UploadCloudOptions
     /// <summary>
     /// The Azure Blob Storage connection string.
     /// </summary>
-    public string? ConnectionString { get; set; }
+    [Required(AllowEmptyStrings = false)]
+    public required string ConnectionString { get; set; }
 
     /// <summary>
     /// The name of the storage bucket.
     /// </summary>
-    public string? BucketName { get; set; }
+    [Required(AllowEmptyStrings = false)]
+    public required string BucketName { get; set; }
 
     /// <summary>
     /// The public-facing origin of the blob storage endpoint (e.g., "https://localhost:10000").
