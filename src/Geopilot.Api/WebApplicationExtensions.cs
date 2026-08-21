@@ -1,6 +1,7 @@
 ﻿using Geopilot.Pipeline;
 using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.XtfErrorVisualization;
+using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 
 namespace Geopilot.Api;
@@ -24,7 +25,9 @@ public static class WebApplicationExtensions
             throw new InvalidOperationException("PipelineFactory is not registered correctly.");
         }
 
-        var validationErrors = pipelineFactory.PipelineProcessConfig.Validate();
+        var processBaseConfigs = app.Services.GetRequiredService<IOptions<PipelineOptions>>().Value.ProcessConfigs;
+
+        var validationErrors = pipelineFactory.PipelineProcessConfig.Validate(processBaseConfigs);
         if (validationErrors.HasErrors)
         {
             throw new InvalidOperationException($"errors in pipeline definition:{Environment.NewLine}{validationErrors.ErrorMessage}");
