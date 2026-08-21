@@ -1,5 +1,6 @@
 ﻿using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api.Controllers;
@@ -26,7 +27,9 @@ public static class DirectUploadEndpoint
     {
         ArgumentNullException.ThrowIfNull(app);
 
-        app.MapPut("/api/v2/upload/{uploadId:guid}/{fileName}", HandleUploadAsync).AllowAnonymous();
+        app.MapPut("/api/v2/upload/{uploadId:guid}/{fileName}", HandleUploadAsync)
+            .WithMetadata(new SelfManagedBodySizeMetadata())
+            .AllowAnonymous();
     }
 
     private static async Task<IResult> HandleUploadAsync(
@@ -66,7 +69,25 @@ public static class DirectUploadEndpoint
         if (request.ContentLength is { } declaredLength && declaredLength != file.ExpectedSize)
             return SizeMismatch(declaredLength, file.ExpectedSize);
 
-        var written = await uploadStorage.WriteAsync(file.StorageKey, request.Body, cancellationToken);
+        // Raise this request's transport limit from the global cap to the file's declared size, which
+        // initiation already bounded by Upload:MaxFileSizeMB. Kestrel then aborts any body exceeding the
+        // declaration; under the TestServer the feature is absent and the size checks below still apply.
+        var bodySizeFeature = request.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (bodySizeFeature is { IsReadOnly: false })
+            bodySizeFeature.MaxRequestBodySize = file.ExpectedSize;
+
+        long written;
+        try
+        {
+            written = await uploadStorage.WriteAsync(file.StorageKey, request.Body, cancellationToken);
+        }
+        catch
+        {
+            // An aborted or over-limit read leaves a partial file that a later size check would trust.
+            await uploadStorage.DeleteAsync(file.StorageKey);
+            throw;
+        }
+
         if (written != file.ExpectedSize)
         {
             // A partial file would pass the size check of a later retry against ListFilesAsync, so remove it.
@@ -82,4 +103,12 @@ public static class DirectUploadEndpoint
         => actual > expected
             ? Results.Problem($"The content is larger than the declared size of {expected} bytes.", statusCode: StatusCodes.Status413PayloadTooLarge)
             : Results.Problem($"The content is smaller than the declared size of {expected} bytes.", statusCode: StatusCodes.Status400BadRequest);
+}
+
+/// <summary>
+/// Marks an endpoint that enforces its own request body size limit, exempting it from the
+/// application's global request size cap.
+/// </summary>
+public sealed class SelfManagedBodySizeMetadata
+{
 }

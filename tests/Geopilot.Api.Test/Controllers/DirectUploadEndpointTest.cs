@@ -13,6 +13,9 @@ namespace Geopilot.Api.Controllers;
 [TestClass]
 public class DirectUploadEndpointTest
 {
+    // Just above the application's global 100 MB request body cap, which the upload endpoint is exempt from.
+    private const int OverGlobalLimitBytes = 101 * 1024 * 1024;
+
     private DirectModeTestApp app;
     private HttpClient client;
 
@@ -67,6 +70,28 @@ public class DirectUploadEndpointTest
 
         Assert.AreEqual(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
         Assert.IsFalse(File.Exists(Path.Combine(app.RootDirectory, "uploads", session.UploadId.ToString(), "data.xtf")));
+    }
+
+    [TestMethod]
+    public async Task AcceptsFileLargerThanTheGlobalBodyLimit()
+    {
+        var session = await InitiateAsync(("big.xtf", OverGlobalLimitBytes));
+
+        using var content = new ByteArrayContent(new byte[OverGlobalLimitBytes]);
+        var response = await client.PutAsync(session.Files[0].UploadUrl, content);
+
+        Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+        var stored = new FileInfo(Path.Combine(app.RootDirectory, "uploads", session.UploadId.ToString(), "big.xtf"));
+        Assert.AreEqual(OverGlobalLimitBytes, stored.Length);
+    }
+
+    [TestMethod]
+    public async Task KeepsGlobalBodyLimitOnOtherEndpoints()
+    {
+        using var content = new ByteArrayContent(new byte[OverGlobalLimitBytes]);
+        var response = await client.PostAsync("/api/v2/upload", content);
+
+        Assert.AreEqual(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
     }
 
     [TestMethod]
