@@ -1,6 +1,6 @@
 import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
+import { Link as RouterLink, useLocation } from "react-router-dom";
 import MenuIcon from "@mui/icons-material/Menu";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
@@ -22,7 +22,7 @@ import { useGeopilotAuth } from "../../auth";
 import { useApplicationName } from "../../hooks/useApplicationName";
 import { useAppSettings } from "../appSettings/appSettingsInterface";
 import { Button, IconButton } from "../buttons.tsx";
-import { useControlledNavigate } from "../controlledNavigate";
+import { useControlledLinkClick } from "../controlledNavigate";
 import { LanguagePopup } from "./languagePopup";
 
 interface HeaderProps {
@@ -31,7 +31,7 @@ interface HeaderProps {
 
 const Header: FC<HeaderProps> = ({ openSubMenu }) => {
   const { t } = useTranslation();
-  const { navigateTo } = useControlledNavigate();
+  const linkClick = useControlledLinkClick();
   const location = useLocation();
   const { clientSettings } = useAppSettings();
   const applicationName = useApplicationName();
@@ -68,77 +68,78 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             flexDirection: "row",
             justifyContent: "space-between",
           }}>
-          <Stack
-            data-cy="header"
-            direction="row"
-            sx={{
-              alignItems: "center",
-              cursor: "pointer",
-              overflow: "hidden",
-            }}
-            onClick={() => {
-              navigateTo("/");
-            }}>
-            <Box
-              sx={{
-                display: { xs: "flex", md: "none" },
-                maxHeight: "40px",
-                justifyContent: "center",
-                alignItems: "center",
-              }}>
-              {hasSubMenu ? (
-                <IconButton
-                  icon={<MenuIcon fontSize="large" />}
-                  label="menu"
-                  onClick={e => {
-                    e.stopPropagation();
-                    openSubMenu();
-                  }}
-                />
-              ) : (
-                clientSettings?.application?.logo && (
-                  <Box>
-                    <img
-                      src={clientSettings?.application?.logo}
-                      alt={`Logo of ${applicationName}`}
-                      style={{ maxHeight: "40px", cursor: "pointer" }}
-                    />
-                  </Box>
-                )
-              )}
-            </Box>
-            {clientSettings?.application?.logo && (
-              <Box sx={{ display: { xs: "none", md: "block" }, maxHeight: "40px" }}>
-                <img
-                  src={clientSettings?.application?.logo}
-                  alt={`Logo of ${applicationName}`}
-                  style={{ maxHeight: "40px", cursor: "pointer" }}
-                />
+          <Stack direction="row" sx={{ alignItems: "center", overflow: "hidden" }}>
+            {hasSubMenu && (
+              <Box
+                sx={{
+                  display: { xs: "flex", md: "none" },
+                  maxHeight: "40px",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}>
+                <IconButton icon={<MenuIcon fontSize="large" />} label="menu" onClick={openSubMenu} />
               </Box>
             )}
-            <Box
+            <Stack
+              component={RouterLink}
+              to="/"
+              onClick={linkClick("/")}
+              data-cy="header"
+              direction="row"
               sx={{
-                display: { xs: "none", sm: "flex" },
+                alignItems: "center",
                 overflow: "hidden",
-                textWrap: "nowrap",
-                alignItems: { xs: "start", md: "center" },
+                textDecoration: "none",
+                color: "inherit",
               }}>
-              <Typography sx={{ typography: { xs: "h4", md: "h1" }, margin: "0 !important" }}>
-                geopilot&nbsp;
-              </Typography>
-              {applicationName && (
-                <Typography
+              {!hasSubMenu && clientSettings?.application?.logo && (
+                <Box
                   sx={{
-                    pt: { xs: 0.25, md: 0 },
-                    typography: { xs: "h6", md: "h1" },
-                    m: "0 !important",
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
+                    display: { xs: "flex", md: "none" },
+                    maxHeight: "40px",
+                    justifyContent: "center",
+                    alignItems: "center",
                   }}>
-                  {applicationName}
-                </Typography>
+                  <img
+                    src={clientSettings?.application?.logo}
+                    alt={`Logo of ${applicationName}`}
+                    style={{ maxHeight: "40px", cursor: "pointer" }}
+                  />
+                </Box>
               )}
-            </Box>
+              {clientSettings?.application?.logo && (
+                <Box sx={{ display: { xs: "none", md: "block" }, maxHeight: "40px" }}>
+                  <img
+                    src={clientSettings?.application?.logo}
+                    alt={`Logo of ${applicationName}`}
+                    style={{ maxHeight: "40px", cursor: "pointer" }}
+                  />
+                </Box>
+              )}
+              <Box
+                sx={{
+                  display: { xs: "none", sm: "flex" },
+                  overflow: "hidden",
+                  textWrap: "nowrap",
+                  alignItems: { xs: "start", md: "center" },
+                }}>
+                <Typography sx={{ typography: { xs: "h4", md: "h1" }, margin: "0 !important" }}>
+                  geopilot&nbsp;
+                </Typography>
+                {applicationName && (
+                  <Typography
+                    sx={{
+                      pt: { xs: 0.25, md: 0 },
+                      typography: { xs: "h6", md: "h1" },
+                      m: "0 !important",
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                    }}>
+                    {applicationName}
+                  </Typography>
+                )}
+              </Box>
+            </Stack>
           </Stack>
           <Stack direction="row" sx={{ alignItems: "center" }}>
             <LanguagePopup />
@@ -179,20 +180,20 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
             <List>
               <ListItem key="delivery" disablePadding>
                 <ListItemButton
+                  component={RouterLink}
+                  to="/"
                   selected={isActive("")}
-                  onClick={() => {
-                    navigateTo("/");
-                  }}
+                  onClick={linkClick("/")}
                   data-cy="delivery-nav">
                   <ListItemText primary={t("delivery")} />
                 </ListItemButton>
               </ListItem>
               <ListItem key="myDeliveries" disablePadding>
                 <ListItemButton
+                  component={RouterLink}
+                  to="/user/deliveries"
                   selected={isActive("user")}
-                  onClick={() => {
-                    navigateTo("/user/deliveries");
-                  }}
+                  onClick={linkClick("/user/deliveries")}
                   data-cy="my-deliveries-nav">
                   <ListItemText primary={t("myDeliveries")} />
                 </ListItemButton>
@@ -201,20 +202,21 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
                 <>
                   <ListItem key="administration" disablePadding>
                     <ListItemButton
+                      component={RouterLink}
+                      to="/admin"
                       selected={isActive("admin")}
-                      onClick={() => {
-                        navigateTo("/admin");
-                      }}
+                      onClick={linkClick("/admin")}
                       data-cy="admin-nav">
                       <ListItemText primary={t("administration")} />
                     </ListItemButton>
                   </ListItem>
                   <ListItem key="stacBrowser" disablePadding>
                     <ListItemButton
+                      component="a"
+                      href="/browser"
+                      target="_blank"
+                      rel="noopener"
                       selected={isActive("browser")}
-                      onClick={() => {
-                        window.open("/browser", "_blank");
-                      }}
                       data-cy="stacBrowser-nav">
                       <ListItemText primary={t("stacBrowser")} />
                       <ListItemIcon sx={{ justifyContent: "flex-end" }}>

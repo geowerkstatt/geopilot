@@ -1,9 +1,9 @@
-import { FC } from "react";
+import { FC, MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Outlet } from "react-router-dom";
+import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
 import { Box, Divider, Drawer, List, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
-import { useControlledNavigate } from "../../components/controlledNavigate";
+import { useControlledLinkClick } from "../../components/controlledNavigate";
 import { PageContent } from "../../components/styledComponents.ts";
 import { useApplicationName } from "../../hooks/useApplicationName.ts";
 
@@ -14,7 +14,8 @@ interface AdminProps {
 
 const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
   const { t } = useTranslation();
-  const { navigateTo } = useControlledNavigate();
+  const linkClick = useControlledLinkClick();
+  const location = useLocation();
   const { clientSettings } = useAppSettings();
   const applicationName = useApplicationName();
 
@@ -22,8 +23,8 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
     setIsSubMenuOpen(false);
   };
 
-  const navigate = (path: string) => {
-    navigateTo(path);
+  const handleNavClick = (path: string) => (event: MouseEvent<HTMLElement>) => {
+    linkClick(path)(event);
     if (isSubMenuOpen) {
       handleDrawerClose();
     }
@@ -43,10 +44,10 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
         <List>
           <ListItem key={"deliveryOverview"} disablePadding>
             <ListItemButton
+              component={RouterLink}
+              to="/admin/delivery-overview"
               selected={isActive("delivery-overview")}
-              onClick={() => {
-                navigate("/admin/delivery-overview");
-              }}
+              onClick={handleNavClick("/admin/delivery-overview")}
               data-cy={isPermanent ? "admin-delivery-overview-nav" : undefined}>
               <ListItemText primary={t("deliveryOverview")} />
             </ListItemButton>
@@ -57,10 +58,10 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           {["users", "mandates", "organisations"].map(link => (
             <ListItem key={link} disablePadding>
               <ListItemButton
+                component={RouterLink}
+                to={"/admin/" + link}
                 selected={isActive(link)}
-                onClick={() => {
-                  navigate("/admin/" + link);
-                }}
+                onClick={handleNavClick("/admin/" + link)}
                 data-cy={isPermanent ? `admin-${link}-nav` : undefined}>
                 <ListItemText primary={t(link)} />
               </ListItemButton>
@@ -106,16 +107,17 @@ const Admin: FC<AdminProps> = ({ isSubMenuOpen, setIsSubMenuOpen }) => {
           }}>
           <>
             <Stack
+              component={RouterLink}
+              to="/"
               direction="row"
-              onClick={() => {
-                navigate("/");
-              }}
+              onClick={handleNavClick("/")}
               sx={{
                 py: 1,
                 px: 2,
                 alignItems: "center",
                 flexWrap: "wrap",
-                cursor: "pointer",
+                textDecoration: "none",
+                color: "inherit",
               }}>
               {clientSettings?.application?.logo && (
                 <Box>
