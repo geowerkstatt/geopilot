@@ -23,13 +23,13 @@ public class AzureBlobUploadStorageTest
     {
         containerName = $"test-{Guid.NewGuid():N}";
 
-        var options = new CloudStorageOptions
+        var options = new UploadCloudOptions
         {
             ConnectionString = AzuriteConnectionString,
             BucketName = containerName,
         };
 
-        var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
+        var optionsMock = new Mock<IOptions<UploadCloudOptions>>();
         optionsMock.Setup(o => o.Value).Returns(options);
 
         var blobServiceClient = new BlobServiceClient(AzuriteConnectionString);
@@ -48,8 +48,8 @@ public class AzureBlobUploadStorageTest
     [TestMethod]
     public void ConstructorThrowsWhenConnectionStringMissing()
     {
-        var options = new CloudStorageOptions { ConnectionString = "", BucketName = "test" };
-        var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
+        var options = new UploadCloudOptions { ConnectionString = "", BucketName = "test" };
+        var optionsMock = new Mock<IOptions<UploadCloudOptions>>();
         optionsMock.Setup(o => o.Value).Returns(options);
 
         Assert.ThrowsExactly<InvalidOperationException>(() => new AzureBlobUploadStorage(optionsMock.Object, Mock.Of<ILogger<AzureBlobUploadStorage>>()));
@@ -58,8 +58,8 @@ public class AzureBlobUploadStorageTest
     [TestMethod]
     public void ConstructorThrowsWhenBucketNameMissing()
     {
-        var options = new CloudStorageOptions { ConnectionString = AzuriteConnectionString, BucketName = "" };
-        var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
+        var options = new UploadCloudOptions { ConnectionString = AzuriteConnectionString, BucketName = "" };
+        var optionsMock = new Mock<IOptions<UploadCloudOptions>>();
         optionsMock.Setup(o => o.Value).Returns(options);
 
         Assert.ThrowsExactly<InvalidOperationException>(() => new AzureBlobUploadStorage(optionsMock.Object, Mock.Of<ILogger<AzureBlobUploadStorage>>()));

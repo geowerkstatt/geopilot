@@ -18,10 +18,10 @@ public class ClamAvScanService : IUploadScanService
     /// <summary>
     /// Initializes a new instance of the <see cref="ClamAvScanService"/> class.
     /// </summary>
-    public ClamAvScanService(IUploadStorage uploadStorage, IOptions<ClamAvOptions> clamAvOptions, IOptions<CloudStorageOptions> cloudStorageOptions, ILogger<ClamAvScanService> logger)
+    public ClamAvScanService(IUploadStorage uploadStorage, IOptions<ClamAvOptions> clamAvOptions, IOptions<UploadOptions> uploadOptions, ILogger<ClamAvScanService> logger)
     {
         ArgumentNullException.ThrowIfNull(clamAvOptions);
-        ArgumentNullException.ThrowIfNull(cloudStorageOptions);
+        ArgumentNullException.ThrowIfNull(uploadOptions);
 
         this.uploadStorage = uploadStorage;
         this.logger = logger;
@@ -33,7 +33,7 @@ public class ClamAvScanService : IUploadScanService
             throw new InvalidOperationException("ClamAV:Port must be between 1 and 65535.");
 
         this.options = config;
-        maxStreamSize = (long)cloudStorageOptions.Value.MaxFileSizeMB * 1024 * 1024;
+        maxStreamSize = (long)uploadOptions.Value.MaxFileSizeMB * 1024 * 1024;
     }
 
     /// <inheritdoc/>

@@ -20,12 +20,12 @@ public class UploadController : ControllerBase
 {
     private readonly ILogger<UploadController> logger;
     private readonly IUploadOrchestrationService orchestrationService;
-    private readonly CloudStorageOptions options;
+    private readonly UploadOptions options;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UploadController"/> class.
     /// </summary>
-    public UploadController(ILogger<UploadController> logger, IOptions<CloudStorageOptions> options, IUploadOrchestrationService orchestrationService)
+    public UploadController(ILogger<UploadController> logger, IOptions<UploadOptions> options, IUploadOrchestrationService orchestrationService)
     {
         ArgumentNullException.ThrowIfNull(options);
 

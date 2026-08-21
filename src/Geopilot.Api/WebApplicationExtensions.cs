@@ -82,11 +82,11 @@ public static class WebApplicationExtensions
 
         var indexHtmlTemplate = File.ReadAllText(indexHtmlPath);
         var authorityOrigin = new Uri(configuration["Auth:Authority"]!).GetLeftPart(UriPartial.Authority);
-        var blobEndpoint = configuration["CloudStorage:BlobEndpoint"];
+        var blobEndpoint = configuration["Upload:Cloud:BlobEndpoint"];
         if (!string.IsNullOrWhiteSpace(blobEndpoint))
         {
             if (!Uri.TryCreate(blobEndpoint, UriKind.Absolute, out var blobUri))
-                throw new InvalidOperationException($"CloudStorage:BlobEndpoint '{blobEndpoint}' is not a valid absolute URI.");
+                throw new InvalidOperationException($"Upload:Cloud:BlobEndpoint '{blobEndpoint}' is not a valid absolute URI.");
             blobEndpoint = blobUri.GetLeftPart(UriPartial.Authority);
         }
 

@@ -171,7 +171,8 @@ builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("Processing"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
-builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
+builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
+builder.Services.Configure<UploadCloudOptions>(builder.Configuration.GetSection(UploadCloudOptions.SectionName));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
 builder.Services.AddOptions<IlitoolsOptions>()
@@ -240,14 +241,14 @@ builder.Services
     .AddDbContextCheck<Context>("Database")
     .AddCheck<StorageHealthCheck>("Storage");
 
-var cloudStorageConfig = builder.Configuration.GetSection("CloudStorage").Get<CloudStorageOptions>()
-    ?? throw new InvalidOperationException("CloudStorage configuration section is missing.");
+var uploadConfig = builder.Configuration.GetSection(UploadOptions.SectionName).Get<UploadOptions>()
+    ?? throw new InvalidOperationException("Upload configuration section is missing.");
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("uploadRateLimit", limiter =>
     {
-        limiter.PermitLimit = cloudStorageConfig.RateLimitRequests;
-        limiter.Window = TimeSpan.FromMinutes(cloudStorageConfig.RateLimitWindowMinutes);
+        limiter.PermitLimit = uploadConfig.RateLimitRequests;
+        limiter.Window = TimeSpan.FromMinutes(uploadConfig.RateLimitWindowMinutes);
         limiter.QueueLimit = 0;
     });
 

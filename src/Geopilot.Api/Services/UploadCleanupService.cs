@@ -11,7 +11,7 @@ public class UploadCleanupService : BackgroundService
     private readonly IUploadStorage uploadStorage;
     private readonly IUploadStore uploadStore;
     private readonly ILogger<UploadCleanupService> logger;
-    private readonly CloudStorageOptions options;
+    private readonly UploadOptions options;
     private readonly ProcessingOptions processingOptions;
     private readonly SemaphoreSlim cleanupSemaphore = new SemaphoreSlim(1);
 
@@ -22,7 +22,7 @@ public class UploadCleanupService : BackgroundService
         IUploadStorage uploadStorage,
         IUploadStore uploadStore,
         ILogger<UploadCleanupService> logger,
-        IOptions<CloudStorageOptions> options,
+        IOptions<UploadOptions> options,
         IOptions<ProcessingOptions> processingOptions)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -52,7 +52,7 @@ public class UploadCleanupService : BackgroundService
         if (maxAge <= longestJobLifetime)
         {
             logger.LogWarning(
-                "CloudStorage:CleanupAgeHours ({CleanupAge}) does not cover the longest job lifetime ({JobLifetime} = Processing:JobRetention + Processing:JobTimeout). Uploaded files may be deleted while a job or its delivery still needs them.",
+                "Upload:CleanupAgeHours ({CleanupAge}) does not cover the longest job lifetime ({JobLifetime} = Processing:JobRetention + Processing:JobTimeout). Uploaded files may be deleted while a job or its delivery still needs them.",
                 maxAge,
                 longestJobLifetime);
         }

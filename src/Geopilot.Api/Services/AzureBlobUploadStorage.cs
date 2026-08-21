@@ -16,16 +16,16 @@ public class AzureBlobUploadStorage : IUploadStorage
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureBlobUploadStorage"/> class.
     /// </summary>
-    public AzureBlobUploadStorage(IOptions<CloudStorageOptions> options, ILogger<AzureBlobUploadStorage> logger)
+    public AzureBlobUploadStorage(IOptions<UploadCloudOptions> options, ILogger<AzureBlobUploadStorage> logger)
     {
         this.logger = logger;
         ArgumentNullException.ThrowIfNull(options);
 
         var config = options.Value;
         if (string.IsNullOrWhiteSpace(config.ConnectionString))
-            throw new InvalidOperationException("CloudStorage:ConnectionString is not configured.");
+            throw new InvalidOperationException("Upload:Cloud:ConnectionString is not configured.");
         if (string.IsNullOrWhiteSpace(config.BucketName))
-            throw new InvalidOperationException("CloudStorage:BucketName is not configured.");
+            throw new InvalidOperationException("Upload:Cloud:BucketName is not configured.");
 
         var serviceClient = new BlobServiceClient(config.ConnectionString);
         containerClient = serviceClient.GetBlobContainerClient(config.BucketName);

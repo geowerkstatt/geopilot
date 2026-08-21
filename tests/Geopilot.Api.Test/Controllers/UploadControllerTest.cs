@@ -11,7 +11,7 @@ namespace Geopilot.Api.Controllers;
 public sealed class UploadControllerTest
 {
     private Mock<ILogger<UploadController>> loggerMock;
-    private Mock<IOptions<CloudStorageOptions>> optionsMock;
+    private Mock<IOptions<UploadOptions>> optionsMock;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
     private UploadController controller;
 
@@ -19,8 +19,8 @@ public sealed class UploadControllerTest
     public void Initialize()
     {
         loggerMock = new Mock<ILogger<UploadController>>();
-        optionsMock = new Mock<IOptions<CloudStorageOptions>>();
-        optionsMock.Setup(o => o.Value).Returns(new CloudStorageOptions
+        optionsMock = new Mock<IOptions<UploadOptions>>();
+        optionsMock.Setup(o => o.Value).Returns(new UploadOptions
         {
             MaxFileSizeMB = 2048,
             MaxFilesPerJob = 12,
