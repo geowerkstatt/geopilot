@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bogus" Version="35.6.5" />
+  </ItemGroup>
+
+  <!-- References the API instead of being referenced by it, so neither this assembly nor Bogus
+       can reach the published output of Geopilot.Api. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Geopilot.Api\Geopilot.Api.csproj" />
+  </ItemGroup>
+
+</Project>

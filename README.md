@@ -31,6 +31,22 @@ Für die Formatierung wird ESLint verwendet. Dazu im Visual Studio unter `Option
   
   ℹ️ Beim Start hält Visual Studio im Frontend wegen Fetch-Errors, während die API selbst noch am starten ist. Das kann in Visual Studio über `Debug → Windows → Exception Settings → JavaScript Exceptions → Uncaught Exceptions` deaktiviert werden.
 
+- Die Testdaten für die lokale Entwicklung erzeugt das Projekt _Geopilot.Api.SeedData_. Es läuft als Container `seed` mit, sobald die Docker-Umgebung hochfährt, unabhängig davon welches Startprojekt in Visual Studio gewählt ist. Der Seed wartet, bis die Migrationen angewendet sind, und legt Daten nur in einer noch leeren Datenbank an. Ausgeliefert wird das Projekt nicht, es ist bewusst keine Abhängigkeit der API.
+
+  Wer sich anmeldet, bevor der Container fertig ist, legt damit die erste Benutzerzeile an, und der Seed überspringt die Datenbank danach dauerhaft. Fehlen die Testdaten, zeigt `docker compose logs seed` den Grund.
+
+  Um die Testdaten neu zu erzeugen, muss das Datenbank-Volume verworfen werden:
+  ```bash
+  docker compose down -v
+  ```
+
+  Alternativ kann der Seed direkt vom Host aufgerufen werden, sofern die Datenbank bereits migriert ist:
+  ```bash
+  dotnet run --project src/Geopilot.Api.SeedData
+  ```
+
+  Abweichende Verbindungsangaben können als Argument oder über die Umgebungsvariable `ConnectionStrings__Context` gesetzt werden.
+
 ### Starten der Applikation (Docker Compose) 🐳
 
 Das Projekt unterstützt das Starten der Applikation mit Docker Compose, um einer produktiven Umgebung möglichst nahe zu kommen. Um HTTPS zu unterstützen, benötigt es ein vertrautes dev-cert sowie ein Export dessen im PEM-Format. Diese werden im [docker-compose.yml](./docker-compose.yml) korrekt geladen. Setup ist nachfolgend beschrieben. Die Applikation ist danach unter [https://localhost:5173](https://localhost:5173) erreichbar.
@@ -43,6 +59,8 @@ dotnet dev-certs https --trust
 dotnet dev-certs https --export-path ".\certs\cert.pem" --no-password --format PEM
 docker compose up -d
 ```
+
+Der Service `seed` erzeugt dabei die Testdaten, sobald die API die Migrationen angewendet hat, und beendet sich danach.
 
 ### Pipeline-Konfiguration
 

@@ -273,6 +273,23 @@ if (context.Database.GetPendingMigrations().Any())
     context.MigrateDatabase();
 }
 
+// The seed no longer runs in this process, so an empty database reads like a broken setup. This points
+// at where the data comes from, without the API depending on the seed project. Users without mandates
+// means the seed found the database already in use and skipped it, which it will keep doing.
+if (app.Environment.IsDevelopment() && !context.Mandates.Any())
+{
+    if (context.Users.Any())
+    {
+        app.Logger.LogWarning(
+            "The database contains users but no mandates. The Geopilot.Api.SeedData container only fills an empty database, so it skipped this one. If you expected test data, run 'docker compose down -v' and start again.");
+    }
+    else
+    {
+        app.Logger.LogInformation(
+            "The database contains no mandates yet. Local test data comes from the Geopilot.Api.SeedData container.");
+    }
+}
+
 // Validate pipeline configuration on startup and crash if configuration is invalid
 app.ValidatePipelineConfiguration();
 
@@ -305,9 +322,6 @@ app.UseRouting();
 if (app.Environment.IsDevelopment())
 {
     app.UseCors("All");
-
-    if (!context.Mandates.Any())
-        context.SeedTestData();
 }
 else
 {
