@@ -1,4 +1,4 @@
-import { cloneElement, forwardRef, ReactElement } from "react";
+import { cloneElement, ElementType, forwardRef, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import { Button as MuiButton, IconButton as MuiIconButton, Tooltip } from "@mui/material";
 import { ButtonProps as MuiButtonProps } from "@mui/material/Button";
@@ -8,6 +8,10 @@ import { TooltipProps } from "@mui/material/Tooltip";
 
 export interface ButtonProps extends MuiButtonProps {
   label?: string;
+  // Polymorphic props (e.g. component={RouterLink}) are forwarded at runtime but missing
+  // from the non-generic MuiButtonProps, so declare the ones we use.
+  component?: ElementType;
+  to?: string;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ label, ...props }, ref) => {
