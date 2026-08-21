@@ -61,6 +61,21 @@ public class PipelineDefinitionValidationTest
         StringAssert.Contains(message, "Duplicate Id found: ili_validation.");
     }
 
+    // A definition that passes the definition check and fails on a step: the second step wires the first step's
+    // StatusMessage (a LocalizedText) into the IPipelineFile run parameter 'xtfLog'.
+    [TestMethod]
+    public void ValidateDefinitionRejectsCrossStepTypeMismatch()
+    {
+        var result = CreatePipelineFactory("processErrors").ValidateDefinition();
+
+        Assert.IsFalse(result.IsValid);
+        var message = result.ErrorMessage;
+        Assert.IsNotNull(message);
+        Assert.IsTrue(message.StartsWith("Invalid pipeline processes found:", StringComparison.Ordinal), message);
+        StringAssert.Contains(message, "pipeline bad_pipeline, step error_visualization, process xtf_error_visualizer, error:");
+        StringAssert.Contains(message, "is not compatible with the parameter type <IPipelineFile>");
+    }
+
     // The definition check returns before any step is inspected, so an operator fixing a broken definition is not
     // buried in follow-up errors from steps that could not be checked yet. Pinned here so the two phases are not
     // merged by accident.
