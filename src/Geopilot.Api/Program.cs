@@ -174,8 +174,6 @@ builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
 
-builder.Configuration.EnsureNoLegacyCloudStorageSection();
-builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
 builder.Services.AddOptions<IlitoolsOptions>()
@@ -187,41 +185,7 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-// Only the storage backend differs between the modes; everything downstream (orchestration, preflight,
-// scan, cleanup) works against IUploadStorage. Each backend's options are bound and validated only in
-// its own branch, so a deployment configures exactly one of the two sections.
-var uploadBackend = builder.Configuration.GetValue<UploadBackend>($"{UploadOptions.SectionName}:{nameof(UploadOptions.Backend)}");
-if (uploadBackend == UploadBackend.Direct)
-{
-    builder.Services.AddOptions<UploadDirectOptions>()
-        .BindConfiguration(UploadDirectOptions.SectionName)
-        .ValidateDataAnnotations()
-        .ValidateOnStart();
-    builder.Services.AddSingleton<DirectUploadStorage>();
-    builder.Services.AddSingleton<IUploadStorage>(sp => sp.GetRequiredService<DirectUploadStorage>());
-}
-else
-{
-    builder.Services.AddOptions<UploadCloudOptions>()
-        .BindConfiguration(UploadCloudOptions.SectionName)
-        .ValidateDataAnnotations()
-        .ValidateOnStart();
-    builder.Services.AddSingleton<IUploadStorage, AzureBlobUploadStorage>();
-}
-
-builder.Services.AddTransient<IUploadOrchestrationService, UploadOrchestrationService>();
-builder.Services.AddHostedService<UploadCleanupService>();
-builder.Services.AddPreflightChannel();
-builder.Services.AddHostedService<PreflightBackgroundService>();
-
-if (builder.Configuration.GetValue<bool>("ClamAV:Enabled"))
-{
-    builder.Services.AddTransient<IUploadScanService, ClamAvScanService>();
-}
-else
-{
-    builder.Services.AddTransient<IUploadScanService, NoOpScanService>();
-}
+var uploadBackend = builder.AddUploadServices();
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
@@ -378,10 +342,13 @@ app.Use(async (context, next) =>
     }
 });
 
-// By default Kestrel responds with a HTTP 400 if payload is too large.
+// By default Kestrel responds with a HTTP 400 if payload is too large. Endpoints marked as managing
+// their own body size limit (the direct upload endpoint, sized by Upload:MaxFileSizeMB) are exempt;
+// every other endpoint keeps the global cap.
 app.Use(async (context, next) =>
 {
-    if (context.Request.ContentLength > MaxRequestBodySize)
+    var managesOwnLimit = context.GetEndpoint()?.Metadata.GetMetadata<SelfManagedBodySizeMetadata>() is not null;
+    if (!managesOwnLimit && context.Request.ContentLength > MaxRequestBodySize)
     {
         context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
         await context.Response.WriteAsync("Payload Too Large");
