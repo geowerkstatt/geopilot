@@ -32,6 +32,9 @@
     <PackageReference Include="NCalc.Core" Version="6.2.0" />
     <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.7" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <!-- The model file pass-through needs the MODEL_FILE type and the fileExtension field of the IlivalidatorService
+         (geowerkstatt/ilitools-wrapper#17): bump to the 1.0.N-preview of the build containing it, together with the
+         ilitools-wrapper image tag in docker-compose.yml. Until then this project does not compile. -->
     <PackageReference Include="Geowerkstatt.IlitoolsWrapperApi" Version="1.0.7-preview" />
   </ItemGroup>
 

@@ -13,6 +13,7 @@ public class XtfValidatorProcessTest
     private IlivalidatorArgs? capturedArgs;
     private IPipelineFile? capturedTransferFile;
     private IPipelineFile? capturedArchive;
+    private IReadOnlyList<IPipelineFile>? capturedModelFiles;
 
     [TestInitialize]
     public void SetUp()
@@ -20,6 +21,7 @@ public class XtfValidatorProcessTest
         capturedArgs = null;
         capturedTransferFile = null;
         capturedArchive = null;
+        capturedModelFiles = null;
         ilivalidatorClientMock = new Mock<IIlivalidatorClient>();
     }
 
@@ -28,7 +30,7 @@ public class XtfValidatorProcessTest
     {
         var process = CreateProcess(validationProfile: null, modelDirs: null, success: true);
 
-        var result = await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+        var result = await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
 
         Assert.IsTrue(result.ValidationSuccessful);
         Assert.AreEqual("RoadsExdm2ien.xtf", capturedTransferFile?.OriginalFileName);
@@ -52,7 +54,7 @@ public class XtfValidatorProcessTest
         var log = $"Info: dataFile <file1.xtf>\nError: {XtfValidatorProcess.MetaConfigNotFoundMarker} <ilidata:PROFILE-A>\n";
         var process = CreateProcess("PROFILE-A", "https://models.example.com/", success: false, logContent: log);
 
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
 
         Assert.Contains("ilidata:PROFILE-A", exception.Message);
         Assert.Contains("https://models.example.com/", exception.Message);
@@ -64,7 +66,7 @@ public class XtfValidatorProcessTest
         // A log without the marker is an ordinary failed validation and must not throw.
         var process = CreateProcess("PROFILE-A", modelDirs: null, success: false, logContent: "Error: Attribute Hoehengenauigkeit requires a value\n");
 
-        var result = await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+        var result = await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
 
         Assert.IsFalse(result.ValidationSuccessful);
 
@@ -80,7 +82,7 @@ public class XtfValidatorProcessTest
     {
         var process = CreateProcess("PROFILE-A", "https://models.example.com/;%ITF_DIR", success: true);
 
-        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
 
         Assert.AreEqual("ilidata:PROFILE-A", capturedArgs?.MetaConfig);
 
@@ -95,7 +97,7 @@ public class XtfValidatorProcessTest
         // Hand written configuration, so blanks around the separator and a trailing one are expected.
         var process = CreateProcess(null, " https://models.example.com/ ; %ITF_DIR ; ", success: true);
 
-        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
 
         string[] expectedModelDirs = ["https://models.example.com/", "%ITF_DIR"];
         CollectionAssert.AreEqual(expectedModelDirs, capturedArgs?.ModelDirs?.ToList());
@@ -106,7 +108,7 @@ public class XtfValidatorProcessTest
     {
         var process = CreateProcess("ilidata:PROFILE-A", modelDirs: null, success: true);
 
-        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
 
         Assert.AreEqual("ilidata:PROFILE-A", capturedArgs?.MetaConfig);
     }
@@ -116,7 +118,7 @@ public class XtfValidatorProcessTest
     {
         var process = CreateProcess("   ", modelDirs: null, success: true);
 
-        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
 
         Assert.IsNull(capturedArgs?.MetaConfig, "A blank profile must not reach the tool as an empty meta config.");
         Assert.IsNull(capturedArgs?.ModelDirs);
@@ -131,7 +133,7 @@ public class XtfValidatorProcessTest
         var archive = new PipelineFile(Path.Combine("TestData", "ModelRepository", "model-repository.zip"), "model-repository.zip");
         var process = CreateProcess(null, "%ITF_DIR", success: true, modelRepository: archive);
 
-        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
 
         Assert.AreSame(archive, capturedArchive, "The configured archive has to reach the client unchanged.");
     }
@@ -141,7 +143,7 @@ public class XtfValidatorProcessTest
     {
         var process = CreateProcess(null, modelDirs: null, success: true);
 
-        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
 
         Assert.IsNull(capturedArchive);
     }
@@ -151,9 +153,39 @@ public class XtfValidatorProcessTest
     {
         var process = CreateProcess(null, modelDirs: null, success: true, allObjectsAccessible: false);
 
-        await process.RunAsync(CreateTransferFile(), CancellationToken.None);
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
 
         Assert.IsFalse(capturedArgs?.AllObjectsAccessible);
+    }
+
+    [TestMethod]
+    public async Task ForwardsTheDeliveredModelFilesVerbatim()
+    {
+        var process = CreateProcess(null, "%ITF_DIR", success: true);
+
+        // The pipeline decides what counts as a model (typically through a matcher), so the process has to hand
+        // the wired files on unchanged instead of filtering them itself.
+        IPipelineFile[] delivered =
+        [
+            new PipelineFile("TestData/Ilitools/model.ili", "delivered.ili"),
+            new PipelineFile("TestData/Ilitools/model.ili", "second.ili"),
+        ];
+
+        await process.RunAsync(CreateTransferFile(), delivered, CancellationToken.None);
+
+        Assert.IsNotNull(capturedModelFiles);
+        CollectionAssert.AreEqual(delivered, capturedModelFiles.ToList(), "The wired model files have to reach the client unchanged and in order.");
+    }
+
+    [TestMethod]
+    public async Task SendsNoModelFilesWhenNoneAreDelivered()
+    {
+        var process = CreateProcess(null, modelDirs: null, success: true);
+
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
+
+        Assert.IsNotNull(capturedModelFiles);
+        Assert.HasCount(0, capturedModelFiles);
     }
 
     private static PipelineFile CreateTransferFile()
@@ -164,12 +196,13 @@ public class XtfValidatorProcessTest
     private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null)
     {
         ilivalidatorClientMock
-            .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<CancellationToken>()))
-            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile?, CancellationToken>((args, transferFile, logFile, _, archive, _) =>
+            .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()))
+            .Callback<IlivalidatorArgs, IPipelineFile, IPipelineFile, IPipelineFile, IPipelineFile?, IReadOnlyList<IPipelineFile>?, CancellationToken>((args, transferFile, logFile, _, archive, modelFiles, _) =>
             {
                 capturedArgs = args;
                 capturedTransferFile = transferFile;
                 capturedArchive = archive;
+                capturedModelFiles = modelFiles;
 
                 if (logContent != null)
                 {

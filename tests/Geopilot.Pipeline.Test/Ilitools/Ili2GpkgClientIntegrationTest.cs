@@ -53,7 +53,7 @@ public partial class Ili2GpkgClientIntegrationTest
         {
             CreateBasketCol = true, // required for update
         };
-        var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, gpkgFile, TestContext.CancellationToken);
+        var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, gpkgFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Log);
@@ -73,7 +73,7 @@ public partial class Ili2GpkgClientIntegrationTest
         await DeleteIfExistsAsync(gpkgFile);
 
         var args = new Ili2GpkgArgs();
-        var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, gpkgFile, TestContext.CancellationToken);
+        var result = await ili2GpkgClient.SchemaImportAsync(args, modelFile, gpkgFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Log);
@@ -96,7 +96,7 @@ public partial class Ili2GpkgClientIntegrationTest
         {
             Dataset = DatasetName, // required for update
         };
-        var result = await ili2GpkgClient.ImportAsync(args, inputFile, outputFile, [transferFile], TestContext.CancellationToken);
+        var result = await ili2GpkgClient.ImportAsync(args, inputFile, outputFile, [transferFile], cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Log);
@@ -121,7 +121,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ili2GpkgClient.ImportAsync(args, inputFile, outputFile, [], TestContext.CancellationToken);
+            await ili2GpkgClient.ImportAsync(args, inputFile, outputFile, [], cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -140,7 +140,7 @@ public partial class Ili2GpkgClientIntegrationTest
         {
             Models = ["SimpleModel"],
         };
-        var result = await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, TestContext.CancellationToken);
+        var result = await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Log);
@@ -164,7 +164,7 @@ public partial class Ili2GpkgClientIntegrationTest
             Models = ["SimpleModel"],
             ModelDirs = ["%ILI_FROM_DB", "%XTF_DIR"],
         };
-        var result = await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, TestContext.CancellationToken);
+        var result = await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsTrue(result.Success, "Export with model dirs failed. Log: " + result.Log);
@@ -189,7 +189,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, TestContext.CancellationToken);
+            await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -212,7 +212,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, TestContext.CancellationToken);
+            await ili2GpkgClient.ExportAsync(args, dbFile, transferFile, cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -231,7 +231,7 @@ public partial class Ili2GpkgClientIntegrationTest
         {
             Dataset = DatasetName,
         };
-        var result = await ili2GpkgClient.UpdateAsync(args, inputFile, outputFile, [transferFile], TestContext.CancellationToken);
+        var result = await ili2GpkgClient.UpdateAsync(args, inputFile, outputFile, [transferFile], cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Log);
@@ -259,7 +259,7 @@ public partial class Ili2GpkgClientIntegrationTest
 
         var exception = await Assert.ThrowsAsync<RpcException>(async () =>
         {
-            await ili2GpkgClient.UpdateAsync(args, inputFile, outputFile, [], TestContext.CancellationToken);
+            await ili2GpkgClient.UpdateAsync(args, inputFile, outputFile, [], cancellationToken: TestContext.CancellationToken);
         });
 
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
@@ -279,7 +279,7 @@ public partial class Ili2GpkgClientIntegrationTest
             Models = ["SimpleModel"],
         };
 
-        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, TestContext.CancellationToken);
+        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Log);
@@ -302,7 +302,7 @@ public partial class Ili2GpkgClientIntegrationTest
             Models = ["SimpleModel"],
         };
 
-        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, TestContext.CancellationToken);
+        var result = await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
 
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Log);
@@ -332,7 +332,7 @@ public partial class Ili2GpkgClientIntegrationTest
         using var stream = await transferFile.OpenReadAsync();
         Assert.IsGreaterThan(0, stream.Length, "Resulting XTF file is empty.");
 
-        var document = await XDocument.LoadAsync(stream, LoadOptions.None, TestContext.CancellationToken);
+        var document = await XDocument.LoadAsync(stream, LoadOptions.None, cancellationToken: TestContext.CancellationToken);
         Assert.IsNotNull(document.Root, "Root element of the XTF file is null.");
 
         var expectedName = version switch
