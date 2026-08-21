@@ -2,6 +2,7 @@
 using Geopilot.Api;
 using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
+using Geopilot.Api.Controllers;
 using Geopilot.Api.Conventions;
 using Geopilot.Api.Enums;
 using Geopilot.Api.FileAccess;
@@ -380,6 +381,12 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
+
+// The direct backend's write endpoint replaces the presigned URLs; in cloud mode the route must not exist.
+if (uploadBackend == UploadBackend.Direct)
+{
+    app.MapDirectUpload();
+}
 
 app.MapHealthChecks("/health")
     .AllowAnonymous();
