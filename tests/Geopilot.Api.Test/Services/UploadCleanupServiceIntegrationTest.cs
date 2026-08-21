@@ -27,29 +27,30 @@ public class UploadCleanupServiceIntegrationTest
     {
         containerName = $"test-{Guid.NewGuid():N}";
 
-        var storageOptions = new CloudStorageOptions
+        var cloudOptions = new UploadCloudOptions
         {
             ConnectionString = AzuriteConnectionString,
             BucketName = containerName,
+        };
+
+        var uploadOptions = new UploadOptions
+        {
             CleanupAgeHours = 48,
             MaxFileSizeMB = 1,
         };
-
-        var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
-        optionsMock.Setup(o => o.Value).Returns(storageOptions);
 
         var blobServiceClient = new BlobServiceClient(AzuriteConnectionString);
         containerClient = blobServiceClient.GetBlobContainerClient(containerName);
         containerClient.CreateIfNotExists();
 
-        storageService = new AzureBlobUploadStorage(optionsMock.Object, Mock.Of<ILogger<AzureBlobUploadStorage>>());
+        storageService = new AzureBlobUploadStorage(Options.Create(cloudOptions), Mock.Of<ILogger<AzureBlobUploadStorage>>());
         uploadStore = new UploadStore();
 
         cleanupService = new UploadCleanupService(
             storageService,
             uploadStore,
             new Mock<ILogger<UploadCleanupService>>().Object,
-            optionsMock.Object,
+            Options.Create(uploadOptions),
             Options.Create(new ProcessingOptions { JobRetention = TimeSpan.FromHours(24), JobTimeout = TimeSpan.FromMinutes(30) }));
     }
 

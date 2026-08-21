@@ -17,7 +17,7 @@ public class UploadOrchestrationServiceTest
     private Mock<IUploadStorage> uploadStorageMock;
     private Mock<IUploadScanService> scanServiceMock;
     private Mock<IDirectoryProvider> directoryProviderMock;
-    private Mock<IOptions<CloudStorageOptions>> optionsMock;
+    private Mock<IOptions<UploadOptions>> optionsMock;
     private Mock<ILogger<UploadOrchestrationService>> loggerMock;
     private ProcessingJobStore jobStore;
     private UploadStore uploadStore;
@@ -39,15 +39,15 @@ public class UploadOrchestrationServiceTest
             .Returns((Guid jobId) => Path.Combine(pipelineRoot, jobId.ToString()));
         loggerMock = new Mock<ILogger<UploadOrchestrationService>>();
 
-        optionsMock = new Mock<IOptions<CloudStorageOptions>>();
-        optionsMock.SetupGet(o => o.Value).Returns(new CloudStorageOptions
+        optionsMock = new Mock<IOptions<UploadOptions>>();
+        optionsMock.SetupGet(o => o.Value).Returns(new UploadOptions
         {
             MaxFileSizeMB = 2048,
             MaxFilesPerJob = 12,
             MaxJobSizeMB = 10240,
             MaxGlobalActiveSizeMB = 204800,
             MaxActiveJobs = 100,
-            PresignedUrlExpiryMinutes = 60,
+            UploadUrlExpiryMinutes = 60,
         });
 
         jobStore = new ProcessingJobStore();
@@ -356,7 +356,7 @@ public class UploadOrchestrationServiceTest
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsWhenMaxActiveUploadsReached()
     {
-        var opts = new CloudStorageOptions { MaxFileSizeMB = 2048, MaxFilesPerJob = 12, MaxJobSizeMB = 10240, MaxActiveJobs = 1 };
+        var opts = new UploadOptions { MaxFileSizeMB = 2048, MaxFilesPerJob = 12, MaxJobSizeMB = 10240, MaxActiveJobs = 1 };
         optionsMock.SetupGet(o => o.Value).Returns(opts);
 
         // Create one upload to hit the limit.
@@ -370,7 +370,7 @@ public class UploadOrchestrationServiceTest
     [TestMethod]
     public async Task InitiateUploadAsyncThrowsWhenGlobalSizeLimitExceeded()
     {
-        var opts = new CloudStorageOptions { MaxFileSizeMB = 2048, MaxFilesPerJob = 12, MaxJobSizeMB = 10240, MaxActiveJobs = 100, MaxGlobalActiveSizeMB = 1 };
+        var opts = new UploadOptions { MaxFileSizeMB = 2048, MaxFilesPerJob = 12, MaxJobSizeMB = 10240, MaxActiveJobs = 100, MaxGlobalActiveSizeMB = 1 };
         optionsMock.SetupGet(o => o.Value).Returns(opts);
 
         uploadStorageMock

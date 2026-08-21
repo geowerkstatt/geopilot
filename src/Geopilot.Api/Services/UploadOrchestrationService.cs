@@ -26,7 +26,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
     private readonly IProcessingJobStore jobStore;
     private readonly IUploadStore uploadStore;
     private readonly IDirectoryProvider directoryProvider;
-    private readonly IOptions<CloudStorageOptions> options;
+    private readonly IOptions<UploadOptions> options;
     private readonly ILogger<UploadOrchestrationService> logger;
 
     /// <summary>
@@ -38,7 +38,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
         IProcessingJobStore jobStore,
         IUploadStore uploadStore,
         IDirectoryProvider directoryProvider,
-        IOptions<CloudStorageOptions> options,
+        IOptions<UploadOptions> options,
         ILogger<UploadOrchestrationService> logger)
     {
         this.uploadStorage = uploadStorage;
@@ -70,7 +70,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
 
         var uploadedFiles = new List<UploadedFileInfo>();
         var fileUploadInfos = new List<FileUploadInfo>();
-        var expiresIn = TimeSpan.FromMinutes(options.Value.PresignedUrlExpiryMinutes);
+        var expiresIn = TimeSpan.FromMinutes(options.Value.UploadUrlExpiryMinutes);
 
         foreach (var file in request.Files)
         {

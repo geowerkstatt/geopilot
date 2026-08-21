@@ -225,7 +225,7 @@ Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. 
 
 Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID den Verarbeitungsjob.
 
-Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Ein Job startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Job in einem nicht lieferbaren Zustand endet, sonst mit dem Aufräumen des Jobs (`Processing:JobRetention`). Die Lieferung archiviert jede hochgeladene Datei als `PrimaryData`, auch die von keinem Schritt gelesenen; bei einer Lieferung wandern also am Ende doch alle Dateien über die Leitung, nur später und ausserhalb der Startlatenz. `CloudStorage:CleanupAgeHours` muss deshalb länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
+Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Ein Job startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Job in einem nicht lieferbaren Zustand endet, sonst mit dem Aufräumen des Jobs (`Processing:JobRetention`). Die Lieferung archiviert jede hochgeladene Datei als `PrimaryData`, auch die von keinem Schritt gelesenen; bei einer Lieferung wandern also am Ende doch alle Dateien über die Leitung, nur später und ausserhalb der Startlatenz. `Upload:CleanupAgeHours` muss deshalb länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
 
 ### Entwicklung
 
@@ -237,15 +237,17 @@ docker compose up -d azurite clamav
 
 ### Konfiguration
 
-Die `CloudStorage`-Konfiguration ist erforderlich; ohne `ConnectionString` und `BucketName` startet die Applikation nicht.
+Die `Upload:Cloud`-Konfiguration ist erforderlich; ohne `ConnectionString` und `BucketName` startet die Applikation nicht.
 
 ```json5
-"CloudStorage": {
-    "ConnectionString": "...",
-    "BucketName": "uploads",
-    "BlobEndpoint": "https://localhost:10000", // Öffentlicher Storage-Endpoint, wird der CSP (connect-src) hinzugefügt
-    "AutoCreateContainer": false, // Nur für Entwicklung auf true setzen
-    "AllowedOrigins": ["https://localhost:5173"] // CORS für Presigned-URL-Uploads
+"Upload": {
+    "Cloud": {
+        "ConnectionString": "...",
+        "BucketName": "uploads",
+        "BlobEndpoint": "https://localhost:10000", // Öffentlicher Storage-Endpoint, wird der CSP (connect-src) hinzugefügt
+        "AutoCreateContainer": false, // Nur für Entwicklung auf true setzen
+        "AllowedOrigins": ["https://localhost:5173"] // CORS für Presigned-URL-Uploads
+    }
 },
 "ClamAV": {
     "Enabled": true,
@@ -254,7 +256,7 @@ Die `CloudStorage`-Konfiguration ist erforderlich; ohne `ConnectionString` und `
 }
 ```
 
-Weitere Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `PresignedUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) werden in `appsettings.json` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `CloudCleanupService` bereinigt.
+Weitere Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `UploadUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) werden direkt unter `Upload` in `appsettings.json` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `UploadCleanupService` bereinigt.
 
 - **ClamAV deaktiviert (Standard):** Uploads werden ohne Virenprüfung verarbeitet. Pro Upload wird eine Warnung geloggt.
 - **ClamAV aktiviert:** Virenprüfung vor der Verarbeitung.

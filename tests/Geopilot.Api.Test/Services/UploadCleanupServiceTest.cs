@@ -13,7 +13,7 @@ public class UploadCleanupServiceTest
     private Mock<IUploadStorage> uploadStorageMock;
     private Mock<IUploadStore> uploadStoreMock;
     private Mock<ILogger<UploadCleanupService>> loggerMock;
-    private CloudStorageOptions cloudStorageOptions;
+    private UploadOptions uploadOptions;
     private UploadCleanupService service;
 
     [TestInitialize]
@@ -23,10 +23,10 @@ public class UploadCleanupServiceTest
         uploadStoreMock = new Mock<IUploadStore>(MockBehavior.Loose);
         loggerMock = new Mock<ILogger<UploadCleanupService>>();
 
-        cloudStorageOptions = new CloudStorageOptions { CleanupAgeHours = 48, MaxFileSizeMB = 2048 };
+        uploadOptions = new UploadOptions { CleanupAgeHours = 48, MaxFileSizeMB = 2048 };
 
-        var optionsMock = new Mock<IOptions<CloudStorageOptions>>();
-        optionsMock.Setup(o => o.Value).Returns(cloudStorageOptions);
+        var optionsMock = new Mock<IOptions<UploadOptions>>();
+        optionsMock.Setup(o => o.Value).Returns(uploadOptions);
 
         service = new UploadCleanupService(
             uploadStorageMock.Object,
@@ -216,7 +216,7 @@ public class UploadCleanupServiceTest
     public async Task RunCleanupAsyncDeletesOversizedFiles()
     {
         var uploadId = Guid.NewGuid();
-        var oversizedBytes = ((long)cloudStorageOptions.MaxFileSizeMB * 1024 * 1024) + 1;
+        var oversizedBytes = ((long)uploadOptions.MaxFileSizeMB * 1024 * 1024) + 1;
 
         uploadStorageMock
             .Setup(s => s.ListFilesAsync("uploads/"))
@@ -241,7 +241,7 @@ public class UploadCleanupServiceTest
     public async Task RunCleanupAsyncSkipsNormalSizedFiles()
     {
         var uploadId = Guid.NewGuid();
-        var normalBytes = (long)cloudStorageOptions.MaxFileSizeMB * 1024 * 1024;
+        var normalBytes = (long)uploadOptions.MaxFileSizeMB * 1024 * 1024;
 
         uploadStorageMock
             .Setup(s => s.ListFilesAsync("uploads/"))
