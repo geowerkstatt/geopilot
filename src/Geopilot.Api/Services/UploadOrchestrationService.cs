@@ -10,10 +10,10 @@ using System.Collections.Immutable;
 namespace Geopilot.Api.Services;
 
 /// <summary>
-/// Orchestrates cloud upload sessions including initiation, preflight checks, and handing the uploaded
+/// Orchestrates upload sessions including initiation, preflight checks, and handing the uploaded
 /// files to a processing job.
 /// </summary>
-public class CloudOrchestrationService : ICloudOrchestrationService
+public class UploadOrchestrationService : IUploadOrchestrationService
 {
     /// <summary>
     /// Subdirectory of the job's pipeline working directory that uploaded files are fetched into.
@@ -21,28 +21,28 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     /// </summary>
     private const string UploadWorkingDirectoryName = "upload";
 
-    private readonly ICloudStorageService cloudStorageService;
-    private readonly ICloudScanService cloudScanService;
+    private readonly IUploadStorage uploadStorage;
+    private readonly IUploadScanService scanService;
     private readonly IProcessingJobStore jobStore;
     private readonly IUploadStore uploadStore;
     private readonly IDirectoryProvider directoryProvider;
     private readonly IOptions<CloudStorageOptions> options;
-    private readonly ILogger<CloudOrchestrationService> logger;
+    private readonly ILogger<UploadOrchestrationService> logger;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CloudOrchestrationService"/> class.
+    /// Initializes a new instance of the <see cref="UploadOrchestrationService"/> class.
     /// </summary>
-    public CloudOrchestrationService(
-        ICloudStorageService cloudStorageService,
-        ICloudScanService cloudScanService,
+    public UploadOrchestrationService(
+        IUploadStorage uploadStorage,
+        IUploadScanService scanService,
         IProcessingJobStore jobStore,
         IUploadStore uploadStore,
         IDirectoryProvider directoryProvider,
         IOptions<CloudStorageOptions> options,
-        ILogger<CloudOrchestrationService> logger)
+        ILogger<UploadOrchestrationService> logger)
     {
-        this.cloudStorageService = cloudStorageService;
-        this.cloudScanService = cloudScanService;
+        this.uploadStorage = uploadStorage;
+        this.scanService = scanService;
         this.jobStore = jobStore;
         this.uploadStore = uploadStore;
         this.directoryProvider = directoryProvider;
@@ -51,42 +51,42 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     }
 
     /// <inheritdoc/>
-    public async Task<CloudUploadResponse> InitiateUploadAsync(CloudUploadRequest request)
+    public async Task<InitiateUploadResponse> InitiateUploadAsync(InitiateUploadRequest request)
     {
         ValidateRequest(request);
 
         var activeUploads = uploadStore.GetActiveUploadCount();
         if (activeUploads >= options.Value.MaxActiveJobs)
-            throw new InvalidOperationException($"Maximum number of active cloud uploads ({options.Value.MaxActiveJobs}) reached.");
+            throw new InvalidOperationException($"Maximum number of active uploads ({options.Value.MaxActiveJobs}) reached.");
 
         var declaredTotalSize = request.Files.Sum(f => f.Size);
         var maxGlobalBytes = (long)options.Value.MaxGlobalActiveSizeMB * 1024 * 1024;
-        var currentSize = await cloudStorageService.GetTotalSizeAsync("uploads/");
+        var currentSize = await uploadStorage.GetTotalSizeAsync("uploads/");
         if (currentSize + declaredTotalSize > maxGlobalBytes)
             throw new InvalidOperationException($"Global active upload size limit ({options.Value.MaxGlobalActiveSizeMB} MB) would be exceeded.");
 
         var uploadId = Guid.NewGuid();
-        var cloudPrefix = $"uploads/{uploadId}/";
+        var keyPrefix = $"uploads/{uploadId}/";
 
-        var cloudFiles = new List<CloudFileInfo>();
+        var uploadedFiles = new List<UploadedFileInfo>();
         var fileUploadInfos = new List<FileUploadInfo>();
         var expiresIn = TimeSpan.FromMinutes(options.Value.PresignedUrlExpiryMinutes);
 
         foreach (var file in request.Files)
         {
             var sanitizedName = Path.GetFileName(file.FileName);
-            var cloudKey = $"{cloudPrefix}{sanitizedName}";
-            var presignedUrl = await cloudStorageService.GeneratePresignedUploadUrlAsync(cloudKey, null, expiresIn);
+            var storageKey = $"{keyPrefix}{sanitizedName}";
+            var presignedUrl = await uploadStorage.GenerateUploadUrlAsync(storageKey, null, expiresIn);
 
-            cloudFiles.Add(new CloudFileInfo(sanitizedName, cloudKey, file.Size));
+            uploadedFiles.Add(new UploadedFileInfo(sanitizedName, storageKey, file.Size));
             fileUploadInfos.Add(new FileUploadInfo(sanitizedName, presignedUrl));
         }
 
-        uploadStore.CreateUpload(uploadId, cloudFiles.ToImmutableList());
+        uploadStore.CreateUpload(uploadId, uploadedFiles.ToImmutableList());
 
-        logger.LogInformation("Initiated cloud upload <{UploadId}> with {FileCount} file(s).", uploadId, request.Files.Count);
+        logger.LogInformation("Initiated upload <{UploadId}> with {FileCount} file(s).", uploadId, request.Files.Count);
 
-        return new CloudUploadResponse(uploadId, fileUploadInfos, DateTime.UtcNow.Add(expiresIn));
+        return new InitiateUploadResponse(uploadId, fileUploadInfos, DateTime.UtcNow.Add(expiresIn));
     }
 
     /// <inheritdoc/>
@@ -95,40 +95,40 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
 
         if (upload.Files.Count == 0)
-            throw new InvalidOperationException($"Upload <{uploadId}> has no cloud files configured.");
+            throw new InvalidOperationException($"Upload <{uploadId}> has no files configured.");
 
         logger.LogInformation("Starting preflight checks for upload <{UploadId}>.", uploadId);
 
-        var cloudPrefix = $"uploads/{uploadId}/";
-        var uploadedFiles = await cloudStorageService.ListFilesAsync(cloudPrefix);
+        var keyPrefix = $"uploads/{uploadId}/";
+        var uploadedFiles = await uploadStorage.ListFilesAsync(keyPrefix);
 
         foreach (var expectedFile in upload.Files)
         {
-            var uploaded = uploadedFiles.FirstOrDefault(f => f.Key == expectedFile.CloudKey);
+            var uploaded = uploadedFiles.FirstOrDefault(f => f.Key == expectedFile.StorageKey);
             if (uploaded == default)
             {
-                throw new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, $"File '{expectedFile.FileName}' was not uploaded.");
+                throw new UploadPreflightException(PreflightFailureReason.IncompleteUpload, $"File '{expectedFile.FileName}' was not uploaded.");
             }
 
             if (uploaded.Size < expectedFile.ExpectedSize)
             {
-                throw new CloudUploadPreflightException(PreflightFailureReason.IncompleteUpload, $"File '{expectedFile.FileName}' is incomplete.");
+                throw new UploadPreflightException(PreflightFailureReason.IncompleteUpload, $"File '{expectedFile.FileName}' is incomplete.");
             }
 
             if (uploaded.Size > expectedFile.ExpectedSize)
             {
                 logger.LogError("File '{FileName}' for upload <{UploadId}> exceeds declared size ({Actual} > {Expected}).", expectedFile.FileName, uploadId, uploaded.Size, expectedFile.ExpectedSize);
-                throw new CloudUploadPreflightException(PreflightFailureReason.SizeExceeded, "The uploaded files could not be processed.");
+                throw new UploadPreflightException(PreflightFailureReason.SizeExceeded, "The uploaded files could not be processed.");
             }
         }
 
-        var keys = upload.Files.Select(f => f.CloudKey).ToList();
-        var scanResult = await cloudScanService.CheckFilesAsync(keys);
+        var keys = upload.Files.Select(f => f.StorageKey).ToList();
+        var scanResult = await scanService.CheckFilesAsync(keys);
 
         if (!scanResult.IsClean)
         {
-            logger.LogError("Threat detected in cloud files for upload <{UploadId}>: {ThreatDetails}", uploadId, scanResult.ThreatDetails);
-            throw new CloudUploadPreflightException(PreflightFailureReason.ThreatDetected, "The uploaded files could not be processed.");
+            logger.LogError("Threat detected in files of upload <{UploadId}>: {ThreatDetails}", uploadId, scanResult.ThreatDetails);
+            throw new UploadPreflightException(PreflightFailureReason.ThreatDetected, "The uploaded files could not be processed.");
         }
     }
 
@@ -141,7 +141,7 @@ public class CloudOrchestrationService : ICloudOrchestrationService
             throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId));
 
         if (upload.Files.Count == 0)
-            throw new InvalidOperationException($"Upload <{uploadId}> has no cloud files to register.");
+            throw new InvalidOperationException($"Upload <{uploadId}> has no files to register.");
 
         var materializationDirectory = Path.Combine(directoryProvider.GetPipelineDirectoryPath(jobId), UploadWorkingDirectoryName);
 
@@ -153,11 +153,11 @@ public class CloudOrchestrationService : ICloudOrchestrationService
         foreach (var file in upload.Files)
         {
             var localName = UploadFileNaming.MakeUnique(file.FileName, usedNames);
-            jobStore.AddFileToJob(jobId, file.FileName, localName, file.CloudKey);
-            pipelineFiles.Add(new CloudPipelineFile(cloudStorageService, file.CloudKey, file.FileName, materializationDirectory, localName));
+            jobStore.AddFileToJob(jobId, file.FileName, localName, file.StorageKey);
+            pipelineFiles.Add(new UploadPipelineFile(uploadStorage, file.StorageKey, file.FileName, materializationDirectory, localName));
         }
 
-        logger.LogInformation("Registered {FileCount} cloud file(s) of upload <{UploadId}> on job <{JobId}>.", pipelineFiles.Count, uploadId, jobId);
+        logger.LogInformation("Registered {FileCount} file(s) of upload <{UploadId}> on job <{JobId}>.", pipelineFiles.Count, uploadId, jobId);
 
         return pipelineFiles;
     }
@@ -167,18 +167,18 @@ public class CloudOrchestrationService : ICloudOrchestrationService
     {
         try
         {
-            await cloudStorageService.DeletePrefixAsync($"uploads/{uploadId}/");
+            await uploadStorage.DeletePrefixAsync($"uploads/{uploadId}/");
             uploadStore.RemoveUpload(uploadId);
-            logger.LogInformation("Released cloud files of upload <{UploadId}>.", uploadId);
+            logger.LogInformation("Released the files of upload <{UploadId}>.", uploadId);
         }
         catch (Exception ex)
         {
-            // The age-based sweep in CloudCleanupService picks the blobs up later.
-            logger.LogError(ex, "Failed to release cloud files of upload <{UploadId}>.", uploadId);
+            // The age-based sweep in UploadCleanupService picks the blobs up later.
+            logger.LogError(ex, "Failed to release the files of upload <{UploadId}>.", uploadId);
         }
     }
 
-    private void ValidateRequest(CloudUploadRequest request)
+    private void ValidateRequest(InitiateUploadRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 

@@ -37,7 +37,7 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
-    public ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName, string cloudKey)
+    public ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName, string storageKey)
     {
         return jobs.AddOrUpdate(
             jobId,
@@ -45,7 +45,7 @@ public class ProcessingJobStore : IProcessingJobStore
             (id, currentJob) =>
             {
                 EnsureJobIsPending(id, currentJob, "add file");
-                currentJob.Files.Add(new ProcessingJobFile(originalFileName, tempFileName, cloudKey));
+                currentJob.Files.Add(new ProcessingJobFile(originalFileName, tempFileName, storageKey));
                 return currentJob;
             });
     }

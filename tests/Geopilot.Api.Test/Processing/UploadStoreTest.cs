@@ -17,7 +17,7 @@ public class UploadStoreTest
     public void CreateUpload()
     {
         var id = Guid.NewGuid();
-        var files = ImmutableList.Create(new CloudFileInfo("test.xtf", "cloud/key/test.xtf", 42));
+        var files = ImmutableList.Create(new UploadedFileInfo("test.xtf", "cloud/key/test.xtf", 42));
 
         var upload = store.CreateUpload(id, files);
 
@@ -30,7 +30,7 @@ public class UploadStoreTest
     public void CreateUploadSetsUtcCreatedAt()
     {
         var before = DateTime.UtcNow;
-        var upload = store.CreateUpload(Guid.NewGuid(), ImmutableList<CloudFileInfo>.Empty);
+        var upload = store.CreateUpload(Guid.NewGuid(), ImmutableList<UploadedFileInfo>.Empty);
         var after = DateTime.UtcNow;
 
         Assert.AreEqual(DateTimeKind.Utc, upload.CreatedAt.Kind);
@@ -42,8 +42,8 @@ public class UploadStoreTest
     public void CreateUploadThrowsIfIdAlreadyExists()
     {
         var id = Guid.NewGuid();
-        store.CreateUpload(id, ImmutableList<CloudFileInfo>.Empty);
+        store.CreateUpload(id, ImmutableList<UploadedFileInfo>.Empty);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.CreateUpload(id, ImmutableList<CloudFileInfo>.Empty));
+        Assert.ThrowsExactly<InvalidOperationException>(() => store.CreateUpload(id, ImmutableList<UploadedFileInfo>.Empty));
     }
 }

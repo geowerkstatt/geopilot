@@ -24,7 +24,7 @@ public class ProcessingRunnerTest
     private PhysicalDownloadFileStore downloadStore;
     private PhysicalAssetFileStore assetStore;
     private PhysicalVisualizationFileStore visualizationStore;
-    private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
+    private Mock<IUploadOrchestrationService> orchestrationServiceMock;
     private IServiceScopeFactory scopeFactory;
 
     [TestInitialize]
@@ -33,14 +33,14 @@ public class ProcessingRunnerTest
         downloadStore = new PhysicalDownloadFileStore(AssemblyInitialize.TestDirectoryProvider);
         assetStore = new PhysicalAssetFileStore(AssemblyInitialize.TestDirectoryProvider);
         visualizationStore = new PhysicalVisualizationFileStore(AssemblyInitialize.TestDirectoryProvider);
-        cloudOrchestrationServiceMock = new Mock<ICloudOrchestrationService>();
-        cloudOrchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
+        orchestrationServiceMock = new Mock<IUploadOrchestrationService>();
+        orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
 
         var serviceProvider = new Mock<IServiceProvider>();
         serviceProvider.Setup(p => p.GetService(typeof(IDownloadFileStore))).Returns(downloadStore);
         serviceProvider.Setup(p => p.GetService(typeof(IAssetFileStore))).Returns(assetStore);
         serviceProvider.Setup(p => p.GetService(typeof(IVisualizationFileStore))).Returns(visualizationStore);
-        serviceProvider.Setup(p => p.GetService(typeof(ICloudOrchestrationService))).Returns(cloudOrchestrationServiceMock.Object);
+        serviceProvider.Setup(p => p.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
 
         var scope = new Mock<IServiceScope>();
         scope.SetupGet(s => s.ServiceProvider).Returns(serviceProvider.Object);
@@ -487,7 +487,7 @@ public class ProcessingRunnerTest
         await runner.StopAsync(CancellationToken.None);
 
         // The originals will never be archived, so they can go right away.
-        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
     }
 
     [TestMethod]
@@ -501,14 +501,14 @@ public class ProcessingRunnerTest
         var (runner, store) = CreateRunnerWithStore(pipeline);
 
         // A host shutdown leaves the job in Running: nobody has decided yet whether it mattered, so the
-        // originals have to survive. CloudCleanupService's age-based sweep is what collects them.
+        // originals have to survive. UploadCleanupService's age-based sweep is what collects them.
         store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Running));
 
         await runner.StartAsync(CancellationToken.None);
         await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
         await runner.StopAsync(CancellationToken.None);
 
-        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -527,7 +527,7 @@ public class ProcessingRunnerTest
         await runner.StopAsync(CancellationToken.None);
 
         // Declaring the delivery archives every original as primary data, so they must stay reachable.
-        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]

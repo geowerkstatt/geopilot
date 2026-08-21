@@ -4,31 +4,31 @@ using Microsoft.Extensions.Options;
 namespace Geopilot.Api.Services;
 
 /// <summary>
-/// A background service that periodically cleans up old cloud upload files.
+/// A background service that periodically cleans up stale upload files.
 /// </summary>
-public class CloudCleanupService : BackgroundService
+public class UploadCleanupService : BackgroundService
 {
-    private readonly ICloudStorageService cloudStorageService;
+    private readonly IUploadStorage uploadStorage;
     private readonly IUploadStore uploadStore;
-    private readonly ILogger<CloudCleanupService> logger;
+    private readonly ILogger<UploadCleanupService> logger;
     private readonly CloudStorageOptions options;
     private readonly ProcessingOptions processingOptions;
     private readonly SemaphoreSlim cleanupSemaphore = new SemaphoreSlim(1);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CloudCleanupService"/> class.
+    /// Initializes a new instance of the <see cref="UploadCleanupService"/> class.
     /// </summary>
-    public CloudCleanupService(
-        ICloudStorageService cloudStorageService,
+    public UploadCleanupService(
+        IUploadStorage uploadStorage,
         IUploadStore uploadStore,
-        ILogger<CloudCleanupService> logger,
+        ILogger<UploadCleanupService> logger,
         IOptions<CloudStorageOptions> options,
         IOptions<ProcessingOptions> processingOptions)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(processingOptions);
 
-        this.cloudStorageService = cloudStorageService;
+        this.uploadStorage = uploadStorage;
         this.uploadStore = uploadStore;
         this.logger = logger;
         this.options = options.Value;
@@ -36,14 +36,14 @@ public class CloudCleanupService : BackgroundService
     }
 
     /// <summary>
-    /// Executes the background cleanup service, periodically cleaning up old cloud upload files.
+    /// Executes the background cleanup service, periodically cleaning up stale upload files.
     /// </summary>
     /// <param name="stoppingToken">A <see cref="CancellationToken"/> that is used to signal the operation should stop.</param>
     /// <returns>A task that represents the asynchronous execution of the cleanup service.</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var interval = TimeSpan.FromMinutes(options.CleanupIntervalMinutes);
-        logger.LogInformation("CloudCleanupService started. Cleanup interval: {Interval}.", interval);
+        logger.LogInformation("UploadCleanupService started. Cleanup interval: {Interval}.", interval);
 
         // Uploaded files are fetched only when a step reads them, so their blobs have to outlive the job
         // that may still need them. This sweep would otherwise pull them away mid-job.
@@ -73,13 +73,13 @@ public class CloudCleanupService : BackgroundService
     }
 
     /// <summary>
-    /// Performs the cleanup of old cloud upload files.
+    /// Performs the cleanup of stale upload files.
     /// </summary>
     public async Task RunCleanupAsync()
     {
         if (!cleanupSemaphore.Wait(0))
         {
-            logger.LogWarning("Cloud cleanup is already running. Skipping this run.");
+            logger.LogWarning("Upload cleanup is already running. Skipping this run.");
             return;
         }
 
@@ -90,7 +90,7 @@ public class CloudCleanupService : BackgroundService
             var maxFileSizeBytes = (long)options.MaxFileSizeMB * 1024 * 1024;
             int deletedPrefixes = 0;
 
-            var uploadFiles = await cloudStorageService.ListFilesAsync("uploads/");
+            var uploadFiles = await uploadStorage.ListFilesAsync("uploads/");
 
             var filesByUploadId = uploadFiles
                 .GroupBy(f => ExtractUploadId(f.Key))
@@ -99,7 +99,7 @@ public class CloudCleanupService : BackgroundService
             // Delete blobs with invalid paths (no valid GUID)
             foreach (var file in filesByUploadId.Where(g => g.Key == null).SelectMany(g => g))
             {
-                await cloudStorageService.DeleteAsync(file.Key);
+                await uploadStorage.DeleteAsync(file.Key);
                 logger.LogTrace("Deleted invalid blob: {Key}.", file.Key);
             }
 
@@ -109,43 +109,43 @@ public class CloudCleanupService : BackgroundService
 
                 if (group.Any(f => f.LastModified < cutoff))
                 {
-                    await cloudStorageService.DeletePrefixAsync($"uploads/{uploadId}/");
+                    await uploadStorage.DeletePrefixAsync($"uploads/{uploadId}/");
                     uploadStore.RemoveUpload(uploadId);
                     deletedPrefixes++;
-                    logger.LogTrace("Deleted stale cloud files for upload <{UploadId}>.", uploadId);
+                    logger.LogTrace("Deleted stale files of upload <{UploadId}>.", uploadId);
                     continue;
                 }
 
                 if (group.Any(f => f.Size > maxFileSizeBytes))
                 {
-                    await cloudStorageService.DeletePrefixAsync($"uploads/{uploadId}/");
+                    await uploadStorage.DeletePrefixAsync($"uploads/{uploadId}/");
                     uploadStore.RemoveUpload(uploadId);
                     deletedPrefixes++;
-                    logger.LogTrace("Deleted oversized cloud files for upload <{UploadId}>.", uploadId);
+                    logger.LogTrace("Deleted oversized files of upload <{UploadId}>.", uploadId);
                     continue;
                 }
 
                 if (uploadStore.GetUpload(uploadId) == null)
                 {
-                    await cloudStorageService.DeletePrefixAsync($"uploads/{uploadId}/");
+                    await uploadStorage.DeletePrefixAsync($"uploads/{uploadId}/");
                     deletedPrefixes++;
-                    logger.LogTrace("Deleted orphaned cloud files for upload <{UploadId}>.", uploadId);
+                    logger.LogTrace("Deleted orphaned files of upload <{UploadId}>.", uploadId);
                 }
             }
 
             // Delete blobs outside the uploads/ prefix
-            var allFiles = await cloudStorageService.ListFilesAsync(string.Empty);
+            var allFiles = await uploadStorage.ListFilesAsync(string.Empty);
             foreach (var file in allFiles.Where(f => !f.Key.StartsWith("uploads/", StringComparison.Ordinal)))
             {
-                await cloudStorageService.DeleteAsync(file.Key);
+                await uploadStorage.DeleteAsync(file.Key);
                 logger.LogTrace("Deleted blob outside uploads/ prefix: {Key}.", file.Key);
             }
 
-            logger.LogInformation("CloudCleanupService completed. Deleted prefixes: {Deleted}.", deletedPrefixes);
+            logger.LogInformation("UploadCleanupService completed. Deleted prefixes: {Deleted}.", deletedPrefixes);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error during cloud cleanup.");
+            logger.LogError(ex, "Error during upload cleanup.");
         }
         finally
         {

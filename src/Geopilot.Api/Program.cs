@@ -183,19 +183,19 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-builder.Services.AddSingleton<ICloudStorageService, AzureBlobStorageService>();
-builder.Services.AddTransient<ICloudOrchestrationService, CloudOrchestrationService>();
-builder.Services.AddHostedService<CloudCleanupService>();
+builder.Services.AddSingleton<IUploadStorage, AzureBlobUploadStorage>();
+builder.Services.AddTransient<IUploadOrchestrationService, UploadOrchestrationService>();
+builder.Services.AddHostedService<UploadCleanupService>();
 builder.Services.AddPreflightChannel();
 builder.Services.AddHostedService<PreflightBackgroundService>();
 
 if (builder.Configuration.GetValue<bool>("ClamAV:Enabled"))
 {
-    builder.Services.AddTransient<ICloudScanService, ClamAvScanService>();
+    builder.Services.AddTransient<IUploadScanService, ClamAvScanService>();
 }
 else
 {
-    builder.Services.AddTransient<ICloudScanService, NoOpScanService>();
+    builder.Services.AddTransient<IUploadScanService, NoOpScanService>();
 }
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
