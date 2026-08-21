@@ -20,7 +20,7 @@ public class PipelineFactory : IPipelineFactory
     /// <summary>
     /// The pipeline process configuration used to create pipelines.
     /// </summary>
-    public PipelineProcessConfig PipelineProcessConfig { get; }
+    internal PipelineProcessConfig PipelineProcessConfig { get; }
 
     private IPipelineProcessFactory pipelineProcessFactory;
 
