@@ -160,6 +160,8 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Der Zielparameter einer Datei-Referenz muss ein `IPipelineFile` (oder eine Liste davon) entgegennehmen, und die referenzierte Datei muss im konfigurierten Ressourcen-Verzeichnis vorhanden sein.
 - Innerhalb der `output_actions` eines Schrittes darf dieselbe `property` nicht mehrfach vorkommen.
 - Ein Schritt darf höchstens eine Property mit der Action `StatusMessage` taggen.
+- Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
+- Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
 
 ## Konfiguration eines Pipeline-Prozessors
 
@@ -182,7 +184,7 @@ Es gibt folgende mögliche Typen von Konfigurationsparametern:
 
 #### Appsettings
 
-1. **Prozessor-Typ**: Der vollqualifizierte Prozessor für welchen die Konfiguration gilt.
+1. **Prozessor-Typ**: Der vollqualifizierte Prozessor für welchen die Konfiguration gilt. Der Schlüssel ist der Implementierungs-Typ und nicht die Prozess-Id, ein Eintrag gilt also für jeden `processes:`-Eintrag der Pipeline-Definition, welcher diese Implementierung nennt.
 2. **Prozessor-Parameter**: Key-Value-Paar der Parameter.
 
 Ein Beispiel für die Konfiguration eines Pipeline-Prozessors in den Appsettings könnte wie folgt aussehen:
@@ -197,6 +199,12 @@ Ein Beispiel für die Konfiguration eines Pipeline-Prozessors in den Appsettings
     }
   }
 }
+```
+
+Im Betrieb wird derselbe Wert in der Regel nicht als JSON, sondern als Umgebungsvariable gesetzt. Der Trenner ist dann `__` statt `:`:
+
+```
+Pipeline__ProcessConfigs__Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess__modelDirs=https://models.example.com/;https://models.interlis.ch/
 ```
 
 Das ist auch das typische Beispiel für die Wahl der Schicht: die Modell-Repositories bestimmen, wogegen validiert wird, gelten pro Umgebung und sollen von einer Pipeline nicht verändert werden können. Sie gehören deshalb in die Basis-Konfiguration und nicht in die Pipeline-Definition.
@@ -237,10 +245,29 @@ Die Übernahme eines Konfigurationsparameters ist hierarchisch und wird folgende
 
 Für das Überschreiben von Konfigurationsparametern gelten folgende Einschränkungen:
 
-- Basis-Konfigurationen, welche in den Appsettings definiert sind, können nicht von der Pipeline-Definition überschrieben werden. Ein in der Basis-Konfiguration definierter Wert ist somit fix und unveränderbar. Ein Beispiel für einen solchen Konfigurationsparameter ist die Basis-URL eines Drittanbieter-Services, welcher für die gesamte Umgebung gilt (Development, Acceptance, Prod, ...). Um die gleiche Pipeline auf den verschiedenen Umgebungen mit unterschiedlichen Basis-URLs verwenden zu können, sollte dieser Parameter in den Appsettings definiert werden und nicht in der Pipeline-Definition.
+- Basis-Konfigurationen, welche in den Appsettings definiert sind, können nicht von der Pipeline-Definition überschrieben werden. Ein in der Basis-Konfiguration definierter Wert ist somit fix und unveränderbar; der Versuch, ihn aus der Definition zu setzen, lässt die Applikation nicht starten (siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration)). Ein Beispiel für einen solchen Konfigurationsparameter ist die Basis-URL eines Drittanbieter-Services, welcher für die gesamte Umgebung gilt (Development, Acceptance, Prod, ...). Um die gleiche Pipeline auf den verschiedenen Umgebungen mit unterschiedlichen Basis-URLs verwenden zu können, sollte dieser Parameter in den Appsettings definiert werden und nicht in der Pipeline-Definition.
 - Das Überschreiben von Konfigurations-Parameter wird in den Schritten unter `pipelines[X].steps[X].process_config_overwrites` vorgenommen. Um ein Konfigurationsparameter zu überschreiben muss dieser Parameter auf der Standard-Konfiguration des Prozesses definiert sein (`processes[X].default_config`). Es ist somit nicht möglich, neue Konfigurationsparameter in den Schritten zu definieren, welche nicht bereits in der Standard-Konfiguration definiert sind.
 
 Zu den Typen: Listen können nur in der Pipeline-Definition angegeben werden, die Appsettings-Ebene trägt nur Einzelwerte. Ein Parameter, der unveränderbar sein soll und trotzdem mehrere Werte braucht, wird deshalb als Einzelwert entworfen (der Prozessor `xtf_validator` nimmt seine Modell-Repositories zum Beispiel als semikolon-getrennten Wert).
+
+#### Kollision mit der Basis-Konfiguration
+
+Die Unveränderbarkeit der Basis-Konfiguration ist keine stille Vorrangregel, sondern wird beim Laden der Pipeline-Definition durchgesetzt: Steht derselbe Schlüssel in der Basis-Konfiguration **und** in der Pipeline-Definition (in `default_config` oder in `process_config_overwrites`), startet die Applikation nicht. Die Meldung nennt beide Orte:
+
+```
+errors in pipeline definition:
+PipelineProcessConfig: Process configuration collision for implementation
+'Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess': the key 'validationProfile' is set in the
+base configuration (app settings 'Pipeline:ProcessConfigs:Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess:validationProfile',
+environment variable 'Pipeline__ProcessConfigs__Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess__validationProfile')
+and in the pipeline definition ('processes[id=xtf_validator].default_config.validationProfile'). The base
+configuration cannot be overridden. Remove the key from the pipeline definition, or remove it from the base
+configuration if the value has to be set per pipeline.
+```
+
+Zu entfernen ist im Regelfall der Eintrag in der Pipeline-Definition, denn die Basis-Konfiguration ist bewusst nicht übersteuerbar. Soll der Wert dagegen pro Pipeline unterschiedlich sein, gehört er umgekehrt nicht in die Basis-Konfiguration. Die beiden Schichten werden typischerweise von verschiedenen Personen gepflegt (die Basis-Konfiguration im Hosting, die Definition in der gemounteten YAML), deshalb nennt die Meldung sowohl die Umgebungsvariable als auch den Pfad in der Definition.
+
+Dass eine Kollision die Applikation anhält, statt dass die Basis-Konfiguration einfach gewinnt, ist Absicht: Ein Schlüssel gehört genau einer Schicht. Betriebs- und sicherheitsrelevante Parameter (URLs, Pfade, Hosts, Tokens, Timeouts) gehören ausschliesslich in die Basis-Konfiguration, wo keine Pipeline-Definition sie erreicht; alles, was pro Pipeline oder pro Schritt variiert, gehört ausschliesslich in die Definition. Steht ein Schlüssel auf beiden Schichten, ist diese Zuordnung falsch. Würde die Basis-Konfiguration stattdessen nur mit einer Warnung gewinnen, bliebe der Schlüssel über die `default_config` weiterhin als überschreibbar deklariert, und sobald die Basis-Konfiguration einmal fehlt (neue Umgebung, aufgeräumtes Compose-File), wäre er ohne Codeänderung überschreibbar.
 
 #### Dateien als Konfiguration
 
