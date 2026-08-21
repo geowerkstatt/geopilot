@@ -4,7 +4,7 @@ namespace Geopilot.Api.Processing;
 
 /// <summary>
 /// Represents a processing job, a pipeline run scoped to one set of uploaded files and an optional mandate.
-/// The uploaded files stay in cloud storage under <paramref name="UploadId"/> until the job is retired, or
+/// The uploaded files stay in the upload storage under <paramref name="UploadId"/> until the job is retired, or
 /// until the run ends in a state that cannot be delivered.
 /// </summary>
 public record class ProcessingJob(

@@ -1,7 +1,7 @@
 ﻿namespace Geopilot.Api;
 
 /// <summary>
-/// Configuration options for cloud storage uploads.
+/// Configuration options for upload storage uploads.
 /// </summary>
 public class CloudStorageOptions
 {
@@ -11,7 +11,7 @@ public class CloudStorageOptions
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// The name of the cloud storage bucket.
+    /// The name of the upload storage bucket.
     /// </summary>
     public string? BucketName { get; set; }
 
@@ -31,7 +31,7 @@ public class CloudStorageOptions
     public int MaxJobSizeMB { get; set; }
 
     /// <summary>
-    /// The maximum total size of all active cloud uploads in megabytes.
+    /// The maximum total size of all active uploads in megabytes.
     /// </summary>
     public int MaxGlobalActiveSizeMB { get; set; }
 

@@ -12,19 +12,19 @@ using System.Text;
 namespace Geopilot.Api.Test.Processing;
 
 [TestClass]
-public class CloudPipelineFileTest
+public class UploadPipelineFileTest
 {
-    private const string CloudKey = "uploads/upload/data.xtf";
+    private const string StorageKey = "uploads/upload/data.xtf";
     private const string Content = "transfer file content";
 
-    private Mock<ICloudStorageService> cloudStorageServiceMock;
+    private Mock<IUploadStorage> uploadStorageMock;
     private string materializationDirectory;
 
     [TestInitialize]
     public void Initialize()
     {
-        cloudStorageServiceMock = new Mock<ICloudStorageService>(MockBehavior.Strict);
-        materializationDirectory = Path.Combine(Path.GetTempPath(), "CloudPipelineFile_" + Guid.NewGuid());
+        uploadStorageMock = new Mock<IUploadStorage>(MockBehavior.Strict);
+        materializationDirectory = Path.Combine(Path.GetTempPath(), "UploadPipelineFile_" + Guid.NewGuid());
     }
 
     [TestCleanup]
@@ -60,7 +60,7 @@ public class CloudPipelineFileTest
             Assert.AreEqual(Content, reader.ReadToEnd());
         }
 
-        cloudStorageServiceMock.Verify(s => s.DownloadAsync(CloudKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        uploadStorageMock.Verify(s => s.DownloadAsync(StorageKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
@@ -78,7 +78,7 @@ public class CloudPipelineFileTest
         {
         }
 
-        cloudStorageServiceMock.Verify(s => s.DownloadAsync(CloudKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        uploadStorageMock.Verify(s => s.DownloadAsync(StorageKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
         Assert.AreEqual(Content, File.ReadAllText(path));
         Assert.HasCount(1, Directory.GetFiles(materializationDirectory));
     }
@@ -92,14 +92,14 @@ public class CloudPipelineFileTest
         var paths = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => file.GetLocalPathAsync())));
 
         Assert.HasCount(1, paths.Distinct().ToList());
-        cloudStorageServiceMock.Verify(s => s.DownloadAsync(CloudKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        uploadStorageMock.Verify(s => s.DownloadAsync(StorageKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
     public async Task AFailedFetchLeavesNoPartialFileBehind()
     {
-        cloudStorageServiceMock
-            .Setup(s => s.DownloadAsync(CloudKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+        uploadStorageMock
+            .Setup(s => s.DownloadAsync(StorageKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(async (string key, Stream destination, CancellationToken cancellationToken) =>
             {
                 await destination.WriteAsync(Encoding.UTF8.GetBytes("half"), cancellationToken);
@@ -115,8 +115,8 @@ public class CloudPipelineFileTest
     [TestMethod]
     public async Task AFailedFetchIsNotRetried()
     {
-        cloudStorageServiceMock
-            .Setup(s => s.DownloadAsync(CloudKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+        uploadStorageMock
+            .Setup(s => s.DownloadAsync(StorageKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IOException("connection reset"));
 
         var file = CreateFile();
@@ -125,7 +125,7 @@ public class CloudPipelineFileTest
         await Assert.ThrowsExactlyAsync<IOException>(() => file.GetLocalPathAsync());
 
         // The step that needs the file fails instead of silently retrying against a store that is down.
-        cloudStorageServiceMock.Verify(s => s.DownloadAsync(CloudKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
+        uploadStorageMock.Verify(s => s.DownloadAsync(StorageKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
@@ -141,7 +141,7 @@ public class CloudPipelineFileTest
     {
         SetupDownload(Content);
 
-        var pipelineDirectory = Path.Combine(Path.GetTempPath(), "CloudPipelineFilePipeline_" + Guid.NewGuid());
+        var pipelineDirectory = Path.Combine(Path.GetTempPath(), "UploadPipelineFilePipeline_" + Guid.NewGuid());
         var reading = new UploadReadingProcess(takeLocalPath: false);
         var mutating = new UploadReadingProcess(takeLocalPath: true);
         var readingStep = BuildUploadStep("step_reading", pipelineDirectory, reading);
@@ -164,8 +164,8 @@ public class CloudPipelineFileTest
         Assert.AreEqual(Content, reading.Contents.Single());
         Assert.AreEqual(Content, mutating.Contents.Single());
 
-        cloudStorageServiceMock.Verify(
-            s => s.DownloadAsync(CloudKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()),
+        uploadStorageMock.Verify(
+            s => s.DownloadAsync(StorageKey, It.IsAny<Stream>(), It.IsAny<CancellationToken>()),
             Times.Once,
             "an upload file wired into two steps must be fetched from the store once");
 
@@ -190,7 +190,7 @@ public class CloudPipelineFileTest
             CreateFile("extra.zip"),
         };
 
-        var pipelineDirectory = Path.Combine(Path.GetTempPath(), "CloudPipelineFileMatcher_" + Guid.NewGuid());
+        var pipelineDirectory = Path.Combine(Path.GetTempPath(), "UploadPipelineFileMatcher_" + Guid.NewGuid());
         var reading = new UploadReadingProcess(takeLocalPath: false);
         var matcherStep = BuildStep("matcher", pipelineDirectory, new FileMatcherProcess(new HashSet<string> { "xtf" }, null), new InputValue.UploadReference());
         var readerStep = BuildStep("reader", pipelineDirectory, reading, new InputValue.StepOutputReference("matcher", "MatchedFiles"));
@@ -211,7 +211,7 @@ public class CloudPipelineFileTest
         Assert.AreEqual(StepState.Success, readerStep.State);
         Assert.AreEqual(Content, reading.Contents.Single(), "the reader saw exactly the matched file");
 
-        cloudStorageServiceMock.Verify(
+        uploadStorageMock.Verify(
             s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()),
             Times.Once,
             "one of five uploaded files was read, so exactly one may be fetched while the pipeline runs");
@@ -233,16 +233,16 @@ public class CloudPipelineFileTest
             .Logger(Mock.Of<ILogger>())
             .Build();
 
-    private CloudPipelineFile CreateFile(string fileName = "data.xtf")
-        => new CloudPipelineFile(cloudStorageServiceMock.Object, CloudKeyFor(fileName), fileName, materializationDirectory, fileName);
+    private UploadPipelineFile CreateFile(string fileName = "data.xtf")
+        => new UploadPipelineFile(uploadStorageMock.Object, StorageKeyFor(fileName), fileName, materializationDirectory, fileName);
 
-    private static string CloudKeyFor(string fileName) => $"uploads/upload/{fileName}";
+    private static string StorageKeyFor(string fileName) => $"uploads/upload/{fileName}";
 
     private void SetupDownload(string content) => SetupDownload("data.xtf", content);
 
     private void SetupDownload(string fileName, string content)
-        => cloudStorageServiceMock
-            .Setup(s => s.DownloadAsync(CloudKeyFor(fileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+        => uploadStorageMock
+            .Setup(s => s.DownloadAsync(StorageKeyFor(fileName), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns((string key, Stream destination, CancellationToken cancellationToken)
                 => destination.WriteAsync(Encoding.UTF8.GetBytes(content), cancellationToken).AsTask());
 

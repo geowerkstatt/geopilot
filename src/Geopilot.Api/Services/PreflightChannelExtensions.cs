@@ -3,7 +3,7 @@
 namespace Geopilot.Api.Services;
 
 /// <summary>
-/// Registers a bounded in-memory channel (capacity 50) for queueing cloud preflight work.
+/// Registers a bounded in-memory channel (capacity 50) for queueing preflight work.
 /// When the channel is full, producers wait until space is available.
 /// </summary>
 public static class PreflightChannelExtensions

@@ -71,7 +71,7 @@ public class ProcessingServiceTest
         var mandate = new Mandate { Id = 1, Name = TestHelpers.Localized(nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight)), FileTypes = [".xtf"], PipelineId = pipelineId };
         var user = new User { Id = 2, FullName = nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight), AuthIdentifier = "auth-123" };
 
-        var upload = new UploadInfo(uploadId, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
+        var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
         var job = new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>(), null, DateTime.Now);
         var pipeline = new Mock<IPipeline>().Object;
 
@@ -104,7 +104,7 @@ public class ProcessingServiceTest
         var mandateId = 1;
         var user = new User { Id = 2, FullName = nameof(StartJobThrowsForInvalidMandate) };
 
-        var upload = new UploadInfo(uploadId, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
+        var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
         mandateServiceMock.Setup(x => x.GetMandateForUser(mandateId, user)).ReturnsAsync((Mandate?)null);
@@ -129,7 +129,7 @@ public class ProcessingServiceTest
         var mandateId = 1;
         var user = new User { Id = 2, FullName = nameof(StartJobThrowsForMandateWithoutPipeline) };
 
-        var upload = new UploadInfo(uploadId, ImmutableList.Create(new CloudFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
+        var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
         var mandate = new Mandate { Id = mandateId, Name = TestHelpers.Localized(nameof(StartJobThrowsForMandateWithoutPipeline)), FileTypes = [".xtf"], PipelineId = null };
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);

@@ -9,14 +9,14 @@ namespace Geopilot.Api.FileAccess;
 /// <summary>
 /// Provides functionality to record, delete and download asset files. Pipeline outputs
 /// flagged for delivery already live in the asset directory; this handler only needs to
-/// fetch the uploaded originals from cloud storage and write the corresponding
+/// fetch the uploaded originals from the upload storage and write the corresponding
 /// <see cref="Asset"/> rows.
 /// </summary>
 public class AssetHandler : IAssetHandler
 {
     private readonly ILogger<AssetHandler> logger;
     private readonly IProcessingService processingService;
-    private readonly ICloudStorageService cloudStorageService;
+    private readonly IUploadStorage uploadStorage;
     private readonly IAssetFileStore assetFileStore;
     private readonly IDirectoryProvider directoryProvider;
     private readonly IContentTypeProvider fileContentTypeProvider;
@@ -24,11 +24,11 @@ public class AssetHandler : IAssetHandler
     /// <summary>
     /// Initializes a new instance of the <see cref="AssetHandler"/> class.
     /// </summary>
-    public AssetHandler(ILogger<AssetHandler> logger, IProcessingService processingService, ICloudStorageService cloudStorageService, IAssetFileStore assetFileStore, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
+    public AssetHandler(ILogger<AssetHandler> logger, IProcessingService processingService, IUploadStorage uploadStorage, IAssetFileStore assetFileStore, IDirectoryProvider directoryProvider, IContentTypeProvider fileContentTypeProvider)
     {
         this.logger = logger;
         this.processingService = processingService;
-        this.cloudStorageService = cloudStorageService;
+        this.uploadStorage = uploadStorage;
         this.assetFileStore = assetFileStore;
         this.directoryProvider = directoryProvider;
         this.fileContentTypeProvider = fileContentTypeProvider;
@@ -131,8 +131,8 @@ public class AssetHandler : IAssetHandler
     }
 
     /// <summary>
-    /// Streams an uploaded original from cloud storage into the asset store, hashing it on the way, so the
-    /// delivery keeps its own durable copy. The originals live in cloud storage until the job is retired,
+    /// Streams an uploaded original from the upload storage into the asset store, hashing it on the way, so the
+    /// delivery keeps its own durable copy. The originals live in the upload storage until the job is retired,
     /// so that is where the delivery has to fetch them from.
     /// </summary>
     /// <returns>The SHA256 hash of the file contents.</returns>
@@ -142,7 +142,7 @@ public class AssetHandler : IAssetHandler
         {
             logger.LogInformation("Copying uploaded file <{OriginalFileName}> of job <{JobId}> into the asset store.", file.OriginalFileName, jobId);
 
-            using var source = await cloudStorageService.OpenReadAsync(file.CloudKey, cancellationToken);
+            using var source = await uploadStorage.OpenReadAsync(file.StorageKey, cancellationToken);
             using var target = assetFileStore.CreateFile(jobId, file.TempFileName);
             using var hashAlgorithm = SHA256.Create();
             using (var hashing = new CryptoStream(target, hashAlgorithm, CryptoStreamMode.Write, leaveOpen: true))

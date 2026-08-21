@@ -3,7 +3,7 @@
 /// <summary>
 /// A no-op scan service that skips virus scanning. Used when ClamAV is disabled.
 /// </summary>
-public class NoOpScanService : ICloudScanService
+public class NoOpScanService : IUploadScanService
 {
     private readonly ILogger<NoOpScanService> logger;
 
