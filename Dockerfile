@@ -75,6 +75,7 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS seed
 WORKDIR /app
 COPY --from=seed-build /app/seed .
+USER $APP_UID
 ENTRYPOINT ["dotnet", "Geopilot.Api.SeedData.dll"]
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final

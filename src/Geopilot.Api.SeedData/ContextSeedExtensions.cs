@@ -25,7 +25,7 @@ public static class ContextSeedExtensions
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        var transaction = context.Database.BeginTransaction();
+        using var transaction = context.Database.BeginTransaction();
 
         context.SeedUsers();
         context.SeedOrganisations();

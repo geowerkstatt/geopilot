@@ -1,3 +1,6 @@
+# Shared by the geopilot and seed services, which talk to the same database.
+x-context-connection: &contextConnection Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
+
 services:
   stac-browser:
     image: ghcr.io/radiantearth/stac-browser:5.0.0
@@ -87,7 +90,7 @@ services:
       ASPNETCORE_HTTPS_PORTS: 8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/cert.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /https/cert.key
-      ConnectionStrings__Context: Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
+      ConnectionStrings__Context: *contextConnection
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
       Auth__Authority: http://localhost:4011/realms/geopilot
       Auth__ClientAudience: geopilot-client
@@ -138,7 +141,7 @@ services:
       secrets:
         - github_token
     environment:
-      ConnectionStrings__Context: Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
+      ConnectionStrings__Context: *contextConnection
     depends_on:
       db:
         condition: service_healthy

@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api;
 using Geopilot.Api.SeedData;
 using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 
 var connectionString = args.FirstOrDefault()
     ?? Environment.GetEnvironmentVariable("ConnectionStrings__Context")
@@ -43,8 +44,7 @@ static async Task<bool> WaitForSchemaAsync(Context context, TimeSpan timeout)
     var deadline = DateTime.UtcNow + timeout;
     while (DateTime.UtcNow < deadline)
     {
-        if (await context.Database.CanConnectAsync()
-            && !(await context.Database.GetPendingMigrationsAsync()).Any())
+        if (await IsSchemaReadyAsync(context))
         {
             return true;
         }
@@ -53,4 +53,19 @@ static async Task<bool> WaitForSchemaAsync(Context context, TimeSpan timeout)
     }
 
     return false;
+}
+
+// A database that is starting up, restarting or briefly unreachable is the state this waits for, not
+// an error: only the timeout decides when to give up.
+static async Task<bool> IsSchemaReadyAsync(Context context)
+{
+    try
+    {
+        return await context.Database.CanConnectAsync()
+            && !(await context.Database.GetPendingMigrationsAsync()).Any();
+    }
+    catch (DbException)
+    {
+        return false;
+    }
 }
