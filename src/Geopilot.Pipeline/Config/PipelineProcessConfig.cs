@@ -10,6 +10,7 @@ namespace Geopilot.Pipeline.Config;
 /// </summary>
 [ValidProcessReference]
 [NoUndefinedBaseConfigOverwrite]
+[NoBaseConfigOverwrite]
 public class PipelineProcessConfig
 {
     /// <summary>
