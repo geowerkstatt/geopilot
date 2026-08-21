@@ -3,6 +3,7 @@ using Geopilot.Api;
 using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
 using Geopilot.Api.Conventions;
+using Geopilot.Api.Enums;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
@@ -174,7 +175,6 @@ builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
 
 builder.Configuration.EnsureNoLegacyCloudStorageSection();
 builder.Services.Configure<UploadOptions>(builder.Configuration.GetSection(UploadOptions.SectionName));
-builder.Services.Configure<UploadCloudOptions>(builder.Configuration.GetSection(UploadCloudOptions.SectionName));
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
 builder.Services.AddOptions<IlitoolsOptions>()
@@ -186,7 +186,28 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-builder.Services.AddSingleton<IUploadStorage, AzureBlobUploadStorage>();
+// Only the storage backend differs between the modes; everything downstream (orchestration, preflight,
+// scan, cleanup) works against IUploadStorage. Each backend's options are bound and validated only in
+// its own branch, so a deployment configures exactly one of the two sections.
+var uploadBackend = builder.Configuration.GetValue<UploadBackend>($"{UploadOptions.SectionName}:{nameof(UploadOptions.Backend)}");
+if (uploadBackend == UploadBackend.Direct)
+{
+    builder.Services.AddOptions<UploadDirectOptions>()
+        .BindConfiguration(UploadDirectOptions.SectionName)
+        .ValidateDataAnnotations()
+        .ValidateOnStart();
+    builder.Services.AddSingleton<DirectUploadStorage>();
+    builder.Services.AddSingleton<IUploadStorage>(sp => sp.GetRequiredService<DirectUploadStorage>());
+}
+else
+{
+    builder.Services.AddOptions<UploadCloudOptions>()
+        .BindConfiguration(UploadCloudOptions.SectionName)
+        .ValidateDataAnnotations()
+        .ValidateOnStart();
+    builder.Services.AddSingleton<IUploadStorage, AzureBlobUploadStorage>();
+}
+
 builder.Services.AddTransient<IUploadOrchestrationService, UploadOrchestrationService>();
 builder.Services.AddHostedService<UploadCleanupService>();
 builder.Services.AddPreflightChannel();

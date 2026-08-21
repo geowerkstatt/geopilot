@@ -1,4 +1,6 @@
-﻿namespace Geopilot.Api;
+﻿using Geopilot.Api.Enums;
+
+namespace Geopilot.Api;
 
 /// <summary>
 /// Backend-independent upload policy: size and count limits, cleanup cadence and rate limiting.
@@ -10,6 +12,12 @@ public class UploadOptions
     /// Gets the name of the configuration section that contains the upload settings.
     /// </summary>
     public static string SectionName => "Upload";
+
+    /// <summary>
+    /// The storage backend uploaded files are written to. Selects which backend section
+    /// (<see cref="UploadCloudOptions"/> or <see cref="UploadDirectOptions"/>) is read and validated.
+    /// </summary>
+    public UploadBackend Backend { get; set; } = UploadBackend.Cloud;
 
     /// <summary>
     /// The maximum file size in megabytes.
