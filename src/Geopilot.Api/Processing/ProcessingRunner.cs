@@ -221,7 +221,7 @@ public class ProcessingRunner : BackgroundService
     /// until the job is retired, because declaring the delivery archives every original as primary data.
     /// A job still in <see cref="ProcessingState.Running"/> was interrupted by a host shutdown, so its
     /// blobs stay: the in-memory job does not survive the restart, and the age-based sweep in
-    /// CloudCleanupService is what eventually collects them.
+    /// UploadCleanupService is what eventually collects them.
     /// </summary>
     private async Task ReleaseUploadIfNotDeliverableAsync(Guid jobId)
     {
@@ -230,8 +230,8 @@ public class ProcessingRunner : BackgroundService
             return;
 
         using var scope = serviceScopeFactory.CreateScope();
-        var cloudOrchestrationService = scope.ServiceProvider.GetRequiredService<ICloudOrchestrationService>();
-        await cloudOrchestrationService.ReleaseUploadAsync(job.UploadId);
+        var orchestrationService = scope.ServiceProvider.GetRequiredService<IUploadOrchestrationService>();
+        await orchestrationService.ReleaseUploadAsync(job.UploadId);
     }
 
     private static IEnumerable<IPipelineFile> ResolveFiles(object? data) => data switch

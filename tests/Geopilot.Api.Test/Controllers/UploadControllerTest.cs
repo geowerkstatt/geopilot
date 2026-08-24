@@ -11,22 +11,22 @@ namespace Geopilot.Api.Controllers;
 public sealed class UploadControllerTest
 {
     private Mock<ILogger<UploadController>> loggerMock;
-    private Mock<IOptions<CloudStorageOptions>> optionsMock;
-    private Mock<ICloudOrchestrationService> orchestrationServiceMock;
+    private Mock<IOptions<UploadOptions>> optionsMock;
+    private Mock<IUploadOrchestrationService> orchestrationServiceMock;
     private UploadController controller;
 
     [TestInitialize]
     public void Initialize()
     {
         loggerMock = new Mock<ILogger<UploadController>>();
-        optionsMock = new Mock<IOptions<CloudStorageOptions>>();
-        optionsMock.Setup(o => o.Value).Returns(new CloudStorageOptions
+        optionsMock = new Mock<IOptions<UploadOptions>>();
+        optionsMock.Setup(o => o.Value).Returns(new UploadOptions
         {
             MaxFileSizeMB = 2048,
             MaxFilesPerJob = 12,
             MaxJobSizeMB = 10240,
         });
-        orchestrationServiceMock = new Mock<ICloudOrchestrationService>(MockBehavior.Strict);
+        orchestrationServiceMock = new Mock<IUploadOrchestrationService>(MockBehavior.Strict);
 
         controller = new UploadController(loggerMock.Object, optionsMock.Object, orchestrationServiceMock.Object);
     }
@@ -53,8 +53,8 @@ public sealed class UploadControllerTest
     [TestMethod]
     public async Task InitiateUploadAsyncSuccess()
     {
-        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
-        var expectedResponse = new CloudUploadResponse(
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
+        var expectedResponse = new InitiateUploadResponse(
             Guid.NewGuid(),
             [new FileUploadInfo("test.xtf", "https://storage.example.com/presigned-url")],
             DateTime.UtcNow.AddHours(1));
@@ -74,7 +74,7 @@ public sealed class UploadControllerTest
     [TestMethod]
     public async Task InitiateUploadAsyncReturns400ForArgumentException()
     {
-        var request = new CloudUploadRequest { Files = [] };
+        var request = new InitiateUploadRequest { Files = [] };
 
         orchestrationServiceMock
             .Setup(s => s.InitiateUploadAsync(request))
@@ -90,7 +90,7 @@ public sealed class UploadControllerTest
     [TestMethod]
     public async Task InitiateUploadAsyncReturns400ForInvalidOperationException()
     {
-        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
 
         orchestrationServiceMock
             .Setup(s => s.InitiateUploadAsync(request))
@@ -106,7 +106,7 @@ public sealed class UploadControllerTest
     [TestMethod]
     public async Task InitiateUploadAsyncReturns500ForUnexpectedException()
     {
-        var request = new CloudUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
+        var request = new InitiateUploadRequest { Files = [new FileMetadata("test.xtf", 1024)] };
 
         orchestrationServiceMock
             .Setup(s => s.InitiateUploadAsync(request))

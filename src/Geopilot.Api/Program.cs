@@ -2,7 +2,9 @@
 using Geopilot.Api;
 using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
+using Geopilot.Api.Controllers;
 using Geopilot.Api.Conventions;
+using Geopilot.Api.Enums;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
@@ -171,7 +173,7 @@ builder.Services.AddTransient<IAuthorizationHandler, GeopilotUserHandler>();
 builder.Services.Configure<ProcessingOptions>(builder.Configuration.GetSection("Processing"));
 builder.Services.Configure<PipelineOptions>(builder.Configuration.GetSection("Pipeline"));
 builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
-builder.Services.Configure<CloudStorageOptions>(builder.Configuration.GetSection("CloudStorage"));
+
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
 builder.Services.AddOptions<IlitoolsOptions>()
@@ -183,20 +185,7 @@ builder.Services.AddOptions<FileAccessOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-builder.Services.AddSingleton<ICloudStorageService, AzureBlobStorageService>();
-builder.Services.AddTransient<ICloudOrchestrationService, CloudOrchestrationService>();
-builder.Services.AddHostedService<CloudCleanupService>();
-builder.Services.AddPreflightChannel();
-builder.Services.AddHostedService<PreflightBackgroundService>();
-
-if (builder.Configuration.GetValue<bool>("ClamAV:Enabled"))
-{
-    builder.Services.AddTransient<ICloudScanService, ClamAvScanService>();
-}
-else
-{
-    builder.Services.AddTransient<ICloudScanService, NoOpScanService>();
-}
+var uploadBackend = builder.AddUploadServices();
 
 var contentTypeProvider = new FileExtensionContentTypeProvider();
 contentTypeProvider.Mappings.TryAdd(".log", "text/plain");
@@ -240,14 +229,14 @@ builder.Services
     .AddDbContextCheck<Context>("Database")
     .AddCheck<StorageHealthCheck>("Storage");
 
-var cloudStorageConfig = builder.Configuration.GetSection("CloudStorage").Get<CloudStorageOptions>()
-    ?? throw new InvalidOperationException("CloudStorage configuration section is missing.");
+var uploadConfig = builder.Configuration.GetSection(UploadOptions.SectionName).Get<UploadOptions>()
+    ?? throw new InvalidOperationException("Upload configuration section is missing.");
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("uploadRateLimit", limiter =>
     {
-        limiter.PermitLimit = cloudStorageConfig.RateLimitRequests;
-        limiter.Window = TimeSpan.FromMinutes(cloudStorageConfig.RateLimitWindowMinutes);
+        limiter.PermitLimit = uploadConfig.RateLimitRequests;
+        limiter.Window = TimeSpan.FromMinutes(uploadConfig.RateLimitWindowMinutes);
         limiter.QueueLimit = 0;
     });
 
@@ -353,10 +342,13 @@ app.Use(async (context, next) =>
     }
 });
 
-// By default Kestrel responds with a HTTP 400 if payload is too large.
+// By default Kestrel responds with a HTTP 400 if payload is too large. Endpoints marked as managing
+// their own body size limit (the direct upload endpoint, sized by Upload:MaxFileSizeMB) are exempt;
+// every other endpoint keeps the global cap.
 app.Use(async (context, next) =>
 {
-    if (context.Request.ContentLength > MaxRequestBodySize)
+    var managesOwnLimit = context.GetEndpoint()?.Metadata.GetMetadata<SelfManagedBodySizeMetadata>() is not null;
+    if (!managesOwnLimit && context.Request.ContentLength > MaxRequestBodySize)
     {
         context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
         await context.Response.WriteAsync("Payload Too Large");
@@ -370,6 +362,12 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
+
+// The direct backend's write endpoint replaces the presigned URLs; in cloud mode the route must not exist.
+if (uploadBackend == UploadBackend.Direct)
+{
+    app.MapDirectUpload();
+}
 
 app.MapHealthChecks("/health")
     .AllowAnonymous();

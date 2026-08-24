@@ -5,12 +5,12 @@ namespace Geopilot.Api.Services;
 
 /// <summary>
 /// Scans files via ClamAV using the clamd INSTREAM protocol.
-/// Streams content directly from cloud storage to clamd without buffering in the API.
+/// Streams content directly from the upload storage to clamd without buffering in the API.
 /// See https://docs.clamav.net/manual/Usage/Scanning.html#clamd for protocol details.
 /// </summary>
-public class ClamAvScanService : ICloudScanService
+public class ClamAvScanService : IUploadScanService
 {
-    private readonly ICloudStorageService cloudStorageService;
+    private readonly IUploadStorage uploadStorage;
     private readonly ClamAvOptions options;
     private readonly long maxStreamSize;
     private readonly ILogger<ClamAvScanService> logger;
@@ -18,12 +18,12 @@ public class ClamAvScanService : ICloudScanService
     /// <summary>
     /// Initializes a new instance of the <see cref="ClamAvScanService"/> class.
     /// </summary>
-    public ClamAvScanService(ICloudStorageService cloudStorageService, IOptions<ClamAvOptions> clamAvOptions, IOptions<CloudStorageOptions> cloudStorageOptions, ILogger<ClamAvScanService> logger)
+    public ClamAvScanService(IUploadStorage uploadStorage, IOptions<ClamAvOptions> clamAvOptions, IOptions<UploadOptions> uploadOptions, ILogger<ClamAvScanService> logger)
     {
         ArgumentNullException.ThrowIfNull(clamAvOptions);
-        ArgumentNullException.ThrowIfNull(cloudStorageOptions);
+        ArgumentNullException.ThrowIfNull(uploadOptions);
 
-        this.cloudStorageService = cloudStorageService;
+        this.uploadStorage = uploadStorage;
         this.logger = logger;
 
         var config = clamAvOptions.Value;
@@ -33,7 +33,7 @@ public class ClamAvScanService : ICloudScanService
             throw new InvalidOperationException("ClamAV:Port must be between 1 and 65535.");
 
         this.options = config;
-        maxStreamSize = (long)cloudStorageOptions.Value.MaxFileSizeMB * 1024 * 1024;
+        maxStreamSize = (long)uploadOptions.Value.MaxFileSizeMB * 1024 * 1024;
     }
 
     /// <inheritdoc/>
@@ -62,7 +62,7 @@ public class ClamAvScanService : ICloudScanService
 
     private async Task<string?> ScanSingleFileAsync(string key)
     {
-        using var fileStream = await cloudStorageService.OpenReadAsync(key);
+        using var fileStream = await uploadStorage.OpenReadAsync(key);
 
         var clam = new ClamClient(options.Host, options.Port) { MaxStreamSize = maxStreamSize };
         var result = await clam.SendAndScanFileAsync(fileStream);

@@ -1,13 +1,13 @@
 import { useCallback } from "react";
-import { ApiError, CloudUploadResponse } from "../api/apiInterfaces.ts";
+import { ApiError, InitiateUploadResponse } from "../api/apiInterfaces.ts";
 import useFetch from "../hooks/useFetch";
 
-const useCloudUpload = () => {
+const useUpload = () => {
   const { fetchApi } = useFetch();
 
-  const cloudUpload = useCallback(
+  const uploadFiles = useCallback(
     async (files: File[], signal?: AbortSignal): Promise<string> => {
-      const session = await fetchApi<CloudUploadResponse>("/api/v2/upload", {
+      const session = await fetchApi<InitiateUploadResponse>("/api/v2/upload", {
         method: "POST",
         body: JSON.stringify({
           files: files.map(f => ({ fileName: f.name, size: f.size })),
@@ -37,7 +37,7 @@ const useCloudUpload = () => {
     [fetchApi],
   );
 
-  return { cloudUpload };
+  return { uploadFiles };
 };
 
-export default useCloudUpload;
+export default useUpload;

@@ -17,7 +17,7 @@ public class AssetHandlerTest
 
     private Mock<ILogger<AssetHandler>> loggerMock;
     private Mock<IProcessingService> validationServiceMock;
-    private Mock<ICloudStorageService> cloudStorageServiceMock;
+    private Mock<IUploadStorage> uploadStorageMock;
     private Mock<IAssetFileStore> assetFileStoreMock;
     private AssetHandler assetHandler;
     private ProcessingJob job;
@@ -30,17 +30,17 @@ public class AssetHandlerTest
         assetDirectory = AssemblyInitialize.TestDirectoryProvider.GetAssetDirectoryPath(job.Id);
         loggerMock = new Mock<ILogger<AssetHandler>>();
         validationServiceMock = new Mock<IProcessingService>();
-        cloudStorageServiceMock = new Mock<ICloudStorageService>();
+        uploadStorageMock = new Mock<IUploadStorage>();
         assetFileStoreMock = new Mock<IAssetFileStore>();
-        assetHandler = new AssetHandler(loggerMock.Object, validationServiceMock.Object, cloudStorageServiceMock.Object, assetFileStoreMock.Object, AssemblyInitialize.TestDirectoryProvider, new Mock<IContentTypeProvider>().Object);
+        assetHandler = new AssetHandler(loggerMock.Object, validationServiceMock.Object, uploadStorageMock.Object, assetFileStoreMock.Object, AssemblyInitialize.TestDirectoryProvider, new Mock<IContentTypeProvider>().Object);
 
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(job);
     }
 
     [TestMethod]
-    public async Task PersistValidationJobAssetsFetchesPrimaryFilesFromCloudStorage()
+    public async Task PersistValidationJobAssetsFetchesPrimaryFilesFromUploadStorage()
     {
-        SetupCloudFile("uploads/key/OriginalName", FileContent);
+        SetupUploadedFile("uploads/key/OriginalName", FileContent);
         SetupAssetStoreWritesToDisk();
 
         Assert.IsFalse(Directory.Exists(assetDirectory));
@@ -54,14 +54,14 @@ public class AssetHandlerTest
         Assert.AreEqual("OriginalName", primaryAsset.OriginalFilename);
         Assert.AreEqual(FileContent, File.ReadAllText(Path.Combine(assetDirectory, "TempFileName")));
         CollectionAssert.AreEquivalent(SHA256.HashData(Encoding.UTF8.GetBytes(FileContent)), primaryAsset.FileHash);
-        cloudStorageServiceMock.Verify(x => x.OpenReadAsync("uploads/key/OriginalName", It.IsAny<CancellationToken>()), Times.Once);
+        uploadStorageMock.Verify(x => x.OpenReadAsync("uploads/key/OriginalName", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
     public async Task PersistValidationJobAssetsRecordsStepDeliveryFilesInPlace()
     {
         Directory.CreateDirectory(assetDirectory);
-        SetupCloudFile("uploads/key/OriginalName", FileContent);
+        SetupUploadedFile("uploads/key/OriginalName", FileContent);
         SetupAssetStoreWritesToDisk();
 
         // Step delivery files were written directly into the asset store by the pipeline
@@ -98,7 +98,7 @@ public class AssetHandlerTest
             Pipeline = BuildPipelineWithDeliveryFiles("myStep", new List<PersistedFile> { new PersistedFile("mylogfile.log", "mylogfile") }),
         };
         validationServiceMock.Setup(s => s.GetJob(job.Id)).Returns(jobWithDownloads);
-        cloudStorageServiceMock
+        uploadStorageMock
             .Setup(x => x.OpenReadAsync("uploads/key/OriginalName", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new FileNotFoundException());
 
@@ -139,9 +139,9 @@ public class AssetHandlerTest
         return pipelineMock.Object;
     }
 
-    private void SetupCloudFile(string cloudKey, string content)
-        => cloudStorageServiceMock
-            .Setup(x => x.OpenReadAsync(cloudKey, It.IsAny<CancellationToken>()))
+    private void SetupUploadedFile(string storageKey, string content)
+        => uploadStorageMock
+            .Setup(x => x.OpenReadAsync(storageKey, It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => new MemoryStream(Encoding.UTF8.GetBytes(content)));
 
     private void SetupAssetStoreWritesToDisk()
