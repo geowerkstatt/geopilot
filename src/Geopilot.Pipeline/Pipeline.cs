@@ -18,12 +18,31 @@ internal sealed class Pipeline : IPipeline
         if (disposed)
             return;
 
-        Steps.ForEach(step => step.Dispose());
-
-        if (Path.Exists(pipelineFileDirectory))
-            Directory.Delete(pipelineFileDirectory, true);
-
+        // Set before the cleanup, not after: a partially failed cleanup must not make Dispose
+        // re-entrant, or a later RemoveJob disposes every step a second time.
         disposed = true;
+
+        foreach (var step in Steps)
+        {
+            try
+            {
+                step.Dispose();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to dispose step <{Step}> of pipeline <{Pipeline}>.", step.Id, Id);
+            }
+        }
+
+        try
+        {
+            if (Path.Exists(pipelineFileDirectory))
+                Directory.Delete(pipelineFileDirectory, true);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to delete the working directory <{Directory}> of pipeline <{Pipeline}>.", pipelineFileDirectory, Id);
+        }
     }
 
     private readonly string pipelineFileDirectory;

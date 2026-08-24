@@ -5,7 +5,6 @@ using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -101,13 +100,33 @@ public class ProcessingRunner : BackgroundService
             }
             finally
             {
-                // Free process-owned resources (e.g. HttpClient) immediately. Pipeline state, step
-                // states, status-message dictionaries and PersistedDownloads survive disposal; what
-                // goes is the pipeline's temp directory, including the uploaded files fetched into it
-                // during the run.
-                pipeline.Dispose();
+                // Both cleanup steps run unconditionally and each one is guarded on its own. This is the
+                // body of a Parallel.ForEachAsync inside a BackgroundService: an exception escaping here
+                // aborts the whole loop, so the queue stops draining, and by default it stops the host.
+                // A shared guard would make releasing the upload depend on the disposal succeeding.
+                try
+                {
+                    // Free process-owned resources (e.g. HttpClient) immediately. Pipeline state, step
+                    // states, status-message dictionaries and PersistedDownloads survive disposal; what
+                    // goes is the pipeline's temp directory, including the uploaded files fetched into it
+                    // during the run.
+                    pipeline.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to dispose pipeline <{Pipeline}>.", pipeline.Id);
+                }
 
-                await ReleaseUploadIfNotDeliverableAsync(pipeline.JobId);
+                try
+                {
+                    await ReleaseUploadIfNotDeliverableAsync(pipeline.JobId);
+                }
+                catch (Exception ex)
+                {
+                    // The upload store is remote, so releasing it is a network call. The age-based sweep
+                    // in UploadCleanupService is the backstop for blobs left behind here.
+                    logger.LogError(ex, "Failed to release the upload of job <{JobId}>.", pipeline.JobId);
+                }
             }
         });
     }

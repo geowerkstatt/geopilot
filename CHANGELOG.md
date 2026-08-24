@@ -59,6 +59,7 @@
 - The error map in fullscreen can be moved with a single finger and zoomed by scrolling without holding Ctrl (⌘ on macOS). Inline the map keeps asking for two fingers and the modifier key so that it does not swallow the page scroll.
 - Processing job and upload timestamps are now recorded in UTC, so the cleanup retention windows (job, download and visualization) are honored regardless of the container time zone. Previously, with the image default `TZ=Europe/Zurich`, expired downloads and visualizations lingered up to two hours longer than configured.
 - Files can now be selected for upload on iPhone and iPad. When a mandate limits the accepted file types, iOS and iPadOS browsers previously greyed out the matching files (for example `.xtf`) in the native file picker, so a delivery could not be started from those devices.
+- A failure while cleaning up after a processing job no longer stops the instance. When the temporary working directory of a pipeline could not be deleted, because a virus scanner or a process still held a file open, the application shut down and every job running at that moment was lost with it. Such failures are now logged, the leftovers are collected by the job cleanup, and the uploaded files of a job that cannot be delivered are released in any case.
 
 ## v3.0.341 - 2026-06-17
 
