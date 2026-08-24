@@ -93,12 +93,13 @@ export const selectStep = stepName => {
  * Builds a single pipeline-step result for a mocked processing job. Omitting `message` leaves the step
  * without a condition message.
  */
-export const processingStep = (id, name, state, message) => ({
+export const processingStep = (id, name, state, message, deliveries = []) => ({
   id,
   name: { en: name, de: name },
   state,
   ...(message ? { conditionMessage: { en: message, de: message } } : {}),
   downloads: [],
+  deliveries,
   visualizations: [],
 });
 

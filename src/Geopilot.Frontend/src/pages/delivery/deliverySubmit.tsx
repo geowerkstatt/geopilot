@@ -35,7 +35,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
     }
   }, [fetchApi, selectedMandate]);
 
-  const deliveryFiles = processingResponse?.steps.flatMap(step => step.deliveries) ?? [];
+  const deliveryFiles = processingResponse?.steps.flatMap(step => step.deliveries ?? []) ?? [];
 
   const buttons = (
     <>
@@ -99,13 +99,15 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
         </form>
       </FormProvider>
       {deliveryFiles.length === 0 ? (
-        <Alert severity="error">{t("deliveryFilesEmpty")}</Alert>
+        <Alert severity="error" data-cy="delivery-files-empty">
+          {t("deliveryFilesEmpty")}
+        </Alert>
       ) : (
         <Stack spacing={0} sx={{ mt: 1 }}>
           <Typography variant="body1">{t("deliveryFiles")}</Typography>
           <BulletList>
-            {deliveryFiles.map(deliveryFile => (
-              <li key={deliveryFile}>
+            {deliveryFiles.map((deliveryFile, index) => (
+              <li key={index}>
                 <Typography variant="body1" sx={{ wordBreak: "break-word" }}>
                   {deliveryFile}
                 </Typography>

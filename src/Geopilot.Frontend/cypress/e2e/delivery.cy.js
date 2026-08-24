@@ -134,7 +134,7 @@ describe("Delivery tests", () => {
   it("enables the delivery step as ready and completes it once a delivery is created", () => {
     const successJob = processingJob("e2e-success-job", "success", [
       processingStep("xtf_matching", "XTF Matching", "success"),
-      processingStep("validation", "XTF Validation", "success"),
+      processingStep("validation", "XTF Validation", "success", undefined, ["file1.xtf"]),
       processingStep(
         "error_visualization",
         "Error Visualization",
@@ -159,6 +159,9 @@ describe("Delivery tests", () => {
     selectStep("delivery");
     stepIsActive("delivery");
 
+    // the delivery submit step shows a list of files to be delivered
+    cy.dataCy("delivery-content-carousel").contains("file1.xtf").should("exist");
+
     cy.intercept("POST", "/api/v1/delivery", { statusCode: 200, body: { id: 1 } }).as("createDelivery");
     cy.dataCy("createDelivery-button").should("be.enabled").click();
     cy.wait("@createDelivery");
@@ -170,7 +173,7 @@ describe("Delivery tests", () => {
   it("shows warnings on the steps without blocking delivery", () => {
     const warningJob = processingJob("e2e-warning-job", "warning", [
       processingStep("xtf_matching", "XTF Matching", "success"),
-      processingStep("validation", "XTF Validation", "warning", "Validation completed with warnings."),
+      processingStep("validation", "XTF Validation", "warning", "Validation completed with warnings.", ["file1.xtf"]),
       processingStep("topology_check", "Topology Check", "warning", "Minor topology issues detected."),
     ]);
 
@@ -194,7 +197,7 @@ describe("Delivery tests", () => {
   it("keeps warnings out of the stepper but visible in the accordion when delivery is restricted", () => {
     const mixedJob = processingJob("e2e-mixed-job", "deliveryRestriction", [
       processingStep("xtf_matching", "XTF Matching", "success"),
-      processingStep("validation", "XTF Validation", "warning", "Validation completed with warnings."),
+      processingStep("validation", "XTF Validation", "warning", "Validation completed with warnings.", ["file1.xtf"]),
       processingStep("topology_check", "Topology Check", "deliveryRestriction", "Topology check failed."),
     ]);
 
@@ -229,6 +232,38 @@ describe("Delivery tests", () => {
     stepperStepHasIcon("delivery", "pending");
     stepperStepMissingIcon("delivery", "skipped");
     cy.dataCy("continue-button").should("be.disabled");
+  });
+
+  it("disables delivery without files", () => {
+    const successJob = processingJob("e2e-success-job", "success", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "success"),
+      processingStep(
+        "error_visualization",
+        "Error Visualization",
+        "skipped",
+        "Skipped because no errors were reported.",
+      ),
+    ]);
+
+    cy.intercept("GET", "/api/v1/delivery/summary?mandateId=*", { statusCode: 200, body: [] }).as("precursors");
+    runMockedProcessingJob(successJob, [deliverableMandate(1, "Test Mandate"), deliverableMandate(2, "Other Mandate")]);
+
+    resultStepHasIcon("validation", "success");
+    resultStepHasIcon("error_visualization", "skipped");
+    resultStepShowsMessage("error_visualization", "Skipped because no errors were reported.");
+
+    stepperStepHasIcon("processing", "success");
+    stepperStepHasIcon("delivery", "enabled");
+    stepperStepMissingIcon("delivery", "skipped");
+
+    cy.dataCy("continue-button").should("be.enabled");
+    selectStep("delivery");
+    stepIsActive("delivery");
+
+    cy.intercept("POST", "/api/v1/delivery", { statusCode: 200, body: { id: 1 } }).as("createDelivery");
+    cy.dataCy("createDelivery-button").should("not.be.enabled");
+    cy.dataCy("delivery-files-empty").should("exist");
   });
 
   it("displays error if no mandates were found", () => {
