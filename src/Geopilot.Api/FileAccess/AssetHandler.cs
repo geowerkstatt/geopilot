@@ -6,10 +6,11 @@ using System.Security.Cryptography;
 namespace Geopilot.Api.FileAccess;
 
 /// <summary>
-/// Provides functionality to record, delete and download asset files. Pipeline outputs
-/// flagged for delivery already live in the asset directory; this handler only needs to
-/// fetch the uploaded originals from the upload storage and write the corresponding
-/// <see cref="Asset"/> rows.
+/// Provides functionality to record, delete and download asset files. The delivery consists of exactly
+/// the pipeline outputs the definition tagged for delivery: those files already live in the asset
+/// directory, so this handler only hashes them in place and writes the corresponding <see cref="Asset"/>
+/// rows. Its asset type is derived from the file's origin: a file that entered as an upload becomes
+/// <see cref="AssetType.PrimaryData"/>, one produced by a step becomes <see cref="AssetType.ProcessedData"/>.
 /// </summary>
 public class AssetHandler : IAssetHandler
 {

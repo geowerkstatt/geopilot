@@ -421,7 +421,7 @@ public class DeliveryControllerTest
         var result = await deliveryController.Create(request);
 
         var objectResult = Assert.IsInstanceOfType<ObjectResult>(result);
-        Assert.AreEqual(StatusCodes.Status400BadRequest, objectResult.StatusCode);
+        Assert.AreEqual(StatusCodes.Status500InternalServerError, objectResult.StatusCode);
     }
 
     private void SetupJobPersistence(Guid jobId)

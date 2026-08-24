@@ -151,8 +151,8 @@ public class DeliveryController : ControllerBase
 
         if (delivery.Assets.Count == 0)
         {
-            logger.LogTrace("No assets found for job with id <{JobId}>.", declaration.JobId);
-            return BadRequest($"No assets found for job with id <{declaration.JobId}>.");
+            logger.LogWarning("No assets found for job with id <{JobId}>.", declaration.JobId);
+            return Problem($"No assets found for job with id <{declaration.JobId}>.");
         }
 
         var entityEntry = context.Deliveries.Add(delivery);
