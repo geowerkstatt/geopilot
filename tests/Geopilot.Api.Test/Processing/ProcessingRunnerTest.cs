@@ -308,7 +308,7 @@ public class ProcessingRunnerTest
         using var pipeline = BuildPipeline(jobId, step);
         var context = ContextWith(step, stepResult);
 
-        await runner.ExtractDeliveryFilesAsync(pipeline, context, []);
+        await runner.ExtractDeliveryFilesAsync(pipeline, context);
 
         Assert.HasCount(1, step.DeliveryFiles);
         var persisted = step.DeliveryFiles[0];
@@ -355,7 +355,7 @@ public class ProcessingRunnerTest
         var context = ContextWith(step, stepResult);
 
         await runner.ExtractStepDownloadsAsync(jobId, step, stepResult);
-        await runner.ExtractDeliveryFilesAsync(pipeline, context, []);
+        await runner.ExtractDeliveryFilesAsync(pipeline, context);
 
         Assert.HasCount(1, step.Downloads);
         Assert.HasCount(1, step.DeliveryFiles);
@@ -521,7 +521,7 @@ public class ProcessingRunnerTest
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        await AssertObservesCancellationAsync(runner.ExtractDeliveryFilesAsync(pipeline, context, [], cts.Token));
+        await AssertObservesCancellationAsync(runner.ExtractDeliveryFilesAsync(pipeline, context, cts.Token));
     }
 
     /// <summary>

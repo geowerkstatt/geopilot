@@ -76,7 +76,7 @@ public class ProcessingRunner : BackgroundService
                 // non-deliverable payloads (a failed/aborted pipeline, or a step that restricts delivery)
                 // out of the asset store.
                 if (pipeline.State.IsDeliverable())
-                    await ExtractDeliveryFilesAsync(pipeline, pipelineContext, workItem.Files, linkedCts.Token);
+                    await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 
                 jobStore.PipelineFinished(pipeline.JobId, pipeline.State);
             }
@@ -186,12 +186,10 @@ public class ProcessingRunner : BackgroundService
     /// from the download store. Each delivery file's origin is traced back via <see cref="PipelineExtensions.UnwrapOrigin"/>
     /// so a file that entered as an upload can be told apart from one produced by a step.
     /// </summary>
-    internal async Task ExtractDeliveryFilesAsync(IPipeline pipeline, PipelineContext context, IReadOnlyList<IPipelineFile> uploads, CancellationToken cancellationToken = default)
+    internal async Task ExtractDeliveryFilesAsync(IPipeline pipeline, PipelineContext context, CancellationToken cancellationToken = default)
     {
         using var scope = serviceScopeFactory.CreateScope();
         var assetFileStore = scope.ServiceProvider.GetRequiredService<IAssetFileStore>();
-
-        var uploadSet = new HashSet<IPipelineFile>(uploads, ReferenceEqualityComparer.Instance);
 
         foreach (var step in pipeline.Steps)
         {
@@ -212,7 +210,7 @@ public class ProcessingRunner : BackgroundService
                 {
                     var fileName = MakeUniqueStepFileName(stepIdPrefix, deliveryFile.OriginalFileName, usedNames);
                     await CopyToAsync(assetFileStore, pipeline.JobId, fileName, deliveryFile, cancellationToken);
-                    var fromUpload = uploadSet.Contains(deliveryFile.UnwrapOrigin());
+                    var fromUpload = context.Upload.Contains(deliveryFile.UnwrapOrigin(), ReferenceEqualityComparer.Instance);
                     step.AddDeliveryFile(new PersistedFile(deliveryFile.OriginalFileName, fileName, fromUpload));
                 }
             }
