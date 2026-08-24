@@ -607,6 +607,68 @@ public class ProcessingRunnerTest
         store.Verify(s => s.PipelineFinished(jobId, ProcessingState.DeliveryRestriction), Times.Once);
     }
 
+    [TestMethod]
+    public async Task PipelineDisposeFailureDoesNotAbortTheRunner()
+    {
+        var jobId = NewJob();
+        var pipeline = BuildPipelineWithThrowingDispose(jobId);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline.Object);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Failed));
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        // A faulted ExecuteTask is what tears down the Parallel.ForEachAsync loop and, by default,
+        // the host: the queue would stop draining for every other job as well.
+        Assert.IsTrue(runner.ExecuteTask.IsCompletedSuccessfully, "A failing pipeline disposal must not fault the runner loop.");
+        pipeline.Verify(p => p.Dispose(), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task UploadIsReleasedWhenPipelineDisposeFails()
+    {
+        var jobId = NewJob();
+        var uploadId = Guid.NewGuid();
+        var pipeline = BuildPipelineWithThrowingDispose(jobId);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline.Object);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Failed));
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        orchestrationServiceMock.Verify(
+            c => c.ReleaseUploadAsync(uploadId),
+            Times.Once,
+            "The uploaded blobs of a non-deliverable run must be released even when disposing the pipeline failed.");
+    }
+
+    /// <summary>
+    /// A pipeline whose run completes in a non-deliverable state and whose disposal then fails, the way
+    /// a working directory that cannot be deleted or a step holding a misbehaving process instance fails.
+    /// </summary>
+    private static Mock<IPipeline> BuildPipelineWithThrowingDispose(Guid jobId)
+    {
+        var pipeline = new Mock<IPipeline>();
+        pipeline.SetupGet(p => p.Id).Returns("throwing_dispose_pipeline");
+        pipeline.SetupGet(p => p.JobId).Returns(jobId);
+        pipeline.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
+        pipeline.SetupGet(p => p.State).Returns(ProcessingState.Failed);
+        pipeline
+            .Setup(p => p.Run(It.IsAny<IReadOnlyList<IPipelineFile>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PipelineContext
+            {
+                Upload = Array.Empty<IPipelineFile>(),
+                StepResults = new Dictionary<string, StepResult>(),
+            });
+        pipeline.Setup(p => p.Dispose()).Throws(new IOException("The directory is not empty."));
+
+        return pipeline;
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;
