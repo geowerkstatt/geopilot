@@ -1,10 +1,11 @@
 import { FC, useContext, useEffect, useState } from "react";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Alert, Divider, Stack, Typography } from "@mui/material";
+import { Alert, Stack, Typography } from "@mui/material";
 import { DeliverySummary, FieldEvaluationType } from "../../api/apiInterfaces.ts";
 import { Button } from "../../components/buttons.tsx";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
+import { BulletList } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons.tsx";
 import { DeliveryContent } from "./deliveryContent.tsx";
@@ -100,21 +101,17 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
       {deliveryFiles.length === 0 ? (
         <Alert severity="error">{t("deliveryFilesEmpty")}</Alert>
       ) : (
-        <Stack spacing={1}>
-          <Typography variant="h5">{t("deliveryFiles")}</Typography>
-          <Stack
-            spacing={0}
-            divider={<Divider aria-hidden="true" />}
-            sx={theme => ({
-              border: `1px solid ${theme.palette.primary.light}`,
-              borderRadius: theme.radius.default,
-            })}>
+        <Stack spacing={0} sx={{ mt: 1 }}>
+          <Typography variant="body1">{t("deliveryFiles")}</Typography>
+          <BulletList>
             {deliveryFiles.map(deliveryFile => (
-              <Typography key={deliveryFile} color="primary" sx={{ wordBreak: "break-word", p: 1 }}>
-                {deliveryFile}
-              </Typography>
+              <li key={deliveryFile}>
+                <Typography variant="body1" sx={{ wordBreak: "break-word" }}>
+                  {deliveryFile}
+                </Typography>
+              </li>
             ))}
-          </Stack>
+          </BulletList>
         </Stack>
       )}
       {completed && <Alert severity="success">{t("deliveryCompleted")}</Alert>}
