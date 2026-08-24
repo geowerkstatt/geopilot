@@ -9,7 +9,9 @@ namespace Geopilot.Pipeline.ValidationAttributes;
 /// <c>process_config_overwrites</c>. The base configuration is keyed by process implementation, so one
 /// base entry covers every process that names it. The check is skipped when no base configuration
 /// reaches the validation through <see cref="ValidationContext.Items"/>: without it no collision can
-/// exist, and a plugin building a pipeline from its own definition has no hosting layer.
+/// exist, and a plugin building a pipeline from its own definition has no hosting layer. A process
+/// without an implementation is skipped too: it can name no base entry, and this attribute runs before
+/// the recursion that reports the missing implementation on the process itself.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 internal sealed class NoBaseConfigOverwriteAttribute : ValidationAttribute
@@ -54,7 +56,10 @@ internal sealed class NoBaseConfigOverwriteAttribute : ValidationAttribute
     {
         foreach (var process in pipelineProcessConfig.Processes)
         {
-            if (process.DefaultConfig == null || !baseConfigs.TryGetValue(process.Implementation, out var baseConfig))
+            if (process.DefaultConfig == null || string.IsNullOrEmpty(process.Implementation))
+                continue;
+
+            if (!baseConfigs.TryGetValue(process.Implementation, out var baseConfig))
                 continue;
 
             foreach (var key in process.DefaultConfig.Keys.Where(baseConfig.ContainsKey))
@@ -79,7 +84,10 @@ internal sealed class NoBaseConfigOverwriteAttribute : ValidationAttribute
                     continue;
 
                 var process = pipelineProcessConfig.Processes.GetProcessConfig(step.ProcessId);
-                if (process == null || !baseConfigs.TryGetValue(process.Implementation, out var baseConfig))
+                if (process == null || string.IsNullOrEmpty(process.Implementation))
+                    continue;
+
+                if (!baseConfigs.TryGetValue(process.Implementation, out var baseConfig))
                     continue;
 
                 foreach (var key in step.ProcessConfigOverwrites.Keys.Where(baseConfig.ContainsKey))

@@ -79,6 +79,7 @@ public class PipelineValidationTest
     [TestMethod(DisplayName = "Base configuration collision")]
     [DataRow("baseConfigCollisionDefault", new string[] { "PipelineProcessConfig: " + DefaultConfigCollision }, DisplayName = "default_config sets a key the base configuration pins")]
     [DataRow("baseConfigCollisionOverwrite", new string[] { "PipelineProcessConfig: " + DefaultConfigCollision, StepOverwriteCollision }, DisplayName = "default_config and a step overwrite set a key the base configuration pins")]
+    [DataRow("baseConfigCollisionNoImplementation", new string[] { "ProcessConfig (Implementation): Process Implementation is required." }, DisplayName = "a process without an implementation is reported as such, not looked up in the base configuration")]
     public void BaseConfigCollision(string pipelineFile, string[] expectedErrorMessages)
     {
         PipelineFactory factory = CreatePipelineFactory(pipelineFile);
