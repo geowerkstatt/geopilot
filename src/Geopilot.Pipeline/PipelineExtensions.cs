@@ -16,7 +16,10 @@ internal static class PipelineExtensions
     /// Resolves a file passed between steps back to its origin by unwrapping <see cref="CopyOnWriteFile"/>.
     /// For an unchanged file, this yields the exact instance created by the pipeline (e.g. an uploaded file
     /// or a step-produced file).
-    /// A file that was mutated in place is treated as a new file produced by a step.
+    /// A file that was mutated in place is treated as a new file produced by a step. That is required, not
+    /// just a convention: the delivery archives the file through the same copy-on-write view (OpenReadAsync
+    /// resolves to Current), so resolving the origin past a materialized copy would label mutated bytes as
+    /// the submitted original.
     /// </summary>
     internal static IPipelineFile UnwrapOrigin(this IPipelineFile file)
     {
