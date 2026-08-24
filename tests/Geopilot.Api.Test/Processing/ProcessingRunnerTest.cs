@@ -766,6 +766,7 @@ public class ProcessingRunnerTest
             .Builder()
             .Id(id)
             .DisplayName(LocalizedText.Empty)
+            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
             .Inputs(new Dictionary<string, InputValue> { ["files"] = new InputValue.UploadReference() })
             .OutputActions([new OutputActionConfig { Property = "Result", Actions = new HashSet<OutputAction>(new[] { OutputAction.Delivery }) }])
             .Process(new PassthroughProcess())
