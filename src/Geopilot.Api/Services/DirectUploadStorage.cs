@@ -99,15 +99,11 @@ public class DirectUploadStorage : IUploadStorage
 
         logger.LogInformation("Deleting uploaded files with prefix {Prefix}.", prefix);
 
-        foreach (var file in EnumerateFilesByPrefix(prefix))
-        {
-            file.Delete();
-        }
-
-        // Remove the now-empty directory a whole-prefix delete leaves behind (e.g. uploads/{uploadId}).
+        // Every caller passes a directory-shaped prefix (uploads/{uploadId}/), so deleting the
+        // subtree is equivalent to deleting every matching key and removes the directory with it.
         var prefixPath = ResolvePath(prefix.TrimEnd('/'));
-        if (Directory.Exists(prefixPath) && !Directory.EnumerateFileSystemEntries(prefixPath).Any())
-            Directory.Delete(prefixPath);
+        if (Directory.Exists(prefixPath))
+            Directory.Delete(prefixPath, recursive: true);
 
         return Task.CompletedTask;
     }
