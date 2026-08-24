@@ -1,9 +1,10 @@
+import { Link as RouterLink } from "react-router-dom";
 import { Stack, useMediaQuery, useTheme } from "@mui/material";
 import { Button } from "../../components/buttons";
-import { useControlledNavigate } from "../../components/controlledNavigate";
+import { useControlledLinkClick } from "../../components/controlledNavigate";
 
 const Footer = () => {
-  const { navigateTo } = useControlledNavigate();
+  const linkClick = useControlledLinkClick();
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -28,28 +29,36 @@ const Footer = () => {
           variant="text"
           data-cy="home-nav"
           label="geopilot"
-          onClick={() => navigateTo("/")}
+          component={RouterLink}
+          to="/"
+          onClick={linkClick("/")}
         />
         <Button
           size={isXs ? "small" : "medium"}
           variant="text"
           data-cy="privacy-policy-nav"
           label="privacyPolicy"
-          onClick={() => navigateTo("/privacy-policy")}
+          component={RouterLink}
+          to="/privacy-policy"
+          onClick={linkClick("/privacy-policy")}
         />
         <Button
           size={isXs ? "small" : "medium"}
           variant="text"
           data-cy="imprint-nav"
           label="imprint"
-          onClick={() => navigateTo("/imprint")}
+          component={RouterLink}
+          to="/imprint"
+          onClick={linkClick("/imprint")}
         />
         <Button
           size={isXs ? "small" : "medium"}
           variant="text"
           data-cy="about-nav"
           label="about"
-          onClick={() => navigateTo("/about")}
+          component={RouterLink}
+          to="/about"
+          onClick={linkClick("/about")}
         />
       </Stack>
     </Stack>
