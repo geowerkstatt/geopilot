@@ -1,0 +1,44 @@
+processes:
+  - id: xtf_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
+    default_config:
+      fileExtensions:
+        - xtf
+  - id: xtf_error_visualizer
+    implementation: Geopilot.Pipeline.Processes.XtfErrorVisualization.XtfErrorVisualizationProcess
+pipelines:
+  - id: bad_pipeline
+    display_name:
+      en: Bad pipeline
+      de: Bad pipeline
+    steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+          de: XTF Zuordnung
+        process_id: xtf_matcher
+        input:
+          files: "${upload()}"
+      - id: error_visualization
+        display_name:
+          en: Error Visualization
+          de: Fehlervisualisierung
+        process_id: xtf_error_visualizer
+        input:
+          xtfLog: "${step_output(xtf_matching.StatusMessage)}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+  - id: bad_pipeline
+    display_name:
+      en: Bad pipeline duplicate
+      de: Bad pipeline duplicate
+    steps:
+      - id: xtf_matching
+        display_name:
+          en: XTF Matching
+          de: XTF Zuordnung
+        process_id: xtf_matcher
+        input:
+          files: "${upload()}"

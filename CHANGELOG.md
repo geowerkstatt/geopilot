@@ -35,6 +35,7 @@
 - Mandates can have a localized description. The description is shown to the users when they choose a mandate before processing.
 - The documentation of the pipeline definition format, of the processors shipped with geopilot and of the plugin system is now published with the code under [`docs/pipeline/`](docs/pipeline/Pipelines.md).
 - Pipeline steps can end in a `Warning` state through a post `warn_conditions` list: the step ran and reported issues but the pipeline continues, shown with a warning icon in the delivery view. A run whose only non-successful steps are warnings is reported as a warning overall, and a warning does not block delivery on its own.
+- A plugin test project can check its pipeline definition before running it: `IPipelineFactory.ValidateDefinition()` in `GeoWerkstatt.Geopilot.Pipeline` reports the same problems, in the same message, that the host reports when it refuses to start. Until now that check lived in the host and was unreachable from outside. Implementations of `IPipelineFactory` outside geopilot have to add the new member.
 
 ### Removed
 

@@ -16,11 +16,12 @@ public class PipelineFactory : IPipelineFactory
     private readonly ILoggerFactory loggerFactory;
     private readonly string pipelineTempDirectory;
     private readonly string? resourcesDirectory;
+    private readonly IReadOnlyDictionary<string, Parameterization>? processBaseConfigs;
 
     /// <summary>
     /// The pipeline process configuration used to create pipelines.
     /// </summary>
-    public PipelineProcessConfig PipelineProcessConfig { get; }
+    internal PipelineProcessConfig PipelineProcessConfig { get; }
 
     private IPipelineProcessFactory pipelineProcessFactory;
 
@@ -29,12 +30,14 @@ public class PipelineFactory : IPipelineFactory
         IPipelineProcessFactory pipelineProcessFactory,
         string pipelineTempDirectory,
         string? resourcesDirectory,
+        IReadOnlyDictionary<string, Parameterization>? processBaseConfigs,
         ILoggerFactory loggerFactory)
     {
         this.PipelineProcessConfig = pipelineProcessConfig ?? throw new InvalidOperationException("Missing pipeline process configuration.");
         this.pipelineProcessFactory = pipelineProcessFactory;
         this.pipelineTempDirectory = pipelineTempDirectory;
         this.resourcesDirectory = resourcesDirectory;
+        this.processBaseConfigs = processBaseConfigs;
 
         this.loggerFactory = loggerFactory;
         this.logger = loggerFactory.CreateLogger<PipelineFactory>();
@@ -70,6 +73,52 @@ public class PipelineFactory : IPipelineFactory
         {
             throw new InvalidOperationException($"pipeline for '{id}' not found");
         }
+    }
+
+    /// <inheritdoc />
+    public PipelineDefinitionValidationResult ValidateDefinition()
+    {
+        var definitionErrors = PipelineProcessConfig.Validate(processBaseConfigs);
+        if (definitionErrors.HasErrors)
+        {
+            return new PipelineDefinitionValidationResult(
+                $"errors in pipeline definition:{Environment.NewLine}{definitionErrors.ErrorMessage}");
+        }
+
+        var processErrors = new HashSet<string>();
+        var processes = PipelineProcessConfig.Processes;
+        foreach (var pipeline in PipelineProcessConfig.Pipelines)
+        {
+            var stepResultTypes = pipelineProcessFactory.BuildStepResultTypes(pipeline.Steps, processes);
+            foreach (var step in pipeline.Steps)
+            {
+                try
+                {
+                    // Use Validate() rather than Build() so validation does not actually construct processes.
+                    // Invoking constructors here would leak per-step directories under $TEMP and allocate
+                    // HttpClients and other per-process resources on every restart.
+                    pipelineProcessFactory
+                        .Builder()
+                        .PipelineId(pipeline.Id)
+                        .StepConfig(step)
+                        .StepResultTypes(stepResultTypes)
+                        .Processes(processes)
+                        .Validate(resourcesDirectory);
+                }
+                catch (Exception ex)
+                {
+                    processErrors.Add($"pipeline {pipeline.Id}, step {step.Id}, process {step.ProcessId}, error: {ex.Message}");
+                }
+            }
+        }
+
+        if (processErrors.Count > 0)
+        {
+            return new PipelineDefinitionValidationResult(
+                $"Invalid pipeline processes found:{Environment.NewLine}{string.Join(Environment.NewLine, processErrors)}");
+        }
+
+        return PipelineDefinitionValidationResult.Valid;
     }
 
     private List<IPipelineStep> CreateSteps(PipelineConfig pipelineConfig, string pipelineTempDirectory, Guid jobId)
@@ -116,7 +165,8 @@ public class PipelineFactory : IPipelineFactory
 
     /// <summary>
     /// Fluent builder for a <see cref="PipelineFactory"/>. The pipeline definition, the process factory,
-    /// the logger factory and the pipeline working directory are required; the resources root is optional.
+    /// the logger factory and the pipeline working directory are required; the resources root and the
+    /// process base configuration are optional.
     /// </summary>
     public class PipelineFactoryBuilder
     {
@@ -124,6 +174,7 @@ public class PipelineFactory : IPipelineFactory
         private IPipelineProcessFactory? pipelineProcessFactory;
         private string? pipelineTempDirectory;
         private string? resourcesDirectory;
+        private IReadOnlyDictionary<string, Parameterization>? processBaseConfigs;
         private ILoggerFactory? loggerFactory;
 
         /// <summary>
@@ -197,6 +248,20 @@ public class PipelineFactory : IPipelineFactory
         }
 
         /// <summary>
+        /// Supplies the base configuration of the processes as the hosting layer defines it (appsettings
+        /// <c>Pipeline:ProcessConfigs</c>), keyed by process implementation. That layer cannot be overridden,
+        /// so <see cref="ValidateDefinition"/> rejects a definition setting one of its keys. Omitting it skips
+        /// that rule, which is what a caller without a hosting layer wants.
+        /// </summary>
+        /// <param name="processBaseConfigs">The base configuration per process implementation, or <see langword="null"/> when there is no hosting layer.</param>
+        /// <returns>The same builder instance.</returns>
+        public PipelineFactoryBuilder ProcessBaseConfigs(IReadOnlyDictionary<string, Parameterization>? processBaseConfigs)
+        {
+            this.processBaseConfigs = processBaseConfigs;
+            return this;
+        }
+
+        /// <summary>
         /// Builds the configured <see cref="PipelineFactory"/>.
         /// </summary>
         /// <returns>The configured factory.</returns>
@@ -210,7 +275,7 @@ public class PipelineFactory : IPipelineFactory
             if (this.pipelineTempDirectory == null)
                 throw new InvalidOperationException("Pipeline temp directory is required but was not provided.");
 
-            return new PipelineFactory(pipelineProcessConfig, pipelineProcessFactory, pipelineTempDirectory, resourcesDirectory, loggerFactory);
+            return new PipelineFactory(pipelineProcessConfig, pipelineProcessFactory, pipelineTempDirectory, resourcesDirectory, processBaseConfigs, loggerFactory);
         }
     }
 }
