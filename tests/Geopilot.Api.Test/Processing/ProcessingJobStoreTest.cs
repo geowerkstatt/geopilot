@@ -212,6 +212,77 @@ public class ProcessingJobStoreTest
     }
 
     [TestMethod]
+    public void TryMarkAsFailedSetsState()
+    {
+        var job = store.CreateJob(Guid.NewGuid());
+
+        Assert.IsTrue(store.TryMarkAsFailed(job.Id));
+        Assert.AreEqual(ProcessingState.Failed, store.GetJob(job.Id)!.State);
+    }
+
+    [TestMethod]
+    public void TryMarkAsFailedReturnsFalseIfAlreadyTerminal()
+    {
+        var job = store.CreateJob(Guid.NewGuid());
+        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
+        store.PipelineFinished(job.Id, ProcessingState.Success);
+
+        Assert.IsFalse(store.TryMarkAsFailed(job.Id));
+        Assert.AreEqual(ProcessingState.Success, store.GetJob(job.Id)!.State, "A rejected transition must leave the job untouched.");
+    }
+
+    [TestMethod]
+    public void TryMarkAsFailedReturnsFalseIfJobNotFound()
+    {
+        Assert.IsFalse(store.TryMarkAsFailed(Guid.NewGuid()));
+    }
+
+    [TestMethod]
+    [DataRow(ProcessingState.Success)]
+    [DataRow(ProcessingState.Warning)]
+    [DataRow(ProcessingState.DeliveryRestriction)]
+    [DataRow(ProcessingState.Failed)]
+    [DataRow(ProcessingState.Cancelled)]
+    public void TryPipelineFinishedTransitionsFromRunning(ProcessingState pipelineState)
+    {
+        var job = store.CreateJob(Guid.NewGuid());
+        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
+
+        Assert.IsTrue(store.TryPipelineFinished(job.Id, pipelineState));
+        Assert.AreEqual(pipelineState, store.GetJob(job.Id)!.State);
+    }
+
+    [TestMethod]
+    public void TryPipelineFinishedReturnsFalseIfNotRunning()
+    {
+        var job = store.CreateJob(Guid.NewGuid());
+
+        Assert.IsFalse(store.TryPipelineFinished(job.Id, ProcessingState.Success));
+        Assert.AreEqual(ProcessingState.Pending, store.GetJob(job.Id)!.State, "A rejected transition must leave the job untouched.");
+    }
+
+    [TestMethod]
+    [DataRow(ProcessingState.Pending)]
+    [DataRow(ProcessingState.Running)]
+    public void TryPipelineFinishedReturnsFalseIfPipelineStateIsNotTerminal(ProcessingState pipelineState)
+    {
+        var job = store.CreateJob(Guid.NewGuid());
+        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
+
+        Assert.IsFalse(store.TryPipelineFinished(job.Id, pipelineState));
+        Assert.AreEqual(ProcessingState.Running, store.GetJob(job.Id)!.State);
+    }
+
+    [TestMethod]
+    public void TryPipelineFinishedReturnsFalseIfJobNotFound()
+    {
+        Assert.IsFalse(store.TryPipelineFinished(Guid.NewGuid(), ProcessingState.Success));
+    }
+
+    [TestMethod]
     public void RemoveJobDisposesPipeline()
     {
         var job = store.CreateJob(Guid.NewGuid());
