@@ -73,16 +73,17 @@ public class PreflightBackgroundService : BackgroundService
         {
             logger.LogError(ex, "Preflight failed for job <{JobId}>.", request.JobId);
 
+            if (!jobStore.TryMarkAsFailed(request.JobId))
+                logger.LogWarning("Job <{JobId}> was not marked as failed: it is unknown or already in a terminal state.", request.JobId);
+
             try
             {
-                jobStore.MarkAsFailed(request.JobId);
-
                 // The pipeline was instantiated up front but never queued, so the runner will not dispose it.
                 job.Pipeline?.Dispose();
             }
-            catch (Exception statusEx)
+            catch (Exception disposeEx)
             {
-                logger.LogError(statusEx, "Failed to mark job <{JobId}> as failed.", request.JobId);
+                logger.LogError(disposeEx, "Failed to dispose the pipeline of job <{JobId}>.", request.JobId);
             }
 
             try

@@ -78,11 +78,11 @@ public class PreflightBackgroundServiceTest
         orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new UploadPreflightException(PreflightFailureReason.IncompleteUpload, "File missing."));
         orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
-        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(pendingJob with { State = ProcessingState.Failed });
+        jobStoreMock.Setup(x => x.TryMarkAsFailed(jobId)).Returns(true);
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
-        jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
+        jobStoreMock.Verify(x => x.TryMarkAsFailed(jobId), Times.Once);
         orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(uploadId), Times.Once);
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
@@ -99,11 +99,11 @@ public class PreflightBackgroundServiceTest
         orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
             .ThrowsAsync(new InvalidOperationException("Network timeout"));
         orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
-        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(pendingJob with { State = ProcessingState.Failed });
+        jobStoreMock.Setup(x => x.TryMarkAsFailed(jobId)).Returns(true);
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
-        jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
+        jobStoreMock.Verify(x => x.TryMarkAsFailed(jobId), Times.Once);
         orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(uploadId), Times.Once);
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
@@ -121,11 +121,11 @@ public class PreflightBackgroundServiceTest
         orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId))
             .Throws(new InvalidOperationException($"Upload <{uploadId}> has no files to register."));
         orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
-        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(pendingJob with { State = ProcessingState.Failed });
+        jobStoreMock.Setup(x => x.TryMarkAsFailed(jobId)).Returns(true);
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
-        jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
+        jobStoreMock.Verify(x => x.TryMarkAsFailed(jobId), Times.Once);
         jobStoreMock.Verify(x => x.EnqueueForProcessing(It.IsAny<Guid>(), It.IsAny<IReadOnlyList<IPipelineFile>>()), Times.Never);
         orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(uploadId), Times.Once);
         pipeline.Verify(p => p.Dispose(), Times.Once);
@@ -144,11 +144,11 @@ public class PreflightBackgroundServiceTest
             .ThrowsAsync(new UploadPreflightException(PreflightFailureReason.IncompleteUpload, "File missing."));
         orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId))
             .ThrowsAsync(new InvalidOperationException("Storage unavailable."));
-        jobStoreMock.Setup(x => x.MarkAsFailed(jobId)).Returns(pendingJob with { State = ProcessingState.Failed });
+        jobStoreMock.Setup(x => x.TryMarkAsFailed(jobId)).Returns(true);
 
         await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
 
-        jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
+        jobStoreMock.Verify(x => x.TryMarkAsFailed(jobId), Times.Once);
         pipeline.Verify(p => p.Dispose(), Times.Once);
     }
 

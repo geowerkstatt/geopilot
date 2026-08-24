@@ -86,7 +86,11 @@ public class ProcessingRunner : BackgroundService
                 // in-flight step's files are lost, and no delivery files are persisted (delivery is staged
                 // only for a successful, deliverable run).
                 logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, processingOptions.JobTimeout);
-                jobStore.PipelineFinished(pipeline.JobId, ProcessingState.Cancelled);
+
+                // Tolerant variant: a throwing transition would escape this catch block and take the whole
+                // loop, and by default the host, down instead of recording the timeout.
+                if (!jobStore.TryPipelineFinished(pipeline.JobId, ProcessingState.Cancelled))
+                    logger.LogWarning("Job <{JobId}> was not transitioned to <{State}>: it is unknown or no longer running.", pipeline.JobId, ProcessingState.Cancelled);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -96,7 +100,9 @@ public class ProcessingRunner : BackgroundService
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error while running pipeline <{Pipeline}>.", pipeline.Id);
-                jobStore.MarkAsFailed(pipeline.JobId);
+
+                if (!jobStore.TryMarkAsFailed(pipeline.JobId))
+                    logger.LogWarning("Job <{JobId}> was not marked as failed: it is unknown or already in a terminal state.", pipeline.JobId);
             }
             finally
             {
