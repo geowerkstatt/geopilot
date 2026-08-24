@@ -11,8 +11,9 @@ namespace Geopilot.Api.FileAccess
         /// Records the job assets to be persisted.
         /// </summary>
         /// <param name="jobId">The validation job id.</param>
+        /// <param name="cancellationToken">A token to cancel the operation.</param>
         /// <returns>List of <see cref="Asset" /> representing the validation job assets in persistent storage.</returns>
-        IEnumerable<Asset> PersistJobAssets(Guid jobId);
+        Task<IEnumerable<Asset>> RecordJobAssetsAsync(Guid jobId, CancellationToken cancellationToken);
 
         /// <summary>
         /// Deletes all job assets from persistent storage.

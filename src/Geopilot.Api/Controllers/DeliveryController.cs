@@ -141,7 +141,7 @@ public class DeliveryController : ControllerBase
 
         try
         {
-            delivery.Assets.AddRange(assetHandler.PersistJobAssets(declaration.JobId));
+            delivery.Assets.AddRange(await assetHandler.RecordJobAssetsAsync(declaration.JobId, HttpContext.RequestAborted));
         }
         catch (Exception e)
         {

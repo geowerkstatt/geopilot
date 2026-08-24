@@ -33,16 +33,14 @@ public class AssetHandler : IAssetHandler
     }
 
     /// <inheritdoc/>
-    public IEnumerable<Asset> PersistJobAssets(Guid jobId)
+    public async Task<IEnumerable<Asset>> RecordJobAssetsAsync(Guid jobId, CancellationToken cancellationToken)
     {
         var job = processingService.GetJob(jobId);
 
         if (job is null)
             throw new InvalidOperationException($"Processing job with id {jobId} not found.");
 
-        Directory.CreateDirectory(directoryProvider.GetAssetDirectoryPath(jobId));
-
-        return RecordStepDeliveryAssets(job);
+        return await RecordStepDeliveryAssetsAsync(job, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -78,7 +76,7 @@ public class AssetHandler : IAssetHandler
         }
     }
 
-    private List<Asset> RecordStepDeliveryAssets(ProcessingJob job)
+    private async Task<List<Asset>> RecordStepDeliveryAssetsAsync(ProcessingJob job, CancellationToken cancellationToken)
     {
         var assets = new List<Asset>();
         if (job.Pipeline == null)
@@ -97,7 +95,7 @@ public class AssetHandler : IAssetHandler
                     AssetType = persisted.FromUpload ? AssetType.PrimaryData : AssetType.ProcessedData,
                     OriginalFilename = persisted.OriginalFileName,
                     SanitizedFilename = persisted.PersistedFileName,
-                    FileHash = SHA256.HashData(stream),
+                    FileHash = await SHA256.HashDataAsync(stream, cancellationToken),
                 });
             }
         }

@@ -35,12 +35,12 @@ public class AssetHandlerTest
     }
 
     [TestMethod]
-    public void PersistJobAssetsDeliveryFileFromUploadRecordsAsPrimaryData()
+    public async Task RecordJobAssetsDeliveryFileFromUploadRecordsAsPrimaryData()
     {
         SetupDeliveryFileOnDisk("uploaded.xtf");
         SetJobPipeline(new PersistedFile("uploaded.xtf", "uploaded.xtf", FromUpload: true));
 
-        var assets = assetHandler.PersistJobAssets(job.Id).ToList();
+        var assets = (await assetHandler.RecordJobAssetsAsync(job.Id, CancellationToken.None)).ToList();
 
         var asset = assets.Single();
         Assert.AreEqual(AssetType.PrimaryData, asset.AssetType);
@@ -50,12 +50,12 @@ public class AssetHandlerTest
     }
 
     [TestMethod]
-    public void PersistJobAssetsDeliveryFileProducedByStepRecordsAsProcessedData()
+    public async Task RecordJobAssetsDeliveryFileProducedByStepRecordsAsProcessedData()
     {
         SetupDeliveryFileOnDisk("logfile.log");
         SetJobPipeline(new PersistedFile("validator_logfile.log", "logfile.log", FromUpload: false));
 
-        var assets = assetHandler.PersistJobAssets(job.Id).ToList();
+        var assets = (await assetHandler.RecordJobAssetsAsync(job.Id, CancellationToken.None)).ToList();
 
         var asset = assets.Single();
         Assert.AreEqual(AssetType.ProcessedData, asset.AssetType);
@@ -69,7 +69,7 @@ public class AssetHandlerTest
     }
 
     [TestMethod]
-    public void PersistJobAssetsMixedOriginsDerivesTypePerFile()
+    public async Task RecordJobAssetsMixedOriginsDerivesTypePerFile()
     {
         SetupDeliveryFileOnDisk("uploaded.xtf");
         SetupDeliveryFileOnDisk("report.pdf");
@@ -77,16 +77,16 @@ public class AssetHandlerTest
             new PersistedFile("uploaded.xtf", "uploaded.xtf", FromUpload: true),
             new PersistedFile("report.pdf", "report.pdf", FromUpload: false));
 
-        var assets = assetHandler.PersistJobAssets(job.Id).ToList();
+        var assets = (await assetHandler.RecordJobAssetsAsync(job.Id, CancellationToken.None)).ToList();
 
         Assert.AreEqual(AssetType.PrimaryData, assets.Single(a => a.OriginalFilename == "uploaded.xtf").AssetType);
         Assert.AreEqual(AssetType.ProcessedData, assets.Single(a => a.OriginalFilename == "report.pdf").AssetType);
     }
 
     [TestMethod]
-    public void PersistJobAssetsJobNotFoundThrows()
+    public async Task RecordJobAssetsJobNotFoundThrows()
     {
-        Assert.ThrowsExactly<InvalidOperationException>(() => assetHandler.PersistJobAssets(Guid.NewGuid()));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await assetHandler.RecordJobAssetsAsync(Guid.NewGuid(), CancellationToken.None));
     }
 
     [TestMethod]
