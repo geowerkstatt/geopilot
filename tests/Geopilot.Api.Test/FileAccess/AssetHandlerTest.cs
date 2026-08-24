@@ -124,9 +124,11 @@ public class AssetHandlerTest
         => new ProcessingJob(
             jobId ?? Guid.NewGuid(),
             Guid.NewGuid(),
-            new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName", "uploads/key/OriginalName") },
             null,
-            DateTime.Now);
+            DateTime.Now)
+        {
+            Files = [new ProcessingJobFile("OriginalName", "TempFileName", "uploads/key/OriginalName")],
+        };
 
     private static IPipeline BuildPipelineWithDeliveryFiles(string stepId, List<PersistedFile> deliveryFiles)
     {

@@ -62,7 +62,10 @@ public sealed class ProcessingControllerTest
 
         validationServiceMock
             .Setup(x => x.GetJob(jobId))
-            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>() { new ProcessingJobFile("BIZARRESCAN.xtf", "TEMP.xtf", "uploads/upload/" + "BIZARRESCAN.xtf") }, mandateId, DateTime.Now));
+            .Returns(new ProcessingJob(jobId, Guid.NewGuid(), mandateId, DateTime.Now)
+            {
+                Files = [new ProcessingJobFile("BIZARRESCAN.xtf", "TEMP.xtf", "uploads/upload/" + "BIZARRESCAN.xtf")],
+            });
 
         var response = controller.GetStatus(jobId) as OkObjectResult;
         var jobResponse = response?.Value as ProcessingJobResponse;
@@ -165,9 +168,11 @@ public sealed class ProcessingControllerTest
         var processingJob = new ProcessingJob(
             jobId,
             Guid.NewGuid(),
-            new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf", "uploads/upload/" + "test.xtf") },
             mandate.Id,
-            DateTime.Now);
+            DateTime.Now)
+        {
+            Files = [new ProcessingJobFile("test.xtf", "temp.xtf", "uploads/upload/" + "test.xtf")],
+        };
 
         validationServiceMock.Setup(x => x.StartJobAsync(uploadId, mandate.Id, user)).ReturnsAsync(processingJob);
 
@@ -217,9 +222,11 @@ public sealed class ProcessingControllerTest
         var processingJob = new ProcessingJob(
             jobId,
             Guid.NewGuid(),
-            new List<ProcessingJobFile>() { new ProcessingJobFile("test.xtf", "temp.xtf", "uploads/upload/" + "test.xtf") },
             publicMandate.Entity.Id,
-            DateTime.Now);
+            DateTime.Now)
+        {
+            Files = [new ProcessingJobFile("test.xtf", "temp.xtf", "uploads/upload/" + "test.xtf")],
+        };
 
         validationServiceMock.Setup(x => x.StartJobAsync(uploadId, publicMandate.Entity.Id, It.IsAny<User?>())).ReturnsAsync(processingJob);
 
@@ -352,6 +359,6 @@ public sealed class ProcessingControllerTest
         stepMock.SetupGet(s => s.DeliveryFiles).Returns(deliveryFiles);
         var pipelineMock = new Mock<IPipeline>();
         pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep> { stepMock.Object });
-        return new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>(), null, DateTime.Now) { Pipeline = pipelineMock.Object };
+        return new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.Now) { Pipeline = pipelineMock.Object };
     }
 }

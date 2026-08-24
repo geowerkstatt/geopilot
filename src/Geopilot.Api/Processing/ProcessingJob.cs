@@ -1,4 +1,5 @@
 ﻿using Geopilot.Pipeline;
+using System.Collections.Immutable;
 
 namespace Geopilot.Api.Processing;
 
@@ -10,10 +11,17 @@ namespace Geopilot.Api.Processing;
 public record class ProcessingJob(
     Guid Id,
     Guid UploadId,
-    List<ProcessingJobFile> Files,
     int? MandateId,
     DateTime CreatedAt)
 {
+    /// <summary>
+    /// The uploaded files staged for this job, in the order they were added. Files are only added while the
+    /// job is still pending, but the collection is read while the run is under way, so it is immutable:
+    /// adding a file replaces it instead of mutating it, and a reader iterates a snapshot that cannot change
+    /// underneath it.
+    /// </summary>
+    public ImmutableList<ProcessingJobFile> Files { get; init; } = ImmutableList<ProcessingJobFile>.Empty;
+
     /// <summary>
     /// The pipeline associated with this job. Instantiated when the job is created (before its files are staged)
     /// and started once staging completes, so consumers can render the pipeline's steps while preflight runs.

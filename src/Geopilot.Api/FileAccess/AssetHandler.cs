@@ -86,7 +86,7 @@ public class AssetHandler : IAssetHandler
 
     private async Task<List<Asset>> PersistPrimaryJobAssetsAsync(ProcessingJob job, CancellationToken cancellationToken)
     {
-        if (job.Files == null || job.Files.Count == 0)
+        if (job.Files.Count == 0)
             throw new InvalidOperationException($"Processing job <{job.Id}> does not have a correctly defined primary data files.");
 
         var assets = new List<Asset>();

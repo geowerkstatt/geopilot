@@ -339,7 +339,7 @@ public class ProcessingRunnerTest
         var step1 = BuildEmittingStep("step_1", "log", "first.log", "first-content", OutputAction.Download);
         var step2 = BuildBlockingStep("step_2", gate.Task);
         using var pipeline = BuildPipeline(jobId, step1, step2);
-        var job = new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>(), 1, DateTime.UtcNow) { Pipeline = pipeline };
+        var job = new ProcessingJob(jobId, Guid.NewGuid(), 1, DateTime.UtcNow) { Pipeline = pipeline };
 
         var (runner, store) = CreateRunnerWithStore(pipeline);
 
@@ -754,7 +754,7 @@ public class ProcessingRunnerTest
             Options.Create(new ProcessingOptions { JobTimeout = jobTimeout ?? TimeSpan.FromMinutes(5) }));
 
     private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state)
-        => new ProcessingJob(jobId, uploadId, new List<ProcessingJobFile>(), 1, DateTime.UtcNow) { State = state };
+        => new ProcessingJob(jobId, uploadId, 1, DateTime.UtcNow) { State = state };
 
     private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null)
     {

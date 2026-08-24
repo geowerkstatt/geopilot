@@ -36,7 +36,6 @@ public class ProcessingJobStore : IProcessingJobStore
         var newJob = new ProcessingJob(
             Id: Guid.NewGuid(),
             UploadId: uploadId,
-            Files: new List<ProcessingJobFile>(),
             MandateId: null,
             CreatedAt: DateTime.UtcNow);
 
@@ -47,14 +46,18 @@ public class ProcessingJobStore : IProcessingJobStore
     /// <inheritdoc/>
     public ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName, string storageKey)
     {
+        var file = new ProcessingJobFile(originalFileName, tempFileName, storageKey);
+
         return jobs.AddOrUpdate(
             jobId,
             id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
             (id, currentJob) =>
             {
+                // The factory has to stay free of side effects: AddOrUpdate re-runs it against the freshly
+                // read job whenever the compare-and-swap loses a race, so appending to a shared list here
+                // would add the same file more than once.
                 EnsureJobIsPending(id, currentJob, "add file");
-                currentJob.Files.Add(new ProcessingJobFile(originalFileName, tempFileName, storageKey));
-                return currentJob;
+                return currentJob with { Files = currentJob.Files.Add(file) };
             });
     }
 

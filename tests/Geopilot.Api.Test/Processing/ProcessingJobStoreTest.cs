@@ -69,6 +69,21 @@ public class ProcessingJobStoreTest
     }
 
     [TestMethod]
+    public void AddFileToJobUnderConcurrencyAddsEachFileExactlyOnce()
+    {
+        const int fileCount = 100;
+        var job = store.CreateJob(Guid.NewGuid());
+
+        Parallel.For(0, fileCount, i => store.AddFileToJob(job.Id, $"file_{i}.xtf", $"temp_{i}.xtf", $"uploads/key/file_{i}.xtf"));
+
+        // AddOrUpdate re-runs its update factory whenever the compare-and-swap loses a race, so a factory
+        // with a side effect drops or duplicates files exactly here.
+        var files = store.GetJob(job.Id)!.Files;
+        Assert.HasCount(fileCount, files);
+        Assert.HasCount(fileCount, files.Select(f => f.OriginalFileName).Distinct().ToList(), "No file may be added twice.");
+    }
+
+    [TestMethod]
     public void AddFileToJobThrowsIfJobNotFound()
     {
         Assert.ThrowsExactly<ArgumentException>(() => store.AddFileToJob(Guid.NewGuid(), "a", "b", "uploads/upload/a"));
