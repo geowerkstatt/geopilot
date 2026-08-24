@@ -20,4 +20,11 @@ public interface IPipelineFactory
     /// <returns>A <see cref="Pipeline"/> instance.</returns>
     /// <exception cref="Exception">Thrown when the pipeline cannot be created.</exception>
     IPipeline CreatePipeline(string id, Guid jobId);
+
+    /// <summary>
+    /// Validates the pipeline definition and the process configuration of every step, without constructing any
+    /// process. The caller decides what an invalid definition means; the host refuses to start.
+    /// </summary>
+    /// <returns>The outcome, with all problems in a single message.</returns>
+    PipelineDefinitionValidationResult ValidateDefinition();
 }

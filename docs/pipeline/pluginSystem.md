@@ -227,7 +227,16 @@ Ein Test gegen die produktive Definition prüft die Verdrahtung, wie sie beim Ku
 
 Hat der zu testende Schritt höchstens einen Datei-Input, lässt er sich aus dem Upload speisen (`someInput: "${upload()}"`) und über `pipeline.Run(uploadFiles, ct)` ausführen. Dann muss gar kein Ergebnis eines Vorgängerschritts gestellt werden. Bei mehreren Datei-Inputs geht das nicht, weil `${upload()}` allen verdrahteten Parametern dieselbe Liste reicht; dort führt `${file(...)}` mit einem auf die Testfixtures gesetzten `ResourcesDirectory` zum selben Ziel.
 
-Zu beachten bleibt: solange der erzeugende Schritt nicht mitläuft, deckt kein Test ab, ob ein `${step_output(...)}` noch auf eine existierende Eigenschaft des echten Result-Typs zeigt. Wer diese Abweichung ausschliessen will, muss die beteiligten Schritte gemeinsam ausführen.
+Ob ein `${step_output(...)}` auf eine existierende und typkompatible Eigenschaft des echten Result-Typs zeigt, lässt sich ohne Ausführung prüfen. `IPipelineFactory.ValidateDefinition()` beantwortet das statisch für die ganze Definition, also auch für Schritte, die der Test nicht mitlaufen lässt. Als Preflight vor dem Lauf:
+
+```csharp
+var validation = factory.ValidateDefinition();
+Assert.IsTrue(validation.IsValid, validation.ErrorMessage);
+```
+
+Die Meldung nennt Pipeline, Schritt und Prozess und ist dieselbe, mit der der Server den Start verweigert. Ein solcher Test schlägt also dort fehl, wo auch das Deployment scheitern würde, und zwar bevor irgendein Prozessor läuft.
+
+Zu beachten bleibt: der Preflight prüft die Verdrahtung, nicht das Laufzeitverhalten. Wer ausschliessen will, dass ein erzeugender Schritt etwas anderes liefert als sein Result-Typ verspricht, muss die beteiligten Schritte gemeinsam ausführen.
 
 **Prozessoren werden in einen eigenen `AssemblyLoadContext` geladen.** Der Typ einer Prozessor-Instanz ist deshalb *nicht identisch* mit dem direkt referenzierten Typ, obwohl Typname und DLL-Pfad übereinstimmen. `is`-Prüfungen und Casts schlagen fehl:
 

@@ -28,11 +28,12 @@ public static class ServiceCollectionExtensions
     /// definition specified in the application configuration.
     /// </summary>
     /// <remarks>This method expects a configuration value at the key 'Pipeline:Definition' that specifies the
-    /// pipeline definition file. The pipeline configuration is validated during registration, and any validation errors
-    /// will prevent the application from starting.</remarks>
+    /// pipeline definition file. The definition itself is checked separately during startup through
+    /// <see cref="IPipelineFactory.ValidateDefinition"/>, which keeps the application from starting on an invalid
+    /// definition.</remarks>
     /// <param name="services">The IServiceCollection to which the IPipelineFactory singleton will be added. Cannot be null.</param>
-    /// <exception cref="InvalidOperationException">Thrown if the pipeline definition is missing from the configuration or if the pipeline configuration contains
-    /// validation errors.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the factory is resolved and the pipeline definition is
+    /// missing from the configuration or the definition file does not exist.</exception>
     public static void AddPipelineFactory(this IServiceCollection services)
     {
         Func<IServiceProvider, IPipelineFactory> cofigurePipelineFactory = (IServiceProvider sp) =>

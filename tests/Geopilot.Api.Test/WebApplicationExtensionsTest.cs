@@ -14,8 +14,8 @@ public sealed class WebApplicationExtensionsTest
     // A structurally valid pipeline whose only fault is a cross-step type mismatch: the second step wires
     // the first step's StatusMessage (a LocalizedText) into the IPipelineFile run parameter 'xtfLog'.
     // Catching this requires the per-step validation to see the whole step list, which
-    // ValidatePipelineConfiguration supplies via .StepResultTypes(stepResultTypes). Remove that one line and the
-    // reference is left unchecked, the app boots, and this test fails.
+    // PipelineFactory.ValidateDefinition supplies via .StepResultTypes(stepResultTypes). Remove that one line and
+    // the reference is left unchecked, the app boots, and this test fails.
     private const string CrossStepTypeMismatchPipeline = """
         processes:
           - id: xtf_matcher
