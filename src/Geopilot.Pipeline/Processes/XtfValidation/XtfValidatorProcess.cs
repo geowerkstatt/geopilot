@@ -47,7 +47,7 @@ internal class XtfValidatorProcess
     /// <param name="validationProfile">Optional validation profile, given as the dataset id that indexes it in one of the <paramref name="modelDirs"/>. An <c>ilidata:</c> prefix may be included.</param>
     /// <param name="modelDirs">Optional INTERLIS model repositories as a semicolon separated list, searched in the given order. Replaces the default of the tool entirely.</param>
     /// <param name="allObjectsAccessible">Whether a reference to an object outside the validated file is an error. Defaults to true.</param>
-    /// <param name="modelRepository">Optional ZIP archive of a model repository, given as the path of a file the deployment ships. It is unpacked next to the transfer file, so <paramref name="modelDirs"/> reaches its content through <c>%ITF_DIR</c>.</param>
+    /// <param name="modelRepository">Optional ZIP archive of a model repository, given as the path of a file the deployment ships. The wrapper unpacks it into its own subfolder, which <paramref name="modelDirs"/> reaches through <c>%ITF_DIR/repository</c>.</param>
     /// <param name="ilivalidatorClient">Client of the ilitools-wrapper that runs the validation.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
     /// <param name="logger">Logger instance for logging messages during the validation process.</param>
@@ -70,19 +70,31 @@ internal class XtfValidatorProcess
     /// Runs the validation process for the specified transfer file.
     /// </summary>
     /// <param name="transferFile">The transfer file to validate. Cannot be null.</param>
+    /// <param name="modelFiles">
+    /// The delivered model files (<c>.ili</c>) to pass on to the validation, handed on verbatim. The pipeline decides
+    /// what counts as a model, typically by wiring the output of a matcher that selects the <c>.ili</c> files of the
+    /// upload. They only take part in the validation when <c>modelDirs</c> contains the entry <c>%ITF_DIR/models</c>,
+    /// whose position ranks them against the other model sources. Unwired, no models are sent.
+    /// </param>
     /// <param name="cancellationToken">Cancellation token to cancel the operation.</param>
     /// <returns>A <see cref="XtfValidatorResult"/> instance containing the results of the validation process.</returns>
     [PipelineProcessRun]
-    public async Task<XtfValidatorResult> RunAsync(IPipelineFile transferFile, CancellationToken cancellationToken)
+    public async Task<XtfValidatorResult> RunAsync(IPipelineFile transferFile, IPipelineFile[] modelFiles, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(transferFile);
+        ArgumentNullException.ThrowIfNull(modelFiles);
 
         logger.LogInformation($"Validating transfer file <{transferFile.OriginalFileName}>...");
 
         var errorLog = pipelineFileManager.GeneratePipelineFile("errorLog", "log");
         var xtfLog = pipelineFileManager.GeneratePipelineFile("xtfLog", "xtf");
 
-        var result = await ilivalidatorClient.ValidateAsync(validatorArgs, transferFile, errorLog, xtfLog, modelRepository, cancellationToken);
+        if (modelFiles.Length > 0)
+        {
+            logger.LogInformation($"Forwarding {modelFiles.Length} delivered model file(s) to the validation.");
+        }
+
+        var result = await ilivalidatorClient.ValidateAsync(validatorArgs, transferFile, errorLog, xtfLog, modelRepository, modelFiles, cancellationToken);
 
         logger.LogInformation($"Validation of transfer file <{transferFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
 

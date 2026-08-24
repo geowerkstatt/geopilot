@@ -32,6 +32,7 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         IPipelineFile logFile,
         IPipelineFile xtfLogFile,
         IPipelineFile? modelRepositoryArchive = null,
+        IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting ilivalidator validation of {FileName}.", transferFile.OriginalFileName);
@@ -39,7 +40,13 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         using var call = client.Validate(cancellationToken: cancellationToken);
 
         await call.RequestStream.WriteAsync(CreateValidateRequest(args), cancellationToken);
-        await SendFileAsync(call.RequestStream, IlivalidatorFileType.TransferFile, transferFile, cancellationToken);
+        await SendFileAsync(call.RequestStream, TransferFileType(transferFile), transferFile, cancellationToken);
+
+        foreach (var modelFile in modelFiles ?? [])
+        {
+            logger.LogInformation("Sending delivered model file {FileName}.", modelFile.OriginalFileName);
+            await SendFileAsync(call.RequestStream, IlivalidatorFileType.ModelFile, modelFile, cancellationToken);
+        }
 
         if (modelRepositoryArchive != null)
         {
@@ -50,6 +57,17 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         await call.RequestStream.CompleteAsync();
 
         return await ReceiveResponseAsync(call.ResponseStream, logFile, xtfLogFile, cancellationToken);
+    }
+
+    /// <summary>
+    /// The transfer file type sent to the wrapper carries the format: the tool switches to its INTERLIS 1 semantics
+    /// only when the data file ends in .itf, so that extension decides between the two types.
+    /// </summary>
+    internal static IlivalidatorFileType TransferFileType(IPipelineFile transferFile)
+    {
+        return string.Equals(transferFile.FileExtension, "itf", StringComparison.OrdinalIgnoreCase)
+            ? IlivalidatorFileType.TransferFileItf
+            : IlivalidatorFileType.TransferFileXtf;
     }
 
     private static ValidateRequest CreateValidateRequest(IlivalidatorArgs args)

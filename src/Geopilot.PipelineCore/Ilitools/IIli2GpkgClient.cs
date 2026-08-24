@@ -29,6 +29,13 @@ public interface IIli2GpkgClient
     /// <param name="inputFile">Input GeoPackage file.</param>
     /// <param name="outputFile">Output GeoPackage file for a successful import.</param>
     /// <param name="transferFiles">INTERLIS transfer files.</param>
+    /// <param name="modelFiles">
+    /// Optional single INTERLIS model files (<c>.ili</c>) delivered alongside the transfer files. The service stores
+    /// them in their own subfolder of the session under names of its own, so a repository index cannot be smuggled
+    /// in, which makes this the channel for models from an unreviewed source such as an upload. They are visible
+    /// only through the entry <c>%XTF_DIR/models</c> in <see cref="Ili2GpkgArgs.ModelDirs"/>; its position decides
+    /// the precedence against the other sources.
+    /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
     Task<Ili2GpkgResult> ImportAsync(
@@ -36,6 +43,7 @@ public interface IIli2GpkgClient
         IPipelineFile inputFile,
         IPipelineFile outputFile,
         IReadOnlyList<IPipelineFile> transferFiles,
+        IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -44,12 +52,18 @@ public interface IIli2GpkgClient
     /// <param name="args">Additional ili2gpkg arguments.</param>
     /// <param name="gpkgFile">GeoPackage file to export data from.</param>
     /// <param name="transferFile">INTERLIS transfer file for the exported data.</param>
+    /// <param name="modelFiles">
+    /// Optional single INTERLIS model files (<c>.ili</c>) delivered with the request, stored in their own subfolder
+    /// of the session under names of its own and visible only through the entry <c>%XTF_DIR/models</c> in
+    /// <see cref="Ili2GpkgArgs.ModelDirs"/>.
+    /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
     Task<Ili2GpkgResult> ExportAsync(
         Ili2GpkgArgs args,
         IPipelineFile gpkgFile,
         IPipelineFile transferFile,
+        IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -59,6 +73,13 @@ public interface IIli2GpkgClient
     /// <param name="inputFile">Input GeoPackage file.</param>
     /// <param name="outputFile">Output GeoPackage file for a successful update.</param>
     /// <param name="transferFiles">INTERLIS transfer files for the updated data.</param>
+    /// <param name="modelFiles">
+    /// Optional single INTERLIS model files (<c>.ili</c>) delivered alongside the transfer files. The service stores
+    /// them in their own subfolder of the session under names of its own, so a repository index cannot be smuggled
+    /// in, which makes this the channel for models from an unreviewed source such as an upload. They are visible
+    /// only through the entry <c>%XTF_DIR/models</c> in <see cref="Ili2GpkgArgs.ModelDirs"/>; its position decides
+    /// the precedence against the other sources.
+    /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
     Task<Ili2GpkgResult> UpdateAsync(
@@ -66,6 +87,7 @@ public interface IIli2GpkgClient
         IPipelineFile inputFile,
         IPipelineFile outputFile,
         IReadOnlyList<IPipelineFile> transferFiles,
+        IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -74,11 +96,17 @@ public interface IIli2GpkgClient
     /// <param name="args">Additional ili2gpkg arguments.</param>
     /// <param name="gpkgFile">GeoPackage file to validate data from.</param>
     /// <param name="xtfLogFile">File to write the xtf validation log to.</param>
+    /// <param name="modelFiles">
+    /// Optional single INTERLIS model files (<c>.ili</c>) delivered with the request, stored in their own subfolder
+    /// of the session under names of its own and visible only through the entry <c>%XTF_DIR/models</c> in
+    /// <see cref="Ili2GpkgArgs.ModelDirs"/>.
+    /// </param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>An <see cref="Ili2GpkgResult"/> indicating success and the ili2gpkg log content.</returns>
     Task<Ili2GpkgResult> ValidateAsync(
         Ili2GpkgArgs args,
         IPipelineFile gpkgFile,
         IPipelineFile xtfLogFile,
+        IReadOnlyList<IPipelineFile>? modelFiles = null,
         CancellationToken cancellationToken = default);
 }
