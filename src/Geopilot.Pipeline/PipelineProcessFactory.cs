@@ -494,7 +494,7 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
 
             var constructor = constructors[0];
             var processBaseConfig = pipelineOptions.ProcessConfigs.GetValueOrDefault(processConfig.Implementation);
-            var processParameterization = GetMergedParameterization(processBaseConfig, processConfig.DefaultConfig, stepConfig.ProcessConfigOverwrites);
+            var processParameterization = GetMergedParameterization(processConfig, processBaseConfig, stepConfig);
             return (objectType, constructor, processParameterization);
         }
 
@@ -658,7 +658,16 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
             return new NullabilityInfoContext().Create(parameterInfo).WriteState is NullabilityState.Nullable;
         }
 
-        private Parameterization GetMergedParameterization(Parameterization? processBaseConfig, Parameterization? processDefaultConfig, Parameterization? processDefaultConfigOverwrites)
+        /// <summary>
+        /// Merges the three configuration layers into the parameterization of one step: the base
+        /// configuration of the deployment (lowest priority), the <c>default_config</c> of the process,
+        /// and the <c>process_config_overwrites</c> of the step (highest priority). A definition that
+        /// touches a key the base configuration pins is rejected, because that layer is not overridable
+        /// by design. <see cref="ValidationAttributes.NoBaseConfigOverwriteAttribute"/> catches the same
+        /// collision when the definition is loaded and reports every occurrence at once; the checks here
+        /// are the backstop for a caller that builds a step without running that validation.
+        /// </summary>
+        private Parameterization GetMergedParameterization(ProcessConfig processConfig, Parameterization? processBaseConfig, StepConfig stepConfig)
         {
             var mergedParams = new Parameterization();
 
@@ -671,25 +680,27 @@ public class PipelineProcessFactory : IPipelineProcessFactory, IDisposable
                 }
             }
 
+            var processDefaultConfig = processConfig.DefaultConfig;
+
             // Merge processDefaultConfig (medium priority)
             if (processDefaultConfig != null)
             {
                 foreach (var config in processDefaultConfig)
                 {
                     if (processBaseConfig != null && processBaseConfig.ContainsKey(config.Key))
-                        throw new InvalidOperationException($"Conflict in process configuration: The key '{config.Key}' is defined in both process base configuration and process default configuration. Please resolve this conflict by ensuring that base configuration can't be overwritten.");
+                        throw new InvalidOperationException(ProcessConfigCollision.InDefaultConfig(processConfig.Implementation, processConfig.Id, config.Key));
                     else
                         mergedParams[config.Key] = config.Value;
                 }
             }
 
             // Apply processDefaultConfigOverwrites (highest priority)
-            if (processDefaultConfigOverwrites != null)
+            if (stepConfig.ProcessConfigOverwrites != null)
             {
-                foreach (var overwrite in processDefaultConfigOverwrites)
+                foreach (var overwrite in stepConfig.ProcessConfigOverwrites)
                 {
                     if (processBaseConfig != null && processBaseConfig.ContainsKey(overwrite.Key))
-                        throw new InvalidOperationException($"Conflict in process configuration overwrite: The key '{overwrite.Key}' is defined in both process base configuration and process overwrite configuration. Please resolve this conflict by ensuring that base configuration can't be overwritten.");
+                        throw new InvalidOperationException(ProcessConfigCollision.InStepOverwrite(processConfig.Implementation, pipelineId ?? string.Empty, stepConfig.Id, overwrite.Key));
                     if (processDefaultConfig == null || !processDefaultConfig.ContainsKey(overwrite.Key))
                         throw new InvalidOperationException($"Conflict in process configuration overwrite: The key '{overwrite.Key}' is not defined in process default configuration, so it cannot be overwritten. Please ensure that only existing default configuration keys are overwritten.");
                     mergedParams[overwrite.Key] = overwrite.Value;
