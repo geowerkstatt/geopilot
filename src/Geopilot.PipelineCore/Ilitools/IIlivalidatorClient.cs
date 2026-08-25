@@ -23,7 +23,7 @@ public interface IIlivalidatorClient
     /// can define models, carry a validation profile and point at further repositories.
     /// </param>
     /// <param name="modelFiles">
-    /// Optional single INTERLIS model files (<c>.ili</c>) delivered alongside the transfer file. The service stores
+    /// Optional INTERLIS model files (<c>.ili</c>) delivered alongside the transfer file. The service stores
     /// them in their own subfolder of the session under names of its own, so a repository index (<c>ilidata.xml</c>,
     /// <c>ilisite.xml</c>, <c>ilimodels.xml</c>) cannot be smuggled in, which makes this the channel for models from
     /// an unreviewed source such as an upload. They are visible only through the entry <c>%ITF_DIR/models</c> in

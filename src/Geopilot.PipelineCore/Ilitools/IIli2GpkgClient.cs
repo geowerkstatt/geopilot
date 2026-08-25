@@ -53,7 +53,7 @@ public interface IIli2GpkgClient
     /// <param name="gpkgFile">GeoPackage file to export data from.</param>
     /// <param name="transferFile">INTERLIS transfer file for the exported data.</param>
     /// <param name="modelFiles">
-    /// Optional single INTERLIS model files (<c>.ili</c>) delivered with the request, stored in their own subfolder
+    /// Optional INTERLIS model files (<c>.ili</c>) delivered with the request, stored in their own subfolder
     /// of the session under names of its own and visible only through the entry <c>%XTF_DIR/models</c> in
     /// <see cref="Ili2GpkgArgs.ModelDirs"/>.
     /// </param>
@@ -74,7 +74,7 @@ public interface IIli2GpkgClient
     /// <param name="outputFile">Output GeoPackage file for a successful update.</param>
     /// <param name="transferFiles">INTERLIS transfer files for the updated data.</param>
     /// <param name="modelFiles">
-    /// Optional single INTERLIS model files (<c>.ili</c>) delivered alongside the transfer files. The service stores
+    /// Optional INTERLIS model files (<c>.ili</c>) delivered alongside the transfer files. The service stores
     /// them in their own subfolder of the session under names of its own, so a repository index cannot be smuggled
     /// in, which makes this the channel for models from an unreviewed source such as an upload. They are visible
     /// only through the entry <c>%XTF_DIR/models</c> in <see cref="Ili2GpkgArgs.ModelDirs"/>; its position decides
@@ -97,7 +97,7 @@ public interface IIli2GpkgClient
     /// <param name="gpkgFile">GeoPackage file to validate data from.</param>
     /// <param name="xtfLogFile">File to write the xtf validation log to.</param>
     /// <param name="modelFiles">
-    /// Optional single INTERLIS model files (<c>.ili</c>) delivered with the request, stored in their own subfolder
+    /// Optional INTERLIS model files (<c>.ili</c>) delivered with the request, stored in their own subfolder
     /// of the session under names of its own and visible only through the entry <c>%XTF_DIR/models</c> in
     /// <see cref="Ili2GpkgArgs.ModelDirs"/>.
     /// </param>
