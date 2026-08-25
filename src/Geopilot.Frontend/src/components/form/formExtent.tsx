@@ -2,7 +2,7 @@ import { ChangeEvent, FC } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Stack, SxProps, TextField } from "@mui/material";
-import { Coordinate } from "../../api/apiInterfaces.ts";
+import { Coordinate } from "../../api/generated";
 import { FormContainer, FormValueType, getFormFieldError } from "./form";
 
 export interface FormExtentProps {

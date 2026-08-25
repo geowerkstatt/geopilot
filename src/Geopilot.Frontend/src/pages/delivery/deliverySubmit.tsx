@@ -2,7 +2,7 @@ import { FC, useContext, useEffect, useState } from "react";
 import { FieldValues, FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Alert, Stack, Typography } from "@mui/material";
-import { DeliverySummary, FieldEvaluationType } from "../../api/apiInterfaces.ts";
+import { DeliverySummary, FieldEvaluationType } from "../../api/generated";
 import { Button } from "../../components/buttons.tsx";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
 import { BulletList } from "../../components/styledComponents.ts";

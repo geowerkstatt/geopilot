@@ -2,13 +2,11 @@ import { FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useStat
 import {
   ApiError,
   LocalizedText,
-  MandateSummary,
   ProcessingJobResponse,
   RawProcessingJobResponse,
-  StartJobRequest,
   StepState,
-  UploadSettings,
 } from "../../api/apiInterfaces.ts";
+import { MandateSummary, StartJobRequest, UploadSettingsResponse } from "../../api/generated";
 import { useGeopilotAuth } from "../../auth";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
@@ -79,7 +77,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [uploadId, setUploadId] = useState<string>();
   const [jobId, setJobId] = useState<string>();
   const [processingResponse, setProcessingResponse] = useState<ProcessingJobResponse>();
-  const [uploadSettings, setUploadSettings] = useState<UploadSettings>();
+  const [uploadSettings, setUploadSettings] = useState<UploadSettingsResponse>();
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
   const { uploadFiles } = useUpload();
@@ -120,7 +118,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [user, selectedMandate]);
 
   useEffect(() => {
-    fetchApi<UploadSettings>("/api/v2/upload").then(setUploadSettings);
+    fetchApi<UploadSettingsResponse>("/api/v2/upload").then(setUploadSettings);
   }, [fetchApi]);
 
   const isActiveStep = (step: DeliveryStepEnum) => {

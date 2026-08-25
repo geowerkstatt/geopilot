@@ -1,7 +1,7 @@
 import { FC, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { PipelineSummary } from "../../../api/apiInterfaces";
+import { PipelineSummary } from "../../../api/generated";
 import { FormSelect } from "../../../components/form/form";
 import { FormSelectValue } from "../../../components/form/formSelect";
 import { LocalizedResolver, useLocalized } from "../../../hooks/useLocalized";

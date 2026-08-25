@@ -5,11 +5,12 @@ import { useParams } from "react-router-dom";
 import { FormHelperText, Stack, Typography } from "@mui/material";
 import {
   AvailablePipelinesResponse,
+  Coordinate,
   FieldEvaluationType,
   Mandate,
   Organisation,
   PipelineSummary,
-} from "../../../api/apiInterfaces.ts";
+} from "../../../api/generated";
 import { Language } from "../../../appInterfaces.ts";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import {
@@ -67,12 +68,15 @@ const MandateDetail = () => {
         description: {},
         isPublic: false,
         allowDelivery: false,
+        evaluatePrecursorDelivery: undefined as unknown as FieldEvaluationType,
+        evaluatePartial: undefined as unknown as FieldEvaluationType,
+        evaluateComment: undefined as unknown as FieldEvaluationType,
         organisations: [],
         fileTypes: [],
         coordinates: [
           { x: undefined, y: undefined },
           { x: undefined, y: undefined },
-        ],
+        ] as Partial<Coordinate>[] as Coordinate[],
         deliveries: [],
       });
     }

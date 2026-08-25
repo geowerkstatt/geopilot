@@ -3,7 +3,7 @@ import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
-import { Organisation, User, UserState } from "../../../api/apiInterfaces.ts";
+import { Organisation, User, UserState } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
 import { FormAutocomplete, FormCheckbox, FormContainer, FormInput } from "../../../components/form/form.ts";
@@ -59,7 +59,7 @@ const UserDetail = () => {
       editedUser.state = editableUser?.state ?? UserState.Inactive;
     }
 
-    delete editedUser.deliveries;
+    delete (editedUser as Partial<User>).deliveries;
     return editedUser;
   };
 

@@ -1,6 +1,7 @@
 import { FC, PropsWithChildren, useCallback, useEffect, useState } from "react";
 import { AuthContextProps, useAuth } from "react-oidc-context";
-import { ApiError, User } from "../api/apiInterfaces";
+import { ApiError } from "../api/apiInterfaces";
+import { User } from "../api/generated";
 import useFetch from "../hooks/useFetch.ts";
 import { UserContext } from "./userContext";
 

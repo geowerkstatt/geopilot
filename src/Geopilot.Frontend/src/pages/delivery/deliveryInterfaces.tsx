@@ -1,11 +1,6 @@
 import { ReactNode } from "react";
-import {
-  LocalizedText,
-  MandateSummary,
-  ProcessingJobResponse,
-  StepState,
-  UploadSettings,
-} from "../../api/apiInterfaces.ts";
+import { LocalizedText, ProcessingJobResponse, StepState } from "../../api/apiInterfaces.ts";
+import { MandateSummary, UploadSettingsResponse } from "../../api/generated";
 
 export enum DeliveryStepEnum {
   Files = "files",
@@ -56,7 +51,7 @@ export interface DeliveryContextInterface {
   selectedMandate?: MandateSummary;
   uploadId?: string;
   jobId?: string;
-  uploadSettings?: UploadSettings;
+  uploadSettings?: UploadSettingsResponse;
   processingResponse?: ProcessingJobResponse;
   isLoading: boolean;
   isProcessing: boolean;

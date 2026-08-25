@@ -20,83 +20,6 @@ export class ApiError extends Error {
   }
 }
 
-export enum FieldEvaluationType {
-  NotEvaluated = "notEvaluated",
-  Optional = "optional",
-  Required = "required",
-}
-
-export interface Coordinate {
-  x: number | undefined;
-  y: number | undefined;
-}
-
-export interface MandateSummary {
-  id: number;
-  name: LocalizedText;
-  description: LocalizedText;
-  allowDelivery: boolean;
-  evaluatePrecursorDelivery: FieldEvaluationType;
-  evaluatePartial: FieldEvaluationType;
-  evaluateComment: FieldEvaluationType;
-}
-
-export interface Mandate {
-  id: number;
-  name: LocalizedText;
-  description: LocalizedText;
-  isPublic: boolean;
-  allowDelivery: boolean;
-  fileTypes: string[];
-  coordinates: Coordinate[];
-  organisations: Organisation[];
-  deliveries: Delivery[];
-  evaluatePrecursorDelivery?: FieldEvaluationType;
-  evaluatePartial?: FieldEvaluationType;
-  evaluateComment?: FieldEvaluationType;
-  pipelineId?: string;
-}
-
-export interface Organisation {
-  id: number;
-  name: string;
-  mandates: Mandate[];
-  users: User[];
-}
-
-export interface DeliverySummary {
-  id: number;
-  date: string;
-}
-
-export interface Delivery {
-  id: number;
-  date: string;
-  declaringUser: User;
-  mandate: Mandate;
-  comment: string;
-  canDelete?: boolean;
-}
-
-export enum UserState {
-  Inactive = "inactive",
-  Active = "active",
-}
-
-export interface User {
-  id: number;
-  fullName: string;
-  isAdmin: boolean;
-  state: UserState;
-  email: string;
-  organisations: Organisation[];
-  deliveries?: Delivery[];
-}
-
-export interface ProcessingSettings {
-  allowedFileExtensions: string[];
-}
-
 export enum StepState {
   Enabled = "enabled",
   Pending = "pending",
@@ -240,30 +163,4 @@ export interface RawProcessingJobResponse {
  */
 export interface ProcessingJobResponse extends Omit<RawProcessingJobResponse, "state"> {
   state: StepState;
-}
-
-export interface StartJobRequest {
-  uploadId: string;
-  mandateId: number;
-}
-
-export interface PipelineSummary {
-  id: string;
-  displayName: LocalizedText;
-}
-
-export interface AvailablePipelinesResponse {
-  pipelines: PipelineSummary[];
-}
-
-export interface UploadSettings {
-  maxFileSizeMB: number;
-  maxFilesPerJob: number;
-  maxJobSizeMB: number;
-}
-
-export interface InitiateUploadResponse {
-  uploadId: string;
-  files: { fileName: string; uploadUrl: string }[];
-  expiresAt: string;
 }
