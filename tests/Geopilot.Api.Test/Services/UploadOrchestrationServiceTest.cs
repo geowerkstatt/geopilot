@@ -214,8 +214,6 @@ public class UploadOrchestrationServiceTest
 
         // The strict storage mock has no setup at all, so any transfer or deletion would have thrown.
         Assert.IsNotNull(uploadStore.GetUpload(upload.Id), "the upload must stay available until the job is done with it");
-
-        uploadStorageMock.Verify(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]
@@ -247,12 +245,11 @@ public class UploadOrchestrationServiceTest
     {
         var upload = CreateUpload(("a:b.xtf", 1024), ("a*b.xtf", 2048));
         var job = jobStore.CreateJob(upload.Id);
-
-        var registered = service.RegisterJobFiles(upload.Id, job.Id);
-
         uploadStorageMock
             .Setup(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        var registered = service.RegisterJobFiles(upload.Id, job.Id);
 
         // Sanitizing drops the invalid characters, so both names collapse to the same one.
         Assert.HasCount(2, registered);
@@ -268,12 +265,11 @@ public class UploadOrchestrationServiceTest
     {
         var upload = CreateUpload(("Data.xtf", 1024), ("data.xtf", 2048));
         var job = jobStore.CreateJob(upload.Id);
-
-        var registered = service.RegisterJobFiles(upload.Id, job.Id);
-
         uploadStorageMock
             .Setup(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        var registered = service.RegisterJobFiles(upload.Id, job.Id);
 
         // The name is used as a file name twice, when materializing and in the asset store. On Windows and
         // macOS both spellings address the same file, so without disambiguation the second upload would
