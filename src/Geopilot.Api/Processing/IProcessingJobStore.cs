@@ -64,8 +64,10 @@ public interface IProcessingJobStore
 
     /// <summary>
     /// Transitions the job to its terminal state and reports whether it happened, instead of throwing when
-    /// the transition is not allowed. See <see cref="TryMarkAsFailed"/> for when to prefer this over
-    /// <see cref="PipelineFinished"/>.
+    /// the transition is not allowed. Prefer it over <see cref="PipelineFinished"/> in an error path, for the
+    /// reason given on <see cref="TryMarkAsFailed"/>. The caller has to pass a state it already knows to be
+    /// terminal: that argument check still throws, and out of an error path the exception escapes to the
+    /// hosting background service just like the one it replaces.
     /// </summary>
     /// <param name="jobId">The job whose pipeline has finished.</param>
     /// <param name="pipelineState">The terminal state the pipeline ended in.</param>
