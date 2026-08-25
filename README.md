@@ -22,10 +22,14 @@ Für die Formatierung wird ESLint verwendet. Dazu im Visual Studio unter `Option
 
 - Damit die Applikation mit HTTPS funktioniert, muss ein lokales dev-cert erstellt werden. Dieses wird durch das npm Script `predev` vor dem Start automatisch erstellt. Sollte dies nicht funktionieren, kann mit folgendem Befehl ein Zertifikat manuell erstellt und vertraut werden: `dotnet dev-certs https --trust`. HTTPS muss verwendet werden, damit die STAC-Urls korrekt funktionieren und so der STAC-Browser wie in einer produktiven Umgebung verwendet werden kann.
 
-- Für Abhängigkeiten aus der GitHub NuGet Registry wird ein GitHub Account und ein [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) mit `packages:read`-Berechtigung benötigt. Dies kann mit folgendem Befehl konfiguriert werden:
+- Für Abhängigkeiten aus der GitHub NuGet Registry wird ein GitHub Account und ein [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) mit `packages:read`-Berechtigung benötigt. Diese Zugangsdaten werden an zwei voneinander unabhängigen Stellen gebraucht:
+
+  Für den Restore auf dem Host:
   ```bash
   dotnet nuget update source github-geowerkstatt --username "<GitHub Benutzername>" --password "<GitHub PAT mit packages:read Berechtigung>" --store-password-in-clear-text
   ```
+
+  Für den Build des Containers `seed`, den Visual Studio beim Start mitbaut, zusätzlich als `GITHUB_ACTOR` und `GITHUB_TOKEN` in einer `.env`-Datei im Projektstamm, wie in der [Beispiel-Datei](.env.example) gezeigt. Fehlt sie, scheitert der Restore im Container an den fehlenden Zugangsdaten und der Build bricht ab. Visual Studio meldet davon nur `DT1001`; die eigentliche Fehlermeldung zeigt `docker compose build seed`.
 
 - Das Projekt kann mit dem Launch Profile "Development" gestartet werden.
   
