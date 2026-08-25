@@ -99,12 +99,7 @@ public class AssetHandlerTest
     }
 
     private static ProcessingJob CreateJob(Guid? jobId = null)
-        => new ProcessingJob(
-            jobId ?? Guid.NewGuid(),
-            Guid.NewGuid(),
-            new List<ProcessingJobFile> { new ProcessingJobFile("OriginalName", "TempFileName", "uploads/key/OriginalName") },
-            null,
-            DateTime.Now);
+        => new ProcessingJob(jobId ?? Guid.NewGuid(), Guid.NewGuid(), null, DateTime.Now);
 
     private void SetJobPipeline(params PersistedFile[] deliveryFiles)
     {

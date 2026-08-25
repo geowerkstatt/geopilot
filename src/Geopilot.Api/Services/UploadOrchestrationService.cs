@@ -136,7 +136,6 @@ public class UploadOrchestrationService : IUploadOrchestrationService
     public IReadOnlyList<IPipelineFile> RegisterJobFiles(Guid uploadId, Guid jobId)
     {
         var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
-
         if (jobStore.GetJob(jobId) is null)
             throw new ArgumentException($"Job with id <{jobId}> not found.", nameof(jobId));
 
@@ -153,7 +152,6 @@ public class UploadOrchestrationService : IUploadOrchestrationService
         foreach (var file in upload.Files)
         {
             var localName = UploadFileNaming.MakeUnique(file.FileName, usedNames);
-            jobStore.AddFileToJob(jobId, file.FileName, localName, file.StorageKey);
             pipelineFiles.Add(new UploadPipelineFile(uploadStorage, file.StorageKey, file.FileName, materializationDirectory, localName));
         }
 

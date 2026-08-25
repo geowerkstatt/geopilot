@@ -319,7 +319,7 @@ namespace Geopilot.Api.Controllers
             pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
             pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
 
-            var processingJob = new ProcessingJob(guid, Guid.NewGuid(), new List<ProcessingJobFile>() { new ProcessingJobFile("ORIGINAL.zip", "TEMP.zip", "uploads/upload/" + "ORIGINAL.zip") }, mandateToUpdate.Id, DateTime.Now)
+            var processingJob = new ProcessingJob(guid, Guid.NewGuid(), mandateToUpdate.Id, DateTime.Now)
             {
                 Pipeline = pipelineMock.Object,
             };

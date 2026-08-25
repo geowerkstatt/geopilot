@@ -36,26 +36,11 @@ public class ProcessingJobStore : IProcessingJobStore
         var newJob = new ProcessingJob(
             Id: Guid.NewGuid(),
             UploadId: uploadId,
-            Files: new List<ProcessingJobFile>(),
             MandateId: null,
             CreatedAt: DateTime.UtcNow);
 
         jobs[newJob.Id] = newJob;
         return newJob;
-    }
-
-    /// <inheritdoc/>
-    public ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName, string storageKey)
-    {
-        return jobs.AddOrUpdate(
-            jobId,
-            id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
-            (id, currentJob) =>
-            {
-                EnsureJobIsPending(id, currentJob, "add file");
-                currentJob.Files.Add(new ProcessingJobFile(originalFileName, tempFileName, storageKey));
-                return currentJob;
-            });
     }
 
     /// <inheritdoc/>
@@ -160,11 +145,5 @@ public class ProcessingJobStore : IProcessingJobStore
             throw new InvalidOperationException($"Cannot {operation} for job <{jobId}> because a pipeline has already been associated.");
         if (job.State == ProcessingState.Failed)
             throw new InvalidOperationException($"Cannot {operation} for job <{jobId}> because the job has been marked as failed.");
-    }
-
-    private static void EnsureJobIsPending(Guid jobId, ProcessingJob job, string operation)
-    {
-        if (job.State != ProcessingState.Pending)
-            throw new InvalidOperationException($"Cannot {operation} for job <{jobId}> because it is in state <{job.State}>.");
     }
 }

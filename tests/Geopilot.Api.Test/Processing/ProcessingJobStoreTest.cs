@@ -21,7 +21,6 @@ public class ProcessingJobStoreTest
         var job = store.CreateJob(Guid.NewGuid());
 
         Assert.IsNotNull(job);
-        Assert.HasCount(0, job.Files);
         Assert.AreNotEqual(Guid.Empty, job.Id);
         Assert.IsNull(job.Pipeline);
         Assert.AreEqual(ProcessingState.Pending, job.State);
@@ -53,48 +52,6 @@ public class ProcessingJobStoreTest
     public void GetJobReturnsNullIfNotFound()
     {
         Assert.IsNull(store.GetJob(Guid.NewGuid()));
-    }
-
-    [TestMethod]
-    public void AddFileToJob()
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-        store.AddFileToJob(job.Id, "original.txt", "temp.txt", "uploads/upload/" + "original.txt");
-        var updated = store.GetJob(job.Id);
-
-        Assert.IsNotNull(updated);
-        Assert.HasCount(1, updated.Files);
-        Assert.AreEqual("original.txt", updated.Files[0].OriginalFileName);
-        Assert.AreEqual("temp.txt", updated.Files[0].TempFileName);
-    }
-
-    [TestMethod]
-    public void AddFileToJobThrowsIfJobNotFound()
-    {
-        Assert.ThrowsExactly<ArgumentException>(() => store.AddFileToJob(Guid.NewGuid(), "a", "b", "uploads/upload/a"));
-    }
-
-    [TestMethod]
-    public void AddFileToJobSucceedsWhileStillPendingAfterPipelineAttached()
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-        store.AddFileToJob(job.Id, "a", "b", "uploads/upload/" + "a");
-        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-
-        var updated = store.AddFileToJob(job.Id, "a2", "b2", "uploads/upload/" + "a2");
-
-        Assert.HasCount(2, updated.Files);
-    }
-
-    [TestMethod]
-    public void AddFileToJobThrowsAfterEnqueued()
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-        store.AddFileToJob(job.Id, "a", "b", "uploads/upload/" + "a");
-        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
-
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.AddFileToJob(job.Id, "a2", "b2", "uploads/upload/" + "a2"));
     }
 
     [TestMethod]

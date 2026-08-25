@@ -439,7 +439,7 @@ public class DeliveryControllerTest
         pipelineMock.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
         pipelineMock.SetupGet(p => p.DisplayName).Returns(LocalizedText.Empty);
 
-        var job = new ProcessingJob(guid, Guid.NewGuid(), new List<ProcessingJobFile> { new ProcessingJobFile("ORIGINAL.zip", "TEMP.zip", "uploads/upload/" + "ORIGINAL.zip") }, mandateId, DateTime.Now)
+        var job = new ProcessingJob(guid, Guid.NewGuid(), mandateId, DateTime.Now)
         {
             Pipeline = pipelineMock.Object,
         };

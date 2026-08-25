@@ -72,7 +72,7 @@ public class ProcessingServiceTest
         var user = new User { Id = 2, FullName = nameof(StartJobSuccessAttachesPipelineAndQueuesPreflight), AuthIdentifier = "auth-123" };
 
         var upload = new UploadInfo(uploadId, ImmutableList.Create(new UploadedFileInfo("test.xtf", "uploads/test.xtf", 1024)), DateTime.Now);
-        var job = new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>(), null, DateTime.Now);
+        var job = new ProcessingJob(jobId, Guid.NewGuid(), null, DateTime.Now);
         var pipeline = new Mock<IPipeline>().Object;
 
         uploadStoreMock.Setup(x => x.GetUpload(uploadId)).Returns(upload);
