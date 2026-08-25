@@ -199,10 +199,6 @@ public class UploadPollingTest
     {
         orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).Returns(Task.CompletedTask);
         orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId))
-            .Returns(() =>
-            {
-                jobStore.AddFileToJob(jobId, "test.xtf", "test.xtf", $"uploads/{uploadId}/test.xtf");
-                return new List<IPipelineFile> { new Mock<IPipelineFile>().Object };
-            });
+            .Returns(() => new List<IPipelineFile> { new Mock<IPipelineFile>().Object });
     }
 }

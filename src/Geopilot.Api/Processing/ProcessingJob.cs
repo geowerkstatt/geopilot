@@ -10,7 +10,6 @@ namespace Geopilot.Api.Processing;
 public record class ProcessingJob(
     Guid Id,
     Guid UploadId,
-    List<ProcessingJobFile> Files,
     int? MandateId,
     DateTime CreatedAt)
 {

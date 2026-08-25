@@ -201,7 +201,7 @@ public class UploadOrchestrationServiceTest
     }
 
     [TestMethod]
-    public void RegisterJobFilesRecordsStorageKeysWithoutTransferringAnything()
+    public void RegisterJobFilesRecordsFilesWithoutTransferringAnything()
     {
         var upload = CreateUpload("test.xtf", 1024);
         var job = jobStore.CreateJob(upload.Id);
@@ -210,15 +210,12 @@ public class UploadOrchestrationServiceTest
 
         Assert.HasCount(1, files);
         Assert.AreEqual("test.xtf", files[0].OriginalFileName);
-
-        var registered = jobStore.GetJob(job.Id)?.Files ?? throw new InvalidOperationException("job disappeared");
-        Assert.HasCount(1, registered);
-        Assert.AreEqual("test.xtf", registered[0].OriginalFileName);
-        Assert.AreEqual("test.xtf", registered[0].TempFileName);
-        Assert.AreEqual($"uploads/{upload.Id}/test.xtf", registered[0].StorageKey);
+        Assert.IsInstanceOfType<UploadPipelineFile>(files[0]);
 
         // The strict storage mock has no setup at all, so any transfer or deletion would have thrown.
         Assert.IsNotNull(uploadStore.GetUpload(upload.Id), "the upload must stay available until the job is done with it");
+
+        uploadStorageMock.Verify(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]
@@ -246,35 +243,47 @@ public class UploadOrchestrationServiceTest
     }
 
     [TestMethod]
-    public void RegisterJobFilesDisambiguatesFilesThatSanitizeToTheSameName()
+    public async Task RegisterJobFilesDisambiguatesFilesThatSanitizeToTheSameName()
     {
         var upload = CreateUpload(("a:b.xtf", 1024), ("a*b.xtf", 2048));
         var job = jobStore.CreateJob(upload.Id);
 
-        service.RegisterJobFiles(upload.Id, job.Id);
+        var registered = service.RegisterJobFiles(upload.Id, job.Id);
+
+        uploadStorageMock
+            .Setup(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Sanitizing drops the invalid characters, so both names collapse to the same one.
-        var registered = jobStore.GetJob(job.Id)?.Files ?? throw new InvalidOperationException("job disappeared");
         Assert.HasCount(2, registered);
-        Assert.AreEqual("ab.xtf", registered[0].TempFileName);
-        Assert.AreEqual("ab_2.xtf", registered[1].TempFileName);
+        Assert.AreEqual("ab.xtf", Path.GetFileName(await registered[0].GetLocalPathAsync(default)));
+        Assert.AreEqual("ab_2.xtf", Path.GetFileName(await registered[1].GetLocalPathAsync(default)));
+
+        uploadStorageMock
+            .Verify(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [TestMethod]
-    public void RegisterJobFilesDisambiguatesNamesThatDifferOnlyInCase()
+    public async Task RegisterJobFilesDisambiguatesNamesThatDifferOnlyInCase()
     {
         var upload = CreateUpload(("Data.xtf", 1024), ("data.xtf", 2048));
         var job = jobStore.CreateJob(upload.Id);
 
-        service.RegisterJobFiles(upload.Id, job.Id);
+        var registered = service.RegisterJobFiles(upload.Id, job.Id);
+
+        uploadStorageMock
+            .Setup(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // The name is used as a file name twice, when materializing and in the asset store. On Windows and
         // macOS both spellings address the same file, so without disambiguation the second upload would
         // overwrite the first in the pipeline run and in the delivery.
-        var registered = jobStore.GetJob(job.Id)?.Files ?? throw new InvalidOperationException("job disappeared");
         Assert.HasCount(2, registered);
-        Assert.AreEqual("Data.xtf", registered[0].TempFileName);
-        Assert.AreEqual("data_2.xtf", registered[1].TempFileName);
+        Assert.AreEqual("Data.xtf", Path.GetFileName(await registered[0].GetLocalPathAsync(default)));
+        Assert.AreEqual("data_2.xtf", Path.GetFileName(await registered[1].GetLocalPathAsync(default)));
+
+        uploadStorageMock
+            .Verify(s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<Stream>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [TestMethod]

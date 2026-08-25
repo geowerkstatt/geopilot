@@ -183,7 +183,7 @@ public class PreflightBackgroundServiceTest
     }
 
     private static ProcessingJob CreatePendingJob(Guid jobId, Guid uploadId, IPipeline pipeline)
-        => new ProcessingJob(jobId, uploadId, new List<ProcessingJobFile>(), 1, DateTime.Now) { Pipeline = pipeline };
+        => new ProcessingJob(jobId, uploadId, 1, DateTime.Now) { Pipeline = pipeline };
 
     private static IPipelineFile PipelineFileNamed(string originalFileName)
     {

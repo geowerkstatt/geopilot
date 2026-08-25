@@ -131,7 +131,6 @@ public class ProcessingJobCleanupServiceTest
         var oldJob = new ProcessingJob(
             jobId,
             Guid.NewGuid(),
-            new List<ProcessingJobFile>(),
             null,
             DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
         {
@@ -161,7 +160,6 @@ public class ProcessingJobCleanupServiceTest
         var oldJob = new ProcessingJob(
             jobId,
             Guid.NewGuid(),
-            new List<ProcessingJobFile>(),
             null,
             DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
         {
@@ -188,7 +186,6 @@ public class ProcessingJobCleanupServiceTest
         var partlyExpiredJob = new ProcessingJob(
             jobId,
             Guid.NewGuid(),
-            new List<ProcessingJobFile>(),
             null,
             DateTime.UtcNow.AddHours(-(DownloadRetentionHours + 1)));
 
@@ -211,7 +208,6 @@ public class ProcessingJobCleanupServiceTest
         var partlyExpiredJob = new ProcessingJob(
             jobId,
             Guid.NewGuid(),
-            new List<ProcessingJobFile>(),
             null,
             DateTime.UtcNow.AddHours(-(VisualizationRetentionHours + 0.25)));
 
@@ -235,7 +231,6 @@ public class ProcessingJobCleanupServiceTest
         var oldJob = new ProcessingJob(
             jobId,
             uploadId,
-            new List<ProcessingJobFile>(),
             null,
             DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
         {
@@ -260,7 +255,6 @@ public class ProcessingJobCleanupServiceTest
         var oldJob = new ProcessingJob(
             jobId,
             uploadId,
-            new List<ProcessingJobFile>(),
             null,
             DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
         {
@@ -291,7 +285,6 @@ public class ProcessingJobCleanupServiceTest
         var stuckJob = new ProcessingJob(
             jobId,
             uploadId,
-            new List<ProcessingJobFile>(),
             null,
             DateTime.UtcNow.AddHours(-JobRetentionHours - 1))
         {
@@ -322,7 +315,6 @@ public class ProcessingJobCleanupServiceTest
         var freshJob = new ProcessingJob(
             jobId,
             Guid.NewGuid(),
-            new List<ProcessingJobFile>(),
             null,
             DateTime.UtcNow);
 

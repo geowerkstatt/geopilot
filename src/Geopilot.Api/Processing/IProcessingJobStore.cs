@@ -37,13 +37,6 @@ public interface IProcessingJobStore
     ProcessingJob CreateJob(Guid uploadId);
 
     /// <summary>
-    /// Adds the specified uploaded file to the job. Allowed only while the job is still pending (before it is queued).
-    /// </summary>
-    /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
-    /// <exception cref="InvalidOperationException">If the job is no longer pending.</exception>
-    ProcessingJob AddFileToJob(Guid jobId, string originalFileName, string tempFileName, string storageKey);
-
-    /// <summary>
     /// Marks the specified job as failed (e.g. preflight failure before a pipeline could be created).
     /// </summary>
     /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
