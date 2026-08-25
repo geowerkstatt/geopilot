@@ -15,5 +15,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "exclude": ["./cypress", "cypress.config.js", "vite.config.ts"]
+  "exclude": ["./cypress", "cypress.config.js", "openapi-ts.config.ts", "vite.config.ts"]
 }
