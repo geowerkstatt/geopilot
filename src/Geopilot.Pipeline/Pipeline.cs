@@ -18,8 +18,8 @@ internal sealed class Pipeline : IPipeline
         if (disposed)
             return;
 
-        // Set before the cleanup, not after: a partially failed cleanup must not make Dispose
-        // re-entrant, or a later RemoveJob disposes every step a second time.
+        // Marked as disposed ahead of the cleanup below, so that a cleanup which partially fails
+        // still leaves Dispose idempotent for the second call RemoveJob may make.
         disposed = true;
 
         foreach (var step in Steps)

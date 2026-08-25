@@ -76,8 +76,8 @@ public class ProcessingJobStoreTest
 
         Parallel.For(0, fileCount, i => store.AddFileToJob(job.Id, $"file_{i}.xtf", $"temp_{i}.xtf", $"uploads/key/file_{i}.xtf"));
 
-        // AddOrUpdate re-runs its update factory whenever the compare-and-swap loses a race, so a factory
-        // with a side effect drops or duplicates files exactly here.
+        // Concurrent calls make AddOrUpdate re-run its update factory, so this pins that the factory
+        // contributes each file exactly once no matter how often it runs.
         var files = store.GetJob(job.Id)!.Files;
         Assert.HasCount(fileCount, files);
         Assert.HasCount(fileCount, files.Select(f => f.OriginalFileName).Distinct().ToList(), "No file may be added twice.");

@@ -15,10 +15,9 @@ public record class ProcessingJob(
     DateTime CreatedAt)
 {
     /// <summary>
-    /// The uploaded files staged for this job, in the order they were added. Files are only added while the
-    /// job is still pending, but the collection is read while the run is under way, so it is immutable:
-    /// adding a file replaces it instead of mutating it, and a reader iterates a snapshot that cannot change
-    /// underneath it.
+    /// The uploaded files staged for this job, in the order they were added. Files are added only while the
+    /// job is still pending, while the collection is read throughout the run, so it is immutable: adding a
+    /// file yields a new collection, and a reader iterates a snapshot that cannot change underneath it.
     /// </summary>
     public ImmutableList<ProcessingJobFile> Files { get; init; } = ImmutableList<ProcessingJobFile>.Empty;
 
