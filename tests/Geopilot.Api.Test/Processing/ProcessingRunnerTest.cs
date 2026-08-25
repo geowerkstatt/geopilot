@@ -677,7 +677,8 @@ public class ProcessingRunnerTest
     public async Task PipelineDisposeFailureDoesNotAbortTheRunner()
     {
         var jobId = NewJob();
-        var pipeline = BuildPipelineWithThrowingDispose(jobId);
+        var pipeline = BuildStubPipeline(jobId);
+        pipeline.Setup(p => p.Dispose()).Throws(new IOException("The directory is not empty."));
 
         var (runner, store) = CreateRunnerWithStore(pipeline.Object);
         store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, Guid.NewGuid(), ProcessingState.Failed));
@@ -697,7 +698,8 @@ public class ProcessingRunnerTest
     {
         var jobId = NewJob();
         var uploadId = Guid.NewGuid();
-        var pipeline = BuildPipelineWithThrowingDispose(jobId);
+        var pipeline = BuildStubPipeline(jobId);
+        pipeline.Setup(p => p.Dispose()).Throws(new IOException("The directory is not empty."));
 
         var (runner, store) = CreateRunnerWithStore(pipeline.Object);
         store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Failed));
@@ -710,6 +712,30 @@ public class ProcessingRunnerTest
             c => c.ReleaseUploadAsync(uploadId),
             Times.Once,
             "The uploaded blobs of a non-deliverable run must be released even when disposing the pipeline failed.");
+    }
+
+    [TestMethod]
+    public async Task ReleasingTheUploadFailingDoesNotAbortTheRunner()
+    {
+        var jobId = NewJob();
+        var uploadId = Guid.NewGuid();
+        var pipeline = BuildStubPipeline(jobId);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline.Object);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Failed));
+
+        // Releasing the upload reaches the upload store over the network, so it fails for reasons that have
+        // nothing to do with the job: an expired token, a timeout, a storage that is briefly unreachable.
+        orchestrationServiceMock
+            .Setup(c => c.ReleaseUploadAsync(uploadId))
+            .ThrowsAsync(new InvalidOperationException("Storage unavailable."));
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.IsTrue(runner.ExecuteTask.IsCompletedSuccessfully, "A failing upload release must not fault the runner loop.");
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
     }
 
     [TestMethod]
@@ -765,13 +791,13 @@ public class ProcessingRunnerTest
     }
 
     /// <summary>
-    /// A pipeline whose run completes in a non-deliverable state and whose disposal then fails, the way
-    /// a working directory that cannot be deleted or a step holding a misbehaving process instance fails.
+    /// A stand-in pipeline whose run completes without steps in a state that is not deliverable, so the
+    /// runner reaches its cleanup with the upload still to release.
     /// </summary>
-    private static Mock<IPipeline> BuildPipelineWithThrowingDispose(Guid jobId)
+    private static Mock<IPipeline> BuildStubPipeline(Guid jobId)
     {
         var pipeline = new Mock<IPipeline>();
-        pipeline.SetupGet(p => p.Id).Returns("throwing_dispose_pipeline");
+        pipeline.SetupGet(p => p.Id).Returns("stub_pipeline");
         pipeline.SetupGet(p => p.JobId).Returns(jobId);
         pipeline.SetupGet(p => p.Steps).Returns(new List<IPipelineStep>());
         pipeline.SetupGet(p => p.State).Returns(ProcessingState.Failed);
@@ -782,7 +808,6 @@ public class ProcessingRunnerTest
                 Upload = Array.Empty<IPipelineFile>(),
                 StepResults = new Dictionary<string, StepResult>(),
             });
-        pipeline.Setup(p => p.Dispose()).Throws(new IOException("The directory is not empty."));
 
         return pipeline;
     }
