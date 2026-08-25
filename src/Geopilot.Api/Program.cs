@@ -101,16 +101,14 @@ builder.Services
 
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
+    options.SwaggerDoc("all", new OpenApiInfo
     {
-        Version = "1.0",
-        Title = $"geopilot API Documentation",
+        Version = "all",
+        Title = "geopilot API Documentation",
     });
-    options.SwaggerDoc("v2", new OpenApiInfo
-    {
-        Version = "2.0",
-        Title = $"geopilot API Documentation",
-    });
+
+    // Include all endpoints in the Swagger document, regardless of their API version.
+    options.DocInclusionPredicate((_, _) => true);
 
     // Include existing documentation in Swagger UI.
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
@@ -285,7 +283,7 @@ app.ValidatePipelineConfiguration();
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "geopilot API v1.0");
+    options.SwaggerEndpoint("/swagger/all/swagger.json", "geopilot API (all versions)");
 
     options.OAuthClientId(builder.Configuration["Auth:ClientAudience"]);
     options.OAuth2RedirectUrl($"{builder.Configuration["Auth:ApiOrigin"]}/swagger/oauth2-redirect.html");

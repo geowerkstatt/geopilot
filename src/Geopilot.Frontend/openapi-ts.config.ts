@@ -6,7 +6,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 export default defineConfig({
   input: {
-    path: "https://localhost:5173/swagger/v1/swagger.json",
+    path: "https://localhost:5173/swagger/all/swagger.json",
   },
   parser: {
     filters: {
