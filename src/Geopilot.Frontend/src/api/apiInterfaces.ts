@@ -1,3 +1,5 @@
+import { ProcessingJobResponse, StepState } from "./generated";
+
 export enum ContentType {
   Json = "application/json",
   Markdown = "ext/markdown",
@@ -20,22 +22,12 @@ export class ApiError extends Error {
   }
 }
 
-export enum StepState {
-  Enabled = "enabled",
-  Pending = "pending",
-  Skipped = "skipped",
-  Running = "running",
-  Success = "success",
-  Error = "error",
-  Cancelled = "cancelled",
-  Warning = "warning",
-  DeliveryRestriction = "deliveryRestriction",
-}
+export const DeliveryStepState = {
+  ...StepState,
+  Enabled: "enabled",
+} as const;
 
-interface StepDownload {
-  originalFileName: string;
-  url: string;
-}
+export type DeliveryStepState = "enabled" | Exclude<StepState, "running" | "cancelled">;
 
 /** A backend multilingual string, keyed by ISO 639 language code ("de", "fr", "it", "en"). */
 export type LocalizedText = Record<string, string>;
@@ -113,54 +105,10 @@ export interface TreeVisualizationConfig {
   groupBy: TreeField[];
 }
 
-interface StepVisualization {
-  originalFileName: string;
-  url: string;
-}
-
-export interface StepResult {
-  id: string;
-  name: LocalizedText;
-  state: StepState;
-  statusMessage?: LocalizedText;
-  conditionMessage?: LocalizedText;
-  downloads: StepDownload[];
-  deliveries: string[];
-  visualizations: StepVisualization[];
-}
-
 /**
- * The aggregate lifecycle state of a processing job, as serialized by the backend
- * (`Geopilot.Pipeline.ProcessingState`). It is a rollup of the job's pipeline steps, not the state of any
- * single step, and is deliberately kept separate from {@link StepState}. The two diverge by design: a step
- * (a single processor) that does not succeed carries an error, hence {@link StepState.Error}, whereas a job
- * whose pipeline could not run to completion because a step errored has failed, hence the job-level
- * `"failed"`. The job level likewise has no `"skipped"` or `"enabled"`. {@link normalizeProcessingJob} maps it onto
- * {@link StepState} at the fetch boundary so the job state can be shown with the same `StepState`-based UI
- * (the shared `StepIcon`) as the individual pipeline steps.
- */
-export type ProcessingState =
-  | "pending"
-  | "running"
-  | "success"
-  | "failed"
-  | "cancelled"
-  | "warning"
-  | "deliveryRestriction";
-
-/** A processing job exactly as returned by the processing API, before the job state is normalized. */
-export interface RawProcessingJobResponse {
-  jobId: string;
-  state: ProcessingState;
-  mandateId?: number;
-  pipelineName: LocalizedText;
-  steps: StepResult[];
-}
-
-/**
- * A processing job as used throughout the app: identical to {@link RawProcessingJobResponse} except the
+ * A processing job as used throughout the app: identical to {@link ProcessingJobResponse} except the
  * job-level {@link state} has been normalized to the shared {@link StepState} (see {@link normalizeProcessingJob}).
  */
-export interface ProcessingJobResponse extends Omit<RawProcessingJobResponse, "state"> {
+export interface NormalizedProcessingJobResponse extends Omit<ProcessingJobResponse, "state"> {
   state: StepState;
 }

@@ -2,7 +2,8 @@ import { useContext } from "react";
 import { useTranslation } from "react-i18next";
 import { Box, Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
-import { StepState } from "../../api/apiInterfaces";
+import { DeliveryStepState } from "../../api/apiInterfaces";
+import { StepState } from "../../api/generated";
 import { themePalette } from "../../appPalette.ts";
 import { px2rem } from "../../appTheme.ts";
 import { MiddleTruncate } from "../../components/middleTruncate";
@@ -14,7 +15,7 @@ import { DeliveryContext } from "./deliveryContext";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 import { STEPPER_HEIGHT, stepperTopPosition } from "./deliveryUtils";
 
-const getStateColors = (state: StepState, active: boolean) => {
+const getStateColors = (state: StepState | DeliveryStepState, active: boolean) => {
   switch (state) {
     case StepState.DeliveryRestriction:
     case StepState.Cancelled:

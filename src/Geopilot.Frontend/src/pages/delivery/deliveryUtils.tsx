@@ -1,12 +1,6 @@
 import { useMediaQuery, useTheme } from "@mui/material";
-import {
-  LocalizedText,
-  ProcessingJobResponse,
-  ProcessingState,
-  RawProcessingJobResponse,
-  StepResult,
-  StepState,
-} from "../../api/apiInterfaces";
+import { LocalizedText, NormalizedProcessingJobResponse } from "../../api/apiInterfaces";
+import { ProcessingJobResponse, ProcessingState, StepResultResponse, StepState } from "../../api/generated";
 import { themeSpacing } from "../../appTheme.ts";
 
 const APP_HEADER_HEIGHT = "60px";
@@ -33,7 +27,7 @@ export const useContentTopPosition = () => {
   return isXs ? contentTopPosition.xs : isSm ? contentTopPosition.sm : contentTopPosition.default;
 };
 
-export function isProcessingDeliverable(job?: ProcessingJobResponse) {
+export function isProcessingDeliverable(job?: NormalizedProcessingJobResponse) {
   return job?.state === StepState.Success || job?.state === StepState.Warning;
 }
 
@@ -42,34 +36,18 @@ export function isProcessingDeliverable(job?: ProcessingJobResponse) {
  * is mapped onto the shared {@link StepState}. Only `"failed"` needs translating (to {@link StepState.Error});
  * every other job state shares its string value with a {@link StepState} member.
  */
-export function normalizeProcessingJob(job: RawProcessingJobResponse): ProcessingJobResponse {
+export function normalizeProcessingJob(job: ProcessingJobResponse): NormalizedProcessingJobResponse {
   return { ...job, state: processingStateToStepState(job.state) };
 }
 
 const processingStateToStepState = (state: ProcessingState): StepState => {
-  switch (state) {
-    case "pending":
-      return StepState.Pending;
-    case "running":
-      return StepState.Running;
-    case "success":
-      return StepState.Success;
-    case "failed":
-      return StepState.Error;
-    case "cancelled":
-      return StepState.Cancelled;
-    case "warning":
-      return StepState.Warning;
-    case "deliveryRestriction":
-      return StepState.DeliveryRestriction;
-    default: {
-      const exhaustiveCheck: never = state;
-      return exhaustiveCheck;
-    }
+  if (state === ProcessingState.Failed) {
+    return StepState.Error;
   }
+  return state;
 };
 
-export function getConditionMessages(steps: StepResult[], state: StepState): LocalizedText[] {
+export function getConditionMessages(steps: StepResultResponse[], state: StepState): LocalizedText[] {
   return steps
     .filter(step => step.state === state)
     .map(step => step.conditionMessage)
