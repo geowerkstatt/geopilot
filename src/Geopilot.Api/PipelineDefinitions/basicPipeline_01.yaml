@@ -8,6 +8,12 @@ processes:
         - xtf
       iliModels: null
       fileNamePatterns: null
+  - id: ili_matcher
+    implementation: Geopilot.Pipeline.Processes.Matcher.FileMatcher.FileMatcherProcess
+    default_config:
+      fileExtensions:
+        - ili
+      fileNamePatterns: null
   - id: xtf_validator
     implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
     default_config:
@@ -52,6 +58,24 @@ pipelines:
           - property: UnmatchedFiles
             actions:
               - Delivery
+          - property: StatusMessage
+            actions:
+              - StatusMessage
+      # Selektiert die mitgelieferten Modelle der Lieferung; die Pipeline entscheidet damit explizit,
+      # was als Modell an die Validierung geht.
+      - id: ili_matching
+        display_name:
+          en: Model Matching
+          de: Modell Zuordnung
+          it: Corrispondenza dei modelli
+          fr: Correspondance des modèles
+        process_id: ili_matcher
+        input:
+          files: "${upload()}"
+        output_actions:
+          - property: StatusMessage
+            actions:
+              - StatusMessage
       - id: validation
         display_name:
           en: XTF Validation
@@ -79,6 +103,7 @@ pipelines:
         process_config_overwrites:
         input:
           transferFile: "${step_output(xtf_matching.XtfFiles)}"
+          modelFiles: "${step_output(ili_matching.MatchedFiles)}"
         output_actions:
           - property: ErrorLog
             actions:

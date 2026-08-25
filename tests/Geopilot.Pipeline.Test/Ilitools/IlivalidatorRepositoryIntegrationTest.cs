@@ -90,10 +90,10 @@ public class IlivalidatorRepositoryIntegrationTest
     [Timeout(60_000, CooperativeCancellation = true)]
     public async Task ValidateAsyncResolvesModelsFromTheArchive()
     {
-        // The inline route: no published repository and no HTTP at all. The service unpacks the archive next to the
-        // transfer file, which is why %ITF_DIR is the only model dir needed.
+        // The inline route: no published repository and no HTTP at all. The service unpacks the archive into the
+        // repository subfolder of the session, which is why %ITF_DIR/repository is the only model dir needed.
         var archive = new PipelineFile(Path.Combine("TestData", "ModelRepository", "model-repository.zip"), "model-repository.zip");
-        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR"] };
+        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR/repository"] };
 
         var result = await ValidateAsync("AllErrors23-ok.xtf", "archive", args, archive);
 
@@ -108,7 +108,7 @@ public class IlivalidatorRepositoryIntegrationTest
     public async Task ValidateAsyncAppliesTheProfileFromTheArchive()
     {
         var archive = new PipelineFile(Path.Combine("TestData", "ModelRepository", "model-repository.zip"), "model-repository.zip");
-        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR"], MetaConfig = "ilidata:DEFAULT" };
+        var args = new IlivalidatorArgs { ModelDirs = ["%ITF_DIR/repository"], MetaConfig = "ilidata:DEFAULT" };
 
         var result = await ValidateAsync("AllErrors23-ok.xtf", "archive_profile", args, archive);
 
@@ -125,8 +125,8 @@ public class IlivalidatorRepositoryIntegrationTest
         await DeleteIfExistsAsync(logFile);
         await DeleteIfExistsAsync(xtfLogFile);
 
-        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, archive, TestContext.CancellationToken);
-        var log = await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(), TestContext.CancellationToken);
+        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, archive, cancellationToken: TestContext.CancellationToken);
+        var log = await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(), cancellationToken: TestContext.CancellationToken);
 
         return (result.Success, log);
     }
