@@ -92,6 +92,33 @@ public class XtfValidatorProcessTest
     }
 
     [TestMethod]
+    public async Task ThrowsWhenACheckWasSkipped()
+    {
+        // The dangerous shape: the tool reports success although it never evaluated the constraint, which is what
+        // a missing plugin looks like. A green result for a check that did not run must not reach the delivery.
+        var log = "Info: validate mandatory constraint Model.Topic.Class.Constraint1...\n"
+            + $"Warning: line 12: Model.Topic.Class: tid 1: MandatoryConstraint Model.Topic.Class.Constraint1 of Model.Topic.Class {XtfValidatorProcess.CheckNotEvaluatedMarker}.\n";
+        var process = CreateProcess(null, null, success: true, logContent: log, pluginIds: "geow-interlis-functions");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
+
+        Assert.Contains("geow-interlis-functions", exception.Message, "The message should name what was configured.");
+    }
+
+    [TestMethod]
+    public async Task ThrowsWhenACheckWasSkippedWithoutAnyPluginConfigured()
+    {
+        // The likelier misconfiguration: nobody configured the plugin the model needs. Reported the same way,
+        // because the result says just as little about that check.
+        var log = $"Warning: MandatoryConstraint Model.Topic.Class.Constraint1 of Model.Topic.Class {XtfValidatorProcess.CheckNotEvaluatedMarker}.\n";
+        var process = CreateProcess(null, null, success: true, logContent: log);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
+
+        Assert.Contains("none", exception.Message);
+    }
+
+    [TestMethod]
     public async Task PassesTheConfiguredPluginsAsIds()
     {
         var process = CreateProcess(null, null, success: true, pluginIds: " geow-interlis-functions ; ngk-so ; ");

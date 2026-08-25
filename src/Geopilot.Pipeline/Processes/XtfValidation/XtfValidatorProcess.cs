@@ -19,6 +19,14 @@ internal class XtfValidatorProcess
     /// </summary>
     internal const string MetaConfigNotFoundMarker = "failed to get local copy of meta-config file";
 
+    /// <summary>
+    /// What the tool writes when it cannot evaluate a check. It skips the check instead of failing, so the run
+    /// reports success although the check never ran, and no option turns that into an error. The usual cause is a
+    /// function whose plugin is not loaded. Measured against ilivalidator 1.15.0, which words it both as
+    /// "MandatoryConstraint ... is not yet implemented." and as "Function ... is not yet implemented.".
+    /// </summary>
+    internal const string CheckNotEvaluatedMarker = "is not yet implemented";
+
     private static readonly LocalizedText SuccessStatusMessage = new Dictionary<string, string>
     {
         { "de", "Die Validierung war erfolgreich." },
@@ -100,13 +108,27 @@ internal class XtfValidatorProcess
 
         logger.LogInformation($"Validation of transfer file <{transferFile.OriginalFileName}> finished. Successful: <{result.Success}>.");
 
-        if (!result.Success && validatorArgs.MetaConfig != null && await LogReportsUnresolvedMetaConfigAsync(errorLog, cancellationToken))
+        var logFindings = await ScanLogAsync(errorLog, cancellationToken);
+
+        if (!result.Success && validatorArgs.MetaConfig != null && logFindings.UnresolvedMetaConfig)
         {
             var repositories = validatorArgs.ModelDirs is { Count: > 0 }
                 ? string.Join(';', validatorArgs.ModelDirs)
                 : "the default repositories of the tool";
             throw new InvalidOperationException(
                 $"The validation profile <{validatorArgs.MetaConfig}> could not be resolved from <{repositories}>, so the transfer file was not validated. Check the validationProfile and modelDirs configuration of this process.");
+        }
+
+        // A skipped check is not a verdict about the data, whether the rest of the run passed or failed. Reported
+        // as an error rather than as an unsuccessful validation, because the cause is the configuration and not
+        // the delivery: the tool would otherwise let a green result stand for a check that never ran.
+        if (logFindings.CheckNotEvaluated)
+        {
+            var plugins = validatorArgs.PluginIds is { Count: > 0 }
+                ? string.Join(';', validatorArgs.PluginIds)
+                : "none";
+            throw new InvalidOperationException(
+                $"The validation skipped a check it could not evaluate, so its result says nothing about that check. The usual cause is a user defined function whose plugin is not loaded; the configured plugins are <{plugins}>. The validation log names the check that was skipped.");
         }
 
         // ilivalidator writes both logs whenever it runs, and a tool that does not run surfaces as a failed call,
@@ -120,20 +142,28 @@ internal class XtfValidatorProcess
         };
     }
 
-    private static async Task<bool> LogReportsUnresolvedMetaConfigAsync(IPipelineFile logFile, CancellationToken cancellationToken)
+    /// <summary>
+    /// The two things the tool only says in its log, both of which mean the run is not a verdict about the data.
+    /// </summary>
+    private sealed record LogFindings(bool UnresolvedMetaConfig, bool CheckNotEvaluated);
+
+    private static async Task<LogFindings> ScanLogAsync(IPipelineFile logFile, CancellationToken cancellationToken)
     {
         var path = await logFile.GetLocalPathAsync(cancellationToken);
         if (!File.Exists(path))
-            return false;
+            return new LogFindings(false, false);
+
+        var unresolvedMetaConfig = false;
+        var checkNotEvaluated = false;
 
         using var reader = new StreamReader(path);
         while (await reader.ReadLineAsync(cancellationToken) is { } line)
         {
-            if (line.Contains(MetaConfigNotFoundMarker, StringComparison.Ordinal))
-                return true;
+            unresolvedMetaConfig |= line.Contains(MetaConfigNotFoundMarker, StringComparison.Ordinal);
+            checkNotEvaluated |= line.Contains(CheckNotEvaluatedMarker, StringComparison.Ordinal);
         }
 
-        return false;
+        return new LogFindings(unresolvedMetaConfig, checkNotEvaluated);
     }
 
     /// <summary>
