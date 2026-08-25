@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- The XTF validation can use the user defined functions of an ilivalidator plugin: the new `pluginIds` parameter names the plugins the [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) should load, as one semicolon separated value of the ids it offers them under. Which ids exist is a property of that deployment, and an id it does not offer is rejected before the tool runs. Without the parameter no plugin runs, which is the previous behaviour. A model whose constraints call such a function could not be validated correctly before. Note that a missing plugin does not surface in the result: the tool skips the affected constraint with a warning and still reports the run as successful. Requires ilitools-wrapper v1.0.9-preview or newer.
+
 ### Changed
 
 - The navigation entries in the header, the sidebars and the footer are real links now, so browser features like opening a page in a new tab (Ctrl+click or middle-click) or copying the link address work on them.

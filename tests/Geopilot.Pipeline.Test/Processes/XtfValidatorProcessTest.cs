@@ -92,6 +92,30 @@ public class XtfValidatorProcessTest
     }
 
     [TestMethod]
+    public async Task PassesTheConfiguredPluginsAsIds()
+    {
+        var process = CreateProcess(null, null, success: true, pluginIds: " geow-interlis-functions ; ngk-so ; ");
+
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
+
+        // Hand written configuration, so blanks around the separator and a trailing one are expected.
+        string[] expectedPluginIds = ["geow-interlis-functions", "ngk-so"];
+        CollectionAssert.AreEqual(expectedPluginIds, capturedArgs?.PluginIds?.ToList());
+    }
+
+    [TestMethod]
+    public async Task PassesNoPluginsWhenNoneAreConfigured()
+    {
+        var process = CreateProcess(null, null, success: true);
+
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
+
+        // No selection has to stay no selection: the wrapper then leaves --plugins unset, which is what keeps the
+        // tool on its own default instead of loading something the pipeline never asked for.
+        Assert.IsNull(capturedArgs?.PluginIds);
+    }
+
+    [TestMethod]
     public async Task TrimsTheConfiguredModelRepositories()
     {
         // Hand written configuration, so blanks around the separator and a trailing one are expected.
@@ -193,7 +217,7 @@ public class XtfValidatorProcessTest
         return new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
     }
 
-    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null)
+    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null, string? pluginIds = null)
     {
         ilivalidatorClientMock
             .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()))
@@ -214,6 +238,6 @@ public class XtfValidatorProcessTest
             .ReturnsAsync(new IlivalidatorResult(success));
 
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
-        return new XtfValidatorProcess(validationProfile, modelDirs, allObjectsAccessible, modelRepository, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+        return new XtfValidatorProcess(validationProfile, modelDirs, allObjectsAccessible, pluginIds, modelRepository, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
     }
 }

@@ -32,4 +32,17 @@ public sealed record IlivalidatorArgs
     /// asks for it, so <see langword="false"/> leaves the decision to the meta configuration.
     /// </summary>
     public bool AllObjectsAccessible { get; init; }
+
+    /// <summary>
+    /// The plugins that provide the user defined functions a model may call in its constraints, selected by the id
+    /// the ilitools-wrapper offers them under. Which ids exist is a property of that deployment, and an id it does
+    /// not offer is rejected before the tool runs.
+    /// Unlike the other properties this is not a 1:1 mapping: the tool option <c>--plugins</c> takes a single
+    /// folder, which the wrapper composes from this selection.
+    /// </summary>
+    /// <remarks>
+    /// A constraint whose function has no implementation is skipped with a warning while the run still reports
+    /// success, so a missing plugin does not surface in <see cref="IlivalidatorResult.Success"/>.
+    /// </remarks>
+    public IReadOnlyList<string>? PluginIds { get; init; }
 }

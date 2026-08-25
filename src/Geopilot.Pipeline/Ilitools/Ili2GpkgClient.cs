@@ -147,6 +147,11 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
             info.ModelDirs.AddRange(args.ModelDirs);
         }
 
+        if (args.PluginIds != null)
+        {
+            info.PluginIds.AddRange(args.PluginIds);
+        }
+
         return new ConvertRequest
         {
             Info = info,
