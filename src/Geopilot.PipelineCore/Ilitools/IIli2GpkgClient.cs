@@ -30,7 +30,7 @@ public interface IIli2GpkgClient
     /// <param name="outputFile">Output GeoPackage file for a successful import.</param>
     /// <param name="transferFiles">INTERLIS transfer files.</param>
     /// <param name="modelFiles">
-    /// Optional single INTERLIS model files (<c>.ili</c>) delivered alongside the transfer files. The service stores
+    /// Optional INTERLIS model files (<c>.ili</c>) delivered alongside the transfer files. The service stores
     /// them in their own subfolder of the session under names of its own, so a repository index cannot be smuggled
     /// in, which makes this the channel for models from an unreviewed source such as an upload. They are visible
     /// only through the entry <c>%XTF_DIR/models</c> in <see cref="Ili2GpkgArgs.ModelDirs"/>; its position decides
