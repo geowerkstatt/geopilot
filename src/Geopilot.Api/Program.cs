@@ -115,6 +115,7 @@ builder.Services.AddSwaggerGen(options =>
 
     options.EnableAnnotations();
     options.SupportNonNullableReferenceTypes();
+    options.NonNullableReferenceTypesAsRequired();
 
     // Describe LocalizedText in OpenAPI as a string-to-string object (language code -> text),
     // matching its JSON serialization, instead of as a separate schema component.
