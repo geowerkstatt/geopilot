@@ -1,3 +1,6 @@
+# Shared by the geopilot and seed services, which talk to the same database.
+x-context-connection: &contextConnection Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
+
 services:
   stac-browser:
     image: ghcr.io/radiantearth/stac-browser:5.0.0
@@ -87,7 +90,7 @@ services:
       ASPNETCORE_HTTPS_PORTS: 8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /https/cert.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /https/cert.key
-      ConnectionStrings__Context: Server=db;Port=5432;Database=geopilot;User Id=HAPPYWALK;Password=SOMBERSPORK;
+      ConnectionStrings__Context: *contextConnection
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
       Auth__Authority: http://localhost:4011/realms/geopilot
       Auth__ClientAudience: geopilot-client
@@ -98,11 +101,11 @@ services:
       Auth__ApiOrigin: https://localhost:5173
       Auth__FullScope: "profile email openid geopilot.api"
       Auth__ApiServerScope: "geopilot.api"
-      CloudStorage__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://localhost:10000/devstoreaccount1;"
-      CloudStorage__BucketName: uploads
-      CloudStorage__BlobEndpoint: https://localhost:10000
-      CloudStorage__AutoCreateContainer: true
-      CloudStorage__AllowedOrigins__0: https://localhost:5173
+      Upload__Cloud__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://localhost:10000/devstoreaccount1;"
+      Upload__Cloud__BucketName: uploads
+      Upload__Cloud__BlobEndpoint: https://localhost:10000
+      Upload__Cloud__AutoCreateContainer: true
+      Upload__Cloud__AllowedOrigins__0: https://localhost:5173
       ClamAV__Enabled: true
       ClamAV__Host: clamav
       ClamAV__Port: 3310
@@ -122,6 +125,23 @@ services:
       - ./certs:/https:ro
     extra_hosts:
       - "localhost:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Creates the local test data. Waits until the migrations are applied and then exits, so it works
+  # whether the API runs in the geopilot container or on the host from Visual Studio. No depends_on
+  # for geopilot: that service is set to DoNotStart in launchSettings.json and must stay that way.
+  seed:
+    build:
+      context: .
+      target: seed
+      args:
+        GITHUB_ACTOR: ${GITHUB_ACTOR}
+      secrets:
+        - github_token
+    environment:
+      ConnectionStrings__Context: *contextConnection
     depends_on:
       db:
         condition: service_healthy

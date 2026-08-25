@@ -10,9 +10,9 @@ import {
   UploadSettings,
 } from "../../api/apiInterfaces.ts";
 import { useGeopilotAuth } from "../../auth";
-import useCloudUpload from "../../hooks/useCloudUpload.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
+import useUpload from "../../hooks/useUpload.ts";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryFileUpload } from "./deliveryFileUpload.tsx";
 import {
@@ -82,7 +82,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [uploadSettings, setUploadSettings] = useState<UploadSettings>();
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
-  const { cloudUpload } = useCloudUpload();
+  const { uploadFiles } = useUpload();
   const { user } = useGeopilotAuth();
   const { localized } = useLocalized();
   const prevUserIdRef = useRef<number | undefined>(user?.id);
@@ -235,7 +235,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
     selectedFiles.forEach(f => setFileStatus(f.name, { state: "uploading" }));
 
-    cloudUpload(selectedFiles, abortController.signal)
+    uploadFiles(selectedFiles, abortController.signal)
       .then(onUploadComplete)
       .catch((error: ApiError) => {
         if (abortController.signal.aborted) return;

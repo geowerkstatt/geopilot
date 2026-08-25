@@ -4,45 +4,45 @@ using Geopilot.PipelineCore.Pipeline;
 namespace Geopilot.Api.Processing;
 
 /// <summary>
-/// An <see cref="IPipelineFile"/> backed by an uploaded file in cloud storage. The content is fetched into
+/// An <see cref="IPipelineFile"/> backed by an uploaded file in the upload storage. The content is fetched into
 /// the job's pipeline working directory on first access and reused from there, so an uploaded file that no
-/// step reads is not fetched during the run and a job starts without waiting for the whole upload.
-/// Declaring a delivery archives every uploaded file afterwards, including those, so this saves the
-/// transfer only for a job that is never delivered.
+/// step reads is not fetched during the run and a job starts without waiting for the whole upload. Only the
+/// files a pipeline step tags for delivery are archived, so an upload no step routes to delivery is never
+/// fetched at all.
 /// Steps see this file through the runtime's copy-on-write view, so the fetched copy is never modified.
 /// </summary>
-internal sealed class CloudPipelineFile : IPipelineFile
+internal sealed class UploadPipelineFile : IPipelineFile
 {
-    private readonly ICloudStorageService cloudStorageService;
-    private readonly string cloudKey;
+    private readonly IUploadStorage uploadStorage;
+    private readonly string storageKey;
     private readonly string materializationDirectory;
     private readonly string materializedFileName;
     private readonly object materializeGate = new();
     private Task<string>? materializeTask;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CloudPipelineFile"/> class.
+    /// Initializes a new instance of the <see cref="UploadPipelineFile"/> class.
     /// </summary>
-    /// <param name="cloudStorageService">The store the file is fetched from.</param>
-    /// <param name="cloudKey">The storage key of the uploaded file.</param>
+    /// <param name="uploadStorage">The store the file is fetched from.</param>
+    /// <param name="storageKey">The storage key of the uploaded file.</param>
     /// <param name="originalFileName">The file name the user uploaded, including its extension.</param>
     /// <param name="materializationDirectory">The directory the file is fetched into on first access.</param>
     /// <param name="materializedFileName">The on-disk name inside <paramref name="materializationDirectory"/>, unique within the job.</param>
-    public CloudPipelineFile(
-        ICloudStorageService cloudStorageService,
-        string cloudKey,
+    public UploadPipelineFile(
+        IUploadStorage uploadStorage,
+        string storageKey,
         string originalFileName,
         string materializationDirectory,
         string materializedFileName)
     {
-        ArgumentNullException.ThrowIfNull(cloudStorageService);
-        ArgumentException.ThrowIfNullOrEmpty(cloudKey);
+        ArgumentNullException.ThrowIfNull(uploadStorage);
+        ArgumentException.ThrowIfNullOrEmpty(storageKey);
         ArgumentException.ThrowIfNullOrEmpty(originalFileName);
         ArgumentException.ThrowIfNullOrEmpty(materializationDirectory);
         ArgumentException.ThrowIfNullOrEmpty(materializedFileName);
 
-        this.cloudStorageService = cloudStorageService;
-        this.cloudKey = cloudKey;
+        this.uploadStorage = uploadStorage;
+        this.storageKey = storageKey;
         this.materializationDirectory = materializationDirectory;
         this.materializedFileName = materializedFileName;
         OriginalFileName = originalFileName;
@@ -93,7 +93,7 @@ internal sealed class CloudPipelineFile : IPipelineFile
         try
         {
             using var target = File.Create(path);
-            await cloudStorageService.DownloadAsync(cloudKey, target, cancellationToken);
+            await uploadStorage.DownloadAsync(storageKey, target, cancellationToken);
         }
         catch
         {

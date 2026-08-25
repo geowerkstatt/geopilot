@@ -406,10 +406,28 @@ public class DeliveryControllerTest
         AssertResponseValueType(typeof(ValidationProblemDetails), result);
     }
 
+    [TestMethod]
+    public async Task CreateFailsWithoutFiles()
+    {
+        var (user, mandate) = SetupMandateWithUserOrganisation(new Mandate { Name = TestHelpers.Localized(nameof(CreateFailsWithoutFiles)), AllowDelivery = true, });
+        deliveryController.SetupTestUser(user);
+        var jobId = SetupProcessingJob(mandate.Id);
+        var request = new DeliveryRequest
+        {
+            JobId = jobId,
+        };
+        assetHandlerMock.Setup(a => a.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<Asset>());
+
+        var result = await deliveryController.Create(request);
+
+        var objectResult = Assert.IsInstanceOfType<ObjectResult>(result);
+        Assert.AreEqual(StatusCodes.Status500InternalServerError, objectResult.StatusCode);
+    }
+
     private void SetupJobPersistence(Guid jobId)
     {
         assetHandlerMock
-            .Setup(p => p.PersistJobAssetsAsync(jobId, It.IsAny<CancellationToken>()))
+            .Setup(p => p.RecordJobAssetsAsync(jobId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Asset> { new Asset(), new Asset() });
     }
 

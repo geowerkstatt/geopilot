@@ -11,12 +11,15 @@ public enum AssetType
     PrimaryData,
 
     /// <summary>
-    /// Reports created by the validation process.
+    /// Data created by the pipeline process.
     /// </summary>
-    ValidationReport,
+    ProcessedData,
 
     /// <summary>
     /// Metadata created by the declaration or validation process.
     /// </summary>
+    /// <remarks>
+    /// This asset type is currently unused.
+    /// </remarks>
     Metadata,
 }

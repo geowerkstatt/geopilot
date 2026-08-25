@@ -43,6 +43,8 @@
   "deliveryErrorNoValidationFound": "Validierungsresultate konnten nicht gefunden werden. (Fehler 404)",
   "deliveryErrorUnauthorized": "Benutzer nicht berechtigt Auslieferungen zu tätigen. (Fehler 401)",
   "deliveryErrorUnexpected": "Beim Ausliefern ist ein unerwarteter Fehler aufgetreten. (Fehler 500)",
+  "deliveryFiles": "Die Lieferung beinhaltet folgende Dateien:",
+  "deliveryFilesEmpty": "Es wurden keine Dateien zur Lieferung gefunden.",
   "deliveryForm": "Lieferformular",
   "deliveryNoInputRequired": "Zu dieser Lieferung sind keine weiteren Angaben erforderlich.",
   "deliveryNotPossible": "Lieferung nicht möglich",

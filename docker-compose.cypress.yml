@@ -3,4 +3,4 @@ services:
     environment:
       # Cypress exercises the cloud-upload (Azurite) flow from docker-compose.yml;
       # auto-create the blob container so it exists on each run.
-      CloudStorage__AutoCreateContainer: "true"
+      Upload__Cloud__AutoCreateContainer: "true"

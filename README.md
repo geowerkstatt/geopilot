@@ -22,14 +22,34 @@ Für die Formatierung wird ESLint verwendet. Dazu im Visual Studio unter `Option
 
 - Damit die Applikation mit HTTPS funktioniert, muss ein lokales dev-cert erstellt werden. Dieses wird durch das npm Script `predev` vor dem Start automatisch erstellt. Sollte dies nicht funktionieren, kann mit folgendem Befehl ein Zertifikat manuell erstellt und vertraut werden: `dotnet dev-certs https --trust`. HTTPS muss verwendet werden, damit die STAC-Urls korrekt funktionieren und so der STAC-Browser wie in einer produktiven Umgebung verwendet werden kann.
 
-- Für Abhängigkeiten aus der GitHub NuGet Registry wird ein GitHub Account und ein [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) mit `packages:read`-Berechtigung benötigt. Dies kann mit folgendem Befehl konfiguriert werden:
+- Für Abhängigkeiten aus der GitHub NuGet Registry wird ein GitHub Account und ein [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) mit `packages:read`-Berechtigung benötigt. Diese Zugangsdaten werden an zwei voneinander unabhängigen Stellen gebraucht:
+
+  Für den Restore auf dem Host:
   ```bash
   dotnet nuget update source github-geowerkstatt --username "<GitHub Benutzername>" --password "<GitHub PAT mit packages:read Berechtigung>" --store-password-in-clear-text
   ```
 
+  Für den Build des Containers `seed`, den Visual Studio beim Start mitbaut, zusätzlich als `GITHUB_ACTOR` und `GITHUB_TOKEN` in einer `.env`-Datei im Projektstamm, wie in der [Beispiel-Datei](.env.example) gezeigt. Fehlt sie, scheitert der Restore im Container an den fehlenden Zugangsdaten und der Build bricht ab. Visual Studio meldet davon nur `DT1001`; die eigentliche Fehlermeldung zeigt `docker compose build seed`.
+
 - Das Projekt kann mit dem Launch Profile "Development" gestartet werden.
   
   ℹ️ Beim Start hält Visual Studio im Frontend wegen Fetch-Errors, während die API selbst noch am starten ist. Das kann in Visual Studio über `Debug → Windows → Exception Settings → JavaScript Exceptions → Uncaught Exceptions` deaktiviert werden.
+
+- Die Testdaten für die lokale Entwicklung erzeugt das Projekt _Geopilot.Api.SeedData_. Es läuft als Container `seed` mit, sobald die Docker-Umgebung hochfährt, unabhängig davon welches Startprojekt in Visual Studio gewählt ist. Der Seed wartet, bis die Migrationen angewendet sind, und legt Daten nur in einer noch leeren Datenbank an. Ausgeliefert wird das Projekt nicht, es ist bewusst keine Abhängigkeit der API.
+
+  Wer sich anmeldet, bevor der Container fertig ist, legt damit die erste Benutzerzeile an, und der Seed überspringt die Datenbank danach dauerhaft. Fehlen die Testdaten, zeigt `docker compose logs seed` den Grund.
+
+  Um die Testdaten neu zu erzeugen, muss das Datenbank-Volume verworfen werden:
+  ```bash
+  docker compose down -v
+  ```
+
+  Alternativ kann der Seed direkt vom Host aufgerufen werden, sofern die Datenbank bereits migriert ist:
+  ```bash
+  dotnet run --project src/Geopilot.Api.SeedData
+  ```
+
+  Abweichende Verbindungsangaben können als Argument oder über die Umgebungsvariable `ConnectionStrings__Context` gesetzt werden.
 
 ### Starten der Applikation (Docker Compose) 🐳
 
@@ -43,6 +63,8 @@ dotnet dev-certs https --trust
 dotnet dev-certs https --export-path ".\certs\cert.pem" --no-password --format PEM
 docker compose up -d
 ```
+
+Der Service `seed` erzeugt dabei die Testdaten, sobald die API die Migrationen angewendet hat, und beendet sich danach.
 
 ### Pipeline-Konfiguration
 
@@ -207,7 +229,7 @@ Dateien werden über Presigned URLs direkt in einen Object Storage hochgeladen. 
 
 Der Upload ist von der Verarbeitung entkoppelt: `POST /api/v2/upload` erstellt eine Upload-Session und liefert Presigned URLs, über welche die Dateien direkt in den Object Storage hochgeladen werden. Anschliessend startet `POST /api/v2/processing` mit der Upload-ID den Verarbeitungsjob.
 
-Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Ein Job startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Job in einem nicht lieferbaren Zustand endet, sonst mit dem Aufräumen des Jobs (`Processing:JobRetention`). Die Lieferung archiviert jede hochgeladene Datei als `PrimaryData`, auch die von keinem Schritt gelesenen; bei einer Lieferung wandern also am Ende doch alle Dateien über die Leitung, nur später und ausserhalb der Startlatenz. `CloudStorage:CleanupAgeHours` muss deshalb länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
+Die hochgeladenen Dateien bleiben im Object Storage und werden erst dann lokal materialisiert, wenn ein Pipeline-Schritt sie tatsächlich liest; danach wird die lokale Kopie wiederverwendet. Ein Job startet damit ohne auf den gesamten Upload zu warten, und Dateien, die ein Matcher wegfiltert, werden während des Laufs nicht geholt. Die Blobs eines Uploads werden gelöscht, sobald der Job in einem nicht lieferbaren Zustand endet, sonst mit dem Aufräumen des Jobs (`Processing:JobRetention`). Die Lieferung archiviert jede hochgeladene Datei als `PrimaryData`, auch die von keinem Schritt gelesenen; bei einer Lieferung wandern also am Ende doch alle Dateien über die Leitung, nur später und ausserhalb der Startlatenz. `Upload:CleanupAgeHours` muss deshalb länger sein als `Processing:JobRetention` plus `Processing:JobTimeout`, sonst warnt die Applikation beim Start.
 
 ### Entwicklung
 
@@ -219,15 +241,25 @@ docker compose up -d azurite clamav
 
 ### Konfiguration
 
-Die `CloudStorage`-Konfiguration ist erforderlich; ohne `ConnectionString` und `BucketName` startet die Applikation nicht.
+`Upload:Backend` wählt, wohin hochgeladene Dateien geschrieben werden:
+
+- **`Cloud` (Standard):** Der Browser lädt die Dateien über presigned URLs direkt in einen Azure-Blob-kompatiblen Object Storage. Die API sieht die Datei-Bytes nie.
+- **`Direct`:** Die Dateien laufen über einen Upload-Endpunkt der API in ein lokales Verzeichnis. Für Installationen ohne Object Storage.
+
+Die geteilten Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `UploadUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) gelten in beiden Modi und werden direkt unter `Upload` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `UploadCleanupService` bereinigt. Es wird nur die Sektion des gewählten Backends gelesen und validiert.
+
+**Cloud:** Ohne `ConnectionString` und `BucketName` startet die Applikation nicht.
 
 ```json5
-"CloudStorage": {
-    "ConnectionString": "...",
-    "BucketName": "uploads",
-    "BlobEndpoint": "https://localhost:10000", // Öffentlicher Storage-Endpoint, wird der CSP (connect-src) hinzugefügt
-    "AutoCreateContainer": false, // Nur für Entwicklung auf true setzen
-    "AllowedOrigins": ["https://localhost:5173"] // CORS für Presigned-URL-Uploads
+"Upload": {
+    "Backend": "Cloud",
+    "Cloud": {
+        "ConnectionString": "...",
+        "BucketName": "uploads",
+        "BlobEndpoint": "https://localhost:10000", // Öffentlicher Storage-Endpoint, wird der CSP (connect-src) hinzugefügt
+        "AutoCreateContainer": false, // Nur für Entwicklung auf true setzen
+        "AllowedOrigins": ["https://localhost:5173"] // CORS für Presigned-URL-Uploads
+    }
 },
 "ClamAV": {
     "Enabled": true,
@@ -236,7 +268,36 @@ Die `CloudStorage`-Konfiguration ist erforderlich; ohne `ConnectionString` und `
 }
 ```
 
-Weitere Einstellungen (`MaxFileSizeMB`, `MaxFilesPerJob`, `MaxJobSizeMB`, `MaxGlobalActiveSizeMB`, `MaxActiveJobs`, `PresignedUrlExpiryMinutes`, `CleanupAgeHours`, `CleanupIntervalMinutes`, `RateLimitRequests`, `RateLimitWindowMinutes`) werden in `appsettings.json` konfiguriert. Veraltete, verwaiste und überdimensionierte Uploads werden automatisch durch den `CloudCleanupService` bereinigt.
+**Direct:** Ohne `Directory` startet die Applikation nicht.
+
+```json5
+"Upload": {
+    "Backend": "Direct",
+    "Direct": {
+        "Directory": "/uploads" // Gehört exklusiv dem Upload-Backend; kein Job-Arbeitsverzeichnis
+    }
+}
+```
+
+> [!WARNING]
+> Im direkten Modus ist der Upload-Endpunkt **ohne Anmeldung erreichbar**, wie es die presigned URLs im Cloud-Modus sind (öffentliche Mandate erlauben anonyme Lieferungen). Wer die Applikation im Netz erreicht, kann Upload-Sessions eröffnen und bis zu den konfigurierten Limiten Dateien auf das Dateisystem schreiben. Eine Direct-Installation gehört deshalb nicht ungeschützt ins Internet: die vorgelagerte Absicherung (VPN, Reverse Proxy mit Authentisierung, IP-Beschränkung, Cloudflare) liegt in der Verantwortung der Installation.
+
+Für den direkten Modus gilt:
+
+- **Der Upload-Endpunkt prüft jede Anfrage gegen die Upload-Session:** er nimmt nur bei der Initiierung angemeldete Dateien an, das Schreibziel stammt aus der Session statt aus der URL, die Session läuft nach `UploadUrlExpiryMinutes` ab und der Inhalt muss der deklarierten Grösse entsprechen.
+- **Die maximale Dateigrösse kommt aus `Upload:MaxFileSizeMB`.** Der Upload-Endpunkt hebt sein Request-Limit selbst auf die deklarierte Dateigrösse; alle übrigen Endpunkte behalten die globale Obergrenze von 100 MB pro Request. Ein vorgeschalteter Reverse Proxy bringt seine eigene Grössenbeschränkung mit und muss entsprechend konfiguriert werden.
+- **Die Virenprüfung hängt wie im Cloud-Modus an `ClamAV:Enabled`** und läuft im Preflight, bevor ein Job verarbeitet wird.
+- **geopilot bewirtschaftet keinen Plattenschutz** für das Upload-Verzeichnis (keine Quota, kein Aufräumen bei Füllstand über die konfigurierte Bereinigung hinaus). Die Überwachung des Dateisystems gehört zur Infrastruktur der Installation.
+
+In `docker-compose` wird der direkte Modus über Umgebungsvariablen konfiguriert, das Verzeichnis als Volume gemountet:
+
+```yaml
+environment:
+  Upload__Backend: Direct
+  Upload__Direct__Directory: /uploads
+volumes:
+  - ./uploads:/uploads
+```
 
 - **ClamAV deaktiviert (Standard):** Uploads werden ohne Virenprüfung verarbeitet. Pro Upload wird eine Warnung geloggt.
 - **ClamAV aktiviert:** Virenprüfung vor der Verarbeitung.

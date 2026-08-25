@@ -48,6 +48,13 @@ pipelines:
         process_id: xtf_matcher
         input:
           files: "${upload()}"
+        output_actions:
+          - property: XtfFiles
+            actions:
+              - Delivery
+          - property: UnmatchedFiles
+            actions:
+              - Delivery
       - id: validation
         display_name:
           en: XTF Validation
@@ -130,6 +137,13 @@ pipelines:
         process_id: xtf_matcher
         input:
           files: "${upload()}"
+        output_actions:
+          - property: XtfFiles
+            actions:
+              - Delivery
+          - property: UnmatchedFiles
+            actions:
+              - Delivery
       - id: validation
         display_name:
           en: XTF Validation
@@ -229,6 +243,13 @@ pipelines:
         process_id: xtf_matcher
         input:
           files: "${upload()}"
+        output_actions:
+          - property: XtfFiles
+            actions:
+              - Delivery
+          - property: UnmatchedFiles
+            actions:
+              - Delivery
       - id: validation
         display_name:
           en: Validating XTF file

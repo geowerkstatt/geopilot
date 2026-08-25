@@ -6,26 +6,26 @@ using Microsoft.Extensions.Options;
 namespace Geopilot.Api.Services;
 
 /// <summary>
-/// Azure Blob Storage implementation of <see cref="ICloudStorageService"/>.
+/// Azure Blob Storage implementation of <see cref="IUploadStorage"/>.
 /// </summary>
-public class AzureBlobStorageService : ICloudStorageService
+public class AzureBlobUploadStorage : IUploadStorage
 {
     private readonly BlobContainerClient containerClient;
-    private readonly ILogger<AzureBlobStorageService> logger;
+    private readonly ILogger<AzureBlobUploadStorage> logger;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AzureBlobStorageService"/> class.
+    /// Initializes a new instance of the <see cref="AzureBlobUploadStorage"/> class.
     /// </summary>
-    public AzureBlobStorageService(IOptions<CloudStorageOptions> options, ILogger<AzureBlobStorageService> logger)
+    public AzureBlobUploadStorage(IOptions<UploadCloudOptions> options, ILogger<AzureBlobUploadStorage> logger)
     {
         this.logger = logger;
         ArgumentNullException.ThrowIfNull(options);
 
         var config = options.Value;
         if (string.IsNullOrWhiteSpace(config.ConnectionString))
-            throw new InvalidOperationException("CloudStorage:ConnectionString is not configured.");
+            throw new InvalidOperationException("Upload:Cloud:ConnectionString is not configured.");
         if (string.IsNullOrWhiteSpace(config.BucketName))
-            throw new InvalidOperationException("CloudStorage:BucketName is not configured.");
+            throw new InvalidOperationException("Upload:Cloud:BucketName is not configured.");
 
         var serviceClient = new BlobServiceClient(config.ConnectionString);
         containerClient = serviceClient.GetBlobContainerClient(config.BucketName);
@@ -52,7 +52,7 @@ public class AzureBlobStorageService : ICloudStorageService
     }
 
     /// <inheritdoc/>
-    public Task<string> GeneratePresignedUploadUrlAsync(string key, string? contentType, TimeSpan expiresIn)
+    public Task<string> GenerateUploadUrlAsync(string key, string? contentType, TimeSpan expiresIn)
     {
         var blobClient = containerClient.GetBlobClient(key);
 

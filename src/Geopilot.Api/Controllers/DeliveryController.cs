@@ -141,12 +141,18 @@ public class DeliveryController : ControllerBase
 
         try
         {
-            delivery.Assets.AddRange(await assetHandler.PersistJobAssetsAsync(declaration.JobId, HttpContext.RequestAborted));
+            delivery.Assets.AddRange(await assetHandler.RecordJobAssetsAsync(declaration.JobId, HttpContext.RequestAborted));
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Error while persisting assets for job whith id <{JobId}>.", declaration.JobId);
-            return Problem($"Error while persisting assets for job whith id <{declaration.JobId}>.");
+            logger.LogError(e, "Error while persisting assets for job with id <{JobId}>.", declaration.JobId);
+            return Problem($"Error while persisting assets for job with id <{declaration.JobId}>.");
+        }
+
+        if (delivery.Assets.Count == 0)
+        {
+            logger.LogWarning("No assets found for job with id <{JobId}>.", declaration.JobId);
+            return Problem($"No assets found for job with id <{declaration.JobId}>.");
         }
 
         var entityEntry = context.Deliveries.Add(delivery);

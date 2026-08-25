@@ -5,6 +5,7 @@
       "commandVersion": "1.0",
       "serviceActions": {
         "db": "StartWithoutDebugging",
+        "seed": "StartWithoutDebugging",
         "pgadmin": "StartWithoutDebugging",
         "geopilot": "DoNotStart",
         "stac-browser": "StartWithoutDebugging",

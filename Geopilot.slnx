@@ -13,6 +13,7 @@
   <Project Path="src/Geopilot.Api/Geopilot.Api.csproj">
     <BuildDependency Project="docker-compose.dcproj" />
   </Project>
+  <Project Path="src/Geopilot.Api.SeedData/Geopilot.Api.SeedData.csproj" />
   <Project Path="src/Geopilot.Frontend/Geopilot.Frontend.esproj">
     <Build />
     <Deploy />

@@ -18,7 +18,7 @@ public class ProcessingJobCleanupServiceTest
     private const double VisualizationRetentionHours = 0.5;
     private Mock<IProcessingJobStore> jobStoreMock;
     private Mock<IDirectoryProvider> directoryProviderMock;
-    private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
+    private Mock<IUploadOrchestrationService> orchestrationServiceMock;
     private Mock<ILogger<ProcessingJobCleanupService>> loggerMock;
     private Context context;
     private string tempAssetRoot;
@@ -48,12 +48,12 @@ public class ProcessingJobCleanupServiceTest
         var optionsMock = new Mock<IOptions<ProcessingOptions>>();
         optionsMock.Setup(o => o.Value).Returns(processingOptions);
 
-        cloudOrchestrationServiceMock = new Mock<ICloudOrchestrationService>();
-        cloudOrchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
+        orchestrationServiceMock = new Mock<IUploadOrchestrationService>();
+        orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
 
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(Context))).Returns(context);
-        serviceProviderMock.Setup(sp => sp.GetService(typeof(ICloudOrchestrationService))).Returns(cloudOrchestrationServiceMock.Object);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.SetupGet(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
         var scopeFactoryMock = new Mock<IServiceScopeFactory>();
@@ -247,7 +247,7 @@ public class ProcessingJobCleanupServiceTest
 
         await service.RunCleanupAsync();
 
-        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
     }
 
     [TestMethod]
@@ -274,7 +274,7 @@ public class ProcessingJobCleanupServiceTest
         await service.RunCleanupAsync();
 
         jobStoreMock.Verify(s => s.RemoveJob(jobId), Times.Once);
-        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
     }
 
     [TestMethod]
@@ -303,7 +303,7 @@ public class ProcessingJobCleanupServiceTest
 
         await service.RunCleanupAsync();
 
-        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never, "the upload is the only copy left and the run may still need it");
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never, "the upload is the only copy left and the run may still need it");
         jobStoreMock.Verify(s => s.RemoveJob(It.IsAny<Guid>()), Times.Never, "disposing the pipeline would pull its working directory away mid-run");
         Assert.IsTrue(Directory.Exists(assetDir));
         Assert.IsTrue(Directory.Exists(pipelineDir));

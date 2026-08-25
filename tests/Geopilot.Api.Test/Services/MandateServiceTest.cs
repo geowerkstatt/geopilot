@@ -280,7 +280,7 @@ public class MandateServiceTest
     {
         var uploadId = Guid.NewGuid();
         var files = fileNames
-            .Select(name => new CloudFileInfo(name, $"blobs/{name}", 1024))
+            .Select(name => new UploadedFileInfo(name, $"blobs/{name}", 1024))
             .ToImmutableList();
         uploadStore.CreateUpload(uploadId, files);
         return uploadId;

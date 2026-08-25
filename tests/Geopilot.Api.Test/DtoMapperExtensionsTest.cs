@@ -128,6 +128,7 @@ public class DtoMapperExtensionsTest
         stepMock.SetupGet(s => s.State).Returns(StepState.Pending);
         stepMock.SetupGet(s => s.StatusMessage).Returns((LocalizedText?)null);
         stepMock.SetupGet(s => s.Downloads).Returns(new List<PersistedFile>());
+        stepMock.SetupGet(s => s.DeliveryFiles).Returns(new List<PersistedFile>());
         stepMock.SetupGet(s => s.Visualizations).Returns(new List<StepVisualization>());
         return stepMock.Object;
     }

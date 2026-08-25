@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Geopilot.Api.SeedData;
+using Microsoft.EntityFrameworkCore;
 
 namespace Geopilot.Api;
 

@@ -1,5 +1,4 @@
 ﻿using Geopilot.Pipeline;
-using Geopilot.Pipeline.Process;
 using Geopilot.Pipeline.Processes.XtfErrorVisualization;
 using System.Security.Cryptography;
 
@@ -18,51 +17,10 @@ public static class WebApplicationExtensions
     {
         ArgumentNullException.ThrowIfNull(app, nameof(app));
 
-        var pipelineFactory = app.Services.GetRequiredService<IPipelineFactory>() as PipelineFactory;
-        if (pipelineFactory == null)
+        var validationResult = app.Services.GetRequiredService<IPipelineFactory>().ValidateDefinition();
+        if (!validationResult.IsValid)
         {
-            throw new InvalidOperationException("PipelineFactory is not registered correctly.");
-        }
-
-        var validationErrors = pipelineFactory.PipelineProcessConfig.Validate();
-        if (validationErrors.HasErrors)
-        {
-            throw new InvalidOperationException($"errors in pipeline definition:{Environment.NewLine}{validationErrors.ErrorMessage}");
-        }
-
-        var pipelineProcessFactory = app.Services.GetRequiredService<IPipelineProcessFactory>();
-        var resourcesDirectory = app.Services.GetRequiredService<Geopilot.Api.FileAccess.IDirectoryProvider>().ResourcesDirectory;
-
-        var invalidProcessesErrors = new HashSet<string>();
-        var processes = pipelineFactory.PipelineProcessConfig.Processes;
-        foreach (var pipeline in pipelineFactory.PipelineProcessConfig.Pipelines)
-        {
-            var stepResultTypes = pipelineProcessFactory.BuildStepResultTypes(pipeline.Steps, processes);
-            foreach (var step in pipeline.Steps)
-            {
-                try
-                {
-                    // Use Validate() rather than Build() so startup does not actually
-                    // construct processes — invoking constructors here would leak
-                    // per-step directories under $TEMP and allocate HttpClients /
-                    // other per-process resources for every restart.
-                    pipelineProcessFactory
-                        .Builder()
-                        .StepConfig(step)
-                        .StepResultTypes(stepResultTypes)
-                        .Processes(processes)
-                        .Validate(resourcesDirectory);
-                }
-                catch (Exception ex)
-                {
-                    invalidProcessesErrors.Add($"pipeline {pipeline.Id}, step {step.Id}, process {step.ProcessId}, error: {ex.Message}");
-                }
-            }
-        }
-
-        if (invalidProcessesErrors.Count > 0)
-        {
-            throw new InvalidOperationException($"Invalid pipeline processes found:{Environment.NewLine}{string.Join(Environment.NewLine, invalidProcessesErrors)}");
+            throw new InvalidOperationException(validationResult.ErrorMessage);
         }
     }
 
@@ -82,11 +40,11 @@ public static class WebApplicationExtensions
 
         var indexHtmlTemplate = File.ReadAllText(indexHtmlPath);
         var authorityOrigin = new Uri(configuration["Auth:Authority"]!).GetLeftPart(UriPartial.Authority);
-        var blobEndpoint = configuration["CloudStorage:BlobEndpoint"];
+        var blobEndpoint = configuration["Upload:Cloud:BlobEndpoint"];
         if (!string.IsNullOrWhiteSpace(blobEndpoint))
         {
             if (!Uri.TryCreate(blobEndpoint, UriKind.Absolute, out var blobUri))
-                throw new InvalidOperationException($"CloudStorage:BlobEndpoint '{blobEndpoint}' is not a valid absolute URI.");
+                throw new InvalidOperationException($"Upload:Cloud:BlobEndpoint '{blobEndpoint}' is not a valid absolute URI.");
             blobEndpoint = blobUri.GetLeftPart(UriPartial.Authority);
         }
 

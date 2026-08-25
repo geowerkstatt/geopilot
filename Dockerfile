@@ -62,6 +62,22 @@ RUN \
     --customPath license.template.json \
     --out ${PUBLISH_DIR}/wwwroot/license.json
 
+# Development-only test data generator, used by the "seed" service in docker-compose.yml. It must stay
+# out of the published API: "final" builds from "build", so a plain "docker build" never reaches these
+# stages. Keep them above "final" so the default target remains the API image.
+FROM build AS seed-build
+RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
+  dotnet publish "Geopilot.Api.SeedData/Geopilot.Api.SeedData.csproj" \
+  -c Release \
+  -p:UseAppHost=false \
+  -o /app/seed
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS seed
+WORKDIR /app
+COPY --from=seed-build /app/seed .
+USER $APP_UID
+ENTRYPOINT ["dotnet", "Geopilot.Api.SeedData.dll"]
+
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 ENV HOME=/app
 ENV TZ=Europe/Zurich

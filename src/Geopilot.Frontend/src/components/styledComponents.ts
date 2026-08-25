@@ -52,3 +52,11 @@ export const GeopilotBox = styled(Stack)(({ theme }) => ({
   borderRadius: theme.radius.default,
   padding: theme.spacing(2),
 }));
+
+export const BulletList = styled("ul")(({ theme }) => ({
+  marginTop: theme.spacing(1),
+  marginBottom: theme.spacing(1),
+  [theme.breakpoints.down("sm")]: {
+    paddingLeft: theme.spacing(3),
+  },
+}));

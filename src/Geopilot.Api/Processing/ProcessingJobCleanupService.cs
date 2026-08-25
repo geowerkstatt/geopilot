@@ -71,7 +71,7 @@ public class ProcessingJobCleanupService : BackgroundService
         {
             using var scope = serviceScopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<Context>();
-            var cloudOrchestrationService = scope.ServiceProvider.GetRequiredService<ICloudOrchestrationService>();
+            var orchestrationService = scope.ServiceProvider.GetRequiredService<IUploadOrchestrationService>();
             var now = DateTime.UtcNow;
             int cleanedDownloads = 0;
             int cleanedVisualizations = 0;
@@ -119,7 +119,7 @@ public class ProcessingJobCleanupService : BackgroundService
                 // A job still pending or running past its retention is stuck, not stale: its preflight or
                 // its pipeline is hanging. Retiring it would delete the uploaded blobs, the only remaining
                 // copy of the upload, from under a run that may yet continue, and dispose its pipeline
-                // along with the working directory. Leave it and let CloudCleanupService's age-based sweep
+                // along with the working directory. Leave it and let UploadCleanupService's age-based sweep
                 // be the backstop.
                 if (job != null && job.State is ProcessingState.Pending or ProcessingState.Running)
                 {
@@ -135,9 +135,9 @@ public class ProcessingJobCleanupService : BackgroundService
                 var hasDelivery = dbContext.Deliveries.Any(d => d.JobId == jobId);
 
                 // Only a known job carries the upload id; an orphaned directory from a hard restart
-                // leaves its blobs to the age-based sweep in CloudCleanupService.
+                // leaves its blobs to the age-based sweep in UploadCleanupService.
                 if (job != null)
-                    await cloudOrchestrationService.ReleaseUploadAsync(job.UploadId);
+                    await orchestrationService.ReleaseUploadAsync(job.UploadId);
 
                 if (RetireJob(jobId, hasDelivery))
                     retiredJobs++;

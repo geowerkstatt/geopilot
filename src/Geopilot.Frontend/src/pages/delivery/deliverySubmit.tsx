@@ -5,6 +5,7 @@ import { Alert, Stack, Typography } from "@mui/material";
 import { DeliverySummary, FieldEvaluationType } from "../../api/apiInterfaces.ts";
 import { Button } from "../../components/buttons.tsx";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
+import { BulletList } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
 import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons.tsx";
 import { DeliveryContent } from "./deliveryContent.tsx";
@@ -14,7 +15,7 @@ import { DeliveryStepProps, DeliverySubmitData } from "./deliveryInterfaces.tsx"
 export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
   const { fetchApi } = useFetch();
   const { t } = useTranslation();
-  const { isLoading, submitDelivery, selectedMandate, submittedData } = useContext(DeliveryContext);
+  const { isLoading, submitDelivery, selectedMandate, submittedData, processingResponse } = useContext(DeliveryContext);
   const [previousDeliveries, setPreviousDeliveries] = useState<DeliverySummary[]>([]);
   const formMethods = useForm({ mode: "all", defaultValues: submittedData, disabled: completed });
 
@@ -34,6 +35,8 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
     }
   }, [fetchApi, selectedMandate]);
 
+  const deliveryFiles = processingResponse?.steps.flatMap(step => step.deliveries ?? []) ?? [];
+
   const buttons = (
     <>
       <DeliveryBackButton />
@@ -43,7 +46,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
         <Button
           variant="contained"
           label="createDelivery"
-          disabled={!formMethods.formState.isValid || isLoading}
+          disabled={!formMethods.formState.isValid || isLoading || deliveryFiles.length === 0}
           onClick={() => formMethods.handleSubmit(submitForm)()}
         />
       )}
@@ -95,6 +98,24 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
           </Stack>
         </form>
       </FormProvider>
+      {deliveryFiles.length === 0 ? (
+        <Alert severity="error" data-cy="delivery-files-empty">
+          {t("deliveryFilesEmpty")}
+        </Alert>
+      ) : (
+        <Stack spacing={0} sx={{ mt: 1 }}>
+          <Typography variant="body1">{t("deliveryFiles")}</Typography>
+          <BulletList>
+            {deliveryFiles.map((deliveryFile, index) => (
+              <li key={index}>
+                <Typography variant="body1" sx={{ wordBreak: "break-word" }}>
+                  {deliveryFile}
+                </Typography>
+              </li>
+            ))}
+          </BulletList>
+        </Stack>
+      )}
       {completed && <Alert severity="success">{t("deliveryCompleted")}</Alert>}
     </DeliveryContent>
   );

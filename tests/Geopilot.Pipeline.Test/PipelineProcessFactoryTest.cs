@@ -314,7 +314,13 @@ public class PipelineProcessFactoryTest
                     { "mandatoryString", "overwritten mandatory string value" },
                 },
                 new Parameterization() { },
-                "Conflict in process configuration: The key 'mandatoryString' is defined in both process base configuration and process default configuration. Please resolve this conflict by ensuring that base configuration can't be overwritten."
+                "Process configuration collision for implementation 'Geopilot.Pipeline.Test.Processes.ManyDifferentInitialzationAttributesTestProcess': " +
+                "the key 'mandatoryString' is set in the base configuration " +
+                "(app settings 'Pipeline:ProcessConfigs:Geopilot.Pipeline.Test.Processes.ManyDifferentInitialzationAttributesTestProcess:mandatoryString', " +
+                "environment variable 'Pipeline__ProcessConfigs__Geopilot.Pipeline.Test.Processes.ManyDifferentInitialzationAttributesTestProcess__mandatoryString') " +
+                "and in the pipeline definition ('processes[id=test_process].default_config.mandatoryString'). " +
+                "The base configuration cannot be overridden. Remove the key from the pipeline definition, " +
+                "or remove it from the base configuration if the value has to be set per pipeline."
             ];
             yield return [
                 "base config owerwritten in overwrite config",
@@ -330,7 +336,13 @@ public class PipelineProcessFactoryTest
                 {
                     { "mandatoryString", "overwritten mandatory string value" },
                 },
-                "Conflict in process configuration overwrite: The key 'mandatoryString' is defined in both process base configuration and process overwrite configuration. Please resolve this conflict by ensuring that base configuration can't be overwritten."
+                "Process configuration collision for implementation 'Geopilot.Pipeline.Test.Processes.ManyDifferentInitialzationAttributesTestProcess': " +
+                "the key 'mandatoryString' is set in the base configuration " +
+                "(app settings 'Pipeline:ProcessConfigs:Geopilot.Pipeline.Test.Processes.ManyDifferentInitialzationAttributesTestProcess:mandatoryString', " +
+                "environment variable 'Pipeline__ProcessConfigs__Geopilot.Pipeline.Test.Processes.ManyDifferentInitialzationAttributesTestProcess__mandatoryString') " +
+                "and overwritten in the pipeline definition ('pipelines[id=test_pipeline].steps[id=test_step].process_config_overwrites.mandatoryString'). " +
+                "The base configuration cannot be overridden. Remove the key from the pipeline definition, " +
+                "or remove it from the base configuration if the value has to be set per pipeline."
             ];
             yield return [
                 "overwrite config but not defined in base config",
@@ -423,6 +435,7 @@ public class PipelineProcessFactoryTest
 
         var exception = Assert.Throws<InvalidOperationException>(() => pipelineProcessFactory
             .Builder()
+            .PipelineId("test_pipeline")
             .StepConfig(stepConfig)
             .Processes(processes)
             .PipelineDirectory(Path.GetTempPath())

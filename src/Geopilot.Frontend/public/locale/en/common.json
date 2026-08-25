@@ -43,6 +43,8 @@
   "deliveryErrorNoValidationFound": "Validation results could not be found. (Error 404)",
   "deliveryErrorUnauthorized": "User is not authorized to make deliveries. (Error 401)",
   "deliveryErrorUnexpected": "An unexpected error occurred during delivery. (Error 500)",
+  "deliveryFiles": "The delivery includes the following files:",
+  "deliveryFilesEmpty": "No files were found for delivery.",
   "deliveryForm": "Delivery form",
   "deliveryNoInputRequired": "No further information is required for this delivery.",
   "deliveryNotPossible": "Delivery is not possible",

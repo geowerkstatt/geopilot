@@ -24,7 +24,7 @@ public class ProcessingRunnerTest
     private PhysicalDownloadFileStore downloadStore;
     private PhysicalAssetFileStore assetStore;
     private PhysicalVisualizationFileStore visualizationStore;
-    private Mock<ICloudOrchestrationService> cloudOrchestrationServiceMock;
+    private Mock<IUploadOrchestrationService> orchestrationServiceMock;
     private IServiceScopeFactory scopeFactory;
 
     [TestInitialize]
@@ -33,14 +33,14 @@ public class ProcessingRunnerTest
         downloadStore = new PhysicalDownloadFileStore(AssemblyInitialize.TestDirectoryProvider);
         assetStore = new PhysicalAssetFileStore(AssemblyInitialize.TestDirectoryProvider);
         visualizationStore = new PhysicalVisualizationFileStore(AssemblyInitialize.TestDirectoryProvider);
-        cloudOrchestrationServiceMock = new Mock<ICloudOrchestrationService>();
-        cloudOrchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
+        orchestrationServiceMock = new Mock<IUploadOrchestrationService>();
+        orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
 
         var serviceProvider = new Mock<IServiceProvider>();
         serviceProvider.Setup(p => p.GetService(typeof(IDownloadFileStore))).Returns(downloadStore);
         serviceProvider.Setup(p => p.GetService(typeof(IAssetFileStore))).Returns(assetStore);
         serviceProvider.Setup(p => p.GetService(typeof(IVisualizationFileStore))).Returns(visualizationStore);
-        serviceProvider.Setup(p => p.GetService(typeof(ICloudOrchestrationService))).Returns(cloudOrchestrationServiceMock.Object);
+        serviceProvider.Setup(p => p.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
 
         var scope = new Mock<IServiceScope>();
         scope.SetupGet(s => s.ServiceProvider).Returns(serviceProvider.Object);
@@ -83,6 +83,18 @@ public class ProcessingRunnerTest
     private sealed class FileEmittingProcessResult
     {
         public required IPipelineFile Result { get; init; }
+    }
+
+    private sealed class PassthroughProcess
+    {
+        [PipelineProcessRun]
+        public Task<PassthroughProcessResult> RunAsync(IPipelineFile[] files)
+            => Task.FromResult(new PassthroughProcessResult { Result = files });
+    }
+
+    private sealed class PassthroughProcessResult
+    {
+        public required IPipelineFile[] Result { get; init; }
     }
 
     private sealed class BlockingProcess
@@ -308,6 +320,31 @@ public class ProcessingRunnerTest
     }
 
     [TestMethod]
+    public async Task DeliveryFilesSetFromUploadPerFile()
+    {
+        var jobId = NewJob();
+        var upload = new PipelineFile(WriteTempFile("upload-content"), "uploaded.xtf");
+
+        var passthrough = BuildUploadPassthroughStep("passthrough");
+        var producer = BuildEmittingStep("producer", "payload", "report.log", "report-content", OutputAction.Delivery);
+        using var pipeline = BuildPipeline(jobId, passthrough, producer);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline, uploads: [upload]);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        Assert.IsTrue(
+            passthrough.DeliveryFiles.Single().FromUpload,
+            "A delivered upload forwarded by a step must be marked as coming from the upload.");
+        Assert.IsFalse(
+            producer.DeliveryFiles.Single().FromUpload,
+            "A delivered file produced by a step must not be marked as coming from the upload.");
+    }
+
+    [TestMethod]
     public async Task FileTaggedDownloadAndDeliveryIsWrittenToBothStoresUnderTheSameName()
     {
         var jobId = NewJob();
@@ -363,6 +400,7 @@ public class ProcessingRunnerTest
             var step1Response = response.Steps.Single(s => s.Id == "step_1");
             Assert.HasCount(1, step1Response.Downloads);
             Assert.AreEqual("first.log", step1Response.Downloads[0].OriginalFileName);
+            Assert.HasCount(0, step1Response.Deliveries);
 
             gate.SetResult();
             await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
@@ -376,6 +414,34 @@ public class ProcessingRunnerTest
             gate.TrySetResult();
             await runner.StopAsync(CancellationToken.None);
         }
+    }
+
+    [TestMethod]
+    public async Task StepResponseContainsDelivery()
+    {
+        var jobId = NewJob();
+        var step1 = BuildEmittingStep("step_1", "log", "first.log", "first-content", OutputAction.Delivery);
+        using var pipeline = BuildPipeline(jobId, step1);
+        var job = new ProcessingJob(jobId, Guid.NewGuid(), new List<ProcessingJobFile>(), 1, DateTime.UtcNow) { Pipeline = pipeline };
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        var response = job.ToResponse(
+            (id, file) => new Uri($"https://localhost/api/v2/processing/{id}/files/{file}"),
+            (id, file) => new Uri($"https://localhost/api/v2/processing/{id}/visualizations/{file}"));
+
+        Assert.HasCount(2, response.Steps);
+        Assert.AreEqual("preflight", response.Steps[0].Id);
+        var step1Response = response.Steps[1];
+        Assert.AreEqual("step_1", step1Response.Id);
+        Assert.HasCount(0, step1Response.Downloads);
+        Assert.HasCount(1, step1Response.Deliveries);
+        Assert.AreEqual("first.log", step1Response.Deliveries[0]);
+        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
     [TestMethod]
@@ -487,7 +553,7 @@ public class ProcessingRunnerTest
         await runner.StopAsync(CancellationToken.None);
 
         // The originals will never be archived, so they can go right away.
-        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(uploadId), Times.Once);
     }
 
     [TestMethod]
@@ -501,14 +567,14 @@ public class ProcessingRunnerTest
         var (runner, store) = CreateRunnerWithStore(pipeline);
 
         // A host shutdown leaves the job in Running: nobody has decided yet whether it mattered, so the
-        // originals have to survive. CloudCleanupService's age-based sweep is what collects them.
+        // originals have to survive. UploadCleanupService's age-based sweep is what collects them.
         store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Running));
 
         await runner.StartAsync(CancellationToken.None);
         await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
         await runner.StopAsync(CancellationToken.None);
 
-        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -527,7 +593,7 @@ public class ProcessingRunnerTest
         await runner.StopAsync(CancellationToken.None);
 
         // Declaring the delivery archives every original as primary data, so they must stay reachable.
-        cloudOrchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+        orchestrationServiceMock.Verify(c => c.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [TestMethod]
@@ -642,10 +708,10 @@ public class ProcessingRunnerTest
     private static ProcessingJob FinishedJob(Guid jobId, Guid uploadId, ProcessingState state)
         => new ProcessingJob(jobId, uploadId, new List<ProcessingJobFile>(), 1, DateTime.UtcNow) { State = state };
 
-    private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null)
+    private (ProcessingRunner Runner, Mock<IProcessingJobStore> Store) CreateRunnerWithStore(IPipeline pipeline, TimeSpan? jobTimeout = null, IReadOnlyList<IPipelineFile>? uploads = null)
     {
         var channel = Channel.CreateUnbounded<ProcessingWorkItem>();
-        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, Array.Empty<IPipelineFile>()));
+        channel.Writer.TryWrite(new ProcessingWorkItem(pipeline, uploads ?? Array.Empty<IPipelineFile>()));
         channel.Writer.Complete();
 
         var store = new Mock<IProcessingJobStore>();
@@ -692,6 +758,18 @@ public class ProcessingRunnerTest
             .Inputs(new Dictionary<string, InputValue>())
             .OutputActions([new OutputActionConfig { Property = "Result", Actions = new HashSet<OutputAction>(actions) }])
             .Process(new FileEmittingProcess(WriteTempFile(content), originalFileName))
+            .Logger(pipelineLogger)
+            .Build();
+
+    private PipelineStep BuildUploadPassthroughStep(string id) =>
+        PipelineStep
+            .Builder()
+            .Id(id)
+            .DisplayName(LocalizedText.Empty)
+            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
+            .Inputs(new Dictionary<string, InputValue> { ["files"] = new InputValue.UploadReference() })
+            .OutputActions([new OutputActionConfig { Property = "Result", Actions = new HashSet<OutputAction>(new[] { OutputAction.Delivery }) }])
+            .Process(new PassthroughProcess())
             .Logger(pipelineLogger)
             .Build();
 

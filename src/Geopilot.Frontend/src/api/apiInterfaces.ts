@@ -202,6 +202,7 @@ export interface StepResult {
   statusMessage?: LocalizedText;
   conditionMessage?: LocalizedText;
   downloads: StepDownload[];
+  deliveries: string[];
   visualizations: StepVisualization[];
 }
 
@@ -261,7 +262,7 @@ export interface UploadSettings {
   maxJobSizeMB: number;
 }
 
-export interface CloudUploadResponse {
+export interface InitiateUploadResponse {
   uploadId: string;
   files: { fileName: string; uploadUrl: string }[];
   expiresAt: string;

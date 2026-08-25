@@ -61,7 +61,7 @@ Ein Schritt und somit auch ein Prozess kann 1-n Inputs und 1-n Outputs haben. Di
 Die Daten der Schritte werden in einem Pipeline-Context akkumuliert. Die Schritte beziehen ihren Input von diesem Pipeline-Context. Am Ende der Pipeline-Ausführung stehen die Ergebnisse zur Datenlieferung oder zum Download bereit. Welche Behandlung eine Ausgabe erhält, wird über `output_actions` gesteuert: dort wird einer Result-Property über ihren Namen eine oder mehrere Actions zugewiesen. Die folgenden Actions können definiert werden:
 
 - `Download`: Die Daten werden zum Download bereitgestellt, und können von den Anwendern heruntergeladen werden. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein; andernfalls schlägt der Schritt zur Laufzeit fehl.
-- `Delivery`: Die Daten werden in der Lieferung mit abgegeben. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein; ein anderer Wert wird ignoriert und es wird nichts geliefert.
+- `Delivery`: Die Daten werden in der Lieferung mit abgegeben. Der Wert muss ein `IPipelineFile` oder eine Sammlung davon (`IEnumerable<IPipelineFile>`) sein; ein anderer Wert wird ignoriert und es wird nichts geliefert. Die Lieferung enthält nur **genau** die Dateien, die von einem Schritt als `Delivery` getaggt wurden. Um hochgeladene Dateien in der Lieferung zu berücksichtigen, wird üblicherweise ein Matcher-Schritt verwendet, der die Uploads als `${upload()}` erhält und seine Treffer und optional seine `UnmatchedFiles` als `Delivery` taggt. Der Asset-Typ einer gelieferten Datei ergibt sich aus ihrer Herkunft: kam sie als Upload in die Pipeline, wird sie als `PrimaryData` geführt, wurde sie innerhalb der Pipeline erzeugt oder bearbeitet, als `ProcessedData`. Enthält eine Lieferung keine einzige `Delivery`-getaggte Datei, wird die Deklaration mit einem Fehler abgelehnt.
 - `StatusMessage`: Kann für die Bereitstellung von Statusnachrichten verwendet werden, welche in der Benutzeroberfläche angezeigt werden. Der Typ für Daten welche als StatusMessage bereitgestellt werden, ist `LocalizedText` (ab PipelineCore 1.3). Aus Gründen der Abwärtskompatibilität wird weiterhin auch ein `Dictionary<string, string>` akzeptiert. Key ist dabei der Sprachcode (z.B. `de`, `en`, `fr`, `it`), und Value die Nachricht in der entsprechenden Sprache.
 - `Visualization`: Markiert die Ausgabe als Visualisierung. Der zugewiesene Wert muss ein `IVisualization`-Envelope sein (keine Datei); andernfalls schlägt der Schritt zur Laufzeit fehl. Die Runtime serialisiert ihn zu JSON (camelCase, `null`-Felder werden weggelassen), legt ihn im dedizierten Visualisierungs-Store ab und vermerkt eine Referenz auf dem Schritt, ausgeliefert wird er über den Visualisierungs-Endpunkt. Das JSON ist ein selbstbeschreibender Envelope `{ "type": <Diskriminator>, "data": <Payload> }`: `type` wählt die Frontend-Komponente, `data` ist der von ihr gerenderte Payload. Das konkrete `data`-Format ist prozessor-spezifisch und bei der jeweiligen Prozessor-Doku beschrieben. Diese Ausgabeaktion ist **eingebauten Prozessoren vorbehalten**: `IVisualization` ist nicht Teil des Plugin-Vertrags, und die darstellende Komponente liegt im geopilot-Frontend (siehe [Plugin-System](pluginSystem.md)).
 
@@ -138,7 +138,7 @@ pipelines:
       - Datei-Referenz: Als Wert kann eine Datei aus dem konfigurierten Ressourcen-Verzeichnis in der Form `${file(pfad)}` referenziert werden. Der Pfad ist relativ zum Ressourcen-Verzeichnis (Appsettings `Storage:ResourcesDirectory`), muss innerhalb dieses Verzeichnisses liegen (kein absoluter Pfad, keine `..`-Segmente) und wird dem Prozessparameter als `IPipelineFile` übergeben. Damit lässt sich eine konstante Datei (z.B. eine Vorlage oder eine Nachschlagetabelle) direkt injizieren, ohne dass ein vorheriger Schritt sie bereitstellen muss. Das Ressourcen-Verzeichnis wird vom Deployment bereitgestellt (z.B. als Volume gemountet).
     - `pipelines[0].steps[X].output_actions`: Optional. Weist einzelnen Result-Properties des Prozesses eine oder mehrere Actions zu. Die Outputs selbst müssen nicht deklariert werden: alle öffentlichen Properties des Prozess-Ergebnisses stehen den nachfolgenden Schritten implizit unter ihrem Property-Namen zur Verfügung. `output_actions` wird nur benötigt, wenn eine Property zusätzlich behandelt werden soll (herunterladbar, in der Lieferung, als Statusnachricht oder als Visualisierung). In diesem Beispiel werden vom Validierungsschritt (`steps[1]`) die Properties `ErrorLog` und `XtfLog` je zum Download bereitgestellt.
       - `pipelines[0].steps[X].output_actions[X].property`: Der Name der Result-Property des Prozesses (PascalCase), auf welche die Actions angewendet werden.
-      - `pipelines[0].steps[X].output_actions[X].actions`: Die Liste der Actions für diese Property. Es kann eine oder mehrere Actions geben (z.B. `Download` und `Delivery` gemeinsam).
+      - `pipelines[0].steps[X].output_actions[X].actions`: Die Liste der Actions für diese Property. Es kann eine oder mehrere Actions geben (z.B. `Download` und `Delivery` gemeinsam). Die Lieferung beinhaltet nur Dateien, welche explizit von einem Schritt als `Delivery`-Action bereitgestellt werden (siehe `Delivery` im [Datenfluss in der Pipeline](#datenfluss-in-der-pipeline)).
 
 ## Validierungen
 
@@ -160,6 +160,8 @@ Zum Programmstart wird validiert, ob die Pipeline-Definition korrekt ist. Dabei 
 - Der Zielparameter einer Datei-Referenz muss ein `IPipelineFile` (oder eine Liste davon) entgegennehmen, und die referenzierte Datei muss im konfigurierten Ressourcen-Verzeichnis vorhanden sein.
 - Innerhalb der `output_actions` eines Schrittes darf dieselbe `property` nicht mehrfach vorkommen.
 - Ein Schritt darf höchstens eine Property mit der Action `StatusMessage` taggen.
+- Ein Schritt darf nur Konfigurationsparameter überschreiben, welche auf der `default_config` des Prozesses definiert sind.
+- Die Pipeline-Definition darf keinen Konfigurationsschlüssel setzen, welcher bereits in der Basis-Konfiguration (`Pipeline:ProcessConfigs`) gesetzt ist, siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration).
 
 ## Konfiguration eines Pipeline-Prozessors
 
@@ -182,7 +184,7 @@ Es gibt folgende mögliche Typen von Konfigurationsparametern:
 
 #### Appsettings
 
-1. **Prozessor-Typ**: Der vollqualifizierte Prozessor für welchen die Konfiguration gilt.
+1. **Prozessor-Typ**: Der vollqualifizierte Prozessor für welchen die Konfiguration gilt. Der Schlüssel ist der Implementierungs-Typ und nicht die Prozess-Id, ein Eintrag gilt also für jeden `processes:`-Eintrag der Pipeline-Definition, welcher diese Implementierung nennt.
 2. **Prozessor-Parameter**: Key-Value-Paar der Parameter.
 
 Ein Beispiel für die Konfiguration eines Pipeline-Prozessors in den Appsettings könnte wie folgt aussehen:
@@ -197,6 +199,12 @@ Ein Beispiel für die Konfiguration eines Pipeline-Prozessors in den Appsettings
     }
   }
 }
+```
+
+Im Betrieb wird derselbe Wert in der Regel nicht als JSON, sondern als Umgebungsvariable gesetzt. Der Trenner ist dann `__` statt `:`:
+
+```
+Pipeline__ProcessConfigs__Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess__modelDirs=https://models.example.com/;https://models.interlis.ch/
 ```
 
 Das ist auch das typische Beispiel für die Wahl der Schicht: die Modell-Repositories bestimmen, wogegen validiert wird, gelten pro Umgebung und sollen von einer Pipeline nicht verändert werden können. Sie gehören deshalb in die Basis-Konfiguration und nicht in die Pipeline-Definition.
@@ -237,10 +245,29 @@ Die Übernahme eines Konfigurationsparameters ist hierarchisch und wird folgende
 
 Für das Überschreiben von Konfigurationsparametern gelten folgende Einschränkungen:
 
-- Basis-Konfigurationen, welche in den Appsettings definiert sind, können nicht von der Pipeline-Definition überschrieben werden. Ein in der Basis-Konfiguration definierter Wert ist somit fix und unveränderbar. Ein Beispiel für einen solchen Konfigurationsparameter ist die Basis-URL eines Drittanbieter-Services, welcher für die gesamte Umgebung gilt (Development, Acceptance, Prod, ...). Um die gleiche Pipeline auf den verschiedenen Umgebungen mit unterschiedlichen Basis-URLs verwenden zu können, sollte dieser Parameter in den Appsettings definiert werden und nicht in der Pipeline-Definition.
+- Basis-Konfigurationen, welche in den Appsettings definiert sind, können nicht von der Pipeline-Definition überschrieben werden. Ein in der Basis-Konfiguration definierter Wert ist somit fix und unveränderbar; der Versuch, ihn aus der Definition zu setzen, lässt die Applikation nicht starten (siehe [Kollision mit der Basis-Konfiguration](#kollision-mit-der-basis-konfiguration)). Ein Beispiel für einen solchen Konfigurationsparameter ist die Basis-URL eines Drittanbieter-Services, welcher für die gesamte Umgebung gilt (Development, Acceptance, Prod, ...). Um die gleiche Pipeline auf den verschiedenen Umgebungen mit unterschiedlichen Basis-URLs verwenden zu können, sollte dieser Parameter in den Appsettings definiert werden und nicht in der Pipeline-Definition.
 - Das Überschreiben von Konfigurations-Parameter wird in den Schritten unter `pipelines[X].steps[X].process_config_overwrites` vorgenommen. Um ein Konfigurationsparameter zu überschreiben muss dieser Parameter auf der Standard-Konfiguration des Prozesses definiert sein (`processes[X].default_config`). Es ist somit nicht möglich, neue Konfigurationsparameter in den Schritten zu definieren, welche nicht bereits in der Standard-Konfiguration definiert sind.
 
 Zu den Typen: Listen können nur in der Pipeline-Definition angegeben werden, die Appsettings-Ebene trägt nur Einzelwerte. Ein Parameter, der unveränderbar sein soll und trotzdem mehrere Werte braucht, wird deshalb als Einzelwert entworfen (der Prozessor `xtf_validator` nimmt seine Modell-Repositories zum Beispiel als semikolon-getrennten Wert).
+
+#### Kollision mit der Basis-Konfiguration
+
+Die Unveränderbarkeit der Basis-Konfiguration ist keine stille Vorrangregel, sondern wird beim Laden der Pipeline-Definition durchgesetzt: Steht derselbe Schlüssel in der Basis-Konfiguration **und** in der Pipeline-Definition (in `default_config` oder in `process_config_overwrites`), startet die Applikation nicht. Die Meldung nennt beide Orte:
+
+```
+errors in pipeline definition:
+PipelineProcessConfig: Process configuration collision for implementation
+'Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess': the key 'validationProfile' is set in the
+base configuration (app settings 'Pipeline:ProcessConfigs:Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess:validationProfile',
+environment variable 'Pipeline__ProcessConfigs__Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess__validationProfile')
+and in the pipeline definition ('processes[id=xtf_validator].default_config.validationProfile'). The base
+configuration cannot be overridden. Remove the key from the pipeline definition, or remove it from the base
+configuration if the value has to be set per pipeline.
+```
+
+Zu entfernen ist im Regelfall der Eintrag in der Pipeline-Definition, denn die Basis-Konfiguration ist bewusst nicht übersteuerbar. Soll der Wert dagegen pro Pipeline unterschiedlich sein, gehört er umgekehrt nicht in die Basis-Konfiguration. Die beiden Schichten werden typischerweise von verschiedenen Personen gepflegt (die Basis-Konfiguration im Hosting, die Definition in der gemounteten YAML), deshalb nennt die Meldung sowohl die Umgebungsvariable als auch den Pfad in der Definition.
+
+Dass eine Kollision die Applikation anhält, statt dass die Basis-Konfiguration einfach gewinnt, ist Absicht: Ein Schlüssel gehört genau einer Schicht. Betriebs- und sicherheitsrelevante Parameter (URLs, Pfade, Hosts, Tokens, Timeouts) gehören ausschliesslich in die Basis-Konfiguration, wo keine Pipeline-Definition sie erreicht; alles, was pro Pipeline oder pro Schritt variiert, gehört ausschliesslich in die Definition. Steht ein Schlüssel auf beiden Schichten, ist diese Zuordnung falsch. Würde die Basis-Konfiguration stattdessen nur mit einer Warnung gewinnen, bliebe der Schlüssel über die `default_config` weiterhin als überschreibbar deklariert, und sobald die Basis-Konfiguration einmal fehlt (neue Umgebung, aufgeräumtes Compose-File), wäre er ohne Codeänderung überschreibbar.
 
 #### Dateien als Konfiguration
 

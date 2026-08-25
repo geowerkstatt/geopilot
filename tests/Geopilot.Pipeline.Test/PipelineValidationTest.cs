@@ -1,4 +1,5 @@
-﻿using Geopilot.Pipeline.Process;
+﻿using Geopilot.Pipeline.Config;
+using Geopilot.Pipeline.Process;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Reflection;
@@ -8,6 +9,26 @@ namespace Geopilot.Pipeline.Test;
 [TestClass]
 public class PipelineValidationTest
 {
+    private const string XtfValidatorImplementation = "Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess";
+
+    private const string CollisionOrigin =
+        "Process configuration collision for implementation '" + XtfValidatorImplementation + "': " +
+        "the key 'validationProfile' is set in the base configuration " +
+        "(app settings 'Pipeline:ProcessConfigs:" + XtfValidatorImplementation + ":validationProfile', " +
+        "environment variable 'Pipeline__ProcessConfigs__" + XtfValidatorImplementation + "__validationProfile')";
+
+    private const string CollisionRemedy =
+        " The base configuration cannot be overridden. Remove the key from the pipeline definition, " +
+        "or remove it from the base configuration if the value has to be set per pipeline.";
+
+    private const string DefaultConfigCollision =
+        CollisionOrigin + " and in the pipeline definition " +
+        "('processes[id=xtf_validator].default_config.validationProfile')." + CollisionRemedy;
+
+    private const string StepOverwriteCollision =
+        CollisionOrigin + " and overwritten in the pipeline definition " +
+        "('pipelines[id=ili_validation].steps[id=validation].process_config_overwrites.validationProfile')." + CollisionRemedy;
+
     [TestMethod(DisplayName = "Pipeline Validation")]
     [DataRow("noProcesses", new string[] { "PipelineProcessConfig (Processes): Processes are required." }, DisplayName = "No Processes")]
     [DataRow("noPipelines", new string[] { "PipelineProcessConfig (Pipelines): Pipelines are required." }, DisplayName = "No Pipelines")]
@@ -53,6 +74,48 @@ public class PipelineValidationTest
         var expectedErrorMessage = string.Join(Environment.NewLine, expectedErrorMessages);
         var actualErrorMessage = validationErrors.ErrorMessage;
         Assert.AreEqual(expectedErrorMessage, actualErrorMessage);
+    }
+
+    [TestMethod(DisplayName = "Base configuration collision")]
+    [DataRow("baseConfigCollisionDefault", new string[] { "PipelineProcessConfig: " + DefaultConfigCollision }, DisplayName = "default_config sets a key the base configuration pins")]
+    [DataRow("baseConfigCollisionOverwrite", new string[] { "PipelineProcessConfig: " + DefaultConfigCollision, StepOverwriteCollision }, DisplayName = "default_config and a step overwrite set a key the base configuration pins")]
+    [DataRow("baseConfigCollisionNoImplementation", new string[] { "ProcessConfig (Implementation): Process Implementation is required." }, DisplayName = "a process without an implementation is reported as such, not looked up in the base configuration")]
+    public void BaseConfigCollision(string pipelineFile, string[] expectedErrorMessages)
+    {
+        PipelineFactory factory = CreatePipelineFactory(pipelineFile);
+        var processBaseConfigs = new Dictionary<string, Parameterization>(StringComparer.Ordinal)
+        {
+            { XtfValidatorImplementation, new Parameterization { { "validationProfile", "LOCKED" } } },
+        };
+
+        var validationErrors = factory.PipelineProcessConfig.Validate(processBaseConfigs);
+
+        Assert.IsTrue(validationErrors.HasErrors, "expected validation errors but none found");
+        Assert.AreEqual(string.Join(Environment.NewLine, expectedErrorMessages), validationErrors.ErrorMessage);
+    }
+
+    [TestMethod(DisplayName = "The same definition is valid without a base configuration")]
+    public void BaseConfigCollisionNeedsABaseConfig()
+    {
+        PipelineFactory factory = CreatePipelineFactory("baseConfigCollisionOverwrite");
+
+        var validationErrors = factory.PipelineProcessConfig.Validate();
+
+        Assert.IsFalse(validationErrors.HasErrors, validationErrors.ErrorMessage);
+    }
+
+    [TestMethod(DisplayName = "A base configuration of another implementation does not collide")]
+    public void BaseConfigCollisionIsKeyedByImplementation()
+    {
+        PipelineFactory factory = CreatePipelineFactory("baseConfigCollisionOverwrite");
+        var processBaseConfigs = new Dictionary<string, Parameterization>(StringComparer.Ordinal)
+        {
+            { "Geopilot.Pipeline.Processes.ZipPackage.ZipPackageProcess", new Parameterization { { "validationProfile", "LOCKED" } } },
+        };
+
+        var validationErrors = factory.PipelineProcessConfig.Validate(processBaseConfigs);
+
+        Assert.IsFalse(validationErrors.HasErrors, validationErrors.ErrorMessage);
     }
 
     private PipelineFactory CreatePipelineFactory(string filename)
