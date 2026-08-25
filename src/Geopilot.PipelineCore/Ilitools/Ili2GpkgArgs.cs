@@ -14,7 +14,9 @@ public sealed record Ili2GpkgArgs
 
     /// <summary>
     /// The INTERLIS model repositories the models are resolved from, searched in the given order.
-    /// Allowed entries are <c>http(s)</c> URLs and the tool placeholders <c>%XTF_DIR</c> and <c>%ILI_FROM_DB</c>.
+    /// Allowed entries are <c>http(s)</c> URLs and the tool placeholders <c>%XTF_DIR</c> and <c>%ILI_FROM_DB</c>;
+    /// <c>%XTF_DIR</c> also with a relative subfolder: the service keeps delivered model files in
+    /// <c>%XTF_DIR/models</c> and an extracted repository archive in <c>%XTF_DIR/repository</c>.
     /// Setting this replaces the default of the tool entirely, so the standard repositories have to be listed
     /// explicitly if they should still apply.
     /// Maps to the ili2gpkg option <c>--modeldir</c>, joined by a semicolon.

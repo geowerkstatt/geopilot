@@ -111,7 +111,7 @@ public static class ContextSeedExtensions
 
     private static void SeedMandates(this Context context)
     {
-        var knownFileFormats = new string[] { ".xtf", ".gpkg", ".*", ".itf", ".xml", ".zip", ".csv" };
+        var knownFileFormats = new string[] { ".xtf", ".gpkg", ".*", ".itf", ".ili", ".xml", ".zip", ".csv" };
         var mandateFaker = new Faker<Mandate>()
             .UseDateTimeReference(referenceDateTime)
             .StrictMode(true)
@@ -150,7 +150,7 @@ public static class ContextSeedExtensions
                 { "it", "Un mandato pubblico visibile senza accesso." },
             }),
             PipelineId = "ili_validation",
-            FileTypes = [".xtf"],
+            FileTypes = [".xtf", ".ili"],
             SpatialExtent = GetExtent(),
             IsPublic = true,
             AllowDelivery = true,

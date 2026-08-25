@@ -40,7 +40,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> ImportAsync(Ili2GpkgArgs args, IPipelineFile inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> ImportAsync(Ili2GpkgArgs args, IPipelineFile inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting Ili2Gpkg import operation for {Count} transfer file(s).", transferFiles.Count);
 
@@ -53,13 +53,15 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
             await SendFileAsync(call.RequestStream, Ili2gpkgFileType.TransferFile, transferFile, cancellationToken);
         }
 
+        await SendModelFilesAsync(call.RequestStream, modelFiles, cancellationToken);
+
         await call.RequestStream.CompleteAsync();
 
         return await ReceiveResponseAsync(call.ResponseStream, Ili2gpkgFileType.DbFile, outputFile, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> ExportAsync(Ili2GpkgArgs args, IPipelineFile gpkgFile, IPipelineFile transferFile, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> ExportAsync(Ili2GpkgArgs args, IPipelineFile gpkgFile, IPipelineFile transferFile, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting Ili2Gpkg export operation.");
 
@@ -67,13 +69,14 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
 
         await call.RequestStream.WriteAsync(CreateConvertRequest(ConvertOperation.OperationExport, args), cancellationToken);
         await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, gpkgFile, cancellationToken);
+        await SendModelFilesAsync(call.RequestStream, modelFiles, cancellationToken);
         await call.RequestStream.CompleteAsync();
 
         return await ReceiveResponseAsync(call.ResponseStream, Ili2gpkgFileType.TransferFile, transferFile, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> UpdateAsync(Ili2GpkgArgs args, IPipelineFile inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> UpdateAsync(Ili2GpkgArgs args, IPipelineFile inputFile, IPipelineFile outputFile, IReadOnlyList<IPipelineFile> transferFiles, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting Ili2Gpkg update operation for {Count} transfer file(s).", transferFiles.Count);
 
@@ -86,13 +89,15 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
             await SendFileAsync(call.RequestStream, Ili2gpkgFileType.TransferFile, transferFile, cancellationToken);
         }
 
+        await SendModelFilesAsync(call.RequestStream, modelFiles, cancellationToken);
+
         await call.RequestStream.CompleteAsync();
 
         return await ReceiveResponseAsync(call.ResponseStream, Ili2gpkgFileType.DbFile, outputFile, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<Ili2GpkgResult> ValidateAsync(Ili2GpkgArgs args, IPipelineFile gpkgFile, IPipelineFile xtfLogFile, CancellationToken cancellationToken = default)
+    public async Task<Ili2GpkgResult> ValidateAsync(Ili2GpkgArgs args, IPipelineFile gpkgFile, IPipelineFile xtfLogFile, IReadOnlyList<IPipelineFile>? modelFiles = null, CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Starting Ili2Gpkg validation operation.");
 
@@ -100,9 +105,19 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
 
         await call.RequestStream.WriteAsync(CreateConvertRequest(ConvertOperation.OperationValidate, args), cancellationToken);
         await SendFileAsync(call.RequestStream, Ili2gpkgFileType.DbFile, gpkgFile, cancellationToken);
+        await SendModelFilesAsync(call.RequestStream, modelFiles, cancellationToken);
         await call.RequestStream.CompleteAsync();
 
         return await ReceiveResponseAsync(call.ResponseStream, Ili2gpkgFileType.XtfLogFile, xtfLogFile, cancellationToken);
+    }
+
+    private async Task SendModelFilesAsync(IClientStreamWriter<ConvertRequest> requestStream, IReadOnlyList<IPipelineFile>? modelFiles, CancellationToken cancellationToken)
+    {
+        foreach (var modelFile in modelFiles ?? [])
+        {
+            logger.LogInformation("Sending delivered model file {FileName}.", modelFile.OriginalFileName);
+            await SendFileAsync(requestStream, Ili2gpkgFileType.ModelFile, modelFile, cancellationToken);
+        }
     }
 
     private static ConvertRequest CreateConvertRequest(ConvertOperation operation, Ili2GpkgArgs args)
