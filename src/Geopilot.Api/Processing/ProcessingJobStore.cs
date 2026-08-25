@@ -44,24 +44,6 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
-    public ProcessingJob MarkAsFailed(Guid jobId)
-    {
-        return jobs.AddOrUpdate(
-            jobId,
-            id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
-            (id, currentJob) =>
-            {
-                if (!CanMarkAsFailed(currentJob))
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot transition job <{id}> from <{currentJob.State}> to <{ProcessingState.Failed}>.");
-                }
-
-                return currentJob with { State = ProcessingState.Failed };
-            });
-    }
-
-    /// <inheritdoc/>
     public bool TryMarkAsFailed(Guid jobId) =>
         TryTransition(jobId, CanMarkAsFailed, ProcessingState.Failed);
 

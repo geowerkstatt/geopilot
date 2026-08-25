@@ -37,18 +37,11 @@ public interface IProcessingJobStore
     ProcessingJob CreateJob(Guid uploadId);
 
     /// <summary>
-    /// Marks the specified job as failed (e.g. preflight failure before a pipeline could be created).
-    /// </summary>
-    /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
-    /// <exception cref="InvalidOperationException">If the job is already in a terminal state.</exception>
-    ProcessingJob MarkAsFailed(Guid jobId);
-
-    /// <summary>
-    /// Marks the job as failed and reports whether it happened, instead of throwing when the transition is
-    /// not allowed. This is the variant for error paths: a caller that is itself handling a failure cannot
-    /// afford a second exception, because it escapes to the hosting background service and stops the host
-    /// instead of recording the failure. Use the throwing <see cref="MarkAsFailed"/> wherever an invalid
-    /// transition is a programming error that has to surface.
+    /// Marks the job as failed (e.g. a preflight failure before a pipeline could be created) and reports
+    /// whether it happened, instead of throwing when the transition is not allowed. There is no throwing
+    /// counterpart: a job is only ever marked as failed by a caller that is already handling a failure, and
+    /// such a caller cannot afford a second exception, because it escapes to the hosting background service
+    /// and stops the host instead of recording the failure.
     /// </summary>
     /// <param name="jobId">The job to mark as failed.</param>
     /// <returns><see langword="true"/> when the job was marked as failed; <see langword="false"/> when it is

@@ -94,7 +94,7 @@ public class ProcessingJobStoreTest
     public void AttachPipelineThrowsIfJobFailed()
     {
         var job = store.CreateJob(Guid.NewGuid());
-        store.MarkAsFailed(job.Id);
+        store.TryMarkAsFailed(job.Id);
 
         Assert.ThrowsExactly<InvalidOperationException>(() => store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 0));
     }
@@ -183,32 +183,6 @@ public class ProcessingJobStoreTest
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => store.PipelineFinished(job.Id, pipelineState));
-    }
-
-    [TestMethod]
-    public void MarkAsFailedSetsState()
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-        var updated = store.MarkAsFailed(job.Id);
-
-        Assert.AreEqual(ProcessingState.Failed, updated.State);
-    }
-
-    [TestMethod]
-    public void MarkAsFailedThrowsIfAlreadyTerminal()
-    {
-        var job = store.CreateJob(Guid.NewGuid());
-        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
-        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
-        store.PipelineFinished(job.Id, ProcessingState.Success);
-
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.MarkAsFailed(job.Id));
-    }
-
-    [TestMethod]
-    public void MarkAsFailedThrowsIfJobNotFound()
-    {
-        Assert.ThrowsExactly<ArgumentException>(() => store.MarkAsFailed(Guid.NewGuid()));
     }
 
     [TestMethod]

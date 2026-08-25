@@ -766,7 +766,7 @@ public class ProcessingRunnerTest
             // The job reaches a terminal state while its pipeline is still running, so the transition the
             // runner attempts once the pipeline finishes is no longer valid and the strict guard rejects it.
             await WaitUntilAsync(() => pipeline.State == ProcessingState.Running, TimeSpan.FromSeconds(10));
-            store.MarkAsFailed(job.Id);
+            Assert.IsTrue(store.TryMarkAsFailed(job.Id), "The job has to reach its terminal state before the pipeline does.");
             gate.SetResult();
 
             await uploadReleased.Task.WaitAsync(TimeSpan.FromSeconds(10));
