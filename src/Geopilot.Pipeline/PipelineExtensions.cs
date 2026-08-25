@@ -13,6 +13,26 @@ internal static class PipelineExtensions
     }
 
     /// <summary>
+    /// Resolves a file passed between steps back to its origin by unwrapping <see cref="CopyOnWriteFile"/>.
+    /// For an unchanged file, this yields the exact instance created by the pipeline (e.g. an uploaded file
+    /// or a step-produced file).
+    /// A file that was mutated in place is treated as a new file produced by a step. That is required, not
+    /// just a convention: the delivery archives the file through the same copy-on-write view (OpenReadAsync
+    /// resolves to Current), so resolving the origin past a materialized copy would label mutated bytes as
+    /// the submitted original.
+    /// </summary>
+    internal static IPipelineFile UnwrapOrigin(this IPipelineFile file)
+    {
+        var current = file;
+        while (current is CopyOnWriteFile copyOnWrite)
+        {
+            current = copyOnWrite.Current;
+        }
+
+        return current;
+    }
+
+    /// <summary>
     /// Validates a pipeline definition against its validation attributes. The base configuration of the
     /// processes (appsettings <c>Pipeline:ProcessConfigs</c>) is part of the input because the definition
     /// alone does not decide validity: a key the base configuration pins must not be set by the

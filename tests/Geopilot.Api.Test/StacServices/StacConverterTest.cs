@@ -64,7 +64,7 @@ public class StacConverterTest
                 {
                     Id = 5,
                     OriginalFilename = "log.txt",
-                    AssetType = AssetType.ValidationReport,
+                    AssetType = AssetType.ProcessedData,
                 },
             },
         };

@@ -183,7 +183,8 @@ public class ProcessingRunner : BackgroundService
     /// completed, deliverable run (gated in <see cref="ExecuteAsync"/>). Download and delivery names are assigned
     /// independently; for a file tagged with both actions they coincide except in the rare case of two outputs
     /// sharing an original file name within one step, which is harmless because the download endpoint serves only
-    /// from the download store.
+    /// from the download store. Each delivery file's origin is traced back via <see cref="PipelineExtensions.UnwrapOrigin"/>
+    /// so a file that entered as an upload can be told apart from one produced by a step.
     /// </summary>
     internal async Task ExtractDeliveryFilesAsync(IPipeline pipeline, PipelineContext context, CancellationToken cancellationToken = default)
     {
@@ -205,11 +206,12 @@ public class ProcessingRunner : BackgroundService
 
                 var data = stepResult.ExtractProperty(outputAction.Property);
 
-                foreach (var transferFile in ResolveFiles(data))
+                foreach (var deliveryFile in ResolveFiles(data))
                 {
-                    var fileName = MakeUniqueStepFileName(stepIdPrefix, transferFile.OriginalFileName, usedNames);
-                    await CopyToAsync(assetFileStore, pipeline.JobId, fileName, transferFile, cancellationToken);
-                    step.AddDeliveryFile(new PersistedFile(transferFile.OriginalFileName, fileName));
+                    var fileName = MakeUniqueStepFileName(stepIdPrefix, deliveryFile.OriginalFileName, usedNames);
+                    await CopyToAsync(assetFileStore, pipeline.JobId, fileName, deliveryFile, cancellationToken);
+                    var fromUpload = context.Upload.Contains(deliveryFile.UnwrapOrigin(), ReferenceEqualityComparer.Instance);
+                    step.AddDeliveryFile(new PersistedFile(deliveryFile.OriginalFileName, fileName, fromUpload));
                 }
             }
         }
@@ -217,11 +219,10 @@ public class ProcessingRunner : BackgroundService
 
     /// <summary>
     /// Drops the job's uploaded blobs as soon as they can no longer be needed. A run that cannot be
-    /// delivered will never archive its originals, so they go right away. A deliverable run keeps them
-    /// until the job is retired, because declaring the delivery archives every original as primary data.
-    /// A job still in <see cref="ProcessingState.Running"/> was interrupted by a host shutdown, so its
-    /// blobs stay: the in-memory job does not survive the restart, and the age-based sweep in
-    /// UploadCleanupService is what eventually collects them.
+    /// delivered will never be declared, so its uploads go right away. A deliverable run keeps them until
+    /// the job is retired. A job still in <see cref="ProcessingState.Running"/> was interrupted by a host
+    /// shutdown, so its blobs stay: the in-memory job does not survive the restart, and the age-based sweep
+    /// in UploadCleanupService is what eventually collects them.
     /// </summary>
     private async Task ReleaseUploadIfNotDeliverableAsync(Guid jobId)
     {
