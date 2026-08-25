@@ -160,8 +160,7 @@ public class ProcessingJobStore : IProcessingJobStore
     /// <summary>
     /// Applies <paramref name="newState"/> when <paramref name="isAllowed"/> accepts the job's current state,
     /// retrying against the freshly read job whenever a concurrent write wins the compare-and-swap. Reports the
-    /// outcome rather than throwing, so a caller that is already handling a failure cannot make it worse. The
-    /// transition rules are shared with the throwing operations, so both variants can never drift apart.
+    /// outcome rather than throwing, so a caller that is already handling a failure cannot make it worse.
     /// </summary>
     private bool TryTransition(Guid jobId, Func<ProcessingJob, bool> isAllowed, ProcessingState newState)
     {

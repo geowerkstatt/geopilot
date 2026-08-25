@@ -87,8 +87,8 @@ public class ProcessingRunner : BackgroundService
                 // only for a successful, deliverable run).
                 logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, processingOptions.JobTimeout);
 
-                // Tolerant variant: a throwing transition would escape this catch block and take the whole
-                // loop, and by default the host, down instead of recording the timeout.
+                // Nothing above this catch block handles an exception, so the reporting variant keeps
+                // an unexpected job state in the log instead of stopping the host.
                 if (!jobStore.TryPipelineFinished(pipeline.JobId, ProcessingState.Cancelled))
                     logger.LogWarning("Job <{JobId}> was not transitioned to <{State}>: it is unknown or no longer running.", pipeline.JobId, ProcessingState.Cancelled);
             }
@@ -106,10 +106,10 @@ public class ProcessingRunner : BackgroundService
             }
             finally
             {
-                // Both cleanup steps run unconditionally and each one is guarded on its own. This is the
-                // body of a Parallel.ForEachAsync inside a BackgroundService: an exception escaping here
-                // aborts the whole loop, so the queue stops draining, and by default it stops the host.
-                // A shared guard would make releasing the upload depend on the disposal succeeding.
+                // This is the body of a Parallel.ForEachAsync inside a BackgroundService: an exception
+                // escaping here aborts the whole loop, so the queue stops draining, and by default it
+                // stops the host. Each cleanup step is guarded on its own, so releasing the upload is
+                // independent of the disposal.
                 try
                 {
                     // Free process-owned resources (e.g. HttpClient) immediately. Pipeline state, step
