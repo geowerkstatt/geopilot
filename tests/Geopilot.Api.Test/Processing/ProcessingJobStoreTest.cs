@@ -266,13 +266,13 @@ public class ProcessingJobStoreTest
     [TestMethod]
     [DataRow(ProcessingState.Pending)]
     [DataRow(ProcessingState.Running)]
-    public void TryPipelineFinishedReturnsFalseIfPipelineStateIsNotTerminal(ProcessingState pipelineState)
+    public void TryPipelineFinishedThrowsIfPipelineStateIsNotTerminal(ProcessingState pipelineState)
     {
         var job = store.CreateJob(Guid.NewGuid());
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
 
-        Assert.IsFalse(store.TryPipelineFinished(job.Id, pipelineState));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => store.TryPipelineFinished(job.Id, pipelineState));
         Assert.AreEqual(ProcessingState.Running, store.GetJob(job.Id)!.State);
     }
 

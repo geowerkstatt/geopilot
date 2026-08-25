@@ -44,11 +44,11 @@ public interface IProcessingJobStore
     ProcessingJob MarkAsFailed(Guid jobId);
 
     /// <summary>
-    /// Marks the job as failed and reports whether it happened, instead of throwing. This is the variant for
-    /// error paths: a caller that is itself handling a failure cannot afford a second exception, because it
-    /// escapes to the hosting background service and stops the host instead of recording the failure. Use the
-    /// throwing <see cref="MarkAsFailed"/> wherever an invalid transition is a programming error that has to
-    /// surface.
+    /// Marks the job as failed and reports whether it happened, instead of throwing when the transition is
+    /// not allowed. This is the variant for error paths: a caller that is itself handling a failure cannot
+    /// afford a second exception, because it escapes to the hosting background service and stops the host
+    /// instead of recording the failure. Use the throwing <see cref="MarkAsFailed"/> wherever an invalid
+    /// transition is a programming error that has to surface.
     /// </summary>
     /// <param name="jobId">The job to mark as failed.</param>
     /// <returns><see langword="true"/> when the job was marked as failed; <see langword="false"/> when it is
@@ -70,14 +70,16 @@ public interface IProcessingJobStore
     ProcessingJob PipelineFinished(Guid jobId, ProcessingState pipelineState);
 
     /// <summary>
-    /// Transitions the job to its terminal state and reports whether it happened, instead of throwing. See
-    /// <see cref="TryMarkAsFailed"/> for when to prefer this over <see cref="PipelineFinished"/>.
+    /// Transitions the job to its terminal state and reports whether it happened, instead of throwing when
+    /// the transition is not allowed. See <see cref="TryMarkAsFailed"/> for when to prefer this over
+    /// <see cref="PipelineFinished"/>.
     /// </summary>
     /// <param name="jobId">The job whose pipeline has finished.</param>
     /// <param name="pipelineState">The terminal state the pipeline ended in.</param>
     /// <returns><see langword="true"/> when the job was transitioned; <see langword="false"/> when it is
-    /// unknown, is not in <see cref="ProcessingState.Running"/>, or <paramref name="pipelineState"/> is not a
-    /// terminal state, in which case the job is left untouched.</returns>
+    /// unknown or not in <see cref="ProcessingState.Running"/>, in which case it is left untouched.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="pipelineState"/> is not a terminal
+    /// state, which is a defect at the call site rather than a job that moved on.</exception>
     bool TryPipelineFinished(Guid jobId, ProcessingState pipelineState);
 
     /// <summary>

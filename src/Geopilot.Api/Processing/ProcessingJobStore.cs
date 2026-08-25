@@ -68,13 +68,7 @@ public class ProcessingJobStore : IProcessingJobStore
     /// <inheritdoc/>
     public ProcessingJob PipelineFinished(Guid jobId, ProcessingState pipelineState)
     {
-        if (!IsTerminal(pipelineState))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(pipelineState),
-                pipelineState,
-                "Pipeline must have finished in a terminal state.");
-        }
+        EnsureStateIsTerminal(pipelineState);
 
         return jobs.AddOrUpdate(
             jobId,
@@ -92,8 +86,15 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
-    public bool TryPipelineFinished(Guid jobId, ProcessingState pipelineState) =>
-        IsTerminal(pipelineState) && TryTransition(jobId, CanCompletePipeline, pipelineState);
+    public bool TryPipelineFinished(Guid jobId, ProcessingState pipelineState)
+    {
+        // A state that is not terminal is a defect at the call site and cannot be caused by a race, so
+        // it surfaces here just as it does in the throwing operation. What this operation tolerates is
+        // a job that moved on, not a wrong argument.
+        EnsureStateIsTerminal(pipelineState);
+
+        return TryTransition(jobId, CanCompletePipeline, pipelineState);
+    }
 
     /// <inheritdoc/>
     public ProcessingJob AttachPipeline(Guid jobId, IPipeline pipeline, int mandateId)
@@ -150,6 +151,17 @@ public class ProcessingJobStore : IProcessingJobStore
     private static bool IsTerminal(ProcessingState state) =>
         state is ProcessingState.Success or ProcessingState.Warning or ProcessingState.DeliveryRestriction
             or ProcessingState.Failed or ProcessingState.Cancelled;
+
+    private static void EnsureStateIsTerminal(ProcessingState pipelineState)
+    {
+        if (!IsTerminal(pipelineState))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pipelineState),
+                pipelineState,
+                "Pipeline must have finished in a terminal state.");
+        }
+    }
 
     private static bool CanMarkAsFailed(ProcessingJob job) =>
         job.State is ProcessingState.Pending or ProcessingState.Running;
