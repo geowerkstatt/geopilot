@@ -329,7 +329,7 @@ namespace Geopilot.Api.Controllers
                 .Returns(processingJob);
             var assetHandlerMock = new Mock<IAssetHandler>();
             assetHandlerMock
-                .Setup(p => p.PersistJobAssetsAsync(guid, It.IsAny<CancellationToken>()))
+                .Setup(p => p.RecordJobAssetsAsync(guid, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<Asset> { new Asset(), new Asset() });
 
             var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();

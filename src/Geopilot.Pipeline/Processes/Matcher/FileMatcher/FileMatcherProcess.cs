@@ -67,6 +67,7 @@ internal class FileMatcherProcess
         return Task.FromResult(result: new FileMatcherResult
         {
             MatchedFiles = matchedFiles,
+            UnmatchedFiles = files.Except(matchedFiles).ToArray(),
             StatusMessage = statusMessage,
         });
     }

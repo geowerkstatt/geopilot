@@ -6,5 +6,7 @@ internal class FileMatcherResult
 {
     public required IPipelineFile[] MatchedFiles { get; init; }
 
+    public required IPipelineFile[] UnmatchedFiles { get; init; }
+
     public required LocalizedText StatusMessage { get; init; }
 }

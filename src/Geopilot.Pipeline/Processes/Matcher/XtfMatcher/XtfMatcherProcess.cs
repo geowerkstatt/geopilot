@@ -92,6 +92,7 @@ internal class XtfMatcherProcess
         return new XtfMatcherResult
         {
             XtfFiles = matchedFiles,
+            UnmatchedFiles = files.Except(matchedFiles).ToArray(),
             StatusMessage = statusMessage,
         };
     }

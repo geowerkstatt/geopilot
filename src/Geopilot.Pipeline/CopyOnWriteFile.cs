@@ -46,7 +46,7 @@ internal sealed class CopyOnWriteFile : IPipelineFile
     /// <summary>
     /// Gets the private copy once it has been materialized, otherwise the wrapped input.
     /// </summary>
-    private IPipelineFile Current => this.localCopy ?? this.inner;
+    internal IPipelineFile Current => this.localCopy ?? this.inner;
 
     /// <inheritdoc/>
     public Task<Stream> OpenReadAsync(CancellationToken cancellationToken = default) => this.Current.OpenReadAsync(cancellationToken);

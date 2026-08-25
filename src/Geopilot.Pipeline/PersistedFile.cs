@@ -7,4 +7,5 @@
 /// </summary>
 /// <param name="OriginalFileName">The human-readable file name reported by the producing process.</param>
 /// <param name="PersistedFileName">The file name on disk under the job's delivery or download directory.</param>
-public record PersistedFile(string OriginalFileName, string PersistedFileName);
+/// <param name="FromUpload">Whether this file entered the pipeline as an upload (as opposed to being produced by a step).</param>
+public record PersistedFile(string OriginalFileName, string PersistedFileName, bool FromUpload = false);

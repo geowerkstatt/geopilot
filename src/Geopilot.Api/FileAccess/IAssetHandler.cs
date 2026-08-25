@@ -3,20 +3,20 @@
 namespace Geopilot.Api.FileAccess
 {
     /// <summary>
-    /// Provides functionality to move, delete and download asset files.
+    /// Provides functionality to record, delete and download asset files.
     /// </summary>
     public interface IAssetHandler
     {
         /// <summary>
-        /// Migrates all log files for a validation job into a persistent storage.
+        /// Records the job assets to be persisted.
         /// </summary>
         /// <param name="jobId">The validation job id.</param>
-        /// <param name="cancellationToken">Cancels fetching the uploaded originals.</param>
+        /// <param name="cancellationToken">A token to cancel the operation.</param>
         /// <returns>List of <see cref="Asset" /> representing the validation job assets in persistent storage.</returns>
-        Task<IEnumerable<Asset>> PersistJobAssetsAsync(Guid jobId, CancellationToken cancellationToken = default);
+        Task<IEnumerable<Asset>> RecordJobAssetsAsync(Guid jobId, CancellationToken cancellationToken);
 
         /// <summary>
-        /// Deletes all log files for a validation job from persistent storage.
+        /// Deletes all job assets from persistent storage.
         /// </summary>
         /// <param name="jobId">The given job id.</param>
         void DeleteJobAssets(Guid jobId);
