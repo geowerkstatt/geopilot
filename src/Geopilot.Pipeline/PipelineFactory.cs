@@ -12,6 +12,16 @@ namespace Geopilot.Pipeline;
 /// </summary>
 public class PipelineFactory : IPipelineFactory
 {
+    // Same naming convention and LocalizedText handling as the deserializer in Builder.Yaml, so the
+    // snapshot reads like the definition it was taken from; JsonCompatible because the snapshot is
+    // stored and queried as JSON.
+    private static readonly ISerializer SnapshotSerializer = new SerializerBuilder()
+        .WithNamingConvention(UnderscoredNamingConvention.Instance)
+        .WithTypeConverter(new LocalizedTextYamlConverter())
+        .JsonCompatible()
+        .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull)
+        .Build();
+
     private readonly ILogger logger;
     private readonly ILoggerFactory loggerFactory;
     private readonly string pipelineTempDirectory;
@@ -73,6 +83,35 @@ public class PipelineFactory : IPipelineFactory
         {
             throw new InvalidOperationException($"pipeline for '{id}' not found");
         }
+    }
+
+    /// <inheritdoc />
+    public string GetDefinitionSnapshotJson(string pipelineId)
+    {
+        var pipelineConfig = PipelineProcessConfig.Pipelines.Find(p => p.Id == pipelineId)
+            ?? throw new InvalidOperationException($"pipeline for '{pipelineId}' not found");
+
+        var referencedProcessIds = pipelineConfig.Steps
+            .Select(step => step.ProcessId)
+            .OfType<string>()
+            .ToHashSet(StringComparer.Ordinal);
+        var processes = PipelineProcessConfig.Processes
+            .Where(process => referencedProcessIds.Contains(process.Id))
+            .ToList();
+
+        var implementations = processes.Select(process => process.Implementation).ToHashSet(StringComparer.Ordinal);
+        var processConfigs = processBaseConfigs?
+            .Where(entry => implementations.Contains(entry.Key))
+            .ToDictionary(entry => entry.Key, entry => entry.Value);
+
+        var snapshot = new DefinitionSnapshot
+        {
+            Pipelines = new List<PipelineConfig> { pipelineConfig },
+            Processes = processes,
+            ProcessConfigs = processConfigs is { Count: > 0 } ? processConfigs : null,
+        };
+
+        return SnapshotSerializer.Serialize(snapshot);
     }
 
     /// <inheritdoc />

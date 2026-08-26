@@ -46,8 +46,11 @@ internal sealed class LocalizedTextYamlConverter : IYamlTypeConverter
         emitter.Emit(new MappingStart());
         foreach (var language in localized.Languages)
         {
-            emitter.Emit(new Scalar(language));
-            emitter.Emit(new Scalar(localized[language] ?? string.Empty));
+            // Double-quoted on purpose: a type converter emits past the serializer's event pipeline,
+            // so in JSON-compatible mode (the definition snapshot) plain scalars would produce invalid
+            // JSON. Quoted scalars are valid in both YAML and JSON output.
+            emitter.Emit(new Scalar(AnchorName.Empty, TagName.Empty, language, ScalarStyle.DoubleQuoted, false, true));
+            emitter.Emit(new Scalar(AnchorName.Empty, TagName.Empty, localized[language] ?? string.Empty, ScalarStyle.DoubleQuoted, false, true));
         }
 
         emitter.Emit(new MappingEnd());
