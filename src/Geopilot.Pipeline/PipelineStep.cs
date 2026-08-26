@@ -3,6 +3,7 @@ using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Reflection;
 
 namespace Geopilot.Pipeline;
@@ -12,6 +13,8 @@ namespace Geopilot.Pipeline;
 /// </summary>
 internal sealed class PipelineStep : IPipelineStep
 {
+    private const int MaxRenderedValueLength = 500;
+
     private bool disposed;
 
     /// <inheritdoc/>
@@ -50,6 +53,15 @@ internal sealed class PipelineStep : IPipelineStep
     public StepState State { get; set; }
 
     /// <inheritdoc/>
+    public DateTime? StartedAt { get; private set; }
+
+    /// <inheritdoc/>
+    public DateTime? FinishedAt { get; private set; }
+
+    /// <inheritdoc/>
+    public string? ErrorMessage { get; private set; }
+
+    /// <inheritdoc/>
     public LocalizedText? StatusMessage { get; private set; }
 
     /// <inheritdoc/>
@@ -80,6 +92,11 @@ internal sealed class PipelineStep : IPipelineStep
     /// <inheritdoc/>
     public void AddVisualization(StepVisualization visualization) =>
         ImmutableInterlocked.Update(ref visualizations, static (list, v) => list.Add(v), visualization);
+
+    private ImmutableList<ConditionEvaluation> conditionEvaluations = ImmutableList<ConditionEvaluation>.Empty;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<ConditionEvaluation> ConditionEvaluations => conditionEvaluations;
 
     private readonly ConditionEvaluator conditionEvaluator;
 
@@ -129,6 +146,7 @@ internal sealed class PipelineStep : IPipelineStep
     public async Task<StepResult> Run(PipelineContext context, CancellationToken cancellationToken)
     {
         logger.LogInformation($"run step.");
+        this.StartedAt = DateTime.UtcNow;
         try
         {
             var preOutcome = await EvaluatePreConditions(context);
@@ -148,21 +166,39 @@ internal sealed class PipelineStep : IPipelineStep
             this.StatusMessage = statusMessage;
             return stepResult;
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
             // The caller (job timeout or host shutdown) cancelled us; that's not a
             // step failure. Mark the step Cancelled so the pipeline state getter and
             // downstream consumers can distinguish it from a crash.
             this.State = StepState.Cancelled;
+            this.ErrorMessage = ex.Message;
             logger.LogInformation("Step cancelled.");
             throw;
         }
         catch (Exception ex)
         {
             this.State = StepState.Error;
+            this.ErrorMessage = ComposeErrorMessage(ex);
             logger.LogError(ex, $"Error in step.");
             throw;
         }
+        finally
+        {
+            this.FinishedAt = DateTime.UtcNow;
+        }
+    }
+
+    /// <summary>
+    /// Renders the exception that ended the step for <see cref="ErrorMessage"/>: the outer message names
+    /// the failing part (e.g. the process), the innermost message carries the actual reason.
+    /// </summary>
+    private static string ComposeErrorMessage(Exception exception)
+    {
+        var baseException = exception.GetBaseException();
+        return ReferenceEquals(baseException, exception)
+            ? exception.Message
+            : $"{exception.Message} {baseException.Message}";
     }
 
     private async Task<StepResult> ExecuteProcess(PipelineContext context, CancellationToken cancellationToken)
@@ -198,20 +234,60 @@ internal sealed class PipelineStep : IPipelineStep
         return new StepResult { Result = result };
     }
 
-    private async Task<List<ConditionConfig>> FindMatchingConditions(List<ConditionConfig>? conditions, Dictionary<string, object?> parameters)
+    /// <summary>
+    /// Evaluates the given conditions in order and returns the matching ones. Every evaluation, matching
+    /// or not, is recorded on <see cref="ConditionEvaluations"/> together with the values the expression
+    /// referenced, so a consumer can reconstruct why the step ended in its state.
+    /// </summary>
+    private async Task<List<ConditionConfig>> FindMatchingConditions(
+        List<ConditionConfig>? conditions,
+        ConditionPhase phase,
+        ConditionKind kind,
+        Dictionary<string, object?> parameters)
     {
         var matched = new List<ConditionConfig>();
         if (conditions != null)
         {
             foreach (var condition in conditions)
             {
-                if (await this.conditionEvaluator.EvaluateConditionAsync(condition.Expression, parameters))
+                var result = await this.conditionEvaluator.EvaluateConditionAsync(condition.Expression, parameters);
+
+                var evaluation = new ConditionEvaluation(
+                    condition.Id,
+                    phase,
+                    kind,
+                    condition.Expression,
+                    result.Matched,
+                    RenderParameters(result.ReferencedParameters));
+                ImmutableInterlocked.Update(ref conditionEvaluations, static (list, e) => list.Add(e), evaluation);
+
+                if (result.Matched)
                     matched.Add(condition);
             }
         }
 
         return matched;
     }
+
+    /// <summary>
+    /// Renders the raw values a condition expression referenced into display strings for
+    /// <see cref="ConditionEvaluation.Parameters"/>: scalars invariant-culture formatted and truncated,
+    /// collections reduced to their count. Consumers need the evaluated values, not the objects.
+    /// </summary>
+    private static Dictionary<string, string?> RenderParameters(IReadOnlyDictionary<string, object?> parameters) =>
+        parameters.ToDictionary(entry => entry.Key, entry => RenderValue(entry.Value));
+
+    private static string? RenderValue(object? value) => value switch
+    {
+        null => null,
+        string text => Truncate(text),
+        Array array => $"<{array.Length} items>",
+        System.Collections.ICollection collection => $"<{collection.Count} items>",
+        _ => Truncate(Convert.ToString(value, CultureInfo.InvariantCulture)),
+    };
+
+    private static string? Truncate(string? text) =>
+        text is { Length: > MaxRenderedValueLength } ? text[..MaxRenderedValueLength] + "..." : text;
 
     // PRE-conditions gate whether the step runs at all, evaluated in precedence (fail, then skip). A match
     // returns the gating state; null means no gate matched and the step proceeds to execution.
@@ -220,14 +296,14 @@ internal sealed class PipelineStep : IPipelineStep
         var pre = this.StepConditions?.Pre;
         var parameters = context.ToExpressionParameters();
 
-        var failConditions = await this.FindMatchingConditions(pre?.FailConditions, parameters);
+        var failConditions = await this.FindMatchingConditions(pre?.FailConditions, ConditionPhase.Pre, ConditionKind.Fail, parameters);
         if (failConditions.Count > 0)
         {
             logger.LogInformation($"step failed due to pre-condition.");
             return (StepState.Error, MergeConditionMessages(failConditions));
         }
 
-        var skipConditions = await this.FindMatchingConditions(pre?.SkipConditions, parameters);
+        var skipConditions = await this.FindMatchingConditions(pre?.SkipConditions, ConditionPhase.Pre, ConditionKind.Skip, parameters);
         if (skipConditions.Count > 0)
         {
             logger.LogInformation($"step skipped due to pre-condition.");
@@ -245,21 +321,21 @@ internal sealed class PipelineStep : IPipelineStep
         var post = this.StepConditions?.Post;
         var parameters = context.ToExpressionParameters(this.Id, stepResult);
 
-        var failConditions = await this.FindMatchingConditions(post?.FailConditions, parameters);
+        var failConditions = await this.FindMatchingConditions(post?.FailConditions, ConditionPhase.Post, ConditionKind.Fail, parameters);
         if (failConditions.Count > 0)
         {
             logger.LogInformation($"failed due to post-condition.");
             return (StepState.Error, MergeConditionMessages(failConditions));
         }
 
-        var restrictDeliveryConditions = await this.FindMatchingConditions(post?.RestrictDeliveryConditions, parameters);
+        var restrictDeliveryConditions = await this.FindMatchingConditions(post?.RestrictDeliveryConditions, ConditionPhase.Post, ConditionKind.RestrictDelivery, parameters);
         if (restrictDeliveryConditions.Count > 0)
         {
             logger.LogInformation($"delivery restricted due to post-condition.");
             return (StepState.DeliveryRestriction, MergeConditionMessages(restrictDeliveryConditions));
         }
 
-        var warnConditions = await this.FindMatchingConditions(post?.WarnConditions, parameters);
+        var warnConditions = await this.FindMatchingConditions(post?.WarnConditions, ConditionPhase.Post, ConditionKind.Warn, parameters);
         if (warnConditions.Count > 0)
         {
             logger.LogInformation($"completed with warnings due to post-condition.");
