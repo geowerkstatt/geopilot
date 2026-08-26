@@ -153,6 +153,31 @@ public class PreflightBackgroundServiceTest
     }
 
     [TestMethod]
+    public async Task ProcessRequestAsyncContinuesCleanupWhenTheJobCannotBeMarkedAsFailed()
+    {
+        var jobId = Guid.NewGuid();
+        var uploadId = Guid.NewGuid();
+        var pipeline = new Mock<IPipeline>();
+        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
+
+        jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
+        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
+            .ThrowsAsync(new UploadPreflightException(PreflightFailureReason.IncompleteUpload, "File missing."));
+        orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
+
+        // The job moved on since the preflight read it, so the store rejects the transition.
+        jobStoreMock.Setup(x => x.TryMarkAsFailed(jobId)).Returns(false);
+
+        await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
+
+        pipeline.Verify(p => p.Dispose(), Times.Once, "The pipeline is released even when the job could not be marked as failed.");
+        orchestrationServiceMock.Verify(
+            x => x.ReleaseUploadAsync(uploadId),
+            Times.Once,
+            "The upload is released even when the job could not be marked as failed.");
+    }
+
+    [TestMethod]
     public async Task ProcessRequestAsyncSkipsJobNoLongerPending()
     {
         var jobId = Guid.NewGuid();

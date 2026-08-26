@@ -790,6 +790,39 @@ public class ProcessingRunnerTest
         }
     }
 
+    [TestMethod]
+    public async Task RunnerSurvivesTimeoutTransitionRejectedByTheStore()
+    {
+        var jobId = NewJob();
+        var uploadId = Guid.NewGuid();
+        var gate = new TaskCompletionSource();
+        using var pipeline = BuildPipeline(jobId, BuildBlockingStep("step_1", gate.Task));
+
+        var (runner, store) = CreateRunnerWithStore(pipeline, TimeSpan.FromSeconds(2));
+
+        // The job moved on while its pipeline timed out, so the store rejects the transition to Cancelled.
+        store.Setup(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled)).Returns(false);
+        store.Setup(s => s.GetJob(jobId)).Returns(FinishedJob(jobId, uploadId, ProcessingState.Cancelled));
+
+        await runner.StartAsync(CancellationToken.None);
+        try
+        {
+            await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(20));
+        }
+        finally
+        {
+            gate.TrySetResult();
+            await runner.StopAsync(CancellationToken.None);
+        }
+
+        Assert.IsTrue(runner.ExecuteTask.IsCompletedSuccessfully, "A timeout transition the store rejects must not fault the runner loop.");
+        store.Verify(s => s.TryPipelineFinished(jobId, ProcessingState.Cancelled), Times.Once);
+        orchestrationServiceMock.Verify(
+            c => c.ReleaseUploadAsync(uploadId),
+            Times.Once,
+            "The cleanup must still release the upload after the rejected transition.");
+    }
+
     /// <summary>
     /// A stand-in pipeline whose run completes without steps in a state that is not deliverable, so the
     /// runner reaches its cleanup with the upload still to release.
