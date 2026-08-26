@@ -1,5 +1,5 @@
 import { FC, useContext, useEffect, useState } from "react";
-import { FieldValues, FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Alert, Stack, Typography } from "@mui/material";
 import { DeliverySummary, FieldEvaluationType } from "../../api/generated";
@@ -17,13 +17,13 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
   const { t } = useTranslation();
   const { isLoading, submitDelivery, selectedMandate, submittedData, processingResponse } = useContext(DeliveryContext);
   const [previousDeliveries, setPreviousDeliveries] = useState<DeliverySummary[]>([]);
-  const formMethods = useForm({ mode: "all", defaultValues: submittedData, disabled: completed });
+  const formMethods = useForm<DeliverySubmitData>({ mode: "all", defaultValues: submittedData, disabled: completed });
 
-  const submitForm = (data: FieldValues) => {
-    if (data["precursor"] === "") {
-      data["precursor"] = null;
+  const submitForm = (data: DeliverySubmitData) => {
+    if ((data.precursorDeliveryId as unknown) === "") {
+      data.precursorDeliveryId = null;
     }
-    submitDelivery(data as DeliverySubmitData);
+    submitDelivery(data);
   };
 
   // Fetch previous deliveries for the selected mandate
@@ -61,7 +61,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
             {selectedMandate && selectedMandate.evaluatePrecursorDelivery !== FieldEvaluationType.NotEvaluated ? (
               <FormContainer>
                 <FormSelect
-                  fieldName="precursor"
+                  fieldName={"precursorDeliveryId" satisfies keyof DeliverySubmitData}
                   label="precursor"
                   required={selectedMandate.evaluatePrecursorDelivery === FieldEvaluationType.Required}
                   disabled={completed || previousDeliveries.length === 0}
@@ -74,13 +74,18 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
             ) : null}
             {selectedMandate && selectedMandate.evaluatePartial === FieldEvaluationType.Required ? (
               <FormContainer>
-                <FormCheckbox fieldName="isPartial" label="isPartialDelivery" checked={false} disabled={completed} />
+                <FormCheckbox
+                  fieldName={"partialDelivery" satisfies keyof DeliverySubmitData}
+                  label="isPartialDelivery"
+                  checked={false}
+                  disabled={completed}
+                />
               </FormContainer>
             ) : null}
             {selectedMandate && selectedMandate.evaluateComment !== FieldEvaluationType.NotEvaluated ? (
               <FormContainer>
                 <FormInput
-                  fieldName="comment"
+                  fieldName={"comment" satisfies keyof DeliverySubmitData}
                   label="comment"
                   disabled={completed}
                   required={selectedMandate.evaluateComment === FieldEvaluationType.Required}

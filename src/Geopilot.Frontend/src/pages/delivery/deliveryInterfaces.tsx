@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { DeliveryStepState, LocalizedText, NormalizedProcessingJobResponse } from "../../api/apiInterfaces.ts";
-import { MandateSummary, UploadSettingsResponse } from "../../api/generated";
+import { DeliveryRequest, MandateSummary, UploadSettingsResponse } from "../../api/generated";
 
 export enum DeliveryStepEnum {
   Files = "files",
@@ -26,12 +26,7 @@ export interface DeliveryStep {
   content: (completed: boolean) => ReactNode;
 }
 
-export interface DeliverySubmitData {
-  mandate: number;
-  isPartial: boolean;
-  precursor: number;
-  comment: string;
-}
+export type DeliverySubmitData = Omit<DeliveryRequest, "jobId">;
 
 export interface DeliveryStepError {
   status: number;

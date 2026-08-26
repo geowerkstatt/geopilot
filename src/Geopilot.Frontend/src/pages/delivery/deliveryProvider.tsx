@@ -6,6 +6,7 @@ import {
   NormalizedProcessingJobResponse,
 } from "../../api/apiInterfaces.ts";
 import {
+  DeliveryRequest,
   MandateSummary,
   ProcessingJobResponse,
   StartJobRequest,
@@ -353,12 +354,9 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     fetchApi("/api/v1/delivery", {
       method: "POST",
       body: JSON.stringify({
-        JobId: jobId,
-        MandateId: data.mandate,
-        PartialDelivery: data.isPartial,
-        PrecursorDeliveryId: data.precursor,
-        Comment: data.comment,
-      }),
+        ...data,
+        jobId: jobId!,
+      } satisfies DeliveryRequest),
       signal: abortController.signal,
     })
       .then(() => {
