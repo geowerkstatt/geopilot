@@ -10,11 +10,11 @@ Pro Job entsteht beim Start ein Datensatz (`PipelineRuns`) mit:
 
 - der gelaufenen Pipeline und einem **Definitions-Snapshot** (siehe unten),
 - Mandat und Benutzer (leer bei einer anonymen Lieferung auf ein öffentliches Mandat) sowie der Art des Clients (`WebClient`, `ApiClient`, `Unknown`), klassifiziert aus dem Request und nie als roher Header gespeichert,
-- dem Upload-Manifest (`PipelineRunFile`): Dateiname, Storage-Key, deklarierte Grösse, und nach dem Virenscan der SHA-256 jeder Datei,
+- dem Upload-Manifest (`PipelineRunFiles`): Dateiname, Storage-Key, deklarierte Grösse, und nach dem Virenscan der SHA-256 jeder Datei,
 - dem Resultat des Virenscans (`Clean`, `ThreatDetected` mit Details, oder `NotScanned` wenn die Prüfung deaktiviert ist),
 - der Applikationsversion und allen Zeitstempeln in UTC.
 
-Pro Schritt (`PipelineRunSteps`) werden festgehalten: Status, Beginn und Ende, die Prozessor-Implementierung samt Assembly und Version, Fehlermeldung bei Abbruch, Statusmeldung, sowie die **Auswertung jeder geprüften Condition** (`PipelineRunCondition`): Ausdruck, optionale stabile Kennung (`id` in der Definition), die referenzierten Werte und ob sie zutraf. Auch nicht zutreffende Auswertungen werden festgehalten, damit "geprüft und nicht zugetroffen" von "nie geprüft" unterscheidbar bleibt. Die Namen der erzeugten Artefakte (Downloads, Visualisierungen, Lieferdateien) stehen in `PipelineRunArtifact`.
+Pro Schritt (`PipelineRunSteps`) werden festgehalten: Status, Beginn und Ende, die Prozessor-Implementierung samt Assembly und Version, Fehlermeldung bei Abbruch, Statusmeldung, sowie die **Auswertung jeder geprüften Condition** (`PipelineRunConditions`): Ausdruck, optionale stabile Kennung (`id` in der Definition), die referenzierten Werte und ob sie zutraf. Auch nicht zutreffende Auswertungen werden festgehalten, damit "geprüft und nicht zugetroffen" von "nie geprüft" unterscheidbar bleibt. Die Namen der erzeugten Artefakte (Downloads, Visualisierungen, Lieferdateien) stehen in `PipelineRunArtifacts`.
 
 ## Schreibzeitpunkte und Verlässlichkeit
 
@@ -58,7 +58,7 @@ SELECT r."PipelineId", s."StepId", s."State", s."ErrorMessage", c."ConditionId",
 FROM "Deliveries" d
 JOIN "PipelineRuns" r ON r."JobId" = d."JobId"
 JOIN "PipelineRunSteps" s ON s."PipelineRunId" = r."Id"
-LEFT JOIN "PipelineRunCondition" c ON c."PipelineRunStepId" = s."Id"
+LEFT JOIN "PipelineRunConditions" c ON c."PipelineRunStepId" = s."Id"
 WHERE d."Id" = 42
 ORDER BY s."Order";
 
