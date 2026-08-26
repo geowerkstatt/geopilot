@@ -94,7 +94,7 @@ public class ProcessingJobStoreTest
     public void AttachPipelineThrowsIfJobFailed()
     {
         var job = store.CreateJob(Guid.NewGuid());
-        store.MarkAsFailed(job.Id);
+        store.TryMarkAsFailed(job.Id);
 
         Assert.ThrowsExactly<InvalidOperationException>(() => store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 0));
     }
@@ -186,29 +186,74 @@ public class ProcessingJobStoreTest
     }
 
     [TestMethod]
-    public void MarkAsFailedSetsState()
+    public void TryMarkAsFailedSetsState()
     {
         var job = store.CreateJob(Guid.NewGuid());
-        var updated = store.MarkAsFailed(job.Id);
 
-        Assert.AreEqual(ProcessingState.Failed, updated.State);
+        Assert.IsTrue(store.TryMarkAsFailed(job.Id));
+        Assert.AreEqual(ProcessingState.Failed, store.GetJob(job.Id)!.State);
     }
 
     [TestMethod]
-    public void MarkAsFailedThrowsIfAlreadyTerminal()
+    public void TryMarkAsFailedReturnsFalseIfAlreadyTerminal()
     {
         var job = store.CreateJob(Guid.NewGuid());
         store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
         store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
         store.PipelineFinished(job.Id, ProcessingState.Success);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => store.MarkAsFailed(job.Id));
+        Assert.IsFalse(store.TryMarkAsFailed(job.Id));
+        Assert.AreEqual(ProcessingState.Success, store.GetJob(job.Id)!.State, "A rejected transition must leave the job untouched.");
     }
 
     [TestMethod]
-    public void MarkAsFailedThrowsIfJobNotFound()
+    public void TryMarkAsFailedReturnsFalseIfJobNotFound()
     {
-        Assert.ThrowsExactly<ArgumentException>(() => store.MarkAsFailed(Guid.NewGuid()));
+        Assert.IsFalse(store.TryMarkAsFailed(Guid.NewGuid()));
+    }
+
+    [TestMethod]
+    [DataRow(ProcessingState.Success)]
+    [DataRow(ProcessingState.Warning)]
+    [DataRow(ProcessingState.DeliveryRestriction)]
+    [DataRow(ProcessingState.Failed)]
+    [DataRow(ProcessingState.Cancelled)]
+    public void TryPipelineFinishedTransitionsFromRunning(ProcessingState pipelineState)
+    {
+        var job = store.CreateJob(Guid.NewGuid());
+        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
+
+        Assert.IsTrue(store.TryPipelineFinished(job.Id, pipelineState));
+        Assert.AreEqual(pipelineState, store.GetJob(job.Id)!.State);
+    }
+
+    [TestMethod]
+    public void TryPipelineFinishedReturnsFalseIfNotRunning()
+    {
+        var job = store.CreateJob(Guid.NewGuid());
+
+        Assert.IsFalse(store.TryPipelineFinished(job.Id, ProcessingState.Success));
+        Assert.AreEqual(ProcessingState.Pending, store.GetJob(job.Id)!.State, "A rejected transition must leave the job untouched.");
+    }
+
+    [TestMethod]
+    [DataRow(ProcessingState.Pending)]
+    [DataRow(ProcessingState.Running)]
+    public void TryPipelineFinishedThrowsIfPipelineStateIsNotTerminal(ProcessingState pipelineState)
+    {
+        var job = store.CreateJob(Guid.NewGuid());
+        store.AttachPipeline(job.Id, new Mock<IPipeline>().Object, 1);
+        store.EnqueueForProcessing(job.Id, Array.Empty<IPipelineFile>());
+
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => store.TryPipelineFinished(job.Id, pipelineState));
+        Assert.AreEqual(ProcessingState.Running, store.GetJob(job.Id)!.State);
+    }
+
+    [TestMethod]
+    public void TryPipelineFinishedReturnsFalseIfJobNotFound()
+    {
+        Assert.IsFalse(store.TryPipelineFinished(Guid.NewGuid(), ProcessingState.Success));
     }
 
     [TestMethod]

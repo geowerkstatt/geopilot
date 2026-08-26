@@ -44,40 +44,20 @@ public class ProcessingJobStore : IProcessingJobStore
     }
 
     /// <inheritdoc/>
-    public ProcessingJob MarkAsFailed(Guid jobId)
-    {
-        return jobs.AddOrUpdate(
-            jobId,
-            id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
-            (id, currentJob) =>
-            {
-                if (currentJob.State is not (ProcessingState.Pending or ProcessingState.Running))
-                {
-                    throw new InvalidOperationException(
-                        $"Cannot transition job <{id}> from <{currentJob.State}> to <{ProcessingState.Failed}>.");
-                }
-
-                return currentJob with { State = ProcessingState.Failed };
-            });
-    }
+    public bool TryMarkAsFailed(Guid jobId) =>
+        TryTransition(jobId, CanMarkAsFailed, ProcessingState.Failed);
 
     /// <inheritdoc/>
     public ProcessingJob PipelineFinished(Guid jobId, ProcessingState pipelineState)
     {
-        if (pipelineState is not (ProcessingState.Success or ProcessingState.Warning or ProcessingState.DeliveryRestriction or ProcessingState.Failed or ProcessingState.Cancelled))
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(pipelineState),
-                pipelineState,
-                "Pipeline must have finished in a terminal state.");
-        }
+        EnsureStateIsTerminal(pipelineState);
 
         return jobs.AddOrUpdate(
             jobId,
             id => throw new ArgumentException($"Job with id <{id}> not found.", nameof(jobId)),
             (id, currentJob) =>
             {
-                if (currentJob.State != ProcessingState.Running)
+                if (!CanCompletePipeline(currentJob))
                 {
                     throw new InvalidOperationException(
                         $"Cannot transition job <{id}> from <{currentJob.State}> to <{pipelineState}>.");
@@ -85,6 +65,17 @@ public class ProcessingJobStore : IProcessingJobStore
 
                 return currentJob with { State = pipelineState };
             });
+    }
+
+    /// <inheritdoc/>
+    public bool TryPipelineFinished(Guid jobId, ProcessingState pipelineState)
+    {
+        // A state that is not terminal is a defect at the call site and cannot be caused by a race, so
+        // it surfaces here just as it does in the throwing operation. What this operation tolerates is
+        // a job that moved on, not a wrong argument.
+        EnsureStateIsTerminal(pipelineState);
+
+        return TryTransition(jobId, CanCompletePipeline, pipelineState);
     }
 
     /// <inheritdoc/>
@@ -137,6 +128,46 @@ public class ProcessingJobStore : IProcessingJobStore
         // Idempotent dispose handles the case where the runner already disposed after extracting.
         removed.Pipeline?.Dispose();
         return true;
+    }
+
+    private static bool IsTerminal(ProcessingState state) =>
+        state is ProcessingState.Success or ProcessingState.Warning or ProcessingState.DeliveryRestriction
+            or ProcessingState.Failed or ProcessingState.Cancelled;
+
+    private static void EnsureStateIsTerminal(ProcessingState pipelineState)
+    {
+        if (!IsTerminal(pipelineState))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pipelineState),
+                pipelineState,
+                "Pipeline must have finished in a terminal state.");
+        }
+    }
+
+    private static bool CanMarkAsFailed(ProcessingJob job) =>
+        job.State is ProcessingState.Pending or ProcessingState.Running;
+
+    private static bool CanCompletePipeline(ProcessingJob job) =>
+        job.State == ProcessingState.Running;
+
+    /// <summary>
+    /// Applies <paramref name="newState"/> when <paramref name="isAllowed"/> accepts the job's current state,
+    /// retrying against the freshly read job whenever a concurrent write wins the compare-and-swap. Reports the
+    /// outcome rather than throwing, so a caller that is already handling a failure cannot make it worse.
+    /// </summary>
+    private bool TryTransition(Guid jobId, Func<ProcessingJob, bool> isAllowed, ProcessingState newState)
+    {
+        while (jobs.TryGetValue(jobId, out var currentJob))
+        {
+            if (!isAllowed(currentJob))
+                return false;
+
+            if (jobs.TryUpdate(jobId, currentJob with { State = newState }, currentJob))
+                return true;
+        }
+
+        return false;
     }
 
     private static void EnsureJobIsPrePipeline(Guid jobId, ProcessingJob job, string operation)

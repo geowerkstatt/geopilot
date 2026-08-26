@@ -5,7 +5,6 @@ using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -87,7 +86,11 @@ public class ProcessingRunner : BackgroundService
                 // in-flight step's files are lost, and no delivery files are persisted (delivery is staged
                 // only for a successful, deliverable run).
                 logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, processingOptions.JobTimeout);
-                jobStore.PipelineFinished(pipeline.JobId, ProcessingState.Cancelled);
+
+                // Nothing above this catch block handles an exception, so the reporting variant keeps
+                // an unexpected job state in the log instead of stopping the host.
+                if (!jobStore.TryPipelineFinished(pipeline.JobId, ProcessingState.Cancelled))
+                    logger.LogWarning("Job <{JobId}> was not transitioned to <{State}>: it is unknown or no longer running.", pipeline.JobId, ProcessingState.Cancelled);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -97,17 +100,39 @@ public class ProcessingRunner : BackgroundService
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error while running pipeline <{Pipeline}>.", pipeline.Id);
-                jobStore.MarkAsFailed(pipeline.JobId);
+
+                if (!jobStore.TryMarkAsFailed(pipeline.JobId))
+                    logger.LogWarning("Job <{JobId}> was not marked as failed: it is unknown or already in a terminal state.", pipeline.JobId);
             }
             finally
             {
-                // Free process-owned resources (e.g. HttpClient) immediately. Pipeline state, step
-                // states, status-message dictionaries and PersistedDownloads survive disposal; what
-                // goes is the pipeline's temp directory, including the uploaded files fetched into it
-                // during the run.
-                pipeline.Dispose();
+                // This is the body of a Parallel.ForEachAsync inside a BackgroundService: an exception
+                // escaping here aborts the whole loop, so the queue stops draining, and by default it
+                // stops the host. Each cleanup step is guarded on its own, so releasing the upload is
+                // independent of the disposal.
+                try
+                {
+                    // Free process-owned resources (e.g. HttpClient) immediately. Pipeline state, step
+                    // states, status-message dictionaries and PersistedDownloads survive disposal; what
+                    // goes is the pipeline's temp directory, including the uploaded files fetched into it
+                    // during the run.
+                    pipeline.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to dispose pipeline <{Pipeline}>.", pipeline.Id);
+                }
 
-                await ReleaseUploadIfNotDeliverableAsync(pipeline.JobId);
+                try
+                {
+                    await ReleaseUploadIfNotDeliverableAsync(pipeline.JobId);
+                }
+                catch (Exception ex)
+                {
+                    // The upload store is remote, so releasing it is a network call. The age-based sweep
+                    // in UploadCleanupService is the backstop for blobs left behind here.
+                    logger.LogError(ex, "Failed to release the upload of job <{JobId}>.", pipeline.JobId);
+                }
             }
         });
     }
