@@ -51,9 +51,10 @@ public class PreflightBackgroundServiceTest
         var pendingJob = CreatePendingJob(jobId, uploadId, new Mock<IPipeline>(MockBehavior.Strict).Object);
 
         var registeredFiles = new List<IPipelineFile> { PipelineFileNamed("test.xtf") };
+        var scanResult = new ScanResult(true, Hashes: new Dictionary<string, string> { ["uploads/key"] = "abc123" });
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
-        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).Returns(Task.CompletedTask);
+        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).ReturnsAsync(scanResult);
         orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId)).Returns(registeredFiles);
         jobStoreMock
             .Setup(x => x.EnqueueForProcessing(jobId, registeredFiles))
@@ -64,9 +65,33 @@ public class PreflightBackgroundServiceTest
         orchestrationServiceMock.Verify(x => x.RunPreflightChecksAsync(uploadId), Times.Once);
         orchestrationServiceMock.Verify(x => x.RegisterJobFiles(uploadId, jobId), Times.Once);
         jobStoreMock.Verify(x => x.EnqueueForProcessing(jobId, registeredFiles), Times.Once);
+        runRecorderMock.Verify(r => r.RecordScanOutcomeAsync(jobId, scanResult), Times.Once);
 
         // Nothing is transferred and the blobs stay: the files are fetched when a step reads them.
         orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task ProcessRequestAsyncRecordsScanOutcomeOfDetectedThreat()
+    {
+        var jobId = Guid.NewGuid();
+        var uploadId = Guid.NewGuid();
+        var pipeline = new Mock<IPipeline>();
+        var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
+        var scanResult = new ScanResult(false, "eicar.xtf: Win.Test.EICAR_HDB-1");
+
+        jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
+        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId))
+            .ThrowsAsync(new UploadPreflightException(PreflightFailureReason.ThreatDetected, "The uploaded files could not be processed.", scanResult));
+        orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);
+        jobStoreMock.Setup(x => x.TryMarkAsFailed(jobId)).Returns(true);
+
+        await service.ProcessRequestAsync(new PreflightRequest(jobId, uploadId));
+
+        runRecorderMock.Verify(r => r.RecordScanOutcomeAsync(jobId, scanResult), Times.Once, "the rejected upload is the forensically relevant case.");
+        runRecorderMock.Verify(
+            r => r.RecordPreflightFailedAsync(jobId, It.Is<string>(reason => reason.Contains(nameof(PreflightFailureReason.ThreatDetected)))),
+            Times.Once);
     }
 
     [TestMethod]
@@ -123,7 +148,7 @@ public class PreflightBackgroundServiceTest
         var pendingJob = CreatePendingJob(jobId, uploadId, pipeline.Object);
 
         jobStoreMock.Setup(x => x.GetJob(jobId)).Returns(pendingJob);
-        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).Returns(Task.CompletedTask);
+        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).ReturnsAsync(new ScanResult(true));
         orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId))
             .Throws(new InvalidOperationException($"Upload <{uploadId}> has no files to register."));
         orchestrationServiceMock.Setup(x => x.ReleaseUploadAsync(uploadId)).Returns(Task.CompletedTask);

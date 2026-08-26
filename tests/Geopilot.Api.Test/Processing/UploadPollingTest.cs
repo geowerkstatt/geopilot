@@ -201,7 +201,7 @@ public class UploadPollingTest
 
     private void SetupSuccessfulPreflight(Guid jobId, Guid uploadId, Mandate mandate, User user)
     {
-        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).Returns(Task.CompletedTask);
+        orchestrationServiceMock.Setup(x => x.RunPreflightChecksAsync(uploadId)).ReturnsAsync(new ScanResult(true));
         orchestrationServiceMock.Setup(x => x.RegisterJobFiles(uploadId, jobId))
             .Returns(() => new List<IPipelineFile> { new Mock<IPipelineFile>().Object });
     }

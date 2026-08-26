@@ -80,6 +80,42 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     }
 
     /// <inheritdoc/>
+    public async Task RecordScanOutcomeAsync(Guid jobId, ScanResult scanResult)
+    {
+        ArgumentNullException.ThrowIfNull(scanResult);
+
+        try
+        {
+            var run = await context.PipelineRuns.Include(r => r.Files).SingleOrDefaultAsync(r => r.JobId == jobId);
+            if (run is null)
+            {
+                LogRunMissing(jobId);
+                return;
+            }
+
+            run.ScanState = !scanResult.Scanned
+                ? ScanState.NotScanned
+                : scanResult.IsClean ? ScanState.Clean : ScanState.ThreatDetected;
+            run.ScanDetails = scanResult.ThreatDetails;
+
+            if (scanResult.Hashes is { } hashes)
+            {
+                foreach (var file in run.Files)
+                {
+                    if (hashes.TryGetValue(file.StorageKey, out var hash))
+                        file.Sha256 = hash;
+                }
+            }
+
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            LogWriteFailed(jobId, ex);
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task RecordPreflightFailedAsync(Guid jobId, string failureReason)
     {
         try

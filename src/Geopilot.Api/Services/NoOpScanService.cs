@@ -20,6 +20,8 @@ public class NoOpScanService : IUploadScanService
     {
         ArgumentNullException.ThrowIfNull(keys);
         logger.LogWarning("Virus scanning is disabled. Skipping scan for {FileCount} file(s).", keys.Count);
-        return Task.FromResult(new ScanResult(true));
+
+        // Scanned false on purpose: a skipped scan must not be recorded as clean.
+        return Task.FromResult(new ScanResult(true, Scanned: false));
     }
 }
