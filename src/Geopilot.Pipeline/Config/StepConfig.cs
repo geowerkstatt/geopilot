@@ -9,6 +9,7 @@ namespace Geopilot.Pipeline.Config;
 /// Represents the configuration for a single step in the <see cref="PipelineConfig"/>.
 /// </summary>
 [UniqueStatusMessageOutput]
+[UniqueConditionIds]
 public class StepConfig
 {
     /// <summary>

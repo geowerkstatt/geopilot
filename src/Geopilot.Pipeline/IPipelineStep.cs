@@ -39,6 +39,33 @@ public interface IPipelineStep : IDisposable
     StepState State { get; set; }
 
     /// <summary>
+    /// When the step started running (UTC), before its pre-conditions were evaluated.
+    /// <see langword="null"/> until the pipeline reaches the step.
+    /// </summary>
+    DateTime? StartedAt { get; }
+
+    /// <summary>
+    /// When the step finished (UTC), whatever its terminal state, including skipped and cancelled.
+    /// <see langword="null"/> while the step is pending or running.
+    /// </summary>
+    DateTime? FinishedAt { get; }
+
+    /// <summary>
+    /// The message of the exception that failed or cancelled this step. <see langword="null"/> when the step
+    /// did not throw; a step failed by a pre- or post-condition carries its reason in
+    /// <see cref="ConditionMessage"/> instead.
+    /// </summary>
+    string? ErrorMessage { get; }
+
+    /// <summary>
+    /// The evaluation result of every condition checked for this step, in evaluation order: pre-conditions
+    /// (fail, then skip), then post-conditions (fail, then restrict-delivery, then warn). Contains
+    /// non-matching evaluations too, so a consumer can tell "checked and did not apply" apart from
+    /// "never checked". Empty until the step ran.
+    /// </summary>
+    IReadOnlyList<ConditionEvaluation> ConditionEvaluations { get; }
+
+    /// <summary>
     /// The localized status message produced by the process itself (outputs tagged with
     /// <see cref="OutputAction.StatusMessage"/>). <see langword="null"/> if the step has not run, or
     /// ran without emitting any status message. Condition-driven messages are exposed separately via
