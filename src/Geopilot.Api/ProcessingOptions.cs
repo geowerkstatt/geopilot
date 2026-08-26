@@ -26,6 +26,14 @@ public class ProcessingOptions
     public TimeSpan VisualizationRetention { get; set; }
 
     /// <summary>
+    /// The duration after which execution protocol records (PipelineRun and children) are purged.
+    /// Deliberately independent of <see cref="JobRetention"/> and much longer: the protocol is the audit
+    /// record and must outlive the jobs it describes. Unset or non-positive disables purging entirely,
+    /// so a missing key can never silently erase the protocol.
+    /// </summary>
+    public TimeSpan? ProtocolRetention { get; set; }
+
+    /// <summary>
     /// The interval at which the cleanup service runs to remove old processing jobs.
     /// </summary>
     public TimeSpan JobCleanupInterval { get; set; }
