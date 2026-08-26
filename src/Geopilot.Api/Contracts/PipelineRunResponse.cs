@@ -13,7 +13,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="PipelineId">The id of the pipeline that ran.</param>
 /// <param name="AppVersion">The application version that executed the run.</param>
 /// <param name="MandateId">The mandate the run was started for.</param>
-/// <param name="UserId">The user that started the run, or <see langword="null"/> for an anonymous delivery.</param>
+/// <param name="UserId">The user that started the run, or <see langword="null"/> when the job was started anonymously. Who declared the delivery is recorded on the delivery itself.</param>
 /// <param name="ClientKind">The kind of client that started the run.</param>
 /// <param name="UploadId">The id of the upload the run processed.</param>
 /// <param name="UploadStorageLocation">Where the uploaded files were stored, credential-free.</param>

@@ -9,7 +9,7 @@ Das Protokoll wird nur geschrieben. Kein Ausführungspfad liest es, um Entscheid
 Pro Job entsteht beim Start ein Datensatz (`PipelineRuns`) mit:
 
 - der gelaufenen Pipeline und einem **Definitions-Snapshot** (siehe unten),
-- Mandat und Benutzer (leer bei einer anonymen Lieferung auf ein öffentliches Mandat) sowie der Art des Clients (`WebClient`, `ApiClient`, `Unknown`), klassifiziert aus dem Request und nie als roher Header gespeichert,
+- Mandat und Benutzer (leer, wenn der Job anonym auf einem öffentlichen Mandat gestartet wurde; anonym darf prozessiert, aber nicht geliefert werden, und wer die Lieferung deklariert hat, steht an der Lieferung selbst) sowie der Art des Clients (`WebClient`, `ApiClient`, `Unknown`), klassifiziert aus dem Request und nie als roher Header gespeichert,
 - dem Upload-Manifest (`PipelineRunFiles`): Dateiname, Storage-Key, deklarierte Grösse, und nach dem Virenscan der SHA-256 jeder Datei,
 - dem Resultat des Virenscans (`Clean`, `ThreatDetected` mit Details, oder `NotScanned` wenn die Prüfung deaktiviert ist),
 - der Applikationsversion und allen Zeitstempeln in UTC.

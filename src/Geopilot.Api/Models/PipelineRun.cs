@@ -50,7 +50,9 @@ public class PipelineRun
     public Mandate? Mandate { get; set; }
 
     /// <summary>
-    /// The user that started the run, or <see langword="null"/> for an anonymous delivery on a public mandate.
+    /// The user that started the run, or <see langword="null"/> when the job was started anonymously on a
+    /// public mandate. Anonymous users may process but not deliver; who declared the delivery is recorded
+    /// on the <see cref="Delivery"/> itself, reachable via <see cref="JobId"/>.
     /// </summary>
     public int? UserId { get; set; }
 
