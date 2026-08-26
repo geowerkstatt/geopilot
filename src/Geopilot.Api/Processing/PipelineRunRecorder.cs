@@ -73,6 +73,14 @@ public class PipelineRunRecorder : IPipelineRunRecorder
                     DeclaredSize = file.ExpectedSize,
                 })
                 .ToList(),
+
+            // All step rows are created up front in Pending, without StartedAt, so the protocol shows
+            // the full picture from the moment the job is accepted: a run interrupted during preflight
+            // still lists what was planned, and a row left in Pending means the step was never reached.
+            // The foreign key is set by EF through the navigation.
+            Steps = job.Pipeline.Steps
+                .Select((step, order) => NewStepRow(0, step, order))
+                .ToList(),
         };
 
         context.PipelineRuns.Add(run);

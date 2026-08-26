@@ -59,11 +59,11 @@ public class PipelineRunRecorderTest
         currentHttpContext = new DefaultHttpContext();
         currentHttpContext.Request.Headers.Cookie = "geopilot.auth=token";
 
-        var job = NewJob(out var upload);
+        var job = NewJob(out var upload, StepMock("matching").Object, StepMock("validation").Object);
 
         await recorder.RecordJobStartedAsync(job, mandate, user, upload);
 
-        var run = await context.PipelineRuns.Include(r => r.Files).SingleAsync(r => r.JobId == job.Id);
+        var run = await context.PipelineRuns.Include(r => r.Files).Include(r => r.Steps).SingleAsync(r => r.JobId == job.Id);
         Assert.AreEqual("pipe_a", run.PipelineId);
         Assert.AreEqual("{}", run.Definition);
         Assert.AreEqual(mandate.Id, run.MandateId);
@@ -80,6 +80,15 @@ public class PipelineRunRecorderTest
         Assert.AreEqual("uploads/1/data.xtf", file.StorageKey);
         Assert.AreEqual(1024, file.DeclaredSize);
         Assert.IsNull(file.Sha256, "hashes are computed by the scan, which has not run yet.");
+
+        // All step rows exist from the moment the job is accepted, so a run interrupted during
+        // preflight still lists what was planned.
+        Assert.HasCount(2, run.Steps);
+        var firstStep = run.Steps.Single(s => s.StepId == "matching");
+        Assert.AreEqual(0, firstStep.Order);
+        Assert.AreEqual(StepState.Pending, firstStep.State);
+        Assert.IsNull(firstStep.StartedAt, "a pre-created step row has no start time until the step is reached.");
+        Assert.AreEqual(1, run.Steps.Single(s => s.StepId == "validation").Order);
     }
 
     [TestMethod]
@@ -268,7 +277,7 @@ public class PipelineRunRecorderTest
         return run.ClientKind;
     }
 
-    private static ProcessingJob NewJob(out UploadInfo upload)
+    private static ProcessingJob NewJob(out UploadInfo upload, params IPipelineStep[] steps)
     {
         var uploadId = Guid.NewGuid();
         upload = new UploadInfo(
@@ -280,6 +289,7 @@ public class PipelineRunRecorderTest
 
         var pipeline = new Mock<IPipeline>();
         pipeline.SetupGet(p => p.Id).Returns("pipe_a");
+        pipeline.SetupGet(p => p.Steps).Returns(steps.ToList());
 
         return new ProcessingJob(Guid.NewGuid(), uploadId, null, DateTime.UtcNow) { Pipeline = pipeline.Object };
     }

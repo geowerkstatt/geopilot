@@ -20,7 +20,7 @@ Pro Schritt (`PipelineRunSteps`) werden festgehalten: Status, Beginn und Ende, d
 
 - **Beim Job-Start, hart:** Kann der Startdatensatz nicht geschrieben werden, wird der Job nicht angenommen und der Aufrufer erhält einen Fehler statt einer Bestätigung. Eine angenommene Lieferung ohne Protokoll gibt es nicht.
 - **Danach weich:** Schreibfehler während des Laufs brechen die Pipeline nicht ab, sie werden als Warnung geloggt.
-- Jeder Schritt wird beim Erreichen als `Running` geschrieben und beim Abschluss aktualisiert. Ein Lauf, der durch einen Neustart unterbrochen wurde, zeigt so, welcher Schritt gerade lief.
+- Alle Schritt-Zeilen werden mit dem Startdatensatz als `Pending` angelegt, beim Erreichen auf `Running` gesetzt und beim Abschluss aktualisiert. Ein unterbrochener Lauf zeigt so das volle Bild: erledigte Schritte tragen ihren Endzustand, der laufende steht auf `Running`, und ein Schritt, der `Pending` geblieben ist, wurde nie erreicht.
 - **Ein Lauf ohne Terminal-Status bedeutet "Ausgang unbekannt":** die Instanz ist während des Laufs gestorben (Restart-Opfer). Ein sauberer Stopp wird als `Cancelled` mit Grund `host shutdown` festgehalten, ein harter Abbruch hinterlässt keinen Terminal-Status. Beides ist zählbar und macht messbar, wie oft Neustarts laufende Jobs treffen (Re-Evaluations-Trigger von ADR 0010).
 
 ## Der Definitions-Snapshot
