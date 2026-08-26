@@ -43,17 +43,21 @@ public class UploadPollingTest
         uploadStore = new UploadStore();
         preflightChannel = Channel.CreateUnbounded<PreflightRequest>();
 
+        var runRecorderMock = new Mock<IPipelineRunRecorder>();
+
         processingService = new ProcessingService(
             jobStore,
             uploadStore,
             mandateServiceMock.Object,
             pipelineFactoryMock.Object,
+            runRecorderMock.Object,
             preflightChannel.Writer);
 
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IProcessingJobStore))).Returns(jobStore);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadStore))).Returns(uploadStore);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IPipelineRunRecorder))).Returns(runRecorderMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadStorage))).Returns(uploadStorageMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IMandateService))).Returns(mandateServiceMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IPipelineFactory))).Returns(pipelineFactoryMock.Object);
