@@ -116,6 +116,21 @@ public class Context : DbContext
     public DbSet<PipelineRunStep> PipelineRunSteps { get; set; }
 
     /// <summary>
+    /// Set of all <see cref="PipelineRunFile"/> records.
+    /// </summary>
+    public DbSet<PipelineRunFile> PipelineRunFiles { get; set; }
+
+    /// <summary>
+    /// Set of all <see cref="PipelineRunCondition"/> records.
+    /// </summary>
+    public DbSet<PipelineRunCondition> PipelineRunConditions { get; set; }
+
+    /// <summary>
+    /// Set of all <see cref="PipelineRunArtifact"/> records.
+    /// </summary>
+    public DbSet<PipelineRunArtifact> PipelineRunArtifacts { get; set; }
+
+    /// <summary>
     /// Gets the <see cref="PipelineRun"/> entity with all includes.
     /// </summary>
     public IQueryable<PipelineRun> PipelineRunsWithIncludes
