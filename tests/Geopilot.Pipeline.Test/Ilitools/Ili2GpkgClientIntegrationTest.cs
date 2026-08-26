@@ -291,6 +291,33 @@ public partial class Ili2GpkgClientIntegrationTest
 
     [TestMethod]
     [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncFailsWithAnUnknownPluginId()
+    {
+        var inputFile = GetTestPipelineFile("data.gpkg");
+        var xtfLogFile = GetTestPipelineFile("log_unknown_plugin.xtf");
+        await DeleteIfExistsAsync(xtfLogFile);
+
+        // The wrapper offers only what its plugin directory holds, which is empty in the compose image, so every id
+        // is unknown and has to be rejected. That rejection is what proves the deployed image understands the field
+        // at all: proto3 drops an unknown field silently, so an image without it would validate as if no plugin had
+        // been selected and report success. This test therefore guards the pairing of the stub version referenced
+        // here against the wrapper image the compose file pins.
+        var args = new Ili2GpkgArgs
+        {
+            Models = ["SimpleModel"],
+            PluginIds = ["no-such-plugin"],
+        };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
     public async Task ValidateAsyncCreatesXtfLogOnError()
     {
         var inputFile = GetTestPipelineFile("data_error.gpkg"); // contains a name that is too short

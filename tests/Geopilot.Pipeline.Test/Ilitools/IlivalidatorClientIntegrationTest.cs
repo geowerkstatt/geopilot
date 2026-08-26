@@ -174,6 +174,29 @@ public class IlivalidatorClientIntegrationTest
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
     }
 
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncFailsWithAnUnknownPluginId()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var logFile = GetTestPipelineFile("validation_unknown_plugin.log");
+        var xtfLogFile = GetTestPipelineFile("validation_unknown_plugin.xtf");
+
+        // The wrapper offers only what its plugin directory holds, which is empty in the compose image, so every id
+        // is unknown and has to be rejected. That rejection is what proves the deployed image understands the field
+        // at all: proto3 drops an unknown field silently, so an image without it would validate as if no plugin had
+        // been selected and report success. This test therefore guards the pairing of the stub version referenced
+        // here against the wrapper image the compose file pins.
+        var args = new IlivalidatorArgs { PluginIds = ["no-such-plugin"] };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
     private async Task DeleteIfExistsAsync(PipelineFile file)
     {
         var path = await file.GetLocalPathAsync();
