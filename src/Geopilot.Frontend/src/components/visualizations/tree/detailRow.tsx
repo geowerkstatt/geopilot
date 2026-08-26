@@ -34,7 +34,7 @@ export const DetailRow = ({ label, value }: DetailRowProps) => {
         "&:last-child td": { border: 0 },
         "&:hover .detail-copy-button": { opacity: 1 },
       }}>
-      <TableCell sx={{ width: "35%", verticalAlign: "top", color: "text.secondary", px: 0 }}>
+      <TableCell sx={{ width: "35%", verticalAlign: "top", wordBreak: "break-word", color: "text.secondary", px: 0 }}>
         <Typography variant="body2">{label}</Typography>
       </TableCell>
       <TableCell sx={{ verticalAlign: "top", wordBreak: "break-word", px: 1 }}>
