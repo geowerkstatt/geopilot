@@ -197,6 +197,40 @@ public class PipelineRunRecorderTest
     }
 
     [TestMethod]
+    public async Task RecordScanOutcomeSetsStateAndHashes()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, user, upload);
+
+        var scanResult = new ScanResult(
+            IsClean: false,
+            ThreatDetails: "eicar.xtf: Win.Test.EICAR_HDB-1",
+            Hashes: new Dictionary<string, string> { ["uploads/1/data.xtf"] = "cafe01" });
+
+        await recorder.RecordScanOutcomeAsync(job.Id, scanResult);
+
+        var run = await context.PipelineRuns.Include(r => r.Files).SingleAsync(r => r.JobId == job.Id);
+        Assert.AreEqual(ScanState.ThreatDetected, run.ScanState);
+        Assert.Contains("EICAR", run.ScanDetails);
+        Assert.AreEqual("cafe01", run.Files.Single(f => f.FileName == "data.xtf").Sha256);
+        Assert.IsNull(run.Files.Single(f => f.FileName == "model.ili").Sha256, "a file without hash entry stays unset.");
+    }
+
+    [TestMethod]
+    public async Task RecordScanOutcomeKeepsNotScannedWhenScanningIsDisabled()
+    {
+        currentHttpContext = null;
+        var job = NewJob(out var upload);
+        await recorder.RecordJobStartedAsync(job, mandate, user, upload);
+
+        await recorder.RecordScanOutcomeAsync(job.Id, new ScanResult(true, Scanned: false));
+
+        var run = await context.PipelineRuns.SingleAsync(r => r.JobId == job.Id);
+        Assert.AreEqual(ScanState.NotScanned, run.ScanState, "a skipped scan must never be recorded as clean.");
+    }
+
+    [TestMethod]
     public async Task RecordPreflightFailedSetsTerminalFailed()
     {
         currentHttpContext = null;

@@ -25,6 +25,13 @@ public interface IPipelineRunRecorder
     Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, User? user, UploadInfo upload);
 
     /// <summary>
+    /// Records the outcome of the malware scan and the per-file hashes it computed. Soft.
+    /// </summary>
+    /// <param name="jobId">The job whose upload was scanned.</param>
+    /// <param name="scanResult">The scan outcome.</param>
+    Task RecordScanOutcomeAsync(Guid jobId, Services.ScanResult scanResult);
+
+    /// <summary>
     /// Marks the run as failed before its pipeline ever ran (preflight failure). Soft.
     /// </summary>
     /// <param name="jobId">The job whose preflight failed.</param>
