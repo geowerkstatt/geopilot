@@ -205,7 +205,21 @@ internal sealed class PipelineStep : IPipelineStep
     {
         var runMethod = GetProcessRunMethod();
         var runParams = CreateProcessRunParamList(context, runMethod.GetParameters().ToList(), cancellationToken).ToArray();
-        var resultTask = runMethod.Invoke(Process, runParams) as Task;
+
+        object? invocationResult;
+        try
+        {
+            invocationResult = runMethod.Invoke(Process, runParams);
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
+        {
+            // A synchronously throwing run method surfaces as TargetInvocationException, whose own message
+            // is reflection boilerplate. Unwrap it so the step's error message names the process and the
+            // actual reason, consistent with the asynchronous failure path below.
+            throw new PipelineRunException($"The process <{Process.GetType().Name}> threw an exception.", ex.InnerException);
+        }
+
+        var resultTask = invocationResult as Task;
 
         if (resultTask == null)
         {
@@ -281,8 +295,14 @@ internal sealed class PipelineStep : IPipelineStep
     {
         null => null,
         string text => Truncate(text),
+        LocalizedText localized => Truncate(string.Join(", ", localized.Languages.Select(language => $"{language}: {localized[language]}"))),
         Array array => $"<{array.Length} items>",
         System.Collections.ICollection collection => $"<{collection.Count} items>",
+
+        // Also covers lazy sequences, which Convert.ToString would render as a CLR type name. Counting
+        // enumerates them, which a step output has to tolerate anyway: conditions and inputs may read it
+        // more than once.
+        System.Collections.IEnumerable enumerable => $"<{enumerable.Cast<object>().Count()} items>",
         _ => Truncate(Convert.ToString(value, CultureInfo.InvariantCulture)),
     };
 
