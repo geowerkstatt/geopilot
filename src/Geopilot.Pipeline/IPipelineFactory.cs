@@ -27,4 +27,16 @@ public interface IPipelineFactory
     /// </summary>
     /// <returns>The outcome, with all problems in a single message.</returns>
     PipelineDefinitionValidationResult ValidateDefinition();
+
+    /// <summary>
+    /// Renders the definition snapshot of one pipeline as JSON: the pipeline as configured, the process
+    /// catalog entries its steps reference, and the base configuration (appsettings
+    /// <c>Pipeline:ProcessConfigs</c>) effective for those implementations. The document is shaped like a
+    /// minimal definition file restricted to that pipeline, so it records the exact basis a job executes on,
+    /// unaffected by later edits to the definition file.
+    /// </summary>
+    /// <param name="pipelineId">The id of the pipeline to snapshot.</param>
+    /// <returns>The snapshot as a JSON document.</returns>
+    /// <exception cref="InvalidOperationException">No pipeline with the specified id exists.</exception>
+    string GetDefinitionSnapshotJson(string pipelineId);
 }
