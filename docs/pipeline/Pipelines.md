@@ -406,6 +406,18 @@ Conditions auf Schritten ermöglichen es, die Ausführung eines Schrittes zu ste
 
 - `expression`: Der boolsche Ausdruck, welcher ausgewertet wird (Pflichtfeld).
 - `message`: Ein optionaler lokalisierter Text (`LocalizedText`, Key = Sprachcode, Value = Nachricht). Diese Nachrichten werden als Statusnachricht des Schrittes bereitgestellt.
+- `id`: Eine optionale stabile Kennung der Condition (z.B. `validation-failed`). Sie wird im [Ausführungsprotokoll](../Ausfuehrungsprotokoll.md) mit dem Auswertungsergebnis festgehalten, womit der Grund für einen Schritt-Ausgang maschinenlesbar referenzierbar ist, unabhängig vom Wortlaut der `message` und vom exakten Ausdruck. Innerhalb eines Schrittes muss die Kennung eindeutig sein (über alle vier Condition-Listen hinweg, beim Start geprüft); die Wiederverwendung derselben Kennung auf anderen Schritten oder Pipelines ist erlaubt und für dieselbe fachliche Regel erwünscht. Sie sollte stabil und sprechend gewählt und bei inhaltlichen Änderungen der Condition beibehalten werden.
+
+Beispiel:
+
+```yaml
+restrict_delivery_conditions:
+  - id: validation-failed
+    expression: "!([validation.ValidationSuccessful])"
+    message:
+      de: "Die Validierung war nicht erfolgreich."
+      en: "Validation was not successful."
+```
 
 Es können pro Bedingungstyp (`skip_conditions`, `fail_conditions`, `restrict_delivery_conditions`, `warn_conditions`) mehrere Conditions definiert werden. Die Conditions werden mit ODER-Logik ausgewertet: Trifft mindestens eine Condition zu, wird die entsprechende Aktion (Skip, Error, DeliveryRestriction oder Warning) ausgelöst. Dabei werden **alle** zutreffenden Conditions gesammelt und deren Nachrichten pro Sprache kommasepariert zusammengeführt.
 
