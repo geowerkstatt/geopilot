@@ -120,6 +120,61 @@ public class PipelineFactoryTest
         Assert.IsNotNull(validationProcess as XtfValidatorProcess, "process is not of type ILI Validator");
     }
 
+    [TestMethod(DisplayName = "Condition id is optional and parsed when present")]
+    public void ConditionIdIsOptionalAndParsedWhenPresent()
+    {
+        var yaml = """
+            processes:
+              - id: xtf_matcher
+                implementation: Geopilot.Pipeline.Processes.Matcher.XtfMatcher.XtfMatcherProcess
+                default_config:
+                  fileExtensions:
+                    - xtf
+                  iliModels:
+                    - RoadsExdm2ien
+                  fileNamePatterns:
+                    - .*
+            pipelines:
+              - id: test_pipeline
+                display_name:
+                  en: Test
+                steps:
+                  - id: first
+                    display_name:
+                      en: First
+                    process_id: xtf_matcher
+                    input:
+                      files: "${upload()}"
+                  - id: second
+                    display_name:
+                      en: Second
+                    process_id: xtf_matcher
+                    conditions:
+                      pre:
+                        skip_conditions:
+                          - id: with-id
+                            expression: "Length([first.XtfFiles]) == 0"
+                          - expression: "Length([first.XtfFiles]) == 1"
+                    input:
+                      files: "${upload()}"
+            """;
+
+        var factory = PipelineFactory
+            .Builder()
+            .Yaml(yaml)
+            .PipelineProcessFactory(this.pipelineProcessFactory)
+            .LoggerFactory(this.loggerFactory.Object)
+            .PipelineTempDirectory(Path.Combine(Path.GetTempPath(), "Pipeline"))
+            .Build();
+
+        var validationResult = factory.ValidateDefinition();
+        Assert.IsTrue(validationResult.IsValid, validationResult.ErrorMessage);
+
+        var conditions = factory.Pipelines.Single().Steps[1].Conditions!.Pre!.SkipConditions!;
+        Assert.AreEqual("with-id", conditions[0].Id);
+        Assert.IsNull(conditions[1].Id, "a condition without id must stay valid.");
+    }
+
     private PipelineFactory CreatePipelineFactory(string filename)
     {
         string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), @"TestData/Pipeline/" + filename + ".yaml");

@@ -86,7 +86,8 @@ pipelines:
         conditions:
           pre:
             fail_conditions:
-              - expression: "Length([xtf_matching.XtfFiles]) != 1"
+              - id: exactly-one-xtf-required
+                expression: "Length([xtf_matching.XtfFiles]) != 1"
                 message:
                   de: "Es muss genau eine XTF-Datei hochgeladen werden."
                   en: "Exactly one XTF file must be uploaded."
@@ -94,7 +95,8 @@ pipelines:
                   it: "Deve essere caricato esattamente un file XTF."
           post:
             restrict_delivery_conditions:
-              - expression: "!([validation.ValidationSuccessful])"
+              - id: validation-failed
+                expression: "!([validation.ValidationSuccessful])"
                 message:
                   de: "Die Validierung war nicht erfolgreich."
                   en: "Validation was not successful."
@@ -129,7 +131,8 @@ pipelines:
         conditions:
           pre:
             skip_conditions:
-              - expression: "[validation.ValidationSuccessful]"
+              - id: validation-successful
+                expression: "[validation.ValidationSuccessful]"
                 message:
                   de: "Validierung erfolgreich. Kartenvisualisierung wird übersprungen."
                   en: "Validation successful. Map visualization will be skipped."
