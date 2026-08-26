@@ -23,6 +23,16 @@ Pro Schritt (`PipelineRunSteps`) werden festgehalten: Status, Beginn und Ende, d
 - Alle Schritt-Zeilen werden mit dem Startdatensatz als `Pending` angelegt, beim Erreichen auf `Running` gesetzt und beim Abschluss aktualisiert. Ein unterbrochener Lauf zeigt so das volle Bild: erledigte Schritte tragen ihren Endzustand, der laufende steht auf `Running`, und ein Schritt, der `Pending` geblieben ist, wurde nie erreicht.
 - **Ein Lauf ohne Terminal-Status bedeutet "Ausgang unbekannt":** die Instanz ist während des Laufs gestorben (Restart-Opfer). Ein sauberer Stopp wird als `Cancelled` mit Grund `host shutdown` festgehalten, ein harter Abbruch hinterlässt keinen Terminal-Status. Beides ist zählbar und macht messbar, wie oft Neustarts laufende Jobs treffen (Re-Evaluations-Trigger von ADR 0010).
 
+## Wo ist der Preflight?
+
+Die Weboberfläche zeigt die Vorbereitung (Vollständigkeitsprüfung, Virenscan) als eigenen Schritt an; das ist reine Darstellung. Im Protokoll ist der Preflight bewusst **keine** Schritt-Zeile, denn er steht in keiner Pipeline-Definition (und ein Kunde darf einen echten Schritt `preflight` nennen). Seine Ergebnisse liegen am Lauf selbst: der Scan-Ausgang mit Details, die Datei-Hashes im Manifest, und bei einer Ablehnung der Terminal-Status `Failed` mit dem Grund (`IncompleteUpload: ...`, `SizeExceeded: ...`, `ThreatDetected: ...`).
+
+Daraus lässt sich der Preflight-Zustand eines Laufs ableiten:
+
+- `Failed` und alle Schritte in `Pending`: im Preflight gescheitert, der Grund steht in `FailureReason`.
+- Kein Terminal-Status, alle Schritte `Pending`, `ScanState = NotScanned`: durch einen Neustart im Preflight unterbrochen.
+- Grenze ohne ClamAV: dort bleibt `ScanState` immer `NotScanned`, dann ist "im Preflight unterbrochen" von "kurz danach in der Warteschlange unterbrochen" nicht unterscheidbar. Beides ist ein Neustart, bevor der erste Schritt lief, und zählt gleich.
+
 ## Der Definitions-Snapshot
 
 Pipeline-Definitionen sind nicht versioniert: nach einer Änderung der YAML existiert der alte Stand nicht mehr. Deshalb hält jeder Lauf die Fassung fest, auf der er ausgeführt wurde, als JSON-Dokument (`jsonb`-Spalte `Definition`), aufgebaut wie eine minimale Definitionsdatei für genau diese eine Pipeline:
