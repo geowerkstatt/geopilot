@@ -22,8 +22,10 @@ internal class XtfValidatorProcess
     /// <summary>
     /// What the tool writes when it cannot evaluate a check. It skips the check instead of failing, so the run
     /// reports success although the check never ran, and no option turns that into an error. The usual cause is a
-    /// function whose plugin is not loaded. Measured against ilivalidator 1.15.0, which words it both as
-    /// "MandatoryConstraint ... is not yet implemented." and as "Function ... is not yet implemented.".
+    /// function whose plugin is not loaded. Read from iox-ili 1.24.4, bundled in ilivalidator 1.15.0: five messages
+    /// end in "is not yet implemented", three naming the constraint type (MandatoryConstraint, set constraint,
+    /// uniqueness constraint) and two generic ones for a function and an expression. Matching the common substring
+    /// is what covers all of them.
     /// </summary>
     internal const string CheckNotEvaluatedMarker = "is not yet implemented";
 

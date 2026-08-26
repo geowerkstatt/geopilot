@@ -119,6 +119,18 @@ public class XtfValidatorProcessTest
     }
 
     [TestMethod]
+    public async Task ThrowsWhenASetConstraintWasSkipped()
+    {
+        // The tool words the skip once per constraint type and twice generically, so the marker is the common
+        // substring and not one message. A set constraint is one of the wordings that a search for
+        // MandatoryConstraint would miss.
+        var log = $"Warning: Function in set constraint Model.Topic.Class.Constraint2 {XtfValidatorProcess.CheckNotEvaluatedMarker}.\n";
+        var process = CreateProcess(null, null, success: true, logContent: log);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
+    }
+
+    [TestMethod]
     public async Task PassesTheConfiguredPluginsAsIds()
     {
         var process = CreateProcess(null, null, success: true, pluginIds: " geow-interlis-functions ; ngk-so ; ");
