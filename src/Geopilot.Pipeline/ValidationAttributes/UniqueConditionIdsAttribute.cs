@@ -4,10 +4,10 @@ using System.ComponentModel.DataAnnotations;
 namespace Geopilot.Pipeline.ValidationAttributes;
 
 /// <summary>
-/// A condition id must be unique within its step, across all four condition lists: two conditions of the
-/// same step sharing an id would be indistinguishable for a consumer of their evaluation results. Reusing
-/// an id on other steps or pipelines stays allowed on purpose, it marks the same rule. Conditions without
-/// id are not checked.
+/// A condition id must be unique within its step, across all condition lists of the step: two conditions
+/// of the same step sharing an id would be indistinguishable for a consumer of their evaluation results.
+/// Reusing an id on other steps or pipelines stays allowed on purpose, it marks the same rule. Conditions
+/// without id are not checked.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 internal sealed class UniqueConditionIdsAttribute : ValidationAttribute
@@ -29,8 +29,8 @@ internal sealed class UniqueConditionIdsAttribute : ValidationAttribute
         };
 
         var duplicatedIds = conditionLists
-            .Where(conditions => conditions is not null)
-            .SelectMany(conditions => conditions!)
+            .OfType<List<ConditionConfig>>()
+            .SelectMany(conditions => conditions)
             .Select(condition => condition.Id)
             .Where(id => !string.IsNullOrEmpty(id))
             .GroupBy(id => id, StringComparer.Ordinal)

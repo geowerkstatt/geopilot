@@ -1239,6 +1239,87 @@ public class PipelineStepTest
         Assert.IsTrue(warnEvaluation.Matched);
     }
 
+    private sealed class RenderingStepResult
+    {
+        public LocalizedText? Message { get; init; }
+
+        public IEnumerable<string>? Names { get; init; }
+    }
+
+    [TestMethod]
+    public async Task ConditionEvaluationRendersLocalizedTextAndLazySequences()
+    {
+        var inputs = SingleUploadInput();
+        var previousResult = new RenderingStepResult
+        {
+            Message = new LocalizedText(new Dictionary<string, string> { ["de"] = "Fehler", ["en"] = "Error" }),
+            Names = new[] { "a", "b" }.Select(name => name),
+        };
+        var pipelineContext = ContextWith(
+            ("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }),
+            ("prev", previousResult));
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Pre = new PipelineStepPreConditionConfig
+            {
+                SkipConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig { Expression = "[prev.Message] != null && [prev.Names] != null" },
+                },
+            },
+        };
+        var processMock = new MockPipelineProcessSingleInput(new MockPipelineProcessSingleInputResult());
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        var evaluation = pipelineStep.ConditionEvaluations.Single();
+        Assert.AreEqual("de: Fehler, en: Error", evaluation.Parameters["prev.Message"], "a LocalizedText renders per language, not as a CLR type name.");
+        Assert.AreEqual("<2 items>", evaluation.Parameters["prev.Names"], "a lazy sequence renders as its count, not as a CLR type name.");
+    }
+
+    private class MockPipelineProcessSynchronousException
+    {
+        [PipelineProcessRun]
+        public Task<Dictionary<string, object>> RunAsync(string data)
+            => throw new InvalidOperationException("Synchronous test exception.");
+    }
+
+    [TestMethod]
+    public async Task SynchronousExceptionDuringProcessRunIsUnwrapped()
+    {
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
+        var processMock = new MockPipelineProcessSynchronousException();
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
+
+        Assert.AreEqual("The process <MockPipelineProcessSynchronousException> threw an exception.", exception.Message);
+        Assert.AreEqual(typeof(InvalidOperationException), exception.InnerException?.GetType(), "the reflection wrapper must be unwrapped.");
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
+        Assert.Contains("Synchronous test exception.", pipelineStep.ErrorMessage, "the error message must carry the actual reason, not reflection boilerplate.");
+    }
+
     [TestMethod]
     public async Task RunRecordsErrorMessageWhenProcessThrows()
     {
