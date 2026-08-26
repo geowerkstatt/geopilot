@@ -65,6 +65,7 @@ public class PipelineValidationTest
     [DataRow("invalidStepPostForwardReference_01", new string[] { "PipelineConfig: pipeline 'ili_validation', step 'xtf_matching', invalid expression '[validation.ValidationSuccessful]' on field Step-Post-Fail-Condition, parameter 'validation.ValidationSuccessful' is not valid" }, DisplayName = "Step post condition references a later step")]
     [DataRow("overwriteUndefinedBaseConfig", new string[] { "PipelineProcessConfig: Step 'validation' in pipeline 'ili_validation' is trying to overwrite process config parameter 'validationProfile' which is not defined in the default config." }, DisplayName = "overwrite a undefined base config parameter")]
     [DataRow("duplicateStatusMessageOutput", new string[] { "StepConfig: Step 'validation' has multiple outputs with StatusMessage action. Only one StatusMessage output is allowed per step." }, DisplayName = "Step has multiple StatusMessage outputs")]
+    [DataRow("duplicateConditionId", new string[] { "StepConfig: Step 'validation' has duplicate condition ids: not-unique. A condition id must be unique within its step." }, DisplayName = "Step has duplicate condition ids")]
 
     public void PipelineValidation(string pipelineFile, string[] expectedErrorMessages)
     {
