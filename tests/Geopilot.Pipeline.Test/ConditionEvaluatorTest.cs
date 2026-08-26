@@ -18,7 +18,7 @@ public class ConditionEvaluatorTest
     {
         var expressionParameters = new Dictionary<string, object?>();
         var conditionResult = await conditionEvaluator.EvaluateConditionAsync(expression, expressionParameters).ConfigureAwait(false);
-        Assert.IsTrue(conditionResult);
+        Assert.IsTrue(conditionResult.Matched);
     }
 
     [TestMethod(DisplayName = "Evaluate a simple non-boolean condition with no parameters")]
@@ -29,7 +29,7 @@ public class ConditionEvaluatorTest
     {
         var expressionParameters = new Dictionary<string, object?>();
         var conditionResult = await conditionEvaluator.EvaluateConditionAsync(expression, expressionParameters).ConfigureAwait(false);
-        Assert.IsFalse(conditionResult);
+        Assert.IsFalse(conditionResult.Matched);
     }
 
     [TestMethod(DisplayName = "Evaluate a syntactical invalid condition")]
@@ -62,7 +62,7 @@ public class ConditionEvaluatorTest
             { "step2.result2", "bar" },
         };
         var conditionResult = await conditionEvaluator.EvaluateConditionAsync(expression, expressionParameters).ConfigureAwait(false);
-        Assert.IsTrue(conditionResult);
+        Assert.IsTrue(conditionResult.Matched);
     }
 
     [TestMethod(DisplayName = "Evaluate a boolean condition with invalid parameters references")]
@@ -89,7 +89,7 @@ public class ConditionEvaluatorTest
             { "step1.result1", new string[] { "a", "b", "c" } },
         };
         var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 3", expressionParameters).ConfigureAwait(false);
-        Assert.IsTrue(result);
+        Assert.IsTrue(result.Matched);
     }
 
     [TestMethod(DisplayName = "Length of a list returns correct count")]
@@ -100,7 +100,7 @@ public class ConditionEvaluatorTest
             { "step1.result1", new List<string> { "x", "y" } },
         };
         var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 2", expressionParameters).ConfigureAwait(false);
-        Assert.IsTrue(result);
+        Assert.IsTrue(result.Matched);
     }
 
     [TestMethod(DisplayName = "Length of an empty array returns zero")]
@@ -111,7 +111,7 @@ public class ConditionEvaluatorTest
             { "step1.result1", Array.Empty<string>() },
         };
         var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 0", expressionParameters).ConfigureAwait(false);
-        Assert.IsTrue(result);
+        Assert.IsTrue(result.Matched);
     }
 
     [TestMethod(DisplayName = "Length of an empty list returns zero")]
@@ -122,7 +122,7 @@ public class ConditionEvaluatorTest
             { "step1.result1", new List<int>() },
         };
         var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 0", expressionParameters).ConfigureAwait(false);
-        Assert.IsTrue(result);
+        Assert.IsTrue(result.Matched);
     }
 
     [TestMethod(DisplayName = "Length of a single element array returns one")]
@@ -133,7 +133,7 @@ public class ConditionEvaluatorTest
             { "step1.result1", new int[] { 42 } },
         };
         var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 1", expressionParameters).ConfigureAwait(false);
-        Assert.IsTrue(result);
+        Assert.IsTrue(result.Matched);
     }
 
     [TestMethod(DisplayName = "Length with comparison operators")]
@@ -144,7 +144,7 @@ public class ConditionEvaluatorTest
             { "step1.result1", new string[] { "a", "b", "c" } },
         };
         var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) > 0 and Length([step1.result1]) < 5", expressionParameters).ConfigureAwait(false);
-        Assert.IsTrue(result);
+        Assert.IsTrue(result.Matched);
     }
 
     [TestMethod(DisplayName = "Length of non-collection parameter throws")]
@@ -173,7 +173,7 @@ public class ConditionEvaluatorTest
             { "step2.result1", "foo" },
         };
         var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 3 and [step2.result1] == 'foo'", expressionParameters).ConfigureAwait(false);
-        Assert.IsTrue(result);
+        Assert.IsTrue(result.Matched);
     }
 
     [TestMethod(DisplayName = "Length of a null parameter returns zero")]
@@ -184,6 +184,37 @@ public class ConditionEvaluatorTest
             { "step1.result1", null },
         };
         var result = await conditionEvaluator.EvaluateConditionAsync("Length([step1.result1]) == 0", expressionParameters).ConfigureAwait(false);
-        Assert.IsTrue(result);
+        Assert.IsTrue(result.Matched);
+    }
+
+    [TestMethod(DisplayName = "Evaluation captures the values of the referenced parameters only")]
+    public async Task EvaluationCapturesReferencedParameterValues()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", "hello" },
+            { "step1.result2", 123 },
+            { "step2.unreferenced", "ignored" },
+        };
+        var result = await conditionEvaluator.EvaluateConditionAsync("[step1.result1] == 'hello' and [step1.result2] > 100", expressionParameters).ConfigureAwait(false);
+
+        Assert.IsTrue(result.Matched);
+        Assert.HasCount(2, result.ReferencedParameters);
+        Assert.AreEqual("hello", result.ReferencedParameters["step1.result1"]);
+        Assert.AreEqual(123, result.ReferencedParameters["step1.result2"]);
+    }
+
+    [TestMethod(DisplayName = "Evaluation captures referenced parameters also when the condition does not match")]
+    public async Task EvaluationCapturesReferencedParametersWhenNotMatched()
+    {
+        var expressionParameters = new Dictionary<string, object?>()
+        {
+            { "step1.result1", 5 },
+        };
+        var result = await conditionEvaluator.EvaluateConditionAsync("[step1.result1] > 100", expressionParameters).ConfigureAwait(false);
+
+        Assert.IsFalse(result.Matched);
+        Assert.HasCount(1, result.ReferencedParameters);
+        Assert.AreEqual(5, result.ReferencedParameters["step1.result1"]);
     }
 }

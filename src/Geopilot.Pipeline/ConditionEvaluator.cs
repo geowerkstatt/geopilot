@@ -26,11 +26,19 @@ internal class ConditionEvaluator : IConditionEvaluator
     }
 
     /// <inheritdoc />
-    public async Task<bool> EvaluateConditionAsync(string expression, Dictionary<string, object?> expressionParameters)
+    public async Task<ConditionEvaluatorResult> EvaluateConditionAsync(string expression, Dictionary<string, object?> expressionParameters)
     {
         var runner = CreateRunner(expression, logger);
         runner.RegisterParameters(expressionParameters);
-        return await runner.EvaluateConditionAsync();
+
+        // Captured before evaluating, so a consumer sees exactly the values the expression saw.
+        var referencedParameters = runner.GetParameterNames()
+            .Distinct()
+            .Where(expressionParameters.ContainsKey)
+            .ToDictionary(name => name, name => expressionParameters[name]);
+
+        var matched = await runner.EvaluateConditionAsync();
+        return new ConditionEvaluatorResult(matched, referencedParameters);
     }
 
     /// <summary>

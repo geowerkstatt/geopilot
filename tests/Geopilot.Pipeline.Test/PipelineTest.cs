@@ -224,6 +224,33 @@ public class PipelineTest
         step2.Verify(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [TestMethod]
+    public async Task RunInvokesOnStepStartedBeforeEachStepInOrder()
+    {
+        var events = new List<string>();
+        var step1 = NewMockStep("step_1", new StepResult(), () => events.Add("run:step_1"));
+        var step2 = NewMockStep("step_2", new StepResult(), () => events.Add("run:step_2"));
+
+        using var pipeline = BuildPipeline(step1.Object, step2.Object);
+        pipeline.OnStepStarted = (step, cancellationToken) =>
+        {
+            events.Add($"started:{step.Id}");
+            return Task.CompletedTask;
+        };
+        pipeline.OnStepCompleted = (step, result, cancellationToken) =>
+        {
+            events.Add($"completed:{step.Id}");
+            return Task.CompletedTask;
+        };
+
+        await pipeline.Run(uploadFiles, CancellationToken.None);
+
+        CollectionAssert.AreEqual(
+            new[] { "started:step_1", "run:step_1", "completed:step_1", "started:step_2", "run:step_2", "completed:step_2" },
+            events,
+            "OnStepStarted must fire and complete before its step runs, once per step, in order.");
+    }
+
     private static Mock<IPipelineStep> NewMockStep(string id, StepResult result, Action? onRun = null)
     {
         var step = new Mock<IPipelineStep>();

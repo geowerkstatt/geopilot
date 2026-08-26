@@ -9,6 +9,14 @@ namespace Geopilot.Pipeline.Config;
 public class ConditionConfig
 {
     /// <summary>
+    /// Gets or sets the optional stable identifier of this condition. It is recorded with the condition's
+    /// evaluation result, so a consumer can reference the reason for a step outcome independently of the
+    /// wording of <see cref="Message"/> or the exact <see cref="Expression"/>. Uniqueness is not enforced.
+    /// </summary>
+    [YamlMember(Alias = "id")]
+    public string? Id { get; set; }
+
+    /// <summary>
     /// Gets or sets the boolean expression that is evaluated at runtime.
     /// </summary>
     [YamlMember(Alias = "expression")]
