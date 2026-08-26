@@ -1,0 +1,25 @@
+processes:
+  - id: xtf_validator
+    implementation: Geopilot.Pipeline.Processes.XtfValidation.XtfValidatorProcess
+    default_config:
+      validationProfile: DEFAULT
+pipelines:
+  - id: ili_validation
+    display_name:
+      en: XTF Validation
+    steps:
+      - id: validation
+        display_name:
+          en: XTF Validation
+        process_id: xtf_validator
+        conditions:
+          pre:
+            skip_conditions:
+              - id: not-unique
+                expression: "true == false"
+          post:
+            warn_conditions:
+              - id: not-unique
+                expression: "true == false"
+        input:
+          transferFile: "${upload()}"

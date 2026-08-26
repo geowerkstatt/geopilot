@@ -144,6 +144,12 @@ public class PipelineFactoryTest
                     display_name:
                       en: First
                     process_id: xtf_matcher
+                    conditions:
+                      post:
+                        warn_conditions:
+                          # Same id as on the second step: reuse across steps marks the same rule and stays valid.
+                          - id: with-id
+                            expression: "Length([first.XtfFiles]) == 0"
                     input:
                       files: "${upload()}"
                   - id: second
