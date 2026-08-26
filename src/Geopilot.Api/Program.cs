@@ -194,6 +194,7 @@ builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 builder.Services.AddSingleton<IProcessingJobStore, ProcessingJobStore>();
 builder.Services.AddSingleton<IUploadStore, UploadStore>();
+builder.Services.AddTransient<IPipelineRunRecorder, PipelineRunRecorder>();
 builder.Services.AddTransient<IProcessingService, ProcessingService>();
 builder.Services.AddTransient<IPipelineService, PipelineService>();
 builder.Services.AddTransient<IMandateService, MandateService>();

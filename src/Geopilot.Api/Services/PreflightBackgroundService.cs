@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Processing;
+﻿using Geopilot.Api.Exceptions;
+using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using System.Threading.Channels;
 
@@ -72,6 +73,14 @@ public class PreflightBackgroundService : BackgroundService
         catch (Exception ex)
         {
             logger.LogError(ex, "Preflight failed for job <{JobId}>.", request.JobId);
+
+            // The forensically relevant case: a rejected upload must leave its trace. The recorder
+            // swallows its own failures, so this cannot mask the cleanup below.
+            var recorder = scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>();
+            var failureReason = ex is UploadPreflightException preflightException
+                ? $"{preflightException.FailureReason}: {preflightException.Message}"
+                : ex.Message;
+            await recorder.RecordPreflightFailedAsync(request.JobId, failureReason);
 
             try
             {

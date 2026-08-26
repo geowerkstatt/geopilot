@@ -6,6 +6,14 @@
 public interface IUploadStorage
 {
     /// <summary>
+    /// Where this storage keeps its files, as a credential-free URI (the blob container URI without any
+    /// query, or the local root directory as file URI). Recorded in the execution protocol so a storage
+    /// key stays a resolvable reference after a backend or bucket change. Must never contain secrets:
+    /// the value ends up in a table that outlives every token.
+    /// </summary>
+    string StorageLocation { get; }
+
+    /// <summary>
     /// Generates the URL the client uploads the file content to.
     /// </summary>
     /// <param name="key">The storage key for the file.</param>

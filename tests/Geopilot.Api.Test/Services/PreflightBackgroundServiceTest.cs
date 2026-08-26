@@ -16,6 +16,7 @@ public class PreflightBackgroundServiceTest
 {
     private Mock<IProcessingJobStore> jobStoreMock;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
+    private Mock<IPipelineRunRecorder> runRecorderMock;
     private Mock<ILogger<PreflightBackgroundService>> loggerMock;
     private PreflightBackgroundService service;
 
@@ -24,11 +25,13 @@ public class PreflightBackgroundServiceTest
     {
         jobStoreMock = new Mock<IProcessingJobStore>(MockBehavior.Strict);
         orchestrationServiceMock = new Mock<IUploadOrchestrationService>(MockBehavior.Strict);
+        runRecorderMock = new Mock<IPipelineRunRecorder>();
         loggerMock = new Mock<ILogger<PreflightBackgroundService>>();
 
         var serviceProviderMock = new Mock<IServiceProvider>();
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IProcessingJobStore))).Returns(jobStoreMock.Object);
         serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IPipelineRunRecorder))).Returns(runRecorderMock.Object);
 
         var scopeMock = new Mock<IServiceScope>();
         scopeMock.SetupGet(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
@@ -85,6 +88,9 @@ public class PreflightBackgroundServiceTest
         jobStoreMock.Verify(x => x.MarkAsFailed(jobId), Times.Once);
         orchestrationServiceMock.Verify(x => x.ReleaseUploadAsync(uploadId), Times.Once);
         pipeline.Verify(p => p.Dispose(), Times.Once);
+        runRecorderMock.Verify(
+            r => r.RecordPreflightFailedAsync(jobId, It.Is<string>(reason => reason.Contains(nameof(PreflightFailureReason.IncompleteUpload)) && reason.Contains("File missing."))),
+            Times.Once);
     }
 
     [TestMethod]

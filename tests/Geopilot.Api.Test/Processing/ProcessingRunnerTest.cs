@@ -25,6 +25,7 @@ public class ProcessingRunnerTest
     private PhysicalAssetFileStore assetStore;
     private PhysicalVisualizationFileStore visualizationStore;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
+    private Mock<IPipelineRunRecorder> runRecorderMock;
     private IServiceScopeFactory scopeFactory;
 
     [TestInitialize]
@@ -36,11 +37,14 @@ public class ProcessingRunnerTest
         orchestrationServiceMock = new Mock<IUploadOrchestrationService>();
         orchestrationServiceMock.Setup(c => c.ReleaseUploadAsync(It.IsAny<Guid>())).Returns(Task.CompletedTask);
 
+        runRecorderMock = new Mock<IPipelineRunRecorder>();
+
         var serviceProvider = new Mock<IServiceProvider>();
         serviceProvider.Setup(p => p.GetService(typeof(IDownloadFileStore))).Returns(downloadStore);
         serviceProvider.Setup(p => p.GetService(typeof(IAssetFileStore))).Returns(assetStore);
         serviceProvider.Setup(p => p.GetService(typeof(IVisualizationFileStore))).Returns(visualizationStore);
         serviceProvider.Setup(p => p.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
+        serviceProvider.Setup(p => p.GetService(typeof(IPipelineRunRecorder))).Returns(runRecorderMock.Object);
 
         var scope = new Mock<IServiceScope>();
         scope.SetupGet(s => s.ServiceProvider).Returns(serviceProvider.Object);
@@ -342,6 +346,48 @@ public class ProcessingRunnerTest
         Assert.IsFalse(
             producer.DeliveryFiles.Single().FromUpload,
             "A delivered file produced by a step must not be marked as coming from the upload.");
+    }
+
+    [TestMethod]
+    public async Task ExecuteRecordsProtocolForStepsAndRun()
+    {
+        var jobId = NewJob();
+        var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State);
+        runRecorderMock.Verify(r => r.RecordStepStartedAsync(jobId, step, 0), Times.Once);
+        runRecorderMock.Verify(r => r.RecordStepCompletedAsync(jobId, step, 0), Times.Once);
+        runRecorderMock.Verify(
+            r => r.RecordRunFinishedAsync(jobId, It.Is<IReadOnlyList<IPipelineStep>>(steps => steps.Count == 1 && steps[0] == step), ProcessingState.Success, null),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task ExecuteContinuesWhenProtocolRecorderFails()
+    {
+        var jobId = NewJob();
+        runRecorderMock
+            .Setup(r => r.RecordStepStartedAsync(It.IsAny<Guid>(), It.IsAny<IPipelineStep>(), It.IsAny<int>()))
+            .ThrowsAsync(new InvalidOperationException("protocol database down"));
+
+        var step = BuildEmittingStep("step_1", "Result", "run.log", "content", OutputAction.Download);
+        using var pipeline = BuildPipeline(jobId, step);
+
+        var (runner, store) = CreateRunnerWithStore(pipeline);
+
+        await runner.StartAsync(CancellationToken.None);
+        await runner.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(10));
+        await runner.StopAsync(CancellationToken.None);
+
+        Assert.AreEqual(ProcessingState.Success, pipeline.State, "a protocol write failure must not tear down the pipeline.");
+        store.Verify(s => s.PipelineFinished(jobId, ProcessingState.Success), Times.Once);
     }
 
     [TestMethod]
