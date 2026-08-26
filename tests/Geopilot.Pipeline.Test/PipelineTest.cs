@@ -295,6 +295,30 @@ public class PipelineTest
         }
     }
 
+    [TestMethod]
+    public void DisposeRunsTheCleanupOnceUnderConcurrentCalls()
+    {
+        var directory = NewTempPath();
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            var step = NewDisposableStep("step_1");
+            var pipeline = BuildPipelineIn(directory, step.Object);
+
+            // The runner's cleanup and the job retirement dispose independently, so calls can overlap.
+            Parallel.For(0, 8, _ => pipeline.Dispose());
+
+            step.Verify(s => s.Dispose(), Times.Once, "Concurrent disposals must run the cleanup exactly once.");
+            Assert.IsFalse(Directory.Exists(directory), "The working directory is removed by the one disposal that runs.");
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, true);
+        }
+    }
+
     private static string NewTempPath() => Path.Combine(Path.GetTempPath(), $"geopilot-test-{Guid.NewGuid()}");
 
     private static Mock<IPipelineStep> NewDisposableStep(string id)

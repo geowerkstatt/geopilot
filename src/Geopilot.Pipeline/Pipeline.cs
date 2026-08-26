@@ -10,17 +10,16 @@ namespace Geopilot.Pipeline;
 /// Optionally, parameters can be provided to configure the behavior of the pipeline or its steps.</remarks>
 internal sealed class Pipeline : IPipeline
 {
-    private bool disposed;
+    // An int because Interlocked has no bool overload; 1 means disposed.
+    private int disposed;
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (disposed)
+        // Claimed atomically ahead of the cleanup below: the runner's cleanup and the job retirement
+        // dispose independently, and a cleanup which partially fails must still run at most once.
+        if (Interlocked.Exchange(ref disposed, 1) == 1)
             return;
-
-        // Marked as disposed ahead of the cleanup below, so that a cleanup which partially fails
-        // still leaves Dispose idempotent for the second call RemoveJob may make.
-        disposed = true;
 
         foreach (var step in Steps)
         {
