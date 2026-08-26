@@ -83,6 +83,11 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
             info.ModelDirs.AddRange(args.ModelDirs);
         }
 
+        if (args.PluginIds != null)
+        {
+            info.PluginIds.AddRange(args.PluginIds);
+        }
+
         return new ValidateRequest
         {
             Info = info,
