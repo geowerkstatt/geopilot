@@ -4,10 +4,10 @@ namespace Geopilot.Api.Services;
 
 /// <summary>
 /// Read-through decorator that computes the SHA-256 of everything read from the inner stream, so the
-/// malware scan and the hash for the execution protocol share one pass over the bytes. Length, position
-/// and seeking are forwarded so the consumer (nClam) misses nothing, but the hash is only meaningful
-/// when the stream is read sequentially and completely, which is how the INSTREAM scan consumes it.
-/// Takes ownership of the inner stream and disposes it along with itself.
+/// malware scan and the hash for the execution protocol share one pass over the bytes. The hash is only
+/// meaningful for a sequential, complete read, which is how the INSTREAM scan consumes the stream, so
+/// seeking is deliberately unsupported: repositioning would silently corrupt the hash. Length and the
+/// current position stay readable. Takes ownership of the inner stream and disposes it along with itself.
 /// </summary>
 internal sealed class HashingStream : Stream
 {
@@ -33,7 +33,7 @@ internal sealed class HashingStream : Stream
     public override bool CanRead => inner.CanRead;
 
     /// <inheritdoc/>
-    public override bool CanSeek => inner.CanSeek;
+    public override bool CanSeek => false;
 
     /// <inheritdoc/>
     public override bool CanWrite => false;
@@ -45,7 +45,7 @@ internal sealed class HashingStream : Stream
     public override long Position
     {
         get => inner.Position;
-        set => inner.Position = value;
+        set => throw new NotSupportedException("Seeking would corrupt the hash.");
     }
 
     /// <inheritdoc/>
@@ -71,7 +71,7 @@ internal sealed class HashingStream : Stream
         => ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
 
     /// <inheritdoc/>
-    public override long Seek(long offset, SeekOrigin origin) => inner.Seek(offset, origin);
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException("Seeking would corrupt the hash.");
 
     /// <inheritdoc/>
     public override void Flush() => inner.Flush();

@@ -44,7 +44,7 @@ public class HashingStreamTest
     }
 
     [TestMethod]
-    public void ForwardsLengthAndPositionToTheInnerStream()
+    public void ForwardsLengthAndPositionButRefusesSeeking()
     {
         var content = new byte[100];
         using var inner = new MemoryStream(content);
@@ -55,6 +55,11 @@ public class HashingStreamTest
         Assert.AreEqual(10, read);
         Assert.AreEqual(10, hashingStream.Position);
         Assert.IsFalse(hashingStream.CanWrite);
+
+        // Repositioning would silently corrupt the hash, so it is refused instead of forwarded.
+        Assert.IsFalse(hashingStream.CanSeek);
+        Assert.ThrowsExactly<NotSupportedException>(() => hashingStream.Seek(0, SeekOrigin.Begin));
+        Assert.ThrowsExactly<NotSupportedException>(() => hashingStream.Position = 0);
     }
 
     [TestMethod]

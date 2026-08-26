@@ -20,7 +20,7 @@ public interface IPipelineRunRecorder
     /// </summary>
     /// <param name="job">The created job with its pipeline attached.</param>
     /// <param name="mandate">The mandate the job was started for.</param>
-    /// <param name="user">The user that started the job, or <see langword="null"/> for an anonymous delivery.</param>
+    /// <param name="user">The user that started the job, or <see langword="null"/> when it was started anonymously on a public mandate.</param>
     /// <param name="upload">The upload whose files the job processes.</param>
     Task RecordJobStartedAsync(ProcessingJob job, Mandate mandate, User? user, UploadInfo upload);
 

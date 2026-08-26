@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Models;
+﻿using Geopilot.Api.Authorization;
+using Geopilot.Api.Models;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
 using Microsoft.EntityFrameworkCore;
@@ -10,9 +11,6 @@ namespace Geopilot.Api.Processing;
 /// <inheritdoc cref="IPipelineRunRecorder"/>
 public class PipelineRunRecorder : IPipelineRunRecorder
 {
-    // Keep in sync with the cookie the JWT bearer setup reads in Program.cs.
-    private const string AuthCookieName = "geopilot.auth";
-
     private static readonly string AppVersion =
         typeof(PipelineRunRecorder).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
         ?? typeof(PipelineRunRecorder).Assembly.GetName().Version?.ToString()
@@ -164,10 +162,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
             var row = await context.PipelineRunSteps
                 .SingleOrDefaultAsync(s => s.PipelineRunId == run.Id && s.StepId == step.Id);
             if (row is null)
-            {
-                row = NewStepRow(run.Id, step, order);
-                context.PipelineRunSteps.Add(row);
-            }
+                row = CreateMissingStepRow(run.Id, jobId, step, order);
 
             row.State = StepState.Running;
             row.StartedAt = step.StartedAt ?? DateTime.UtcNow;
@@ -196,10 +191,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
 
             var row = await LoadStepRowAsync(run.Id, step.Id);
             if (row is null)
-            {
-                row = NewStepRow(run.Id, step, order);
-                context.PipelineRunSteps.Add(row);
-            }
+                row = CreateMissingStepRow(run.Id, jobId, step, order);
 
             UpdateStepRow(row, step);
             await context.SaveChangesAsync();
@@ -231,10 +223,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
                 var step = steps[order];
                 var row = await LoadStepRowAsync(run.Id, step.Id);
                 if (row is null)
-                {
-                    row = NewStepRow(run.Id, step, order);
-                    context.PipelineRunSteps.Add(row);
-                }
+                    row = CreateMissingStepRow(run.Id, jobId, step, order);
 
                 UpdateStepRow(row, step);
             }
@@ -248,6 +237,19 @@ public class PipelineRunRecorder : IPipelineRunRecorder
         {
             LogWriteFailed(jobId, ex);
         }
+    }
+
+    /// <summary>
+    /// Creates and tracks a step row outside the start record. Step rows are pre-created with the start
+    /// record, so having to create one late is an anomaly worth noticing (e.g. a definition change between
+    /// start and run); creating it anyway keeps the protocol complete.
+    /// </summary>
+    private PipelineRunStep CreateMissingStepRow(int runId, Guid jobId, IPipelineStep step, int order)
+    {
+        logger.LogWarning("No step row exists for job <{JobId}>, step <{StepId}>; creating it late.", jobId, step.Id);
+        var row = NewStepRow(runId, step, order);
+        context.PipelineRunSteps.Add(row);
+        return row;
     }
 
     private static PipelineRunStep NewStepRow(int runId, IPipelineStep step, int order)
@@ -324,7 +326,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
     /// <summary>
     /// Classifies the caller from the current request, mirroring the token sources the authentication
     /// setup accepts: the geopilot.auth cookie marks the web frontend, a bearer header marks an API
-    /// client. Without either (anonymous delivery on a public mandate), browser fetch metadata still
+    /// client. Without either (a job started anonymously on a public mandate), browser fetch metadata still
     /// identifies the web client. Only the classification is stored, never the raw header.
     /// </summary>
     private ClientKind ClassifyClient()
@@ -333,7 +335,7 @@ public class PipelineRunRecorder : IPipelineRunRecorder
         if (request is null)
             return ClientKind.Unknown;
 
-        if (!string.IsNullOrEmpty(request.Cookies[AuthCookieName]))
+        if (!string.IsNullOrEmpty(request.Cookies[AuthDefaults.AuthCookieName]))
             return ClientKind.WebClient;
 
         if (request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
