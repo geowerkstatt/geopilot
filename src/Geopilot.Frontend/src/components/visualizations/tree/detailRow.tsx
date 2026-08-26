@@ -40,7 +40,15 @@ export const DetailRow = ({ label, value }: DetailRowProps) => {
       <TableCell sx={{ verticalAlign: "top", wordBreak: "break-word", px: 1 }}>
         <Typography variant="body2">{value}</Typography>
       </TableCell>
-      <TableCell sx={{ width: 40, verticalAlign: "top", px: 0, textAlign: "right" }}>
+      <TableCell
+        sx={{
+          width: 40,
+          verticalAlign: "top",
+          px: 0,
+          textAlign: "right",
+          display: "none",
+          "@media (hover: hover) and (pointer: fine)": { display: "table-cell" },
+        }}>
         <IconButton
           size="small"
           icon={copied ? <CheckIcon /> : <ContentCopyIcon />}
