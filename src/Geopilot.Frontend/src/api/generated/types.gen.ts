@@ -5,6 +5,20 @@ export type ClientOptions = {
 };
 
 /**
+ * What a recorded step artifact is. Persisted as text.
+ */
+export const ArtifactKind = {
+  Download: "download",
+  Visualization: "visualization",
+  Delivery: "delivery",
+} as const;
+
+/**
+ * What a recorded step artifact is. Persisted as text.
+ */
+export type ArtifactKind = (typeof ArtifactKind)[keyof typeof ArtifactKind];
+
+/**
  * An asset describes a file delivered or created by the validation and delivery process.
  */
 export type Asset = {
@@ -73,6 +87,33 @@ export type BrowserAuthOptions = {
    */
   fullScope: string;
 };
+
+/**
+ * The kind of client that started a processing job, classified from the request. Persisted as text.
+ */
+export const ClientKind = {
+  Unknown: "unknown",
+  WebClient: "webClient",
+  ApiClient: "apiClient",
+} as const;
+
+/**
+ * The kind of client that started a processing job, classified from the request. Persisted as text.
+ */
+export type ClientKind = (typeof ClientKind)[keyof typeof ClientKind];
+
+export const ConditionKind = {
+  Fail: "fail",
+  Skip: "skip",
+  Warn: "warn",
+  RestrictDelivery: "restrictDelivery",
+} as const;
+
+export type ConditionKind = (typeof ConditionKind)[keyof typeof ConditionKind];
+
+export const ConditionPhase = { Pre: "pre", Post: "post" } as const;
+
+export type ConditionPhase = (typeof ConditionPhase)[keyof typeof ConditionPhase];
 
 /**
  * A simple Coordinate representation.
@@ -326,6 +367,201 @@ export type Organisation = {
 };
 
 /**
+ * One artifact a step produced.
+ */
+export type PipelineRunArtifactResponse = {
+  kind: ArtifactKind;
+  /**
+   * The human-readable original file name.
+   */
+  originalFileName: string;
+  /**
+   * The file name it was persisted under.
+   */
+  persistedFileName: string;
+  /**
+   * For a delivery file: whether it entered the pipeline as an upload.
+   */
+  fromUpload?: boolean | null;
+};
+
+/**
+ * The evaluation result of one step condition.
+ */
+export type PipelineRunConditionResponse = {
+  /**
+   * The stable identifier from the pipeline definition, when configured.
+   */
+  conditionId?: string | null;
+  phase: ConditionPhase;
+  kind: ConditionKind;
+  /**
+   * The evaluated boolean expression.
+   */
+  expression: string;
+  /**
+   * Whether the expression evaluated to true.
+   */
+  matched: boolean;
+  /**
+   * The values the expression referenced, rendered per parameter name.
+   */
+  evaluatedValues?: {
+    [key: string]: string | null;
+  } | null;
+};
+
+/**
+ * One uploaded file of the run.
+ */
+export type PipelineRunFileResponse = {
+  /**
+   * The original file name as uploaded.
+   */
+  fileName: string;
+  /**
+   * The storage key relative to the run's storage location.
+   */
+  storageKey: string;
+  /**
+   * The file size in bytes as declared and verified by the preflight.
+   */
+  declaredSize: number;
+  /**
+   * The SHA-256 of the content as lowercase hex, when the file was scanned.
+   */
+  sha256?: string | null;
+};
+
+/**
+ * The execution protocol of one processing job: what ran, on which definition version, for whom, and how
+ * it ended. A Geopilot.Api.Contracts.PipelineRunResponse.TerminalState of null means the outcome is unknown, the
+ * instance died while the job ran. The definition snapshot itself is served by its own endpoint.
+ */
+export type PipelineRunResponse = {
+  /**
+   * The id of the processing job.
+   */
+  jobId: string;
+  /**
+   * The id of the pipeline that ran.
+   */
+  pipelineId: string;
+  /**
+   * The application version that executed the run.
+   */
+  appVersion: string;
+  /**
+   * The mandate the run was started for.
+   */
+  mandateId?: number | null;
+  /**
+   * The user that started the run, or null when the job was started anonymously. Who declared the delivery is recorded on the delivery itself.
+   */
+  userId?: number | null;
+  clientKind: ClientKind;
+  /**
+   * The id of the upload the run processed.
+   */
+  uploadId: string;
+  /**
+   * Where the uploaded files were stored, credential-free.
+   */
+  uploadStorageLocation: string;
+  /**
+   * When the upload session was initiated (UTC).
+   */
+  uploadInitiatedAt: string;
+  /**
+   * When the job was started (UTC).
+   */
+  startedAt: string;
+  scanState: ScanState;
+  /**
+   * Details of a detected threat, when the scan found one.
+   */
+  scanDetails?: string | null;
+  terminalState?: ProcessingState;
+  /**
+   * When the job reached its terminal state (UTC).
+   */
+  terminalAt?: string | null;
+  /**
+   * Why the run failed or was cancelled, when known.
+   */
+  failureReason?: string | null;
+  /**
+   * The manifest of the uploaded files.
+   */
+  files: Array<PipelineRunFileResponse>;
+  /**
+   * The per-step records, in pipeline order.
+   */
+  steps: Array<PipelineRunStepResponse>;
+};
+
+/**
+ * The protocol record of one pipeline step.
+ */
+export type PipelineRunStepResponse = {
+  /**
+   * The step id from the pipeline definition.
+   */
+  stepId: string;
+  /**
+   * The step's localized display name.
+   */
+  displayName: {
+    [key: string]: string;
+  };
+  /**
+   * The fully qualified type name of the process implementation.
+   */
+  processImplementation: string;
+  /**
+   * The assembly the implementation came from.
+   */
+  processAssemblyName?: string | null;
+  /**
+   * The version of that assembly.
+   */
+  processAssemblyVersion?: string | null;
+  state: StepState;
+  /**
+   * When the pipeline reached the step (UTC).
+   */
+  startedAt?: string | null;
+  /**
+   * When the step finished (UTC).
+   */
+  finishedAt?: string | null;
+  /**
+   * The message of the exception that failed or cancelled the step.
+   */
+  errorMessage?: string | null;
+  /**
+   * The localized status message the process emitted.
+   */
+  statusMessage?: {
+    [key: string]: string;
+  } | null;
+  /**
+   * The localized message of the conditions that determined the state.
+   */
+  conditionMessage?: {
+    [key: string]: string;
+  } | null;
+  /**
+   * The evaluation result of every checked condition, matching or not.
+   */
+  conditions: Array<PipelineRunConditionResponse>;
+  /**
+   * The artifacts the step produced, by name.
+   */
+  artifacts: Array<PipelineRunArtifactResponse>;
+};
+
+/**
  * Represents a summary of a pipeline.
  */
 export type PipelineSummary = {
@@ -397,6 +633,20 @@ export const ProcessingState = {
 } as const;
 
 export type ProcessingState = (typeof ProcessingState)[keyof typeof ProcessingState];
+
+/**
+ * The outcome of the malware scan of a run's uploaded files. Persisted as text.
+ */
+export const ScanState = {
+  NotScanned: "notScanned",
+  Clean: "clean",
+  ThreatDetected: "threatDetected",
+} as const;
+
+/**
+ * The outcome of the malware scan of a run's uploaded files. Persisted as text.
+ */
+export type ScanState = (typeof ScanState)[keyof typeof ScanState];
 
 /**
  * Request to start a job.
@@ -1041,6 +1291,68 @@ export type GetApiV1PipelineResponses = {
 };
 
 export type GetApiV1PipelineResponse = GetApiV1PipelineResponses[keyof GetApiV1PipelineResponses];
+
+export type GetApiV1PipelineRunByJobIdData = {
+  body?: never;
+  path: {
+    jobId: string;
+  };
+  query?: never;
+  url: "/api/v1/PipelineRun/{jobId}";
+};
+
+export type GetApiV1PipelineRunByJobIdErrors = {
+  /**
+   * The server cannot process the request due to invalid or malformed request.
+   */
+  400: ValidationProblemDetails;
+  /**
+   * No execution protocol exists for the specified jobId.
+   */
+  404: ProblemDetails;
+};
+
+export type GetApiV1PipelineRunByJobIdError = GetApiV1PipelineRunByJobIdErrors[keyof GetApiV1PipelineRunByJobIdErrors];
+
+export type GetApiV1PipelineRunByJobIdResponses = {
+  /**
+   * The execution protocol of the job.
+   */
+  200: PipelineRunResponse;
+};
+
+export type GetApiV1PipelineRunByJobIdResponse =
+  GetApiV1PipelineRunByJobIdResponses[keyof GetApiV1PipelineRunByJobIdResponses];
+
+export type GetApiV1PipelineRunByJobIdDefinitionData = {
+  body?: never;
+  path: {
+    jobId: string;
+  };
+  query?: never;
+  url: "/api/v1/PipelineRun/{jobId}/definition";
+};
+
+export type GetApiV1PipelineRunByJobIdDefinitionErrors = {
+  /**
+   * The server cannot process the request due to invalid or malformed request.
+   */
+  400: ValidationProblemDetails;
+  /**
+   * No execution protocol exists for the specified jobId.
+   */
+  404: ProblemDetails;
+};
+
+export type GetApiV1PipelineRunByJobIdDefinitionError =
+  GetApiV1PipelineRunByJobIdDefinitionErrors[keyof GetApiV1PipelineRunByJobIdDefinitionErrors];
+
+export type GetApiV1PipelineRunByJobIdDefinitionResponses = {
+  /**
+   * The definition snapshot the job executed on.
+   */
+  200: unknown;
+};
 
 export type GetApiV2ProcessingData = {
   body?: never;
