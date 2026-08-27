@@ -58,7 +58,7 @@ internal class XtfValidatorProcess
     /// <param name="modelDirs">Optional INTERLIS model repositories as a semicolon separated list, searched in the given order. Replaces the default of the tool entirely.</param>
     /// <param name="allObjectsAccessible">Whether a reference to an object outside the validated file is an error. Defaults to true.</param>
     /// <param name="pluginIds">Optional ilitools-wrapper plugins as a semicolon separated list of ids, which provide the user defined functions a model may call in its constraints. Which ids exist is a property of the wrapper deployment.</param>
-    /// <param name="toolVersion">Optional version of ilivalidator to run, selected from the versions the wrapper deployment offers. Without it the deployment default runs, which is deliberately not the newest offered version.</param>
+    /// <param name="toolVersion">Optional version of ilivalidator to run, selected from the versions the wrapper deployment offers. Without it the deployment default runs.</param>
     /// <param name="modelRepository">Optional ZIP archive of a model repository, given as the path of a file the deployment ships. The wrapper unpacks it into its own subfolder, which <paramref name="modelDirs"/> reaches through <c>%ITF_DIR/repository</c>.</param>
     /// <param name="ilivalidatorClient">Client of the ilitools-wrapper that runs the validation.</param>
     /// <param name="pipelineFileManager">The pipeline file manager for managing temporary files during the validation process.</param>
