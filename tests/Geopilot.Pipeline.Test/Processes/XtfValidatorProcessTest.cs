@@ -177,6 +177,25 @@ public class XtfValidatorProcessTest
     }
 
     [TestMethod]
+    public async Task NormalizesTheConfiguredToolVersion()
+    {
+        // Hand written configuration, so blanks around the value are expected.
+        var process = CreateProcess(null, null, success: true, toolVersion: " 1.14.4 ");
+
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
+
+        Assert.AreEqual("1.14.4", capturedArgs?.ToolVersion);
+
+        // A value that is only blanks has to read as no choice. Passed on, it would reach the wrapper as a version
+        // name and be rejected, so an accidental empty entry would take the pipeline down instead of doing nothing.
+        var blankProcess = CreateProcess(null, null, success: true, toolVersion: "   ");
+
+        await blankProcess.RunAsync(CreateTransferFile(), [], CancellationToken.None);
+
+        Assert.IsNull(capturedArgs?.ToolVersion);
+    }
+
+    [TestMethod]
     public async Task TrimsTheConfiguredModelRepositories()
     {
         // Hand written configuration, so blanks around the separator and a trailing one are expected.
