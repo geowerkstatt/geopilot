@@ -1,4 +1,5 @@
 ﻿using Geopilot.Api.Enums;
+using Geopilot.Api.Services;
 
 namespace Geopilot.Api.Exceptions;
 
@@ -11,6 +12,13 @@ public class UploadPreflightException : Exception
     /// Gets the reason for the preflight failure.
     /// </summary>
     public PreflightFailureReason FailureReason { get; }
+
+    /// <summary>
+    /// Gets the scan outcome, when the scan itself found the failure. Carried on the exception so the
+    /// execution protocol can record the threat and the file hashes of a rejected upload, the
+    /// forensically relevant case.
+    /// </summary>
+    public ScanResult? ScanResult { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UploadPreflightException"/> class.
@@ -29,6 +37,21 @@ public class UploadPreflightException : Exception
         : base(message)
     {
         FailureReason = failureReason;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UploadPreflightException"/> class with a specified
+    /// <paramref name="failureReason"/>, error <paramref name="message"/> and the <paramref name="scanResult"/>
+    /// that found the failure.
+    /// </summary>
+    /// <param name="failureReason">The reason for the preflight failure.</param>
+    /// <param name="message">The message that describes the error.</param>
+    /// <param name="scanResult">The outcome of the malware scan.</param>
+    public UploadPreflightException(PreflightFailureReason failureReason, string message, ScanResult scanResult)
+        : base(message)
+    {
+        FailureReason = failureReason;
+        ScanResult = scanResult;
     }
 
     /// <summary>

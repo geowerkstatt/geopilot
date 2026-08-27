@@ -92,6 +92,69 @@ public class XtfValidatorProcessTest
     }
 
     [TestMethod]
+    public async Task ThrowsWhenACheckWasSkipped()
+    {
+        // The dangerous shape: the tool reports success although it never evaluated the constraint, which is what
+        // a missing plugin looks like. A green result for a check that did not run must not reach the delivery.
+        var log = "Info: validate mandatory constraint Model.Topic.Class.Constraint1...\n"
+            + $"Warning: line 12: Model.Topic.Class: tid 1: MandatoryConstraint Model.Topic.Class.Constraint1 of Model.Topic.Class {XtfValidatorProcess.CheckNotEvaluatedMarker}.\n";
+        var process = CreateProcess(null, null, success: true, logContent: log, pluginIds: "geow-interlis-functions");
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
+
+        Assert.Contains("geow-interlis-functions", exception.Message, "The message should name what was configured.");
+    }
+
+    [TestMethod]
+    public async Task ThrowsWhenACheckWasSkippedWithoutAnyPluginConfigured()
+    {
+        // The likelier misconfiguration: nobody configured the plugin the model needs. Reported the same way,
+        // because the result says just as little about that check.
+        var log = $"Warning: MandatoryConstraint Model.Topic.Class.Constraint1 of Model.Topic.Class {XtfValidatorProcess.CheckNotEvaluatedMarker}.\n";
+        var process = CreateProcess(null, null, success: true, logContent: log);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
+
+        Assert.Contains("none", exception.Message);
+    }
+
+    [TestMethod]
+    public async Task ThrowsWhenASetConstraintWasSkipped()
+    {
+        // The tool words the skip once per constraint type and twice generically, so the marker is the common
+        // substring and not one message. A set constraint is one of the wordings that a search for
+        // MandatoryConstraint would miss.
+        var log = $"Warning: Function in set constraint Model.Topic.Class.Constraint2 {XtfValidatorProcess.CheckNotEvaluatedMarker}.\n";
+        var process = CreateProcess(null, null, success: true, logContent: log);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => process.RunAsync(CreateTransferFile(), [], CancellationToken.None));
+    }
+
+    [TestMethod]
+    public async Task PassesTheConfiguredPluginsAsIds()
+    {
+        var process = CreateProcess(null, null, success: true, pluginIds: " geow-interlis-functions ; ngk-so ; ");
+
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
+
+        // Hand written configuration, so blanks around the separator and a trailing one are expected.
+        string[] expectedPluginIds = ["geow-interlis-functions", "ngk-so"];
+        CollectionAssert.AreEqual(expectedPluginIds, capturedArgs?.PluginIds?.ToList());
+    }
+
+    [TestMethod]
+    public async Task PassesNoPluginsWhenNoneAreConfigured()
+    {
+        var process = CreateProcess(null, null, success: true);
+
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
+
+        // No selection has to stay no selection: the wrapper then leaves --plugins unset, which is what keeps the
+        // tool on its own default instead of loading something the pipeline never asked for.
+        Assert.IsNull(capturedArgs?.PluginIds);
+    }
+
+    [TestMethod]
     public async Task TrimsTheConfiguredModelRepositories()
     {
         // Hand written configuration, so blanks around the separator and a trailing one are expected.
@@ -193,7 +256,7 @@ public class XtfValidatorProcessTest
         return new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
     }
 
-    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null)
+    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null, string? pluginIds = null)
     {
         ilivalidatorClientMock
             .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()))
@@ -214,6 +277,6 @@ public class XtfValidatorProcessTest
             .ReturnsAsync(new IlivalidatorResult(success));
 
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
-        return new XtfValidatorProcess(validationProfile, modelDirs, allObjectsAccessible, modelRepository, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+        return new XtfValidatorProcess(validationProfile, modelDirs, allObjectsAccessible, pluginIds, modelRepository, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
     }
 }

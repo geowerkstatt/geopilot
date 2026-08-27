@@ -10,20 +10,38 @@ namespace Geopilot.Pipeline;
 /// Optionally, parameters can be provided to configure the behavior of the pipeline or its steps.</remarks>
 internal sealed class Pipeline : IPipeline
 {
-    private bool disposed;
+    // An int because Interlocked has no bool overload; 1 means disposed.
+    private int disposed;
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (disposed)
+        // Claimed atomically ahead of the cleanup below: the runner's cleanup and the job retirement
+        // dispose independently, and a cleanup which partially fails must still run at most once.
+        if (Interlocked.Exchange(ref disposed, 1) == 1)
             return;
 
-        Steps.ForEach(step => step.Dispose());
+        foreach (var step in Steps)
+        {
+            try
+            {
+                step.Dispose();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to dispose step <{Step}> of pipeline <{Pipeline}>.", step.Id, Id);
+            }
+        }
 
-        if (Path.Exists(pipelineFileDirectory))
-            Directory.Delete(pipelineFileDirectory, true);
-
-        disposed = true;
+        try
+        {
+            if (Path.Exists(pipelineFileDirectory))
+                Directory.Delete(pipelineFileDirectory, true);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to delete the working directory <{Directory}> of pipeline <{Pipeline}>.", pipelineFileDirectory, Id);
+        }
     }
 
     private readonly string pipelineFileDirectory;
@@ -89,6 +107,9 @@ internal sealed class Pipeline : IPipeline
     public Guid JobId { get; }
 
     /// <inheritdoc/>
+    public Func<IPipelineStep, CancellationToken, Task>? OnStepStarted { get; set; }
+
+    /// <inheritdoc/>
     public Func<IPipelineStep, StepResult, CancellationToken, Task>? OnStepCompleted { get; set; }
 
     private ILogger logger;
@@ -136,6 +157,9 @@ internal sealed class Pipeline : IPipeline
             {
                 if (this.State == ProcessingState.Failed || this.State == ProcessingState.Cancelled)
                     break;
+
+                if (this.OnStepStarted is not null)
+                    await this.OnStepStarted(step, cancellationToken).ConfigureAwait(false);
 
                 var stepResult = await step.Run(context, cancellationToken).ConfigureAwait(false);
                 context.StepResults[step.Id] = stepResult;

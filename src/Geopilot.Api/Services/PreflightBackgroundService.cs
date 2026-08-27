@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Processing;
+﻿using Geopilot.Api.Exceptions;
+using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using System.Threading.Channels;
 
@@ -59,7 +60,8 @@ public class PreflightBackgroundService : BackgroundService
 
         try
         {
-            await orchestrationService.RunPreflightChecksAsync(request.UploadId);
+            var scanResult = await orchestrationService.RunPreflightChecksAsync(request.UploadId);
+            await RecordProtocolAsync(scope, request.JobId, recorder => recorder.RecordScanOutcomeAsync(request.JobId, scanResult));
 
             // Nothing is transferred here: each file is fetched from the upload storage the first time a step
             // reads it, so the job starts without waiting for the whole upload.
@@ -73,16 +75,30 @@ public class PreflightBackgroundService : BackgroundService
         {
             logger.LogError(ex, "Preflight failed for job <{JobId}>.", request.JobId);
 
+            // The forensically relevant case: a rejected upload must leave its trace, including the scan
+            // outcome and hashes when the scan itself found the threat.
+            await RecordProtocolAsync(scope, request.JobId, async recorder =>
+            {
+                if (ex is UploadPreflightException { ScanResult: { } scanResult })
+                    await recorder.RecordScanOutcomeAsync(request.JobId, scanResult);
+
+                var failureReason = ex is UploadPreflightException preflightException
+                    ? $"{preflightException.FailureReason}: {preflightException.Message}"
+                    : ex.Message;
+                await recorder.RecordPreflightFailedAsync(request.JobId, failureReason);
+            });
+
+            if (!jobStore.TryMarkAsFailed(request.JobId))
+                logger.LogWarning("Job <{JobId}> was not marked as failed: it is unknown or already in a terminal state.", request.JobId);
+
             try
             {
-                jobStore.MarkAsFailed(request.JobId);
-
                 // The pipeline was instantiated up front but never queued, so the runner will not dispose it.
                 job.Pipeline?.Dispose();
             }
-            catch (Exception statusEx)
+            catch (Exception disposeEx)
             {
-                logger.LogError(statusEx, "Failed to mark job <{JobId}> as failed.", request.JobId);
+                logger.LogError(disposeEx, "Failed to dispose the pipeline of job <{JobId}>.", request.JobId);
             }
 
             try
@@ -95,6 +111,23 @@ public class PreflightBackgroundService : BackgroundService
                 // the background service and leave every later upload stuck in Pending.
                 logger.LogError(cleanupEx, "Failed to release the files of upload <{UploadId}>.", request.UploadId);
             }
+        }
+    }
+
+    /// <summary>
+    /// Runs one protocol write. The recorder swallows its own write failures; this additionally guards
+    /// its resolution, because a protocol problem must never stop the preflight loop.
+    /// </summary>
+    private async Task RecordProtocolAsync(IServiceScope scope, Guid jobId, Func<IPipelineRunRecorder, Task> record)
+    {
+        try
+        {
+            var recorder = scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>();
+            await record(recorder);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Writing the execution protocol for job <{JobId}> failed; preflight continues.", jobId);
         }
     }
 }

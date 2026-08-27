@@ -3,6 +3,7 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Geopilot.PipelineCore.Pipeline;
+using System.Text.Json;
 
 namespace Geopilot.Api;
 
@@ -154,5 +155,74 @@ internal static class DtoMapperExtensions
     public static IQueryable<DeliverySummary> ToSummaries(this IQueryable<Delivery> deliveries)
     {
         return deliveries.Select(d => new DeliverySummary(d.Id, d.Date));
+    }
+
+    /// <summary>
+    /// Maps a <see cref="PipelineRun"/> including its children to a <see cref="PipelineRunResponse"/>.
+    /// The definition snapshot is deliberately not part of the response; it is served by its own endpoint.
+    /// </summary>
+    public static PipelineRunResponse ToResponse(this PipelineRun run)
+    {
+        return new PipelineRunResponse(
+            run.JobId,
+            run.PipelineId,
+            run.AppVersion,
+            run.MandateId,
+            run.UserId,
+            run.ClientKind,
+            run.UploadId,
+            run.UploadStorageLocation,
+            run.UploadInitiatedAt,
+            run.StartedAt,
+            run.ScanState,
+            run.ScanDetails,
+            run.TerminalState,
+            run.TerminalAt,
+            run.FailureReason,
+            run.Files
+                .OrderBy(file => file.Id)
+                .Select(file => new PipelineRunFileResponse(file.FileName, file.StorageKey, file.DeclaredSize, file.Sha256))
+                .ToList(),
+            run.Steps
+                .OrderBy(step => step.Order)
+                .Select(step => step.ToResponse())
+                .ToList());
+    }
+
+    private static Dictionary<string, string?>? DeserializeEvaluatedValues(string? evaluatedValues) =>
+        evaluatedValues is null ? null : JsonSerializer.Deserialize<Dictionary<string, string?>>(evaluatedValues);
+
+    private static PipelineRunStepResponse ToResponse(this PipelineRunStep step)
+    {
+        return new PipelineRunStepResponse(
+            step.StepId,
+            step.DisplayName,
+            step.ProcessImplementation,
+            step.ProcessAssemblyName,
+            step.ProcessAssemblyVersion,
+            step.State,
+            step.StartedAt,
+            step.FinishedAt,
+            step.ErrorMessage,
+            step.StatusMessage,
+            step.ConditionMessage,
+            step.Conditions
+                .OrderBy(condition => condition.Id)
+                .Select(condition => new PipelineRunConditionResponse(
+                    condition.ConditionId,
+                    condition.Phase,
+                    condition.Kind,
+                    condition.Expression,
+                    condition.Matched,
+                    DeserializeEvaluatedValues(condition.EvaluatedValues)))
+                .ToList(),
+            step.Artifacts
+                .OrderBy(artifact => artifact.Id)
+                .Select(artifact => new PipelineRunArtifactResponse(
+                    artifact.Kind,
+                    artifact.OriginalFileName,
+                    artifact.PersistedFileName,
+                    artifact.FromUpload))
+                .ToList());
     }
 }

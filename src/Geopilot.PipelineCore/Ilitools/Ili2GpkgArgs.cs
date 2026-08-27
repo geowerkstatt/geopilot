@@ -83,4 +83,18 @@ public sealed record Ili2GpkgArgs
     /// Maps to the ili2gpkg option <c>--dataset</c>.
     /// </summary>
     public string? Dataset { get; init; }
+
+    /// <summary>
+    /// The plugins that provide the user defined functions a model may call in its constraints, selected by the id
+    /// the ilitools-wrapper offers them under. Which ids exist is a property of that deployment, and an id it does
+    /// not offer is rejected before the tool runs.
+    /// Unlike the other properties this is not a 1:1 mapping: the tool option <c>--plugins</c> takes a single
+    /// folder, which the wrapper composes from this selection.
+    /// </summary>
+    /// <remarks>
+    /// Relevant wherever the operation validates, which <c>ili2gpkg</c> does on import and through
+    /// <c>--validate</c>. A constraint whose function has no implementation is skipped with a warning while the
+    /// run still reports success, so a missing plugin does not surface in the result.
+    /// </remarks>
+    public IReadOnlyList<string>? PluginIds { get; init; }
 }

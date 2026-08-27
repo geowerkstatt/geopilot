@@ -2,6 +2,10 @@
 
 Dokumentation zu geopilot für Betreiber, Pipeline-Autoren und Plugin-Entwickler. Die Anleitung zum Einrichten der Entwicklungsumgebung befindet sich im [README](../README.md) im Wurzelverzeichnis.
 
+## Betrieb
+
+- [Ausführungsprotokoll](Ausfuehrungsprotokoll.md): Der dauerhafte Prüfnachweis pro Verarbeitungsjob. Was aufgezeichnet wird, der Definitions-Snapshot, die Abfrage über API und SQL, Aufbewahrung und Datenschutz.
+
 ## Pipeline
 
 - [Pipelines](pipeline/Pipelines.md): Grundlagen und Konzepte. Aufbau einer Pipeline, Format der YAML-Definition, Datenfluss zwischen den Schritten, Status-Modell, Konfiguration der Prozessoren, Conditions und Einschränkungen für die Datenlieferung.

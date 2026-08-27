@@ -24,7 +24,11 @@ public class DirectUploadStorage : IUploadStorage
         this.logger = logger;
         rootDirectory = Path.GetFullPath(options.Value.Directory);
         Directory.CreateDirectory(rootDirectory);
+        StorageLocation = new Uri(rootDirectory).AbsoluteUri;
     }
+
+    /// <inheritdoc/>
+    public string StorageLocation { get; }
 
     /// <inheritdoc/>
     public Task<string> GenerateUploadUrlAsync(string key, string? contentType, TimeSpan expiresIn)

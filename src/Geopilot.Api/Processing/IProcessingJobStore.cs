@@ -37,11 +37,16 @@ public interface IProcessingJobStore
     ProcessingJob CreateJob(Guid uploadId);
 
     /// <summary>
-    /// Marks the specified job as failed (e.g. preflight failure before a pipeline could be created).
+    /// Marks the job as failed (e.g. a preflight failure before a pipeline could be created) and reports
+    /// whether it happened, instead of throwing when the transition is not allowed. There is no throwing
+    /// counterpart: a job is only ever marked as failed by a caller that is already handling a failure, and
+    /// such a caller cannot afford a second exception, because it escapes to the hosting background service
+    /// and stops the host instead of recording the failure.
     /// </summary>
-    /// <exception cref="ArgumentException">If no job with the <paramref name="jobId"/> was found.</exception>
-    /// <exception cref="InvalidOperationException">If the job is already in a terminal state.</exception>
-    ProcessingJob MarkAsFailed(Guid jobId);
+    /// <param name="jobId">The job to mark as failed.</param>
+    /// <returns><see langword="true"/> when the job was marked as failed; <see langword="false"/> when it is
+    /// unknown or already in a terminal state, in which case it is left untouched.</returns>
+    bool TryMarkAsFailed(Guid jobId);
 
     /// <summary>
     /// Transitions the job to its terminal state based on the state the pipeline finished in.
@@ -56,6 +61,21 @@ public interface IProcessingJobStore
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="pipelineState"/> is not a terminal state.</exception>
     /// <exception cref="InvalidOperationException">If the job is not in <see cref="ProcessingState.Running"/>.</exception>
     ProcessingJob PipelineFinished(Guid jobId, ProcessingState pipelineState);
+
+    /// <summary>
+    /// Transitions the job to its terminal state and reports whether it happened, instead of throwing when
+    /// the transition is not allowed. Prefer it over <see cref="PipelineFinished"/> in an error path, for the
+    /// reason given on <see cref="TryMarkAsFailed"/>. The caller has to pass a state it already knows to be
+    /// terminal: that argument check still throws, and out of an error path the exception escapes to the
+    /// hosting background service just like the one it replaces.
+    /// </summary>
+    /// <param name="jobId">The job whose pipeline has finished.</param>
+    /// <param name="pipelineState">The terminal state the pipeline ended in.</param>
+    /// <returns><see langword="true"/> when the job was transitioned; <see langword="false"/> when it is
+    /// unknown or not in <see cref="ProcessingState.Running"/>, in which case it is left untouched.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="pipelineState"/> is not a terminal
+    /// state, which is a defect at the call site rather than a job that moved on.</exception>
+    bool TryPipelineFinished(Guid jobId, ProcessingState pipelineState);
 
     /// <summary>
     /// Associates the given <paramref name="pipeline"/> with the job at creation time, without queuing it.

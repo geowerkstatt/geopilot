@@ -13,6 +13,9 @@ public class AzureBlobUploadStorage : IUploadStorage
     private readonly BlobContainerClient containerClient;
     private readonly ILogger<AzureBlobUploadStorage> logger;
 
+    /// <inheritdoc/>
+    public string StorageLocation { get; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureBlobUploadStorage"/> class.
     /// </summary>
@@ -29,6 +32,10 @@ public class AzureBlobUploadStorage : IUploadStorage
 
         var serviceClient = new BlobServiceClient(config.ConnectionString);
         containerClient = serviceClient.GetBlobContainerClient(config.BucketName);
+
+        // Strip any query on purpose: with a SAS-based connection string the container URI could carry
+        // the token, and the location is persisted in the execution protocol for years.
+        StorageLocation = containerClient.Uri.GetLeftPart(UriPartial.Path);
 
         if (config.AutoCreateContainer)
             containerClient.CreateIfNotExists();

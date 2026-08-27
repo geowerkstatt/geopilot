@@ -90,7 +90,7 @@ public class UploadOrchestrationService : IUploadOrchestrationService
     }
 
     /// <inheritdoc/>
-    public async Task RunPreflightChecksAsync(Guid uploadId)
+    public async Task<ScanResult> RunPreflightChecksAsync(Guid uploadId)
     {
         var upload = uploadStore.GetUpload(uploadId) ?? throw new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId));
 
@@ -128,8 +128,10 @@ public class UploadOrchestrationService : IUploadOrchestrationService
         if (!scanResult.IsClean)
         {
             logger.LogError("Threat detected in files of upload <{UploadId}>: {ThreatDetails}", uploadId, scanResult.ThreatDetails);
-            throw new UploadPreflightException(PreflightFailureReason.ThreatDetected, "The uploaded files could not be processed.");
+            throw new UploadPreflightException(PreflightFailureReason.ThreatDetected, "The uploaded files could not be processed.", scanResult);
         }
+
+        return scanResult;
     }
 
     /// <inheritdoc/>

@@ -224,6 +224,33 @@ public class PipelineTest
         step2.Verify(s => s.Run(It.IsAny<PipelineContext>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [TestMethod]
+    public async Task RunInvokesOnStepStartedBeforeEachStepInOrder()
+    {
+        var events = new List<string>();
+        var step1 = NewMockStep("step_1", new StepResult(), () => events.Add("run:step_1"));
+        var step2 = NewMockStep("step_2", new StepResult(), () => events.Add("run:step_2"));
+
+        using var pipeline = BuildPipeline(step1.Object, step2.Object);
+        pipeline.OnStepStarted = (step, cancellationToken) =>
+        {
+            events.Add($"started:{step.Id}");
+            return Task.CompletedTask;
+        };
+        pipeline.OnStepCompleted = (step, result, cancellationToken) =>
+        {
+            events.Add($"completed:{step.Id}");
+            return Task.CompletedTask;
+        };
+
+        await pipeline.Run(uploadFiles, CancellationToken.None);
+
+        CollectionAssert.AreEqual(
+            new[] { "started:step_1", "run:step_1", "completed:step_1", "started:step_2", "run:step_2", "completed:step_2" },
+            events,
+            "OnStepStarted must fire and complete before its step runs, once per step, in order.");
+    }
+
     private static Mock<IPipelineStep> NewMockStep(string id, StepResult result, Action? onRun = null)
     {
         var step = new Mock<IPipelineStep>();
@@ -238,14 +265,107 @@ public class PipelineTest
         return step;
     }
 
+    [TestMethod]
+    public void DisposeSurvivesAWorkingDirectoryThatCannotBeDeleted()
+    {
+        // A file where the working directory is expected makes Path.Exists report true while
+        // Directory.Delete fails, on Windows as well as on Linux.
+        var blockedDirectory = NewTempPath();
+        File.WriteAllText(blockedDirectory, "not a directory");
+
+        try
+        {
+            var step = NewDisposableStep("step_1");
+            var pipeline = BuildPipelineIn(blockedDirectory, step.Object);
+
+            pipeline.Dispose();
+            pipeline.Dispose();
+
+            step.Verify(
+                s => s.Dispose(),
+                Times.Once,
+                "The steps are released once even when the working directory cannot be deleted.");
+        }
+        finally
+        {
+            File.Delete(blockedDirectory);
+        }
+    }
+
+    [TestMethod]
+    public void DisposeReleasesTheRemainingStepsWhenOneStepFails()
+    {
+        var directory = NewTempPath();
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            // A step releases the process instance a plugin provided, so its disposal runs third-party code.
+            var failingStep = NewDisposableStep("failing_step");
+            failingStep.Setup(s => s.Dispose()).Throws(new InvalidOperationException("process disposal failed"));
+            var followingStep = NewDisposableStep("following_step");
+
+            var pipeline = BuildPipelineIn(directory, failingStep.Object, followingStep.Object);
+
+            pipeline.Dispose();
+
+            followingStep.Verify(
+                s => s.Dispose(),
+                Times.Once,
+                "A step that fails to release must not keep the following steps from being released.");
+            Assert.IsFalse(Directory.Exists(directory), "The working directory is removed even when a step fails to release.");
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, true);
+        }
+    }
+
+    [TestMethod]
+    public void DisposeRunsTheCleanupOnceUnderConcurrentCalls()
+    {
+        var directory = NewTempPath();
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            var step = NewDisposableStep("step_1");
+            var pipeline = BuildPipelineIn(directory, step.Object);
+
+            // The runner's cleanup and the job retirement dispose independently, so calls can overlap.
+            Parallel.For(0, 8, _ => pipeline.Dispose());
+
+            step.Verify(s => s.Dispose(), Times.Once, "Concurrent disposals must run the cleanup exactly once.");
+            Assert.IsFalse(Directory.Exists(directory), "The working directory is removed by the one disposal that runs.");
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, true);
+        }
+    }
+
+    private static string NewTempPath() => Path.Combine(Path.GetTempPath(), $"geopilot-test-{Guid.NewGuid()}");
+
+    private static Mock<IPipelineStep> NewDisposableStep(string id)
+    {
+        var step = new Mock<IPipelineStep>();
+        step.SetupGet(s => s.Id).Returns(id);
+        return step;
+    }
+
     private Geopilot.Pipeline.Pipeline BuildPipeline(params IPipelineStep[] steps) =>
+        BuildPipelineIn(NewTempPath(), steps);
+
+    private Geopilot.Pipeline.Pipeline BuildPipelineIn(string pipelineDirectory, params IPipelineStep[] steps) =>
         Geopilot.Pipeline.Pipeline
             .Builder()
             .Id("test_pipeline")
             .DisplayName(new Dictionary<string, string> { { "de", "test pipeline" } })
             .Steps(steps.ToList())
             .Logger(loggerMock.Object)
-            .PipelineDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()))
+            .PipelineDirectory(pipelineDirectory)
             .JobId(Guid.NewGuid())
             .Build();
 }

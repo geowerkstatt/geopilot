@@ -5,7 +5,6 @@ using Geopilot.Pipeline.Config;
 using Geopilot.Pipeline.Visualization;
 using Geopilot.PipelineCore.Pipeline;
 using Microsoft.Extensions.Options;
-using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -62,11 +61,25 @@ public class ProcessingRunner : BackgroundService
             using var timeoutCts = new CancellationTokenSource(processingOptions.JobTimeout);
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
 
+            // Record each step in the execution protocol the moment it is reached, so an interrupted
+            // run shows which step was in flight.
+            pipeline.OnStepStarted = (step, stepCancellationToken)
+                => RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepStartedAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step)));
+
             // Persist each step's downloadable files the moment the step finishes, so the supplier can
             // download them while later steps run (and so they survive a later step failing or timing out).
-            pipeline.OnStepCompleted = (step, stepResult, stepCancellationToken)
-                => ExtractStepDownloadsAsync(pipeline.JobId, step, stepResult, stepCancellationToken);
+            // Recorded afterwards, so the protocol sees the persisted artifact names.
+            pipeline.OnStepCompleted = async (step, stepResult, stepCancellationToken) =>
+            {
+                await ExtractStepDownloadsAsync(pipeline.JobId, step, stepResult, stepCancellationToken);
+                await RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordStepCompletedAsync(pipeline.JobId, step, pipeline.Steps.IndexOf(step)));
+            };
 
+            // The terminal outcome is collected per branch and written to the protocol once, in the
+            // finally below. A hard kill leaves the run without terminal state on purpose: that is how
+            // restart victims stay countable.
+            ProcessingState? terminalState = null;
+            string? failureReason = null;
             try
             {
                 var pipelineContext = await pipeline.Run(workItem.Files, linkedCts.Token);
@@ -78,6 +91,7 @@ public class ProcessingRunner : BackgroundService
                 if (pipeline.State.IsDeliverable())
                     await ExtractDeliveryFilesAsync(pipeline, pipelineContext, linkedCts.Token);
 
+                terminalState = pipeline.State;
                 jobStore.PipelineFinished(pipeline.JobId, pipeline.State);
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
@@ -87,27 +101,64 @@ public class ProcessingRunner : BackgroundService
                 // in-flight step's files are lost, and no delivery files are persisted (delivery is staged
                 // only for a successful, deliverable run).
                 logger.LogError("Pipeline <{Pipeline}> timed out after {Timeout}.", pipeline.Id, processingOptions.JobTimeout);
-                jobStore.PipelineFinished(pipeline.JobId, ProcessingState.Cancelled);
+                terminalState = ProcessingState.Cancelled;
+                failureReason = $"Job timed out after {processingOptions.JobTimeout}.";
+
+                // Nothing above this catch block handles an exception, so the reporting variant keeps
+                // an unexpected job state in the log instead of stopping the host.
+                if (!jobStore.TryPipelineFinished(pipeline.JobId, ProcessingState.Cancelled))
+                    logger.LogWarning("Job <{JobId}> was not transitioned to <{State}>: it is unknown or no longer running.", pipeline.JobId, ProcessingState.Cancelled);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 // Host shutdown — leave the pipeline state as-is and let the cleanup service take over.
+                // The protocol write below is best effort: it distinguishes a graceful stop (Cancelled,
+                // "host shutdown") from a hard kill (no terminal state at all).
                 logger.LogInformation("Pipeline <{Pipeline}> cancelled due to host shutdown.", pipeline.Id);
+                terminalState = ProcessingState.Cancelled;
+                failureReason = "host shutdown";
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error while running pipeline <{Pipeline}>.", pipeline.Id);
-                jobStore.MarkAsFailed(pipeline.JobId);
+                terminalState = ProcessingState.Failed;
+                failureReason = ex.Message;
+
+                if (!jobStore.TryMarkAsFailed(pipeline.JobId))
+                    logger.LogWarning("Job <{JobId}> was not marked as failed: it is unknown or already in a terminal state.", pipeline.JobId);
             }
             finally
             {
-                // Free process-owned resources (e.g. HttpClient) immediately. Pipeline state, step
-                // states, status-message dictionaries and PersistedDownloads survive disposal; what
-                // goes is the pipeline's temp directory, including the uploaded files fetched into it
-                // during the run.
-                pipeline.Dispose();
+                // This is the body of a Parallel.ForEachAsync inside a BackgroundService: an exception
+                // escaping here aborts the whole loop, so the queue stops draining, and by default it
+                // stops the host. Each cleanup step is guarded on its own, so releasing the upload is
+                // independent of the disposal (the protocol write guards itself, see RecordProtocolAsync).
+                if (terminalState is { } state)
+                    await RecordProtocolAsync(pipeline.JobId, recorder => recorder.RecordRunFinishedAsync(pipeline.JobId, pipeline.Steps, state, failureReason));
 
-                await ReleaseUploadIfNotDeliverableAsync(pipeline.JobId);
+                try
+                {
+                    // Free process-owned resources (e.g. HttpClient) immediately. Pipeline state, step
+                    // states, status-message dictionaries and PersistedDownloads survive disposal; what
+                    // goes is the pipeline's temp directory, including the uploaded files fetched into it
+                    // during the run.
+                    pipeline.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to dispose pipeline <{Pipeline}>.", pipeline.Id);
+                }
+
+                try
+                {
+                    await ReleaseUploadIfNotDeliverableAsync(pipeline.JobId);
+                }
+                catch (Exception ex)
+                {
+                    // The upload store is remote, so releasing it is a network call. The age-based sweep
+                    // in UploadCleanupService is the backstop for blobs left behind here.
+                    logger.LogError(ex, "Failed to release the upload of job <{JobId}>.", pipeline.JobId);
+                }
             }
         });
     }
@@ -214,6 +265,25 @@ public class ProcessingRunner : BackgroundService
                     step.AddDeliveryFile(new PersistedFile(deliveryFile.OriginalFileName, fileName, fromUpload));
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Runs one protocol write against a fresh scope. The recorder swallows its own write failures;
+    /// this additionally guards scope creation and resolution, because a protocol problem must never
+    /// tear down the running pipeline.
+    /// </summary>
+    private async Task RecordProtocolAsync(Guid jobId, Func<IPipelineRunRecorder, Task> record)
+    {
+        try
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var recorder = scope.ServiceProvider.GetRequiredService<IPipelineRunRecorder>();
+            await record(recorder);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Writing the execution protocol for job <{JobId}> failed; the job continues.", jobId);
         }
     }
 

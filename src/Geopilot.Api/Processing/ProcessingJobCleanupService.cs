@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.FileAccess;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace Geopilot.Api.Processing;
@@ -143,7 +144,9 @@ public class ProcessingJobCleanupService : BackgroundService
                     retiredJobs++;
             }
 
-            logger.LogInformation("ProcessingJobCleanupService completed. Retired jobs: {Retired}, expired download dirs: {Downloads}, expired visualization dirs: {Visualizations}.", retiredJobs, cleanedDownloads, cleanedVisualizations);
+            var purgedRuns = await PurgeExpiredProtocolRecordsAsync(dbContext, now);
+
+            logger.LogInformation("ProcessingJobCleanupService completed. Retired jobs: {Retired}, expired download dirs: {Downloads}, expired visualization dirs: {Visualizations}, purged protocol runs: {PurgedRuns}.", retiredJobs, cleanedDownloads, cleanedVisualizations, purgedRuns);
         }
         catch (Exception ex)
         {
@@ -153,6 +156,24 @@ public class ProcessingJobCleanupService : BackgroundService
         {
             cleanupSemaphore.Release();
         }
+    }
+
+    /// <summary>
+    /// Purges execution protocol records past their own retention, which is deliberately much longer than
+    /// the job retention: the protocol is the audit record and outlives the jobs it describes. Children
+    /// (files, steps, conditions, artifacts) go via FK cascade, and the definition snapshots live on the
+    /// runs themselves, so nothing is left to sweep. An unset or non-positive retention disables purging,
+    /// so a missing configuration key can never silently erase the protocol.
+    /// </summary>
+    private async Task<int> PurgeExpiredProtocolRecordsAsync(Context dbContext, DateTime now)
+    {
+        if (processingOptions.ProtocolRetention is not { } retention || retention <= TimeSpan.Zero)
+            return 0;
+
+        var cutoff = now - retention;
+        return await dbContext.PipelineRuns
+            .Where(run => run.StartedAt < cutoff)
+            .ExecuteDeleteAsync();
     }
 
     private static HashSet<Guid> EnumerateJobIds(string root)

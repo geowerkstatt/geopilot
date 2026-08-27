@@ -82,11 +82,13 @@ export const renderTreeItems = (nodes: TreeNode[], prefix = "n", options?: Rende
         item,
         <Box
           key={`${id}-panel`}
-          sx={{
-            pl: theme =>
-              `calc(${theme.spacing(4)} + var(--TreeView-itemChildrenIndentation, ${theme.spacing(1.5)}) * ${depth})`,
+          sx={theme => ({
+            pl: 0,
             py: 1,
-          }}>
+            "@container treeColumn (min-width: 400px)": {
+              pl: `calc(${theme.spacing(4)} + var(--TreeView-itemChildrenIndentation, ${theme.spacing(1.5)}) * ${depth})`,
+            },
+          })}>
           {options.inlinePanel}
         </Box>,
       ];
