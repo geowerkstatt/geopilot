@@ -45,4 +45,16 @@ public sealed record IlivalidatorArgs
     /// success, so a missing plugin does not surface in <see cref="IlivalidatorResult.Success"/>.
     /// </remarks>
     public IReadOnlyList<string>? PluginIds { get; init; }
+
+    /// <summary>
+    /// The version of the tool to run, selected from the versions the ilitools-wrapper offers. Which versions exist
+    /// is a property of that deployment, and a version it does not offer is rejected before the tool runs.
+    /// Leaving this unset runs the version the deployment configured as its default, which is deliberately
+    /// decoupled from the newest version it offers, so a new version can be offered without taking effect on its own.
+    /// </summary>
+    /// <remarks>
+    /// The version selects the tool installation rather than a tool option, so it appears in no command line. Which
+    /// version actually ran is visible in the log header the tool writes.
+    /// </remarks>
+    public string? ToolVersion { get; init; }
 }

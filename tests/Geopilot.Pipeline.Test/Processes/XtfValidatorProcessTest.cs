@@ -155,6 +155,28 @@ public class XtfValidatorProcessTest
     }
 
     [TestMethod]
+    public async Task PassesTheConfiguredToolVersion()
+    {
+        var process = CreateProcess(null, null, success: true, toolVersion: "1.14.4");
+
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
+
+        Assert.AreEqual("1.14.4", capturedArgs?.ToolVersion);
+    }
+
+    [TestMethod]
+    public async Task PassesNoToolVersionWhenNoneIsConfigured()
+    {
+        var process = CreateProcess(null, null, success: true);
+
+        await process.RunAsync(CreateTransferFile(), [], CancellationToken.None);
+
+        // No choice has to stay no choice: the wrapper then runs the version its deployment configured as the
+        // default, which is deliberately decoupled from the newest version the deployment offers.
+        Assert.IsNull(capturedArgs?.ToolVersion);
+    }
+
+    [TestMethod]
     public async Task TrimsTheConfiguredModelRepositories()
     {
         // Hand written configuration, so blanks around the separator and a trailing one are expected.
@@ -256,7 +278,7 @@ public class XtfValidatorProcessTest
         return new PipelineFile("TestData/UploadFiles/RoadsExdm2ien.xtf", "RoadsExdm2ien.xtf");
     }
 
-    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null, string? pluginIds = null)
+    private XtfValidatorProcess CreateProcess(string? validationProfile, string? modelDirs, bool success, bool? allObjectsAccessible = null, string? logContent = null, IPipelineFile? modelRepository = null, string? pluginIds = null, string? toolVersion = null)
     {
         ilivalidatorClientMock
             .Setup(c => c.ValidateAsync(It.IsAny<IlivalidatorArgs>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile>(), It.IsAny<IPipelineFile?>(), It.IsAny<IReadOnlyList<IPipelineFile>?>(), It.IsAny<CancellationToken>()))
@@ -277,6 +299,6 @@ public class XtfValidatorProcessTest
             .ReturnsAsync(new IlivalidatorResult(success));
 
         var pipelineFileManager = new PipelineFileManager(Path.GetTempPath(), "XtfValidatorProcess");
-        return new XtfValidatorProcess(validationProfile, modelDirs, allObjectsAccessible, pluginIds, modelRepository, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
+        return new XtfValidatorProcess(validationProfile, modelDirs, allObjectsAccessible, pluginIds, toolVersion, modelRepository, ilivalidatorClientMock.Object, pipelineFileManager, Mock.Of<ILogger<XtfValidatorProcessTest>>());
     }
 }
