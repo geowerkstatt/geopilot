@@ -26,11 +26,22 @@ internal class ConditionEvaluator : IConditionEvaluator
     }
 
     /// <inheritdoc />
-    public async Task<bool> EvaluateConditionAsync(string expression, Dictionary<string, object?> expressionParameters)
+    public async Task<ConditionEvaluatorResult> EvaluateConditionAsync(string expression, Dictionary<string, object?> expressionParameters)
     {
         var runner = CreateRunner(expression, logger);
-        runner.RegisterParameters(expressionParameters);
-        return await runner.EvaluateConditionAsync();
+
+        // Parsed once: parameter registration and the captured values share the same name list.
+        var parameterNames = runner.GetParameterNames();
+        runner.RegisterParameters(parameterNames, expressionParameters);
+
+        // Captured before evaluating, so a consumer sees exactly the values the expression saw.
+        var referencedParameters = parameterNames
+            .Distinct()
+            .Where(expressionParameters.ContainsKey)
+            .ToDictionary(name => name, name => expressionParameters[name]);
+
+        var matched = await runner.EvaluateConditionAsync();
+        return new ConditionEvaluatorResult(matched, referencedParameters);
     }
 
     /// <summary>
@@ -74,11 +85,12 @@ internal class ConditionEvaluator : IConditionEvaluator
         /// </summary>
         /// <remarks>Parameters in the expression that do not have a corresponding entry in the dictionary
         /// are not modified.</remarks>
+        /// <param name="parameterNames">The parameter names the expression references, from <see cref="GetParameterNames"/>. Passed in so the expression is parsed only once per evaluation.</param>
         /// <param name="expressionParameters">A dictionary containing parameter names and their corresponding values to assign to the expression. Only
         /// parameters present in both the expression and the dictionary are registered. Parameter values may be null.</param>
-        internal void RegisterParameters(Dictionary<string, object?> expressionParameters)
+        internal void RegisterParameters(List<string> parameterNames, Dictionary<string, object?> expressionParameters)
         {
-            GetParameterNames()
+            parameterNames
                 .ForEach(paramName =>
                 {
                     if (expressionParameters.TryGetValue(paramName, out var parameterValue))

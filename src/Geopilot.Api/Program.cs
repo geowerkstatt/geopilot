@@ -75,7 +75,7 @@ builder.Services
                 // Allow token to be in a cookie in addition to the default Authorization header.
                 // Only override when a cookie is actually present — otherwise a stale/empty cookie
                 // would shadow a valid Authorization header and break Swagger/API clients.
-                var cookieToken = context.Request.Cookies["geopilot.auth"];
+                var cookieToken = context.Request.Cookies[AuthDefaults.AuthCookieName];
                 if (!string.IsNullOrEmpty(cookieToken))
                 {
                     context.Token = cookieToken;
@@ -194,6 +194,7 @@ builder.Services.AddSingleton<IContentTypeProvider>(contentTypeProvider);
 
 builder.Services.AddSingleton<IProcessingJobStore, ProcessingJobStore>();
 builder.Services.AddSingleton<IUploadStore, UploadStore>();
+builder.Services.AddTransient<IPipelineRunRecorder, PipelineRunRecorder>();
 builder.Services.AddTransient<IProcessingService, ProcessingService>();
 builder.Services.AddTransient<IPipelineService, PipelineService>();
 builder.Services.AddTransient<IMandateService, MandateService>();

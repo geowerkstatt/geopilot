@@ -3,6 +3,7 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
 using Geopilot.Pipeline;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,7 @@ public class ProcessingJobCleanupServiceTest
     private const double JobRetentionHours = 24;
     private const double DownloadRetentionHours = 1;
     private const double VisualizationRetentionHours = 0.5;
+    private const double ProtocolRetentionDays = 3650;
     private Mock<IProcessingJobStore> jobStoreMock;
     private Mock<IDirectoryProvider> directoryProviderMock;
     private Mock<IUploadOrchestrationService> orchestrationServiceMock;
@@ -41,6 +43,7 @@ public class ProcessingJobCleanupServiceTest
             JobRetention = TimeSpan.FromHours(JobRetentionHours),
             DownloadRetention = TimeSpan.FromHours(DownloadRetentionHours),
             VisualizationRetention = TimeSpan.FromHours(VisualizationRetentionHours),
+            ProtocolRetention = TimeSpan.FromDays(ProtocolRetentionDays),
             JobCleanupInterval = TimeSpan.FromHours(24),
             JobTimeout = TimeSpan.FromHours(12),
         };
@@ -103,6 +106,87 @@ public class ProcessingJobCleanupServiceTest
 
         context.Dispose();
         service.Dispose();
+    }
+
+    [TestMethod]
+    public async Task RunCleanupPurgesProtocolRecordsPastTheirOwnRetention()
+    {
+        var expired = NewRunRecord(DateTime.UtcNow.AddDays(-ProtocolRetentionDays - 1));
+        var kept = NewRunRecord(DateTime.UtcNow.AddDays(-1));
+        context.PipelineRuns.AddRange(expired, kept);
+        await context.SaveChangesAsync();
+
+        await service.RunCleanupAsync();
+
+        Assert.IsFalse(await context.PipelineRuns.AnyAsync(r => r.JobId == expired.JobId), "a run past the protocol retention must be purged.");
+        Assert.IsFalse(await context.PipelineRunSteps.AnyAsync(s => s.StepId == "step-of-" + expired.JobId), "children must go with their run.");
+        Assert.IsTrue(await context.PipelineRuns.AnyAsync(r => r.JobId == kept.JobId), "a run within the protocol retention must survive.");
+    }
+
+    [TestMethod]
+    public async Task RunCleanupKeepsProtocolForeverWhenRetentionIsUnset()
+    {
+        var ancient = NewRunRecord(DateTime.UtcNow.AddYears(-50));
+        context.PipelineRuns.Add(ancient);
+        await context.SaveChangesAsync();
+
+        var optionsWithoutProtocolRetention = new Mock<IOptions<ProcessingOptions>>();
+        optionsWithoutProtocolRetention.Setup(o => o.Value).Returns(new ProcessingOptions
+        {
+            JobRetention = TimeSpan.FromHours(JobRetentionHours),
+            DownloadRetention = TimeSpan.FromHours(DownloadRetentionHours),
+            VisualizationRetention = TimeSpan.FromHours(VisualizationRetentionHours),
+            JobCleanupInterval = TimeSpan.FromHours(24),
+            JobTimeout = TimeSpan.FromHours(12),
+        });
+
+        var scopeFactoryMock = new Mock<IServiceScopeFactory>();
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(Context))).Returns(context);
+        serviceProviderMock.Setup(sp => sp.GetService(typeof(IUploadOrchestrationService))).Returns(orchestrationServiceMock.Object);
+        var scopeMock = new Mock<IServiceScope>();
+        scopeMock.SetupGet(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
+        scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
+
+        using var serviceWithoutRetention = new ProcessingJobCleanupService(
+            jobStoreMock.Object,
+            directoryProviderMock.Object,
+            scopeFactoryMock.Object,
+            loggerMock.Object,
+            optionsWithoutProtocolRetention.Object);
+
+        await serviceWithoutRetention.RunCleanupAsync();
+
+        Assert.IsTrue(
+            await context.PipelineRuns.AnyAsync(r => r.JobId == ancient.JobId),
+            "an unset protocol retention must disable purging, so a missing key can never erase the protocol.");
+    }
+
+    private static PipelineRun NewRunRecord(DateTime startedAt)
+    {
+        var jobId = Guid.NewGuid();
+        return new PipelineRun
+        {
+            JobId = jobId,
+            PipelineId = "pipe_a",
+            Definition = "{}",
+            AppVersion = "test",
+            UploadId = Guid.NewGuid(),
+            UploadStorageLocation = "file:///tmp/uploads",
+            UploadInitiatedAt = startedAt,
+            StartedAt = startedAt,
+            Steps = new List<PipelineRunStep>
+            {
+                new()
+                {
+                    Order = 0,
+                    StepId = "step-of-" + jobId,
+                    DisplayName = TestHelpers.Localized("step"),
+                    ProcessImplementation = "Test.Process",
+                    State = StepState.Success,
+                },
+            },
+        };
     }
 
     [TestMethod]

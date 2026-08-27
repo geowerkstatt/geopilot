@@ -107,6 +107,9 @@ internal sealed class Pipeline : IPipeline
     public Guid JobId { get; }
 
     /// <inheritdoc/>
+    public Func<IPipelineStep, CancellationToken, Task>? OnStepStarted { get; set; }
+
+    /// <inheritdoc/>
     public Func<IPipelineStep, StepResult, CancellationToken, Task>? OnStepCompleted { get; set; }
 
     private ILogger logger;
@@ -154,6 +157,9 @@ internal sealed class Pipeline : IPipeline
             {
                 if (this.State == ProcessingState.Failed || this.State == ProcessingState.Cancelled)
                     break;
+
+                if (this.OnStepStarted is not null)
+                    await this.OnStepStarted(step, cancellationToken).ConfigureAwait(false);
 
                 var stepResult = await step.Run(context, cancellationToken).ConfigureAwait(false);
                 context.StepResults[step.Id] = stepResult;

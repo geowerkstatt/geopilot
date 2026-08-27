@@ -80,12 +80,19 @@ public class ClamAvScanServiceTest
     [TestMethod]
     public async Task CheckFilesAsyncReturnsCleanForSafeFile()
     {
-        SetupDownload("uploads/job1/clean.xtf", "perfectly safe content"u8.ToArray());
+        var content = "perfectly safe content"u8.ToArray();
+        SetupDownload("uploads/job1/clean.xtf", content);
 
         var result = await service.CheckFilesAsync(["uploads/job1/clean.xtf"]);
 
         Assert.IsTrue(result.IsClean);
         Assert.IsNull(result.ThreatDetails);
+        Assert.IsTrue(result.Scanned);
+        Assert.IsNotNull(result.Hashes);
+        Assert.AreEqual(
+            Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(content)),
+            result.Hashes["uploads/job1/clean.xtf"],
+            "the scan stream must yield the SHA-256 of the scanned content.");
     }
 
     [TestMethod]

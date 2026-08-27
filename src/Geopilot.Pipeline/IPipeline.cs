@@ -33,6 +33,15 @@ public interface IPipeline : IDisposable
     Guid JobId { get; }
 
     /// <summary>
+    /// Optional callback invoked by <see cref="Run"/> right before each step runs, in step order, with the step
+    /// about to run. Awaited before the step starts, so a handler can reliably record that the pipeline reached
+    /// the step. The step's own <see cref="IPipelineStep.State"/> still reads <see cref="StepState.Pending"/> at
+    /// this point; it transitions inside the step's run, after its pre-conditions were evaluated.
+    /// <see langword="null"/> (the default) disables the callback.
+    /// </summary>
+    Func<IPipelineStep, CancellationToken, Task>? OnStepStarted { get; set; }
+
+    /// <summary>
     /// Optional callback invoked by <see cref="Run"/> after each step has finished, in step order, with the
     /// just-completed step and its <see cref="StepResult"/>. Awaited before the next step runs, so a handler can
     /// reliably react to a step (e.g. persist its outputs) before the pipeline progresses. <see langword="null"/>

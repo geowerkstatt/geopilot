@@ -142,13 +142,15 @@ public class UploadOrchestrationServiceTest
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{upload.Id}/test.xtf", 1024, DateTime.UtcNow) });
 
+        var scanResult = new ScanResult(true, Hashes: new Dictionary<string, string> { [$"uploads/{upload.Id}/test.xtf"] = "abc123" });
         scanServiceMock
             .Setup(s => s.CheckFilesAsync(It.IsAny<IReadOnlyList<string>>()))
-            .ReturnsAsync(new ScanResult(true));
+            .ReturnsAsync(scanResult);
 
-        await service.RunPreflightChecksAsync(upload.Id);
+        var result = await service.RunPreflightChecksAsync(upload.Id);
 
         Assert.IsNotNull(uploadStore.GetUpload(upload.Id));
+        Assert.AreSame(scanResult, result, "the scan outcome must reach the caller so the protocol can record it.");
     }
 
     [TestMethod]
@@ -186,12 +188,14 @@ public class UploadOrchestrationServiceTest
             .Setup(s => s.ListFilesAsync(It.IsAny<string>()))
             .ReturnsAsync(new List<(string Key, long Size, DateTime LastModified)> { ($"uploads/{upload.Id}/test.xtf", 1024, DateTime.UtcNow) });
 
+        var scanResult = new ScanResult(false, "Malware found");
         scanServiceMock
             .Setup(s => s.CheckFilesAsync(It.IsAny<IReadOnlyList<string>>()))
-            .ReturnsAsync(new ScanResult(false, "Malware found"));
+            .ReturnsAsync(scanResult);
 
         var ex = await Assert.ThrowsExactlyAsync<UploadPreflightException>(() => service.RunPreflightChecksAsync(upload.Id));
         Assert.AreEqual(PreflightFailureReason.ThreatDetected, ex.FailureReason);
+        Assert.AreSame(scanResult, ex.ScanResult, "a detected threat must carry the scan outcome so the protocol can record it.");
     }
 
     [TestMethod]

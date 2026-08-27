@@ -1104,6 +1104,248 @@ public class PipelineStepTest
             .Logger(loggerMock.Object)
             .Build();
 
+    [TestMethod]
+    public async Task RunRecordsTimestampsOnSuccess()
+    {
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
+        var processMock = new MockPipelineProcessSingleInput(new MockPipelineProcessSingleInputResult { OutputData = "out" });
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        Assert.IsNull(pipelineStep.StartedAt, "StartedAt must be unset before the step is reached.");
+        Assert.IsNull(pipelineStep.FinishedAt, "FinishedAt must be unset before the step is reached.");
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.IsNotNull(pipelineStep.StartedAt);
+        Assert.IsNotNull(pipelineStep.FinishedAt);
+        Assert.AreEqual(DateTimeKind.Utc, pipelineStep.StartedAt.Value.Kind, "timestamps must be UTC.");
+        Assert.AreEqual(DateTimeKind.Utc, pipelineStep.FinishedAt.Value.Kind, "timestamps must be UTC.");
+        Assert.IsTrue(pipelineStep.StartedAt <= pipelineStep.FinishedAt, "StartedAt must not be after FinishedAt.");
+        Assert.IsNull(pipelineStep.ErrorMessage);
+    }
+
+    [TestMethod]
+    public async Task RunRecordsTimestampsAndEvaluationOnSkippedStep()
+    {
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(("aPreviousStep", new ConditionStepResult { SomeRandomData = 123 }));
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Pre = new PipelineStepPreConditionConfig
+            {
+                SkipConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig { Id = "skip-on-123", Expression = "[aPreviousStep.SomeRandomData] == 123" },
+                },
+            },
+        };
+        var processMock = new MockPipelineProcessSingleInput(new MockPipelineProcessSingleInputResult());
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Skipped, pipelineStep.State);
+        Assert.IsNotNull(pipelineStep.StartedAt, "a skipped step still records when it was reached.");
+        Assert.IsNotNull(pipelineStep.FinishedAt, "a skipped step still records when it finished.");
+
+        var evaluation = pipelineStep.ConditionEvaluations.Single();
+        Assert.AreEqual("skip-on-123", evaluation.ConditionId);
+        Assert.AreEqual(ConditionPhase.Pre, evaluation.Phase);
+        Assert.AreEqual(ConditionKind.Skip, evaluation.Kind);
+        Assert.IsTrue(evaluation.Matched);
+        Assert.AreEqual("123", evaluation.Parameters["aPreviousStep.SomeRandomData"], "the evaluated value must be rendered into the evaluation.");
+    }
+
+    [TestMethod]
+    public async Task RunRecordsEvaluationForEveryCheckedCondition()
+    {
+        // A pre-condition that does not match and a post-condition that does: both evaluations
+        // must be recorded, so a consumer can tell "checked and did not apply" from "never checked".
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(
+            ("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }),
+            ("aPreviousStep", new ConditionStepResult { SomeRandomData = 123 }));
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Pre = new PipelineStepPreConditionConfig
+            {
+                SkipConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig { Id = "skip-check", Expression = "[aPreviousStep.SomeRandomData] == 999" },
+                },
+            },
+            Post = new PipelineStepPostConditionConfig
+            {
+                WarnConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig
+                    {
+                        Id = "warn-check",
+                        Expression = "[aPreviousStep.SomeRandomData] == 123",
+                        Message = new Dictionary<string, string> { { "en", "Warned." } },
+                    },
+                },
+            },
+        };
+        var processMock = new MockPipelineProcessSingleInput(new MockPipelineProcessSingleInputResult { OutputData = "out" });
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        Assert.AreEqual(StepState.Warning, pipelineStep.State);
+        Assert.HasCount(2, pipelineStep.ConditionEvaluations);
+
+        var skipEvaluation = pipelineStep.ConditionEvaluations[0];
+        Assert.AreEqual("skip-check", skipEvaluation.ConditionId);
+        Assert.AreEqual(ConditionPhase.Pre, skipEvaluation.Phase);
+        Assert.AreEqual(ConditionKind.Skip, skipEvaluation.Kind);
+        Assert.IsFalse(skipEvaluation.Matched, "a non-matching evaluation must be recorded too.");
+        Assert.AreEqual("123", skipEvaluation.Parameters["aPreviousStep.SomeRandomData"]);
+
+        var warnEvaluation = pipelineStep.ConditionEvaluations[1];
+        Assert.AreEqual("warn-check", warnEvaluation.ConditionId);
+        Assert.AreEqual(ConditionPhase.Post, warnEvaluation.Phase);
+        Assert.AreEqual(ConditionKind.Warn, warnEvaluation.Kind);
+        Assert.IsTrue(warnEvaluation.Matched);
+    }
+
+    private sealed class RenderingStepResult
+    {
+        public LocalizedText? Message { get; init; }
+
+        public IEnumerable<string>? Names { get; init; }
+    }
+
+    [TestMethod]
+    public async Task ConditionEvaluationRendersLocalizedTextAndLazySequences()
+    {
+        var inputs = SingleUploadInput();
+        var previousResult = new RenderingStepResult
+        {
+            Message = new LocalizedText(new Dictionary<string, string> { ["de"] = "Fehler", ["en"] = "Error" }),
+            Names = new[] { "a", "b" }.Select(name => name),
+        };
+        var pipelineContext = ContextWith(
+            ("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }),
+            ("prev", previousResult));
+        var stepConditions = new PipelineStepConditionsConfig
+        {
+            Pre = new PipelineStepPreConditionConfig
+            {
+                SkipConditions = new List<ConditionConfig>
+                {
+                    new ConditionConfig { Expression = "[prev.Message] != null && [prev.Names] != null" },
+                },
+            },
+        };
+        var processMock = new MockPipelineProcessSingleInput(new MockPipelineProcessSingleInputResult());
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .StepConditions(stepConditions)
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await pipelineStep.Run(pipelineContext, CancellationToken.None).ConfigureAwait(false);
+
+        var evaluation = pipelineStep.ConditionEvaluations.Single();
+        Assert.AreEqual("de: Fehler, en: Error", evaluation.Parameters["prev.Message"], "a LocalizedText renders per language, not as a CLR type name.");
+        Assert.AreEqual("<2 items>", evaluation.Parameters["prev.Names"], "a lazy sequence renders as its count, not as a CLR type name.");
+    }
+
+    private class MockPipelineProcessSynchronousException
+    {
+        [PipelineProcessRun]
+        public Task<Dictionary<string, object>> RunAsync(string data)
+            => throw new InvalidOperationException("Synchronous test exception.");
+    }
+
+    [TestMethod]
+    public async Task SynchronousExceptionDuringProcessRunIsUnwrapped()
+    {
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
+        var processMock = new MockPipelineProcessSynchronousException();
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        var exception = await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
+
+        Assert.AreEqual("The process <MockPipelineProcessSynchronousException> threw an exception.", exception.Message);
+        Assert.AreEqual(typeof(InvalidOperationException), exception.InnerException?.GetType(), "the reflection wrapper must be unwrapped.");
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
+        Assert.Contains("Synchronous test exception.", pipelineStep.ErrorMessage, "the error message must carry the actual reason, not reflection boilerplate.");
+    }
+
+    [TestMethod]
+    public async Task RunRecordsErrorMessageWhenProcessThrows()
+    {
+        var inputs = SingleUploadInput();
+        var pipelineContext = ContextWith(("upload", new MockPipelineProcessSingleInputResult { OutputData = "some_data" }));
+        var processMock = new MockPipelineProcessException();
+
+        using var pipelineStep = PipelineStep
+            .Builder()
+            .Id("my_step")
+            .DisplayName(new Dictionary<string, string>() { { "de", "my step" } })
+            .Inputs(inputs)
+            .OutputActions([])
+            .Process(processMock)
+            .Logger(loggerMock.Object)
+            .Build();
+
+        await Assert.ThrowsAsync<PipelineRunException>(() => pipelineStep.Run(pipelineContext, CancellationToken.None));
+
+        Assert.AreEqual(StepState.Error, pipelineStep.State);
+        Assert.IsNotNull(pipelineStep.FinishedAt, "a failed step still records when it finished.");
+        Assert.IsNotNull(pipelineStep.ErrorMessage);
+        Assert.Contains("The process <MockPipelineProcessException> threw an exception.", pipelineStep.ErrorMessage, "the outer message names the failing process.");
+        Assert.Contains("Test exception during process run.", pipelineStep.ErrorMessage, "the innermost message carries the actual reason.");
+    }
+
     private static Dictionary<string, InputValue> SingleUploadInput() =>
         new() { ["data"] = new InputValue.StepOutputReference("upload", "OutputData") };
 
