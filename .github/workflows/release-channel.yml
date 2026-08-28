@@ -1,0 +1,54 @@
+name: Release channel
+
+on:
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  publish-release-image:
+    runs-on: ubuntu-latest
+    name: Point the :release tag at the image of this state
+    timeout-minutes: 10
+
+    permissions:
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Find the image this state was built as
+        run: |
+          tag=$(git describe --tags --match 'v*' --abbrev=0 HEAD)
+          # A merge from main brings exactly the tagged state, so the two trees must be identical.
+          # They differ for a commit made directly on release, which has no image of its own: that
+          # needs a real build from this branch, which does not exist yet (ADR 0008, :release channel).
+          # shortcut: retag only, no build path for release-only commits
+          if [ "$(git rev-parse "$tag^{tree}")" != "$(git rev-parse 'HEAD^{tree}')" ]; then
+            echo "::error::No image exists for this state. The nearest tag $tag has a different tree, so this branch carries commits that were never built. Build support for the release branch is still open."
+            exit 1
+          fi
+          echo "SOURCE_TAG=$tag" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$REGISTRY/$(echo ${GITHUB_REPOSITORY,,})" >> $GITHUB_ENV
+
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retag the image as :release
+        run: |
+          docker buildx imagetools create \
+            --tag ${IMAGE_NAME}:release \
+            ${IMAGE_NAME}:${SOURCE_TAG}
