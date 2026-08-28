@@ -14,11 +14,11 @@ env:
 jobs:
   publish-release-image:
     runs-on: ubuntu-latest
-    name: Publish the :release image for the acceptance environment
+    name: Publish the release branch image and its pre-release
     timeout-minutes: 45
 
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
@@ -29,24 +29,25 @@ jobs:
 
       - name: Decide whether this state has to be built
         run: |
-          base=$(git describe --tags --match 'v*' --abbrev=0 HEAD) || {
-            echo "::error::No v* tag is reachable from this commit, so there is no version to count from."
-            exit 1
-          }
           echo IMAGE_NAME=$REGISTRY/$(echo ${GITHUB_REPOSITORY,,}) >> $GITHUB_ENV
-          echo BASE_TAG=$base >> $GITHUB_ENV
           echo COMMITED_AT=$(git show -s --format=%cI HEAD) >> $GITHUB_ENV
           echo REVISION=$(git rev-parse --short HEAD) >> $GITHUB_ENV
 
-          # A merge from main carries the tree that was already built and pushed as :$base, so that
-          # image is reused instead of building the same source twice. The acceptance then runs the
-          # very image a promotion would re-tag. Own commits on this branch change the tree and are
-          # built here, versioned as <base>.<commits since base> so the number says what it is.
-          if [ "$(git rev-parse "$base^{tree}")" = "$(git rev-parse 'HEAD^{tree}')" ]; then
+          # The commit count is the patch number: monotonic, unique per commit and far above the
+          # highest run number the main line ever used, so the two schemes cannot collide. The minor
+          # comes from the branch itself, so it follows along when this branch moves to the next one.
+          prefix=$(grep -oP "(?<=<VersionPrefix>)[^<]+" Directory.Build.props)
+          echo VERSION=$prefix.$(git rev-list --count HEAD) >> $GITHUB_ENV
+
+          # A merge from main carries a tree that was already built and published as :$base, so that
+          # image is reused instead of building the same source twice, and its pre-release is already
+          # promotable. Own commits change the tree and are built and tagged here.
+          base=$(git describe --tags --match 'v*' --abbrev=0 HEAD 2>/dev/null || echo "")
+          if [ -n "$base" ] && [ "$(git rev-parse "$base^{tree}")" = "$(git rev-parse 'HEAD^{tree}')" ]; then
             echo MODE=retag >> $GITHUB_ENV
+            echo BASE_TAG=$base >> $GITHUB_ENV
           else
             echo MODE=build >> $GITHUB_ENV
-            echo VERSION=${base#v}.$(git rev-list --count "$base..HEAD") >> $GITHUB_ENV
           fi
 
       - name: Log in to the GitHub container registry
@@ -97,3 +98,19 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           sbom: true
           provenance: mode=max
+
+      # Creates the git tag as well, which is what makes the build promotable: marking the
+      # pre-release as latest fires release.yml, exactly as it does for a build from main.
+      - name: Create the GitHub pre-release
+        if: env.MODE == 'build'
+        env:
+          GH_TOKEN: ${{ secrets.GEOW_BOT_TOKEN }}
+        run: |
+          gh api \
+            --method POST \
+            --header "Accept: application/vnd.github+json" \
+            /repos/${GITHUB_REPOSITORY}/releases \
+            -f tag_name="v${VERSION}" \
+            -f target_commitish="${GITHUB_REF_NAME}" \
+            -f name="${VERSION}" \
+            -F prerelease=true
