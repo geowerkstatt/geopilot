@@ -342,11 +342,13 @@ describe("Delivery tests", () => {
   });
 
   it("can show previous steps as read-only", () => {
+    // Registered before the upload: the mandate request follows the upload response immediately,
+    // so an intercept set up afterwards can miss it.
+    cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
+
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     uploadFile();
-
-    cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
     cy.wait("@getMandates");
 
     selectMandate(1);

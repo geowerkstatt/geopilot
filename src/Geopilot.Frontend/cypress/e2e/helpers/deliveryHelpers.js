@@ -141,15 +141,17 @@ export const nonDeliverableMandate = (id, name) => ({ ...deliverableMandate(id, 
  * status loaded. Pass `mandates` to stub the mandate list (otherwise the real seeded mandates are used).
  */
 export const runMockedProcessingJob = (job, mandates) => {
-  loginAsUploader();
-  addFile("deliveryFiles/ilimodels_valid.xtf", true);
-  uploadFile();
-
+  // Registered before the upload: the mandate request follows the upload response immediately,
+  // so an intercept set up afterwards can miss it.
   if (mandates) {
     cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*", { statusCode: 200, body: mandates }).as("getMandates");
   } else {
     cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
   }
+
+  loginAsUploader();
+  addFile("deliveryFiles/ilimodels_valid.xtf", true);
+  uploadFile();
   cy.wait("@getMandates");
   if (mandates) {
     for (const mandate of mandates) {
