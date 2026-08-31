@@ -130,6 +130,12 @@ export const deliverableMandate = (id, name) => ({
 });
 
 /**
+ * Builds a mandate that allows no delivery, so the wizard omits the delivery step and the processing step
+ * becomes the last one.
+ */
+export const nonDeliverableMandate = (id, name) => ({ ...deliverableMandate(id, name), allowDelivery: false });
+
+/**
  * Logs in, uploads a valid file, selects mandate 1 and starts processing, returning the given mocked job as
  * the response for both the POST and the status GET. Leaves the wizard on the processing step with the job
  * status loaded. Pass `mandates` to stub the mandate list (otherwise the real seeded mandates are used).

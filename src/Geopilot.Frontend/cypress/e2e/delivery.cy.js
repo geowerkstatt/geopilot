@@ -2,6 +2,7 @@ import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appH
 import {
   addFile,
   deliverableMandate,
+  nonDeliverableMandate,
   processingJob,
   processingStep,
   resultStepHasIcon,
@@ -271,6 +272,44 @@ describe("Delivery tests", () => {
     cy.intercept("POST", "/api/v1/delivery", { statusCode: 200, body: { id: 1 } }).as("createDelivery");
     cy.dataCy("createDelivery-button").should("not.be.enabled");
     cy.dataCy("delivery-files-empty").should("exist");
+  });
+
+  it("keeps the continue button disabled while the processing runs", () => {
+    const jobId = "e2e-running-job";
+    const runningJob = processingJob(jobId, "running", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "pending"),
+    ]);
+    const finishedJob = processingJob(jobId, "success", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "success", undefined, ["file1.xtf"]),
+    ]);
+
+    runMockedProcessingJob(runningJob, [deliverableMandate(1, "Test Mandate")]);
+
+    stepIsLoading("processing", true);
+    cy.dataCy("continue-button").should("be.visible").and("be.disabled");
+
+    // The next poll reports the finished job, which enables the button without moving the step
+    cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: finishedJob }).as("finishedJobStatus");
+    cy.wait("@finishedJobStatus");
+
+    stepIsLoading("processing", false);
+    stepIsActive("processing");
+    cy.dataCy("continue-button").should("be.enabled");
+  });
+
+  it("offers no continue button when the mandate allows no delivery", () => {
+    const successJob = processingJob("e2e-no-delivery-job", "success", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "success", undefined, ["file1.xtf"]),
+    ]);
+
+    runMockedProcessingJob(successJob, [nonDeliverableMandate(1, "Validation Only")]);
+
+    stepperStepHasIcon("processing", "success");
+    cy.dataCy("delivery-step").should("not.exist");
+    cy.dataCy("continue-button").should("not.exist");
   });
 
   it("displays error if no mandates were found", () => {
