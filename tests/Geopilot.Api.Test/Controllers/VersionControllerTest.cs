@@ -9,6 +9,6 @@ public class VersionControllerTest
         var result = new VersionController().Get();
         Assert.IsNotNull(result);
         Assert.IsGreaterThan(0, result.Length);
-        StringAssert.StartsWith(result, "3.0", StringComparison.Ordinal);
+        Assert.StartsWith("3.1", result, StringComparison.Ordinal);
     }
 }
