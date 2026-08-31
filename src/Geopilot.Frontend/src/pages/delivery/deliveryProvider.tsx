@@ -70,8 +70,6 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [lastCompletedStep, setLastCompletedStep] = useState(-1);
   const [activeStep, setActiveStep] = useState(0);
-  // Highest step the user has ever opened. Navigating backwards leaves it untouched, which is what
-  // separates standing on the frontier from having returned to an earlier step through the stepper.
   const [furthestVisitedStep, setFurthestVisitedStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
