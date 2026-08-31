@@ -13,6 +13,7 @@ i18n
       order: ["cookie", "navigator", "htmlTag"],
       lookupCookie: "i18next",
       caches: ["cookie"],
+      convertDetectedLanguage: detected => detected.split("-")[0],
     },
     backend: {
       loadPath: `/locale/{{lng}}/{{ns}}.json`,
