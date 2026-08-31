@@ -70,7 +70,6 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [lastCompletedStep, setLastCompletedStep] = useState(-1);
   const [activeStep, setActiveStep] = useState(0);
-  const [furthestVisitedStep, setFurthestVisitedStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStarted, setProcessingStarted] = useState(false);
@@ -170,34 +169,36 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     });
   }, []);
 
-  const goToStep = useCallback((index: number) => {
-    setActiveStep(index);
-    setFurthestVisitedStep(furthest => Math.max(furthest, index));
-  }, []);
-
   const continueToNextStep = useCallback(() => {
     setAbortControllers([]);
+    setLastCompletedStep(completed => Math.max(completed, activeStep));
     if (activeStep < steps.size - 1) {
-      goToStep(activeStep + 1);
+      setActiveStep(activeStep + 1);
     }
-    if (activeStep < steps.size) {
-      setLastCompletedStep(completed => Math.max(completed, activeStep));
-    }
-  }, [activeStep, steps, goToStep]);
+  }, [activeStep, steps]);
 
-  const markStepCompleted = useCallback(() => {
-    setLastCompletedStep(prev => Math.max(prev + 1, steps.size - 1));
-  }, [steps]);
+  /**
+   * Beyond the steps the user has worked through, a step is reachable once a result has enabled it. That is
+   * how the delivery step opens up while the processing step is still the active one.
+   */
+  const canShowStep = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= steps.size) return false;
+      if (index <= lastCompletedStep + 1) return true;
+      return Array.from(steps.values())[index]?.state === StepState.Enabled;
+    },
+    [lastCompletedStep, steps],
+  );
 
   const showCompletedOrNextStep = useCallback(
     (index: number) => {
-      if (index >= 0 && index <= lastCompletedStep + 1) {
-        goToStep(index);
-        return true;
-      }
-      return false;
+      if (!canShowStep(index)) return false;
+
+      setActiveStep(index);
+      setLastCompletedStep(completed => Math.max(completed, index - 1));
+      return true;
     },
-    [lastCompletedStep, goToStep],
+    [canShowStep],
   );
 
   const handleApiError = useCallback(
@@ -276,12 +277,13 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         } else {
           setIsProcessing(false);
 
-          // The processing node reflects whether the user can finish, the delivery node reflects deliverability.
+          // The processing node carries the outcome of the run, the delivery node reflects deliverability.
           if (isProcessingDeliverable(job)) {
-            markStepCompleted();
             if (job.state === StepState.Warning) {
               const warningMessages = getConditionMessages(job.steps, StepState.Warning);
               setStepStatus(DeliveryStepEnum.Processing, StepState.Warning, warningMessages);
+            } else {
+              setStepStatus(DeliveryStepEnum.Processing, StepState.Success);
             }
             setStepStatus(DeliveryStepEnum.Delivery, StepState.Enabled);
           } else if (job.state === StepState.DeliveryRestriction) {
@@ -388,7 +390,6 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setProcessingResponse(undefined);
     setActiveStep(0);
     setLastCompletedStep(-1);
-    setFurthestVisitedStep(0);
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
       newSteps.forEach(step => {
@@ -415,7 +416,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         steps,
         lastCompletedStep,
         activeStep,
-        furthestVisitedStep,
+        canShowStep,
         isActiveStep,
         setStepStatus,
         selectedFiles,

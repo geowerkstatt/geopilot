@@ -85,7 +85,7 @@ const StepDetailTypography = styled(Typography)(({ theme }) => ({
 export const DeliveryStepper = () => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
-  const { steps, lastCompletedStep, activeStep, isLoading, isProcessing, showCompletedOrNextStep } =
+  const { steps, lastCompletedStep, activeStep, isLoading, isProcessing, showCompletedOrNextStep, canShowStep } =
     useContext(DeliveryContext);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -93,13 +93,6 @@ export const DeliveryStepper = () => {
 
   const isOpen = (stepIndex: number) => activeStep === stepIndex;
   const isCompleted = (stepIndex: number) => lastCompletedStep >= stepIndex;
-  const isEnabled = (stepIndex: number) => isCompleted(stepIndex - 1);
-
-  const onStepClick = (index: number) => {
-    if (isEnabled(index)) {
-      showCompletedOrNextStep(index);
-    }
-  };
 
   const stepperStackGap = isXs ? 1 : 2;
 
@@ -115,7 +108,7 @@ export const DeliveryStepper = () => {
         data-cy="delivery-stepper">
         {Array.from(steps.entries()).map(([key, step], index) => {
           const completed = isCompleted(index);
-          const enabled = isEnabled(index);
+          const enabled = canShowStep(index);
           const open = isOpen(index);
           const skipped = step.state === StepState.Skipped;
           const stepState =
@@ -132,7 +125,7 @@ export const DeliveryStepper = () => {
               key={key}
               data-cy={`${key}-step`}
               aria-current={open ? "step" : undefined}
-              onClick={skipped ? undefined : () => onStepClick(index)}
+              onClick={skipped ? undefined : () => showCompletedOrNextStep(index)}
               sx={{
                 gap: 1,
                 backgroundColor: backgroundColor,
@@ -149,7 +142,7 @@ export const DeliveryStepper = () => {
               }}>
               <Stack direction="row" sx={{ alignItems: "center" }}>
                 <StepIcon step={index + 1} state={stepState} variant="contained" />
-                <Typography variant="h4" sx={{ color: isEnabled(index) ? "text.primary" : "text.secondary", m: 0 }}>
+                <Typography variant="h4" sx={{ color: enabled ? "text.primary" : "text.secondary", m: 0 }}>
                   {t(step.label)}
                 </Typography>
               </Stack>

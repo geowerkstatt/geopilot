@@ -9,7 +9,6 @@ import { Button } from "../../components/buttons.tsx";
 import { StepIcon } from "../../components/stepIcon.tsx";
 import { VisualizationLoader } from "../../components/visualizations/visualizationLoader.tsx";
 import { useLocalized } from "../../hooks/useLocalized.ts";
-import { DeliveryContinueButton } from "./deliveryButtons.tsx";
 import { DeliveryContent } from "./deliveryContent.tsx";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { isProcessingDeliverable } from "./deliveryUtils.tsx";
@@ -35,7 +34,14 @@ export const DeliveryProcessing = () => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
 
-  const { isProcessing, processingResponse } = useContext(DeliveryContext);
+  const {
+    isProcessing,
+    processingResponse,
+    activeStep,
+    lastCompletedStep,
+    steps: deliverySteps,
+    continueToNextStep,
+  } = useContext(DeliveryContext);
   const [expandedStepIds, setExpandedStepIds] = useState<Set<string>>(new Set());
   const autoExpandedIds = useRef<Set<string>>(new Set());
 
@@ -104,7 +110,18 @@ export const DeliveryProcessing = () => {
     });
   };
 
-  const buttons = <DeliveryContinueButton disabled={isProcessing || !isProcessingDeliverable(processingResponse)} />;
+  // Only offered while this step is the furthest the user has been, so it disappears once the delivery step
+  // has been opened.
+  const showContinue = activeStep > lastCompletedStep && activeStep < deliverySteps.size - 1;
+
+  const buttons = showContinue ? (
+    <Button
+      variant="contained"
+      label="continue"
+      disabled={isProcessing || !isProcessingDeliverable(processingResponse)}
+      onClick={continueToNextStep}
+    />
+  ) : undefined;
 
   return (
     <DeliveryContent title="processing" buttons={buttons} hideBox={true}>
