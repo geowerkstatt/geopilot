@@ -1,0 +1,111 @@
+name: Release channel
+
+on:
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  publish-release-image:
+    runs-on: ubuntu-latest
+    name: Publish the release branch image and its pre-release
+    timeout-minutes: 45
+
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether this state has to be built
+        run: |
+          echo IMAGE_NAME=$REGISTRY/$(echo ${GITHUB_REPOSITORY,,}) >> $GITHUB_ENV
+          echo COMMITED_AT=$(git show -s --format=%cI HEAD) >> $GITHUB_ENV
+          echo REVISION=$(git rev-parse --short HEAD) >> $GITHUB_ENV
+
+          # The commit count is the patch number: monotonic, unique per commit and far above the
+          # highest run number the main line ever used, so the two schemes cannot collide. The minor
+          # comes from the branch itself, so it follows along when this branch moves to the next one.
+          prefix=$(grep -oP "(?<=<VersionPrefix>)[^<]+" Directory.Build.props)
+          echo VERSION=$prefix.$(git rev-list --count HEAD) >> $GITHUB_ENV
+
+          # A merge from main carries a tree that was already built and published as :$base, so that
+          # image is reused instead of building the same source twice, and its pre-release is already
+          # promotable. Own commits change the tree and are built and tagged here.
+          base=$(git describe --tags --match 'v*' --abbrev=0 HEAD 2>/dev/null || echo "")
+          if [ -n "$base" ] && [ "$(git rev-parse "$base^{tree}")" = "$(git rev-parse 'HEAD^{tree}')" ]; then
+            echo MODE=retag >> $GITHUB_ENV
+            echo BASE_TAG=$base >> $GITHUB_ENV
+          else
+            echo MODE=build >> $GITHUB_ENV
+          fi
+
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Point :release at the image of the merged state
+        if: env.MODE == 'retag'
+        run: |
+          docker buildx imagetools create \
+            --tag ${IMAGE_NAME}:release \
+            ${IMAGE_NAME}:${BASE_TAG}
+
+      - name: Collect Docker image metadata
+        id: meta
+        if: env.MODE == 'build'
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          labels: |
+            org.opencontainers.image.created=${{ env.COMMITED_AT }}
+            org.opencontainers.image.version=v${{ env.VERSION }}
+            org.opencontainers.image.maintainer=GeoWerkstatt GmbH <support@geowerkstatt.ch>
+          tags: |
+            type=raw,value=release
+            type=raw,value=v${{ env.VERSION }}
+
+      - name: Build and push the release image
+        if: env.MODE == 'build'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          build-args: |
+            APP_VERSION=${{ env.VERSION }}
+            REVISION=${{ env.REVISION }}
+            GITHUB_ACTOR=${{ github.actor }}
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          sbom: true
+          provenance: mode=max
+
+      # Creates the git tag as well, which is what makes the build promotable: marking the
+      # pre-release as latest fires release.yml, exactly as it does for a build from main.
+      - name: Create the GitHub pre-release
+        if: env.MODE == 'build'
+        env:
+          GH_TOKEN: ${{ secrets.GEOW_BOT_TOKEN }}
+        run: |
+          gh release create "v${VERSION}" \
+            --target "${GITHUB_REF_NAME}" \
+            --title "${VERSION}" \
+            --prerelease
