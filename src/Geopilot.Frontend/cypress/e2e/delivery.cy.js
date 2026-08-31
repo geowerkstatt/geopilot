@@ -143,9 +143,24 @@ describe("Delivery tests", () => {
         "Skipped because no errors were reported.",
       ),
     ]);
+    const runningJob = processingJob("e2e-success-job", "running", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "pending"),
+    ]);
 
     cy.intercept("GET", "/api/v1/delivery/summary?mandateId=*", { statusCode: 200, body: [] }).as("precursors");
-    runMockedProcessingJob(successJob, [deliverableMandate(1, "Test Mandate"), deliverableMandate(2, "Other Mandate")]);
+    runMockedProcessingJob(
+      successJob,
+      [deliverableMandate(1, "Test Mandate"), deliverableMandate(2, "Other Mandate")],
+      runningJob,
+    );
+
+    // While the job runs the way forward is already there, but not usable yet.
+    stepIsLoading("processing", true);
+    cy.dataCy("continue-button").should("be.visible").and("be.disabled");
+
+    cy.wait("@jobStatus");
+    stepIsLoading("processing", false);
 
     resultStepHasIcon("validation", "success");
     resultStepHasIcon("error_visualization", "skipped");
@@ -272,31 +287,6 @@ describe("Delivery tests", () => {
     cy.intercept("POST", "/api/v1/delivery", { statusCode: 200, body: { id: 1 } }).as("createDelivery");
     cy.dataCy("createDelivery-button").should("not.be.enabled");
     cy.dataCy("delivery-files-empty").should("exist");
-  });
-
-  it("keeps the continue button disabled while the processing runs", () => {
-    const jobId = "e2e-running-job";
-    const runningJob = processingJob(jobId, "running", [
-      processingStep("xtf_matching", "XTF Matching", "success"),
-      processingStep("validation", "XTF Validation", "pending"),
-    ]);
-    const finishedJob = processingJob(jobId, "success", [
-      processingStep("xtf_matching", "XTF Matching", "success"),
-      processingStep("validation", "XTF Validation", "success", undefined, ["file1.xtf"]),
-    ]);
-
-    runMockedProcessingJob(runningJob, [deliverableMandate(1, "Test Mandate")]);
-
-    stepIsLoading("processing", true);
-    cy.dataCy("continue-button").should("be.visible").and("be.disabled");
-
-    // The next poll reports the finished job, which enables the button without moving the step
-    cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: finishedJob }).as("finishedJobStatus");
-    cy.wait("@finishedJobStatus");
-
-    stepIsLoading("processing", false);
-    stepIsActive("processing");
-    cy.dataCy("continue-button").should("be.enabled");
   });
 
   it("offers no continue button when the mandate allows no delivery", () => {

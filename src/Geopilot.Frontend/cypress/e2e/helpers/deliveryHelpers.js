@@ -139,8 +139,11 @@ export const nonDeliverableMandate = (id, name) => ({ ...deliverableMandate(id, 
  * Logs in, uploads a valid file, selects mandate 1 and starts processing, returning the given mocked job as
  * the response for both the POST and the status GET. Leaves the wizard on the processing step with the job
  * status loaded. Pass `mandates` to stub the mandate list (otherwise the real seeded mandates are used).
+ *
+ * Pass `runningJob` to answer the start request and the first status poll with an unfinished job, so a test
+ * can assert on the running state before waiting for the next poll, which then delivers `job`.
  */
-export const runMockedProcessingJob = (job, mandates) => {
+export const runMockedProcessingJob = (job, mandates, runningJob) => {
   // Registered before the upload: the mandate request follows the upload response immediately,
   // so an intercept set up afterwards can miss it.
   if (mandates) {
@@ -160,8 +163,14 @@ export const runMockedProcessingJob = (job, mandates) => {
   }
   selectMandate(1);
 
-  cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: job }).as("startProcessing");
-  cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: job }).as("jobStatus");
+  const firstStatus = runningJob ?? job;
+  let firstStatusServed = false;
+
+  cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: firstStatus }).as("startProcessing");
+  cy.intercept("GET", "/api/v2/processing/*", request => {
+    request.reply({ statusCode: 200, body: firstStatusServed ? job : firstStatus });
+    firstStatusServed = true;
+  }).as("jobStatus");
 
   cy.dataCy("startProcessing-button").click();
   cy.wait("@startProcessing");
