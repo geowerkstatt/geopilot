@@ -9,7 +9,7 @@ import { Button } from "../../components/buttons.tsx";
 import { StepIcon } from "../../components/stepIcon.tsx";
 import { VisualizationLoader } from "../../components/visualizations/visualizationLoader.tsx";
 import { useLocalized } from "../../hooks/useLocalized.ts";
-import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons.tsx";
+import { DeliveryContinueButton } from "./deliveryButtons.tsx";
 import { DeliveryContent } from "./deliveryContent.tsx";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { isProcessingDeliverable } from "./deliveryUtils.tsx";
@@ -104,12 +104,7 @@ export const DeliveryProcessing = () => {
     });
   };
 
-  const buttons = (
-    <>
-      <DeliveryBackButton />
-      <DeliveryContinueButton disabled={isProcessing || !isProcessingDeliverable(processingResponse)} />
-    </>
-  );
+  const buttons = <DeliveryContinueButton disabled={isProcessing || !isProcessingDeliverable(processingResponse)} />;
 
   return (
     <DeliveryContent title="processing" buttons={buttons} hideBox={true}>

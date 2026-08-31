@@ -3,18 +3,17 @@ import { ButtonProps } from "@mui/material/Button";
 import { Button } from "../../components/buttons";
 import { DeliveryContext } from "./deliveryContext";
 
-export const DeliveryBackButton = () => {
-  const { activeStep, showCompletedOrNextStep } = useContext(DeliveryContext);
-
-  return activeStep > 0 && <Button onClick={() => showCompletedOrNextStep(activeStep - 1)} label="back" />;
-};
-
+/**
+ * Advances to the next step. It is only offered on the frontier of the process: a step the user has
+ * already moved past is revisited through the stepper and offers no way forward of its own.
+ */
 export const DeliveryContinueButton: FC<Omit<ButtonProps, "onClick" | "label">> = props => {
-  const { activeStep, steps, continueToNextStep } = useContext(DeliveryContext);
+  const { activeStep, furthestVisitedStep, steps, continueToNextStep } = useContext(DeliveryContext);
+  const isOnFrontier = activeStep === furthestVisitedStep;
+  const hasNextStep = activeStep < steps.size - 1;
 
   return (
-    activeStep < steps.size - 1 && (
-      <Button {...props} onClick={continueToNextStep} label="continue" variant="contained" />
-    )
+    isOnFrontier &&
+    hasNextStep && <Button {...props} onClick={continueToNextStep} label="continue" variant="contained" />
   );
 };

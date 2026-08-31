@@ -70,6 +70,9 @@ const getSteps = (previousSteps: Map<DeliveryStepEnum, DeliveryStep>, showDelive
 export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [lastCompletedStep, setLastCompletedStep] = useState(-1);
   const [activeStep, setActiveStep] = useState(0);
+  // Highest step the user has ever opened. Navigating backwards leaves it untouched, which is what
+  // separates standing on the frontier from having returned to an earlier step through the stepper.
+  const [furthestVisitedStep, setFurthestVisitedStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStarted, setProcessingStarted] = useState(false);
@@ -169,15 +172,20 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     });
   }, []);
 
+  const goToStep = useCallback((index: number) => {
+    setActiveStep(index);
+    setFurthestVisitedStep(furthest => Math.max(furthest, index));
+  }, []);
+
   const continueToNextStep = useCallback(() => {
     setAbortControllers([]);
     if (activeStep < steps.size - 1) {
-      setActiveStep(activeStep + 1);
+      goToStep(activeStep + 1);
     }
     if (activeStep < steps.size) {
       setLastCompletedStep(completed => Math.max(completed, activeStep));
     }
-  }, [activeStep, steps]);
+  }, [activeStep, steps, goToStep]);
 
   const markStepCompleted = useCallback(() => {
     setLastCompletedStep(prev => Math.max(prev + 1, steps.size - 1));
@@ -186,12 +194,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const showCompletedOrNextStep = useCallback(
     (index: number) => {
       if (index >= 0 && index <= lastCompletedStep + 1) {
-        setActiveStep(index);
+        goToStep(index);
         return true;
       }
       return false;
     },
-    [lastCompletedStep],
+    [lastCompletedStep, goToStep],
   );
 
   const handleApiError = useCallback(
@@ -382,6 +390,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setProcessingResponse(undefined);
     setActiveStep(0);
     setLastCompletedStep(-1);
+    setFurthestVisitedStep(0);
     setSteps(prevSteps => {
       const newSteps = new Map(prevSteps);
       newSteps.forEach(step => {
@@ -408,6 +417,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         steps,
         lastCompletedStep,
         activeStep,
+        furthestVisitedStep,
         isActiveStep,
         setStepStatus,
         selectedFiles,

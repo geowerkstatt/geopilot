@@ -192,6 +192,11 @@ describe("Delivery tests", () => {
 
     cy.dataCy("continue-button").should("be.enabled").click();
     stepIsActive("delivery");
+
+    // Continuing is a one-way move, the button is gone when the processing step is revisited
+    selectStep("processing");
+    stepIsActive("processing");
+    cy.dataCy("continue-button").should("not.exist");
   });
 
   it("keeps warnings out of the stepper but visible in the accordion when delivery is restricted", () => {
@@ -212,6 +217,8 @@ describe("Delivery tests", () => {
     stepperStepMissingMessage("processing", "Validation completed with warnings.");
 
     stepIsSkipped("delivery", true, "Blocked by processing");
+    // A blocked delivery keeps the button visible so it stays apparent that the step exists
+    cy.dataCy("continue-button").should("be.disabled");
   });
 
   it("stops the pipeline and blocks delivery when a step fails", () => {
@@ -307,17 +314,17 @@ describe("Delivery tests", () => {
     startProcessing();
     stepIsActive("processing");
 
-    // Can navigate with back button
-    cy.dataCy("back-button").click();
+    // Navigation happens through the stepper, the steps carry no back button
+    cy.dataCy("back-button").should("not.exist");
+    selectStep("mandate");
     stepIsActive("mandate");
     stepIsActive("processing", false);
 
-    // Can navigate by clicking on the step
     selectStep("files");
     stepIsActive("files");
     cy.dataCy("upload-button").should("not.exist");
 
-    cy.dataCy("continue-button").click();
+    selectStep("mandate");
     // Select mandate step shows previously selected mandate
     stepIsActive("mandate");
     cy.dataCy("mandate-1").should("have.class", "Mui-selected").should("have.class", "Mui-disabled");
