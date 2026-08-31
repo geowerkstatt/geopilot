@@ -14,8 +14,14 @@ const languages: string[] = Object.values(Language);
 
 const isSupportedLanguage = (language: string): language is Language => languages.includes(language);
 
+/** The language the UI is rendered in, known from the first render on through initAsync: false in i18n.js. */
+const activeLanguage = (): Language => {
+  const active = i18n.resolvedLanguage ?? i18n.language;
+  return isSupportedLanguage(active) ? active : fallbackLanguage;
+};
+
 export function LanguagePopup() {
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>(fallbackLanguage);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>(activeLanguage);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement>();
   const open = Boolean(anchorEl);
 
@@ -28,12 +34,9 @@ export function LanguagePopup() {
   }, []);
 
   useEffect(() => {
-    const handleLanguageChange = () => {
-      const activeLanguage = i18n.resolvedLanguage ?? i18n.language;
-      setSelectedLanguage(isSupportedLanguage(activeLanguage) ? activeLanguage : fallbackLanguage);
-    };
-    handleLanguageChange();
+    const handleLanguageChange = () => setSelectedLanguage(activeLanguage());
 
+    handleLanguageChange();
     i18n.on("languageChanged", handleLanguageChange);
 
     return () => {

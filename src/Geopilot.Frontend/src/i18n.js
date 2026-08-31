@@ -25,6 +25,7 @@ i18n
       transSupportBasicHtmlNodes: true,
     },
     load: "languageOnly",
+    initAsync: false,
     fallbackLng: Language.EN,
     supportedLngs: Object.values(Language),
     ns: ["common"],
