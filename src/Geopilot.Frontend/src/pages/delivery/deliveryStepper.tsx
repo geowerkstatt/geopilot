@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { Box, Stack, Typography } from "@mui/material";
 import { styled, useMediaQuery, useTheme } from "@mui/system";
 import { DeliveryStepState } from "../../api/apiInterfaces";
-import { StepState } from "../../api/generated";
 import { themePalette } from "../../appPalette.ts";
 import { px2rem } from "../../appTheme.ts";
 import { MiddleTruncate } from "../../components/middleTruncate";
@@ -15,23 +14,22 @@ import { DeliveryContext } from "./deliveryContext";
 import { DeliveryRestartButton } from "./deliveryRestartButton";
 import { STEPPER_HEIGHT, stepperTopPosition } from "./deliveryUtils";
 
-const getStateColors = (state: StepState | DeliveryStepState, active: boolean) => {
+const getStateColors = (state: DeliveryStepState, active: boolean) => {
   switch (state) {
-    case StepState.DeliveryRestriction:
-    case StepState.Cancelled:
-    case StepState.Error:
+    case DeliveryStepState.DeliveryRestriction:
+    case DeliveryStepState.Error:
       return {
         backgroundColor: active ? themePalette.error.background : themePalette.background.content,
         borderColor: active ? themePalette.error.dark : themePalette.error.light,
         messageColor: themePalette.error.contrastText,
       };
-    case StepState.Warning:
+    case DeliveryStepState.Warning:
       return {
         backgroundColor: active ? themePalette.warning.background : themePalette.background.content,
         borderColor: active ? themePalette.warning.dark : themePalette.warning.light,
         messageColor: themePalette.warning.contrastText,
       };
-    case StepState.Skipped:
+    case DeliveryStepState.Skipped:
       return {
         backgroundColor: themePalette.background.content,
         borderColor: themePalette.primary.light,
@@ -118,14 +116,14 @@ export const DeliveryStepper = () => {
           const completed = isCompleted(index);
           const enabled = isEnabled(index);
           const open = isOpen(index);
-          const skipped = step.state === StepState.Skipped;
+          const skipped = step.state === DeliveryStepState.Skipped;
           const stepState =
             step.state ??
             (completed
-              ? StepState.Success
+              ? DeliveryStepState.Success
               : enabled && (isLoading || isProcessing)
-                ? StepState.Running
-                : StepState.Pending);
+                ? DeliveryStepState.Running
+                : DeliveryStepState.Pending);
           const { backgroundColor, borderColor, messageColor } = getStateColors(stepState, open);
 
           return (

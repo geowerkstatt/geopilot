@@ -22,12 +22,23 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The state a step of the delivery wizard can be in. A wizard step never carries `Cancelled`
+ * (a cancelled job is reported on the processing step as `Error`), but can also be `Enabled`
+ * (ready for the user to click) while `Enabled` is not a valid step state.
+ */
 export const DeliveryStepState = {
-  ...StepState,
+  Pending: StepState.Pending,
+  Skipped: StepState.Skipped,
+  Running: StepState.Running,
+  Success: StepState.Success,
+  Error: StepState.Error,
+  Warning: StepState.Warning,
+  DeliveryRestriction: StepState.DeliveryRestriction,
   Enabled: "enabled",
 } as const;
 
-export type DeliveryStepState = "enabled" | Exclude<StepState, "running" | "cancelled">;
+export type DeliveryStepState = (typeof DeliveryStepState)[keyof typeof DeliveryStepState];
 
 /** A backend multilingual string, keyed by ISO 639 language code ("de", "fr", "it", "en"). */
 export type LocalizedText = Record<string, string>;
