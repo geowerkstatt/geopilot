@@ -11,4 +11,11 @@ public class VersionControllerTest
         Assert.IsGreaterThan(0, result.Length);
         StringAssert.StartsWith(result, "3.0", StringComparison.Ordinal);
     }
+
+    [TestMethod]
+    public void GetShortVersion()
+    {
+        var result = VersionController.GetShortVersion();
+        Assert.AreEqual("3.0", result);
+    }
 }
