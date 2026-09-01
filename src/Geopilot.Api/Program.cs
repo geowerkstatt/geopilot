@@ -101,9 +101,13 @@ builder.Services
 
 builder.Services.AddSwaggerGen(options =>
 {
+    var assembly = typeof(Program).Assembly;
+    var apiVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ??
+        assembly.GetName()?.Version?.ToString() ?? string.Empty;
+
     options.SwaggerDoc("all", new OpenApiInfo
     {
-        Version = "all",
+        Version = apiVersion.Split('+').First(),
         Title = "geopilot API Documentation",
     });
 

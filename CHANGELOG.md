@@ -28,6 +28,7 @@
 - STAC asset type `ValidationReport` has been renamed to `ProcessedData`. A file that entered the pipeline as an upload is stored as `PrimaryData`, a file produced inside the pipeline as `ProcessedData`.
 - A delivery now only contains the files a pipeline step tags with the `Delivery` output action. Uploaded files are no longer added automatically, so an upload only reaches the delivery when a step provides it through a `Delivery`-tagged output (for example a matcher wired to `${upload()}` that tags its matched files, or its new `UnmatchedFiles`, as `Delivery`). Existing pipeline definitions must be updated to tag the outputs that make up the delivery.
 - A processing job is only accepted once its execution protocol record (see Added) is written: if that write fails, starting the job fails instead of returning an accepted response, because an accepted delivery without an audit record must not exist. Protocol writes during the run never abort a running pipeline; they are logged as warnings.
+- The OpenAPI documentation now combines all API versions in a single document `/swagger/all/swagger.json`. The old `v1` and `v2` documents are no longer provided.
 
 ### Added
 
