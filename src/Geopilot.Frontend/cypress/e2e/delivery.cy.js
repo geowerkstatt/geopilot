@@ -2,6 +2,7 @@ import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appH
 import {
   addFile,
   deliverableMandate,
+  nonDeliverableMandate,
   processingJob,
   processingStep,
   resultStepHasIcon,
@@ -142,9 +143,24 @@ describe("Delivery tests", () => {
         "Skipped because no errors were reported.",
       ),
     ]);
+    const runningJob = processingJob("e2e-success-job", "running", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "pending"),
+    ]);
 
     cy.intercept("GET", "/api/v1/delivery/summary?mandateId=*", { statusCode: 200, body: [] }).as("precursors");
-    runMockedProcessingJob(successJob, [deliverableMandate(1, "Test Mandate"), deliverableMandate(2, "Other Mandate")]);
+    runMockedProcessingJob(
+      successJob,
+      [deliverableMandate(1, "Test Mandate"), deliverableMandate(2, "Other Mandate")],
+      runningJob,
+    );
+
+    // While the job runs the way forward is already there, but not usable yet.
+    stepIsLoading("processing", true);
+    cy.dataCy("continue-button").should("be.visible").and("be.disabled");
+
+    cy.wait("@jobStatus");
+    stepIsLoading("processing", false);
 
     resultStepHasIcon("validation", "success");
     resultStepHasIcon("error_visualization", "skipped");
@@ -192,6 +208,11 @@ describe("Delivery tests", () => {
 
     cy.dataCy("continue-button").should("be.enabled").click();
     stepIsActive("delivery");
+
+    // Continuing is a one-way move, the button is gone when the processing step is revisited
+    selectStep("processing");
+    stepIsActive("processing");
+    cy.dataCy("continue-button").should("not.exist");
   });
 
   it("keeps warnings out of the stepper but visible in the accordion when delivery is restricted", () => {
@@ -212,6 +233,8 @@ describe("Delivery tests", () => {
     stepperStepMissingMessage("processing", "Validation completed with warnings.");
 
     stepIsSkipped("delivery", true, "Blocked by processing");
+    // A blocked delivery keeps the button visible so it stays apparent that the step exists
+    cy.dataCy("continue-button").should("be.disabled");
   });
 
   it("stops the pipeline and blocks delivery when a step fails", () => {
@@ -266,6 +289,19 @@ describe("Delivery tests", () => {
     cy.dataCy("delivery-files-empty").should("exist");
   });
 
+  it("offers no continue button when the mandate allows no delivery", () => {
+    const successJob = processingJob("e2e-no-delivery-job", "success", [
+      processingStep("xtf_matching", "XTF Matching", "success"),
+      processingStep("validation", "XTF Validation", "success", undefined, ["file1.xtf"]),
+    ]);
+
+    runMockedProcessingJob(successJob, [nonDeliverableMandate(1, "Validation Only")]);
+
+    stepperStepHasIcon("processing", "success");
+    cy.dataCy("delivery-step").should("not.exist");
+    cy.dataCy("continue-button").should("not.exist");
+  });
+
   it("displays error if no mandates were found", () => {
     loginAsNewUser();
     addFile("deliveryFiles/ilimodels_invalid.xml", true);
@@ -296,28 +332,30 @@ describe("Delivery tests", () => {
   });
 
   it("can show previous steps as read-only", () => {
+    // Registered before the upload: the mandate request follows the upload response immediately,
+    // so an intercept set up afterwards can miss it.
+    cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
+
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_valid.xtf", true);
     uploadFile();
-
-    cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
     cy.wait("@getMandates");
 
     selectMandate(1);
     startProcessing();
     stepIsActive("processing");
 
-    // Can navigate with back button
-    cy.dataCy("back-button").click();
+    // Navigation happens through the stepper, the steps carry no back button
+    cy.dataCy("back-button").should("not.exist");
+    selectStep("mandate");
     stepIsActive("mandate");
     stepIsActive("processing", false);
 
-    // Can navigate by clicking on the step
     selectStep("files");
     stepIsActive("files");
     cy.dataCy("upload-button").should("not.exist");
 
-    cy.dataCy("continue-button").click();
+    selectStep("mandate");
     // Select mandate step shows previously selected mandate
     stepIsActive("mandate");
     cy.dataCy("mandate-1").should("have.class", "Mui-selected").should("have.class", "Mui-disabled");

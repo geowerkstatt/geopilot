@@ -21,14 +21,14 @@ interface DeliveryProps {
 }
 
 const Delivery: FC<DeliveryProps> = ({ stepSwipeRef }) => {
-  const { steps, activeStep, showCompletedOrNextStep } = useContext(DeliveryContext);
+  const { steps, activeStep, openCompletedOrNextStep } = useContext(DeliveryContext);
   const applicationTitle = useApplicationTitle();
 
   const swipeHandlers = useStepSwipe({
     activeStep,
     stepCount: steps.size,
     cooldownMs: SLIDE_TRANSITION_MS,
-    onNavigate: showCompletedOrNextStep,
+    onNavigate: openCompletedOrNextStep,
   });
 
   useEffect(() => {
