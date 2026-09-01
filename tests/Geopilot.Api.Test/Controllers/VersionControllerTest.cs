@@ -3,19 +3,21 @@
 [TestClass]
 public class VersionControllerTest
 {
+    private const string AppVersion = "3.1";
+
     [TestMethod]
     public void GetVersion()
     {
         var result = new VersionController().Get();
         Assert.IsNotNull(result);
         Assert.IsGreaterThan(0, result.Length);
-        StringAssert.StartsWith(result, "3.0", StringComparison.Ordinal);
+        Assert.StartsWith(AppVersion, result, StringComparison.Ordinal);
     }
 
     [TestMethod]
     public void GetShortVersion()
     {
         var result = VersionController.GetShortVersion();
-        Assert.AreEqual("3.0", result);
+        Assert.AreEqual(AppVersion, result);
     }
 }

@@ -4,6 +4,7 @@
 
 ### Added
 
+- The XTF validation can pick the ilivalidator version it runs with: the new `toolVersion` parameter names one of the versions the [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) deployment offers, and a version it does not offer is rejected before the tool runs. Without the parameter the deployment default runs, which is the previous behaviour; that default is deliberately decoupled from the newest offered version, so a new version can be offered without taking effect on its own. This lets one pipeline stay on a pinned version while another moves ahead, for instance during a tool upgrade. Which version actually ran is visible in the header of the validation log. Requires ilitools-wrapper v1.1.10-preview or newer.
 - The XTF validation can use the user defined functions of an ilivalidator plugin: the new `pluginIds` parameter names the plugins the [ilitools-wrapper](https://github.com/geowerkstatt/ilitools-wrapper) should load, as one semicolon separated value of the ids it offers them under. Which ids exist is a property of that deployment, and an id it does not offer is rejected before the tool runs. Without the parameter no plugin runs, which is the previous behaviour. A model whose constraints call such a function could not be validated correctly before. Requires ilitools-wrapper v1.0.9-preview or newer.
 
 ### Changed

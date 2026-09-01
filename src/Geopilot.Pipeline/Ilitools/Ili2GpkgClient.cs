@@ -135,6 +135,7 @@ internal sealed class Ili2GpkgClient : IIli2GpkgClient
             StrokeArcs = args.StrokeArcs,
             Dataset = args.Dataset ?? string.Empty,
             MetaConfig = args.MetaConfig ?? string.Empty,
+            ToolVersion = args.ToolVersion ?? string.Empty,
         };
 
         if (args.Models != null)

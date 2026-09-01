@@ -318,6 +318,33 @@ public partial class Ili2GpkgClientIntegrationTest
 
     [TestMethod]
     [Timeout(10_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncFailsWithAnUnknownToolVersion()
+    {
+        var inputFile = GetTestPipelineFile("data.gpkg");
+        var xtfLogFile = GetTestPipelineFile("log_unknown_version.xtf");
+        await DeleteIfExistsAsync(xtfLogFile);
+
+        // The wrapper offers the versions its image ships, so a version it does not offer has to be rejected. As
+        // with the plugin id above, that rejection is what proves the deployed image understands the field at all:
+        // proto3 drops an unknown field silently, so an older image would run its default version and report
+        // success. This test therefore guards the pairing of the stub version referenced here against the wrapper
+        // image the compose file pins.
+        var args = new Ili2GpkgArgs
+        {
+            Models = ["SimpleModel"],
+            ToolVersion = "0.0.0-no-such-version",
+        };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ili2GpkgClient.ValidateAsync(args, inputFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
+    [TestMethod]
+    [Timeout(10_000, CooperativeCancellation = true)]
     public async Task ValidateAsyncCreatesXtfLogOnError()
     {
         var inputFile = GetTestPipelineFile("data_error.gpkg"); // contains a name that is too short

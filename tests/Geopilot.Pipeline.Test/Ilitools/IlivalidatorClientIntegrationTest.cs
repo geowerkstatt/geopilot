@@ -197,6 +197,58 @@ public class IlivalidatorClientIntegrationTest
         Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
     }
 
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncRunsTheSelectedToolVersion()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var modelFile = GetTestPipelineFile("model.ili");
+        var logFile = GetTestPipelineFile("validation_selected_version.log");
+        var xtfLogFile = GetTestPipelineFile("validation_selected_version.xtf");
+        await DeleteIfExistsAsync(logFile);
+        await DeleteIfExistsAsync(xtfLogFile);
+
+        // The rejection test below proves the field reaches the wrapper; this one proves it takes effect. The tool
+        // writes its own version into the log header, so the header is the only evidence of which jar actually ran.
+        // The version is the predecessor the compose image offers next to its default, hardcoded on purpose: when
+        // the image stops offering it, this fails loudly instead of silently falling back to the default.
+        var args = new IlivalidatorArgs
+        {
+            ModelDirs = ["%ITF_DIR/models"],
+            ToolVersion = "1.14.4",
+        };
+
+        var result = await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, modelFiles: [modelFile], cancellationToken: TestContext.CancellationToken);
+
+        Assert.IsTrue(result.Success, "The transfer file should validate against the delivered model.");
+
+        var log = await File.ReadAllTextAsync(await logFile.GetLocalPathAsync(), TestContext.CancellationToken);
+        Assert.Contains("ilivalidator-1.14.4", log, "The log header should name the selected version.");
+    }
+
+    [TestMethod]
+    [Timeout(30_000, CooperativeCancellation = true)]
+    public async Task ValidateAsyncFailsWithAnUnknownToolVersion()
+    {
+        var transferFile = GetTestPipelineFile("transfer.xtf");
+        var logFile = GetTestPipelineFile("validation_unknown_version.log");
+        var xtfLogFile = GetTestPipelineFile("validation_unknown_version.xtf");
+
+        // The wrapper offers the versions its image ships, so a version it does not offer has to be rejected. As
+        // with the plugin id above, that rejection is what proves the deployed image understands the field at all:
+        // proto3 drops an unknown field silently, so an older image would run its default version and report
+        // success. This test therefore guards the pairing of the stub version referenced here against the wrapper
+        // image the compose file pins.
+        var args = new IlivalidatorArgs { ToolVersion = "0.0.0-no-such-version" };
+
+        var exception = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await ilivalidatorClient.ValidateAsync(args, transferFile, logFile, xtfLogFile, cancellationToken: TestContext.CancellationToken);
+        });
+
+        Assert.AreEqual(StatusCode.InvalidArgument, exception.StatusCode);
+    }
+
     private async Task DeleteIfExistsAsync(PipelineFile file)
     {
         var path = await file.GetLocalPathAsync();

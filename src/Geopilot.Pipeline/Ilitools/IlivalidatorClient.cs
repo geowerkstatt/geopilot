@@ -76,6 +76,7 @@ internal sealed class IlivalidatorClient : IIlivalidatorClient
         {
             MetaConfig = args.MetaConfig ?? string.Empty,
             AllObjectsAccessible = args.AllObjectsAccessible,
+            ToolVersion = args.ToolVersion ?? string.Empty,
         };
 
         if (args.ModelDirs != null)
