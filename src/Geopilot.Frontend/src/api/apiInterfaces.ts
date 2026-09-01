@@ -1,4 +1,4 @@
-import { ProcessingJobResponse, StepState } from "./generated";
+import { Mandate, ProcessingJobResponse, StepState, User } from "./generated";
 
 export enum ContentType {
   Json = "application/json",
@@ -123,3 +123,10 @@ export interface TreeVisualizationConfig {
 export interface NormalizedProcessingJobResponse extends Omit<ProcessingJobResponse, "state"> {
   state: StepState;
 }
+
+type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
+// Field evaluation types are required when creating a mandate, but are initialized to empty (undefined) in the form
+export type MandateFormValues = Optional<Mandate, "evaluatePrecursorDelivery" | "evaluatePartial" | "evaluateComment">;
+
+export type UserFormValues = Optional<User, "deliveries"> & { isActive: boolean };

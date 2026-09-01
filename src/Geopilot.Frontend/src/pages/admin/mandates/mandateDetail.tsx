@@ -3,6 +3,7 @@ import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { FormHelperText, Stack, Typography } from "@mui/material";
+import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import {
   AvailablePipelinesResponse,
   Coordinate,
@@ -31,7 +32,7 @@ const MandateDetail = () => {
   const { fetchApi } = useFetch();
   const { id = "0" } = useParams<{ id: string }>();
 
-  const [mandate, setMandate] = useState<Mandate>();
+  const [mandate, setMandate] = useState<MandateFormValues>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>();
   const [activeLanguage, setActiveLanguage] = useState<Language>(i18n.resolvedLanguage as Language);
@@ -68,11 +69,9 @@ const MandateDetail = () => {
         description: {},
         isPublic: false,
         allowDelivery: false,
-        evaluatePrecursorDelivery: undefined as unknown as FieldEvaluationType,
-        evaluatePartial: undefined as unknown as FieldEvaluationType,
-        evaluateComment: undefined as unknown as FieldEvaluationType,
         organisations: [],
         fileTypes: [],
+        // Prefill coordinates to allow editing them in the form
         coordinates: [
           { x: undefined, y: undefined },
           { x: undefined, y: undefined },
@@ -101,7 +100,7 @@ const MandateDetail = () => {
   };
 
   return (
-    <AdminDetailForm<Mandate>
+    <AdminDetailForm<MandateFormValues>
       basePath="/admin/mandates"
       backLabel="backToMandates"
       data={mandate}

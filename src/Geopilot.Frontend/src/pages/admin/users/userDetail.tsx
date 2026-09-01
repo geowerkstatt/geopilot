@@ -3,6 +3,7 @@ import { FieldValues } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { Typography } from "@mui/material";
+import { UserFormValues } from "../../../api/apiInterfaces.ts";
 import { Organisation, User, UserState } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
 import AdminDetailForm from "../../../components/adminDetailForm.tsx";
@@ -11,13 +12,20 @@ import { FormAutocompleteValue } from "../../../components/form/formAutocomplete
 import { GeopilotBox } from "../../../components/styledComponents.ts";
 import useFetch from "../../../hooks/useFetch.ts";
 
+const prepareUserForForm = (user: User): UserFormValues => {
+  return {
+    ...user,
+    isActive: user.state === UserState.Active,
+  } satisfies UserFormValues;
+};
+
 const UserDetail = () => {
   const { t } = useTranslation();
   const { user } = useGeopilotAuth();
   const { fetchApi } = useFetch();
   const { id } = useParams<{ id: string }>();
 
-  const [editableUser, setEditableUser] = useState<User>();
+  const [editableUser, setEditableUser] = useState<UserFormValues>();
   const [organisations, setOrganisations] = useState<Organisation[]>();
 
   // Admin rights and active state cannot be edited for your own account (would risk locking yourself out).
@@ -26,7 +34,8 @@ const UserDetail = () => {
   const loadUser = useCallback(
     async (id: string) => {
       const user = await fetchApi<User>(`/api/v1/user/${id}`, { errorMessageLabel: "userLoadingError" });
-      setEditableUser(user);
+      const userFormValues = prepareUserForForm(user);
+      setEditableUser(userFormValues);
     },
     [fetchApi],
   );
@@ -45,8 +54,8 @@ const UserDetail = () => {
     loadOrganisations();
   }, [id, loadOrganisations, loadUser]);
 
-  const prepareUserForSave = (formData: FieldValues): User => {
-    const editedUser = formData as User;
+  const prepareUserForSave = (formData: FieldValues): UserFormValues => {
+    const editedUser = formData as UserFormValues;
     editedUser.organisations = formData["organisations"]?.map(
       (value: FormAutocompleteValue) => ({ id: value.id }) as Organisation,
     );
@@ -59,23 +68,16 @@ const UserDetail = () => {
       editedUser.state = editableUser?.state ?? UserState.Inactive;
     }
 
-    delete (editedUser as Partial<User>).deliveries;
+    delete editedUser.deliveries;
     return editedUser;
-  };
-
-  const prepareUserForForm = (user: User): User => {
-    return {
-      ...user,
-      isActive: user.state === UserState.Active,
-    } as User;
   };
 
   return (
     id && (
-      <AdminDetailForm<User>
+      <AdminDetailForm<UserFormValues>
         basePath="/admin/users"
         backLabel="backToUsers"
-        data={editableUser ? prepareUserForForm(editableUser) : undefined}
+        data={editableUser}
         apiEndpoint="/api/v1/user"
         saveErrorLabel="userSaveError"
         prepareDataForSave={prepareUserForSave}>

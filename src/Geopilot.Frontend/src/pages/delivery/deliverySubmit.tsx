@@ -20,6 +20,7 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
   const formMethods = useForm<DeliverySubmitData>({ mode: "all", defaultValues: submittedData, disabled: completed });
 
   const submitForm = (data: DeliverySubmitData) => {
+    // An unselected FormSelect returns an empty string, convert to null for the API
     if ((data.precursorDeliveryId as unknown) === "") {
       data.precursorDeliveryId = null;
     }
