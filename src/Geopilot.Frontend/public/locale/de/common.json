@@ -142,6 +142,7 @@
   "selectMandateSubtitle": "Wählen Sie ein Mandat, das Ihren aktuellen Verarbeitungsanforderungen entspricht.",
   "spatialExtent": "Räumliche Ausdehnung",
   "spatialExtentHelperText": "Wird für den STAC Browser verwendet",
+  "spatialExtentInvalidOrder": "Unten links muss kleiner sein als oben rechts",
   "stacBrowser": "STAC Browser",
   "startProcessing": "Verarbeitung starten",
   "stepStateCancelled": "Abgebrochen",

@@ -142,6 +142,7 @@
   "selectMandateSubtitle": "Sélectionnez un mandat qui correspond à vos besoins de traitement actuels.",
   "spatialExtent": "Étendue spatiale",
   "spatialExtentHelperText": "Utilisé pour le navigateur STAC",
+  "spatialExtentInvalidOrder": "En bas à gauche doit être inférieur à en haut à droite",
   "stacBrowser": "Navigateur STAC",
   "startProcessing": "Commencer le traitement",
   "stepStateCancelled": "Annulé",

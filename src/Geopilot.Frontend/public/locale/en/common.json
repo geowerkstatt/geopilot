@@ -142,6 +142,7 @@
   "selectMandateSubtitle": "Select a mandate that matches your current processing needs.",
   "spatialExtent": "Spatial extent",
   "spatialExtentHelperText": "Used for STAC browser",
+  "spatialExtentInvalidOrder": "Bottom left must be smaller than upper right",
   "stacBrowser": "STAC Browser",
   "startProcessing": "Start processing",
   "stepStateCancelled": "Cancelled",
