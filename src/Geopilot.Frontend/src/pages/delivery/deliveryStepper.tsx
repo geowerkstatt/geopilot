@@ -85,7 +85,7 @@ const StepDetailTypography = styled(Typography)(({ theme }) => ({
 export const DeliveryStepper = () => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
-  const { steps, lastCompletedStep, activeStep, isLoading, isProcessing, showCompletedOrNextStep, canShowStep } =
+  const { steps, lastCompletedStep, activeStep, isLoading, isProcessing, openCompletedOrNextStep, canOpenStep } =
     useContext(DeliveryContext);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -108,7 +108,7 @@ export const DeliveryStepper = () => {
         data-cy="delivery-stepper">
         {Array.from(steps.entries()).map(([key, step], index) => {
           const completed = isCompleted(index);
-          const enabled = canShowStep(index);
+          const enabled = canOpenStep(index);
           const open = isOpen(index);
           const skipped = step.state === StepState.Skipped;
           const stepState =
@@ -125,7 +125,7 @@ export const DeliveryStepper = () => {
               key={key}
               data-cy={`${key}-step`}
               aria-current={open ? "step" : undefined}
-              onClick={skipped ? undefined : () => showCompletedOrNextStep(index)}
+              onClick={skipped ? undefined : () => openCompletedOrNextStep(index)}
               sx={{
                 gap: 1,
                 backgroundColor: backgroundColor,

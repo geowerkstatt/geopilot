@@ -5,7 +5,7 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   steps: new Map<DeliveryStepEnum, DeliveryStep>(),
   lastCompletedStep: 0,
   activeStep: 0,
-  canShowStep: () => false,
+  canOpenStep: () => false,
   isActiveStep: () => false,
   setStepStatus: () => {},
   selectedFiles: [],
@@ -24,6 +24,6 @@ export const DeliveryContext = createContext<DeliveryContextInterface>({
   submitDelivery: () => {},
   resetDelivery: () => {},
   continueToNextStep: () => {},
-  showCompletedOrNextStep: () => false,
+  openCompletedOrNextStep: () => false,
   submittedData: undefined,
 });

@@ -178,10 +178,10 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [activeStep, steps]);
 
   /**
-   * Beyond the steps the user has worked through, a step is reachable once a result has enabled it. That is
+   * Beyond the steps the user has worked through, a step can be opened once a result has enabled it. That is
    * how the delivery step opens up while the processing step is still the active one.
    */
-  const canShowStep = useCallback(
+  const canOpenStep = useCallback(
     (index: number) => {
       if (index < 0 || index >= steps.size) return false;
       if (index <= lastCompletedStep + 1) return true;
@@ -190,15 +190,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     [lastCompletedStep, steps],
   );
 
-  const showCompletedOrNextStep = useCallback(
+  const openCompletedOrNextStep = useCallback(
     (index: number) => {
-      if (!canShowStep(index)) return false;
+      if (!canOpenStep(index)) return false;
 
       setActiveStep(index);
       setLastCompletedStep(completed => Math.max(completed, index - 1));
       return true;
     },
-    [canShowStep],
+    [canOpenStep],
   );
 
   const handleApiError = useCallback(
@@ -416,7 +416,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         steps,
         lastCompletedStep,
         activeStep,
-        canShowStep,
+        canOpenStep,
         isActiveStep,
         setStepStatus,
         selectedFiles,
@@ -435,7 +435,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         submitDelivery,
         resetDelivery,
         continueToNextStep,
-        showCompletedOrNextStep,
+        openCompletedOrNextStep,
         submittedData,
       }}>
       {children}
