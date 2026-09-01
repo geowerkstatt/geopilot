@@ -79,6 +79,6 @@ jobs:
         working-directory: ./src/Geopilot.Frontend
         run: |
           npm run openapi
-          git diff --exit-code src/api/generated \
+          [[ -z $(git status --porcelain src/api/generated) ]] \
             || (echo "Generated OpenAPI types are out of date. Run 'npm run openapi' and commit the result." && exit 1)
 
