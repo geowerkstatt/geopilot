@@ -225,6 +225,20 @@ describe("Mandate tests", () => {
     setSelect("evaluatePartial", 1, 2);
     setSelect("evaluateComment", 1, 3);
 
+    // An extent whose bottom left corner is not below and left of the upper right one cannot be saved,
+    // and only the fields of the offending axis are marked.
+    cy.dataCy("save-button").should("be.enabled");
+    setInput("extent-upper-right-longitude", "7.1");
+    hasError("extent-bottom-left-longitude");
+    hasError("extent-upper-right-longitude");
+    hasError("extent-bottom-left-latitude", false);
+    hasError("extent-upper-right-latitude", false);
+    cy.dataCy("extent-formHelperText").should("be.visible");
+    cy.dataCy("save-button").should("be.disabled");
+    setInput("extent-upper-right-longitude", "8.052");
+    hasError("extent-bottom-left-longitude", false);
+    cy.dataCy("extent-formHelperText").should("not.exist");
+
     // Save the mandate and check that we are redirected to the list with the new mandate shown.
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("save-button").click();

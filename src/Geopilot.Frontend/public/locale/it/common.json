@@ -142,6 +142,7 @@
   "selectMandateSubtitle": "Seleziona un mandato che corrisponde alle tue esigenze di elaborazione attuali.",
   "spatialExtent": "Misura spaziale",
   "spatialExtentHelperText": "Utilizzato per il browser STAC",
+  "spatialExtentInvalidOrder": "In basso a sinistra deve essere inferiore a in alto a destra",
   "stacBrowser": "Browser STAC",
   "startProcessing": "Avvia elaborazione",
   "stepStateCancelled": "Annullato",
