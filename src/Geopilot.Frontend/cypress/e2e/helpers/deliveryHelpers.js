@@ -130,20 +130,31 @@ export const deliverableMandate = (id, name) => ({
 });
 
 /**
+ * Builds a mandate that allows no delivery, so the wizard omits the delivery step and the processing step
+ * becomes the last one.
+ */
+export const nonDeliverableMandate = (id, name) => ({ ...deliverableMandate(id, name), allowDelivery: false });
+
+/**
  * Logs in, uploads a valid file, selects mandate 1 and starts processing, returning the given mocked job as
  * the response for both the POST and the status GET. Leaves the wizard on the processing step with the job
  * status loaded. Pass `mandates` to stub the mandate list (otherwise the real seeded mandates are used).
+ *
+ * Pass `runningJob` to answer the start request and the first status poll with an unfinished job, so a test
+ * can assert on the running state before waiting for the next poll, which then delivers `job`.
  */
-export const runMockedProcessingJob = (job, mandates) => {
-  loginAsUploader();
-  addFile("deliveryFiles/ilimodels_valid.xtf", true);
-  uploadFile();
-
+export const runMockedProcessingJob = (job, mandates, runningJob) => {
+  // Registered before the upload: the mandate request follows the upload response immediately,
+  // so an intercept set up afterwards can miss it.
   if (mandates) {
     cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*", { statusCode: 200, body: mandates }).as("getMandates");
   } else {
     cy.intercept("GET", "/api/v1/mandate/summary?uploadId=*").as("getMandates");
   }
+
+  loginAsUploader();
+  addFile("deliveryFiles/ilimodels_valid.xtf", true);
+  uploadFile();
   cy.wait("@getMandates");
   if (mandates) {
     for (const mandate of mandates) {
@@ -152,8 +163,14 @@ export const runMockedProcessingJob = (job, mandates) => {
   }
   selectMandate(1);
 
-  cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: job }).as("startProcessing");
-  cy.intercept("GET", "/api/v2/processing/*", { statusCode: 200, body: job }).as("jobStatus");
+  const firstStatus = runningJob ?? job;
+  let firstStatusServed = false;
+
+  cy.intercept("POST", "/api/v2/processing", { statusCode: 200, body: firstStatus }).as("startProcessing");
+  cy.intercept("GET", "/api/v2/processing/*", request => {
+    request.reply({ statusCode: 200, body: firstStatusServed ? job : firstStatus });
+    firstStatusServed = true;
+  }).as("jobStatus");
 
   cy.dataCy("startProcessing-button").click();
   cy.wait("@startProcessing");

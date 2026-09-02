@@ -150,6 +150,8 @@ export const DeliveryContent: FC<PropsWithChildren<DeliveryContentProps>> = ({
               flexWrap: "wrap",
               flex: { xs: "0 1 auto", sm: 1 },
               justifyContent: "flex-end",
+              // Steps that render no button must not contribute their own gap to the layout.
+              "&:empty": { display: "none" },
             }}>
             {buttons}
           </Stack>

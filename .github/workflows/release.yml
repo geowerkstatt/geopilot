@@ -13,6 +13,9 @@ env:
   REGISTRY: ghcr.io
   GH_TOKEN: ${{ secrets.GEOW_BOT_TOKEN }}
   TAG_NAME: ${{ github.event.inputs.TAG_NAME || github.event.release.tag_name }}
+  # A release can now come from main or from the release branch, and the changelog patch has to go
+  # back to the branch it was released from instead of always to the default branch.
+  BASE_BRANCH: ${{ github.event.release.target_commitish || github.event.repository.default_branch }}
 
 jobs:
   retag-docker-image:
@@ -112,4 +115,4 @@ jobs:
           git config --global user.name "GeoWerkstatt-Build"
           git commit -am "$GIT_COMMIT_MESSAGE"
           git push --set-upstream origin $GIT_BRANCH_NAME
-          gh pr create --title "$GIT_COMMIT_MESSAGE" --body ""
+          gh pr create --base "$BASE_BRANCH" --title "$GIT_COMMIT_MESSAGE" --body ""

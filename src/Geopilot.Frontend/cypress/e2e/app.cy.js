@@ -128,16 +128,16 @@ describe("General app tests", () => {
   });
 
   it("normalises region-specific browser locales to their base language", () => {
-    // Make sure a browser locale like de-CH resolves to de instead of falling back
-    // to English.
+    // A browser locale like de-CH must resolve to de instead of falling back to English, and the
+    // language selector, the translations and the cached locale must all agree on that base language.
     cy.intercept("**/client-settings.json").as("clientSettings");
 
     [
-      { locale: "de-CH", base: "de" },
-      { locale: "fr-CH", base: "fr" },
-      { locale: "it-CH", base: "it" },
-      { locale: "en-US", base: "en" },
-    ].forEach(({ locale, base }) => {
+      { locale: "de-CH", base: "de", clickToSelect: "Zum Auswählen klicken" },
+      { locale: "fr-CH", base: "fr", clickToSelect: "Cliquer pour sélectionner" },
+      { locale: "it-CH", base: "it", clickToSelect: "Clicca per selezionare" },
+      { locale: "en-US", base: "en", clickToSelect: "Click to select" },
+    ].forEach(({ locale, base, clickToSelect }) => {
       cy.setCookie("i18next", locale);
 
       cy.visit("/");
@@ -146,6 +146,10 @@ describe("General app tests", () => {
         const expectedTitle = interception.response.body.application.localTitle[base];
         cy.dataCy("delivery-title").should("be.visible").and("contain", expectedTitle);
       });
+
+      cy.contains(clickToSelect);
+      cy.dataCy("language-selector").should("have.text", base.toUpperCase());
+      cy.getCookie("i18next").should("have.property", "value", base);
     });
   });
 

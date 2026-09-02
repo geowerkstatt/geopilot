@@ -7,7 +7,6 @@ import { useGeopilotAuth } from "../../auth";
 import { Button } from "../../components/buttons";
 import useFetch from "../../hooks/useFetch";
 import { useLocalized } from "../../hooks/useLocalized";
-import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons";
 import { DeliveryContent } from "./deliveryContent";
 import { DeliveryContext } from "./deliveryContext";
 import { DeliveryStepEnum, DeliveryStepProps } from "./deliveryInterfaces";
@@ -77,20 +76,8 @@ export const DeliverySelectMandate: FC<DeliveryStepProps> = ({ completed }) => {
     }
   };
 
-  const buttons = (
-    <>
-      <DeliveryBackButton />
-      {completed ? (
-        <DeliveryContinueButton />
-      ) : (
-        <Button
-          variant="contained"
-          onClick={submitForm}
-          label="startProcessing"
-          disabled={completed || isLoading || !currentMandate}
-        />
-      )}
-    </>
+  const buttons = completed ? undefined : (
+    <Button variant="contained" onClick={submitForm} label="startProcessing" disabled={isLoading || !currentMandate} />
   );
 
   return (
