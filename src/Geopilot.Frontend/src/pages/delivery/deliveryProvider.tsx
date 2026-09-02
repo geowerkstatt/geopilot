@@ -175,27 +175,34 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
 
   const continueToNextStep = useCallback(() => {
     setAbortControllers([]);
+    setLastCompletedStep(completed => Math.max(completed, activeStep));
     if (activeStep < steps.size - 1) {
       setActiveStep(activeStep + 1);
     }
-    if (activeStep < steps.size) {
-      setLastCompletedStep(completed => Math.max(completed, activeStep));
-    }
   }, [activeStep, steps]);
 
-  const markStepCompleted = useCallback(() => {
-    setLastCompletedStep(prev => Math.max(prev + 1, steps.size - 1));
-  }, [steps]);
-
-  const showCompletedOrNextStep = useCallback(
+  /**
+   * Beyond the steps the user has worked through, a step can be opened once a result has enabled it. That is
+   * how the delivery step opens up while the processing step is still the active one.
+   */
+  const canOpenStep = useCallback(
     (index: number) => {
-      if (index >= 0 && index <= lastCompletedStep + 1) {
-        setActiveStep(index);
-        return true;
-      }
-      return false;
+      if (index < 0 || index >= steps.size) return false;
+      if (index <= lastCompletedStep + 1) return true;
+      return Array.from(steps.values())[index]?.state === DeliveryStepState.Enabled;
     },
-    [lastCompletedStep],
+    [lastCompletedStep, steps],
+  );
+
+  const openCompletedOrNextStep = useCallback(
+    (index: number) => {
+      if (!canOpenStep(index)) return false;
+
+      setActiveStep(index);
+      setLastCompletedStep(completed => Math.max(completed, index - 1));
+      return true;
+    },
+    [canOpenStep],
   );
 
   const handleApiError = useCallback(
@@ -274,12 +281,13 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         } else {
           setIsProcessing(false);
 
-          // The processing node reflects whether the user can finish, the delivery node reflects deliverability.
+          // The processing node carries the outcome of the run, the delivery node reflects deliverability.
           if (isProcessingDeliverable(job)) {
-            markStepCompleted();
             if (job.state === StepState.Warning) {
               const warningMessages = getConditionMessages(job.steps, StepState.Warning);
               setStepStatus(DeliveryStepEnum.Processing, DeliveryStepState.Warning, warningMessages);
+            } else {
+              setStepStatus(DeliveryStepEnum.Processing, DeliveryStepState.Success);
             }
             setStepStatus(DeliveryStepEnum.Delivery, DeliveryStepState.Enabled);
           } else if (job.state === StepState.DeliveryRestriction) {
@@ -409,6 +417,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         steps,
         lastCompletedStep,
         activeStep,
+        canOpenStep,
         isActiveStep,
         setStepStatus,
         selectedFiles,
@@ -427,7 +436,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
         submitDelivery,
         resetDelivery,
         continueToNextStep,
-        showCompletedOrNextStep,
+        openCompletedOrNextStep,
         submittedData,
       }}>
       {children}

@@ -37,6 +37,7 @@ export interface DeliveryContextInterface {
   steps: Map<DeliveryStepEnum, DeliveryStep>;
   lastCompletedStep: number;
   activeStep: number;
+  canOpenStep: (index: number) => boolean;
   isActiveStep: (step: DeliveryStepEnum) => boolean;
   setStepStatus: (
     key: DeliveryStepEnum,
@@ -59,6 +60,6 @@ export interface DeliveryContextInterface {
   submitDelivery: (data: DeliverySubmitData) => void;
   resetDelivery: () => void;
   continueToNextStep: () => void;
-  showCompletedOrNextStep: (index: number) => boolean;
+  openCompletedOrNextStep: (index: number) => boolean;
   submittedData?: DeliverySubmitData;
 }

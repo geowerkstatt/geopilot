@@ -8,11 +8,20 @@ import { geopilotTheme } from "../../appTheme.ts";
 import i18n from "../../i18n";
 import { Button } from "../buttons";
 
-const defaultLanguage = Language.DE;
+/** Mirrors fallbackLng in i18n.js, so the button never announces a language the UI is not rendering. */
+const fallbackLanguage = Language.EN;
 const languages: string[] = Object.values(Language);
 
+const isSupportedLanguage = (language: string): language is Language => languages.includes(language);
+
+/** The language the UI is rendered in, known from the first render on through initAsync: false in i18n.js. */
+const activeLanguage = (): Language => {
+  const active = i18n.resolvedLanguage ?? i18n.language;
+  return isSupportedLanguage(active) ? active : fallbackLanguage;
+};
+
 export function LanguagePopup() {
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>(defaultLanguage);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>(activeLanguage);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement>();
   const open = Boolean(anchorEl);
 
@@ -25,12 +34,9 @@ export function LanguagePopup() {
   }, []);
 
   useEffect(() => {
-    const handleLanguageChange = () => {
-      const languageIndex = languages.indexOf(i18n.language);
-      setSelectedLanguage(languageIndex !== -1 ? (languages[languageIndex] as Language) : defaultLanguage);
-    };
-    handleLanguageChange();
+    const handleLanguageChange = () => setSelectedLanguage(activeLanguage());
 
+    handleLanguageChange();
     i18n.on("languageChanged", handleLanguageChange);
 
     return () => {

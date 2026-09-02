@@ -9,7 +9,6 @@ import { Button } from "../../components/buttons.tsx";
 import { FileDropzone } from "../../components/fileDropzone.tsx";
 import { FormCheckbox } from "../../components/form/form.ts";
 import useFetch from "../../hooks/useFetch.ts";
-import { DeliveryContinueButton } from "./deliveryButtons.tsx";
 import { DeliveryContent } from "./deliveryContent.tsx";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepEnum, DeliveryStepProps } from "./deliveryInterfaces.tsx";
@@ -54,9 +53,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
     [setStepStatus],
   );
 
-  const button = completed ? (
-    <DeliveryContinueButton />
-  ) : (
+  const button = completed ? undefined : (
     <Button
       variant="contained"
       disabled={isLoading || !formMethods.formState.isValid || selectedFiles.length === 0}
