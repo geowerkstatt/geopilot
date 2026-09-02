@@ -7,7 +7,6 @@ import { Button } from "../../components/buttons.tsx";
 import { FormCheckbox, FormContainer, FormInput, FormSelect } from "../../components/form/form.ts";
 import { BulletList } from "../../components/styledComponents.ts";
 import useFetch from "../../hooks/useFetch.ts";
-import { DeliveryBackButton, DeliveryContinueButton } from "./deliveryButtons.tsx";
 import { DeliveryContent } from "./deliveryContent.tsx";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepProps, DeliverySubmitData } from "./deliveryInterfaces.tsx";
@@ -37,20 +36,13 @@ export const DeliverySubmit: FC<DeliveryStepProps> = ({ completed }) => {
 
   const deliveryFiles = processingResponse?.steps.flatMap(step => step.deliveries ?? []) ?? [];
 
-  const buttons = (
-    <>
-      <DeliveryBackButton />
-      {completed ? (
-        <DeliveryContinueButton />
-      ) : (
-        <Button
-          variant="contained"
-          label="createDelivery"
-          disabled={!formMethods.formState.isValid || isLoading || deliveryFiles.length === 0}
-          onClick={() => formMethods.handleSubmit(submitForm)()}
-        />
-      )}
-    </>
+  const buttons = completed ? undefined : (
+    <Button
+      variant="contained"
+      label="createDelivery"
+      disabled={!formMethods.formState.isValid || isLoading || deliveryFiles.length === 0}
+      onClick={() => formMethods.handleSubmit(submitForm)()}
+    />
   );
 
   return (
