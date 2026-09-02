@@ -2,7 +2,8 @@ import { FC } from "react";
 import { useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { FormHelperText } from "@mui/material";
-import { Mandate, Organisation, PipelineSummary } from "../../../api/apiInterfaces.ts";
+import { MandateFormValues } from "../../../api/apiInterfaces.ts";
+import { Organisation, PipelineSummary } from "../../../api/generated";
 import {
   FormAutocomplete,
   FormCheckbox,
@@ -12,7 +13,7 @@ import {
 import PipelineFormSelect from "./pipelineFormSelect.tsx";
 
 interface MandateConfigurationFieldsProps {
-  mandate?: Mandate;
+  mandate?: MandateFormValues;
   organisations?: Organisation[];
   pipelines?: PipelineSummary[];
 }
@@ -25,7 +26,7 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
     <>
       <FormContainer>
         <FormContainerHalfWidth>
-          <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId} />
+          <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId ?? undefined} />
         </FormContainerHalfWidth>
         <FormContainerHalfWidth>
           <FormAutocomplete<string>

@@ -10,19 +10,20 @@ import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutlineOutl
 import WarningIcon from "@mui/icons-material/Warning";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { CircularProgress, Stack, useTheme } from "@mui/material";
-import { StepState } from "../api/apiInterfaces.ts";
+import { DeliveryStepState } from "../api/apiInterfaces.ts";
+import { StepState } from "../api/generated";
 import { NEOGEO_FONTWEIGHT_BOLD, NEOGEO_FONTWEIGHT_REGULAR, px2rem } from "../appTheme.ts";
 
 type StepIconVariant = "contained" | "outlined";
 
 interface StepIconProps {
   step: number;
-  state: StepState;
+  state: StepState | DeliveryStepState;
   variant: StepIconVariant;
 }
 
-const stateLabelKey: Record<StepState, string> = {
-  [StepState.Enabled]: "stepStateEnabled",
+const stateLabelKey: Record<StepState | DeliveryStepState, string> = {
+  [DeliveryStepState.Enabled]: "stepStateEnabled",
   [StepState.Pending]: "stepStatePending",
   [StepState.Running]: "stepStateRunning",
   [StepState.Skipped]: "stepStateSkipped",
@@ -55,7 +56,7 @@ export const StepIcon: FC<StepIconProps> = ({ step, state, variant }) => {
         ) : (
           <RemoveCircleIcon sx={{ color: theme.palette.primary.states.disabledBackground }} />
         );
-      case StepState.Enabled:
+      case DeliveryStepState.Enabled:
       case StepState.Pending:
       case StepState.Running: {
         const baseColor =

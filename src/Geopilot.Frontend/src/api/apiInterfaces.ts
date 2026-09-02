@@ -1,3 +1,5 @@
+import { Mandate, ProcessingJobResponse, StepState, User } from "./generated";
+
 export enum ContentType {
   Json = "application/json",
   Markdown = "ext/markdown",
@@ -20,99 +22,23 @@ export class ApiError extends Error {
   }
 }
 
-export enum FieldEvaluationType {
-  NotEvaluated = "notEvaluated",
-  Optional = "optional",
-  Required = "required",
-}
+/**
+ * The state a step of the delivery wizard can be in. A wizard step never carries `Cancelled`
+ * (a cancelled job is reported on the processing step as `Error`), but can also be `Enabled`
+ * (ready for the user to click) while `Enabled` is not a valid step state.
+ */
+export const DeliveryStepState = {
+  Pending: StepState.Pending,
+  Skipped: StepState.Skipped,
+  Running: StepState.Running,
+  Success: StepState.Success,
+  Error: StepState.Error,
+  Warning: StepState.Warning,
+  DeliveryRestriction: StepState.DeliveryRestriction,
+  Enabled: "enabled",
+} as const;
 
-export interface Coordinate {
-  x: number | undefined;
-  y: number | undefined;
-}
-
-export interface MandateSummary {
-  id: number;
-  name: LocalizedText;
-  description: LocalizedText;
-  allowDelivery: boolean;
-  evaluatePrecursorDelivery: FieldEvaluationType;
-  evaluatePartial: FieldEvaluationType;
-  evaluateComment: FieldEvaluationType;
-}
-
-export interface Mandate {
-  id: number;
-  name: LocalizedText;
-  description: LocalizedText;
-  isPublic: boolean;
-  allowDelivery: boolean;
-  fileTypes: string[];
-  coordinates: Coordinate[];
-  organisations: Organisation[];
-  deliveries: Delivery[];
-  evaluatePrecursorDelivery?: FieldEvaluationType;
-  evaluatePartial?: FieldEvaluationType;
-  evaluateComment?: FieldEvaluationType;
-  pipelineId?: string;
-}
-
-export interface Organisation {
-  id: number;
-  name: string;
-  mandates: Mandate[];
-  users: User[];
-}
-
-export interface DeliverySummary {
-  id: number;
-  date: string;
-}
-
-export interface Delivery {
-  id: number;
-  date: string;
-  declaringUser: User;
-  mandate: Mandate;
-  comment: string;
-  canDelete?: boolean;
-}
-
-export enum UserState {
-  Inactive = "inactive",
-  Active = "active",
-}
-
-export interface User {
-  id: number;
-  fullName: string;
-  isAdmin: boolean;
-  state: UserState;
-  email: string;
-  organisations: Organisation[];
-  deliveries?: Delivery[];
-}
-
-export interface ProcessingSettings {
-  allowedFileExtensions: string[];
-}
-
-export enum StepState {
-  Enabled = "enabled",
-  Pending = "pending",
-  Skipped = "skipped",
-  Running = "running",
-  Success = "success",
-  Error = "error",
-  Cancelled = "cancelled",
-  Warning = "warning",
-  DeliveryRestriction = "deliveryRestriction",
-}
-
-interface StepDownload {
-  originalFileName: string;
-  url: string;
-}
+export type DeliveryStepState = (typeof DeliveryStepState)[keyof typeof DeliveryStepState];
 
 /** A backend multilingual string, keyed by ISO 639 language code ("de", "fr", "it", "en"). */
 export type LocalizedText = Record<string, string>;
@@ -190,80 +116,17 @@ export interface TreeVisualizationConfig {
   groupBy: TreeField[];
 }
 
-interface StepVisualization {
-  originalFileName: string;
-  url: string;
-}
-
-export interface StepResult {
-  id: string;
-  name: LocalizedText;
-  state: StepState;
-  statusMessage?: LocalizedText;
-  conditionMessage?: LocalizedText;
-  downloads: StepDownload[];
-  deliveries: string[];
-  visualizations: StepVisualization[];
-}
-
 /**
- * The aggregate lifecycle state of a processing job, as serialized by the backend
- * (`Geopilot.Pipeline.ProcessingState`). It is a rollup of the job's pipeline steps, not the state of any
- * single step, and is deliberately kept separate from {@link StepState}. The two diverge by design: a step
- * (a single processor) that does not succeed carries an error, hence {@link StepState.Error}, whereas a job
- * whose pipeline could not run to completion because a step errored has failed, hence the job-level
- * `"failed"`. The job level likewise has no `"skipped"` or `"enabled"`. {@link normalizeProcessingJob} maps it onto
- * {@link StepState} at the fetch boundary so the job state can be shown with the same `StepState`-based UI
- * (the shared `StepIcon`) as the individual pipeline steps.
- */
-export type ProcessingState =
-  | "pending"
-  | "running"
-  | "success"
-  | "failed"
-  | "cancelled"
-  | "warning"
-  | "deliveryRestriction";
-
-/** A processing job exactly as returned by the processing API, before the job state is normalized. */
-export interface RawProcessingJobResponse {
-  jobId: string;
-  state: ProcessingState;
-  mandateId?: number;
-  pipelineName: LocalizedText;
-  steps: StepResult[];
-}
-
-/**
- * A processing job as used throughout the app: identical to {@link RawProcessingJobResponse} except the
+ * A processing job as used throughout the app: identical to {@link ProcessingJobResponse} except the
  * job-level {@link state} has been normalized to the shared {@link StepState} (see {@link normalizeProcessingJob}).
  */
-export interface ProcessingJobResponse extends Omit<RawProcessingJobResponse, "state"> {
+export interface NormalizedProcessingJobResponse extends Omit<ProcessingJobResponse, "state"> {
   state: StepState;
 }
 
-export interface StartJobRequest {
-  uploadId: string;
-  mandateId: number;
-}
+type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
-export interface PipelineSummary {
-  id: string;
-  displayName: LocalizedText;
-}
+// Field evaluation types are required when creating a mandate, but are initialized to empty (undefined) in the form
+export type MandateFormValues = Optional<Mandate, "evaluatePrecursorDelivery" | "evaluatePartial" | "evaluateComment">;
 
-export interface AvailablePipelinesResponse {
-  pipelines: PipelineSummary[];
-}
-
-export interface UploadSettings {
-  maxFileSizeMB: number;
-  maxFilesPerJob: number;
-  maxJobSizeMB: number;
-}
-
-export interface InitiateUploadResponse {
-  uploadId: string;
-  files: { fileName: string; uploadUrl: string }[];
-  expiresAt: string;
-}
+export type UserFormValues = Optional<User, "deliveries"> & { isActive: boolean };

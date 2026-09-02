@@ -1,11 +1,6 @@
 import { ReactNode } from "react";
-import {
-  LocalizedText,
-  MandateSummary,
-  ProcessingJobResponse,
-  StepState,
-  UploadSettings,
-} from "../../api/apiInterfaces.ts";
+import { DeliveryStepState, LocalizedText, NormalizedProcessingJobResponse } from "../../api/apiInterfaces.ts";
+import { DeliveryRequest, MandateSummary, UploadSettingsResponse } from "../../api/generated";
 
 export enum DeliveryStepEnum {
   Files = "files",
@@ -26,17 +21,12 @@ export interface DeliveryStepProps {
 export interface DeliveryStep {
   label: string;
   labelAddition?: string;
-  state?: StepState;
+  state?: DeliveryStepState;
   messages?: (string | LocalizedText)[];
   content: (completed: boolean) => ReactNode;
 }
 
-export interface DeliverySubmitData {
-  mandate: number;
-  isPartial: boolean;
-  precursor: number;
-  comment: string;
-}
+export type DeliverySubmitData = Omit<DeliveryRequest, "jobId">;
 
 export interface DeliveryStepError {
   status: number;
@@ -49,7 +39,11 @@ export interface DeliveryContextInterface {
   activeStep: number;
   canOpenStep: (index: number) => boolean;
   isActiveStep: (step: DeliveryStepEnum) => boolean;
-  setStepStatus: (key: DeliveryStepEnum, state: StepState | undefined, messages?: (string | LocalizedText)[]) => void;
+  setStepStatus: (
+    key: DeliveryStepEnum,
+    state: DeliveryStepState | undefined,
+    messages?: (string | LocalizedText)[],
+  ) => void;
   selectedFiles: File[];
   addFiles: (files: File[]) => void;
   removeFile: (file: File) => void;
@@ -57,8 +51,8 @@ export interface DeliveryContextInterface {
   selectedMandate?: MandateSummary;
   uploadId?: string;
   jobId?: string;
-  uploadSettings?: UploadSettings;
-  processingResponse?: ProcessingJobResponse;
+  uploadSettings?: UploadSettingsResponse;
+  processingResponse?: NormalizedProcessingJobResponse;
   isLoading: boolean;
   isProcessing: boolean;
   uploadFile: () => void;

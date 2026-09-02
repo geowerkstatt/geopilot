@@ -2,7 +2,8 @@ import { FC, useCallback, useContext, useEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { Trans } from "react-i18next";
 import { Link, Stack } from "@mui/material";
-import { ProcessingSettings, StepState } from "../../api/apiInterfaces.ts";
+import { DeliveryStepState } from "../../api/apiInterfaces.ts";
+import { ProcessingSettingsResponse } from "../../api/generated";
 import { useAppSettings } from "../../components/appSettings/appSettingsInterface.ts";
 import { Button } from "../../components/buttons.tsx";
 import { FileDropzone } from "../../components/fileDropzone.tsx";
@@ -13,7 +14,7 @@ import { DeliveryContext } from "./deliveryContext.tsx";
 import { DeliveryStepEnum, DeliveryStepProps } from "./deliveryInterfaces.tsx";
 
 export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
-  const [processingSettings, setProcessingSettings] = useState<ProcessingSettings>();
+  const [processingSettings, setProcessingSettings] = useState<ProcessingSettingsResponse>();
   const { initialized, termsOfUse } = useAppSettings();
   const { fetchApi } = useFetch();
   const formMethods = useForm({ mode: "all" });
@@ -31,7 +32,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
 
   useEffect(() => {
     if (!processingSettings) {
-      fetchApi<ProcessingSettings>("/api/v2/processing").then(setProcessingSettings);
+      fetchApi<ProcessingSettingsResponse>("/api/v2/processing").then(setProcessingSettings);
     }
   }, [fetchApi, processingSettings]);
 
@@ -47,7 +48,7 @@ export const DeliveryFileUpload: FC<DeliveryStepProps> = ({ completed }) => {
 
   const setFileError = useCallback(
     (error: string | undefined) => {
-      setStepStatus(DeliveryStepEnum.Files, error ? StepState.Error : undefined, error ? [error] : undefined);
+      setStepStatus(DeliveryStepEnum.Files, error ? DeliveryStepState.Error : undefined, error ? [error] : undefined);
     },
     [setStepStatus],
   );
