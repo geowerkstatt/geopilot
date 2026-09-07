@@ -38,7 +38,7 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
 
   return (
     <>
-      {/* The formats field spans both rows, leaving room for its chips below the input. Stacks on small screens. */}
+      {/* Every cell is a flex container, because the theme sizes the fields inside it through flex. */}
       <Box
         sx={{
           display: "grid",

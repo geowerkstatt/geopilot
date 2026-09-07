@@ -44,10 +44,9 @@ export const FormChipInput: FC<FormChipInputProps> = ({
     defaultValue: selected ?? [],
     rules: {
       /**
-       * Rejected text has to make the field invalid itself, so the form keeps the error and refuses to save while
-       * text that was never taken in still sits in the field. An error set from the outside does not survive:
-       * react-hook-form drops a foreign error the next time it validates the field, which a blur does. One rule
-       * covers both cases so a rejection is still explained while the field holds no value yet.
+       * Holds the refusal itself, because react-hook-form drops an error set from the outside the next time it
+       * validates the field, which a blur already does. The mandatory check sits in the same rule: a failing
+       * `required` rule short-circuits the others and would leave a refusal unexplained while the field is empty.
        */
       validate: (value: string[]) => {
         if (rejectedInput.current) {
@@ -76,8 +75,8 @@ export const FormChipInput: FC<FormChipInputProps> = ({
   };
 
   /**
-   * Appends the candidates the field does not hold yet. Compares case insensitively, since values stored before
-   * `parse` normalized them keep the casing they were saved with.
+   * Appends the candidates the field does not hold yet. Compares case insensitively, since a stored value keeps
+   * the casing it was saved with.
    */
   const addEntries = (candidates: string[]) => {
     const known = entries.map(entry => entry.toLowerCase());
@@ -122,7 +121,7 @@ export const FormChipInput: FC<FormChipInputProps> = ({
       const value = parse(candidate);
 
       if (!value) {
-        // Keep the whole text, so that what was typed or pasted can be corrected instead of being thrown away.
+        // Keep the whole text, so it can be corrected instead of being thrown away.
         setInput(text);
         setRejected(true);
         return;

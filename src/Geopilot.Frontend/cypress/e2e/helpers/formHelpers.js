@@ -243,8 +243,9 @@ export const setChipInput = (fieldName, value, confirmKey = "{enter}", parent) =
 };
 
 /**
- * Pastes text into a chip input form element. Sets the value through the native setter and fires a single input
- * event, the way a real paste does: no key events, and react-hook-form's value tracking has to notice the change.
+ * Pastes text into a chip input form element: sets the value through the prototype setter and fires one input
+ * event, the way a paste does. React patches the setter on the element to track changes, so a plain assignment
+ * would update that tracking as well and no change would reach the component.
  * @param {string} fieldName The name of the chip input field.
  * @param {string} value The text to paste into the input field.
  * @param {string} parent (optional) The parent of the form element.

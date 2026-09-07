@@ -176,7 +176,6 @@ describe("Mandate tests", () => {
     pasteIntoChipInput("fileTypes", "shp,dxf,");
     evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf", ".gml", ".shp", ".dxf"]);
 
-    // A chip can be removed again.
     removeChipInputValue("fileTypes", ".gml");
     removeChipInputValue("fileTypes", ".shp");
     removeChipInputValue("fileTypes", ".dxf");
@@ -481,8 +480,8 @@ describe("Mandate with a removed pipeline", () => {
 });
 
 describe("Mandate with a file type in upper case", () => {
-  // A format stored before the input normalized its casing keeps it. Entering the same format again must not add
-  // a second entry for it, since a delivery is matched against both alike.
+  // A stored format keeps the casing it was saved with. Entering the same format again must not add a second
+  // entry for it, since a delivery is matched against both alike.
   const mandateWithUpperCaseFileType = {
     id: 9998,
     name: { de: "Upper Case Mandate" },
