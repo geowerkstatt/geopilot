@@ -484,3 +484,50 @@ describe("Mandate with a removed pipeline", () => {
     getGridRowThatContains("mandates-grid", "Ghost Pipeline Mandate").should("contain", ghostPipelineId);
   });
 });
+
+describe("Mandate with a file type in upper case", () => {
+  // A format stored before the input normalized its casing keeps it. Entering the same format again must not add
+  // a second entry for it, since a delivery is matched against both alike.
+  const mandateWithUpperCaseFileType = {
+    id: 9998,
+    name: { de: "Upper Case Mandate" },
+    isPublic: false,
+    allowDelivery: true,
+    fileTypes: [".XTF"],
+    coordinates: [
+      { x: 7.3, y: 47.13 },
+      { x: 8.05, y: 47.46 },
+    ],
+    organisations: [],
+    deliveries: [],
+    evaluatePrecursorDelivery: "optional",
+    evaluatePartial: "required",
+    evaluateComment: "notEvaluated",
+    pipelineId: "valid-pipeline",
+  };
+
+  beforeEach(() => {
+    loginAsAdmin();
+    cy.intercept("GET", "/api/v1/pipeline", {
+      statusCode: 200,
+      body: { pipelines: [{ id: "valid-pipeline", displayName: { de: "Gültige Pipeline", en: "Valid Pipeline" } }] },
+    }).as("getPipelines");
+    cy.intercept("GET", "/api/v1/mandate/9998", { statusCode: 200, body: mandateWithUpperCaseFileType }).as(
+      "getMandate",
+    );
+  });
+
+  it("keeps a stored format as one entry when it is entered again", () => {
+    cy.visit("/admin/mandates/9998");
+    cy.wait("@getMandate");
+    cy.wait("@getPipelines");
+
+    evaluateChipInput("fileTypes", [".XTF"]);
+
+    setChipInput("fileTypes", "xtf");
+    evaluateChipInput("fileTypes", [".XTF"]);
+
+    // Nothing was added, so the form must not count as changed either.
+    cy.dataCy("reset-button").should("be.disabled");
+  });
+});

@@ -75,10 +75,14 @@ export const FormChipInput: FC<FormChipInputProps> = ({
     setRejected(false);
   };
 
-  /** Appends the candidates that the field does not hold yet. */
+  /**
+   * Appends the candidates the field does not hold yet. Compares case insensitively, since values stored before
+   * `parse` normalized them keep the casing they were saved with.
+   */
   const addEntries = (candidates: string[]) => {
+    const known = entries.map(entry => entry.toLowerCase());
     const added = candidates.filter(
-      (candidate, index) => candidates.indexOf(candidate) === index && !entries.includes(candidate),
+      (candidate, index) => candidates.indexOf(candidate) === index && !known.includes(candidate),
     );
 
     if (added.length > 0) {
