@@ -1,7 +1,7 @@
 import { FC } from "react";
 import { useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { FormHelperText } from "@mui/material";
+import { Box, FormHelperText } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import { Organisation, PipelineSummary } from "../../../api/generated";
 import {
@@ -38,11 +38,18 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
 
   return (
     <>
-      <FormContainer>
-        <FormContainerHalfWidth>
+      {/* The formats field spans both rows, leaving room for its chips below the input. Stacks on small screens. */}
+      <Box
+        sx={{
+          display: "grid",
+          gap: 2,
+          gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+          alignItems: "start",
+        }}>
+        <FormContainer sx={{ gridColumn: { md: "1" }, gridRow: { md: "1" } }}>
           <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId ?? undefined} />
-        </FormContainerHalfWidth>
-        <FormContainerHalfWidth>
+        </FormContainer>
+        <FormContainer sx={{ gridColumn: { md: "2" }, gridRow: { md: "1 / span 2" } }}>
           <FormChipInput
             fieldName={"fileTypes"}
             label={"fileTypes"}
@@ -52,12 +59,12 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
             parse={parseFileType}
             errorMessage="invalidFileExtension"
           />
-        </FormContainerHalfWidth>
-      </FormContainer>
-      <FormContainer sx={{ alignItems: "center" }}>
-        <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
-        {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
-      </FormContainer>
+        </FormContainer>
+        <FormContainer sx={{ alignItems: "center", gridColumn: { md: "1" }, gridRow: { md: "2" } }}>
+          <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
+          {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
+        </FormContainer>
+      </Box>
       {!isPublic && (
         <FormContainer>
           <FormContainerHalfWidth>
