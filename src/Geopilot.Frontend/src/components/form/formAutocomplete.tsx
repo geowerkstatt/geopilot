@@ -11,7 +11,6 @@ export interface FormAutocompleteProps<T> {
   /** Required in form-context (react-hook-form) mode; optional in controlled mode, where it only feeds `data-cy`. */
   fieldName?: string;
   label: string;
-  placeholder?: string;
   required?: boolean;
   disabled?: boolean;
   /** Selected values: the default value in form-context mode, the controlled value when `onChange` is provided. */
@@ -64,7 +63,6 @@ export interface FormAutocompleteValue {
 export const FormAutocomplete = <T,>({
   fieldName,
   label,
-  placeholder,
   required,
   disabled,
   selected,
@@ -129,7 +127,6 @@ export const FormAutocomplete = <T,>({
         <TextField
           {...params}
           label={t(label)}
-          placeholder={placeholder && value.length === 0 ? t(placeholder) : undefined}
           required={required ?? false}
           error={showError}
           helperText={helperText}

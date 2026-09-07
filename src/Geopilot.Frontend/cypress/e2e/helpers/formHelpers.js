@@ -208,7 +208,7 @@ export const closeAutocomplete = (fieldName, parent) => {
  * @param {string} value The text to type into the input field.
  * @param {string} parent (optional) The parent of the form element.
  */
-export const setNonFreeSoloAutocomplete = (fieldName, value, parent) => {
+export const setAutocomplete = (fieldName, value, parent) => {
   const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formAutocomplete"]`;
   cy.get(selector)
     .click()

@@ -11,7 +11,7 @@ export interface FormChipInputProps {
   required?: boolean;
   disabled?: boolean;
   /** The values the field starts with, typically the stored ones. */
-  values?: string[];
+  selected?: string[];
   /**
    * Interprets the typed text: returns the value to add, or undefined to reject the input and show `errorMessage`.
    * Normalization such as trimming, casing or a missing prefix belongs here, so that what becomes a chip is also
@@ -32,7 +32,7 @@ export const FormChipInput: FC<FormChipInputProps> = ({
   placeholder,
   required,
   disabled,
-  values,
+  selected,
   parse,
   errorMessage,
 }) => {
@@ -41,12 +41,12 @@ export const FormChipInput: FC<FormChipInputProps> = ({
   const { field, fieldState } = useController({
     name: fieldName,
     control,
-    defaultValue: values ?? [],
+    defaultValue: selected ?? [],
     rules: { required: required ?? false },
   });
   const [input, setInput] = useState("");
 
-  const selected: string[] = field.value ?? [];
+  const entries: string[] = field.value ?? [];
 
   const confirmInput = () => {
     const parsed = parse(input);
@@ -59,8 +59,8 @@ export const FormChipInput: FC<FormChipInputProps> = ({
     clearErrors(fieldName);
     setInput("");
 
-    if (!selected.includes(parsed)) {
-      field.onChange([...selected, parsed]);
+    if (!entries.includes(parsed)) {
+      field.onChange([...entries, parsed]);
     }
   };
 
@@ -98,10 +98,10 @@ export const FormChipInput: FC<FormChipInputProps> = ({
         onKeyDown={handleKeyDown}
         data-cy={`${fieldName}-formChipInput`}
       />
-      {selected.length > 0 && (
+      {entries.length > 0 && (
         <SelectedChips
-          values={selected}
-          onDelete={index => field.onChange(selected.filter((_, i) => i !== index))}
+          values={entries}
+          onDelete={index => field.onChange(entries.filter((_, i) => i !== index))}
           dataCy={`${fieldName}-selectedChips`}
         />
       )}

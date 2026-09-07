@@ -55,7 +55,7 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
             label={"fileTypes"}
             placeholder={"fileTypesPlaceholder"}
             required={true}
-            values={mandate?.fileTypes}
+            selected={mandate?.fileTypes}
             parse={parseFileType}
             errorMessage="invalidFileExtension"
           />

@@ -6,10 +6,10 @@ import {
   evaluateSelect,
   hasError,
   removeChipInputValue,
+  setAutocomplete,
   setChipInput,
   setFormLanguage,
   setInput,
-  setNonFreeSoloAutocomplete,
   setSelect,
 } from "./helpers/formHelpers.js";
 import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
@@ -191,7 +191,7 @@ describe("Mandate tests", () => {
     cy.dataCy("save-button").should("be.enabled");
 
     // Fill out optional fields.
-    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
+    setAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Brown and Sons"]);
 
     // Resets all fields and validations.
@@ -232,7 +232,7 @@ describe("Mandate tests", () => {
     hasError("name.de", false);
 
     setSelect("pipelineId", 0, 1);
-    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
+    setAutocomplete("organisations", "Brown and Sons");
     setChipInput("fileTypes", ".xml");
     setChipInput("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
@@ -284,7 +284,7 @@ describe("Mandate tests", () => {
     cy.dataCy("addMandate-button").click();
     setInput("name.en", randomMandateName);
     setSelect("pipelineId", 0, 1);
-    setNonFreeSoloAutocomplete("organisations", "Schumm, Runte and Macejkovic");
+    setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
     setChipInput("fileTypes", ".xml");
     setChipInput("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
@@ -314,7 +314,7 @@ describe("Mandate tests", () => {
     cy.dataCy("save-button").should("be.enabled");
 
     // Make change and check if buttons are now enabled after change.
-    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
+    setAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Schumm, Runte and Macejkovic", "Brown and Sons"]);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("save-button").should("be.enabled");
