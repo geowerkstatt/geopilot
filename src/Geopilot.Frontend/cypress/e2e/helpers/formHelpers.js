@@ -243,6 +243,23 @@ export const setChipInput = (fieldName, value, confirmKey = "{enter}", parent) =
 };
 
 /**
+ * Pastes text into a chip input form element. Sets the value through the native setter and fires a single input
+ * event, the way a real paste does: no key events, and react-hook-form's value tracking has to notice the change.
+ * @param {string} fieldName The name of the chip input field.
+ * @param {string} value The text to paste into the input field.
+ * @param {string} parent (optional) The parent of the form element.
+ */
+export const pasteIntoChipInput = (fieldName, value, parent) => {
+  const selector = createBaseSelector(parent) + `[data-cy="${fieldName}-formChipInput"] input`;
+  cy.get(selector).then($input => {
+    const input = $input[0];
+    const nativeValue = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), "value");
+    nativeValue.set.call(input, value);
+    input.dispatchEvent(new input.ownerDocument.defaultView.Event("input", { bubbles: true }));
+  });
+};
+
+/**
  * Removes a value from a chip input form element.
  * @param {string} fieldName The name of the chip input field.
  * @param {string} value The value to be deleted.

@@ -5,6 +5,7 @@ import {
   evaluateInput,
   evaluateSelect,
   hasError,
+  pasteIntoChipInput,
   removeChipInputValue,
   setAutocomplete,
   setChipInput,
@@ -171,15 +172,14 @@ describe("Mandate tests", () => {
     setChipInput("fileTypes", "xml");
     evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf", ".gml"]);
 
-    // An entry that is not a file extension is rejected and stays in the field, so it can be corrected.
-    setChipInput("fileTypes", "not an extension");
-    hasError("fileTypes", true);
-    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf", ".gml"]);
-    setChipInput("fileTypes", "");
-    hasError("fileTypes", false);
+    // A pasted list is split on its commas, although pasting fires no key event.
+    pasteIntoChipInput("fileTypes", "shp,dxf,");
+    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf", ".gml", ".shp", ".dxf"]);
 
     // A chip can be removed again.
     removeChipInputValue("fileTypes", ".gml");
+    removeChipInputValue("fileTypes", ".shp");
+    removeChipInputValue("fileTypes", ".dxf");
     evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf"]);
 
     setSelect("evaluatePrecursorDelivery", 0, 3);
@@ -189,6 +189,25 @@ describe("Mandate tests", () => {
     setSelect("evaluateComment", 1, 3);
     hasError("evaluateComment", false);
     cy.dataCy("save-button").should("be.enabled");
+
+    // An entry that is not a file extension is rejected and stays in the field, so it can be corrected. Leaving
+    // the field must not drop it silently, so the message stays and the mandate cannot be saved meanwhile.
+    setChipInput("fileTypes", "not an extension");
+    hasError("fileTypes", true);
+    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf"]);
+    cy.dataCy("save-button").should("be.disabled");
+    setInput("name.en", randomMandateName);
+    hasError("fileTypes", true);
+    cy.dataCy("fileTypes-formChipInput").find("input").should("have.value", "not an extension");
+    cy.dataCy("save-button").should("be.disabled");
+    setChipInput("fileTypes", "");
+    hasError("fileTypes", false);
+    cy.dataCy("save-button").should("be.enabled");
+
+    // Text that is a file extension is taken in when the field is left, instead of being dropped.
+    setChipInput("fileTypes", "gml", "");
+    setInput("name.en", randomMandateName);
+    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf", ".gml"]);
 
     // Fill out optional fields.
     setAutocomplete("organisations", "Brown and Sons");
