@@ -7,6 +7,7 @@ import { Organisation, PipelineSummary } from "../../../api/generated";
 import {
   FormAutocomplete,
   FormCheckbox,
+  FormChipInput,
   FormContainer,
   FormContainerHalfWidth,
 } from "../../../components/form/form.ts";
@@ -17,6 +18,19 @@ interface MandateConfigurationFieldsProps {
   organisations?: Organisation[];
   pipelines?: PipelineSummary[];
 }
+
+const fileTypePattern = /^\.(\*|[a-z0-9]+)$/;
+
+/**
+ * Accepts "xtf" as readily as ".XTF": the period is optional and the value is stored in lower case, which is what
+ * the mandate lookup compares against anyway. A bare "*" turns into the ".*" wildcard that accepts every format.
+ */
+const parseFileType = (input: string): string | undefined => {
+  const trimmed = input.trim().toLowerCase();
+  const withPeriod = trimmed.startsWith(".") ? trimmed : `.${trimmed}`;
+
+  return fileTypePattern.test(withPeriod) ? withPeriod : undefined;
+};
 
 const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ mandate, organisations, pipelines }) => {
   const { t } = useTranslation();
@@ -29,15 +43,14 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
           <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId ?? undefined} />
         </FormContainerHalfWidth>
         <FormContainerHalfWidth>
-          <FormAutocomplete<string>
-            freeSolo
-            validator={v => /^\.(\*|[a-zA-Z0-9]+)$/i.test(v)}
-            errorMessage="invalidFileExtension"
+          <FormChipInput
             fieldName={"fileTypes"}
             label={"fileTypes"}
+            placeholder={"fileTypesPlaceholder"}
             required={true}
-            values={[]}
-            selected={mandate?.fileTypes}
+            values={mandate?.fileTypes}
+            parse={parseFileType}
+            errorMessage="invalidFileExtension"
           />
         </FormContainerHalfWidth>
       </FormContainer>

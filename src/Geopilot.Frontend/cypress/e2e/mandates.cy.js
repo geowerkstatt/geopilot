@@ -1,11 +1,13 @@
 import { getGridRowThatContains, isSelectedNavItem, loginAsAdmin, openTool } from "./helpers/appHelpers.js";
 import {
   evaluateAutocomplete,
+  evaluateChipInput,
   evaluateInput,
   evaluateSelect,
   hasError,
+  removeChipInputValue,
+  setChipInput,
   setFormLanguage,
-  setFreeSoloAutocomplete,
   setInput,
   setNonFreeSoloAutocomplete,
   setSelect,
@@ -78,7 +80,7 @@ describe("Mandate tests", () => {
     });
     setInput("name.en", randomMandateName);
     setSelect("pipelineId", 0, 1);
-    setFreeSoloAutocomplete("fileTypes", ".xml");
+    setChipInput("fileTypes", ".xml");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -161,9 +163,25 @@ describe("Mandate tests", () => {
     // Fill out all required fields while checking if errors disappear.
     setSelect("pipelineId", 0, 1);
     hasError("pipelineId", false);
-    setFreeSoloAutocomplete("fileTypes", ".xml");
-    setFreeSoloAutocomplete("fileTypes", ".xtf");
-    evaluateAutocomplete("fileTypes", [".xml", ".xtf"]);
+    setChipInput("fileTypes", ".xml");
+    setChipInput("fileTypes", ".xtf");
+    setChipInput("fileTypes", ".itf", ",");
+    // The period is optional and is added, the casing is normalized, and an entry already present is not repeated.
+    setChipInput("fileTypes", "GML");
+    setChipInput("fileTypes", "xml");
+    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf", ".gml"]);
+
+    // An entry that is not a file extension is rejected and stays in the field, so it can be corrected.
+    setChipInput("fileTypes", "not an extension");
+    hasError("fileTypes", true);
+    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf", ".gml"]);
+    setChipInput("fileTypes", "");
+    hasError("fileTypes", false);
+
+    // A chip can be removed again.
+    removeChipInputValue("fileTypes", ".gml");
+    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf"]);
+
     setSelect("evaluatePrecursorDelivery", 0, 3);
     hasError("evaluatePrecursorDelivery", false);
     setSelect("evaluatePartial", 1, 2);
@@ -189,7 +207,7 @@ describe("Mandate tests", () => {
     hasError("evaluateComment", false);
     evaluateInput("name.en", "");
     evaluateAutocomplete("organisations", []);
-    evaluateAutocomplete("fileTypes", []);
+    evaluateChipInput("fileTypes", []);
     evaluateInput("extent-bottom-left-longitude", "");
     evaluateInput("extent-bottom-left-latitude", "");
     evaluateInput("extent-upper-right-longitude", "");
@@ -215,8 +233,8 @@ describe("Mandate tests", () => {
 
     setSelect("pipelineId", 0, 1);
     setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
-    setFreeSoloAutocomplete("fileTypes", ".xml");
-    setFreeSoloAutocomplete("fileTypes", ".xtf");
+    setChipInput("fileTypes", ".xml");
+    setChipInput("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -248,7 +266,7 @@ describe("Mandate tests", () => {
     cy.dataCy("save-button").should("be.disabled");
 
     // Check that unsaved changes are not saved when navigating back to the list and choosing "reset" in the prompt.
-    setFreeSoloAutocomplete("fileTypes", ".itf");
+    setChipInput("fileTypes", ".itf");
     cy.wait(500);
     cy.dataCy("reset-button").should("be.enabled");
     cy.dataCy("backToMandates-button").click();
@@ -267,8 +285,8 @@ describe("Mandate tests", () => {
     setInput("name.en", randomMandateName);
     setSelect("pipelineId", 0, 1);
     setNonFreeSoloAutocomplete("organisations", "Schumm, Runte and Macejkovic");
-    setFreeSoloAutocomplete("fileTypes", ".xml");
-    setFreeSoloAutocomplete("fileTypes", ".xtf");
+    setChipInput("fileTypes", ".xml");
+    setChipInput("fileTypes", ".xtf");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
@@ -357,7 +375,7 @@ describe("Mandate tests", () => {
     // Fill in required fields.
     setInput("name.en", randomMandateName);
     setSelect("pipelineId", 0, 1);
-    setFreeSoloAutocomplete("fileTypes", ".xml");
+    setChipInput("fileTypes", ".xml");
     setInput("extent-bottom-left-longitude", "7.3");
     setInput("extent-bottom-left-latitude", "47.13");
     setInput("extent-upper-right-longitude", "8.052");
