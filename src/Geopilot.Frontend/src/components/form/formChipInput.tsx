@@ -154,13 +154,7 @@ export const FormChipInput: FC<FormChipInputProps> = ({
         helperText={fieldState.error?.message ? t(fieldState.error.message) : undefined}
         value={input}
         onChange={event => handleInput(event.target.value)}
-        onBlur={() => {
-          // Confirm on the way out as well, so leaving the field does not silently discard a typed value.
-          if (input.trim()) {
-            confirmInput();
-          }
-          field.onBlur();
-        }}
+        onBlur={field.onBlur}
         onKeyDown={handleKeyDown}
         data-cy={`${fieldName}-formChipInput`}
       />

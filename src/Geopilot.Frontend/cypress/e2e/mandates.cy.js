@@ -190,8 +190,8 @@ describe("Mandate tests", () => {
     hasError("evaluateComment", false);
     cy.dataCy("save-button").should("be.enabled");
 
-    // An entry that is not a file extension is rejected and stays in the field, so it can be corrected. Leaving
-    // the field must not drop it silently, so the message stays and the mandate cannot be saved meanwhile.
+    // An entry that is not a file extension is refused and stays in the field, so it can be corrected. Its
+    // message has to survive leaving the field, and the mandate must not be saveable meanwhile.
     setChipInput("fileTypes", "not an extension");
     hasError("fileTypes", true);
     evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf"]);
@@ -203,11 +203,6 @@ describe("Mandate tests", () => {
     setChipInput("fileTypes", "");
     hasError("fileTypes", false);
     cy.dataCy("save-button").should("be.enabled");
-
-    // Text that is a file extension is taken in when the field is left, instead of being dropped.
-    setChipInput("fileTypes", "gml", "");
-    setInput("name.en", randomMandateName);
-    evaluateChipInput("fileTypes", [".xml", ".xtf", ".itf", ".gml"]);
 
     // Fill out optional fields.
     setAutocomplete("organisations", "Brown and Sons");
