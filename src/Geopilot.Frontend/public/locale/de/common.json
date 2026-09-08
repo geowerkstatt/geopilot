@@ -81,7 +81,7 @@
   "imprint": "Impressum",
   "inactive": "Inaktiv",
   "invalidContentType": "Ungültiger Antworttyp",
-  "invalidFileExtension": "Nur Buchstaben und Zahlen, z. B. xtf oder .xtf. Für alle Formate: *",
+  "invalidFileExtension": "Nur Buchstaben und Zahlen, z. B. xtf, .xtf oder * für alle Formate",
   "isAdmin": "Ist Admin",
   "isPartialDelivery": "Ist Teillieferung",
   "latitude": "Breite",
