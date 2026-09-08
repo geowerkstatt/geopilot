@@ -81,7 +81,7 @@
   "imprint": "Imprint",
   "inactive": "Inactive",
   "invalidContentType": "Invalid response type",
-  "invalidFileExtension": "Letters and digits only, e.g. xtf or .xtf. For all formats: *",
+  "invalidFileExtension": "Only letters and digits, e.g. xtf, .xtf or * for all formats",
   "isAdmin": "Is Admin",
   "isPartialDelivery": "Is partial delivery",
   "latitude": "Latitude",

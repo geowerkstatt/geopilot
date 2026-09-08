@@ -81,7 +81,7 @@
   "imprint": "Impressum",
   "inactive": "Inattivo",
   "invalidContentType": "Tipo di risposta non valido",
-  "invalidFileExtension": "Solo lettere e numeri, es. xtf o .xtf. Per tutti i formati: *",
+  "invalidFileExtension": "Solo lettere e numeri, es. xtf, .xtf o * per tutti i formati",
   "isAdmin": "È amministratore",
   "isPartialDelivery": "È una consegna parziale",
   "latitude": "Latitudine",
