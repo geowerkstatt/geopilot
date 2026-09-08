@@ -5,7 +5,7 @@ import {
   getFormField,
   isCheckboxDisabled,
   isDisabled,
-  setNonFreeSoloAutocomplete,
+  setAutocomplete,
   toggleCheckbox,
 } from "./helpers/formHelpers.js";
 import { checkPromptActions, handlePrompt, isPromptVisible } from "./helpers/promptHelpers.js";
@@ -55,7 +55,7 @@ describe("Users tests", () => {
       expect(location.pathname).to.match(/\/admin\/users\/(?!0\b)\d+/);
     });
 
-    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
+    setAutocomplete("organisations", "Brown and Sons");
     evaluateAutocomplete("organisations", ["Brown and Sons"]);
     cy.wait(500);
     cy.dataCy("reset-button").should("be.enabled");
@@ -69,7 +69,7 @@ describe("Users tests", () => {
     cy.location().should(location => {
       expect(location.pathname).to.match(/\/admin\/users\/(?!0\b)\d+/);
     });
-    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
+    setAutocomplete("organisations", "Brown and Sons");
     toggleCheckbox("isAdmin");
     cy.dataCy("save-button").click();
     // After saving we are redirected to the list, where the saved changes are visible.
@@ -108,7 +108,7 @@ describe("Users tests", () => {
     evaluateCheckbox("isAdmin", true);
 
     // Change the only editable field (organisations) so the form becomes dirty and can be saved.
-    setNonFreeSoloAutocomplete("organisations", "Brown and Sons");
+    setAutocomplete("organisations", "Brown and Sons");
     cy.dataCy("save-button").should("be.enabled");
     cy.dataCy("save-button").click();
 

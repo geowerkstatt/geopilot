@@ -69,3 +69,16 @@ jobs:
       - name: Test
         run: dotnet test Geopilot.slnx -c Release --no-build --verbosity normal
 
+      - name: Start API to generate OpenAPI types
+        run: docker compose up -d --wait --wait-timeout 120 geopilot
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify generated OpenAPI types are up to date
+        working-directory: ./src/Geopilot.Frontend
+        run: |
+          npm run openapi
+          [[ -z $(git status --porcelain src/api/generated) ]] \
+            || (echo "Generated OpenAPI types are out of date. Run 'npm run openapi' and commit the result." && exit 1)
+

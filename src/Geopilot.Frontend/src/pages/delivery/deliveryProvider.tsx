@@ -1,14 +1,18 @@
 import { FC, PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ApiError,
+  DeliveryStepState,
   LocalizedText,
+  NormalizedProcessingJobResponse,
+} from "../../api/apiInterfaces.ts";
+import {
+  DeliveryRequest,
   MandateSummary,
   ProcessingJobResponse,
-  RawProcessingJobResponse,
   StartJobRequest,
   StepState,
-  UploadSettings,
-} from "../../api/apiInterfaces.ts";
+  UploadSettingsResponse,
+} from "../../api/generated";
 import { useGeopilotAuth } from "../../auth";
 import useFetch from "../../hooks/useFetch.ts";
 import { useLocalized } from "../../hooks/useLocalized.ts";
@@ -78,8 +82,8 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const [selectedMandate, setSelectedMandate] = useState<MandateSummary>();
   const [uploadId, setUploadId] = useState<string>();
   const [jobId, setJobId] = useState<string>();
-  const [processingResponse, setProcessingResponse] = useState<ProcessingJobResponse>();
-  const [uploadSettings, setUploadSettings] = useState<UploadSettings>();
+  const [processingResponse, setProcessingResponse] = useState<NormalizedProcessingJobResponse>();
+  const [uploadSettings, setUploadSettings] = useState<UploadSettingsResponse>();
   const [abortControllers, setAbortControllers] = useState<AbortController[]>([]);
   const { fetchApi } = useFetch();
   const { uploadFiles } = useUpload();
@@ -120,7 +124,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   }, [user, selectedMandate]);
 
   useEffect(() => {
-    fetchApi<UploadSettings>("/api/v2/upload").then(setUploadSettings);
+    fetchApi<UploadSettingsResponse>("/api/v2/upload").then(setUploadSettings);
   }, [fetchApi]);
 
   const isActiveStep = (step: DeliveryStepEnum) => {
@@ -129,7 +133,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   };
 
   const setStepStatus = useCallback(
-    (key: DeliveryStepEnum, state: StepState | undefined, messages?: (string | LocalizedText)[]) => {
+    (key: DeliveryStepEnum, state: DeliveryStepState | undefined, messages?: (string | LocalizedText)[]) => {
       setSteps(prevSteps => {
         const newSteps = new Map(prevSteps);
         const step = newSteps.get(key);
@@ -185,7 +189,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     (index: number) => {
       if (index < 0 || index >= steps.size) return false;
       if (index <= lastCompletedStep + 1) return true;
-      return Array.from(steps.values())[index]?.state === StepState.Enabled;
+      return Array.from(steps.values())[index]?.state === DeliveryStepState.Enabled;
     },
     [lastCompletedStep, steps],
   );
@@ -204,7 +208,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const handleApiError = useCallback(
     (error: ApiError, key: DeliveryStepEnum) => {
       if (error && error.message && !error.message.includes("AbortError")) {
-        setStepStatus(key, StepState.Error, [
+        setStepStatus(key, DeliveryStepState.Error, [
           deliveryStepErrors[key].find(stepError => stepError.status === error.status)?.errorKey || error.message,
         ]);
       }
@@ -265,7 +269,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   };
 
   const pollProcessingStatusUntilFinished = (jobId: string, abortController: AbortController) => {
-    fetchApi<RawProcessingJobResponse>(`/api/v2/processing/${jobId}`, {
+    fetchApi<ProcessingJobResponse>(`/api/v2/processing/${jobId}`, {
       method: "GET",
       signal: abortController.signal,
     })
@@ -281,20 +285,20 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
           if (isProcessingDeliverable(job)) {
             if (job.state === StepState.Warning) {
               const warningMessages = getConditionMessages(job.steps, StepState.Warning);
-              setStepStatus(DeliveryStepEnum.Processing, StepState.Warning, warningMessages);
+              setStepStatus(DeliveryStepEnum.Processing, DeliveryStepState.Warning, warningMessages);
             } else {
-              setStepStatus(DeliveryStepEnum.Processing, StepState.Success);
+              setStepStatus(DeliveryStepEnum.Processing, DeliveryStepState.Success);
             }
-            setStepStatus(DeliveryStepEnum.Delivery, StepState.Enabled);
+            setStepStatus(DeliveryStepEnum.Delivery, DeliveryStepState.Enabled);
           } else if (job.state === StepState.DeliveryRestriction) {
             const restrictionMessages = getConditionMessages(job.steps, StepState.DeliveryRestriction);
-            setStepStatus(DeliveryStepEnum.Processing, StepState.DeliveryRestriction, restrictionMessages);
-            setStepStatus(DeliveryStepEnum.Delivery, StepState.Skipped, ["deliveryBlocked"]);
+            setStepStatus(DeliveryStepEnum.Processing, DeliveryStepState.DeliveryRestriction, restrictionMessages);
+            setStepStatus(DeliveryStepEnum.Delivery, DeliveryStepState.Skipped, ["deliveryBlocked"]);
           } else {
             const errorMessages = getConditionMessages(job.steps, StepState.Error);
             setStepStatus(
               DeliveryStepEnum.Processing,
-              StepState.Error,
+              DeliveryStepState.Error,
               errorMessages.length > 0 ? errorMessages : [response.state],
             );
           }
@@ -329,7 +333,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
       uploadId,
     };
 
-    fetchApi<RawProcessingJobResponse>("/api/v2/processing", {
+    fetchApi<ProcessingJobResponse>("/api/v2/processing", {
       method: "POST",
       body: JSON.stringify(startJobRequest),
       signal: abortController.signal,
@@ -355,15 +359,12 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     }
     const abortController = new AbortController();
     setAbortControllers(prevControllers => [...(prevControllers || []), abortController]);
-    fetchApi<ProcessingJobResponse>("/api/v1/delivery", {
+    fetchApi("/api/v1/delivery", {
       method: "POST",
       body: JSON.stringify({
-        JobId: jobId,
-        MandateId: data.mandate,
-        PartialDelivery: data.isPartial,
-        PrecursorDeliveryId: data.precursor,
-        Comment: data.comment,
-      }),
+        ...data,
+        jobId: jobId!,
+      } satisfies DeliveryRequest),
       signal: abortController.signal,
     })
       .then(() => {

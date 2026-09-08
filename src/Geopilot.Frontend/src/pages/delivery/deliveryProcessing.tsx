@@ -4,7 +4,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { Accordion, AccordionDetails, AccordionSummary, Alert, Stack, Typography } from "@mui/material";
-import { StepResult, StepState } from "../../api/apiInterfaces.ts";
+import { StepResultResponse, StepState } from "../../api/generated";
 import { Button } from "../../components/buttons.tsx";
 import { StepIcon } from "../../components/stepIcon.tsx";
 import { VisualizationLoader } from "../../components/visualizations/visualizationLoader.tsx";
@@ -13,15 +13,15 @@ import { DeliveryContent } from "./deliveryContent.tsx";
 import { DeliveryContext } from "./deliveryContext.tsx";
 import { isProcessingDeliverable } from "./deliveryUtils.tsx";
 
-const stepHasContent = (step: StepResult) =>
+const stepHasContent = (step: StepResultResponse) =>
   Boolean(step.conditionMessage) ||
   Boolean(step.statusMessage) ||
   step.downloads.length > 0 ||
   (step.visualizations?.length ?? 0) > 0;
 
-const stepIsExpandable = (step: StepResult) => step && step.state !== StepState.Pending && stepHasContent(step);
+const stepIsExpandable = (step: StepResultResponse) => step && step.state !== StepState.Pending && stepHasContent(step);
 
-const TERMINAL_STATES: ReadonlySet<StepState> = new Set([
+const TERMINAL_STATES: ReadonlySet<StepState> = new Set<StepState>([
   StepState.Success,
   StepState.Error,
   StepState.Cancelled,
@@ -47,7 +47,7 @@ export const DeliveryProcessing = () => {
 
   const steps = useMemo(() => processingResponse?.steps ?? [], [processingResponse?.steps]);
   const stepRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [scrollToStep, setScrollToStep] = useState<StepResult | null>(null);
+  const [scrollToStep, setScrollToStep] = useState<StepResultResponse | null>(null);
 
   // Auto-expand each step once it has reached a terminal state and has displayable
   // content. State and content can arrive in separate polls, so we re-evaluate on
