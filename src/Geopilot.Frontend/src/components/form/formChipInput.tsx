@@ -75,14 +75,21 @@ export const FormChipInput: FC<FormChipInputProps> = ({
   };
 
   /**
-   * Appends the candidates the field does not hold yet. Compares case insensitively, since a stored value keeps
-   * the casing it was saved with.
+   * Appends the candidates the field does not hold yet, comparing case insensitively: a stored value keeps the
+   * casing it was saved with, and what `parse` returns is not assumed to be normalized.
    */
   const addEntries = (candidates: string[]) => {
     const known = entries.map(entry => entry.toLowerCase());
-    const added = candidates.filter(
-      (candidate, index) => candidates.indexOf(candidate) === index && !known.includes(candidate),
-    );
+    const added: string[] = [];
+
+    for (const candidate of candidates) {
+      const key = candidate.toLowerCase();
+
+      if (known.includes(key)) continue;
+
+      known.push(key);
+      added.push(candidate);
+    }
 
     if (added.length > 0) {
       field.onChange([...entries, ...added]);
