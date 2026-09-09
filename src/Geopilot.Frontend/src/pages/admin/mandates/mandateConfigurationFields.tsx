@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useEffect, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { FormHelperText } from "@mui/material";
@@ -36,6 +36,22 @@ const parseFileType = (input: string): string | undefined => {
 const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ mandate, organisations, pipelines }) => {
   const { t } = useTranslation();
   const isPublic = useWatch({ name: "isPublic", defaultValue: mandate?.isPublic ?? false });
+  const [usedKeys, setUsedKeys] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Fetch the list of used mandate keys to validate uniqueness
+    fetch("/api/v1/mandate/keys")
+      .then(response => response.json())
+      .then(data => setUsedKeys(data))
+      .catch(error => console.error("Error fetching used mandate keys:", error));
+  }, []);
+
+  const validateUniqueKey = (value: string) => {
+    if (value && value !== mandate?.key && usedKeys.includes(value)) {
+      return t("mandateKeyNotUnique");
+    }
+    return true;
+  };
 
   return (
     <>
@@ -45,6 +61,7 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
           fieldName="key"
           value={mandate?.key ?? ""}
           helperText={t("mandateKeyHelperText")}
+          validate={validateUniqueKey}
         />
       </FormContainer>
       <FormContainer>
