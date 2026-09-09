@@ -23,6 +23,12 @@ public interface IMandateService
     Task<List<MandateSummary>> GetMandateSummariesAsync(User? user, Guid uploadId);
 
     /// <summary>
+    /// Gets the unique keys of all mandates.
+    /// </summary>
+    /// <returns>List of mandate keys.</returns>
+    Task<List<string>> GetMandateKeysAsync();
+
+    /// <summary>
     /// Retrieves the mandate with the specified id, if the specified user is allowed to access it.
     /// </summary>
     /// <param name="mandateId">The id of the mandate to retrieve.</param>
