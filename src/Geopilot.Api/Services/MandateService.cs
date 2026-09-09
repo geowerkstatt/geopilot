@@ -40,6 +40,15 @@ public class MandateService : IMandateService
     }
 
     /// <inheritdoc/>
+    public async Task<List<string>> GetMandateKeysAsync()
+    {
+        return await context.Mandates
+            .Where(m => m.Key != null)
+            .Select(m => m.Key!)
+            .ToListAsync();
+    }
+
+    /// <inheritdoc/>
     public async Task<Mandate?> GetMandateForUser(int mandateId, User? user)
     {
         var mandates = FilterMandatesByUser(context.Mandates.AsNoTracking(), user);
