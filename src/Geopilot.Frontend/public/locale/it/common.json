@@ -97,6 +97,8 @@
   "mandate": "Mandato",
   "mandateDescriptionHelperText": "Utilizzato solo se è definito un nome per la stessa lingua",
   "mandateDisconnect": "Volete davvero scollegare il mandato? Questa operazione rimuove tutti i collegamenti alle organizzazioni e non può essere annullata.",
+  "mandateKey": "Chiave univoca",
+  "mandateKeyHelperText": "Utilizzato per l'elaborazione automatizzata",
   "mandateLoadingError": "Si è verificato un errore durante il caricamento del mandato: {{error}}",
   "mandateSaveError": "Si è verificato un errore durante il salvataggio del mandato: {{error}}",
   "mandates": "Mandati",

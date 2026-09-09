@@ -97,6 +97,8 @@
   "mandate": "Mandat",
   "mandateDescriptionHelperText": "Utilisé uniquement si un nom est défini pour la même langue",
   "mandateDisconnect": "Voulez-vous vraiment déconnecter le mandat? Cette opération supprime toutes les connexions avec les organisations. Cette action ne peut pas être annulée.",
+  "mandateKey": "Clé unique",
+  "mandateKeyHelperText": "Utilisé pour le traitement automatisé",
   "mandateLoadingError": "Une erreur s'est produite lors du chargement du mandat: {{error}}",
   "mandateSaveError": "Une erreur s'est produite lors de l'enregistrement du mandat: {{error}}",
   "mandates": "Mandats",
