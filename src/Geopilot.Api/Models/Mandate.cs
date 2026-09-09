@@ -18,6 +18,12 @@ public class Mandate
     public int Id { get; set; }
 
     /// <summary>
+    /// An optional unique key for the mandate, used for automated deliveries.
+    /// </summary>
+    [Column(TypeName = "varchar(128)")]
+    public string? Key { get; set; }
+
+    /// <summary>
     /// The localized display name of the mandate.
     /// </summary>
     public LocalizedText Name { get; set; } = LocalizedText.Empty;

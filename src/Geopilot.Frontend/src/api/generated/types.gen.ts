@@ -269,6 +269,10 @@ export type Mandate = {
    */
   id: number;
   /**
+   * An optional unique key for the mandate, used for automated deliveries.
+   */
+  key?: string | null;
+  /**
    * The localized display name of the mandate.
    */
   name: {
