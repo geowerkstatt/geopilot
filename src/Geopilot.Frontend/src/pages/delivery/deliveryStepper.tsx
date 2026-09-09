@@ -117,7 +117,9 @@ export const DeliveryStepper = () => {
               ? StepState.Success
               : enabled && (isLoading || isProcessing)
                 ? StepState.Running
-                : StepState.Pending);
+                : enabled
+                  ? StepState.Enabled
+                  : StepState.Pending);
           const { backgroundColor, borderColor, messageColor } = getStateColors(stepState, open);
 
           return (
