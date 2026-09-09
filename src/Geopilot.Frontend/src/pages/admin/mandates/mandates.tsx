@@ -58,6 +58,12 @@ const Mandates = () => {
       valueGetter: (name: LocalizedText) => localized(name),
     },
     {
+      field: "key",
+      headerName: t("mandateKey"),
+      flex: 0.5,
+      minWidth: 160,
+    },
+    {
       field: "pipelineId",
       headerName: t("pipeline"),
       flex: 0.5,
