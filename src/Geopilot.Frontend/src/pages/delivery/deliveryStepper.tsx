@@ -119,6 +119,7 @@ export const DeliveryStepper = () => {
                 : DeliveryStepState.Pending);
           const { backgroundColor, borderColor, messageColor } = getStateColors(stepState, open);
 
+          //test
           return (
             <GeopilotBox
               key={key}
