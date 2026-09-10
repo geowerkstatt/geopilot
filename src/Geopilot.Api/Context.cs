@@ -218,5 +218,9 @@ public class Context : DbContext
         });
 
         modelBuilder.Entity<PipelineRunArtifact>(artifact => artifact.Property(a => a.Kind).HasConversion<string>());
+
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.AuthIdentifier)
+            .IsUnique();
     }
 }
