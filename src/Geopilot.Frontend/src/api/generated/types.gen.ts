@@ -269,6 +269,10 @@ export type Mandate = {
    */
   id: number;
   /**
+   * An optional unique key for the mandate, used for automated deliveries.
+   */
+  key?: string | null;
+  /**
    * The localized display name of the mandate.
    */
   name: {
@@ -1028,6 +1032,22 @@ export type GetApiV1MandateSummaryResponses = {
 };
 
 export type GetApiV1MandateSummaryResponse = GetApiV1MandateSummaryResponses[keyof GetApiV1MandateSummaryResponses];
+
+export type GetApiV1MandateKeysData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/Mandate/keys";
+};
+
+export type GetApiV1MandateKeysResponses = {
+  /**
+   * Gets a list of all mandate keys.
+   */
+  200: Array<string>;
+};
+
+export type GetApiV1MandateKeysResponse = GetApiV1MandateKeysResponses[keyof GetApiV1MandateKeysResponses];
 
 export type GetApiV1MandateData = {
   body?: never;

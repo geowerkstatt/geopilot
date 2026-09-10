@@ -306,10 +306,12 @@ describe("Mandate tests", () => {
     cy.intercept({ url: "/api/v1/mandate", method: "POST" }).as("saveNew");
     cy.intercept({ url: "/api/v1/mandate", method: "PUT" }).as("updateMandate");
     cy.intercept({ url: "/api/v1/mandate", method: "GET" }).as("getMandates");
+    cy.intercept({ url: "/api/v1/mandate/keys", method: "GET" }, ["public"]).as("getUsedKeys");
 
     // Create new mandate for testing
     cy.dataCy("addMandate-button").click();
     setInput("name.en", randomMandateName);
+    setInput("key", "current");
     setSelect("pipelineId", 0, 1);
     setAutocomplete("organisations", "Schumm, Runte and Macejkovic");
     setChipInput("fileTypes", ".xml");
@@ -324,6 +326,8 @@ describe("Mandate tests", () => {
     cy.dataCy("backToMandates-button").click();
     handlePrompt("You have unsaved changes. How would you like to proceed?", "save");
     cy.wait("@saveNew");
+
+    cy.intercept({ url: "/api/v1/mandate/keys", method: "GET" }, ["public", "current"]).as("getUsedKeys");
 
     // Test editing the mandate
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").contains(randomMandateName).click();
@@ -370,6 +374,22 @@ describe("Mandate tests", () => {
 
     // Change other fields as well.
     setSelect("evaluatePartial", 0, 2);
+
+    // Set the mandate key to a value that is already in use to test uniqueness validation.
+    setInput("key", "public");
+    hasError("key", true);
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.disabled");
+
+    // Resetting the mandate key to empty should clear the uniqueness error.
+    setInput("key", "");
+    hasError("key", false);
+    cy.dataCy("reset-button").should("be.enabled");
+    cy.dataCy("save-button").should("be.enabled");
+
+    // Setting the mandate key to the previous value should also be allowed.
+    setInput("key", "current");
+    hasError("key", false);
 
     // Save; after saving we are redirected to the list, where the changes are visible.
     cy.dataCy("save-button").click();

@@ -71,6 +71,20 @@ public class MandateController : ControllerBase
     }
 
     /// <summary>
+    /// Gets a list of all mandate keys for automated deliveries that are in use.
+    /// </summary>
+    /// <returns>List of all mandate keys.</returns>
+    [HttpGet("keys")]
+    [Authorize(Policy = GeopilotPolicies.Admin)]
+    [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandate keys.", typeof(IEnumerable<string>), "application/json")]
+    public async Task<IActionResult> GetKeys()
+    {
+        var result = await mandateService.GetMandateKeysAsync();
+        logger.LogInformation("Getting list of mandate keys resulted in <{ResultCount}> unique keys.", result.Count);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Gets a list of all mandates.
     /// </summary>
     /// <returns>List of mandates.</returns>
@@ -139,6 +153,10 @@ public class MandateController : ControllerBase
                 .Where(o => organisationIds.Contains(o.Id))
                 .ToListAsync();
 
+            // Multiple empty strings as key would conflict with the unique index.
+            if (mandate.Key == "")
+                mandate.Key = null;
+
             var entityEntry = await context.AddAsync(mandate).ConfigureAwait(false);
             await context.SaveChangesAsync().ConfigureAwait(false);
 
@@ -170,8 +188,7 @@ public class MandateController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The mandate could not be found.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be updated due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to edit a mandate.")]
-    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), "application/json")]
-
+    [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Edit(Mandate mandate)
     {
         try
@@ -190,6 +207,10 @@ public class MandateController : ControllerBase
 
             if (!IsValidPipeline(mandate.PipelineId))
                 return BadRequest($"Pipeline <{mandate.PipelineId}> does not exist.");
+
+            // Multiple empty strings as key would conflict with the unique index.
+            if (mandate.Key == "")
+                mandate.Key = null;
 
             context.Entry(existingMandate).CurrentValues.SetValues(mandate);
 

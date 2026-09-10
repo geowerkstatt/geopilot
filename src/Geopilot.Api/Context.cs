@@ -166,6 +166,10 @@ public class Context : DbContext
             localizedText => localizedText);
 
         modelBuilder.Entity<Mandate>()
+            .HasIndex(mandate => mandate.Key)
+            .IsUnique();
+
+        modelBuilder.Entity<Mandate>()
             .Property(mandate => mandate.Name)
             .HasColumnType("jsonb")
             .HasDefaultValueSql("jsonb_build_object()")

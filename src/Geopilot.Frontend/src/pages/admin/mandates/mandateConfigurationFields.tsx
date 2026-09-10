@@ -1,7 +1,7 @@
-import { FC } from "react";
+import { FC, useEffect, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Box, FormHelperText } from "@mui/material";
+import { FormHelperText } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import { Organisation, PipelineSummary } from "../../../api/generated";
 import {
@@ -10,6 +10,7 @@ import {
   FormChipInput,
   FormContainer,
   FormContainerHalfWidth,
+  FormInput,
 } from "../../../components/form/form.ts";
 import PipelineFormSelect from "./pipelineFormSelect.tsx";
 
@@ -35,21 +36,39 @@ const parseFileType = (input: string): string | undefined => {
 const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ mandate, organisations, pipelines }) => {
   const { t } = useTranslation();
   const isPublic = useWatch({ name: "isPublic", defaultValue: mandate?.isPublic ?? false });
+  const [usedKeys, setUsedKeys] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Fetch the list of used mandate keys to validate uniqueness
+    fetch("/api/v1/mandate/keys")
+      .then(response => response.json())
+      .then(data => setUsedKeys(data))
+      .catch(error => console.error("Error fetching used mandate keys:", error));
+  }, []);
+
+  const validateUniqueKey = (value: string) => {
+    if (value && value !== mandate?.key && usedKeys.includes(value)) {
+      return t("mandateKeyNotUnique");
+    }
+    return true;
+  };
 
   return (
     <>
-      {/* Every cell is a flex container, because the theme sizes the fields inside it through flex. */}
-      <Box
-        sx={{
-          display: "grid",
-          gap: 2,
-          gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
-          alignItems: "start",
-        }}>
-        <FormContainer sx={{ gridColumn: { md: "1" }, gridRow: { md: "1" } }}>
+      <FormContainer>
+        <FormInput
+          label="mandateKey"
+          fieldName="key"
+          value={mandate?.key ?? ""}
+          helperText={t("mandateKeyHelperText")}
+          validate={validateUniqueKey}
+        />
+      </FormContainer>
+      <FormContainer>
+        <FormContainerHalfWidth>
           <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId ?? undefined} />
-        </FormContainer>
-        <FormContainer sx={{ gridColumn: { md: "2" }, gridRow: { md: "1 / span 2" } }}>
+        </FormContainerHalfWidth>
+        <FormContainerHalfWidth>
           <FormChipInput
             fieldName={"fileTypes"}
             label={"fileTypes"}
@@ -59,12 +78,12 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
             parse={parseFileType}
             errorMessage="invalidFileExtension"
           />
-        </FormContainer>
-        <FormContainer sx={{ alignItems: "center", gridColumn: { md: "1" }, gridRow: { md: "2" } }}>
-          <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
-          {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
-        </FormContainer>
-      </Box>
+        </FormContainerHalfWidth>
+      </FormContainer>
+      <FormContainer sx={{ alignItems: "center", gridColumn: { md: "1" }, gridRow: { md: "2" } }}>
+        <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
+        {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
+      </FormContainer>
       {!isPublic && (
         <FormContainer>
           <FormContainerHalfWidth>

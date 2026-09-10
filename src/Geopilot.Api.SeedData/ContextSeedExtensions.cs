@@ -128,7 +128,8 @@ public static class ContextSeedExtensions
             .RuleFor(o => o.Deliveries, _ => new List<Delivery>())
             .RuleFor(o => o.IsPublic, f => false)
             .RuleFor(o => o.AllowDelivery, f => true)
-            .RuleFor(o => o.Description, f => new LocalizedText(new Dictionary<string, string>() { { "de", f.Commerce.ProductDescription() } }));
+            .RuleFor(o => o.Description, f => new LocalizedText(new Dictionary<string, string>() { { "de", f.Commerce.ProductDescription() } }))
+            .RuleFor(o => o.Key, f => f.Random.Word().OrNull(f, 0.5f));
 
         Mandate SeedMandate(int seed) => mandateFaker.UseSeed(seed).Generate();
         context.Mandates.AddRange(Enumerable.Range(0, 9).Select(SeedMandate));
