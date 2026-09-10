@@ -1,12 +1,13 @@
 import { FC } from "react";
 import { useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { FormHelperText } from "@mui/material";
+import { Box, FormHelperText } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import { Organisation, PipelineSummary } from "../../../api/generated";
 import {
   FormAutocomplete,
   FormCheckbox,
+  FormChipInput,
   FormContainer,
   FormContainerHalfWidth,
 } from "../../../components/form/form.ts";
@@ -18,33 +19,52 @@ interface MandateConfigurationFieldsProps {
   pipelines?: PipelineSummary[];
 }
 
+const fileTypePattern = /^\.(\*|[a-z0-9]+)$/;
+
+/**
+ * Accepts "xtf" as readily as ".XTF": the period is optional and the value is stored in lower case, which is what
+ * the mandate lookup compares against anyway. A bare "*" turns into the ".*" wildcard that accepts every format.
+ */
+const parseFileType = (input: string): string | undefined => {
+  const trimmed = input.trim().toLowerCase();
+  const withPeriod = trimmed.startsWith(".") ? trimmed : `.${trimmed}`;
+
+  return fileTypePattern.test(withPeriod) ? withPeriod : undefined;
+};
+
 const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ mandate, organisations, pipelines }) => {
   const { t } = useTranslation();
   const isPublic = useWatch({ name: "isPublic", defaultValue: mandate?.isPublic ?? false });
 
   return (
     <>
-      <FormContainer>
-        <FormContainerHalfWidth>
+      {/* Every cell is a flex container, because the theme sizes the fields inside it through flex. */}
+      <Box
+        sx={{
+          display: "grid",
+          gap: 2,
+          gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+          alignItems: "start",
+        }}>
+        <FormContainer sx={{ gridColumn: { md: "1" }, gridRow: { md: "1" } }}>
           <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId ?? undefined} />
-        </FormContainerHalfWidth>
-        <FormContainerHalfWidth>
-          <FormAutocomplete<string>
-            freeSolo
-            validator={v => /^\.(\*|[a-zA-Z0-9]+)$/i.test(v)}
-            errorMessage="invalidFileExtension"
+        </FormContainer>
+        <FormContainer sx={{ gridColumn: { md: "2" }, gridRow: { md: "1 / span 2" } }}>
+          <FormChipInput
             fieldName={"fileTypes"}
             label={"fileTypes"}
+            placeholder={"fileTypesPlaceholder"}
             required={true}
-            values={[]}
             selected={mandate?.fileTypes}
+            parse={parseFileType}
+            errorMessage="invalidFileExtension"
           />
-        </FormContainerHalfWidth>
-      </FormContainer>
-      <FormContainer sx={{ alignItems: "center" }}>
-        <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
-        {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
-      </FormContainer>
+        </FormContainer>
+        <FormContainer sx={{ alignItems: "center", gridColumn: { md: "1" }, gridRow: { md: "2" } }}>
+          <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
+          {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
+        </FormContainer>
+      </Box>
       {!isPublic && (
         <FormContainer>
           <FormContainerHalfWidth>

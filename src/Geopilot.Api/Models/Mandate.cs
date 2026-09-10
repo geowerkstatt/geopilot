@@ -97,7 +97,10 @@ public class Mandate
     /// <summary>
     /// Transforms the <see cref="Coordinates"/> list to a <see cref="SpatialExtent"/> polygon.
     /// </summary>
-    /// <returns><c>true</c> if this mandate has 2 coordinates to create the spatial extent; otherwise, <c>false</c>.</returns>
+    /// <returns>
+    /// <c>true</c> if the spatial extent was set; <c>false</c> if this mandate does not have exactly 2 coordinates,
+    /// or if the lower left corner is not strictly below and to the left of the upper right corner.
+    /// </returns>
     public bool SetPolygonFromCoordinates()
     {
         if (Coordinates.Count != 2)
@@ -105,13 +108,21 @@ public class Mandate
             return false;
         }
 
+        var lowerLeft = Coordinates[0];
+        var upperRight = Coordinates[1];
+
+        if (lowerLeft.X >= upperRight.X || lowerLeft.Y >= upperRight.Y)
+        {
+            return false;
+        }
+
         SpatialExtent = Geometry.DefaultFactory.CreatePolygon(new NetTopologySuite.Geometries.Coordinate[]
         {
-            new(Coordinates[0].X, Coordinates[0].Y),
-            new(Coordinates[0].X, Coordinates[1].Y),
-            new(Coordinates[1].X, Coordinates[1].Y),
-            new(Coordinates[1].X, Coordinates[0].Y),
-            new(Coordinates[0].X, Coordinates[0].Y),
+            new(lowerLeft.X, lowerLeft.Y),
+            new(lowerLeft.X, upperRight.Y),
+            new(upperRight.X, upperRight.Y),
+            new(upperRight.X, lowerLeft.Y),
+            new(lowerLeft.X, lowerLeft.Y),
         });
         return true;
     }
@@ -129,13 +140,11 @@ public class Mandate
             case 0:
                 break;
             case 5:
-                double minX = SpatialExtent.Coordinates.Min(coord => coord.X);
-                double minY = SpatialExtent.Coordinates.Min(coord => coord.Y);
-                double maxX = SpatialExtent.Coordinates.Max(coord => coord.X);
-                double maxY = SpatialExtent.Coordinates.Max(coord => coord.Y);
+                var lowerLeft = SpatialExtent.Coordinates[0];
+                var upperRight = SpatialExtent.Coordinates[2];
 
-                Coordinates.Add(new Coordinate { X = minX, Y = minY });
-                Coordinates.Add(new Coordinate { X = maxX, Y = maxY });
+                Coordinates.Add(new Coordinate { X = lowerLeft.X, Y = lowerLeft.Y });
+                Coordinates.Add(new Coordinate { X = upperRight.X, Y = upperRight.Y });
                 break;
             default:
                 throw new InvalidOperationException("Unsupported number of coordinates. Spatial extent must be a rectangle.");
