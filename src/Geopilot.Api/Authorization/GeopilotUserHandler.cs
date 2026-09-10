@@ -86,13 +86,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
                 FullName = userInfo.Name,
             };
 
-            // Elevate first user to admin
-            if (!dbContext.Users.Any())
-            {
-                user.IsAdmin = true;
-            }
-
-            await dbContext.Users.AddAsync(user);
+            dbContext.Users.Add(user);
             logger.LogInformation("New user (with sub <{Sub}>) has been registered in database.", userInfo.Sub);
         }
         else if (user.Email != userInfo.Email || user.FullName != userInfo.Name)

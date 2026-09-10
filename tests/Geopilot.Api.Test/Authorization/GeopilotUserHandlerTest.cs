@@ -94,7 +94,7 @@ public class GeopilotUserHandlerTest
     }
 
     [TestMethod]
-    public async Task UpdateOrCreateUserElevatesFirstUserToAdmin()
+    public async Task FirstUserRemainsNonAdmin()
     {
         // Arrange
         var authIdentifier = Guid.NewGuid().ToString();
@@ -128,7 +128,7 @@ public class GeopilotUserHandlerTest
         Assert.AreEqual(authIdentifier, user.AuthIdentifier);
         Assert.AreEqual("STORMSLAW", user.FullName);
         Assert.AreEqual("MAIN@example.com", user.Email);
-        Assert.IsTrue(user.IsAdmin);
+        Assert.IsFalse(user.IsAdmin);
     }
 
     [TestMethod]
