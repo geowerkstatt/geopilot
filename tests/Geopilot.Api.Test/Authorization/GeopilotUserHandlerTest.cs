@@ -3,6 +3,7 @@ using Geopilot.Api.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 using Moq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -163,10 +164,80 @@ public class GeopilotUserHandlerTest
         Assert.IsNull(user);
     }
 
+    [TestMethod]
+    public async Task UpdateOrCreateUserWithCookieTokenUsesCookie()
+    {
+        var authIdentifier = Guid.NewGuid().ToString();
+        var userInfo = new UserInfoResponse
+        {
+            Sub = authIdentifier,
+            Email = "cookie-user@example.com",
+            Name = "Cookie User",
+        };
+
+        SetupHttpContextWithCookie("cookie-token");
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("cookie-token"))
+            .ReturnsAsync(userInfo);
+
+        var authHandlerContext = new AuthorizationHandlerContext(
+            Enumerable.Empty<IAuthorizationRequirement>(),
+            new ClaimsPrincipal(),
+            null);
+
+        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+
+        Assert.IsNotNull(user);
+        Assert.AreEqual(authIdentifier, user.AuthIdentifier);
+        userInfoServiceMock.Verify(x => x.GetUserInfoAsync("cookie-token"), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task UpdateOrCreateUserCookieWinsOverHeader()
+    {
+        var authIdentifier = Guid.NewGuid().ToString();
+        var userInfo = new UserInfoResponse
+        {
+            Sub = authIdentifier,
+            Email = "cookie-user@example.com",
+            Name = "Cookie User",
+        };
+
+        SetupHttpContextWithCookieAndHeader("cookie-token", "header-token");
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("cookie-token"))
+            .ReturnsAsync(userInfo);
+
+        var authHandlerContext = new AuthorizationHandlerContext(
+            Enumerable.Empty<IAuthorizationRequirement>(),
+            new ClaimsPrincipal(),
+            null);
+
+        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+
+        Assert.IsNotNull(user);
+        Assert.AreEqual(authIdentifier, user.AuthIdentifier);
+        userInfoServiceMock.Verify(x => x.GetUserInfoAsync("cookie-token"), Times.Once);
+        userInfoServiceMock.Verify(x => x.GetUserInfoAsync("header-token"), Times.Never);
+    }
+
     private void SetupHttpContextWithToken(string token)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers["Authorization"] = $"Bearer {token}";
+        httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+    }
+
+    private void SetupHttpContextWithCookie(string token)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Append(HeaderNames.Cookie, $"{AuthDefaults.AuthCookieName}={token}");
+        httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+    }
+
+    private void SetupHttpContextWithCookieAndHeader(string cookieToken, string headerToken)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Append(HeaderNames.Cookie, $"{AuthDefaults.AuthCookieName}={cookieToken}");
+        httpContext.Request.Headers.Append(HeaderNames.Authorization, $"Bearer {headerToken}");
         httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
     }
 

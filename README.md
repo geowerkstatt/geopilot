@@ -213,10 +213,25 @@ _([Entwicklungsumgebung](./config/realms/keycloak-geopilot.json): `https://local
 ### Swagger UI
 
 Abhängig vom Identity Provider wird die Audience (`aud` Claim) im Access-Token automatisch gesetzt, sofern ein passender Scope verwendet wird.
-Der benötigte Scope kann in den Appsettings unter `ApiServerScope` gesetzt werden, um diesen im Swagger UI zur Auswahl anzuzeigen.
+Swagger UI verwendet dieselbe Client-Registrierung (`PublicClientId`) wie das Frontend.
+Die benötigten Scopes können in den Appsettings unter `SwaggerAdditionalScopes` gesetzt werden, um diese im Swagger UI zur Auswahl anzuzeigen.
 Ohne diesen Scope wird das Access-Token möglicherweise ohne oder für eine andere Audience ausgestellt.
 
 In der [Entwicklungsumgebung](./config/realms/keycloak-geopilot.json) wird die Audience stattdessen mit einem Keycloak Protocol Mapper festgelegt.
+
+### Opaque Access Tokens (RFC 7662)
+
+`Auth:AccessTokenFormat` steuert die Token-Validierung (`Jwt` oder `Opaque`, Standard: `Jwt`).
+
+Im Modus `Opaque` validiert die API Tokens über Introspection (RFC 7662) und benötigt:
+
+- `Auth:IntrospectionUrl`: URL des `introspection_endpoint`.
+- `Auth:IntrospectionAuthMethod`: `ClientSecretBasic` wenn Basic Auth oder `ClientSecretPost` wenn via Form-Data authentifiziert.
+- `Auth:ConfidentialClientId`: Client-ID des Confidential Clients.
+- `Auth:ConfidentialClientSecret`: Client-Secret des Confidential Clients.
+- `Auth:UserInfoUrl`: URL des `userinfo_endpoint` (liefert `sub`, `email`, `name`).
+
+Die API prüft `active: true`. RFC 7662 definiert `active` als einziges Pflichtfeld der Introspection-Antwort, alle weiteren Felder sind optional. Enthält die Antwort das Feld `aud`, vergleicht die API den Wert mit `Auth:Audience` und lehnt das Token bei einer Abweichung ab. Fehlt `aud`, akzeptiert die API jedes aktive Token des Identity Providers, auch Tokens, die für andere Clients ausgestellt wurden. In diesem Fall muss der Identity Provider die Introspection auf Tokens beschränken, die für den konfigurierten Confidential Client ausgestellt wurden.
 
 ### Appsettings
 
@@ -225,16 +240,24 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
 ```json5
 "Auth": {
     // General auth options
+    "AccessTokenFormat": "Jwt", // Token format: "Jwt" (default) or "Opaque"
     "Authority": "http://localhost:4011/realms/geopilot", // Token issuer (required)
-    "ClientAudience": "geopilot-client", // ID_Token audience (required)
-    "ApiAudience": "geopilot-api", // Access_Token audience (required)
-    "FullScope": "openid profile email geopilot.api" // Full scope a client application needs to send as to configure access and id tokens correctly
+    "PublicClientId": "geopilot-client", // Frontend client id (required)
+    "Audience": "geopilot-api", // Access_Token audience (required)
+    "Scope": "openid profile email geopilot.api", // Full scope a client application needs to send as to configure access and id tokens correctly
+
+    // Opaque token options (required when AccessTokenFormat is Opaque)
+    "IntrospectionUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token/introspect",
+    "IntrospectionAuthMethod": "ClientSecretBasic", // ClientSecretBasic or ClientSecretPost
+    "ConfidentialClientId": "geopilot-api",
+    "ConfidentialClientSecret": "<secret from environment or vault>",
+    "UserInfoUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/userinfo",
 
     // Swagger UI auth options
     "ApiOrigin": "https://localhost:7443", // Swagger UI origin (required)
     "AuthorizationUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/auth", // OAuth2 login URL
     "TokenUrl": "http://localhost:4011/realms/geopilot/protocol/openid-connect/token", // OAuth2 token URL
-    "ApiServerScope": "<custom app scope>"
+    "SwaggerAdditionalScopes": "<custom app scope>"
 }
 ```
 

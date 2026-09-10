@@ -8,9 +8,18 @@ namespace Geopilot.Api.Authorization;
 /// </summary>
 public class GeopilotUserInfoService : IGeopilotUserInfoService
 {
+    /// <summary>
+    /// The name of the configured HTTP client for user info requests.
+    /// </summary>
+    public const string HttpClientName = "GeopilotUserInfo";
+
     private readonly HttpClient httpClient;
     private readonly IConfiguration configuration;
     private readonly ILogger<GeopilotUserInfoService> logger;
+
+    // Invariant: single-slot cache requires Scoped service lifetime.
+    private string? cachedToken;
+    private UserInfoResponse? cachedUserInfo;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -20,10 +29,21 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
     /// <summary>
     /// Initializes a new instance of the <see cref="GeopilotUserInfoService"/> class.
     /// </summary>
+    /// <param name="httpClientFactory">The HTTP client factory.</param>
+    /// <param name="configuration">The application configuration.</param>
+    /// <param name="logger">The logger for user info service related logging.</param>
+    public GeopilotUserInfoService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<GeopilotUserInfoService> logger)
+        : this((httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory))).CreateClient(HttpClientName), configuration, logger)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GeopilotUserInfoService"/> class.
+    /// </summary>
     /// <param name="httpClient">The HTTP client for making requests to the identity provider.</param>
     /// <param name="configuration">The application configuration.</param>
     /// <param name="logger">The logger for user info service related logging.</param>
-    public GeopilotUserInfoService(HttpClient httpClient, IConfiguration configuration, ILogger<GeopilotUserInfoService> logger)
+    internal GeopilotUserInfoService(HttpClient httpClient, IConfiguration configuration, ILogger<GeopilotUserInfoService> logger)
     {
         this.httpClient = httpClient;
         this.configuration = configuration;
@@ -33,6 +53,11 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
     /// <inheritdoc/>
     public async Task<UserInfoResponse?> GetUserInfoAsync(string accessToken)
     {
+        if (accessToken == cachedToken && cachedUserInfo is not null)
+        {
+            return cachedUserInfo;
+        }
+
         try
         {
             var userInfoEndpoint = configuration["Auth:UserInfoUrl"];
@@ -56,6 +81,8 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
                 return null;
             }
 
+            cachedToken = accessToken;
+            cachedUserInfo = userInfo;
             return userInfo;
         }
         catch (Exception ex)

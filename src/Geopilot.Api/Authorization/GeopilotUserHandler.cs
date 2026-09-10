@@ -1,6 +1,7 @@
 ﻿using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Net.Http.Headers;
 using System.Globalization;
 
 namespace Geopilot.Api.Authorization;
@@ -109,14 +110,20 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
     private string? ExtractAccessToken()
     {
         var httpContext = httpContextAccessor.HttpContext;
-        if (httpContext == null) return null;
+        if (httpContext is null) return null;
 
-        var authHeader = httpContext.Request.Headers["Authorization"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.Ordinal))
+        var cookieToken = httpContext.Request.Cookies[AuthDefaults.AuthCookieName];
+        if (!string.IsNullOrEmpty(cookieToken))
         {
-            return authHeader.Substring("Bearer ".Length);
+            return cookieToken;
         }
 
-        return httpContext.Request.Cookies["geopilot.auth"];
+        var authHeader = httpContext.Request.Headers[HeaderNames.Authorization].FirstOrDefault();
+        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            return authHeader["Bearer ".Length..].Trim();
+        }
+
+        return null;
     }
 }

@@ -331,4 +331,91 @@ public class GeopilotUserInfoServiceTest
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithSameTokenHitsHttpEndpointOnce()
+    {
+        // Arrange
+        var accessToken = "same-access-token";
+        var userInfoResponse = new UserInfoResponse
+        {
+            Sub = "user123",
+            Email = "test@example.com",
+            Name = "Test User",
+        };
+
+        var jsonResponse = JsonSerializer.Serialize(userInfoResponse);
+        httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(jsonResponse, Encoding.UTF8, "application/json"),
+            });
+
+        // Act
+        var firstResult = await userInfoService.GetUserInfoAsync(accessToken);
+        var secondResult = await userInfoService.GetUserInfoAsync(accessToken);
+
+        // Assert
+        Assert.IsNotNull(firstResult);
+        Assert.IsNotNull(secondResult);
+        Assert.AreSame(firstResult, secondResult);
+        httpMessageHandlerMock.Protected().Verify(
+            "SendAsync",
+            Times.Once(),
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
+    }
+
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithDifferentTokensHitsHttpEndpointTwice()
+    {
+        // Arrange
+        var token1 = "token-1";
+        var token2 = "token-2";
+        var userInfoResponse1 = new UserInfoResponse
+        {
+            Sub = "user1",
+            Email = "user1@example.com",
+            Name = "User One",
+        };
+        var userInfoResponse2 = new UserInfoResponse
+        {
+            Sub = "user2",
+            Email = "user2@example.com",
+            Name = "User Two",
+        };
+
+        httpMessageHandlerMock.Protected()
+            .SetupSequence<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(userInfoResponse1), Encoding.UTF8, "application/json"),
+            })
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(userInfoResponse2), Encoding.UTF8, "application/json"),
+            });
+
+        // Act
+        var firstResult = await userInfoService.GetUserInfoAsync(token1);
+        var secondResult = await userInfoService.GetUserInfoAsync(token2);
+
+        // Assert
+        Assert.IsNotNull(firstResult);
+        Assert.IsNotNull(secondResult);
+        Assert.AreEqual("user1", firstResult.Sub);
+        Assert.AreEqual("user2", secondResult.Sub);
+        httpMessageHandlerMock.Protected().Verify(
+            "SendAsync",
+            Times.Exactly(2),
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
+    }
 }

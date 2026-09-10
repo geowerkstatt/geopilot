@@ -424,7 +424,7 @@ describe("File type filter per platform", () => {
       statusCode: 200,
       body: { allowedFileExtensions: [".xtf"] },
     }).as("fileExtensions");
-    cy.intercept("/api/v1/user/auth", { statusCode: 200, body: { authority: "", clientAudience: "" } });
+    cy.intercept("/api/v1/user/auth", { statusCode: 200, body: { authority: "", publicClientId: "" } });
     cy.visit("/", {
       onBeforeLoad(win) {
         Object.entries(navigatorProps).forEach(([key, value]) =>
