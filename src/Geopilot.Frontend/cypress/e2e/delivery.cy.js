@@ -83,6 +83,7 @@ describe("Delivery tests", () => {
 
   // Runs the real pipeline: the valid XTF passes the validation and gets delivered
   it("can submit delivery", () => {
+    let created;
     cy.intercept("/api/v1/delivery/summary?mandateId=*").as("precursors");
 
     loginAsUploader();
@@ -123,14 +124,28 @@ describe("Delivery tests", () => {
     cy.intercept("POST", "/api/v1/delivery").as("createDelivery");
     cy.dataCy("createDelivery-button").should("be.enabled").click();
 
-    // The declared metadata reaches the API, not just the form
-    cy.wait("@createDelivery")
-      .its("request.body")
-      .should("deep.include", { partialDelivery: true })
-      .and(body => expect(body.precursorDeliveryId).to.be.a("number"));
+    // The declared metadata reaches the API, not just the form. The request carries no JSON content type,
+    // so its body arrives as text.
+    cy.wait("@createDelivery").then(({ request, response }) => {
+      const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
+      expect(body.partialDelivery).to.equal(true);
+      expect(body.precursorDeliveryId).to.be.a("number");
+
+      created = { id: response.body.id, authorization: request.headers.authorization };
+    });
 
     cy.dataCy("createDelivery-button").should("not.exist");
     stepIsCompleted("delivery");
+
+    // The delivery is real and would otherwise stay in the database, where the delivery overview tests
+    // would find an extra row that their assertions do not expect.
+    cy.then(() =>
+      cy.request({
+        method: "DELETE",
+        url: `/api/v1/delivery/${created.id}`,
+        headers: { authorization: created.authorization },
+      }),
+    );
   });
 
   it("marks the step and blocks delivery when a delivery restriction applies", () => {
