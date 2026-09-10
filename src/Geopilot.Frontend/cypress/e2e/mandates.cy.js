@@ -26,7 +26,7 @@ describe("Mandate tests", () => {
 
   it("displays the mandates in a list with pagination", () => {
     cy.dataCy("mandates-grid").should("exist");
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").should("have.length", 10);
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").should("have.length", 11);
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains("Handmade Soft Cheese");
     cy.dataCy("mandates-grid")
       .find(".MuiTablePagination-actions [aria-label='Go to previous page']")

@@ -30,9 +30,16 @@ export const uploadFile = () => {
   cy.wait("@upload");
 };
 
-export const selectMandate = id => {
+/**
+ * Name of the mandate the seed defines for the end-to-end tests. It accepts the file types these tests upload
+ * and asks for no delivery metadata, so a test does not depend on the randomly generated mandate configuration.
+ */
+export const e2eMandateName = "Cypress E2E";
+
+/** Selects a mandate by the name on its button. */
+export const selectMandate = name => {
   cy.wait(200);
-  cy.dataCy("mandate-selection-group").dataCy(`mandate-${id}`).click();
+  cy.dataCy("mandate-selection-group").contains(name).click();
 };
 
 export const startProcessing = () => {
@@ -174,7 +181,7 @@ export const runMockedProcessingJob = (job, mandates, runningJob) => {
       cy.dataCy("mandate-selection-group").contains(mandate.name.en).should("exist");
     }
   }
-  selectMandate(1);
+  selectMandate(mandates ? mandates[0].name.en : e2eMandateName);
 
   const firstStatus = runningJob ?? job;
   let firstStatusServed = false;

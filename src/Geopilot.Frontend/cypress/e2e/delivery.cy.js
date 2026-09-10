@@ -2,6 +2,7 @@ import { loadWithoutAuth, loginAsNewUser, loginAsUploader } from "./helpers/appH
 import {
   addFile,
   deliverableMandate,
+  e2eMandateName,
   nonDeliverableMandate,
   processingJob,
   processingStep,
@@ -23,7 +24,7 @@ import {
   uploadFile,
   waitForProcessingToFinish,
 } from "./helpers/deliveryHelpers.js";
-import { hasError, setSelect } from "./helpers/formHelpers.js";
+import { hasError, setInput, setSelect, toggleCheckbox } from "./helpers/formHelpers.js";
 
 describe("Delivery tests", () => {
   it("can only upload supported file types", () => {
@@ -63,11 +64,10 @@ describe("Delivery tests", () => {
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     uploadFile();
-    selectMandate(1);
+    selectMandate(e2eMandateName);
     startProcessing();
     waitForProcessingToFinish();
 
-    // The stepper shows the condition message in the language the app runs in
     stepHasError(
       "processing",
       true,
@@ -83,6 +83,7 @@ describe("Delivery tests", () => {
 
   // Runs the real pipeline: the valid XTF passes the validation and gets delivered
   it("can submit delivery", () => {
+    const comment = "Declared by the end-to-end test.";
     cy.intercept("/api/v1/delivery/summary?mandateId=*").as("precursors");
 
     loginAsUploader();
@@ -91,12 +92,11 @@ describe("Delivery tests", () => {
     uploadFile();
 
     stepIsActive("mandate");
-    selectMandate(1);
+    selectMandate(e2eMandateName);
     startProcessing();
     stepIsActive("processing");
     waitForProcessingToFinish();
 
-    // The validation ran, so both log files are offered for download
     resultStepHasIcon("validation", "success");
     cy.dataCy("errorLog.log-button").should("exist");
     cy.dataCy("xtfLog.xtf-button").should("exist");
@@ -106,16 +106,27 @@ describe("Delivery tests", () => {
     cy.dataCy("continue-button").should("be.enabled").click();
     stepIsActive("delivery");
 
-    // Wait for select values to be present on DOM
+    cy.dataCy("delivery-files-empty").should("not.exist");
+
     cy.wait("@precursors");
     cy.wait(200);
 
-    // Declare delivery metadata
+    cy.dataCy("createDelivery-button").should("be.disabled");
+
     setSelect("precursor", 0);
     hasError("precursor", false);
+    toggleCheckbox("partialDelivery");
+    setInput("comment", comment);
 
-    // Complete delivery
+    cy.intercept("POST", "/api/v1/delivery").as("createDelivery");
     cy.dataCy("createDelivery-button").should("be.enabled").click();
+
+    // The declared metadata reaches the API, not just the form
+    cy.wait("@createDelivery")
+      .its("request.body")
+      .should("deep.include", { partialDelivery: true, comment })
+      .and(body => expect(body.precursorDeliveryId).to.be.a("number"));
+
     cy.dataCy("createDelivery-button").should("not.exist");
     stepIsCompleted("delivery");
   });
@@ -350,7 +361,7 @@ describe("Delivery tests", () => {
     uploadFile();
     cy.wait("@getMandates");
 
-    selectMandate(1);
+    selectMandate(e2eMandateName);
     startProcessing();
     stepIsActive("processing");
 
@@ -367,7 +378,10 @@ describe("Delivery tests", () => {
     selectStep("mandate");
     // Select mandate step shows previously selected mandate
     stepIsActive("mandate");
-    cy.dataCy("mandate-1").should("have.class", "Mui-selected").should("have.class", "Mui-disabled");
+    cy.dataCy("mandate-selection-group")
+      .contains(e2eMandateName)
+      .should("have.class", "Mui-selected")
+      .should("have.class", "Mui-disabled");
 
     // Can not navigate to future steps
     selectStep("delivery");
