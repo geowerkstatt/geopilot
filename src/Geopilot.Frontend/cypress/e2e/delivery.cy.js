@@ -21,6 +21,7 @@ import {
   stepperStepMissingMessage,
   stepperStepShowsMessage,
   uploadFile,
+  waitForProcessingToFinish,
 } from "./helpers/deliveryHelpers.js";
 import { hasError, setSelect } from "./helpers/formHelpers.js";
 
@@ -57,16 +58,22 @@ describe("Delivery tests", () => {
     stepIsActive("mandate");
   });
 
-  // Skip test as starting the processing currently results in a 500 when running in the github action
-  it.skip("shows processing error without log files", () => {
+  // Runs the real pipeline: the uploaded file carries no XTF, so the validation fails its pre-condition
+  it("shows processing error without log files", () => {
     loginAsUploader();
     addFile("deliveryFiles/ilimodels_not_conform.xml", true);
     uploadFile();
     selectMandate(1);
     startProcessing();
-    stepIsLoading("processing", true);
-    stepHasError("processing", true, "Failed");
-    cy.dataCy("processing-step-validation").dataCy("stepIcon-error").should("exist");
+    waitForProcessingToFinish();
+
+    // The stepper shows the condition message in the language the app runs in
+    stepHasError(
+      "processing",
+      true,
+      /Exactly one XTF file must be uploaded|Es muss genau eine XTF-Datei hochgeladen werden/,
+    );
+    resultStepHasIcon("validation", "error");
     cy.dataCy("errorLog.log-button").should("not.exist");
     cy.dataCy("xtfLog.xtf-button").should("not.exist");
     stepIsActive("processing");
@@ -74,8 +81,8 @@ describe("Delivery tests", () => {
     cy.dataCy("continue-button").should("be.disabled");
   });
 
-  // Skip test as starting the processing currently results in a 500 when running in the github action
-  it.skip("can submit delivery", () => {
+  // Runs the real pipeline: the valid XTF passes the validation and gets delivered
+  it("can submit delivery", () => {
     cy.intercept("/api/v1/delivery/summary?mandateId=*").as("precursors");
 
     loginAsUploader();
@@ -86,28 +93,30 @@ describe("Delivery tests", () => {
     stepIsActive("mandate");
     selectMandate(1);
     startProcessing();
-
     stepIsActive("processing");
+    waitForProcessingToFinish();
 
-    // XTF log files should be available
+    // The validation ran, so both log files are offered for download
+    resultStepHasIcon("validation", "success");
     cy.dataCy("errorLog.log-button").should("exist");
     cy.dataCy("xtfLog.xtf-button").should("exist");
+    stepperStepHasIcon("processing", "success");
+    stepperStepHasIcon("delivery", "enabled");
 
-    cy.dataCy("continue-button").click();
+    cy.dataCy("continue-button").should("be.enabled").click();
     stepIsActive("delivery");
 
-    //Wait for select values to be present on DOM
+    // Wait for select values to be present on DOM
     cy.wait("@precursors");
     cy.wait(200);
 
     // Declare delivery metadata
     setSelect("precursor", 0);
     hasError("precursor", false);
-    cy.dataCy("createDelivery-button").should("be.enabled");
 
     // Complete delivery
     cy.dataCy("createDelivery-button").should("be.enabled").click();
-    stepIsActive("delivery");
+    cy.dataCy("createDelivery-button").should("not.exist");
     stepIsCompleted("delivery");
   });
 
