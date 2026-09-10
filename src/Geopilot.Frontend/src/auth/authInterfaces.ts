@@ -1,4 +1,4 @@
-import { User } from "../api/apiInterfaces.ts";
+import { User } from "../api/generated";
 
 export interface GeopilotAuthContextInterface {
   authLoaded: boolean;
