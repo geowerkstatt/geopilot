@@ -97,7 +97,9 @@ describe("Mandate tests", () => {
     });
 
     cy.visit("/admin/mandates");
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains(randomMandateName);
+    // The grid only renders the rows in view, so a mandate saved as the last one needs scrolling to.
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-virtualScroller").scrollTo("bottom");
+    getGridRowThatContains("mandates-grid", randomMandateName).should("exist");
   });
 
   it("can create mandate", () => {

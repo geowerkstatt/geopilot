@@ -113,8 +113,8 @@ describe("Delivery tests", () => {
 
     cy.dataCy("createDelivery-button").should("be.disabled");
 
-    setSelect("precursor", 0);
-    hasError("precursor", false);
+    setSelect("precursorDeliveryId", 0);
+    hasError("precursorDeliveryId", false);
     toggleCheckbox("partialDelivery");
     setInput("comment", comment);
 

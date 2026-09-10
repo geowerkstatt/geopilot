@@ -51,7 +51,7 @@ public class SearchTest
         });
 
         Assert.AreEqual(limit, result.Items.Count());
-        Assert.AreEqual(20, result.NumberMatched);
+        Assert.AreEqual(21, result.NumberMatched);
         Assert.AreEqual(limit, result.NumberReturned);
     }
 
@@ -63,7 +63,7 @@ public class SearchTest
             Collections = Array.Empty<string>(),
         });
 
-        Assert.AreEqual(20, result.NumberMatched);
-        Assert.AreEqual(20, result.NumberReturned);
+        Assert.AreEqual(21, result.NumberMatched);
+        Assert.AreEqual(21, result.NumberReturned);
     }
 }
