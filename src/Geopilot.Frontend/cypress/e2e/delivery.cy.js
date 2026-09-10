@@ -107,25 +107,20 @@ describe("Delivery tests", () => {
     cy.dataCy("continue-button").should("be.enabled").click();
     stepIsActive("delivery");
 
-    // The pipeline produced the files to deliver
     cy.dataCy("delivery-files-empty").should("not.exist");
 
     // Wait for select values to be present on DOM
     cy.wait("@precursors");
     cy.wait(200);
 
-    // Declare the metadata the mandate asks for. The first entry of an optional select clears it,
-    // so the first actual delivery sits at index 1.
     setSelect("precursorDeliveryId", 1);
     hasError("precursorDeliveryId", false);
     toggleCheckbox("partialDelivery");
 
-    // Complete delivery
     cy.intercept("POST", "/api/v1/delivery").as("createDelivery");
     cy.dataCy("createDelivery-button").should("be.enabled").click();
 
-    // The declared metadata reaches the API, not just the form. The request carries no JSON content type,
-    // so its body arrives as text.
+    // The declared metadata reaches the API as text.
     cy.wait("@createDelivery").then(({ request, response }) => {
       const body = typeof request.body === "string" ? JSON.parse(request.body) : request.body;
       expect(body.partialDelivery).to.equal(true);
