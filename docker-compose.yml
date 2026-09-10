@@ -93,14 +93,14 @@ services:
       ConnectionStrings__Context: *contextConnection
       ReverseProxy__Clusters__stacBrowserCluster__Destinations__stacBrowserDestination__Address: http://stac-browser:8080/
       Auth__Authority: http://localhost:4011/realms/geopilot
-      Auth__ClientAudience: geopilot-client
-      Auth__ApiAudience: geopilot-api
+      Auth__PublicClientId: geopilot-client
+      Auth__Audience: geopilot-api
       Auth__AuthorizationUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/auth
       Auth__UserInfoUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/userinfo
       Auth__TokenUrl: http://localhost:4011/realms/geopilot/protocol/openid-connect/token
       Auth__ApiOrigin: https://localhost:5173
-      Auth__FullScope: "profile email openid geopilot.api"
-      Auth__ApiServerScope: "geopilot.api"
+      Auth__Scope: "profile email openid geopilot.api"
+      Auth__SwaggerAdditionalScopes: "geopilot.api"
       Upload__Cloud__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=https://localhost:10000/devstoreaccount1;"
       Upload__Cloud__BucketName: uploads
       Upload__Cloud__BlobEndpoint: https://localhost:10000
