@@ -43,11 +43,3 @@ jobs:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_EXTRA_CA_CERTS: ${{ env.UBUNTU_TRUSTED_CERT_PATH }}
-
-      # A failing processing test only shows the assertion; the cause sits in the API and pipeline logs.
-      - name: Show container logs on failure
-        if: failure()
-        run: docker compose -f docker-compose.yml -f docker-compose.cypress.yml logs --no-color geopilot ilitools-wrapper
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
