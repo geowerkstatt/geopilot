@@ -29,7 +29,7 @@ public class CollectionsTest
     {
         var collections = await collectionsClient.GetCollectionsAsync();
 
-        Assert.HasCount(11, collections.Collections);
+        Assert.HasCount(10, collections.Collections);
     }
 
     [TestMethod]

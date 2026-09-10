@@ -33,7 +33,6 @@ public static class ContextSeedExtensions
         context.SeedDeliveries();
         context.SeedAssets();
         context.AddOrganisationsToDefaultUsers();
-        context.SeedEndToEndPrecursorDelivery(context.SeedEndToEndMandate());
 
         transaction.Commit();
     }
@@ -231,68 +230,6 @@ public static class ContextSeedExtensions
         var user = context.Users.Single(user => user.Email == "user@geopilot.ch");
         var userOrganistions = context.Organisations.OrderBy(o => o.Id).Take(2);
         user.Organisations.AddRange(userOrganistions);
-
-        context.SaveChanges();
-    }
-
-    /// <summary>
-    /// Adds the mandate the end-to-end tests deliver against and returns it, with fixed file types and form
-    /// fields instead of the random ones the generated mandates get.
-    /// <para>
-    /// Runs last so the faker sequences of the deliveries and assets, which draw from the mandates already
-    /// present, stay untouched. Restricted rather than public, so it stays invisible to users without an
-    /// organisation, where the tests expect no mandate to match.
-    /// </para>
-    /// </summary>
-    private static Mandate SeedEndToEndMandate(this Context context)
-    {
-        var organisation = context.Organisations
-            .Where(o => o.Users.Any(u => u.Email == "user@geopilot.ch") && o.Users.Any(u => u.Email == "admin@geopilot.ch"))
-            .OrderBy(o => o.Id)
-            .First();
-
-        var mandate = new Mandate
-        {
-            // One language only, so the displayed name is the same whichever language the app runs in.
-            Name = new LocalizedText(new Dictionary<string, string> { { "de", "Cypress E2E" } }),
-            Description = new LocalizedText(new Dictionary<string, string>
-            {
-                { "de", "Festes Mandat für die automatisierten Tests." },
-                { "en", "Fixed mandate for the automated tests." },
-            }),
-            PipelineId = "ili_validation",
-            FileTypes = [".xtf", ".xml"],
-            SpatialExtent = GetExtent(),
-            Organisations = [organisation],
-            AllowDelivery = true,
-            EvaluatePrecursorDelivery = FieldEvaluationType.Optional,
-
-            // The form only offers the partial checkbox when it is required.
-            EvaluatePartial = FieldEvaluationType.Required,
-            EvaluateComment = FieldEvaluationType.Required,
-        };
-
-        context.Mandates.Add(mandate);
-        context.SaveChanges();
-
-        return mandate;
-    }
-
-    /// <summary>
-    /// Adds the earlier delivery the end-to-end mandate offers as a precursor. Without one the precursor field
-    /// renders but stays disabled.
-    /// </summary>
-    private static void SeedEndToEndPrecursorDelivery(this Context context, Mandate mandate)
-    {
-        context.Deliveries.Add(new Delivery
-        {
-            JobId = Guid.Parse("e2e00000-0000-0000-0000-000000000001"),
-            Date = DateTime.SpecifyKind(referenceDateTime, DateTimeKind.Utc),
-            Mandate = mandate,
-            DeclaringUser = context.Users.Single(user => user.Email == "user@geopilot.ch"),
-            Comment = "Vorgängerlieferung für die automatisierten Tests.",
-            Partial = false,
-        });
 
         context.SaveChanges();
     }

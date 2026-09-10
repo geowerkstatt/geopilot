@@ -26,7 +26,7 @@ describe("Mandate tests", () => {
 
   it("displays the mandates in a list with pagination", () => {
     cy.dataCy("mandates-grid").should("exist");
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").should("have.length", 11);
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").should("have.length", 10);
     cy.dataCy("mandates-grid").find(".MuiDataGrid-row").first().contains("Handmade Soft Cheese");
     cy.dataCy("mandates-grid")
       .find(".MuiTablePagination-actions [aria-label='Go to previous page']")
@@ -97,9 +97,7 @@ describe("Mandate tests", () => {
     });
 
     cy.visit("/admin/mandates");
-    // The grid only renders the rows in view, so a mandate saved as the last one needs scrolling to.
-    cy.dataCy("mandates-grid").find(".MuiDataGrid-virtualScroller").scrollTo("bottom");
-    getGridRowThatContains("mandates-grid", randomMandateName).should("exist");
+    cy.dataCy("mandates-grid").find(".MuiDataGrid-row").last().contains(randomMandateName);
   });
 
   it("can create mandate", () => {

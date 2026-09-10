@@ -1,5 +1,4 @@
 import { loginAsAdmin } from "./helpers/appHelpers.js";
-import { e2eMandateName } from "./helpers/deliveryHelpers.js";
 import { assertCancelDoesNotDeleteDelivery, assertConfirmDeletesDelivery } from "./helpers/deliveryOverviewHelper.js";
 
 describe("Admin Delivery Overview tests", () => {
@@ -24,7 +23,7 @@ describe("Admin Delivery Overview tests", () => {
 
     // Sort by Mandate
     cy.dataCy("deliveryOverview-grid").contains("Mandate").click();
-    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains(e2eMandateName);
+    cy.dataCy("deliveryOverview-grid").find(".MuiDataGrid-row").first().contains("Fantastic Fresh Tuna");
 
     // Sort by comment
     cy.dataCy("deliveryOverview-grid").contains("Comment").click();
