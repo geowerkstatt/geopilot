@@ -1,9 +1,7 @@
 ﻿using Geopilot.Api.Contracts;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
@@ -12,30 +10,16 @@ using System.IdentityModel.Tokens.Jwt;
 
 namespace Geopilot.Api.Authorization;
 
-internal sealed class JwtTestApp : WebApplicationFactory<Context>
+internal sealed class JwtTestApp : GeopilotTestApp
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
-        builder.UseSolutionRelativeContentRoot("src/Geopilot.Api", "*.slnx");
+        builder.UseSetting("Auth:AccessTokenFormat", "Jwt");
 
-        builder.ConfigureAppConfiguration((ctx, config) =>
-        {
-            var pipelineDefinition = Path.Combine(ctx.HostingEnvironment.ContentRootPath, "PipelineDefinitions", "basicPipeline_01.yaml");
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:Context"] = TestDatabaseFixture.ConnectionString,
-                ["Pipeline:Definition"] = pipelineDefinition,
-                ["Upload:CleanupIntervalMinutes"] = "1440",
-                ["ClamAV:Enabled"] = "false",
-            });
-        });
+        base.ConfigureWebHost(builder);
 
         builder.ConfigureTestServices(services =>
         {
-            // Only replace OIDC discovery with our test signing key.
-            // All TokenValidationParameters from Program.cs remain untouched,
-            // so attack tests verify the production validation config.
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
                 var oidcConfig = new OpenIdConnectConfiguration
@@ -44,8 +28,8 @@ internal sealed class JwtTestApp : WebApplicationFactory<Context>
                 };
                 oidcConfig.SigningKeys.Add(JwtTestTokenBuilder.SigningKey);
 
-                // Replace OIDC discovery with our static test config. Must override
-                // ConfigurationManager (not just Configuration) because the framework's
+                // Replace OIDC discovery with static test configuration. Must override
+                // ConfigurationManager (not just Configuration) because the framework
                 // PostConfigure already created one from the production Authority.
                 options.ConfigurationManager = new StaticConfigurationManager<OpenIdConnectConfiguration>(oidcConfig);
             });
