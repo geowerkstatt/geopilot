@@ -5,6 +5,7 @@ using Geopilot.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Globalization;
 
@@ -134,6 +135,7 @@ public class MandateController : ControllerBase
     [SwaggerResponse(StatusCodes.Status201Created, "The mandate was created successfully.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be created due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to create a mandate.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate key is already in use by another mandate.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. ", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Create(Mandate mandate)
     {
@@ -153,9 +155,7 @@ public class MandateController : ControllerBase
                 .Where(o => organisationIds.Contains(o.Id))
                 .ToListAsync();
 
-            // Multiple empty strings as key would conflict with the unique index.
-            if (mandate.Key == "")
-                mandate.Key = null;
+            NormalizeKey(mandate);
 
             var entityEntry = await context.AddAsync(mandate).ConfigureAwait(false);
             await context.SaveChangesAsync().ConfigureAwait(false);
@@ -170,6 +170,11 @@ public class MandateController : ControllerBase
 
             var location = new Uri(string.Format(CultureInfo.InvariantCulture, $"/api/v1/mandate/{result.Id}"), UriKind.Relative);
             return Created(location, result);
+        }
+        catch (DbUpdateException e) when (IsKeyConflict(e))
+        {
+            logger.LogInformation("Rejected mandate creation because the key <{Key}> is already in use.", mandate?.Key);
+            return Conflict($"Mandate key <{mandate?.Key}> is already in use.");
         }
         catch (Exception e)
         {
@@ -188,6 +193,7 @@ public class MandateController : ControllerBase
     [SwaggerResponse(StatusCodes.Status404NotFound, "The mandate could not be found.")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The mandate could not be updated due to invalid input.")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The current user is not authorized to edit a mandate.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The mandate key is already in use by another mandate.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Edit(Mandate mandate)
     {
@@ -208,9 +214,7 @@ public class MandateController : ControllerBase
             if (!IsValidPipeline(mandate.PipelineId))
                 return BadRequest($"Pipeline <{mandate.PipelineId}> does not exist.");
 
-            // Multiple empty strings as key would conflict with the unique index.
-            if (mandate.Key == "")
-                mandate.Key = null;
+            NormalizeKey(mandate);
 
             context.Entry(existingMandate).CurrentValues.SetValues(mandate);
 
@@ -236,6 +240,11 @@ public class MandateController : ControllerBase
 
             return Ok(result);
         }
+        catch (DbUpdateException e) when (IsKeyConflict(e))
+        {
+            logger.LogInformation("Rejected mandate update because the key <{Key}> is already in use.", mandate?.Key);
+            return Conflict($"Mandate key <{mandate?.Key}> is already in use.");
+        }
         catch (Exception e)
         {
             logger.LogError(e, $"An error occured while updating the mandate.");
@@ -250,4 +259,20 @@ public class MandateController : ControllerBase
         var pipeline = pipelineService.GetById(pipelineId);
         return pipeline != null;
     }
+
+    /// <summary>
+    /// Trims the key and turns a blank one into null. Any number of mandates may carry no key, but only
+    /// as null: the unique index would reject the second empty string. Trimming keeps a pasted key with
+    /// stray spaces from becoming a key that no machine client can ever match.
+    /// </summary>
+    private static void NormalizeKey(Mandate mandate)
+        => mandate.Key = string.IsNullOrWhiteSpace(mandate.Key) ? null : mandate.Key.Trim();
+
+    /// <summary>
+    /// Whether the save failed because the mandate key is already taken. The unique index is the only
+    /// place this is decided: a check before saving would still race a concurrent save.
+    /// </summary>
+    private static bool IsKeyConflict(DbUpdateException exception)
+        => exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgresException
+            && string.Equals(postgresException.ConstraintName, Context.MandateKeyIndexName, StringComparison.Ordinal);
 }

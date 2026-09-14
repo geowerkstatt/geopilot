@@ -13,6 +13,12 @@ namespace Geopilot.Api;
 public class Context : DbContext
 {
     /// <summary>
+    /// Name of the unique index over <see cref="Mandate.Key"/>. A violation of this index is how the API
+    /// learns that a key is already taken, so the name is shared instead of repeated as a literal.
+    /// </summary>
+    public const string MandateKeyIndexName = "IX_Mandates_Key";
+
+    /// <summary>
     /// Database context to manage the database.
     /// </summary>
     /// <param name="options">Configuration options for the Context.</param>
@@ -167,7 +173,8 @@ public class Context : DbContext
 
         modelBuilder.Entity<Mandate>()
             .HasIndex(mandate => mandate.Key)
-            .IsUnique();
+            .IsUnique()
+            .HasDatabaseName(MandateKeyIndexName);
 
         modelBuilder.Entity<Mandate>()
             .Property(mandate => mandate.Name)

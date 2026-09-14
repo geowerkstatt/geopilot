@@ -1085,6 +1085,10 @@ export type PostApiV1MandateErrors = {
    */
   401: unknown;
   /**
+   * The mandate key is already in use by another mandate.
+   */
+  409: unknown;
+  /**
    * The server encountered an unexpected condition that prevented it from fulfilling the request.
    */
   500: ProblemDetails;
@@ -1122,6 +1126,10 @@ export type PutApiV1MandateErrors = {
    * The mandate could not be found.
    */
   404: unknown;
+  /**
+   * The mandate key is already in use by another mandate.
+   */
+  409: unknown;
   /**
    * The server encountered an unexpected condition that prevented it from fulfilling the request.
    */
