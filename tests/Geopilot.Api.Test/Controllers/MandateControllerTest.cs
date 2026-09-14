@@ -224,6 +224,7 @@ namespace Geopilot.Api.Controllers
             {
                 FileTypes = new string[] { ".*" },
                 Name = TestHelpers.Localized("ACCORDIANWALK"),
+                Key = "",
                 Organisations = new List<Organisation> { new() { Id = 1 } },
                 Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
                 PipelineId = pipelineId,
@@ -235,6 +236,7 @@ namespace Geopilot.Api.Controllers
             var resultValue = (result as CreatedResult)?.Value as Mandate;
             Assert.IsNotNull(resultValue);
             CompareMandates(mandate, resultValue);
+            Assert.IsNull(resultValue.Key, "Empty key should normalize to null");
         }
 
         [TestMethod]
@@ -278,6 +280,136 @@ namespace Geopilot.Api.Controllers
             var result = await mandateController.Create(mandate);
             ActionResultAssert.IsBadRequest(result);
         }
+
+        [TestMethod]
+        public async Task CreateMultipleMandatesWithEmptyKey()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+
+            var pipelineStub = new PipelineConfig()
+            {
+                Id = pipelineId,
+                DisplayName = new Dictionary<string, string>()
+                {
+                    { "en", "pipeline 1" },
+                    { "de", "Pipeline 1" },
+                },
+                Steps = new List<StepConfig>(),
+            };
+            pipelineServiceMock.Setup(v => v.GetById(pipelineId)).Returns(pipelineStub);
+
+            async Task CreateMandate()
+            {
+                var mandate = new Mandate()
+                {
+                    FileTypes = new string[] { ".*" },
+                    Name = TestHelpers.Localized("ACCORDIANWALK"),
+                    Key = "",
+                    PipelineId = pipelineId,
+                    Organisations = new List<Organisation> { new() { Id = 1 } },
+                    Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
+                    AllowDelivery = true,
+                };
+
+                var result = await mandateController.Create(mandate);
+                ActionResultAssert.IsCreated(result);
+                var resultValue = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+                Assert.IsNull(resultValue.Key, "Empty key should normalize to null");
+            }
+
+            await CreateMandate();
+            await CreateMandate();
+        }
+
+        [TestMethod]
+        public async Task CreateMandateWithDuplicateKeyReturnsConflict()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            ActionResultAssert.IsCreated(await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON")));
+
+            var result = await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON"));
+
+            ActionResultAssert.IsConflict(result);
+            var message = (result as ConflictObjectResult)?.Value as string;
+            Assert.IsNotNull(message);
+            Assert.Contains("GRUMPYFALCON", message, StringComparison.Ordinal);
+        }
+
+        [TestMethod]
+        public async Task CreateMandateTrimsKey()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            var result = await mandateController.Create(NewMandateWithKey(pipelineId, "  GRUMPYFALCON  "));
+
+            ActionResultAssert.IsCreated(result);
+            var resultValue = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+            Assert.AreEqual("GRUMPYFALCON", resultValue.Key);
+        }
+
+        [TestMethod]
+        public async Task CreateMandateWithWhitespaceOnlyKeyStoresNull()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            var result = await mandateController.Create(NewMandateWithKey(pipelineId, "   "));
+
+            ActionResultAssert.IsCreated(result);
+            var resultValue = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+            Assert.IsNull(resultValue.Key, "A key of only whitespace should normalize to null");
+        }
+
+        [TestMethod]
+        public async Task EditMandateWithDuplicateKeyReturnsConflict()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            ActionResultAssert.IsCreated(await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON")));
+            var created = await mandateController.Create(NewMandateWithKey(pipelineId, "SOMBERSPORK"));
+            var toEdit = Assert.IsInstanceOfType<Mandate>((created as CreatedResult)?.Value);
+
+            toEdit.Key = "GRUMPYFALCON";
+            toEdit.SetCoordinateListFromPolygon();
+            var result = await mandateController.Edit(toEdit);
+
+            ActionResultAssert.IsConflict(result);
+        }
+
+        private void SetupPipelineStub(string pipelineId)
+        {
+            var pipelineStub = new PipelineConfig()
+            {
+                Id = pipelineId,
+                DisplayName = new Dictionary<string, string>()
+                {
+                    { "en", "pipeline 1" },
+                    { "de", "Pipeline 1" },
+                },
+                Steps = new List<StepConfig>(),
+            };
+            pipelineServiceMock.Setup(v => v.GetById(pipelineId)).Returns(pipelineStub);
+        }
+
+        private Mandate NewMandateWithKey(string pipelineId, string? key) => new()
+        {
+            FileTypes = new string[] { ".*" },
+            Name = TestHelpers.Localized("ACCORDIANWALK"),
+            Key = key,
+            PipelineId = pipelineId,
+            Organisations = new List<Organisation> { new() { Id = 1 } },
+            Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
+            AllowDelivery = true,
+        };
 
         [TestMethod]
         [DataRow(null, "Pipeline1", DisplayName = "edit mandate with pipeline")]
@@ -348,6 +480,7 @@ namespace Geopilot.Api.Controllers
             Assert.IsNotNull(delivery);
 
             mandateToUpdate.Name = TestHelpers.Localized("ARKMUTANT");
+            mandateToUpdate.Key = "";
             mandateToUpdate.PipelineId = pipelineId;
             mandateToUpdate.FileTypes = new string[] { ".zip", ".gpkg" };
             mandateToUpdate.Organisations = new List<Organisation> { new() { Id = 3 }, new() { Id = organisation.Id } };
@@ -362,6 +495,7 @@ namespace Geopilot.Api.Controllers
             Assert.HasCount(1, updatedMandate.Deliveries);
             Assert.AreEqual(delivery.Id, updatedMandate.Deliveries[0].Id);
             Assert.AreEqual(mandateToUpdate.Name, updatedMandate.Name);
+            Assert.IsNull(updatedMandate.Key, "Empty key should normalize to null");
             Assert.AreEqual(mandateToUpdate.PipelineId, updatedMandate.PipelineId);
             Assert.AreEqual(mandateToUpdate.AllowDelivery, updatedMandate.AllowDelivery);
             CollectionAssert.AreEqual(mandateToUpdate.FileTypes, updatedMandate.FileTypes);
@@ -429,6 +563,7 @@ namespace Geopilot.Api.Controllers
         {
             Assert.AreEqual(expected.Id, actual.Id);
             Assert.AreEqual(expected.Name, actual.Name);
+            Assert.AreEqual(expected.Key, actual.Key);
             Assert.AreEqual(expected.IsPublic, actual.IsPublic);
             Assert.AreEqual(expected.AllowDelivery, actual.AllowDelivery);
             Assert.AreEqual(expected.PipelineId, actual.PipelineId);
