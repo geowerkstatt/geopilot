@@ -92,6 +92,21 @@ public class MandateServiceTest
     }
 
     [TestMethod]
+    public async Task GetMandateKeysReturnsOnlyMandatesThatCarryAKey()
+    {
+        xtfMandate.Key = "GRUMPYFALCON";
+        publicCsvMandate.Key = "SOMBERSPORK";
+        context.SaveChanges();
+
+        var keys = await mandateService.GetMandateKeysAsync();
+
+        // The seeded mandates carry keys of their own, so this counts instead of comparing a fixed set.
+        CollectionAssert.Contains(keys, "GRUMPYFALCON");
+        CollectionAssert.Contains(keys, "SOMBERSPORK");
+        Assert.HasCount(context.Mandates.Count(m => m.Key != null), keys, "Only mandates with a key belong in the result.");
+    }
+
+    [TestMethod]
     public async Task GetMandateAsUserReturnsPublicMandateForAuthenticatedUser()
     {
         var user = context.Users.Add(new User { AuthIdentifier = Guid.NewGuid().ToString() }).Entity;
