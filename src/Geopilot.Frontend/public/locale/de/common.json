@@ -100,6 +100,7 @@
   "mandateKey": "Eindeutige Kennung",
   "mandateKeyHelperText": "Wird für automatisierte Verarbeitungen verwendet",
   "mandateKeyNotUnique": "Mandatskennung muss eindeutig sein",
+  "mandateKeysLoadingError": "Beim Laden der Mandatskennungen ist ein Fehler aufgetreten: {{error}}",
   "mandateLoadingError": "Beim Laden des Mandats ist ein Fehler aufgetreten: {{error}}",
   "mandateSaveError": "Beim Speichern des Mandats ist ein Fehler aufgetreten: {{error}}",
   "mandates": "Mandate",

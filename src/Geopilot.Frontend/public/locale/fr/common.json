@@ -100,6 +100,7 @@
   "mandateKey": "Clé unique",
   "mandateKeyHelperText": "Utilisé pour le traitement automatisé",
   "mandateKeyNotUnique": "La clé de mandat doit être unique",
+  "mandateKeysLoadingError": "Une erreur s'est produite lors du chargement des clés de mandat: {{error}}",
   "mandateLoadingError": "Une erreur s'est produite lors du chargement du mandat: {{error}}",
   "mandateSaveError": "Une erreur s'est produite lors de l'enregistrement du mandat: {{error}}",
   "mandates": "Mandats",
