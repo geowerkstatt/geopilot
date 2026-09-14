@@ -21,6 +21,7 @@ public class Mandate
     /// An optional unique key for the mandate, used for automated deliveries.
     /// </summary>
     [Column(TypeName = "varchar(128)")]
+    [MaxLength(128)]
     public string? Key { get; set; }
 
     /// <summary>
