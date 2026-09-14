@@ -173,7 +173,7 @@ public class MandateController : ControllerBase
         }
         catch (DbUpdateException e) when (IsKeyConflict(e))
         {
-            logger.LogInformation("Rejected mandate creation because the key <{Key}> is already in use.", mandate?.Key);
+            logger.LogInformation("Rejected mandate creation because the key is already in use.");
             return Conflict($"Mandate key <{mandate?.Key}> is already in use.");
         }
         catch (Exception e)
@@ -242,7 +242,7 @@ public class MandateController : ControllerBase
         }
         catch (DbUpdateException e) when (IsKeyConflict(e))
         {
-            logger.LogInformation("Rejected mandate update because the key <{Key}> is already in use.", mandate?.Key);
+            logger.LogInformation("Rejected update of mandate <{MandateId}> because the key is already in use.", mandate?.Id);
             return Conflict($"Mandate key <{mandate?.Key}> is already in use.");
         }
         catch (Exception e)
