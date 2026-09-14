@@ -323,6 +323,95 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
+        public async Task CreateMandateWithDuplicateKeyReturnsConflict()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            ActionResultAssert.IsCreated(await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON")));
+
+            var result = await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON"));
+
+            ActionResultAssert.IsConflict(result);
+            var message = (result as ConflictObjectResult)?.Value as string;
+            Assert.IsNotNull(message);
+            Assert.Contains("GRUMPYFALCON", message, StringComparison.Ordinal);
+        }
+
+        [TestMethod]
+        public async Task CreateMandateTrimsKey()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            var result = await mandateController.Create(NewMandateWithKey(pipelineId, "  GRUMPYFALCON  "));
+
+            ActionResultAssert.IsCreated(result);
+            var resultValue = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+            Assert.AreEqual("GRUMPYFALCON", resultValue.Key);
+        }
+
+        [TestMethod]
+        public async Task CreateMandateWithWhitespaceOnlyKeyStoresNull()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            var result = await mandateController.Create(NewMandateWithKey(pipelineId, "   "));
+
+            ActionResultAssert.IsCreated(result);
+            var resultValue = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+            Assert.IsNull(resultValue.Key, "A key of only whitespace should normalize to null");
+        }
+
+        [TestMethod]
+        public async Task EditMandateWithDuplicateKeyReturnsConflict()
+        {
+            const string pipelineId = "Pipeline1";
+            mandateController.SetupTestUser(adminUser);
+            SetupPipelineStub(pipelineId);
+
+            ActionResultAssert.IsCreated(await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON")));
+            var created = await mandateController.Create(NewMandateWithKey(pipelineId, "SOMBERSPORK"));
+            var toEdit = Assert.IsInstanceOfType<Mandate>((created as CreatedResult)?.Value);
+
+            toEdit.Key = "GRUMPYFALCON";
+            toEdit.SetCoordinateListFromPolygon();
+            var result = await mandateController.Edit(toEdit);
+
+            ActionResultAssert.IsConflict(result);
+        }
+
+        private void SetupPipelineStub(string pipelineId)
+        {
+            var pipelineStub = new PipelineConfig()
+            {
+                Id = pipelineId,
+                DisplayName = new Dictionary<string, string>()
+                {
+                    { "en", "pipeline 1" },
+                    { "de", "Pipeline 1" },
+                },
+                Steps = new List<StepConfig>(),
+            };
+            pipelineServiceMock.Setup(v => v.GetById(pipelineId)).Returns(pipelineStub);
+        }
+
+        private Mandate NewMandateWithKey(string pipelineId, string? key) => new()
+        {
+            FileTypes = new string[] { ".*" },
+            Name = TestHelpers.Localized("ACCORDIANWALK"),
+            Key = key,
+            PipelineId = pipelineId,
+            Organisations = new List<Organisation> { new() { Id = 1 } },
+            Coordinates = new List<Models.Coordinate> { new() { X = 7.93770851245525, Y = 46.706944924654366 }, new() { X = 8.865921640681403, Y = 47.02476048042957 } },
+            AllowDelivery = true,
+        };
+
+        [TestMethod]
         [DataRow(null, "Pipeline1", DisplayName = "edit mandate with pipeline")]
         [DataRow("different-profile", "pipeline_id", DisplayName = "edit mandate with profile and pipeline")]
         public async Task EditMandate(string newProfile, string pipelineId)
@@ -474,6 +563,7 @@ namespace Geopilot.Api.Controllers
         {
             Assert.AreEqual(expected.Id, actual.Id);
             Assert.AreEqual(expected.Name, actual.Name);
+            Assert.AreEqual(expected.Key, actual.Key);
             Assert.AreEqual(expected.IsPublic, actual.IsPublic);
             Assert.AreEqual(expected.AllowDelivery, actual.AllowDelivery);
             Assert.AreEqual(expected.PipelineId, actual.PipelineId);
