@@ -100,6 +100,7 @@
   "mandateKey": "Unique key",
   "mandateKeyHelperText": "Used for automated processing",
   "mandateKeyNotUnique": "Mandate key must be unique",
+  "mandateKeysLoadingError": "An error occurred while loading the mandate keys: {{error}}",
   "mandateLoadingError": "An error occurred while loading the mandate: {{error}}",
   "mandateSaveError": "An error occurred while saving the mandate: {{error}}",
   "mandates": "Mandates",
