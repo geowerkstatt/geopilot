@@ -52,11 +52,11 @@ namespace Geopilot.Api.Controllers
                 Name = TestHelpers.Localized(nameof(xtfMandate)),
                 SpatialExtent = Geometry.DefaultFactory.CreatePolygon(new NetTopologySuite.Geometries.Coordinate[]
                 {
+                    new(8.046284, 47.388181),
                     new(8.046284, 47.392423),
                     new(8.057055, 47.392423),
                     new(8.057055, 47.388181),
                     new(8.046284, 47.388181),
-                    new(8.046284, 47.392423),
                 }),
                 AllowDelivery = true,
             };
