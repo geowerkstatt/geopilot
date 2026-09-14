@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from "react";
-import { useWatch } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { FormHelperText } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
@@ -12,6 +12,7 @@ import {
   FormContainerHalfWidth,
   FormInput,
 } from "../../../components/form/form.ts";
+import useFetch from "../../../hooks/useFetch.ts";
 import PipelineFormSelect from "./pipelineFormSelect.tsx";
 
 interface MandateConfigurationFieldsProps {
@@ -35,20 +36,25 @@ const parseFileType = (input: string): string | undefined => {
 
 const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ mandate, organisations, pipelines }) => {
   const { t } = useTranslation();
+  const { fetchApi } = useFetch();
+  const { trigger } = useFormContext();
   const isPublic = useWatch({ name: "isPublic", defaultValue: mandate?.isPublic ?? false });
-  const [usedKeys, setUsedKeys] = useState<string[]>([]);
+  const [usedKeys, setUsedKeys] = useState<string[]>();
 
   useEffect(() => {
-    // Fetch the list of used mandate keys to validate uniqueness
-    fetch("/api/v1/mandate/keys")
-      .then(response => response.json())
-      .then(data => setUsedKeys(data))
-      .catch(error => console.error("Error fetching used mandate keys:", error));
-  }, []);
+    fetchApi<string[]>("/api/v1/mandate/keys", { errorMessageLabel: "mandateKeysLoadingError" })
+      .then(setUsedKeys)
+      .catch(() => setUsedKeys([]));
+  }, [fetchApi]);
+
+  // The keys arrive after the first render, so a key typed in the meantime was checked against nothing.
+  useEffect(() => {
+    if (usedKeys !== undefined) trigger("key");
+  }, [usedKeys, trigger]);
 
   const validateUniqueKey = (value: string) => {
-    if (value && value !== mandate?.key && usedKeys.includes(value)) {
-      return t("mandateKeyNotUnique");
+    if (value && value !== mandate?.key && usedKeys?.includes(value)) {
+      return "mandateKeyNotUnique";
     }
     return true;
   };
@@ -80,7 +86,7 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
           />
         </FormContainerHalfWidth>
       </FormContainer>
-      <FormContainer sx={{ alignItems: "center", gridColumn: { md: "1" }, gridRow: { md: "2" } }}>
+      <FormContainer sx={{ alignItems: "center" }}>
         <FormCheckbox fieldName={"isPublic"} label={"public"} checked={mandate?.isPublic ?? false} />
         {isPublic && <FormHelperText>{t("publicMandateHelperText")}</FormHelperText>}
       </FormContainer>

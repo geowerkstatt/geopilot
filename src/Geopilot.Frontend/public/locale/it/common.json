@@ -100,6 +100,7 @@
   "mandateKey": "Chiave univoca",
   "mandateKeyHelperText": "Utilizzato per l'elaborazione automatizzata",
   "mandateKeyNotUnique": "La chiave del mandato deve essere univoca",
+  "mandateKeysLoadingError": "Si è verificato un errore durante il caricamento delle chiavi dei mandati: {{error}}",
   "mandateLoadingError": "Si è verificato un errore durante il caricamento del mandato: {{error}}",
   "mandateSaveError": "Si è verificato un errore durante il salvataggio del mandato: {{error}}",
   "mandates": "Mandati",
