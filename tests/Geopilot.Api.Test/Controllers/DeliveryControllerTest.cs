@@ -246,6 +246,73 @@ public class DeliveryControllerTest
     }
 
     [TestMethod]
+    public async Task CreateFailsWhenJobWasAlreadyDelivered()
+    {
+        var (user, mandate) = SetupMandateWithUserOrganisation(
+            new Mandate
+            {
+                Name = TestHelpers.Localized(nameof(CreateFailsWhenJobWasAlreadyDelivered)),
+                EvaluateComment = FieldEvaluationType.NotEvaluated,
+                EvaluatePartial = FieldEvaluationType.NotEvaluated,
+                EvaluatePrecursorDelivery = FieldEvaluationType.NotEvaluated,
+                AllowDelivery = true,
+            });
+        deliveryController.SetupTestUser(user);
+        var jobId = SetupProcessingJob(mandate.Id);
+        SetupJobPersistence(jobId);
+        var request = new DeliveryRequest { JobId = jobId };
+
+        var first = (await deliveryController.Create(request)) as ObjectResult;
+        Assert.IsNotNull(first);
+        Assert.AreEqual(StatusCodes.Status201Created, first.StatusCode);
+
+        var deliveriesCount = context.Deliveries.Count();
+        var second = (await deliveryController.Create(request)) as ObjectResult;
+        context.ChangeTracker.Clear();
+
+        Assert.IsNotNull(second);
+        Assert.AreEqual(StatusCodes.Status409Conflict, second.StatusCode, "A job that was already delivered must not be delivered a second time.");
+        Assert.AreEqual(deliveriesCount, context.Deliveries.Count(), "The rejected declaration must not have created a delivery.");
+    }
+
+    [TestMethod]
+    public async Task TheDatabaseRefusesASecondDeliveryForTheSameJob()
+    {
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
+            new Mandate { Name = TestHelpers.Localized(nameof(TheDatabaseRefusesASecondDeliveryForTheSameJob)), AllowDelivery = true });
+        var jobId = Guid.NewGuid();
+
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+        await context.SaveChangesAsync();
+
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+
+        await Assert.ThrowsAsync<DbUpdateException>(
+            () => context.SaveChangesAsync(),
+            "The guard in the service reads and writes in two statements, so only the database keeps two callers that pass it at the same time from recording the assets of one job twice.");
+        context.ChangeTracker.Clear();
+    }
+
+    [TestMethod]
+    public async Task ADeletedDeliveryDoesNotKeepItsJobFromBeingDeliveredAgain()
+    {
+        var (user, mandate) = context.AddMandateWithUserOrganisation(
+            new Mandate { Name = TestHelpers.Localized(nameof(ADeletedDeliveryDoesNotKeepItsJobFromBeingDeliveredAgain)), AllowDelivery = true });
+        var jobId = Guid.NewGuid();
+
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user, Deleted = true });
+        await context.SaveChangesAsync();
+
+        context.Deliveries.Add(new Delivery { JobId = jobId, Mandate = mandate, DeclaringUser = user });
+        await context.SaveChangesAsync();
+
+        Assert.HasCount(
+            1,
+            context.Deliveries.Where(d => d.JobId == jobId).ToList(),
+            "A deleted delivery is invisible to the guard in the service, so the index must not see it either.");
+    }
+
+    [TestMethod]
     [DataRow(FieldEvaluationType.NotEvaluated, null, typeof(Delivery), "")]
     [DataRow(FieldEvaluationType.NotEvaluated, "", typeof(Delivery), "")]
     [DataRow(FieldEvaluationType.NotEvaluated, "Test", typeof(ValidationProblemDetails), "")]
