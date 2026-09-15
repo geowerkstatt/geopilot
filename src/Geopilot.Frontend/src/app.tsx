@@ -3,6 +3,7 @@ import { FC, useRef, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { CircularProgress } from "@mui/material";
 import { useGeopilotAuth } from "./auth";
+import { CapabilitiesProvider } from "./components/capabilities/capabilitiesProvider.tsx";
 import { ControlledNavigateProvider } from "./components/controlledNavigate/controlledNavigateProvider.tsx";
 import Header from "./components/header/header";
 import { FullPageStack, PageContent, ScrollableContent } from "./components/styledComponents";
@@ -77,7 +78,11 @@ const App: FC = () => {
                   {isAdmin ? (
                     <Route
                       path="admin"
-                      element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
+                      element={
+                        <CapabilitiesProvider>
+                          <Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />
+                        </CapabilitiesProvider>
+                      }>
                       <Route index element={<Navigate to="/admin/delivery-overview" replace />} />
                       <Route path="delivery-overview" element={<DeliveryOverview />} />
                       <Route path="users" element={<Users />} />

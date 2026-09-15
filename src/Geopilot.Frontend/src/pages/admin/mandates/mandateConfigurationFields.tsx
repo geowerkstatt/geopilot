@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { FormHelperText } from "@mui/material";
 import { MandateFormValues } from "../../../api/apiInterfaces.ts";
 import { Organisation, PipelineSummary } from "../../../api/generated";
+import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import {
   FormAutocomplete,
   FormCheckbox,
@@ -38,16 +39,20 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
   const { t } = useTranslation();
   const { fetchApi } = useFetch();
   const { trigger } = useFormContext();
+  const { machineDeliveryEnabled } = useCapabilities();
   const isPublic = useWatch({ name: "isPublic", defaultValue: mandate?.isPublic ?? false });
   const [usedKeys, setUsedKeys] = useState<string[]>();
 
   useEffect(() => {
+    if (!machineDeliveryEnabled) return;
+
     fetchApi<string[]>("/api/v1/mandate/keys", { errorMessageLabel: "mandateKeysLoadingError" })
       .then(setUsedKeys)
       .catch(() => setUsedKeys([]));
-  }, [fetchApi]);
+  }, [fetchApi, machineDeliveryEnabled]);
 
   // The keys arrive after the first render, so a key typed in the meantime was checked against nothing.
+  // Without machine delivery they never arrive and the field is not rendered, so this stays idle.
   useEffect(() => {
     if (usedKeys !== undefined) trigger("key");
   }, [usedKeys, trigger]);
@@ -65,15 +70,17 @@ const MandateConfigurationFields: FC<MandateConfigurationFieldsProps> = ({ manda
 
   return (
     <>
-      <FormContainer>
-        <FormInput
-          label="mandateKey"
-          fieldName="key"
-          value={mandate?.key ?? ""}
-          helperText={t("mandateKeyHelperText")}
-          validate={validateUniqueKey}
-        />
-      </FormContainer>
+      {machineDeliveryEnabled && (
+        <FormContainer>
+          <FormInput
+            label="mandateKey"
+            fieldName="key"
+            value={mandate?.key ?? ""}
+            helperText={t("mandateKeyHelperText")}
+            validate={validateUniqueKey}
+          />
+        </FormContainer>
+      )}
       <FormContainer>
         <FormContainerHalfWidth>
           <PipelineFormSelect pipelines={pipelines} selected={mandate?.pipelineId ?? undefined} />
