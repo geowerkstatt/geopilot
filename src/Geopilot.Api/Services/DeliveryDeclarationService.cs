@@ -3,6 +3,7 @@ using Geopilot.Api.Models;
 using Geopilot.Api.Processing;
 using Geopilot.Pipeline;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Geopilot.Api.Services;
 
@@ -56,6 +57,18 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.JobWithoutMandate, Message: $"Job with id <{jobId}> cannot be used to make a delivery.");
         }
 
+        // A job yields at most one delivery. Without this guard a client that lets geopilot declare the delivery
+        // and then declares it again through the API would deliver the same job twice, and it also makes a repeated
+        // declaration from the background safe.
+        var existingDeliveryId = await FindDeliveryOfJobAsync(jobId, cancellationToken);
+        if (existingDeliveryId is not null)
+        {
+            // The existing delivery comes back with the refusal, so a caller that ends up here can point at the
+            // delivery it already has instead of treating the job as undelivered.
+            logger.LogInformation("Job with id <{JobId}> was already delivered.", jobId);
+            return new DeliveryDeclarationResult(DeliveryDeclarationStatus.AlreadyDeclared, existingDeliveryId, $"Job with id <{jobId}> was already delivered.");
+        }
+
         var user = await context.Users.SingleAsync(u => u.Id == declaringUserId, cancellationToken);
 
         // Do not reuse the mandate returned from GetMandateForUser, because it is not tracked and has no includes.
@@ -105,7 +118,21 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         }
 
         var entityEntry = context.Deliveries.Add(delivery);
-        await context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException e) when (IsJobConflict(e))
+        {
+            // Another caller declared the same job between the check above and this write. The unique index is
+            // what actually keeps a job to one delivery; the check only spares the common case a failed insert.
+            context.Entry(delivery).State = EntityState.Detached;
+            logger.LogInformation("Job with id <{JobId}> was delivered by another caller while this delivery was being written.", jobId);
+            return new DeliveryDeclarationResult(
+                DeliveryDeclarationStatus.AlreadyDeclared,
+                await FindDeliveryOfJobAsync(jobId, cancellationToken),
+                $"Job with id <{jobId}> was already delivered.");
+        }
 
         logger.LogInformation("Declaration for job with id <{JobId}> created.", jobId);
         return new DeliveryDeclarationResult(DeliveryDeclarationStatus.Created, entityEntry.Entity.Id);
@@ -164,4 +191,15 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
 
         return errors.ToDictionary(e => e.Key, e => e.Value.ToArray(), StringComparer.Ordinal);
     }
+
+    private static bool IsJobConflict(DbUpdateException exception)
+        => exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } postgresException
+            && string.Equals(postgresException.ConstraintName, Context.DeliveryJobIndexName, StringComparison.Ordinal);
+
+    private Task<int?> FindDeliveryOfJobAsync(Guid jobId, CancellationToken cancellationToken)
+        => context.Deliveries
+            .AsNoTracking()
+            .Where(d => d.JobId == jobId)
+            .Select(d => (int?)d.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 }

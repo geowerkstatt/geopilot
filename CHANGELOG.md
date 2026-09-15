@@ -74,6 +74,7 @@
 
 ### Fixed
 
+- A processing job can no longer be delivered twice. Declaring a delivery for a job that already has one is refused with a message saying so, instead of silently creating a second delivery for the same files. Until now nothing prevented that, so a client that repeated the declaration after a timeout ended up with duplicate deliveries. The database enforces it as well, so two declarations arriving at the same moment cannot both get through; a deleted delivery does not count, its job can be delivered again. The migration that adds the constraint fails on a database that already holds two deliveries for one job, which has to be sorted out before upgrading.
 - The error map in fullscreen can be moved with a single finger and zoomed by scrolling without holding Ctrl (⌘ on macOS). Inline the map keeps asking for two fingers and the modifier key so that it does not swallow the page scroll.
 - Processing job and upload timestamps are now recorded in UTC, so the cleanup retention windows (job, download and visualization) are honored regardless of the container time zone. Previously, with the image default `TZ=Europe/Zurich`, expired downloads and visualizations lingered up to two hours longer than configured.
 - Files can now be selected for upload on iPhone and iPad. When a mandate limits the accepted file types, iOS and iPadOS browsers previously greyed out the matching files (for example `.xtf`) in the native file picker, so a delivery could not be started from those devices.

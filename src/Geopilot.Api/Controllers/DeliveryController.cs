@@ -51,6 +51,7 @@ public class DeliveryController : ControllerBase
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The server cannot process the request due to invalid or malformed request.", typeof(ValidationProblemDetails), "application/json")]
     [SwaggerResponse(StatusCodes.Status401Unauthorized, "The user is not authorized.")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "The validation job could not be found.")]
+    [SwaggerResponse(StatusCodes.Status409Conflict, "The job was already delivered.")]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "The server encountered an unexpected condition that prevented it from fulfilling the request. Likely there was an error persisting the assets.", typeof(ProblemDetails), "application/json")]
     public async Task<IActionResult> Create(DeliveryRequest declaration)
     {
@@ -92,6 +93,9 @@ public class DeliveryController : ControllerBase
             case DeliveryDeclarationStatus.JobNotDeliverable:
             case DeliveryDeclarationStatus.JobWithoutMandate:
                 return BadRequest(result.Message);
+
+            case DeliveryDeclarationStatus.AlreadyDeclared:
+                return Conflict(result.Message);
 
             case DeliveryDeclarationStatus.FieldRulesViolated:
                 foreach (var (field, messages) in result.FieldErrors ?? ReadOnlyDictionary<string, string[]>.Empty)
