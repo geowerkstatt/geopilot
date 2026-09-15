@@ -217,6 +217,7 @@ var uploadConfig = builder.Configuration.GetSection(UploadOptions.SectionName).G
     ?? throw new InvalidOperationException("Upload configuration section is missing.");
 builder.Services.AddRateLimiter(options =>
 {
+    // One window for the whole installation, not one per caller: every client draws from the same budget.
     options.AddFixedWindowLimiter("uploadRateLimit", limiter =>
     {
         limiter.PermitLimit = uploadConfig.RateLimitRequests;
