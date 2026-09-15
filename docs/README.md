@@ -5,6 +5,7 @@ Dokumentation zu geopilot für Betreiber, Pipeline-Autoren und Plugin-Entwickler
 ## Betrieb
 
 - [Ausführungsprotokoll](Ausfuehrungsprotokoll.md): Der dauerhafte Prüfnachweis pro Verarbeitungsjob. Was aufgezeichnet wird, der Definitions-Snapshot, die Abfrage über API und SQL, Aufbewahrung und Datenschutz.
+- [Maschinelle Anlieferung](MaschinelleAnlieferung.md): Die Schnittstelle für automatisierte Datenlieferungen. Ablauf und Endpunkte, die beiden Formen je nach Ablage der Uploads, Statusmodell, Downloads und Lebensdauer eines Anlieferungsversuchs.
 
 ## Pipeline
 
