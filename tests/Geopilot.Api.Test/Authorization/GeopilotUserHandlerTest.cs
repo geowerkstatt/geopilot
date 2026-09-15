@@ -2,6 +2,7 @@
 using Geopilot.Api.Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 using Moq;
 
 namespace Geopilot.Api.Test.Authorization;
@@ -50,7 +51,7 @@ public class GeopilotUserHandlerTest
         };
 
         SetupHttpContextWithToken("mock-token");
-        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token"))
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync(userInfo);
 
         // Act - Create user
@@ -71,7 +72,7 @@ public class GeopilotUserHandlerTest
             Name = "PERFECTSTONE",
         };
 
-        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token"))
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync(updatedUserInfo);
 
         // Act - Update user
@@ -98,7 +99,7 @@ public class GeopilotUserHandlerTest
         };
 
         SetupHttpContextWithToken("mock-token");
-        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token"))
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync(userInfo);
 
         // Clear users with all relations in database
@@ -130,7 +131,7 @@ public class GeopilotUserHandlerTest
     {
         var userCountBefore = context.Users.Count();
         SetupHttpContextWithToken("mock-token");
-        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token"))
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync((UserInfoResponse?)null);
 
         var user = await geopilotUserHandler.UpdateOrCreateUser();
@@ -152,10 +153,70 @@ public class GeopilotUserHandlerTest
         Assert.IsNull(user);
     }
 
+    [TestMethod]
+    public async Task UpdateOrCreateUserWithCookieTokenUsesCookie()
+    {
+        var authIdentifier = Guid.NewGuid().ToString();
+        var userInfo = new UserInfoResponse
+        {
+            Sub = authIdentifier,
+            Email = "cookie-user@example.com",
+            Name = "Cookie User",
+        };
+
+        SetupHttpContextWithCookie("cookie-token");
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("cookie-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userInfo);
+
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
+
+        Assert.IsNotNull(user);
+        Assert.AreEqual(authIdentifier, user.AuthIdentifier);
+        userInfoServiceMock.Verify(x => x.GetUserInfoAsync("cookie-token", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task UpdateOrCreateUserCookieWinsOverHeader()
+    {
+        var authIdentifier = Guid.NewGuid().ToString();
+        var userInfo = new UserInfoResponse
+        {
+            Sub = authIdentifier,
+            Email = "cookie-user@example.com",
+            Name = "Cookie User",
+        };
+
+        SetupHttpContextWithCookieAndHeader("cookie-token", "header-token");
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("cookie-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(userInfo);
+
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
+
+        Assert.IsNotNull(user);
+        Assert.AreEqual(authIdentifier, user.AuthIdentifier);
+        userInfoServiceMock.Verify(x => x.GetUserInfoAsync("cookie-token", It.IsAny<CancellationToken>()), Times.Once);
+        userInfoServiceMock.Verify(x => x.GetUserInfoAsync("header-token", It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private void SetupHttpContextWithToken(string token)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers["Authorization"] = $"Bearer {token}";
+        httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+    }
+
+    private void SetupHttpContextWithCookie(string token)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Append(HeaderNames.Cookie, $"{AuthDefaults.AuthCookieName}={token}");
+        httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+    }
+
+    private void SetupHttpContextWithCookieAndHeader(string cookieToken, string headerToken)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Append(HeaderNames.Cookie, $"{AuthDefaults.AuthCookieName}={cookieToken}");
+        httpContext.Request.Headers.Append(HeaderNames.Authorization, $"Bearer {headerToken}");
         httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
     }
 

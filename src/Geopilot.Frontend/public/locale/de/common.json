@@ -178,6 +178,7 @@
   "uploadSubtitle": "Laden Sie die Dateien hoch, die Sie verarbeiten möchten. Es ist nicht möglich, später weitere Dateien hinzuzufügen.",
   "upperRight": "Oben rechts",
   "userDisconnect": "Möchten Sie den Benutzer wirklich inaktiv setzen? Der Benutzer wird von allen Organisationen getrennt. Diese Aktion kann nicht rückgängig gemacht werden.",
+  "userInfoLoadingError": "Benutzerinformationen konnten nicht geladen werden: {{error}}",
   "userLoadingError": "Beim Laden der Benutzer:in ist ein Fehler aufgetreten: {{error}}",
   "userNoPermission": "Der Benutzer ist für geopilot nicht berechtigt",
   "userSaveError": "Beim Speichern des Benutzers ist ein Fehler aufgetreten: {{error}}",

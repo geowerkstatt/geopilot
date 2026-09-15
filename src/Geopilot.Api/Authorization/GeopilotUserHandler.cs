@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Models;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -72,7 +73,18 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             return null;
         }
 
-        var userInfo = await userInfoService.GetUserInfoAsync(accessToken);
+        UserInfoResponse? userInfo;
+        try
+        {
+            var cancellationToken = httpContextAccessor.HttpContext?.RequestAborted ?? CancellationToken.None;
+            userInfo = await userInfoService.GetUserInfoAsync(accessToken, cancellationToken);
+        }
+        catch (IdentityProviderUnavailableException ex)
+        {
+            logger.LogError(ex, "User info request failed.");
+            return null;
+        }
+
         if (userInfo == null)
             return null;
 
@@ -104,14 +116,20 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
     private string? ExtractAccessToken()
     {
         var httpContext = httpContextAccessor.HttpContext;
-        if (httpContext == null) return null;
+        if (httpContext is null) return null;
 
-        var authHeader = httpContext.Request.Headers.Authorization.FirstOrDefault();
-        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.Ordinal))
+        var cookieToken = httpContext.Request.Cookies[AuthDefaults.AuthCookieName];
+        if (!string.IsNullOrEmpty(cookieToken))
         {
-            return authHeader.Substring("Bearer ".Length);
+            return cookieToken;
         }
 
-        return httpContext.Request.Cookies["geopilot.auth"];
+        var authHeader = httpContext.Request.Headers.Authorization.ToString();
+        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            return authHeader["Bearer ".Length..].Trim();
+        }
+
+        return null;
     }
 }

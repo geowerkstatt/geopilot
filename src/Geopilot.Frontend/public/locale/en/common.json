@@ -178,6 +178,7 @@
   "uploadSubtitle": "Upload the files you would like to process. It is not possible to add more files later on.",
   "upperRight": "Upper right",
   "userDisconnect": "Do you really want to disconnect the user? This will remove all connections to organisations and cannot be undone.",
+  "userInfoLoadingError": "Could not load user information: {{error}}",
   "userLoadingError": "An error occurred while loading the user: {{error}}",
   "userNoPermission": "The user is not authorized for geopilot.",
   "userSaveError": "An error occurred while saving the user: {{error}}",

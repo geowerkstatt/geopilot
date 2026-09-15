@@ -42,32 +42,39 @@ const App: FC = () => {
             onTouchStart={event => stepSwipeRef.current?.onTouchStart(event)}
             onTouchEnd={event => stepSwipeRef.current?.onTouchEnd(event)}
             onWheel={event => stepSwipeRef.current?.onWheel(event)}>
-            {isLoading ? (
-              <PageContent>
-                <CircularProgress />
-              </PageContent>
-            ) : (
-              <Routes>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <DeliveryProvider>
+                    <Delivery stepSwipeRef={stepSwipeRef} />
+                  </DeliveryProvider>
+                }
+              />
+              <Route path="/imprint" element={<Imprint />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/licenses" element={<Licenses />} />
+              {isLoading ? (
                 <Route
-                  path="/"
+                  path="*"
                   element={
-                    <DeliveryProvider>
-                      <Delivery stepSwipeRef={stepSwipeRef} />
-                    </DeliveryProvider>
+                    <PageContent>
+                      <CircularProgress />
+                    </PageContent>
                   }
                 />
-                {user ? (
-                  <>
+              ) : (
+                <>
+                  {user ? (
                     <Route path="user">
                       <Route index element={<Navigate to="/user/deliveries" replace />} />
                       <Route path="deliveries" element={<UserDeliveryOverview />} />
                     </Route>
-                  </>
-                ) : (
-                  <Route path="user/*" element={<Navigate to="/" replace />} />
-                )}
-                {isAdmin ? (
-                  <>
+                  ) : (
+                    <Route path="user/*" element={<Navigate to="/" replace />} />
+                  )}
+                  {isAdmin ? (
                     <Route
                       path="admin"
                       element={<Admin isSubMenuOpen={isSubMenuOpen} setIsSubMenuOpen={setIsSubMenuOpen} />}>
@@ -80,16 +87,12 @@ const App: FC = () => {
                       <Route path="organisations" element={<Organisations />} />
                       <Route path="organisations/:id" element={<OrganisationDetail />} />
                     </Route>
-                  </>
-                ) : (
-                  <Route path="admin/*" element={<Navigate to="/" replace />} />
-                )}
-                <Route path="/imprint" element={<Imprint />} />
-                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/licenses" element={<Licenses />} />
-              </Routes>
-            )}
+                  ) : (
+                    <Route path="admin/*" element={<Navigate to="/" replace />} />
+                  )}
+                </>
+              )}
+            </Routes>
             <Footer />
           </ScrollableContent>
         </ControlledNavigateProvider>

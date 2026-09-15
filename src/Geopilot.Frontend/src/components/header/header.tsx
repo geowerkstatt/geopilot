@@ -14,6 +14,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Skeleton,
   Stack,
   Toolbar,
   Typography,
@@ -143,19 +144,16 @@ const Header: FC<HeaderProps> = ({ openSubMenu }) => {
           </Stack>
           <Stack direction="row" sx={{ alignItems: "center" }}>
             <LanguagePopup />
-            {authLoaded &&
-              (user ? (
-                <Avatar
-                  onClick={toggleUserMenu(true)}
-                  data-cy="loggedInUser-button"
-                  sx={{ cursor: "pointer", "&:hover": { backgroundColor: "primary.dark" } }}>
-                  {user?.fullName[0].toUpperCase()}
-                </Avatar>
-              ) : (
-                <>
-                  <Button variant="text" onClick={login} label="logIn" />
-                </>
-              ))}
+            {authLoaded && user && (
+              <Avatar
+                onClick={toggleUserMenu(true)}
+                data-cy="loggedInUser-button"
+                sx={{ cursor: "pointer", "&:hover": { backgroundColor: "primary.dark" } }}>
+                {user.fullName[0].toUpperCase()}
+              </Avatar>
+            )}
+            {authLoaded && user === null && <Button variant="text" onClick={login} label="logIn" />}
+            {authLoaded && user === undefined && <Skeleton variant="circular" width={40} height={40} />}
           </Stack>
         </Toolbar>
       </AppBar>
