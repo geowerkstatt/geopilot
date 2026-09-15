@@ -380,6 +380,7 @@ public class OpaqueTokenHandlerTest
     public async Task AuthenticateAsyncClientSecretBasicSendsBasicHeaderAndNoSecretInBody()
     {
         options.IntrospectionAuthMethod = IntrospectionAuthMethod.ClientSecretBasic;
+        options.ConfidentialClientSecret = "se cret:1";
         var context = CreateContextWithBearerToken("opaque-token");
 
         string? capturedBody = null;
@@ -408,8 +409,9 @@ public class OpaqueTokenHandlerTest
         Assert.DoesNotContain("client_secret", capturedBody);
         Assert.AreEqual("Basic", capturedAuth?.Scheme);
 
-        var expectedCredentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Uri.EscapeDataString("geopilot-client")}:{Uri.EscapeDataString("secret123")}"));
-        Assert.AreEqual(expectedCredentials, capturedAuth?.Parameter);
+        Assert.IsNotNull(capturedAuth?.Parameter);
+        var credentials = Encoding.UTF8.GetString(Convert.FromBase64String(capturedAuth.Parameter));
+        Assert.AreEqual("geopilot-client:se+cret%3A1", credentials);
     }
 
     [TestMethod]

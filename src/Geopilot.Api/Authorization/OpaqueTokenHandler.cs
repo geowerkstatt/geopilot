@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
@@ -81,8 +82,8 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
         switch (Options.IntrospectionAuthMethod)
         {
             case IntrospectionAuthMethod.ClientSecretBasic:
-                var id = Uri.EscapeDataString(Options.ConfidentialClientId);
-                var secret = Uri.EscapeDataString(Options.ConfidentialClientSecret);
+                var id = WebUtility.UrlEncode(Options.ConfidentialClientId);
+                var secret = WebUtility.UrlEncode(Options.ConfidentialClientSecret);
                 var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{id}:{secret}"));
                 request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
                 break;
