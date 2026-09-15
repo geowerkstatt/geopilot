@@ -89,6 +89,16 @@ export type BrowserAuthOptions = {
 };
 
 /**
+ * The capabilities an installation offers, so the administration only shows what is configured.
+ */
+export type CapabilitiesResponse = {
+  /**
+   * Whether this installation offers machine based delivery.
+   */
+  machineDeliveryEnabled: boolean;
+};
+
+/**
  * The kind of client that started a processing job, classified from the request. Persisted as text.
  */
 export const ClientKind = {
@@ -827,6 +837,29 @@ export type VisualizationResponse = {
    */
   data: unknown;
 };
+
+export type GetApiV1CapabilitiesData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/v1/Capabilities";
+};
+
+export type GetApiV1CapabilitiesErrors = {
+  /**
+   * The current user is not authorized to read the capabilities.
+   */
+  401: unknown;
+};
+
+export type GetApiV1CapabilitiesResponses = {
+  /**
+   * The capabilities of this installation.
+   */
+  200: CapabilitiesResponse;
+};
+
+export type GetApiV1CapabilitiesResponse = GetApiV1CapabilitiesResponses[keyof GetApiV1CapabilitiesResponses];
 
 export type GetApiV1DeliveryData = {
   body?: never;
