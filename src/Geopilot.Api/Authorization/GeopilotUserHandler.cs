@@ -124,10 +124,10 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             return cookieToken;
         }
 
-        var authHeader = httpContext.Request.Headers.Authorization.FirstOrDefault();
-        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.Ordinal))
+        var authHeader = httpContext.Request.Headers.Authorization.ToString();
+        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
-            return authHeader.Substring("Bearer ".Length);
+            return authHeader["Bearer ".Length..].Trim();
         }
 
         return null;
