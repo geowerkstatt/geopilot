@@ -146,13 +146,28 @@ namespace Geopilot.Api.Controllers
         }
 
         [TestMethod]
-        public async Task GetSummaryWithDefaultUploadIdReturnsBadRequest()
+        public async Task GetSummaryWithoutUploadIdSkipsTheUploadFilter()
         {
-            var uploadId = default(Guid);
+            mandateServiceMock
+                .Setup(m => m.GetMandateSummariesAsync(null, null))
+                .ReturnsAsync(new List<MandateSummary> { ToSummary(publicCsvMandate) });
 
-            Assert.IsInstanceOfType<BadRequestObjectResult>(await mandateController.GetSummary(uploadId));
+            var result = (await mandateController.GetSummary(null)) as OkObjectResult;
+            var mandates = Assert.IsInstanceOfType<IEnumerable<MandateSummary>>(result?.Value).ToList();
 
-            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(It.IsAny<User>(), It.IsAny<Guid>()), Times.Never);
+            Assert.HasCount(1, mandates);
+            mandateServiceMock.Verify(m => m.GetMandateSummariesAsync(null, null), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task GetSummaryWithUnknownUploadIdReturnsNotFound()
+        {
+            var uploadId = Guid.NewGuid();
+            mandateServiceMock
+                .Setup(m => m.GetMandateSummariesAsync(null, uploadId))
+                .ThrowsAsync(new ArgumentException($"Upload with id <{uploadId}> not found.", nameof(uploadId)));
+
+            Assert.IsInstanceOfType<NotFoundObjectResult>(await mandateController.GetSummary(uploadId));
         }
 
         [TestMethod]
@@ -651,6 +666,7 @@ namespace Geopilot.Api.Controllers
         {
             return new MandateSummary(
                 mandate.Id,
+                mandate.Key,
                 mandate.Name,
                 mandate.Description,
                 mandate.AllowDelivery,
