@@ -282,6 +282,23 @@ public class GeopilotUserInfoServiceTest
     }
 
     [TestMethod]
+    public async Task GetUserInfoAsyncWithCancelledTokenThrowsOperationCanceled()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Returns<HttpRequestMessage, CancellationToken>((_, ct) => Task.FromCanceled<HttpResponseMessage>(ct));
+        await cts.CancelAsync();
+
+        // Act & Assert
+        await Assert.ThrowsExactlyAsync<TaskCanceledException>(() => userInfoService.GetUserInfoAsync("valid-access-token", cts.Token));
+    }
+
+    [TestMethod]
     public async Task GetUserInfoAsyncWithServerErrorThrowsIdentityProviderUnavailable()
     {
         // Arrange

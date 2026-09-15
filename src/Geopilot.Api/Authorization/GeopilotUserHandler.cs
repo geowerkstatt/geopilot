@@ -77,7 +77,8 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         UserInfoResponse? userInfo;
         try
         {
-            userInfo = await userInfoService.GetUserInfoAsync(accessToken);
+            var cancellationToken = httpContextAccessor.HttpContext?.RequestAborted ?? CancellationToken.None;
+            userInfo = await userInfoService.GetUserInfoAsync(accessToken, cancellationToken);
         }
         catch (IdentityProviderUnavailableException ex)
         {

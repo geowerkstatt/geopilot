@@ -179,7 +179,7 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
         UserInfoResponse? userInfo;
         try
         {
-            userInfo = await userInfoService.GetUserInfoAsync(token);
+            userInfo = await userInfoService.GetUserInfoAsync(token, Context.RequestAborted);
         }
         catch (IdentityProviderUnavailableException ex)
         {

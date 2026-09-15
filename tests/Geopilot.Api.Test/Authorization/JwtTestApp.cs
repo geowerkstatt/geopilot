@@ -36,8 +36,8 @@ internal sealed class JwtTestApp : GeopilotTestApp
 
             var mockUserInfo = new Mock<IGeopilotUserInfoService>();
             mockUserInfo
-                .Setup(s => s.GetUserInfoAsync(It.IsAny<string>()))
-                .Returns<string>(token =>
+                .Setup(s => s.GetUserInfoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns<string, CancellationToken>((token, _) =>
                 {
                     var handler = new JwtSecurityTokenHandler();
                     var jwt = handler.ReadJwtToken(token);

@@ -81,7 +81,7 @@ public static class AuthenticationExtensions
                             var userInfoService = context.HttpContext.RequestServices.GetRequiredService<IGeopilotUserInfoService>();
                             try
                             {
-                                await userInfoService.GetUserInfoAsync(token);
+                                await userInfoService.GetUserInfoAsync(token, context.HttpContext.RequestAborted);
                             }
                             catch (IdentityProviderUnavailableException ex)
                             {

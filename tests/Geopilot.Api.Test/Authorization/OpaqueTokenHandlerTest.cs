@@ -104,7 +104,7 @@ public class OpaqueTokenHandlerTest
         var (_, result) = await RunAuthenticateAsync(context);
 
         Assert.IsFalse(result.Succeeded);
-        userInfoServiceMock.Verify(s => s.GetUserInfoAsync(It.IsAny<string>()), Times.Never);
+        userInfoServiceMock.Verify(s => s.GetUserInfoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]
@@ -177,7 +177,7 @@ public class OpaqueTokenHandlerTest
                 Content = new StringContent("{\"active\":true,\"aud\":\"geopilot-api\"}", Encoding.UTF8, "application/json"),
             });
 
-        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token"))
+        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new IdentityProviderUnavailableException("User info request failed."));
 
         var (_, result) = await RunAuthenticateAsync(context);
@@ -243,7 +243,7 @@ public class OpaqueTokenHandlerTest
 
         Assert.IsFalse(result.Succeeded);
         Assert.AreEqual("Introspection response contains no audience.", result.Failure?.Message);
-        userInfoServiceMock.Verify(s => s.GetUserInfoAsync(It.IsAny<string>()), Times.Never);
+        userInfoServiceMock.Verify(s => s.GetUserInfoAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [TestMethod]
@@ -258,7 +258,7 @@ public class OpaqueTokenHandlerTest
                 Content = new StringContent("{\"active\":true}", Encoding.UTF8, "application/json"),
             });
 
-        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token")).ReturnsAsync(new UserInfoResponse
+        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token", It.IsAny<CancellationToken>())).ReturnsAsync(new UserInfoResponse
         {
             Sub = "user-42",
             Email = "user42@example.com",
@@ -282,7 +282,7 @@ public class OpaqueTokenHandlerTest
                 Content = new StringContent("{\"active\":true,\"aud\":\"geopilot-api\",\"sub\":\"idp-sub\"}", Encoding.UTF8, "application/json"),
             });
 
-        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token")).ReturnsAsync(new UserInfoResponse
+        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token", It.IsAny<CancellationToken>())).ReturnsAsync(new UserInfoResponse
         {
             Sub = "userinfo-sub",
             Email = "userinfo@example.com",
@@ -306,7 +306,7 @@ public class OpaqueTokenHandlerTest
                 Content = new StringContent("{\"active\":true}", Encoding.UTF8, "application/json"),
             });
 
-        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token")).ReturnsAsync((UserInfoResponse?)null);
+        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token", It.IsAny<CancellationToken>())).ReturnsAsync((UserInfoResponse?)null);
 
         var (_, result) = await RunAuthenticateAsync(context);
 
@@ -324,7 +324,7 @@ public class OpaqueTokenHandlerTest
                 Content = new StringContent("{\"active\":true,\"aud\":\"geopilot-api\"}", Encoding.UTF8, "application/json"),
             });
 
-        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token")).ReturnsAsync(new UserInfoResponse
+        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token", It.IsAny<CancellationToken>())).ReturnsAsync(new UserInfoResponse
         {
             Sub = "user-1",
             Email = "u1@example.com",
@@ -347,7 +347,7 @@ public class OpaqueTokenHandlerTest
                 Content = new StringContent("{\"active\":true,\"aud\":[\"other-api\",\"geopilot-api\"]}", Encoding.UTF8, "application/json"),
             });
 
-        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token")).ReturnsAsync(new UserInfoResponse
+        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token", It.IsAny<CancellationToken>())).ReturnsAsync(new UserInfoResponse
         {
             Sub = "user-1",
             Email = "u1@example.com",
@@ -536,7 +536,7 @@ public class OpaqueTokenHandlerTest
                 Content = new StringContent("{\"active\":true,\"aud\":\"different-api\"}", Encoding.UTF8, "application/json"),
             });
 
-        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token")).ReturnsAsync(new UserInfoResponse
+        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token", It.IsAny<CancellationToken>())).ReturnsAsync(new UserInfoResponse
         {
             Sub = "user-1",
             Email = "u1@example.com",

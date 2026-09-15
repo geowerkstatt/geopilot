@@ -51,7 +51,7 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
     }
 
     /// <inheritdoc/>
-    public async Task<UserInfoResponse?> GetUserInfoAsync(string accessToken)
+    public async Task<UserInfoResponse?> GetUserInfoAsync(string accessToken, CancellationToken cancellationToken = default)
     {
         if (accessToken == cachedToken && cachedUserInfo is not null)
         {
@@ -64,7 +64,7 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
             using var request = new HttpRequestMessage(HttpMethod.Get, userInfoEndpoint);
             request.Headers.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-            var response = await httpClient.SendAsync(request);
+            var response = await httpClient.SendAsync(request, cancellationToken);
             if ((int)response.StatusCode >= 500)
             {
                 throw new IdentityProviderUnavailableException($"User info request failed with status code {response.StatusCode}.");
@@ -76,7 +76,7 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
                 return null;
             }
 
-            var content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
             var userInfo = JsonSerializer.Deserialize<UserInfoResponse>(content, JsonOptions);
             if (string.IsNullOrEmpty(userInfo?.Sub) || string.IsNullOrEmpty(userInfo?.Email) ||
@@ -89,6 +89,10 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
             cachedToken = accessToken;
             cachedUserInfo = userInfo;
             return userInfo;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
