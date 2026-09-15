@@ -58,9 +58,9 @@ public class OpaqueTokenOptions : AuthenticationSchemeOptions
             throw new InvalidOperationException("Auth:ConfidentialClientId is required.");
         }
 
-        if (IntrospectionAuthMethod is null)
+        if (IntrospectionAuthMethod is null || !Enum.IsDefined(IntrospectionAuthMethod.Value))
         {
-            throw new InvalidOperationException("Auth:IntrospectionAuthMethod is required.");
+            throw new InvalidOperationException("Auth:IntrospectionAuthMethod is required and must be ClientSecretBasic or ClientSecretPost.");
         }
 
         if (string.IsNullOrWhiteSpace(ConfidentialClientSecret))

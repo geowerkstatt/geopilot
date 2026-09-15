@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Security.Claims;
@@ -92,7 +93,7 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
                 break;
 
             default:
-                throw new InvalidOperationException($"Unsupported introspection authentication method: {Options.IntrospectionAuthMethod}.");
+                throw new UnreachableException($"Unsupported introspection authentication method: {Options.IntrospectionAuthMethod}.");
         }
 
         request.Content = new FormUrlEncodedContent(formFields);

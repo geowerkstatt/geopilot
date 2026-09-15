@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using Moq;
 using Moq.Protected;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
@@ -549,12 +550,12 @@ public class OpaqueTokenHandlerTest
     }
 
     [TestMethod]
-    public async Task AuthenticateAsyncUnsupportedAuthMethodThrowsInvalidOperationException()
+    public async Task AuthenticateAsyncUnsupportedAuthMethodThrowsUnreachable()
     {
         options.IntrospectionAuthMethod = (IntrospectionAuthMethod)999;
         var context = CreateContextWithBearerToken("opaque-token");
 
-        var ex = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => RunAuthenticateAsync(context));
+        var ex = await Assert.ThrowsExactlyAsync<UnreachableException>(() => RunAuthenticateAsync(context));
         Assert.AreEqual("Unsupported introspection authentication method: 999.", ex.Message);
     }
 
@@ -645,7 +646,22 @@ public class OpaqueTokenHandlerTest
         };
 
         var ex = Assert.ThrowsExactly<InvalidOperationException>(() => testOptions.Validate());
-        Assert.AreEqual("Auth:IntrospectionAuthMethod is required.", ex.Message);
+        Assert.AreEqual("Auth:IntrospectionAuthMethod is required and must be ClientSecretBasic or ClientSecretPost.", ex.Message);
+    }
+
+    [TestMethod]
+    public void ValidateWithUndefinedIntrospectionAuthMethodThrows()
+    {
+        var testOptions = new OpaqueTokenOptions
+        {
+            IntrospectionUrl = "https://idp.example.com/introspect",
+            ConfidentialClientId = "client-id",
+            ConfidentialClientSecret = "client-secret",
+            IntrospectionAuthMethod = (IntrospectionAuthMethod)7,
+        };
+
+        var ex = Assert.ThrowsExactly<InvalidOperationException>(() => testOptions.Validate());
+        Assert.AreEqual("Auth:IntrospectionAuthMethod is required and must be ClientSecretBasic or ClientSecretPost.", ex.Message);
     }
 
     [TestMethod]
