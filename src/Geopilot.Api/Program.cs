@@ -186,6 +186,8 @@ builder.Services.AddHttpClient(GeopilotUserInfoService.HttpClientName, client =>
 {
     client.Timeout = TimeSpan.FromSeconds(15);
 });
+
+// Scoped is required: GeopilotUserInfoService caches the user info per request in a single slot.
 builder.Services.AddScoped<IGeopilotUserInfoService, GeopilotUserInfoService>();
 builder.Services.AddHttpContextAccessor();
 

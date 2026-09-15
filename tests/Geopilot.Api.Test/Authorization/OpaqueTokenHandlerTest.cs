@@ -510,6 +510,20 @@ public class OpaqueTokenHandlerTest
     }
 
     [TestMethod]
+    public void AddGeopilotAuthenticationWithUndefinedFormatThrows()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Configuration.Sources.Clear();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Auth:AccessTokenFormat"] = "5",
+        });
+
+        var ex = Assert.ThrowsExactly<InvalidOperationException>(() => builder.AddGeopilotAuthentication());
+        Assert.AreEqual("Unsupported Auth:AccessTokenFormat '5'.", ex.Message);
+    }
+
+    [TestMethod]
     public async Task AddGeopilotAuthenticationWithInvalidOpaqueConfigThrowsOnStart()
     {
         var builder = WebApplication.CreateBuilder();
