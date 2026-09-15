@@ -511,7 +511,8 @@ namespace Geopilot.Api.Controllers
 
             var deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
             deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
-            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
+            var declarationService = new DeliveryDeclarationService(new Mock<ILogger<DeliveryDeclarationService>>().Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
+            var deliveryController = new DeliveryController(new Mock<ILogger<DeliveryController>>().Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
             deliveryController.SetupTestUser(editUser);
             mandateServiceMock.Setup(s => s.GetMandateForUser(mandateToUpdate.Id, editUser)).ReturnsAsync(() => context.Mandates.First(m => m.Id == mandateToUpdate.Id));
 

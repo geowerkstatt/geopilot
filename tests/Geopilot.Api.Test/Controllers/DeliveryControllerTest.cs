@@ -23,6 +23,7 @@ public class DeliveryControllerTest
     private Mock<IMandateService> mandateServiceMock;
     private Mock<IAssetHandler> assetHandlerMock;
     private Mock<ILogger<DeliveryController>> loggerMock;
+    private Mock<ILogger<DeliveryDeclarationService>> declarationLoggerMock;
     private Mock<IOptions<DeliveryOptions>> deliveryOptionsMock;
     private DeliveryController deliveryController;
     private Context context;
@@ -31,13 +32,18 @@ public class DeliveryControllerTest
     public void Initialize()
     {
         loggerMock = new Mock<ILogger<DeliveryController>>();
+        declarationLoggerMock = new Mock<ILogger<DeliveryDeclarationService>>();
         processingServiceMock = new Mock<IProcessingService>(MockBehavior.Strict);
         mandateServiceMock = new Mock<IMandateService>(MockBehavior.Strict);
         assetHandlerMock = new Mock<IAssetHandler>(MockBehavior.Strict);
         context = AssemblyInitialize.DbFixture.GetTestContext();
         deliveryOptionsMock = new Mock<IOptions<DeliveryOptions>>();
         deliveryOptionsMock.Setup(o => o.Value).Returns(new DeliveryOptions { UploaderDeleteEnabled = true });
-        deliveryController = new DeliveryController(loggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
+
+        // The declaration service is wired up for real, not mocked: these tests cover the delivery rules, which
+        // moved into it, and mocking it here would leave those rules untested.
+        var declarationService = new DeliveryDeclarationService(declarationLoggerMock.Object, context, processingServiceMock.Object, mandateServiceMock.Object, assetHandlerMock.Object);
+        deliveryController = new DeliveryController(loggerMock.Object, context, declarationService, mandateServiceMock.Object, assetHandlerMock.Object, deliveryOptionsMock.Object);
     }
 
     [TestCleanup]
@@ -59,6 +65,7 @@ public class DeliveryControllerTest
     {
         var mandateId = context.Mandates.First().Id;
         var guid = SetupProcessingJob(mandateId, pipelineState);
+        deliveryController.SetupTestUser(context.Users.First());
         var deliveriesCount = context.Deliveries.Count();
 
         var result = (await deliveryController.Create(new DeliveryRequest { JobId = guid })) as ObjectResult;
@@ -77,6 +84,7 @@ public class DeliveryControllerTest
         processingServiceMock
             .Setup(s => s.GetJob(guid))
             .Returns(default(ProcessingJob?));
+        deliveryController.SetupTestUser(context.Users.First());
 
         var deliveriesCount = context.Deliveries.Count();
 
