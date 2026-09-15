@@ -1,12 +1,9 @@
 ﻿using Geopilot.Api.Authorization;
 using Geopilot.Api.Contracts;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using Moq;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
 namespace Geopilot.Api.Test.Authorization;
 
@@ -57,13 +54,8 @@ public class GeopilotUserHandlerTest
         userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync(userInfo);
 
-        var authHandlerContext = new AuthorizationHandlerContext(
-            Enumerable.Empty<IAuthorizationRequirement>(),
-            new ClaimsPrincipal(),
-            null);
-
         // Act - Create user
-        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
 
         // Assert
         Assert.IsNotNull(user);
@@ -84,7 +76,7 @@ public class GeopilotUserHandlerTest
             .ReturnsAsync(updatedUserInfo);
 
         // Act - Update user
-        user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        user = await geopilotUserHandler.UpdateOrCreateUser();
 
         // Assert
         Assert.IsNotNull(user);
@@ -95,7 +87,7 @@ public class GeopilotUserHandlerTest
     }
 
     [TestMethod]
-    public async Task UpdateOrCreateUserElevatesFirstUserToAdmin()
+    public async Task FirstUserRemainsNonAdmin()
     {
         // Arrange
         var authIdentifier = Guid.NewGuid().ToString();
@@ -110,11 +102,6 @@ public class GeopilotUserHandlerTest
         userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token", It.IsAny<CancellationToken>()))
             .ReturnsAsync(userInfo);
 
-        var authHandlerContext = new AuthorizationHandlerContext(
-            Enumerable.Empty<IAuthorizationRequirement>(),
-            new ClaimsPrincipal(),
-            null);
-
         // Clear users with all relations in database
         context.Assets.RemoveRange(context.Assets);
         context.Deliveries.RemoveRange(context.Deliveries);
@@ -122,28 +109,35 @@ public class GeopilotUserHandlerTest
         context.SaveChanges();
 
         // Act
-        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
 
         // Assert
         Assert.IsNotNull(user);
         Assert.AreEqual(authIdentifier, user.AuthIdentifier);
         Assert.AreEqual("STORMSLAW", user.FullName);
         Assert.AreEqual("MAIN@example.com", user.Email);
-        Assert.IsTrue(user.IsAdmin);
+        Assert.IsFalse(user.IsAdmin);
     }
 
     [TestMethod]
-    public async Task UpdateOrCreateUserWithMissingClaimsDoesNothing()
+    public async Task UpdateOrCreateUserWithoutHttpContextDoesNothing()
     {
-        var principalWithMissingClaims = new ClaimsPrincipal(new ClaimsIdentity(new[]
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, Guid.NewGuid().ToString()),
-        }));
-
-        var authHandlerContext = new AuthorizationHandlerContext(Enumerable.Empty<IAuthorizationRequirement>(), principalWithMissingClaims, null);
-
-        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
         Assert.IsNull(user);
+    }
+
+    [TestMethod]
+    public async Task UpdateOrCreateUserWithoutUserInfoReturnsNull()
+    {
+        var userCountBefore = context.Users.Count();
+        SetupHttpContextWithToken("mock-token");
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token"))
+            .ReturnsAsync((UserInfoResponse?)null);
+
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
+
+        Assert.IsNull(user);
+        Assert.AreEqual(userCountBefore, context.Users.Count());
     }
 
     [TestMethod]
@@ -152,13 +146,8 @@ public class GeopilotUserHandlerTest
         // Arrange
         SetupHttpContextWithoutToken();
 
-        var authHandlerContext = new AuthorizationHandlerContext(
-            Enumerable.Empty<IAuthorizationRequirement>(),
-            new ClaimsPrincipal(),
-            null);
-
         // Act
-        var user = await geopilotUserHandler.UpdateOrCreateUser(authHandlerContext);
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
 
         // Assert
         Assert.IsNull(user);
