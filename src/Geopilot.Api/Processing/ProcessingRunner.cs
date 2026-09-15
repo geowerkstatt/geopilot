@@ -93,6 +93,12 @@ public class ProcessingRunner : BackgroundService
 
                 terminalState = pipeline.State;
                 jobStore.PipelineFinished(pipeline.JobId, pipeline.State);
+
+                // Declare the delivery for an unattended caller that asked for it. Guarded inside, because an
+                // exception escaping here would be caught below and would record this finished run as failed.
+                // On the host token, not the linked one: the job timeout bounds the run, and the declaration
+                // starts once the run is over, so a nearly exhausted timeout must not cut it short.
+                await CompleteJobAsync(pipeline.JobId, cancellationToken);
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
             {
@@ -284,6 +290,28 @@ public class ProcessingRunner : BackgroundService
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Writing the execution protocol for job <{JobId}> failed; the job continues.", jobId);
+        }
+    }
+
+    /// <summary>
+    /// Runs the job completion handler against a fresh scope, if one is registered. It only is while machine
+    /// delivery is enabled, so the nullable resolve is the switch. Guarded like the protocol write: a problem
+    /// here must not change the outcome of the run, which the catch in the loop would record as a failure.
+    /// </summary>
+    private async Task CompleteJobAsync(Guid jobId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var scope = serviceScopeFactory.CreateScope();
+            var handler = scope.ServiceProvider.GetService<IJobCompletionHandler>();
+            if (handler is null)
+                return;
+
+            await handler.OnJobFinishedAsync(jobId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Completing job <{JobId}> failed; the run itself is unaffected.", jobId);
         }
     }
 
