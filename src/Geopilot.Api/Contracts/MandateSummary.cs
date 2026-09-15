@@ -7,6 +7,7 @@ namespace Geopilot.Api.Contracts;
 /// Represents a summary of a mandate.
 /// </summary>
 /// <param name="Id">The unique identifier of the mandate.</param>
+/// <param name="Key">The unique key that addresses the mandate in an automated delivery, if one is configured.</param>
 /// <param name="Name">The display name of the mandate.</param>
 /// <param name="Description">The description of the mandate.</param>
 /// <param name="AllowDelivery">Indicates whether delivery is allowed for this mandate.</param>
@@ -15,6 +16,7 @@ namespace Geopilot.Api.Contracts;
 /// <param name="EvaluateComment">Defines how <see cref="Delivery.Comment"/> is evaluated.</param>
 public record MandateSummary(
     int Id,
+    string? Key,
     LocalizedText Name,
     LocalizedText Description,
     bool AllowDelivery,
