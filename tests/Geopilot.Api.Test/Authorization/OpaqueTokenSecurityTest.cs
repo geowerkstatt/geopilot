@@ -47,6 +47,16 @@ public class OpaqueTokenSecurityTest
     }
 
     [TestMethod]
+    public async Task UnavailableIdpOnAdminEndpointReturns503()
+    {
+        using var request = CreateRequest(HttpMethod.Get, "/api/v1/user", OpaqueTestApp.OpaqueIdpUnavailableToken);
+        var response = await client.SendAsync(request);
+        Assert.AreEqual(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.IsFalse(response.Headers.Contains("WWW-Authenticate"));
+        StringAssert.Contains(await response.Content.ReadAsStringAsync(), "Authentication currently not possible.");
+    }
+
+    [TestMethod]
     public async Task ActiveUserTokenOnAdminEndpointReturns403()
     {
         using var request = CreateRequest(HttpMethod.Get, "/api/v1/user", OpaqueTestApp.OpaqueUserToken);

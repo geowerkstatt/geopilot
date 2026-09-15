@@ -1,4 +1,5 @@
-﻿using Geopilot.Api.Models;
+﻿using Geopilot.Api.Contracts;
+using Geopilot.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Net.Http.Headers;
@@ -73,7 +74,17 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             return null;
         }
 
-        var userInfo = await userInfoService.GetUserInfoAsync(accessToken);
+        UserInfoResponse? userInfo;
+        try
+        {
+            userInfo = await userInfoService.GetUserInfoAsync(accessToken);
+        }
+        catch (IdentityProviderUnavailableException ex)
+        {
+            logger.LogError(ex, "User info request failed.");
+            return null;
+        }
+
         if (userInfo == null)
             return null;
 

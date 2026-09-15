@@ -12,6 +12,7 @@ internal static class JwtTestTokenBuilder
     public const string Audience = "geopilot-api";
     public const string AdminSub = "1f9f9000-c651-4b04-b6ae-9ce1e7f45c15";
     public const string UserSub = "1ed45832-2880-4fd4-a274-bbcc101c3307";
+    public const string IdpUnavailableSub = "8c1d1c3e-5e0f-4d0a-9c0e-2b0f1d7a4f21";
 
     private static readonly RSA RsaKey = RSA.Create(2048);
     public static readonly RsaSecurityKey SigningKey = new(RsaKey);
@@ -53,6 +54,9 @@ internal static class JwtTestTokenBuilder
 
     public static string CreateValidUserToken() =>
         CreateToken(UserSub, Issuer, Audience, Credentials);
+
+    public static string CreateIdpUnavailableToken() =>
+        CreateToken(IdpUnavailableSub, Issuer, Audience, Credentials);
 
     public static string CreateExpiredToken() =>
         CreateToken(AdminSub, Issuer, Audience, Credentials, expires: DateTime.UtcNow.AddHours(-1), notBefore: DateTime.UtcNow.AddHours(-2));

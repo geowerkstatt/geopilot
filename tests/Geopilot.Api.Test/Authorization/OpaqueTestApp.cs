@@ -14,6 +14,7 @@ internal sealed class OpaqueTestApp : GeopilotTestApp
     public const string OpaqueAdminToken = "valid-admin-opaque-token";
     public const string OpaqueUserToken = "valid-user-opaque-token";
     public const string OpaqueInactiveToken = "inactive-opaque-token";
+    public const string OpaqueIdpUnavailableToken = "idp-unavailable-opaque-token";
     public const string Audience = "geopilot-api";
     public const string IntrospectionUrl = "https://idp.geopilot.test/oauth2/introspect";
     public const string UserInfoUrl = "https://idp.geopilot.test/oauth2/userinfo";
@@ -96,6 +97,11 @@ internal sealed class OpaqueTestApp : GeopilotTestApp
                     token = Uri.UnescapeDataString(kvp[1]);
                     break;
                 }
+            }
+
+            if (token == OpaqueIdpUnavailableToken)
+            {
+                return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
             }
 
             string responseJson;

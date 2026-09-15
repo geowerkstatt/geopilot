@@ -89,7 +89,7 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
   const { uploadFiles } = useUpload();
   const { user } = useGeopilotAuth();
   const { localized } = useLocalized();
-  const prevUserIdRef = useRef<number | undefined>(user?.id);
+  const prevUserRef = useRef(user);
   const [steps, setSteps] = useState<Map<DeliveryStepEnum, DeliveryStep>>(getSteps(new Map(), false));
   const [submittedData, setSubmittedData] = useState<DeliverySubmitData>();
 
@@ -403,13 +403,15 @@ export const DeliveryProvider: FC<PropsWithChildren> = ({ children }) => {
     setSubmittedData(undefined);
   }, [abortControllers]);
 
-  // Reset delivery when user changes AFTER processing was already started
+  // Reset delivery when user changes AFTER processing was already started.
+  // An unknown user (undefined) that becomes known is the same person, not a change.
   useEffect(() => {
-    if (processingStarted && user?.id !== prevUserIdRef.current) {
+    const userWasKnown = prevUserRef.current !== undefined;
+    if (processingStarted && userWasKnown && user?.id !== prevUserRef.current?.id) {
       resetDelivery();
     }
-    prevUserIdRef.current = user?.id;
-  }, [user?.id, resetDelivery, processingStarted]);
+    prevUserRef.current = user;
+  }, [user, resetDelivery, processingStarted]);
 
   return (
     <DeliveryContext.Provider

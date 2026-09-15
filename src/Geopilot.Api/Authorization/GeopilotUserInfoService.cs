@@ -65,6 +65,11 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
             request.Headers.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
             var response = await httpClient.SendAsync(request);
+            if ((int)response.StatusCode >= 500)
+            {
+                throw new IdentityProviderUnavailableException($"User info request failed with status code {response.StatusCode}.");
+            }
+
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogError("Failed to retrieve user info. Status: {StatusCode}", response.StatusCode);
@@ -85,7 +90,11 @@ public class GeopilotUserInfoService : IGeopilotUserInfoService
             cachedUserInfo = userInfo;
             return userInfo;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            throw new IdentityProviderUnavailableException("User info request failed.", ex);
+        }
+        catch (Exception ex) when (ex is not IdentityProviderUnavailableException)
         {
             logger.LogError(ex, "Error retrieving user info.");
             return null;

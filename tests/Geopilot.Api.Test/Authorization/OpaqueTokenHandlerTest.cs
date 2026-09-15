@@ -108,7 +108,7 @@ public class OpaqueTokenHandlerTest
     }
 
     [TestMethod]
-    public async Task AuthenticateAsyncHttp500ReturnsFail()
+    public async Task AuthenticateAsyncHttp500ReturnsIdentityProviderUnavailable()
     {
         var context = CreateContextWithBearerToken("opaque-token");
         httpHandlerMock.Protected()
@@ -118,10 +118,39 @@ public class OpaqueTokenHandlerTest
         var (_, result) = await RunAuthenticateAsync(context);
 
         Assert.IsFalse(result.Succeeded);
+        Assert.IsInstanceOfType<IdentityProviderUnavailableException>(result.Failure);
     }
 
     [TestMethod]
-    public async Task AuthenticateAsyncInvalidJsonReturnsFail()
+    public async Task AuthenticateAsyncHttp401ReturnsFailWithoutIdentityProviderUnavailable()
+    {
+        var context = CreateContextWithBearerToken("opaque-token");
+        httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+        var (_, result) = await RunAuthenticateAsync(context);
+
+        Assert.IsFalse(result.Succeeded);
+        Assert.IsNotInstanceOfType<IdentityProviderUnavailableException>(result.Failure);
+    }
+
+    [TestMethod]
+    public async Task AuthenticateAsyncTransportErrorReturnsIdentityProviderUnavailable()
+    {
+        var context = CreateContextWithBearerToken("opaque-token");
+        httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Connection refused"));
+
+        var (_, result) = await RunAuthenticateAsync(context);
+
+        Assert.IsFalse(result.Succeeded);
+        Assert.IsInstanceOfType<IdentityProviderUnavailableException>(result.Failure);
+    }
+
+    [TestMethod]
+    public async Task AuthenticateAsyncInvalidJsonReturnsIdentityProviderUnavailable()
     {
         var context = CreateContextWithBearerToken("opaque-token");
         httpHandlerMock.Protected()
@@ -134,6 +163,69 @@ public class OpaqueTokenHandlerTest
         var (_, result) = await RunAuthenticateAsync(context);
 
         Assert.IsFalse(result.Succeeded);
+        Assert.IsInstanceOfType<IdentityProviderUnavailableException>(result.Failure);
+    }
+
+    [TestMethod]
+    public async Task AuthenticateAsyncUserInfoUnavailableReturnsIdentityProviderUnavailable()
+    {
+        var context = CreateContextWithBearerToken("opaque-token");
+        httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"active\":true,\"aud\":\"geopilot-api\"}", Encoding.UTF8, "application/json"),
+            });
+
+        userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token"))
+            .ThrowsAsync(new IdentityProviderUnavailableException("User info request failed."));
+
+        var (_, result) = await RunAuthenticateAsync(context);
+
+        Assert.IsFalse(result.Succeeded);
+        Assert.IsInstanceOfType<IdentityProviderUnavailableException>(result.Failure);
+    }
+
+    [TestMethod]
+    public async Task HandleChallengeAsyncAfterIdentityProviderUnavailableReturns503WithProblemDetails()
+    {
+        var context = CreateContextWithBearerToken("opaque-token");
+        context.Response.Body = new MemoryStream();
+        context.RequestServices = new ServiceCollection().AddLogging().BuildServiceProvider();
+        httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+
+        var (handler, _) = await RunAuthenticateAsync(context);
+
+        await handler.ChallengeAsync(new AuthenticationProperties());
+
+        Assert.AreEqual(StatusCodes.Status503ServiceUnavailable, context.Response.StatusCode);
+        Assert.IsFalse(context.Response.Headers.ContainsKey(HeaderNames.WWWAuthenticate));
+        StringAssert.Contains(context.Response.ContentType, "application/problem+json");
+        context.Response.Body.Position = 0;
+        using var reader = new StreamReader(context.Response.Body);
+        var body = await reader.ReadToEndAsync();
+        StringAssert.Contains(body, "Authentication currently not possible.");
+    }
+
+    [TestMethod]
+    public async Task HandleChallengeAsyncAfterInactiveTokenReturns401()
+    {
+        var context = CreateContextWithBearerToken("opaque-token");
+        httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"active\":false}", Encoding.UTF8, "application/json"),
+            });
+
+        var (handler, _) = await RunAuthenticateAsync(context);
+
+        await handler.ChallengeAsync(new AuthenticationProperties());
+
+        Assert.AreEqual(StatusCodes.Status401Unauthorized, context.Response.StatusCode);
+        Assert.AreEqual("Bearer", context.Response.Headers[HeaderNames.WWWAuthenticate].ToString());
     }
 
     [TestMethod]

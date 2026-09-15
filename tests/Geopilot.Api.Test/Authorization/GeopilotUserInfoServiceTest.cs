@@ -261,33 +261,45 @@ public class GeopilotUserInfoServiceTest
     }
 
     [TestMethod]
-    public async Task GetUserInfoAsyncWithHttpExceptionReturnsNull()
+    public async Task GetUserInfoAsyncWithHttpExceptionThrowsIdentityProviderUnavailable()
     {
         // Arrange
         var accessToken = "valid-access-token";
+        var networkError = new HttpRequestException("Network error");
 
         httpMessageHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .ThrowsAsync(new HttpRequestException("Network error"));
+            .ThrowsAsync(networkError);
 
         // Act
-        var result = await userInfoService.GetUserInfoAsync(accessToken);
+        var ex = await Assert.ThrowsExactlyAsync<IdentityProviderUnavailableException>(() => userInfoService.GetUserInfoAsync(accessToken));
 
         // Assert
-        Assert.IsNull(result);
+        Assert.AreSame(networkError, ex.InnerException);
+    }
 
-        // Verify error logging
-        loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error retrieving user info")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+    [TestMethod]
+    public async Task GetUserInfoAsyncWithServerErrorThrowsIdentityProviderUnavailable()
+    {
+        // Arrange
+        var accessToken = "valid-access-token";
+        using var httpResponse = new HttpResponseMessage(HttpStatusCode.BadGateway);
+
+        httpMessageHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(httpResponse);
+
+        // Act
+        var ex = await Assert.ThrowsExactlyAsync<IdentityProviderUnavailableException>(() => userInfoService.GetUserInfoAsync(accessToken));
+
+        // Assert
+        Assert.AreEqual("User info request failed with status code BadGateway.", ex.Message);
     }
 
     [TestMethod]

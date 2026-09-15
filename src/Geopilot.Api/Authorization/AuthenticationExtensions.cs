@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace Geopilot.Api.Authorization;
 
@@ -69,6 +70,35 @@ public static class AuthenticationExtensions
                             }
 
                             return Task.CompletedTask;
+                        },
+                        OnTokenValidated = async context =>
+                        {
+                            // Fetch user info during authentication, so an unreachable identity provider
+                            // fails with a typed reason here instead of a 403 in the authorization handler.
+                            // The result is discarded on purpose: GeopilotUserInfoService is scoped and caches
+                            // it, so GeopilotUserHandler reads the same response without a second request.
+                            var token = ((JsonWebToken)context.SecurityToken).EncodedToken;
+                            var userInfoService = context.HttpContext.RequestServices.GetRequiredService<IGeopilotUserInfoService>();
+                            try
+                            {
+                                await userInfoService.GetUserInfoAsync(token);
+                            }
+                            catch (IdentityProviderUnavailableException ex)
+                            {
+                                context.Fail(ex);
+                            }
+                        },
+                        OnChallenge = async context =>
+                        {
+                            if (context.AuthenticateFailure is IdentityProviderUnavailableException)
+                            {
+                                context.HandleResponse();
+                                await Results.Problem(
+                                    statusCode: StatusCodes.Status503ServiceUnavailable,
+                                    title: "Authentication unavailable",
+                                    detail: "Authentication currently not possible.")
+                                    .ExecuteAsync(context.HttpContext);
+                            }
                         },
                     };
                 });

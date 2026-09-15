@@ -123,6 +123,17 @@ public class JwtSecurityTest
     }
 
     [TestMethod]
+    public async Task UnavailableIdpReturns503()
+    {
+        var token = JwtTestTokenBuilder.CreateIdpUnavailableToken();
+        using var request = CreateRequest(RepresentativeAdminMethod, RepresentativeAdminEndpoint, token);
+        var response = await client.SendAsync(request);
+        Assert.AreEqual(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.IsFalse(response.Headers.Contains("WWW-Authenticate"));
+        StringAssert.Contains(await response.Content.ReadAsStringAsync(), "Authentication currently not possible.");
+    }
+
+    [TestMethod]
     public async Task ExpiredTokenReturns401()
     {
         var token = JwtTestTokenBuilder.CreateExpiredToken();

@@ -43,6 +43,11 @@ internal sealed class JwtTestApp : GeopilotTestApp
                     var jwt = handler.ReadJwtToken(token);
                     var sub = jwt.Subject;
 
+                    if (sub == JwtTestTokenBuilder.IdpUnavailableSub)
+                    {
+                        throw new IdentityProviderUnavailableException("User info request failed.");
+                    }
+
                     if (sub == JwtTestTokenBuilder.AdminSub)
                     {
                         return Task.FromResult<UserInfoResponse?>(new UserInfoResponse

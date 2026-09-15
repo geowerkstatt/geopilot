@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using Geopilot.Api.Contracts;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
@@ -105,11 +106,17 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Introspection request failed.");
-            return AuthenticateResult.Fail("Introspection request failed.");
+            return AuthenticateResult.Fail(new IdentityProviderUnavailableException("Introspection request failed.", ex));
         }
 
         using (response)
         {
+            if ((int)response.StatusCode >= 500)
+            {
+                Logger.LogWarning("Introspection request failed with status code {StatusCode}.", response.StatusCode);
+                return AuthenticateResult.Fail(new IdentityProviderUnavailableException($"Introspection request failed with status code {response.StatusCode}."));
+            }
+
             if (!response.IsSuccessStatusCode)
             {
                 Logger.LogWarning("Introspection request failed with status code {StatusCode}.", response.StatusCode);
@@ -124,7 +131,7 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
             catch (Exception ex)
             {
                 Logger.LogWarning(ex, "Failed to parse introspection response JSON.");
-                return AuthenticateResult.Fail("Failed to parse introspection response JSON.");
+                return AuthenticateResult.Fail(new IdentityProviderUnavailableException("Failed to parse introspection response JSON.", ex));
             }
 
             using (doc)
@@ -169,7 +176,17 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
             }
         }
 
-        var userInfo = await userInfoService.GetUserInfoAsync(token);
+        UserInfoResponse? userInfo;
+        try
+        {
+            userInfo = await userInfoService.GetUserInfoAsync(token);
+        }
+        catch (IdentityProviderUnavailableException ex)
+        {
+            Logger.LogWarning(ex, "User info request failed.");
+            return AuthenticateResult.Fail(ex);
+        }
+
         if (userInfo is null)
         {
             Logger.LogWarning("Failed to retrieve user info for opaque token.");
@@ -184,10 +201,20 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
     }
 
     /// <inheritdoc/>
-    protected override Task HandleChallengeAsync(AuthenticationProperties properties)
+    protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
+        var authResult = await HandleAuthenticateOnceSafeAsync();
+        if (authResult.Failure is IdentityProviderUnavailableException)
+        {
+            await Results.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Authentication unavailable",
+                detail: "Authentication currently not possible.")
+                .ExecuteAsync(Context);
+            return;
+        }
+
         Response.StatusCode = StatusCodes.Status401Unauthorized;
         Response.Headers.Append(HeaderNames.WWWAuthenticate, "Bearer");
-        return Task.CompletedTask;
     }
 }
