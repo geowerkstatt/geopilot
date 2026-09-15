@@ -262,7 +262,10 @@ app.ValidatePipelineConfiguration();
 
 if (accessTokenFormat == AccessTokenFormat.Opaque)
 {
-    app.Logger.LogInformation("Authentication configured in Opaque mode. Audience validation delegates to the identity provider unless aud is present in the introspection response.");
+    var audienceValidation = string.IsNullOrWhiteSpace(builder.Configuration["Auth:Audience"])
+        ? "is delegated to the identity provider"
+        : "requires aud in the introspection response";
+    app.Logger.LogInformation("Authentication configured in Opaque mode. Audience validation {AudienceValidation}.", audienceValidation);
 }
 
 app.UseSwagger();

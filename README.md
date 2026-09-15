@@ -231,7 +231,7 @@ Im Modus `Opaque` validiert die API Tokens über Introspection (RFC 7662) und be
 - `Auth:ConfidentialClientSecret`: Client-Secret des Confidential Clients.
 - `Auth:UserInfoUrl`: URL des `userinfo_endpoint` (liefert `sub`, `email`, `name`).
 
-Die API prüft `active: true`. RFC 7662 definiert `active` als einziges Pflichtfeld der Introspection-Antwort, alle weiteren Felder sind optional. Enthält die Antwort das Feld `aud`, vergleicht die API den Wert mit `Auth:Audience` und lehnt das Token bei einer Abweichung ab. Fehlt `aud`, akzeptiert die API jedes aktive Token des Identity Providers, auch Tokens, die für andere Clients ausgestellt wurden. In diesem Fall muss der Identity Provider die Introspection auf Tokens beschränken, die für den konfigurierten Confidential Client ausgestellt wurden.
+Die API prüft `active: true`. RFC 7662 definiert `active` als einziges Pflichtfeld der Introspection-Antwort, alle weiteren Felder sind optional. Ist `Auth:Audience` konfiguriert, muss die Antwort das Feld `aud` mit diesem Wert enthalten. Fehlt `aud` oder weicht der Wert ab, lehnt die API das Token ab. Ist `Auth:Audience` leer, prüft die API keine Audience und akzeptiert jedes aktive Token des Identity Providers, auch Tokens, die für andere Clients ausgestellt wurden. In diesem Fall muss der Identity Provider die Introspection auf Tokens beschränken, die für den konfigurierten Confidential Client ausgestellt wurden.
 
 ### Appsettings
 
@@ -243,7 +243,7 @@ Folgende Appsettings können definiert werden (Beispiel aus [appsettings.Develop
     "AccessTokenFormat": "Jwt", // Token format: "Jwt" (default) or "Opaque"
     "Authority": "http://localhost:4011/realms/geopilot", // Token issuer (required)
     "PublicClientId": "geopilot-client", // Frontend client id (required)
-    "Audience": "geopilot-api", // Access_Token audience (required)
+    "Audience": "geopilot-api", // Access_Token audience (required for Jwt, optional for Opaque: when set, the introspection response must contain a matching aud)
     "Scope": "openid profile email geopilot.api", // Full scope a client application needs to send as to configure access and id tokens correctly
 
     // Opaque token options (required when AccessTokenFormat is Opaque)

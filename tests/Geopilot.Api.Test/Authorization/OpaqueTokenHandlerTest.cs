@@ -137,8 +137,27 @@ public class OpaqueTokenHandlerTest
     }
 
     [TestMethod]
-    public async Task AuthenticateAsyncActiveTrueWithoutAudAndSubReturnsSuccessWithUserInfoSub()
+    public async Task AuthenticateAsyncActiveTrueWithoutAudAndConfiguredAudienceReturnsFail()
     {
+        var context = CreateContextWithBearerToken("opaque-token");
+        httpHandlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"active\":true}", Encoding.UTF8, "application/json"),
+            });
+
+        var (_, result) = await RunAuthenticateAsync(context);
+
+        Assert.IsFalse(result.Succeeded);
+        Assert.AreEqual("Introspection response contains no audience.", result.Failure?.Message);
+        userInfoServiceMock.Verify(s => s.GetUserInfoAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task AuthenticateAsyncActiveTrueWithoutAudAndEmptyAudienceReturnsSuccessWithUserInfoSub()
+    {
+        options.Audience = string.Empty;
         var context = CreateContextWithBearerToken("opaque-token");
         httpHandlerMock.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -168,7 +187,7 @@ public class OpaqueTokenHandlerTest
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(() => new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent("{\"active\":true,\"sub\":\"idp-sub\"}", Encoding.UTF8, "application/json"),
+                Content = new StringContent("{\"active\":true,\"aud\":\"geopilot-api\",\"sub\":\"idp-sub\"}", Encoding.UTF8, "application/json"),
             });
 
         userInfoServiceMock.Setup(s => s.GetUserInfoAsync("opaque-token")).ReturnsAsync(new UserInfoResponse

@@ -135,8 +135,14 @@ public class OpaqueTokenHandler : AuthenticationHandler<OpaqueTokenOptions>
                     return AuthenticateResult.Fail("Token is not active.");
                 }
 
-                if (!string.IsNullOrWhiteSpace(Options.Audience) && root.TryGetProperty("aud", out var audProp))
+                if (!string.IsNullOrWhiteSpace(Options.Audience))
                 {
+                    if (!root.TryGetProperty("aud", out var audProp))
+                    {
+                        Logger.LogWarning("Introspection response contains no aud, but audience {Audience} is configured.", Options.Audience);
+                        return AuthenticateResult.Fail("Introspection response contains no audience.");
+                    }
+
                     var audienceMatches = false;
                     if (audProp.ValueKind == JsonValueKind.String)
                     {
