@@ -2,14 +2,13 @@
 using Geopilot.Api.Contracts;
 using Geopilot.Api.FileAccess;
 using Geopilot.Api.Models;
-using Geopilot.Api.Processing;
 using Geopilot.Api.Services;
-using Geopilot.Pipeline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Collections.ObjectModel;
 using System.Globalization;
 
 namespace Geopilot.Api.Controllers;
@@ -23,7 +22,7 @@ public class DeliveryController : ControllerBase
 {
     private readonly ILogger<DeliveryController> logger;
     private readonly Context context;
-    private readonly IProcessingService processingService;
+    private readonly IDeliveryDeclarationService deliveryDeclarationService;
     private readonly IMandateService mandateService;
     private readonly IAssetHandler assetHandler;
     private readonly IOptions<DeliveryOptions> deliveryOptions;
@@ -31,11 +30,11 @@ public class DeliveryController : ControllerBase
     /// <summary>
     /// Initializes a new instance of the <see cref="DeliveryController"/> class.
     /// </summary>
-    public DeliveryController(ILogger<DeliveryController> logger, Context context, IProcessingService processingService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions)
+    public DeliveryController(ILogger<DeliveryController> logger, Context context, IDeliveryDeclarationService deliveryDeclarationService, IMandateService mandateService, IAssetHandler assetHandler, IOptions<DeliveryOptions> deliveryOptions)
     {
         this.logger = logger;
         this.context = context;
-        this.processingService = processingService;
+        this.deliveryDeclarationService = deliveryDeclarationService;
         this.mandateService = mandateService;
         this.assetHandler = assetHandler;
         this.deliveryOptions = deliveryOptions;
@@ -59,115 +58,55 @@ public class DeliveryController : ControllerBase
 
         logger.LogInformation("Declaration for job with id <{JobId}> requested.", declaration.JobId);
 
-        var job = processingService.GetJob(declaration.JobId);
-        if (job == null)
-        {
-            logger.LogTrace("No job information available for job with id <{JobId}>.", declaration.JobId);
-            return NotFound($"No job information available for job with id <{declaration.JobId}>");
-        }
-        else if (job.Pipeline is null || !job.Pipeline.State.IsDeliverable())
-        {
-            logger.LogTrace("Job with id <{JobId}> is not completed or delivery is not allowed.", declaration.JobId);
-            return BadRequest($"Job with id <{declaration.JobId}> is not completed or delivery is not allowed.");
-        }
-        else if (job.MandateId == null)
-        {
-            logger.LogTrace("Job with id <{JobId}> cannot be used to make a delivery.", declaration.JobId);
-            return BadRequest($"Job with id <{declaration.JobId}> cannot be used to make a delivery.");
-        }
-
         var user = await context.GetUserByPrincipalAsync(User);
+        var fields = new DeliveryFields(declaration.PartialDelivery, declaration.PrecursorDeliveryId, declaration.Comment);
+        var result = await deliveryDeclarationService.DeclareAsync(declaration.JobId, fields, user.Id, HttpContext.RequestAborted);
 
-        // Do not reuse the mandate returned from GetMandateForUser, because it is not tracked and has no includes.
-        var hasMandatePermission = job.MandateId != null && await mandateService.GetMandateForUser(job.MandateId.Value, user) != null;
-        var mandate = hasMandatePermission
-            ? await context.Mandates.Include(m => m.Deliveries).FirstOrDefaultAsync(m => m.Id == job.MandateId)
-            : null;
-
-        if (!hasMandatePermission || mandate is null || !mandate.AllowDelivery)
+        if (result is not { Status: DeliveryDeclarationStatus.Created, DeliveryId: int deliveryId })
         {
-            logger.LogTrace($"Mandate with id <{job.MandateId}> not found.");
-            return NotFound($"Mandate with id <{job.MandateId}> not found.");
+            return MapDeclarationFailure(result);
         }
-
-        if (mandate.EvaluatePrecursorDelivery == FieldEvaluationType.NotEvaluated && declaration.PrecursorDeliveryId.HasValue)
-        {
-            ModelState.AddModelError(nameof(declaration.PrecursorDeliveryId), "Precursor delivery is not allowed for this mandate.");
-        }
-        else if (mandate.EvaluatePrecursorDelivery == FieldEvaluationType.Required && !declaration.PrecursorDeliveryId.HasValue)
-        {
-            ModelState.AddModelError(nameof(declaration.PrecursorDeliveryId), "Precursor delivery is required for this mandate.");
-        }
-
-        var precursorDelivery = mandate.Deliveries.SingleOrDefault(d => d.Id == declaration.PrecursorDeliveryId);
-        if (declaration.PrecursorDeliveryId.HasValue && precursorDelivery is null)
-        {
-            ModelState.AddModelError(nameof(declaration.PrecursorDeliveryId), "Precursor delivery not found.");
-        }
-
-        if (mandate.EvaluatePartial == FieldEvaluationType.NotEvaluated && declaration.PartialDelivery.HasValue)
-        {
-            ModelState.AddModelError(nameof(declaration.PartialDelivery), "Partial delivery is not allowed for this mandate.");
-        }
-        else if (mandate.EvaluatePartial == FieldEvaluationType.Required && !declaration.PartialDelivery.HasValue)
-        {
-            ModelState.AddModelError(nameof(declaration.PartialDelivery), "Partial delivery is required for this mandate.");
-        }
-
-        if (mandate.EvaluateComment == FieldEvaluationType.NotEvaluated && !string.IsNullOrWhiteSpace(declaration.Comment))
-        {
-            ModelState.AddModelError(nameof(declaration.Comment), "Comment is not allowed for this mandate.");
-        }
-        else if (mandate.EvaluateComment == FieldEvaluationType.Required && string.IsNullOrWhiteSpace(declaration.Comment))
-        {
-            ModelState.AddModelError(nameof(declaration.Comment), "Comment is required for this mandate.");
-        }
-
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
-
-        var delivery = new Delivery
-        {
-            JobId = declaration.JobId,
-            Mandate = mandate,
-            DeclaringUser = user,
-            PrecursorDelivery = precursorDelivery,
-            Partial = declaration.PartialDelivery,
-            Comment = declaration.Comment?.Trim() ?? string.Empty,
-            Assets = new List<Asset>(),
-        };
-
-        try
-        {
-            delivery.Assets.AddRange(await assetHandler.RecordJobAssetsAsync(declaration.JobId, HttpContext.RequestAborted));
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e, "Error while persisting assets for job with id <{JobId}>.", declaration.JobId);
-            return Problem($"Error while persisting assets for job with id <{declaration.JobId}>.");
-        }
-
-        if (delivery.Assets.Count == 0)
-        {
-            logger.LogWarning("No assets found for job with id <{JobId}>.", declaration.JobId);
-            return Problem($"No assets found for job with id <{declaration.JobId}>.");
-        }
-
-        var entityEntry = context.Deliveries.Add(delivery);
-        context.SaveChanges();
 
         var resultDelivery = context.Deliveries
             .AsNoTracking()
-            .Single(d => d.Id == entityEntry.Entity.Id);
+            .Single(d => d.Id == deliveryId);
 
         var location = new Uri(
-            string.Format(CultureInfo.InvariantCulture, "/api/v1/delivery/{0}", entityEntry.Entity.Id),
+            string.Format(CultureInfo.InvariantCulture, "/api/v1/delivery/{0}", deliveryId),
             UriKind.Relative);
 
-        logger.LogInformation("Declaration for job whith id <{JobId}> created.", declaration.JobId);
         return Created(location, resultDelivery);
+    }
+
+    /// <summary>
+    /// Maps a failed declaration onto the response this endpoint has always returned for it.
+    /// </summary>
+    private IActionResult MapDeclarationFailure(DeliveryDeclarationResult result)
+    {
+        switch (result.Status)
+        {
+            case DeliveryDeclarationStatus.JobNotFound:
+            case DeliveryDeclarationStatus.MandateNotDeliverable:
+                return NotFound(result.Message);
+
+            case DeliveryDeclarationStatus.JobNotDeliverable:
+            case DeliveryDeclarationStatus.JobWithoutMandate:
+                return BadRequest(result.Message);
+
+            case DeliveryDeclarationStatus.FieldRulesViolated:
+                foreach (var (field, messages) in result.FieldErrors ?? ReadOnlyDictionary<string, string[]>.Empty)
+                {
+                    foreach (var message in messages)
+                    {
+                        ModelState.AddModelError(field, message);
+                    }
+                }
+
+                return ValidationProblem(ModelState);
+
+            default:
+                return Problem(result.Message);
+        }
     }
 
     /// <summary>
