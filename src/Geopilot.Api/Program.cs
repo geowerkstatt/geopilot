@@ -175,7 +175,7 @@ builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
 
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
-builder.Services.Configure<MachineDeliveryOptions>(builder.Configuration.GetSection(MachineDeliveryOptions.SectionName));
+var machineDeliveryEnabled = builder.AddMachineDelivery();
 builder.Services.AddOptions<IlitoolsOptions>()
     .BindConfiguration(IlitoolsOptions.SectionName)
     .ValidateDataAnnotations()
