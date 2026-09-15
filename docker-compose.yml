@@ -147,7 +147,7 @@ services:
         condition: service_healthy
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.7.3
     environment:
       - KEYCLOAK_ADMIN=SOMBERTOTE
       - KEYCLOAK_ADMIN_PASSWORD=STRANGENIGHT

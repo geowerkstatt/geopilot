@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 
 namespace Geopilot.Api.Authorization;
@@ -64,12 +64,13 @@ public class KeycloakOpaqueTokenTest
     }
 
     [TestMethod]
-    public async Task UserSelfWithActiveTokenForOtherAudienceReturns401()
+    public async Task UserSelfWithValidTokenForOtherAudienceReturns401()
     {
         var token = await GetUploaderTokenAsync("openid");
-        using var introspection = await IntrospectAsync(token);
-        Assert.IsTrue(introspection.RootElement.GetProperty("active").GetBoolean(), "Keycloak must report the token as active.");
-        Assert.DoesNotContain(ApiAudience, introspection.RootElement.GetProperty("aud").ToString(), "The token must not carry the API audience.");
+        Assert.DoesNotContain(ApiAudience, new JwtSecurityTokenHandler().ReadJwtToken(token).Audiences, "The token must not carry the API audience.");
+        using var userInfoRequest = CreateRequest($"{RealmUrl}/protocol/openid-connect/userinfo", token);
+        var userInfoResponse = await keycloak.SendAsync(userInfoRequest);
+        Assert.AreEqual(HttpStatusCode.OK, userInfoResponse.StatusCode, "Keycloak must accept the token as valid.");
 
         using var request = CreateRequest("/api/v1/user/self", token);
         var response = await client.SendAsync(request);
@@ -101,20 +102,6 @@ public class KeycloakOpaqueTokenTest
 
         using var json = JsonDocument.Parse(body);
         return json.RootElement.GetProperty("access_token").GetString()!;
-    }
-
-    private static async Task<JsonDocument> IntrospectAsync(string token)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{RealmUrl}/protocol/openid-connect/token/introspect");
-        request.Headers.Authorization = new AuthenticationHeaderValue(
-            "Basic",
-            Convert.ToBase64String(Encoding.UTF8.GetBytes($"{ConfidentialClientId}:{ConfidentialClientSecret}")));
-        request.Content = new FormUrlEncodedContent(new Dictionary<string, string> { ["token"] = token });
-
-        var response = await keycloak.SendAsync(request);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, $"Introspection failed: {body}");
-        return JsonDocument.Parse(body);
     }
 
     private static async Task WaitForKeycloakAsync()
