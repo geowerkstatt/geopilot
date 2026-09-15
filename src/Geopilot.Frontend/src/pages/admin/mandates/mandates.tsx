@@ -7,6 +7,7 @@ import { GridActionsCell, GridActionsCellItem, GridColDef, GridRenderCellParams,
 import { LocalizedText } from "../../../api/apiInterfaces";
 import { AvailablePipelinesResponse, Mandate, Organisation, PipelineSummary } from "../../../api/generated";
 import { useGeopilotAuth } from "../../../auth";
+import { useCapabilities } from "../../../components/capabilities/capabilitiesInterface.ts";
 import { useControlledNavigate } from "../../../components/controlledNavigate";
 import GeopilotDataGrid from "../../../components/grids/geopilotDataGrid.tsx";
 import useFetch from "../../../hooks/useFetch.ts";
@@ -17,6 +18,7 @@ const Mandates = () => {
   const { t } = useTranslation();
   const { localized } = useLocalized();
   const { user } = useGeopilotAuth();
+  const { machineDeliveryEnabled } = useCapabilities();
   const { navigateTo } = useControlledNavigate();
   const [mandates, setMandates] = useState<Mandate[]>();
   const [pipelines, setPipelines] = useState<PipelineSummary[]>();
@@ -57,12 +59,16 @@ const Mandates = () => {
       minWidth: 200,
       valueGetter: (name: LocalizedText) => localized(name),
     },
-    {
-      field: "key",
-      headerName: t("mandateKey"),
-      flex: 0.5,
-      minWidth: 160,
-    },
+    ...(machineDeliveryEnabled
+      ? [
+          {
+            field: "key",
+            headerName: t("mandateKey"),
+            flex: 0.5,
+            minWidth: 160,
+          },
+        ]
+      : []),
     {
       field: "pipelineId",
       headerName: t("pipeline"),

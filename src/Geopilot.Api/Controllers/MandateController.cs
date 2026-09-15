@@ -5,6 +5,7 @@ using Geopilot.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Globalization;
@@ -22,6 +23,7 @@ public class MandateController : ControllerBase
     private readonly Context context;
     private readonly IMandateService mandateService;
     private readonly IPipelineService pipelineService;
+    private readonly MachineDeliveryOptions machineDeliveryOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MandateController"/> class.
@@ -30,16 +32,21 @@ public class MandateController : ControllerBase
     /// <param name="context">Database context for getting mandates.</param>
     /// <param name="mandateService">The mandate service providing mandate filtering and retrieval.</param>
     /// <param name="pipelineService">The pipeline service providing information about available pipelines for validation during creating or updating mandates.</param>
+    /// <param name="machineDeliveryOptions">The machine delivery settings, which decide whether a mandate carries a key.</param>
     public MandateController(
         ILogger<MandateController> logger,
         Context context,
         IMandateService mandateService,
-        IPipelineService pipelineService)
+        IPipelineService pipelineService,
+        IOptions<MachineDeliveryOptions> machineDeliveryOptions)
     {
+        ArgumentNullException.ThrowIfNull(machineDeliveryOptions);
+
         this.logger = logger;
         this.context = context;
         this.mandateService = mandateService;
         this.pipelineService = pipelineService;
+        this.machineDeliveryOptions = machineDeliveryOptions.Value;
     }
 
     /// <summary>
@@ -155,7 +162,7 @@ public class MandateController : ControllerBase
                 .Where(o => organisationIds.Contains(o.Id))
                 .ToListAsync();
 
-            NormalizeKey(mandate);
+            ApplyKey(mandate, storedKey: null);
 
             var entityEntry = await context.AddAsync(mandate).ConfigureAwait(false);
             await context.SaveChangesAsync().ConfigureAwait(false);
@@ -214,7 +221,7 @@ public class MandateController : ControllerBase
             if (!IsValidPipeline(mandate.PipelineId))
                 return BadRequest($"Pipeline <{mandate.PipelineId}> does not exist.");
 
-            NormalizeKey(mandate);
+            ApplyKey(mandate, existingMandate.Key);
 
             context.Entry(existingMandate).CurrentValues.SetValues(mandate);
 
@@ -258,6 +265,29 @@ public class MandateController : ControllerBase
 
         var pipeline = pipelineService.GetById(pipelineId);
         return pipeline != null;
+    }
+
+    /// <summary>
+    /// Decides which key the mandate is saved with. While machine delivery is off the administration does
+    /// not render the field, so its payload carries no key at all: taking that literally would erase the
+    /// key of every mandate on its next save, which is why the stored one is kept. An incoming key is then
+    /// ignored rather than rejected, so that switching the capability off does not start failing saves on
+    /// mandates that are otherwise valid.
+    /// </summary>
+    /// <param name="mandate">The mandate about to be saved.</param>
+    /// <param name="storedKey">The key the mandate carries in the database, or <c>null</c> when it is new.</param>
+    private void ApplyKey(Mandate mandate, string? storedKey)
+    {
+        if (machineDeliveryOptions.Enabled)
+        {
+            NormalizeKey(mandate);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(mandate.Key))
+            logger.LogInformation("Ignored the key sent for a mandate because machine delivery is not enabled.");
+
+        mandate.Key = storedKey;
     }
 
     /// <summary>
