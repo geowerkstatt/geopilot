@@ -348,6 +348,70 @@ public class MandateServiceTest
     }
 
     [TestMethod]
+    public async Task GetDeliverabilityAsyncRefusesAMandateThatTakesNoDeliveries()
+    {
+        var result = await mandateService.GetDeliverabilityAsync(noDeliveryMandate, uploadId: null);
+
+        Assert.AreEqual(MandateDeliverability.DeliveryNotAllowed, result);
+    }
+
+    [TestMethod]
+    public async Task GetDeliverabilityAsyncRefusesAMandateWhosePipelineThisInstallationDoesNotOffer()
+    {
+        var result = await mandateService.GetDeliverabilityAsync(missingPipelineMandate, uploadId: null);
+
+        Assert.AreEqual(MandateDeliverability.PipelineNotConfigured, result, "A mandate naming an unknown pipeline is a misconfiguration of the installation, not a bad request.");
+    }
+
+    [TestMethod]
+    public async Task GetDeliverabilityAsyncAcceptsAMandateWithoutAnUpload()
+    {
+        var result = await mandateService.GetDeliverabilityAsync(xtfMandate, uploadId: null);
+
+        Assert.AreEqual(MandateDeliverability.Deliverable, result, "Without an upload there are no file types to check, and the remaining rules hold.");
+    }
+
+    [TestMethod]
+    public async Task GetDeliverabilityAsyncRefusesAnUploadTheMandateDoesNotAccept()
+    {
+        var uploadId = Guid.NewGuid();
+        uploadStore.CreateUpload(uploadId, ImmutableList.Create(new UploadedFileInfo("data.csv", $"uploads/{uploadId}/data.csv", 1)));
+
+        var result = await mandateService.GetDeliverabilityAsync(xtfMandate, uploadId);
+
+        Assert.AreEqual(MandateDeliverability.FilesNotAccepted, result);
+    }
+
+    [TestMethod]
+    public async Task GetDeliverabilityAsyncChecksTheMandateBeforeTheFiles()
+    {
+        var uploadId = Guid.NewGuid();
+        uploadStore.CreateUpload(uploadId, ImmutableList.Create(new UploadedFileInfo("data.csv", $"uploads/{uploadId}/data.csv", 1)));
+
+        var result = await mandateService.GetDeliverabilityAsync(noDeliveryMandate, uploadId);
+
+        Assert.AreEqual(
+            MandateDeliverability.DeliveryNotAllowed,
+            result,
+            "A mandate that takes no deliveries at all must say so, rather than complain about the file types of an upload it would never take.");
+    }
+
+    [TestMethod]
+    [DataRow(".xtf", true, DisplayName = "The type the mandate names")]
+    [DataRow(".XTF", true, DisplayName = "The same type in upper case")]
+    [DataRow(".csv", false, DisplayName = "A type the mandate does not name")]
+    public async Task AcceptsFileExtensionAsyncChecksOneExtension(string extension, bool expected)
+    {
+        Assert.AreEqual(expected, await mandateService.AcceptsFileExtensionAsync(xtfMandate.Id, extension));
+    }
+
+    [TestMethod]
+    public async Task AcceptsFileExtensionAsyncAcceptsAnythingForAWildcardMandate()
+    {
+        Assert.IsTrue(await mandateService.AcceptsFileExtensionAsync(unrestrictedMandate.Id, ".whatever"));
+    }
+
+    [TestMethod]
     [DataRow("NOSUCHKEY", DisplayName = "Unknown key")]
     [DataRow("", DisplayName = "Empty key")]
     [DataRow("   ", DisplayName = "Blank key")]

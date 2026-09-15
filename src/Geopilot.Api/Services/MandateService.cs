@@ -76,6 +76,37 @@ public class MandateService : IMandateService
     }
 
     /// <inheritdoc/>
+    public async Task<MandateDeliverability> GetDeliverabilityAsync(Mandate mandate, Guid? uploadId)
+    {
+        ArgumentNullException.ThrowIfNull(mandate);
+
+        if (!mandate.AllowDelivery)
+            return MandateDeliverability.DeliveryNotAllowed;
+
+        // Run the same filters the selection list uses, narrowed to this one mandate, so both answer alike.
+        var mandates = FilterMandatesByResolvablePipeline(context.Mandates.AsNoTracking().Where(m => m.Id == mandate.Id));
+        if (!await mandates.AnyAsync())
+            return MandateDeliverability.PipelineNotConfigured;
+
+        if (uploadId.HasValue && !await FilterMandatesByUpload(mandates, uploadId.Value).AnyAsync())
+            return MandateDeliverability.FilesNotAccepted;
+
+        return MandateDeliverability.Deliverable;
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> AcceptsFileExtensionAsync(int mandateId, string fileExtension)
+    {
+        if (string.IsNullOrEmpty(fileExtension))
+            return false;
+
+        return await context.Mandates.AsNoTracking()
+            .Where(m => m.Id == mandateId)
+            .FilterMandatesByFileExtension(fileExtension)
+            .AnyAsync();
+    }
+
+    /// <inheritdoc/>
     public HashSet<string> GetFileExtensionsForMandates()
     {
         return context.Mandates
