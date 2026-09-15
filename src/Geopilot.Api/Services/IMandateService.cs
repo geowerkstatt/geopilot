@@ -18,9 +18,10 @@ public interface IMandateService
     /// Gets all mandates, filtered by user and upload.
     /// </summary>
     /// <param name="user">Only mandates this user can make deliveries for are returned.</param>
-    /// <param name="uploadId">Only mandates that accept the uploaded files' extensions are returned.</param>
+    /// <param name="uploadId">Only mandates that accept the uploaded files' extensions are returned. Pass
+    /// <see langword="null"/> to skip that filter, for a caller that has not uploaded anything yet.</param>
     /// <returns>List of <see cref="MandateSummary"/> deliverable by the user for the upload.</returns>
-    Task<List<MandateSummary>> GetMandateSummariesAsync(User? user, Guid uploadId);
+    Task<List<MandateSummary>> GetMandateSummariesAsync(User? user, Guid? uploadId);
 
     /// <summary>
     /// Gets the unique keys of all mandates.
@@ -35,6 +36,14 @@ public interface IMandateService
     /// <param name="user">The user that tries to access the mandate. If null, the user is considered unauthenticated.</param>
     /// <returns>The <see cref="Mandate"/> if found and accessible; otherwise, null.</returns>
     Task<Mandate?> GetMandateForUser(int mandateId, User? user);
+
+    /// <summary>
+    /// Retrieves the mandate with the specified key, if the specified user is allowed to access it.
+    /// </summary>
+    /// <param name="key">The unique key of the mandate. Compared exactly, including case.</param>
+    /// <param name="user">The user that tries to access the mandate. If null, the user is considered unauthenticated.</param>
+    /// <returns>The <see cref="Mandate"/> if found and accessible; otherwise, null.</returns>
+    Task<Mandate?> GetMandateByKeyForUser(string key, User? user);
 
     /// <summary>
     /// Retrieves a list of all file extensions that are accepted by any mandate in the system.
