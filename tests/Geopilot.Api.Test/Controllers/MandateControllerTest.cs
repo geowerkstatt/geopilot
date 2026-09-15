@@ -42,7 +42,7 @@ namespace Geopilot.Api.Controllers
 
             pipelineServiceMock = new Mock<IPipelineService>();
 
-            mandateController = new MandateController(loggerMock.Object, context, mandateServiceMock.Object, pipelineServiceMock.Object);
+            mandateController = CreateController(machineDeliveryEnabled: true);
 
             unrestrictedMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(unrestrictedMandate)), AllowDelivery = true };
             noDeliveryMandate = new Mandate { FileTypes = new string[] { ".*" }, Name = TestHelpers.Localized(nameof(noDeliveryMandate)), AllowDelivery = false };
@@ -384,6 +384,51 @@ namespace Geopilot.Api.Controllers
 
             ActionResultAssert.IsConflict(result);
         }
+
+        [TestMethod]
+        public async Task CreateMandateIgnoresKeyWhenMachineDeliveryDisabled()
+        {
+            const string pipelineId = "Pipeline1";
+            SetupPipelineStub(pipelineId);
+            var controller = CreateController(machineDeliveryEnabled: false);
+            controller.SetupTestUser(adminUser);
+
+            var result = await controller.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON"));
+
+            ActionResultAssert.IsCreated(result);
+            var resultValue = Assert.IsInstanceOfType<Mandate>((result as CreatedResult)?.Value);
+            Assert.IsNull(resultValue.Key, "No key may be stored while machine delivery is disabled");
+        }
+
+        [TestMethod]
+        public async Task EditMandateKeepsStoredKeyWhenMachineDeliveryDisabled()
+        {
+            const string pipelineId = "Pipeline1";
+            SetupPipelineStub(pipelineId);
+            mandateController.SetupTestUser(adminUser);
+
+            var created = await mandateController.Create(NewMandateWithKey(pipelineId, "GRUMPYFALCON"));
+            var toEdit = Assert.IsInstanceOfType<Mandate>((created as CreatedResult)?.Value);
+            toEdit.SetCoordinateListFromPolygon();
+
+            // With the capability off the administration does not render the field, so its payload has no key.
+            toEdit.Key = null;
+            var disabledController = CreateController(machineDeliveryEnabled: false);
+            disabledController.SetupTestUser(adminUser);
+            var result = await disabledController.Edit(toEdit);
+
+            ActionResultAssert.IsOk(result);
+            var updated = Assert.IsInstanceOfType<Mandate>((result as OkObjectResult)?.Value);
+            Assert.AreEqual("GRUMPYFALCON", updated.Key, "The stored key must survive a save while machine delivery is disabled");
+        }
+
+        private MandateController CreateController(bool machineDeliveryEnabled)
+            => new(
+                loggerMock.Object,
+                context,
+                mandateServiceMock.Object,
+                pipelineServiceMock.Object,
+                Options.Create(new MachineDeliveryOptions { Enabled = machineDeliveryEnabled }));
 
         private void SetupPipelineStub(string pipelineId)
         {
