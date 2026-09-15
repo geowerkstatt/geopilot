@@ -84,7 +84,7 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
         }
 
         var precursorDelivery = mandate.Deliveries.SingleOrDefault(d => d.Id == fields.PrecursorDeliveryId);
-        var fieldErrors = ValidateFields(mandate, fields, precursorDelivery);
+        var fieldErrors = DeliveryFieldValidator.Validate(mandate, fields, precursorDelivery);
         if (fieldErrors.Count > 0)
         {
             return new DeliveryDeclarationResult(DeliveryDeclarationStatus.FieldRulesViolated, FieldErrors: fieldErrors);
@@ -136,60 +136,6 @@ public class DeliveryDeclarationService : IDeliveryDeclarationService
 
         logger.LogInformation("Declaration for job with id <{JobId}> created.", jobId);
         return new DeliveryDeclarationResult(DeliveryDeclarationStatus.Created, entityEntry.Entity.Id);
-    }
-
-    /// <summary>
-    /// Checks the delivery fields against the evaluation the mandate configures for each of them.
-    /// </summary>
-    /// <returns>The violated rules keyed by field name, empty when all fields are acceptable.</returns>
-    private static Dictionary<string, string[]> ValidateFields(Mandate mandate, DeliveryFields fields, Delivery? precursorDelivery)
-    {
-        var errors = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-
-        void AddError(string field, string message)
-        {
-            if (!errors.TryGetValue(field, out var messages))
-            {
-                messages = new List<string>();
-                errors[field] = messages;
-            }
-
-            messages.Add(message);
-        }
-
-        if (mandate.EvaluatePrecursorDelivery == FieldEvaluationType.NotEvaluated && fields.PrecursorDeliveryId.HasValue)
-        {
-            AddError(nameof(fields.PrecursorDeliveryId), "Precursor delivery is not allowed for this mandate.");
-        }
-        else if (mandate.EvaluatePrecursorDelivery == FieldEvaluationType.Required && !fields.PrecursorDeliveryId.HasValue)
-        {
-            AddError(nameof(fields.PrecursorDeliveryId), "Precursor delivery is required for this mandate.");
-        }
-
-        if (fields.PrecursorDeliveryId.HasValue && precursorDelivery is null)
-        {
-            AddError(nameof(fields.PrecursorDeliveryId), "Precursor delivery not found.");
-        }
-
-        if (mandate.EvaluatePartial == FieldEvaluationType.NotEvaluated && fields.PartialDelivery.HasValue)
-        {
-            AddError(nameof(fields.PartialDelivery), "Partial delivery is not allowed for this mandate.");
-        }
-        else if (mandate.EvaluatePartial == FieldEvaluationType.Required && !fields.PartialDelivery.HasValue)
-        {
-            AddError(nameof(fields.PartialDelivery), "Partial delivery is required for this mandate.");
-        }
-
-        if (mandate.EvaluateComment == FieldEvaluationType.NotEvaluated && !string.IsNullOrWhiteSpace(fields.Comment))
-        {
-            AddError(nameof(fields.Comment), "Comment is not allowed for this mandate.");
-        }
-        else if (mandate.EvaluateComment == FieldEvaluationType.Required && string.IsNullOrWhiteSpace(fields.Comment))
-        {
-            AddError(nameof(fields.Comment), "Comment is required for this mandate.");
-        }
-
-        return errors.ToDictionary(e => e.Key, e => e.Value.ToArray(), StringComparer.Ordinal);
     }
 
     private static bool IsJobConflict(DbUpdateException exception)
