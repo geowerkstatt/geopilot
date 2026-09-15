@@ -12,6 +12,7 @@ namespace Geopilot.Api.Processing;
 public class ProcessingJobCleanupService : BackgroundService
 {
     private readonly IProcessingJobStore jobStore;
+    private readonly ISubmissionStore submissionStore;
     private readonly IDirectoryProvider directoryProvider;
     private readonly IServiceScopeFactory serviceScopeFactory;
     private readonly ILogger<ProcessingJobCleanupService> logger;
@@ -23,6 +24,7 @@ public class ProcessingJobCleanupService : BackgroundService
     /// </summary>
     public ProcessingJobCleanupService(
         IProcessingJobStore jobStore,
+        ISubmissionStore submissionStore,
         IDirectoryProvider directoryProvider,
         IServiceScopeFactory serviceScopeFactory,
         ILogger<ProcessingJobCleanupService> logger,
@@ -31,6 +33,7 @@ public class ProcessingJobCleanupService : BackgroundService
         ArgumentNullException.ThrowIfNull(processingOptions);
 
         this.jobStore = jobStore;
+        this.submissionStore = submissionStore;
         this.directoryProvider = directoryProvider;
         this.serviceScopeFactory = serviceScopeFactory;
         this.logger = logger;
@@ -200,6 +203,7 @@ public class ProcessingJobCleanupService : BackgroundService
             if (!hasSubmittedDelivery)
                 DeleteIfExists(directoryProvider.GetAssetDirectoryPath(jobId));
             jobStore.RemoveJob(jobId);
+            submissionStore.Remove(jobId);
             logger.LogTrace("Retired job <{JobId}>. Removed asset directory: {RemovedAssets}.", jobId, !hasSubmittedDelivery);
             return true;
         }

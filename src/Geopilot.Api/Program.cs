@@ -40,11 +40,14 @@ builder.Services.AddCors(options =>
         });
 });
 
+var machineDeliveryEnabled = builder.AddMachineDelivery();
+
 builder.Services
     .AddControllers(options =>
     {
         options.Conventions.Add(new StacRoutingConvention(GeopilotPolicies.Admin));
         options.Conventions.Add(new GeopilotJsonConvention());
+        options.Conventions.Add(new MachineDeliveryConvention(machineDeliveryEnabled));
 
         var policy = new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
@@ -175,7 +178,6 @@ builder.Services.AddPipelinePluginsScalarOverride(builder.Configuration);
 
 builder.Services.Configure<ClamAvOptions>(builder.Configuration.GetSection("ClamAV"));
 builder.Services.Configure<DeliveryOptions>(builder.Configuration.GetSection("Delivery"));
-builder.Services.Configure<MachineDeliveryOptions>(builder.Configuration.GetSection(MachineDeliveryOptions.SectionName));
 builder.Services.AddOptions<IlitoolsOptions>()
     .BindConfiguration(IlitoolsOptions.SectionName)
     .ValidateDataAnnotations()
@@ -203,6 +205,7 @@ builder.Services.AddTransient<IAssetFileStore, PhysicalAssetFileStore>();
 builder.Services.AddTransient<IDownloadFileStore, PhysicalDownloadFileStore>();
 builder.Services.AddTransient<IVisualizationFileStore, PhysicalVisualizationFileStore>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
+builder.Services.AddTransient<IDeliveryDeclarationService, DeliveryDeclarationService>();
 builder.Services.AddHostedService<ProcessingRunner>();
 builder.Services.AddHostedService<ProcessingJobCleanupService>();
 builder.Services.AddPipelineFactory();
@@ -234,6 +237,7 @@ var uploadConfig = builder.Configuration.GetSection(UploadOptions.SectionName).G
     ?? throw new InvalidOperationException("Upload configuration section is missing.");
 builder.Services.AddRateLimiter(options =>
 {
+    // One window for the whole installation, not one per caller: every client draws from the same budget.
     options.AddFixedWindowLimiter("uploadRateLimit", limiter =>
     {
         limiter.PermitLimit = uploadConfig.RateLimitRequests;
@@ -343,12 +347,12 @@ app.Use(async (context, next) =>
     }
 });
 
-// By default Kestrel responds with a HTTP 400 if payload is too large. Endpoints marked as managing
-// their own body size limit (the direct upload endpoint, sized by Upload:MaxFileSizeMB) are exempt;
-// every other endpoint keeps the global cap.
+// By default Kestrel responds with a HTTP 400 if payload is too large. Endpoints marked as managing their own
+// body size limit are exempt: the direct upload endpoint, sized by Upload:MaxFileSizeMB, and the multipart
+// machine delivery, sized by Upload:MaxJobSizeMB. Every other endpoint keeps the global cap.
 app.Use(async (context, next) =>
 {
-    var managesOwnLimit = context.GetEndpoint()?.Metadata.GetMetadata<SelfManagedBodySizeMetadata>() is not null;
+    var managesOwnLimit = context.GetEndpoint()?.Metadata.GetMetadata<SelfManagedBodySizeAttribute>() is not null;
     if (!managesOwnLimit && context.Request.ContentLength > MaxRequestBodySize)
     {
         context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;

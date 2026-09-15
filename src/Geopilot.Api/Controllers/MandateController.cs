@@ -52,30 +52,33 @@ public class MandateController : ControllerBase
     /// <summary>
     /// Gets a list of all mandates that the current user has access to and match all filter criteria.
     /// </summary>
-    /// <param name="uploadId">Only mandates that accept the uploaded files' extensions are returned.</param>
+    /// <param name="uploadId">Only mandates that accept the uploaded files' extensions are returned. Omit it to skip that filter.</param>
     /// <returns>List of mandates matching the filter criteria.</returns>
     [HttpGet("summary")]
     [AllowAnonymous]
     [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandates that the current user has access to and match all filter criteria.", typeof(IEnumerable<MandateSummary>), "application/json")]
-    [SwaggerResponse(StatusCodes.Status400BadRequest, "The request is missing an uploadId.")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "No upload with the provided id exists.")]
     public async Task<IActionResult> GetSummary(
-        [FromQuery, SwaggerParameter("Filter mandates matching the uploaded files' extensions.")]
-        Guid uploadId)
+        [FromQuery, SwaggerParameter("Filter mandates matching the uploaded files' extensions. Omit it to list the deliverable mandates without that filter, for a caller that has not uploaded anything yet.")]
+        Guid? uploadId)
     {
         logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}>.", uploadId);
-
-        if (uploadId == default)
-        {
-            return BadRequest("Upload id is required.");
-        }
 
         var user = User?.Identity?.IsAuthenticated == true
             ? await context.GetUserByPrincipalAsync(User)
             : null;
 
-        var result = await mandateService.GetMandateSummariesAsync(user, uploadId);
-        logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}> resulted in <{ResultCount}> matching mandates.", uploadId, result.Count);
-        return Ok(result);
+        try
+        {
+            var result = await mandateService.GetMandateSummariesAsync(user, uploadId);
+            logger.LogInformation("Getting list of mandate summaries for upload with id <{UploadId}> resulted in <{ResultCount}> matching mandates.", uploadId, result.Count);
+            return Ok(result);
+        }
+        catch (ArgumentException)
+        {
+            logger.LogTrace("No upload with id <{UploadId}> found.", uploadId);
+            return NotFound($"No upload with id <{uploadId}> found.");
+        }
     }
 
     /// <summary>

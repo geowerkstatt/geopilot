@@ -9,7 +9,14 @@ using System.Security.Claims;
 
 namespace Geopilot.Api.Test.Authorization;
 
+/// <summary>
+/// Not parallelized: one of these empties the users of the shared test database to check that the first user
+/// becomes an administrator. That assumption only holds while nothing else is signing in, and the tests that
+/// drive a host over HTTP do exactly that. Rolling the transaction back afterwards does not help, because the
+/// other connection commits in the meantime.
+/// </summary>
 [TestClass]
+[DoNotParallelize]
 public class GeopilotUserHandlerTest
 {
     private Mock<ILogger<GeopilotUserHandler>> loggerMock;
@@ -114,9 +121,11 @@ public class GeopilotUserHandlerTest
             new ClaimsPrincipal(),
             null);
 
-        // Clear users with all relations in database
+        // Clear users with all relations in database. The execution protocol references the user as well, and
+        // its rows outlive the job they belong to, so a test that started one leaves the users undeletable.
         context.Assets.RemoveRange(context.Assets);
         context.Deliveries.RemoveRange(context.Deliveries);
+        context.PipelineRuns.RemoveRange(context.PipelineRuns);
         context.Users.RemoveRange(context.Users);
         context.SaveChanges();
 
