@@ -126,6 +126,20 @@ public class GeopilotUserHandlerTest
     }
 
     [TestMethod]
+    public async Task UpdateOrCreateUserWithoutUserInfoReturnsNull()
+    {
+        var userCountBefore = context.Users.Count();
+        SetupHttpContextWithToken("mock-token");
+        userInfoServiceMock.Setup(x => x.GetUserInfoAsync("mock-token"))
+            .ReturnsAsync((UserInfoResponse?)null);
+
+        var user = await geopilotUserHandler.UpdateOrCreateUser();
+
+        Assert.IsNull(user);
+        Assert.AreEqual(userCountBefore, context.Users.Count());
+    }
+
+    [TestMethod]
     public async Task UpdateOrCreateUserWithMissingTokenReturnsNull()
     {
         // Arrange
