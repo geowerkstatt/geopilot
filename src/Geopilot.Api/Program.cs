@@ -178,6 +178,7 @@ builder.Services.AddTransient<IAssetFileStore, PhysicalAssetFileStore>();
 builder.Services.AddTransient<IDownloadFileStore, PhysicalDownloadFileStore>();
 builder.Services.AddTransient<IVisualizationFileStore, PhysicalVisualizationFileStore>();
 builder.Services.AddTransient<IAssetHandler, AssetHandler>();
+builder.Services.AddTransient<IDeliveryDeclarationService, DeliveryDeclarationService>();
 builder.Services.AddHostedService<ProcessingRunner>();
 builder.Services.AddHostedService<ProcessingJobCleanupService>();
 builder.Services.AddPipelineFactory();
