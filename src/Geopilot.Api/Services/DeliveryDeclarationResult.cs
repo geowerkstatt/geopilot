@@ -5,7 +5,8 @@
 /// controller and from the processing runner, and those report a failure in different ways.
 /// </summary>
 /// <param name="Status">What happened.</param>
-/// <param name="DeliveryId">The id of the created delivery, set only for <see cref="DeliveryDeclarationStatus.Created"/>.</param>
+/// <param name="DeliveryId">The delivery of the job: the one just created for <see cref="DeliveryDeclarationStatus.Created"/>,
+/// the one that was already there for <see cref="DeliveryDeclarationStatus.AlreadyDeclared"/>, and null otherwise.</param>
 /// <param name="Message">A message describing the outcome, meant for the caller.</param>
 /// <param name="FieldErrors">The violated field rules keyed by field name, set only for
 /// <see cref="DeliveryDeclarationStatus.FieldRulesViolated"/>.</param>
@@ -31,6 +32,9 @@ public enum DeliveryDeclarationStatus
 
     /// <summary>The job was started without a mandate and can therefore not be delivered.</summary>
     JobWithoutMandate,
+
+    /// <summary>The job was already delivered. A job yields at most one delivery.</summary>
+    AlreadyDeclared,
 
     /// <summary>The mandate is not accessible for the declaring user, or does not accept deliveries.</summary>
     MandateNotDeliverable,

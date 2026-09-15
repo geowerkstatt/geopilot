@@ -19,6 +19,13 @@ public class Context : DbContext
     public const string MandateKeyIndexName = "IX_Mandates_Key";
 
     /// <summary>
+    /// Name of the unique index over <see cref="Delivery.JobId"/>. A violation of this index is how the
+    /// declaration learns that another caller declared the same job first, so the name is shared instead of
+    /// repeated as a literal.
+    /// </summary>
+    public const string DeliveryJobIndexName = "IX_Deliveries_JobId";
+
+    /// <summary>
     /// Database context to manage the database.
     /// </summary>
     /// <param name="options">Configuration options for the Context.</param>
@@ -158,6 +165,17 @@ public class Context : DbContext
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
         modelBuilder.Entity<Delivery>().HasQueryFilter(d => !d.Deleted);
+
+        // A job yields at most one delivery. The service checks that before it writes, but the check and the
+        // write are two statements, so only the database can keep two callers from passing it at the same time
+        // and recording the assets of one job twice. Filtered on the soft delete, so a deleted delivery does
+        // not keep its job from being delivered again, which is what the check does as well.
+        modelBuilder.Entity<Delivery>()
+            .HasIndex(delivery => delivery.JobId)
+            .IsUnique()
+            .HasFilter("\"Deleted\" = false")
+            .HasDatabaseName(DeliveryJobIndexName);
+
         modelBuilder.Entity<Asset>()
             .HasQueryFilter(a => !a.Delivery.Deleted)
             .HasQueryFilter(a => !a.Deleted);
