@@ -43,7 +43,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         if (context.User.Identity?.IsAuthenticated != true)
             return;
 
-        var user = await UpdateOrCreateUser(context);
+        var user = await UpdateOrCreateUser();
         if (user is null)
             return;
 
@@ -63,7 +63,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         context.Succeed(requirement);
     }
 
-    internal async Task<User?> UpdateOrCreateUser(AuthorizationHandlerContext context)
+    internal async Task<User?> UpdateOrCreateUser()
     {
         var accessToken = ExtractAccessToken();
         if (string.IsNullOrEmpty(accessToken))
@@ -86,13 +86,8 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
                 FullName = userInfo.Name,
             };
 
-            // Elevate first user to admin
-            if (!dbContext.Users.Any())
-            {
-                user.IsAdmin = true;
-            }
-
-            await dbContext.Users.AddAsync(user);
+            dbContext.Users.Add(user);
+            await dbContext.SaveChangesAsync();
             logger.LogInformation("New user (with sub <{Sub}>) has been registered in database.", userInfo.Sub);
         }
         else if (user.Email != userInfo.Email || user.FullName != userInfo.Name)
@@ -100,10 +95,10 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
             // Update user information in database from userinfo response
             user.Email = userInfo.Email;
             user.FullName = userInfo.Name;
+            await dbContext.SaveChangesAsync();
         }
 
-        await dbContext.SaveChangesAsync();
-        return await dbContext.Users.SingleAsync(u => u.AuthIdentifier == userInfo.Sub);
+        return user;
     }
 
     private string? ExtractAccessToken()
@@ -111,7 +106,7 @@ public class GeopilotUserHandler : AuthorizationHandler<GeopilotUserRequirement>
         var httpContext = httpContextAccessor.HttpContext;
         if (httpContext == null) return null;
 
-        var authHeader = httpContext.Request.Headers["Authorization"].FirstOrDefault();
+        var authHeader = httpContext.Request.Headers.Authorization.FirstOrDefault();
         if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.Ordinal))
         {
             return authHeader.Substring("Bearer ".Length);
