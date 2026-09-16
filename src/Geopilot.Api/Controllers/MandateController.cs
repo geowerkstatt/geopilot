@@ -81,12 +81,18 @@ public class MandateController : ControllerBase
     /// <summary>
     /// Gets a list of all mandate keys for automated deliveries that are in use.
     /// </summary>
-    /// <returns>List of all mandate keys.</returns>
+    /// <returns>List of all mandate keys, or an empty list while machine delivery is not enabled.</returns>
     [HttpGet("keys")]
     [Authorize(Policy = GeopilotPolicies.Admin)]
     [SwaggerResponse(StatusCodes.Status200OK, "Gets a list of all mandate keys.", typeof(IEnumerable<string>), "application/json")]
     public async Task<IActionResult> GetKeys()
     {
+        if (!machineDeliveryOptions.Enabled)
+        {
+            logger.LogInformation("Reporting no mandate keys because machine delivery is not enabled.");
+            return Ok(Array.Empty<string>());
+        }
+
         var result = await mandateService.GetMandateKeysAsync();
         logger.LogInformation("Getting list of mandate keys resulted in <{ResultCount}> unique keys.", result.Count);
         return Ok(result);
