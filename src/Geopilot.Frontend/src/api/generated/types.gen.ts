@@ -1087,7 +1087,7 @@ export type PostApiV1MandateErrors = {
   /**
    * The mandate key is already in use by another mandate.
    */
-  409: unknown;
+  409: ProblemDetails;
   /**
    * The server encountered an unexpected condition that prevented it from fulfilling the request.
    */
@@ -1129,7 +1129,7 @@ export type PutApiV1MandateErrors = {
   /**
    * The mandate key is already in use by another mandate.
    */
-  409: unknown;
+  409: ProblemDetails;
   /**
    * The server encountered an unexpected condition that prevented it from fulfilling the request.
    */
